@@ -16,6 +16,17 @@ func (this *MeshGateway) UnmarshalJSON(b []byte) error {
 	return MeshGatewayUnmarshaler.Unmarshal(b, this)
 }
 
+// MarshalJSON is a custom marshaler for MeshGatewayListener
+func (this *MeshGatewayListener) MarshalJSON() ([]byte, error) {
+	str, err := MeshGatewayMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for MeshGatewayListener
+func (this *MeshGatewayListener) UnmarshalJSON(b []byte) error {
+	return MeshGatewayUnmarshaler.Unmarshal(b, this)
+}
+
 var (
 	MeshGatewayMarshaler   = &protojson.MarshalOptions{}
 	MeshGatewayUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

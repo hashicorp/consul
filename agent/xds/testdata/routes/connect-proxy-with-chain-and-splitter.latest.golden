@@ -41,7 +41,7 @@
                       "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                       "requestHeadersToAdd": [
                         {
-                          "append": false,
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                           "header": {
                             "key": "x-split-leg",
                             "value": "db"
@@ -50,7 +50,7 @@
                       ],
                       "responseHeadersToAdd": [
                         {
-                          "append": false,
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                           "header": {
                             "key": "x-split-leg",
                             "value": "db"
@@ -63,7 +63,7 @@
                       "name": "big-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                       "requestHeadersToAdd": [
                         {
-                          "append": false,
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                           "header": {
                             "key": "x-split-leg",
                             "value": "big"
@@ -72,7 +72,7 @@
                       ],
                       "responseHeadersToAdd": [
                         {
-                          "append": false,
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                           "header": {
                             "key": "x-split-leg",
                             "value": "big"
@@ -85,7 +85,7 @@
                       "name": "goldilocks-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                       "requestHeadersToAdd": [
                         {
-                          "append": false,
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                           "header": {
                             "key": "x-split-leg",
                             "value": "goldilocks"
@@ -94,7 +94,7 @@
                       ],
                       "responseHeadersToAdd": [
                         {
-                          "append": false,
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                           "header": {
                             "key": "x-split-leg",
                             "value": "goldilocks"
@@ -107,7 +107,7 @@
                       "name": "lil-bit-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                       "requestHeadersToAdd": [
                         {
-                          "append": false,
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                           "header": {
                             "key": "x-split-leg",
                             "value": "small"
@@ -116,7 +116,7 @@
                       ],
                       "responseHeadersToAdd": [
                         {
-                          "append": false,
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                           "header": {
                             "key": "x-split-leg",
                             "value": "small"

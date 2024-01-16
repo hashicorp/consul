@@ -32,11 +32,9 @@ Feature: dc / services / dc-switch : Switching Datacenters
     And I click dcs.1.name on the navigation
     Then the url should be /dc-2/services
     Then I see 6 service models
-    When I click dc on the navigation
     And I click dcs.0.name on the navigation
     Then the url should be /dc-1/services
     Then I see 6 service models
-    When I click dc on the navigation
     And I click dcs.1.name on the navigation
     Then the url should be /dc-2/services
     Then I see 6 service models

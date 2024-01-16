@@ -121,8 +121,8 @@ func requireNotNil(v interface{}, name string) {
 
 var _ pbpeering.PeeringServiceServer = (*Server)(nil)
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbpeering.RegisterPeeringServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbpeering.RegisterPeeringServiceServer(registrar, s)
 }
 
 // Backend defines the core integrations the Peering endpoint depends on. A
@@ -764,16 +764,15 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 // -- ImportedServicesCount and ExportedServicesCount
 // NOTE: we return a new peering with this additional data
 func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
+	cp := copyPeering(peering)
 	streamState, found := s.Tracker.StreamStatus(peering.ID)
 	if !found {
 		// TODO(peering): this may be noise on non-leaders
 		s.Logger.Warn("did not find peer in stream tracker; cannot populate imported and"+
 			" exported services count or reconcile peering state", "peerID", peering.ID)
-		peering.StreamStatus = &pbpeering.StreamStatus{}
-		return peering
+		cp.StreamStatus = &pbpeering.StreamStatus{}
+		return cp
 	} else {
-		cp := copyPeering(peering)
-
 		// reconcile pbpeering.PeeringState_Active
 		if streamState.Connected {
 			cp.State = pbpeering.PeeringState_ACTIVE
@@ -1160,6 +1159,5 @@ func validatePeer(peering *pbpeering.Peering, shouldDial bool) error {
 func copyPeering(p *pbpeering.Peering) *pbpeering.Peering {
 	var copyP pbpeering.Peering
 	proto.Merge(&copyP, p)
-
 	return &copyP
 }

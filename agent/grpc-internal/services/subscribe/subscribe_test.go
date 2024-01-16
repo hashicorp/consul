@@ -377,36 +377,62 @@ func newTestBackend(t *testing.T) *testBackend {
 var _ Backend = (*testBackend)(nil)
 
 func runTestServer(t *testing.T, server *Server) net.Addr {
-	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	var grpcServer *gogrpc.Server
-	handler := grpc.NewHandler(
-		hclog.New(nil),
-		addr,
-		func(srv *gogrpc.Server) {
-			grpcServer = srv
-			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, server)
-		},
-		nil,
-		rate.NullRequestLimitsHandler(),
-	)
-
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	t.Cleanup(logError(t, lis.Close))
-
-	go grpcServer.Serve(lis)
+	// create the errgroup and register its cleanup. Its cleanup needs to occur
+	// after all others and that is why this is being done so early on in this function
+	// as cleanup routines are processed in reverse order of them being added.
 	g := new(errgroup.Group)
-	g.Go(func() error {
-		return grpcServer.Serve(lis)
-	})
+	// this cleanup needs to happen after others defined in this func so we do it early
+	// on up here.
 	t.Cleanup(func() {
-		if err := handler.Shutdown(); err != nil {
-			t.Logf("grpc server shutdown: %v", err)
-		}
 		if err := g.Wait(); err != nil {
 			t.Logf("grpc server error: %v", err)
 		}
 	})
+
+	// start the handler
+	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
+	handler := grpc.NewHandler(
+		hclog.New(nil),
+		addr,
+		nil,
+		rate.NullRequestLimitsHandler(),
+	)
+	pbsubscribe.RegisterStateChangeSubscriptionServer(handler, server)
+	g.Go(handler.Run)
+	t.Cleanup(func() {
+		if err := handler.Shutdown(); err != nil {
+			t.Logf("grpc server shutdown: %v", err)
+		}
+	})
+
+	// create the routing to forward network conns to the gRPC handler
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	g.Go(func() error {
+		for {
+			// select {
+			// case <-ctx.Done():
+			// 	return ctx.Err()
+			// default:
+			// }
+
+			conn, err := lis.Accept()
+			if err != nil {
+				return err
+			}
+
+			// select {
+			// case <-ctx.Done():
+			// 	return ctx.Err()
+			// default:
+			// }
+
+			handler.Handle(conn)
+		}
+	})
+	// closing the listener should cause the Accept to unblock and error out
+	t.Cleanup(logError(t, lis.Close))
+
 	return lis.Addr()
 }
 

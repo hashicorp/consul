@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 var injectedError = errors.New("injected error")
@@ -214,19 +216,36 @@ func TestController_API(t *testing.T) {
 	})
 }
 
+func waitForAtomicBoolValue(t testutil.TestingTB, actual *atomic.Bool, expected bool) {
+	t.Helper()
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, expected, actual.Load())
+	})
+}
+
 func TestController_Placement(t *testing.T) {
 	t.Parallel()
 
 	t.Run("singleton", func(t *testing.T) {
+		var running atomic.Bool
+		running.Store(false)
+
 		rec := newTestReconciler()
 		client := svctest.NewResourceServiceBuilder().
 			WithRegisterFns(demo.RegisterTypes).
+			WithCloningDisabled().
 			Run(t)
 
 		ctrl := controller.
 			NewController("artist", pbdemov2.ArtistType).
 			WithWatch(pbdemov2.AlbumType, dependency.MapOwner).
 			WithPlacement(controller.PlacementSingleton).
+			WithNotifyStart(func(context.Context, controller.Runtime) {
+				running.Store(true)
+			}).
+			WithNotifyStop(func(context.Context, controller.Runtime) {
+				running.Store(false)
+			}).
 			WithReconciler(rec)
 
 		mgr := controller.NewManager(client, testutil.Logger(t))
@@ -243,16 +262,21 @@ func TestController_Placement(t *testing.T) {
 
 		// Become the leader and check the reconciler is called.
 		mgr.SetRaftLeader(true)
+		waitForAtomicBoolValue(t, &running, true)
 		_, _ = rec.wait(t)
 
 		// Should not be called after losing leadership.
 		mgr.SetRaftLeader(false)
+		waitForAtomicBoolValue(t, &running, false)
 		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 		require.NoError(t, err)
 		rec.expectNoRequest(t, 500*time.Millisecond)
 	})
 
 	t.Run("each server", func(t *testing.T) {
+		var running atomic.Bool
+		running.Store(false)
+
 		rec := newTestReconciler()
 		client := svctest.NewResourceServiceBuilder().
 			WithRegisterFns(demo.RegisterTypes).
@@ -262,11 +286,15 @@ func TestController_Placement(t *testing.T) {
 			NewController("artist", pbdemov2.ArtistType).
 			WithWatch(pbdemov2.AlbumType, dependency.MapOwner).
 			WithPlacement(controller.PlacementEachServer).
+			WithNotifyStart(func(context.Context, controller.Runtime) {
+				running.Store(true)
+			}).
 			WithReconciler(rec)
 
 		mgr := controller.NewManager(client, testutil.Logger(t))
 		mgr.Register(ctrl)
 		go mgr.Run(testContext(t))
+		waitForAtomicBoolValue(t, &running, true)
 
 		res, err := demo.GenerateV2Artist()
 		require.NoError(t, err)

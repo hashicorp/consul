@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package catalogv2beta1
 
 import "golang.org/x/exp/slices"

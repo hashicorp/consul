@@ -350,13 +350,13 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	}
 
 	if s.useV2Tenancy {
-		if err := s.initTenancy(ctx, s.resourceServiceServer.Backend); err != nil {
+		if err := s.initTenancy(ctx, s.storageBackend); err != nil {
 			return err
 		}
 	}
 
 	if s.useV2Resources {
-		if err := s.initConsulService(ctx, s.insecureResourceServiceClient); err != nil {
+		if err := s.initConsulService(ctx, pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan)); err != nil {
 			return err
 		}
 	}
