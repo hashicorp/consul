@@ -5,6 +5,7 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
+import "pbcatalog/v2beta1/selector.proto";
 import "pbresource/annotations.proto";
 
 message MeshGateway {
@@ -15,6 +16,9 @@ message MeshGateway {
 
   // +kubebuilder:validation:MinItems=1
   repeated MeshGatewayListener listeners = 2;
+
+  // Selection of workloads to be configured as mesh gateways
+  hashicorp.consul.catalog.v2beta1.WorkloadSelector workloads = 3;
 }
 
 message MeshGatewayListener {
