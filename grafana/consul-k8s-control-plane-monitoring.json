@@ -1655,6 +1655,73 @@
                         "type": "prometheus",
                         "uid": "PBFA97CFB590B2093"
                     },
+                    "description": "Gives the filesystem storage used by consul servers",
+                    "fieldConfig": {
+                        "defaults": {
+                            "color": {
+                                "mode": "continuous-BlYlRd"
+                            },
+                            "mappings": [],
+                            "thresholds": {
+                                "mode": "absolute",
+                                "steps": [
+                                    {
+                                        "color": "green",
+                                        "value": null
+                                    },
+                                    {
+                                        "color": "red",
+                                        "value": 80
+                                    }
+                                ]
+                            },
+                            "unit": "bytes"
+                        },
+                        "overrides": []
+                    },
+                    "gridPos": {
+                        "h": 8,
+                        "w": 9,
+                        "x": 15,
+                        "y": 36
+                    },
+                    "id": 100,
+                    "options": {
+                        "orientation": "auto",
+                        "reduceOptions": {
+                            "calcs": [
+                                "lastNotNull"
+                            ],
+                            "fields": "",
+                            "values": false
+                        },
+                        "showThresholdLabels": false,
+                        "showThresholdMarkers": true
+                    },
+                    "pluginVersion": "9.5.5",
+                    "targets": [
+                        {
+                            "datasource": {
+                                "type": "prometheus",
+                                "uid": "PBFA97CFB590B2093"
+                            },
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum(container_fs_usage_bytes{consul_agent_type=\"server\"}) by (consul_agent_type)",
+                            "instant": true,
+                            "legendFormat": "{{consul_agent_type}}",
+                            "range": false,
+                            "refId": "A"
+                        }
+                    ],
+                    "title": "Disk usage (Consul servers)",
+                    "type": "gauge"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
                     "description": "",
                     "fieldConfig": {
                         "defaults": {
@@ -1714,6 +1781,113 @@
                         "w": 15,
                         "x": 0,
                         "y": 36
+                    },
+                    "id": 101,
+                    "options": {
+                        "legend": {
+                            "calcs": [],
+                            "displayMode": "list",
+                            "placement": "bottom",
+                            "showLegend": true
+                        },
+                        "tooltip": {
+                            "mode": "single",
+                            "sort": "none"
+                        }
+                    },
+                    "targets": [
+                        {
+                            "datasource": {
+                                "type": "prometheus",
+                                "uid": "PBFA97CFB590B2093"
+                            },
+                            "editorMode": "code",
+                            "expr": "sum(rate(container_fs_writes_bytes_total{pod=~\"consul-server-.*\", container=\"consul\"}[5m])) by (pod, device)",
+                            "hide": false,
+                            "legendFormat": "writes, {pod=\"{{pod}}\"}",
+                            "range": true,
+                            "refId": "A"
+                        },
+                        {
+                            "datasource": {
+                                "type": "prometheus",
+                                "uid": "PBFA97CFB590B2093"
+                            },
+                            "editorMode": "code",
+                            "expr": "sum(rate(container_fs_reads_bytes_total{pod=~\"consul-server-.*\", container=\"consul\"}[5m])) by (pod, device)",
+                            "hide": false,
+                            "legendFormat": "reads, {pod=\"{{pod}}\"}",
+                            "range": true,
+                            "refId": "B"
+                        }
+                    ],
+                    "title": "Disk Read/Write total per 5 minutes (Consul servers)",
+                    "type": "timeseries"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
+                    "description": "",
+                    "fieldConfig": {
+                        "defaults": {
+                            "color": {
+                                "mode": "palette-classic"
+                            },
+                            "custom": {
+                                "axisCenteredZero": false,
+                                "axisColorMode": "text",
+                                "axisLabel": "",
+                                "axisPlacement": "auto",
+                                "barAlignment": 0,
+                                "drawStyle": "line",
+                                "fillOpacity": 0,
+                                "gradientMode": "none",
+                                "hideFrom": {
+                                    "legend": false,
+                                    "tooltip": false,
+                                    "viz": false
+                                },
+                                "lineInterpolation": "linear",
+                                "lineWidth": 1,
+                                "pointSize": 5,
+                                "scaleDistribution": {
+                                    "type": "linear"
+                                },
+                                "showPoints": "auto",
+                                "spanNulls": false,
+                                "stacking": {
+                                    "group": "A",
+                                    "mode": "none"
+                                },
+                                "thresholdsStyle": {
+                                    "mode": "off"
+                                }
+                            },
+                            "mappings": [],
+                            "thresholds": {
+                                "mode": "absolute",
+                                "steps": [
+                                    {
+                                        "color": "green",
+                                        "value": null
+                                    },
+                                    {
+                                        "color": "red",
+                                        "value": 80
+                                    }
+                                ]
+                            },
+                            "unit": "bytes"
+                        },
+                        "overrides": []
+                    },
+                    "gridPos": {
+                        "h": 8,
+                        "w": 15,
+                        "x": 0,
+                        "y": 44
                     },
                     "id": 48,
                     "options": {
