@@ -26,8 +26,10 @@ func (f *GRPCFlags) MergeFlagsIntoGRPCConfig(c *GRPCConfig) {
 	if strings.HasPrefix(strings.ToLower(f.address.String()), "https://") {
 		c.GRPCTLS = true
 	}
-	f.address.Set(removeSchemaFromGRPCAddress(f.address.String()))
-	f.address.Merge(&c.Address)
+	if f.address.v != nil {
+		f.address.Set(removeSchemaFromGRPCAddress(f.address.String()))
+		f.address.Merge(&c.Address)
+	}
 	// won't overwrite the value if it's false
 	if f.grpcTLS.v != nil && *f.grpcTLS.v {
 		f.grpcTLS.Merge(&c.GRPCTLS)
@@ -70,7 +72,19 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 			"default to the token of the Consul agent at the GRPC address.")
 	fs.Var(&f.tokenFile, "token-file",
 		"File containing the ACL token to use in the request instead of one specified "+
-			"via the -token argument or CONSUL_GRPC_TOKEN environment variable. "+
-			"This can also be specified via the CONSUL_GRPC_TOKEN_FILE environment variable.")
+			"via the -token-file argument or CONSUL_GRPC_TOKEN_FILE environment variable. "+
+			"Notice the tokenFile takes precedence over token flag and environment variables.")
 	return fs
+}
+
+func MergeFlags(dst, src *flag.FlagSet) {
+	if dst == nil {
+		panic("dst cannot be nil")
+	}
+	if src == nil {
+		return
+	}
+	src.VisitAll(func(f *flag.Flag) {
+		dst.Var(f.Value, f.Name, f.Usage)
+	})
 }

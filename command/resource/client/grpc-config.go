@@ -157,3 +157,18 @@ func loadEnvToDefaultConfig(config *GRPCConfig) (*GRPCConfig, error) {
 
 	return config, nil
 }
+
+func (c GRPCConfig) GetToken() (string, error) {
+	if c.TokenFile != "" {
+		data, err := os.ReadFile(c.TokenFile)
+		if err != nil {
+			return "", err
+		}
+
+		return strings.TrimSpace(string(data)), nil
+	}
+	if c.Token != "" {
+		return c.Token, nil
+	}
+	return "", nil
+}
