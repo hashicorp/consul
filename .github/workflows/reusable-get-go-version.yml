@@ -1,0 +1,42 @@
+name: get-go-version
+
+on:
+  workflow_call:
+    outputs:
+      go-version:
+        description: "The Go version detected by this workflow"
+        value: ${{ jobs.get-go-version.outputs.go-version }}
+      go-version-previous:
+        description: "The Go version (MAJOR.MINOR) prior to the current one, used for backwards compatibility testing"
+        value: ${{ jobs.get-go-version.outputs.go-version-previous }}
+
+jobs:
+  get-go-version:
+    name: "Determine Go toolchain version"
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+      go-version-previous: ${{ steps.get-go-version.outputs.go-version-previous }}
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - name: Determine Go version
+        id: get-go-version
+        # We use .go-version as our source of truth for current Go
+        # version, because "goenv" can react to it automatically.
+        #
+        # In the future, we can transition from .go-version and goenv to
+        # Go 1.21 `toolchain` directives by updating this workflow rather
+        # than individually setting `go-version-file` in each `setup-go`
+        # job (as of 2024-01-03, `setup-go` does not support `toolchain`).
+        #
+        # When changing the method of Go version detection, also update
+        # GOLANG_VERSION detection in the root Makefile; this is used for
+        # setting the Dockerfile Go version.
+        run: |
+          GO_VERSION=$(head -n 1 .go-version)
+          echo "Building with Go ${GO_VERSION}"
+          echo "go-version=${GO_VERSION}" >> $GITHUB_OUTPUT
+          GO_MINOR_VERSION=${GO_VERSION%.*}
+          GO_VERSION_PREVIOUS="${GO_MINOR_VERSION%.*}.$((${GO_MINOR_VERSION#*.}-1))"
+          echo "Previous version ${GO_VERSION_PREVIOUS}"
+          echo "go-version-previous=${GO_VERSION_PREVIOUS}" >> $GITHUB_OUTPUT

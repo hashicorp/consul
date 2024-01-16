@@ -1,53 +1,5 @@
 {
   "versionInfo":  "00000001",
-  "resources":  [
-    {
-      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "public_listener:admin-port",
-      "virtualHosts":  [
-        {
-          "name":  "public_listener:admin-port",
-          "domains":  [
-            "*"
-          ],
-          "routes":  [
-            {
-              "match":  {
-                "prefix":  "/"
-              },
-              "route":  {
-                "cluster":  "local_app:admin-port"
-              }
-            }
-          ]
-        }
-      ],
-      "validateClusters":  true
-    },
-    {
-      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "public_listener:api-port",
-      "virtualHosts":  [
-        {
-          "name":  "public_listener:api-port",
-          "domains":  [
-            "*"
-          ],
-          "routes":  [
-            {
-              "match":  {
-                "prefix":  "/"
-              },
-              "route":  {
-                "cluster":  "local_app:api-port"
-              }
-            }
-          ]
-        }
-      ],
-      "validateClusters":  true
-    }
-  ],
   "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
   "nonce":  "00000001"
 }

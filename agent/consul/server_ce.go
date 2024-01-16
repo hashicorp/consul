@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
-	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/reporting"
@@ -27,7 +27,9 @@ func (s *Server) runEnterpriseRateLimiterConfigEntryController() error {
 	return nil
 }
 
-func (s *Server) registerEnterpriseGRPCServices(deps Deps, srv *grpc.Server) {}
+func (s *Server) setupEnterpriseGRPCServices(config *Config, deps Deps) error {
+	return nil
+}
 
 func (s *Server) enterpriseValidateJoinWAN() error {
 	return nil // no-op

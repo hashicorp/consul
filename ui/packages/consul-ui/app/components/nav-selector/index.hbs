@@ -20,6 +20,7 @@
         disabled={{eq @disabled true}}
       />
       <DD.Header @hasDivider={{true}}>
+        {{yield (hash Data=(component 'nav-selector/generic'))}}
         {{#if @description}}
           <div class='consul-side-nav__selector-description'>
             <Hds::Text::Body @size='100' @color='faint'>{{@description}}</Hds::Text::Body>
@@ -37,7 +38,10 @@
         <DD.Description @text='No results' />
       {{else}}
         {{#each this.filteredItems as |item|}}
-          {{yield DD item}}
+          {{yield (hash
+            Dropdown=DD
+            item=item
+          )}}
         {{/each}}
       {{/if}}
       {{#if @footerLink}}

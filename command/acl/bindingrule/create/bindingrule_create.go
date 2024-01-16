@@ -73,7 +73,7 @@ func (c *cmd) init() {
 		&c.bindType,
 		"bind-type",
 		string(api.BindingRuleBindTypeService),
-		"Type of binding to perform (\"service\", \"role\", \"node\"  or \"templated-policy\").",
+		"Type of binding to perform (\"service\", \"role\", \"node\", \"policy\",  or \"templated-policy\").",
 	)
 	c.flags.Var(
 		(*flags.FlagMapValue)(&c.bindVars),

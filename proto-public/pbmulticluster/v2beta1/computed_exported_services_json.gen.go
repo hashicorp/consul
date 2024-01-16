@@ -27,14 +27,14 @@ func (this *ComputedExportedService) UnmarshalJSON(b []byte) error {
 	return ComputedExportedServicesUnmarshaler.Unmarshal(b, this)
 }
 
-// MarshalJSON is a custom marshaler for ComputedExportedServicesConsumer
-func (this *ComputedExportedServicesConsumer) MarshalJSON() ([]byte, error) {
+// MarshalJSON is a custom marshaler for ComputedExportedServiceConsumer
+func (this *ComputedExportedServiceConsumer) MarshalJSON() ([]byte, error) {
 	str, err := ComputedExportedServicesMarshaler.Marshal(this)
 	return []byte(str), err
 }
 
-// UnmarshalJSON is a custom unmarshaler for ComputedExportedServicesConsumer
-func (this *ComputedExportedServicesConsumer) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON is a custom unmarshaler for ComputedExportedServiceConsumer
+func (this *ComputedExportedServiceConsumer) UnmarshalJSON(b []byte) error {
 	return ComputedExportedServicesUnmarshaler.Unmarshal(b, this)
 }
 

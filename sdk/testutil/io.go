@@ -16,7 +16,7 @@ var saveSnapshot = strings.ToLower(os.Getenv("TEST_SAVE_SNAPSHOT")) == "true"
 // If the directory cannot be created t.Fatal is called.
 // The directory will be removed when the test ends. Set TEST_NOCLEANUP env var
 // to prevent the directory from being removed.
-func TempDir(t testing.TB, name string) string {
+func TempDir(t TestingTB, name string) string {
 	if t == nil {
 		panic("argument t must be non-nil")
 	}

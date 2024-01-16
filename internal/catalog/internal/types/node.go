@@ -16,14 +16,9 @@ type DecodedNode = resource.DecodedResource[*pbcatalog.Node]
 
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbcatalog.NodeType,
-		Proto: &pbcatalog.Node{},
-		// TODO: A node should be partition scoped. However its HealthStatus which is
-		// namespace scoped has Node as an owner. We do not support ownership between resources
-		// of differing scope at this time. HealthStatus will probably be split out into two different
-		// types, one for namespace scoped owners and the other for partition scoped owners.
-		// Until that time, Node will remain namespace scoped.
-		Scope:    resource.ScopeNamespace,
+		Type:     pbcatalog.NodeType,
+		Proto:    &pbcatalog.Node{},
+		Scope:    resource.ScopePartition,
 		Validate: ValidateNode,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookNode,

@@ -1,0 +1,3 @@
+```release-note:bug
+ui: fix being able to view peered services from non-default namnespaces
+```

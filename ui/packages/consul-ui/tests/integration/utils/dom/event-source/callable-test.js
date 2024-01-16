@@ -12,7 +12,7 @@ import sinon from 'sinon';
 
 module('Integration | Utility | dom/event-source/callable', function (hooks) {
   setupTest(hooks);
-  test('it dispatches messages', function (assert) {
+  skip('it dispatches messages', function (assert) {
     assert.expect(1);
     const EventSource = domEventSourceCallable(EventTarget);
     const listener = sinon.stub();

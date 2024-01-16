@@ -27,8 +27,8 @@ An executable handler reads the JSON invocation info from stdin. Additionally, t
 
 Here is an example configuration, where `handler_type` is optionally set to `script`:
 
-<CodeTabs heading="Consul watch with script handler defined in agent configuration"> 
-
+<CodeTabs heading="Consul watch with script handler defined in agent configuration">
+  
 <CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
@@ -43,7 +43,6 @@ watches = [
 ```
 
 </CodeBlockConfig>
-
 <CodeBlockConfig filename="agent-config.json">
 
 ```json
@@ -60,7 +59,6 @@ watches = [
 ```
 
 </CodeBlockConfig>
-
 </CodeTabs>
 
 Prior to Consul 1.0, watches used a single `handler` field to define the command to run, and would always run in a shell. In Consul 1.0, the `args` array was added so that handlers can be run without a shell. The `handler` field is deprecated, and you should include the shell in the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
@@ -73,8 +71,8 @@ The HTTP handler can be configured by setting `handler_type` to `http`. Addition
 
 Here is an example configuration:
 
-<CodeTabs heading="Consul watch with HTTP handler defined in agent configuration"> 
-
+<CodeTabs heading="Consul watch with HTTP handler defined in agent configuration">
+  
 <CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
@@ -96,7 +94,7 @@ watches = [
 ]
 ```
 
-</CodeBlockConfig> 
+</CodeBlockConfig>
 
 <CodeBlockConfig filename="agent-config.json">
 
@@ -119,7 +117,7 @@ watches = [
 }
 ```
 
-</CodeBlockConfig> 
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -154,7 +152,7 @@ Here is an example configuration:
 
 <CodeTabs heading="Example key watch type">
 
-<CodeBlockConfig heading="HCL">
+<CodeBlockConfig>
 
 ```hcl
 {
@@ -166,7 +164,7 @@ Here is an example configuration:
 
 </CodeBlockConfig>
 
-<CodeBlockConfig heading="JSON">
+<CodeBlockConfig>
 
 ```json
 {
@@ -210,7 +208,7 @@ Here is an example configuration:
 
 <CodeTabs heading="Example keyprefix watch type">
 
-<CodeBlockConfig heading="HCL">
+<CodeBlockConfig>
 
 ```hcl
 {
@@ -222,7 +220,7 @@ Here is an example configuration:
 
 </CodeBlockConfig>
 
-<CodeBlockConfig heading="JSON">
+<CodeBlockConfig>
 
 ```json
 {
@@ -286,7 +284,7 @@ Below is an example configuration:
 
 <CodeTabs heading="Example services watch type">
 
-<CodeBlockConfig heading="HCL">
+<CodeBlockConfig>
 
 ```hcl
 {
@@ -297,7 +295,7 @@ Below is an example configuration:
 
 </CodeBlockConfig>
 
-<CodeBlockConfig heading="JSON">
+<CodeBlockConfig>
 
 ```json
 {
@@ -336,7 +334,7 @@ Below is an example configuration:
 
 <CodeTabs heading="Example nodes watch type">
 
-<CodeBlockConfig heading="HCL">
+<CodeBlockConfig>
 
 ```hcl
 {
@@ -347,7 +345,7 @@ Below is an example configuration:
 
 </CodeBlockConfig>
 
-<CodeBlockConfig heading="JSON">
+<CodeBlockConfig>
 
 ```json
 {

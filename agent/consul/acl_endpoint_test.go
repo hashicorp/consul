@@ -3663,6 +3663,37 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		require.Equal(t, "test-node", rule.BindName)
 	})
 
+	t.Run("Bind Policy", func(t *testing.T) {
+		req := structs.ACLBindingRuleSetRequest{
+			Datacenter: "dc1",
+			BindingRule: structs.ACLBindingRule{
+				Description: "foobar policy",
+				AuthMethod:  testAuthMethod.Name,
+				Selector:    "serviceaccount.name==abc",
+				BindType:    structs.BindingRuleBindTypePolicy,
+				BindName:    "test-policy",
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		var resp structs.ACLBindingRule
+
+		err := aclEp.BindingRuleSet(&req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
+
+		// Get the rule directly to validate that it exists
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
+		require.NoError(t, err)
+		rule := ruleResp.BindingRule
+
+		require.NotEmpty(t, rule.ID)
+		require.Equal(t, rule.Description, "foobar policy")
+		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
+		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
+		require.Equal(t, structs.BindingRuleBindTypePolicy, rule.BindType)
+		require.Equal(t, "test-policy", rule.BindName)
+	})
+
 	t.Run("templated policy", func(t *testing.T) {
 		req := structs.ACLBindingRuleSetRequest{
 			Datacenter: "dc1",
@@ -3841,7 +3872,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 	t.Run("Create fails; invalid bind type", func(t *testing.T) {
 		reqRule := newRule()
 		reqRule.BindType = "invalid"
-		requireSetErrors(t, reqRule, "Invalid Binding Rule: unknown BindType")
+		requireSetErrors(t, reqRule, "invalid Binding Rule: unknown BindType")
 	})
 
 	t.Run("Create fails; bind name with unknown vars", func(t *testing.T) {
@@ -4540,6 +4571,11 @@ func TestACLEndpoint_Login(t *testing.T) {
 		"fake-node",
 		"default", "mynode", "jkl101",
 	)
+	testauth.InstallSessionToken(
+		testSessionID,
+		"fake-policy", // 1 rule (policy)
+		"default", "mypolicy", "jkl012",
+	)
 
 	method, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID)
 	require.NoError(t, err)
@@ -4584,6 +4620,15 @@ func TestACLEndpoint_Login(t *testing.T) {
 		"serviceaccount.namespace==default and serviceaccount.name==mynode",
 		structs.BindingRuleBindTypeNode,
 		"${serviceaccount.name}",
+	)
+	require.NoError(t, err)
+
+	// policy rule
+	_, err = upsertTestBindingRule(
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
+		"serviceaccount.namespace==default and serviceaccount.name==mypolicy",
+		structs.BindingRuleBindTypePolicy,
+		"method-${serviceaccount.name}",
 	)
 	require.NoError(t, err)
 

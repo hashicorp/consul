@@ -10,44 +10,49 @@
   (can "choose partitions" dc=@dc)
   as |SNL partition isManaging canChoose|
 }}
-  <DataSource
-    @src={{uri "/*/*/${dc}/partitions" (hash dc=@dc.Name)}}
-    @onchange={{fn (optional @onchange)}}
-  />
-  <SNL.Title class="consul-side-nav__selector-title">{{t "components.hashicorp-consul.side-nav.partitions.title"}}</SNL.Title>
+  <SNL.Title class="consul-side-nav__selector-title">{{t
+      "components.hashicorp-consul.side-nav.partitions.title"
+    }}</SNL.Title>
   <NavSelector
     @list={{@list}}
     @items={{sort-by "Name:asc" (reject-by "DeletedAt" @partitions)}}
     @item={{partition}}
     @key="Name"
     @icon="users"
-    @placeholder={{t "components.hashicorp-consul.side-nav.partitions.placeholder"}}
+    @placeholder={{t
+      "components.hashicorp-consul.side-nav.partitions.placeholder"
+    }}
     @footerLink={{href-to "dc.partitions" @dc.Name}}
-    @footerLinkText={{t "components.hashicorp-consul.side-nav.partitions.footer"}}
+    @footerLinkText={{t
+      "components.hashicorp-consul.side-nav.partitions.footer"
+    }}
     @disabled={{not canChoose}}
-    data-test-datacenter-disclosure-menu
-    as |Dropdown item|
+    data-test-datacenter-menu
+    as |Selector|
   >
+    <Selector.Data>
+      <DataSource
+        @src={{uri "/*/*/${dc}/partitions" (hash dc=@dc.Name)}}
+        @loading="lazy"
+        @onchange={{fn (optional @onchange)}}
+      />
+    </Selector.Data>
     {{#if canChoose}}
-      <Dropdown.Checkmark
-        @selected={{eq partition.Name item.Name}}
+      <Selector.Dropdown.Checkmark
+        @selected={{eq partition.Name Selector.item.Name}}
         @href={{if
-          item.href
-          item.href
-          (if
-            isManaging
-            (href-to
-              "dc.services.index"
-              params=(hash partition=item.Name nspace=undefined dc=@dc.Name)
-            )
-            (href-to "." params=(hash partition=item.Name nspace=undefined))
+          Selector.item.href
+          Selector.item.href
+          (href-to
+            "dc.services.index"
+            params=(hash partition=Selector.item.Name nspace=undefined peer=undefined dc=@dc.Name)
           )
         }}
         @isHrefExternal={{false}}
         data-test-partiton-item
       >
-        {{item.Name}}
-      </Dropdown.Checkmark>
+        {{Selector.item.Name}}
+      </Selector.Dropdown.Checkmark>
     {{/if}}
   </NavSelector>
 {{/let}}

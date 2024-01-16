@@ -12,17 +12,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	resourceSvc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
-	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	"github.com/hashicorp/go-hclog"
 
+	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -44,7 +44,11 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		expectedResponseCode int
 		responseBodyContains string
 	}
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+
 	resourceHandler := resourceHandler{
 		resource.Registration{
 			Type:  demo.TypeV2Artist,
@@ -125,17 +129,17 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 }
 
 func TestResourceWriteHandler(t *testing.T) {
-	aclResolver := &resourceSvc.MockACLResolver{}
+	aclResolver := &svc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1ReadPolicy, demo.ArtistV2ReadPolicy), nil)
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1WritePolicy, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
-
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
-	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
+	builder := svctest.NewResourceServiceBuilder().
+		WithACLResolver(aclResolver).
+		WithRegisterFns(demo.RegisterTypes)
+	client := builder.Run(t)
+	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
 
 	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
@@ -157,6 +161,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 		require.Equal(t, http.StatusForbidden, rsp.Result().StatusCode)
 	})
+
 	var readRsp *pbresource.ReadResponse
 	t.Run("should write to the resource backend", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
@@ -352,7 +357,7 @@ func deleteResource(t *testing.T, artistHandler http.Handler, resourceUri *Resou
 }
 
 func TestResourceReadHandler(t *testing.T) {
-	aclResolver := &resourceSvc.MockACLResolver{}
+	aclResolver := &svc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1ReadPolicy, demo.ArtistV2ReadPolicy), nil)
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
@@ -360,11 +365,11 @@ func TestResourceReadHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", fakeToken, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, ""), nil)
 
-	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
-
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
-	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
+	builder := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		WithACLResolver(aclResolver)
+	client := builder.Run(t)
+	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
 
 	createdResource := createResource(t, handler, nil)
 
@@ -407,18 +412,17 @@ func TestResourceReadHandler(t *testing.T) {
 }
 
 func TestResourceDeleteHandler(t *testing.T) {
-	aclResolver := &resourceSvc.MockACLResolver{}
+	aclResolver := &svc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2ReadPolicy), nil)
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
-
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
-
-	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
+	builder := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		WithACLResolver(aclResolver)
+	client := builder.Run(t)
+	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
 
 	t.Run("should surface PermissionDenied error from resource service", func(t *testing.T) {
 		createResource(t, handler, nil)
@@ -484,18 +488,17 @@ func TestResourceDeleteHandler(t *testing.T) {
 }
 
 func TestResourceListHandler(t *testing.T) {
-	aclResolver := &resourceSvc.MockACLResolver{}
+	aclResolver := &svc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistListPolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2ListPolicy), nil)
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
-
-	r := resource.NewRegistry()
-	demo.RegisterTypes(r)
-
-	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
+	builder := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		WithACLResolver(aclResolver)
+	client := builder.Run(t)
+	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
 
 	t.Run("should return MethodNotAllowed", func(t *testing.T) {
 		rsp := httptest.NewRecorder()

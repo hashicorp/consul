@@ -56,6 +56,11 @@ func (b *resourceBuilder) WithTenancy(tenant *pbresource.Tenancy) *resourceBuild
 	return b
 }
 
+func (b *resourceBuilder) WithVersion(version string) *resourceBuilder {
+	b.resource.Version = version
+	return b
+}
+
 func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourceBuilder {
 	t.Helper()
 
@@ -108,13 +113,15 @@ func (b *resourceBuilder) Build() *pbresource.Resource {
 	}
 
 	// Now create the status map
-	res.Status = make(map[string]*pbresource.Status)
-	for key, original := range b.statuses {
-		status := &pbresource.Status{
-			ObservedGeneration: res.Generation,
-			Conditions:         original.Conditions,
+	if len(b.statuses) > 0 {
+		res.Status = make(map[string]*pbresource.Status)
+		for key, original := range b.statuses {
+			status := &pbresource.Status{
+				ObservedGeneration: res.Generation,
+				Conditions:         original.Conditions,
+			}
+			res.Status[key] = status
 		}
-		res.Status[key] = status
 	}
 
 	return res
@@ -178,7 +185,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
 		id.Uid = ""
 		t.Cleanup(func() {
-			rtestClient.MustDelete(t, id)
+			rtestClient.CleanupDelete(t, id)
 		})
 	}
 

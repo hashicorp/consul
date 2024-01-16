@@ -1,6 +1,14 @@
 {
   "admin": {
-    "access_log_path": "/some/path/access.log",
+    "access_log": [
+      {
+        "name": "envoy.access_loggers.file",
+        "typed_config": {
+          "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
+          "path": "/some/path/access.log"
+        }
+      }
+    ],
     "address": {
       "socket_address": {
         "address": "127.0.0.1",
@@ -33,7 +41,14 @@
         "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
-        "http2_protocol_options": {},
+        "typed_extension_protocol_options": {
+          "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+            "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+            "explicit_http_config": {
+              "http2_protocol_options": {}
+            }
+          }
+        },
         "loadAssignment": {
           "clusterName": "local_agent",
           "endpoints": [

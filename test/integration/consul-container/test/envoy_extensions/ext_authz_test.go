@@ -15,6 +15,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -87,8 +88,8 @@ func TestExtAuthzLocal(t *testing.T) {
 	// Make requests to the static-server. We expect that all requests are rejected with 403 Forbidden
 	// unless they are to the /allow path.
 	baseURL := fmt.Sprintf("http://localhost:%d", port)
-	doRequest(t, baseURL, http.StatusForbidden)
-	doRequest(t, baseURL+"/allow", http.StatusOK)
+	retryRequest(t, baseURL, http.StatusForbidden)
+	retryRequest(t, baseURL+"/allow", http.StatusOK)
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
@@ -161,10 +162,16 @@ func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 	}
 }
 
-func doRequest(t *testing.T, url string, expStatus int) {
+func retryRequest(t *testing.T, url string, expStatus int) {
+	t.Helper()
 	retry.RunWith(&retry.Timer{Timeout: 5 * time.Second, Wait: time.Second}, t, func(r *retry.R) {
-		resp, err := cleanhttp.DefaultClient().Get(url)
-		require.NoError(r, err)
-		require.Equal(r, expStatus, resp.StatusCode)
+		doRequest(r, url, expStatus)
 	})
+}
+
+func doRequest(t testutil.TestingTB, url string, expStatus int) {
+	t.Helper()
+	resp, err := cleanhttp.DefaultClient().Get(url)
+	require.NoError(t, err)
+	require.Equal(t, expStatus, resp.StatusCode)
 }

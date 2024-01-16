@@ -34,11 +34,11 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	"github.com/hashicorp/consul/agent/dns"
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -1140,8 +1140,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
 	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
 		// Allow override of this check for development/testing purposes. Should not be used in production
-		override, err := strconv.ParseBool(os.Getenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK"))
-		if err != nil || !override {
+		if !stringslice.Contains(rt.Experiments, consul.HCPAllowV2ResourceAPIs) {
 			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
 		}
 	}
@@ -1288,7 +1287,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	switch {
 	case rt.NodeName == "":
 		return fmt.Errorf("node_name cannot be empty")
-	case dns.InvalidNameRe.MatchString(rt.NodeName):
+	case dnsutil.InvalidNameRe.MatchString(rt.NodeName):
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", rt.NodeName)
@@ -1296,7 +1295,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		// todo(kyhavlov): Add stronger validation here for node names.
 		b.warn("Found invalid characters in node name %q - whitespace and quotes "+
 			"(', \", `) cannot be used with auto-config.", rt.NodeName)
-	case len(rt.NodeName) > dns.MaxLabelLength:
+	case len(rt.NodeName) > dnsutil.MaxLabelLength:
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.", rt.NodeName)
@@ -1828,14 +1827,14 @@ func (b *builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGate
 	return cfg
 }
 
-func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
-	var out dns.RecursorStrategy
+func (b *builder) dnsRecursorStrategyVal(v string) structs.RecursorStrategy {
+	var out structs.RecursorStrategy
 
-	switch dns.RecursorStrategy(v) {
-	case dns.RecursorStrategyRandom:
-		out = dns.RecursorStrategyRandom
-	case dns.RecursorStrategySequential, "":
-		out = dns.RecursorStrategySequential
+	switch structs.RecursorStrategy(v) {
+	case structs.RecursorStrategyRandom:
+		out = structs.RecursorStrategyRandom
+	case structs.RecursorStrategySequential, "":
+		out = structs.RecursorStrategySequential
 	default:
 		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
 	}

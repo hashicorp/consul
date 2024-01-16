@@ -16,14 +16,14 @@
       @description={{t "components.hashicorp-consul.side-nav.datacenters.description"}}
       class='consul-datacenter-selector'
       data-test-datacenter-menu
-      as |Dropdown item|
+      as |Selector|
     >
-      <Dropdown.Checkmark
-        @selected={{eq @dc.Name item.Name}}
+      <Selector.Dropdown.Checkmark
+        @selected={{eq @dc.Name Selector.item.Name}}
         @href={{href-to
           '.'
           params=(hash
-            dc=item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
+            dc=Selector.item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
           )
         }}
         @isHrefExternal={{false}}
@@ -31,20 +31,20 @@
         data-test-dc-item
       >
         <span class='consul-datacenter-selector__dc-name'>
-          {{item.Name}}
+          {{Selector.item.Name}}
 
-          {{#if (or item.Local item.Primary)}}
+          {{#if (or Selector.item.Local Selector.item.Primary)}}
             <span class='consul-datacenter-selector__badges'>
-              {{#if item.Primary}}
+              {{#if Selector.item.Primary}}
                 <Hds::Badge @text='Primary' />
               {{/if}}
-              {{#if item.Local}}
+              {{#if Selector.item.Local}}
                 <Hds::Badge @text='Local' />
               {{/if}}
             </span>
           {{/if}}
         </span>
-      </Dropdown.Checkmark>
+      </Selector.Dropdown.Checkmark>
     </NavSelector>
   {{else}}
     <SNL.Item class='consul-side-nav__datacenter' data-test-datacenter-single>

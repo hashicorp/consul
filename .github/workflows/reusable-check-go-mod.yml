@@ -10,6 +10,9 @@ on:
       repository-name:
         required: true
         type: string
+      go-version:
+        required: true
+        type: string
     secrets:
       elevated-github-token:
         required: true
@@ -25,14 +28,12 @@ jobs:
       run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
-        go-version-file: 'go.mod'
-    - run: go mod tidy
+        go-version: ${{ inputs.go-version }}
+    # Run on all go.mod (include submodules).
+    - run: make go-mod-tidy
     - run: |
         if [[ -n $(git status -s) ]]; then
           echo "Git directory has changes"
           git status -s
           exit 1
         fi
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh

@@ -251,6 +251,11 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 
 	// Setup telemetry collector if needed. This MUST happen after the Static*JSON is set above
 	if c.TelemetryCollectorBindSocketDir != "" {
+		// Override StatsFlushInterval as 60 seconds (1 minute) to reduce number of metric flushes.
+		// Only perform this override if there is no custom configuration for stats sinks and flush interval.
+		if c.StatsFlushInterval == "" && args.StatsSinksJSON == "" {
+			args.StatsFlushInterval = "60s"
+		}
 		appendTelemetryCollectorConfig(args, c.TelemetryCollectorBindSocketDir)
 	}
 
@@ -648,7 +653,14 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		"ignore_health_on_host_removal": false,
 		"connect_timeout": "5s",
 		"type": "STATIC",
-		"http_protocol_options": {},
+		"typed_extension_protocol_options": {
+			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+				"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+				"explicit_http_config": {
+					"http_protocol_options": {}
+				}
+			}
+		},
 		"loadAssignment": {
 			"clusterName": "` + clusterName + `",
 			"endpoints": [
@@ -858,7 +870,14 @@ func appendTelemetryCollectorConfig(args *BootstrapTplArgs, telemetryCollectorBi
 	args.StaticClustersJSON += fmt.Sprintf(`{
 		"name": "consul_telemetry_collector_loopback",
 		"type": "STATIC",
-		"http2_protocol_options": {},
+		"typed_extension_protocol_options": {
+		  "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+			"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+			"explicit_http_config": {
+			  "http2_protocol_options": {}
+			}
+		  }
+		},
 		"loadAssignment": {
 		  "clusterName": "consul_telemetry_collector_loopback",
 		  "endpoints": [
