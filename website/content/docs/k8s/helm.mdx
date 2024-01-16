@@ -2173,8 +2173,8 @@ Use these links to navigate to a particular top-level stanza.
 
       - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
 
-    - `defaultStartupFailureSeconds` ((#v-connectinject-sidecarproxy-defaultstartupfailureseconds)) (`integer: 0`) - Enables a startup probe that polls the Envoy sidecar health every second. K8s will kill the container when it fails health checks consecutively for this period of time during startup. A value of `0` disables the probe.
-    - `defaultLivenessFailureSeconds` ((#v-connectinject-sidecarproxy-defaultlivenessfailureseconds)) (`integer: 0`) - Enables a liveness probe that polls the Envoy sidecar health every second. K8s will kill the container when it fails health checks consecutively for this period of time. A value of `0` disables the probe.
+    - `defaultStartupFailureSeconds` ((#v-connectinject-sidecarproxy-defaultstartupfailureseconds)) (`integer: 0`) - Enables a startup probe that polls the Envoy sidecar health every second. When a container fails health checks consecutively for this period of time during startup, K8s restarts the container according to its [`restartPolicy`](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy). A value of `0` disables the probe.
+    - `defaultLivenessFailureSeconds` ((#v-connectinject-sidecarproxy-defaultlivenessfailureseconds)) (`integer: 0`) - Enables a liveness probe that polls the Envoy sidecar health every second. When a container fails health checks  for this period of time, K8s restarts the container according to its [`restartPolicy`](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy). A value of `0` disables the probe.
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
     won't be set for the initContainer. The defaults are optimized for developer instances of
