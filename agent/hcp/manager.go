@@ -21,9 +21,10 @@ var (
 )
 
 type ManagerConfig struct {
-	Client        hcpclient.Client
-	CloudConfig   config.CloudConfig
-	SCADAProvider scada.Provider
+	Client            hcpclient.Client
+	CloudConfig       config.CloudConfig
+	SCADAProvider     scada.Provider
+	TelemetryProvider *hcpProviderImpl
 
 	StatusFn    StatusCallback
 	MinInterval time.Duration
@@ -66,9 +67,7 @@ type Manager struct {
 	testUpdateSent chan struct{}
 }
 
-// NewManager returns an initialized Manager with a zero configuration. It won't
-// do anything until UpdateConfig is called with a config that provides
-// credentials to contact HCP.
+// NewManager returns a Manager initialized with the given configuration.
 func NewManager(cfg ManagerConfig) *Manager {
 	return &Manager{
 		logger: cfg.Logger,
@@ -83,23 +82,27 @@ func NewManager(cfg ManagerConfig) *Manager {
 // yet for servers since a config update might configure it later and
 // UpdateConfig called. It will effectively do nothing if there are no HCP
 // credentials set other than wait for some to be added.
-func (m *Manager) Run(ctx context.Context) {
+func (m *Manager) Run(ctx context.Context) error {
 	var err error
 	m.logger.Debug("HCP manager starting")
 
 	// Update and start the SCADA provider
 	err = m.startSCADAProvider()
 	if err != nil {
-		// Log the error but continue starting the manager. The SCADA provider
-		// could potentially be updated later with a working configuration.
-		m.logger.Error("scada provider failed to start, some HashiCorp Cloud Platform functionality has been disabled",
-			"error", err)
+		m.logger.Error("failed to start scada provider", "error", err)
+		return err
+	}
+
+	// Update and start the telemetry provider to enable the HCP metrics sink
+	if err := m.startTelemetryProvider(ctx); err != nil {
+		m.logger.Error("failed to update telemetry config provider", "error", err)
+		return err
 	}
 
 	// immediately send initial update
 	select {
 	case <-ctx.Done():
-		return
+		return nil
 	case <-m.updateCh: // empty the update chan if there is a queued update to prevent repeated update in main loop
 		err = m.sendUpdate()
 	default:
@@ -118,7 +121,7 @@ func (m *Manager) Run(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 
 		case <-m.updateCh:
 			err = m.sendUpdate()
@@ -153,6 +156,18 @@ func (m *Manager) startSCADAProvider() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (m *Manager) startTelemetryProvider(ctx context.Context) error {
+	if m.cfg.TelemetryProvider == nil {
+		return nil
+	}
+
+	m.cfg.TelemetryProvider.Run(ctx, &HCPProviderCfg{
+		HCPClient: m.cfg.Client,
+		HCPConfig: &m.cfg.CloudConfig,
+	})
 
 	return nil
 }
