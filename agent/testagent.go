@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"text/template"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -86,15 +88,32 @@ type TestAgent struct {
 	// allows the BaseDeps to be modified before starting the embedded agent
 	OverrideDeps func(deps *BaseDeps)
 
+	// Skips asserting that the ACL bootstrap has occurred. This may be required
+	// for various tests where multiple servers are joined later.
+	disableACLBootstrapCheck bool
+
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
 }
 
+type TestAgentOpts struct {
+	// Skips asserting that the ACL bootstrap has occurred. This may be required
+	// for various tests where multiple servers are joined later.
+	DisableACLBootstrapCheck bool
+}
+
 // NewTestAgent returns a started agent with the given configuration. It fails
 // the test if the Agent could not be started.
-func NewTestAgent(t *testing.T, hcl string) *TestAgent {
-	a := StartTestAgent(t, TestAgent{HCL: hcl})
+func NewTestAgent(t *testing.T, hcl string, opts ...TestAgentOpts) *TestAgent {
+	// This varargs approach is used so that we don't have to modify all of the `NewTestAgent()` calls
+	// in order to introduce more optional arguments.
+	require.LessOrEqual(t, len(opts), 1, "NewTestAgent cannot accept more than one opts argument")
+	ta := TestAgent{HCL: hcl}
+	if len(opts) == 1 {
+		ta.disableACLBootstrapCheck = opts[0].DisableACLBootstrapCheck
+	}
+	a := StartTestAgent(t, ta)
 	t.Cleanup(func() { a.Shutdown() })
 	return a
 }
@@ -286,6 +305,16 @@ func (a *TestAgent) waitForUp() error {
 			continue // fail, try again
 		}
 		if a.Config.Bootstrap && a.Config.ServerMode {
+			if !a.disableACLBootstrapCheck {
+				if ok, err := a.isACLBootstrapped(); err != nil {
+					retErr = fmt.Errorf("error checking for acl bootstrap: %w", err)
+					continue // fail, try again
+				} else if !ok {
+					retErr = fmt.Errorf("acl system not bootstrapped yet")
+					continue // fail, try again
+				}
+			}
+
 			if a.baseDeps.UseV2Resources() {
 				args := structs.DCSpecificRequest{
 					Datacenter: "dc1",
@@ -337,9 +366,54 @@ func (a *TestAgent) waitForUp() error {
 			}
 			return nil // success
 		}
+
 	}
 
 	return fmt.Errorf("unavailable. last error: %v", retErr)
+}
+
+func (a *TestAgent) isACLBootstrapped() (bool, error) {
+	if a.config.ACLInitialManagementToken == "" {
+		logger := a.Agent.logger.Named("test")
+		logger.Warn("Skipping check for ACL bootstrapping")
+
+		return true, nil // We lie because we can't check.
+	}
+
+	const policyName = structs.ACLPolicyGlobalManagementName
+
+	req := httptest.NewRequest("GET", "/v1/acl/policy/name/"+policyName, nil)
+	req.Header.Add("X-Consul-Token", a.config.ACLInitialManagementToken)
+	resp := httptest.NewRecorder()
+
+	raw, err := a.srv.ACLPolicyReadByName(resp, req)
+	if err != nil {
+		if strings.Contains(err.Error(), "Unexpected response code: 403 (ACL not found)") {
+			return false, nil
+		} else if isACLNotBootstrapped(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if raw == nil {
+		return false, nil
+	}
+	policy, ok := raw.(*structs.ACLPolicy)
+	if !ok {
+		return false, fmt.Errorf("expected ACLPolicy got %T", raw)
+	}
+
+	return policy != nil, nil
+}
+
+func isACLNotBootstrapped(err error) bool {
+	switch {
+	case strings.Contains(err.Error(), "ACL system must be bootstrapped before making any requests that require authorization"):
+		return true
+	case strings.Contains(err.Error(), "The ACL system is currently in legacy mode"):
+		return true
+	}
+	return false
 }
 
 // Shutdown stops the agent and removes the data directory if it is
