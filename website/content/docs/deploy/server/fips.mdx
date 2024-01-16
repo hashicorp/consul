@@ -41,6 +41,7 @@ When using Consul Enterprise with FIPS 140-2, be aware of the following operatio
 We do not support in-place migrations from non-FIPS builds of Consul to FIPS builds of Consul, regardless of version. A fresh cluster installation is required to support FIPS 140-2. You cannot upgrade directly to a FIPS-compliant build.
 
 #### TLS restrictions
+
 Consul Enterprise's FIPS modifications include restrictions to supported TLS cipher suites and key information. Only the following cipher suites are allowed:
 
 - `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`
@@ -124,4 +125,3 @@ On both Linux and Windows non-FIPS builds, the search output yields no results.
 ### Compliance validation
 
 A Lab, authorized by the U.S. Government to certify FIPS 140-2 compliance, is in the process of verifying that Consul Enterprise and its related packages are compliant with the requirements of FIPS 140-2 Level 1.
-
