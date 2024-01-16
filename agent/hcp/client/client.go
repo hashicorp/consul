@@ -50,7 +50,7 @@ type BootstrapConfig struct {
 type Cluster struct {
 	Name         string
 	HCPPortalURL string
-	AccessMode   string
+	AccessLevel  *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel
 }
 
 type hcpClient struct {
@@ -336,7 +336,7 @@ func (c *hcpClient) GetCluster(ctx context.Context) (*Cluster, error) {
 func clusterFromHCP(payload *gnmmod.HashicorpCloudGlobalNetworkManager20220215GetClusterResponse) *Cluster {
 	return &Cluster{
 		Name:         payload.Cluster.ID,
-		AccessMode:   string(*payload.Cluster.ConsulAccessLevel),
+		AccessLevel:  payload.Cluster.ConsulAccessLevel,
 		HCPPortalURL: payload.Cluster.HcpPortalURL,
 	}
 }

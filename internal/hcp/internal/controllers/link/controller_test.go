@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -74,8 +75,10 @@ func (suite *controllerSuite) TestController_Ok() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	mockClient, mockClientFn := mockHcpClientFn(suite.T())
+	readOnly := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
 		HCPPortalURL: "http://test.com",
+		AccessLevel:  &readOnly,
 	}, nil)
 	mgr.Register(LinkController(false, false, mockClientFn))
 	mgr.SetRaftLeader(true)
@@ -98,6 +101,7 @@ func (suite *controllerSuite) TestController_Ok() {
 	updatedLinkResource := suite.client.WaitForNewVersion(suite.T(), link.Id, link.Version)
 	require.NoError(suite.T(), updatedLinkResource.Data.UnmarshalTo(&updatedLink))
 	require.Equal(suite.T(), "http://test.com", updatedLink.HcpClusterUrl)
+	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY, updatedLink.AccessLevel)
 }
 
 func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
@@ -174,4 +178,44 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
 
 	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionFailed)
+}
+
+func Test_hcpAccessModeToConsul(t *testing.T) {
+	type testCase struct {
+		hcpAccessLevel    *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel
+		consulAccessLevel pbhcp.AccessLevel
+	}
+	tt := map[string]testCase{
+		"unspecified": {
+			hcpAccessLevel: func() *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel {
+				t := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELUNSPECIFIED
+				return &t
+			}(),
+			consulAccessLevel: pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED,
+		},
+		"invalid": {
+			hcpAccessLevel:    nil,
+			consulAccessLevel: pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED,
+		},
+		"read_only": {
+			hcpAccessLevel: func() *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel {
+				t := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY
+				return &t
+			}(),
+			consulAccessLevel: pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY,
+		},
+		"read_write": {
+			hcpAccessLevel: func() *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel {
+				t := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE
+				return &t
+			}(),
+			consulAccessLevel: pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE,
+		},
+	}
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			accessLevel := hcpAccessModeToConsul(tc.hcpAccessLevel)
+			require.Equal(t, tc.consulAccessLevel, accessLevel)
+		})
+	}
 }

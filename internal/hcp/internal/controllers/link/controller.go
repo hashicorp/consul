@@ -5,6 +5,7 @@ package link
 
 import (
 	"context"
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
@@ -66,6 +67,23 @@ func (r *linkReconciler) linkingFailed(ctx context.Context, rt controller.Runtim
 	return nil
 }
 
+func hcpAccessModeToConsul(mode *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
+	if mode == nil {
+		return pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED
+	}
+
+	switch *mode {
+	case gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELUNSPECIFIED:
+		return pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED
+	case gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE:
+		return pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE
+	case gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY:
+		return pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY
+	default:
+		return pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED
+	}
+}
+
 func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	// The runtime is passed by value so replacing it here for the remainder of this
 	// reconciliation request processing will not affect future invocations.
@@ -122,9 +140,14 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		rt.Logger.Error("error querying HCP for cluster", "error", err)
 		return r.linkingFailed(ctx, rt, res)
 	}
+	accessLevel := hcpAccessModeToConsul(cluster.AccessLevel)
 
-	if link.HcpClusterUrl != cluster.HCPPortalURL {
+	if link.HcpClusterUrl != cluster.HCPPortalURL ||
+		link.AccessLevel != accessLevel {
+
 		link.HcpClusterUrl = cluster.HCPPortalURL
+		link.AccessLevel = accessLevel
+
 		updatedData, err := anypb.New(&link)
 		if err != nil {
 			rt.Logger.Error("error marshalling link data", "error", err)
