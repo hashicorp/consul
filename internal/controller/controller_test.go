@@ -50,7 +50,8 @@ func TestController_API(t *testing.T) {
 	})
 
 	rec := newTestReconciler()
-	init := newTestInitializer()
+	expectedInitAttempts := 2 // testing retries
+	init := newTestInitializer(expectedInitAttempts)
 	client := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
@@ -77,14 +78,12 @@ func TestController_API(t *testing.T) {
 	mgr := controller.NewManager(client, testutil.Logger(t))
 	mgr.Register(ctrl)
 	mgr.SetRaftLeader(true)
-	init.failNext(errors.New("initialize error"))
 	go mgr.Run(testContext(t))
 
 	t.Run("initialize", func(t *testing.T) {
-		// First attempt at initialization, expected to error
-		init.wait(t)
-		// Initialization retried due to error
-		init.wait(t)
+		for i := 0; i < expectedInitAttempts; i++ {
+			init.wait(t)
+		}
 	})
 
 	t.Run("managed resource type", func(t *testing.T) {
@@ -504,30 +503,31 @@ func (c Concert) Key() string {
 	return c.name
 }
 
-func newTestInitializer() *testInitializer {
+func newTestInitializer(errorCount int) *testInitializer {
 	return &testInitializer{
-		calls:  make(chan error, 1),
-		errors: make(chan error, 1),
+		calls:            make(chan error, 1),
+		expectedAttempts: errorCount,
 	}
 }
 
 type testInitializer struct {
-	calls  chan error
-	errors chan error
+	expectedAttempts int // number of times the initializer should run to test retries
+	attempts         int // running count of times initialize is called
+	calls            chan error
 }
 
 func (i *testInitializer) Initialize(_ context.Context, _ controller.Runtime) error {
-	select {
-	case err := <-i.errors:
+	i.attempts++
+	if i.attempts < i.expectedAttempts {
+		// Return an error to cause a retry
+		err := errors.New("initialization error")
 		i.calls <- err
 		return err
-	default:
+	} else {
 		i.calls <- nil
 		return nil
 	}
 }
-
-func (i *testInitializer) failNext(err error) { i.errors <- err }
 
 func (i *testInitializer) wait(t *testing.T) {
 	t.Helper()

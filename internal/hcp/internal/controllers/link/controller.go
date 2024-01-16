@@ -205,9 +205,8 @@ func (i *linkInitializer) Initialize(ctx context.Context, rt controller.Runtime)
 	}
 	retryCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
-	var writeErr error
 	for {
-		_, writeErr = rt.Client.Write(ctx,
+		_, writeErr := rt.Client.Write(ctx,
 			&pbresource.WriteRequest{
 				Resource: &pbresource.Resource{
 					Id: &pbresource.ID{
@@ -225,16 +224,13 @@ func (i *linkInitializer) Initialize(ctx context.Context, rt controller.Runtime)
 			// Retry on error
 			rt.Logger.Trace("error initializing link, retrying", "error", writeErr)
 			if err := w.Wait(retryCtx); err != nil {
-				// Retry timed out, break out of retry loop
-				break
+				// Retry timed out, return last write error
+				return writeErr
 			}
 			continue
 		}
 		// Write was successful, break out of retry loop
 		break
-	}
-	if writeErr != nil {
-		return writeErr
 	}
 
 	return nil
