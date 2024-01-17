@@ -1400,8 +1400,12 @@
             "path": "access/ingress-gateway"
           },
           {
-            "title": "Create and manage ingress gateway",
-            "path": "access/ingress-gateway/create"
+            "title": "Create ingress gateways on VMs",
+            "path": "access/ingress-gateway/create-vm"
+          },
+          {
+            "title": "Create ingress gateways on K8s",
+            "path": "access/ingress-gateway/create-k8s"
           },
           {
             "title": "Serve TLS certificate from external service",
