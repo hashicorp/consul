@@ -118,7 +118,9 @@ func (m *Manager) Run(ctx context.Context) error {
 		// Check for configured management token from HCP and upsert it if found
 		if hcpManagement := m.cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
 			upsertTokenErr := m.cfg.ManagementTokenUpserterFn("HCP Management Token", hcpManagement)
-			m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
+			if upsertTokenErr != nil {
+				m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
+			}
 		}
 
 		m.cfgMu.RLock()

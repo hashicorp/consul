@@ -590,7 +590,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		TelemetryProvider: flat.HCP.TelemetryProvider,
 		ManagementTokenUpserterFn: func(name, secretId string) error {
 			if s.IsLeader() {
-				return s.initializeManagementToken(name, secretId)
+				return s.upsertManagementToken(name, secretId)
 			}
 			return nil
 		},
