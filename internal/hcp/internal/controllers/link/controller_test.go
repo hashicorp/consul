@@ -6,22 +6,21 @@ package link
 import (
 	"context"
 	"fmt"
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -118,7 +117,6 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 		ClientSecret: "abc",
 		ResourceId:   "abc",
 	}
-	// The controller is currently a no-op, so there is nothing to test other than making sure we do not panic
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
@@ -145,7 +143,6 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 		ClientSecret: "abc",
 		ResourceId:   "abc",
 	}
-	// The controller is currently a no-op, so there is nothing to test other than making sure we do not panic
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
@@ -170,7 +167,6 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 		ClientSecret: "abc",
 		ResourceId:   "abc",
 	}
-	// The controller is currently a no-op, so there is nothing to test other than making sure we do not panic
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
