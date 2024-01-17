@@ -204,13 +204,13 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExportedServices() {
 
 		testutil.RunStep(suite.T(), "exported services do not exist", func(t *testing.T) {
 			nonExistantID := resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "not-found").ID()
-			svcs, err := f.FetchExportedServices(suite.ctx, nonExistantID)
+			svcs, err := f.FetchComputedExportedServices(suite.ctx, nonExistantID)
 			require.NoError(t, err)
 			require.Nil(t, svcs)
 		})
 
 		testutil.RunStep(suite.T(), "workload exists", func(t *testing.T) {
-			svcs, err := f.FetchExportedServices(suite.ctx, suite.exportedServices.Id)
+			svcs, err := f.FetchComputedExportedServices(suite.ctx, suite.exportedServices.Id)
 			require.NoError(t, err)
 			require.NotNil(t, svcs)
 		})

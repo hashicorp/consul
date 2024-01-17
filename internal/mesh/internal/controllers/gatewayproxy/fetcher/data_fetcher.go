@@ -30,10 +30,7 @@ func New(client pbresource.ResourceServiceClient, cache *cache.Cache) *Fetcher {
 }
 
 func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*types.DecodedMeshGateway, error) {
-	if !proto.Equal(id.Type, pbmesh.MeshGatewayType) {
-		// this is always a programmer error so safe to panic
-		panic(fmt.Sprintf("FetchMeshGateway expected a query for a type of %q, you provided a type of %q", pbmesh.MeshGatewayType, id.Type))
-	}
+	assertType(pbmesh.MeshGatewayType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbmesh.MeshGateway](ctx, f.client, id)
 	if err != nil {
@@ -46,10 +43,7 @@ func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*typ
 }
 
 func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*types.DecodedProxyStateTemplate, error) {
-	if !proto.Equal(id.Type, pbmesh.ProxyStateTemplateType) {
-		// this is always a programmer error so safe to panic
-		panic(fmt.Sprintf("FetchProxyStateTemplate expected a query for a type of %q, you provided a type of %q", pbmesh.ProxyStateTemplateType, id.Type))
-	}
+	assertType(pbmesh.ProxyStateTemplateType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.client, id)
 	if err != nil {
@@ -62,10 +56,7 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
-	if !proto.Equal(id.Type, pbcatalog.WorkloadType) {
-		// this is always a programmer error so safe to panic
-		panic(fmt.Sprintf("FetchWorkload expected a query for a type of %q, you provided a type of %q", pbcatalog.WorkloadType, id.Type))
-	}
+	assertType(pbcatalog.WorkloadType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
 	if err != nil {
@@ -77,11 +68,9 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 	return dec, nil
 }
 
-func (f *Fetcher) FetchExportedServices(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedExportedServices, error) {
-	if !proto.Equal(id.Type, pbmulticluster.ComputedExportedServicesType) {
-		// this is always a programmer error so safe to panic
-		panic(fmt.Sprintf("FetchExportedServices expected a query for a type of %q, you provided a type of %q", pbmulticluster.ComputedExportedServicesType, id.Type))
-	}
+func (f *Fetcher) FetchComputedExportedServices(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedExportedServices, error) {
+	assertType(pbmulticluster.ComputedExportedServicesType, id.Type)
+
 	dec, err := resource.GetDecodedResource[*pbmulticluster.ComputedExportedServices](ctx, f.client, id)
 	if err != nil {
 		return nil, err
@@ -93,10 +82,7 @@ func (f *Fetcher) FetchExportedServices(ctx context.Context, id *pbresource.ID) 
 }
 
 func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
-	if !proto.Equal(id.Type, pbcatalog.ServiceType) {
-		// this is always a programmer error so safe to panic
-		panic(fmt.Sprintf("FetchService expected a query for a type of %q, you provided a type of %q", pbcatalog.ServiceType, id.Type))
-	}
+	assertType(pbcatalog.ServiceType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, f.client, id)
 	if err != nil {
@@ -106,4 +92,11 @@ func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.D
 	}
 
 	return dec, nil
+}
+
+func assertType(expected, actual *pbresource.Type) {
+	if !proto.Equal(expected, actual) {
+		// this is always a programmer error so safe to panic
+		panic(fmt.Sprintf("expected a query for a type of %q, you provided a type of %q", expected, actual))
+	}
 }
