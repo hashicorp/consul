@@ -5,7 +5,7 @@ package link
 
 import (
 	"context"
-	"time"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,7 +16,7 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 
 	"github.com/hashicorp/consul/internal/controller"
@@ -198,39 +198,30 @@ func (i *linkInitializer) Initialize(ctx context.Context, rt controller.Runtime)
 	}
 
 	// Create the link resource for a configuration-based link
-	w := retry.Waiter{
-		MinWait: 1 * time.Second,
-		MaxWait: 15 * time.Second,
-		Jitter:  retry.NewJitter(50),
-	}
-	retryCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-	defer cancel()
-	for {
-		_, writeErr := rt.Client.Write(ctx,
-			&pbresource.WriteRequest{
-				Resource: &pbresource.Resource{
-					Id: &pbresource.ID{
-						Name: types.LinkName,
-						Type: pbhcp.LinkType,
-					},
-					Metadata: map[string]string{
-						types.MetadataSourceKey: types.MetadataSourceConfig,
-					},
-					Data: data,
+	_, err = rt.Client.Write(ctx,
+		&pbresource.WriteRequest{
+			Resource: &pbresource.Resource{
+				Id: &pbresource.ID{
+					Name: types.LinkName,
+					Type: pbhcp.LinkType,
 				},
+				Metadata: map[string]string{
+					types.MetadataSourceKey: types.MetadataSourceConfig,
+				},
+				Data: data,
 			},
-		)
-		if writeErr != nil {
-			// Retry on error
-			rt.Logger.Trace("error initializing link, retrying", "error", writeErr)
-			if err := w.Wait(retryCtx); err != nil {
-				// Retry timed out, return last write error
-				return writeErr
-			}
-			continue
+		},
+	)
+	if err != nil {
+		if strings.Contains(err.Error(), storage.ErrWrongUid.Error()) ||
+			strings.Contains(err.Error(), "leader unknown") {
+			// If the  error is likely ignorable and could eventually resolve itself,
+			// log it as TRACE rather than ERROR.
+			rt.Logger.Trace("error initializing controller", "error", err)
+		} else {
+			rt.Logger.Error("error initializing controller", "error", err)
 		}
-		// Write was successful, break out of retry loop
-		break
+		return err
 	}
 
 	return nil

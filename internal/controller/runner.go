@@ -72,7 +72,6 @@ func (c *controllerRunner) run(ctx context.Context) error {
 		c.logger.Debug("controller initializing")
 		err := c.ctrl.initializer.Initialize(ctx, c.runtime(c.logger))
 		if err != nil {
-			c.logger.Error("error initializing controller", "error", err)
 			return err
 		}
 		c.logger.Debug("controller initialized")
