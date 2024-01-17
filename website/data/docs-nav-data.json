@@ -85,6 +85,10 @@
         "path": "concepts/service"
       },
       {
+        "title": "Service discovery",
+        "path": "concepts/service-discovery"
+      },
+      {
         "title": "Service mesh",
         "path": "concepts/service-mesh"
       },
