@@ -1,0 +1,161 @@
+---
+layout: docs
+page_title: Lambda Envoy Extension
+description: >-
+  Learn how the `lambda` Envoy extension enables Consul to join AWS Lambda functions to its service mesh.
+---
+
+# Invoke Lambda functions in Envoy proxy
+
+The Lambda Envoy extension configures outbound traffic on upstream dependencies allowing mesh services to properly invoke AWS Lambda functions. Lambda functions appear in the catalog as any other Consul service.
+
+You can only enable the Lambda extension through `service-defaults`. This is because the Consul uses the `service-defaults` configuration entry name as the catalog name for the Lambda functions.
+
+## Specification
+
+The Lambda Envoy extension has the following arguments:
+
+| Arguments            | Description                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| `ARN`                | Specifies the [AWS ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for the service's Lambda. |
+| `InvocationMode`     | Determines if Consul configures the Lambda to be invoked using the synchronous or asynchronous [invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html). |
+| `PayloadPassthrough` | Determines if the body Envoy receives is converted to JSON or directly passed to Lambda.         |
+
+Be aware  that unlike [manual lambda registration](/consul/docs/lambda/registration/manual#supported-meta-fields), region is  inferred from the ARN when specified through an Envoy extension.
+
+## Workflow
+
+There are two steps to configure the Lambda Envoy extension:
+
+1. Configure EnvoyExtensions through `service-defaults`. 
+1. Apply the configuration entry.
+
+### Configure `EnvoyExtensions`
+
+To use the Lambda Envoy extension, you must configure and apply a `service-defaults` configuration entry. Consul uses the name of the entry as the Consul service name for the Lambdas in the catalog. Downstream services also use the name to invoke the Lambda.
+
+The following example configures the Lambda Envoy extension to create a service named `lambda` in the mesh that can invoke the associated Lambda function.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+<CodeBlockConfig filename="lambda-envoy-extension.hcl">
+
+```hcl
+Kind = "service-defaults"
+Name = "lambdaInvokingApp"
+Protocol  = "http"
+EnvoyExtensions {
+  Name = "builtin/aws/lambda"
+  Arguments = {
+    ARN = "arn:aws:lambda:us-west-2:111111111111:function:lambda-1234"
+  }
+}
+```
+
+</CodeBlockConfig>
+</Tab>
+<Tab heading="JSON" group="json">
+<CodeBlockConfig filename="lambda-envoy-extension.json">
+
+```hcl
+{
+  "kind": "service-defaults",
+  "name": "lambdaInvokingApp",
+  "protocol": "http",
+  "envoy_extensions": [{
+    "name": "builtin/aws/lambda",
+    "arguments": {
+      "arn": "arn:aws:lambda:us-west-2:111111111111:function:lambda-1234"
+    }
+  }]
+}
+
+```
+
+</CodeBlockConfig>
+</Tab>
+
+<Tab heading="Kubernetes" group="kubernetes">
+<CodeBlockConfig filename="lambda-envoy-extension.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: lambda
+spec:
+  protocol: http
+  envoyExtensions:
+    name = "builtin/aws/lambda"
+    arguments:
+      arn: arn:aws:lambda:us-west-2:111111111111:function:lambda-1234
+```
+
+</CodeBlockConfig>
+</Tab>
+
+</Tabs>
+
+For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) and [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) configuration entries reference documentation. 
+
+~> **Note:** You can only enable the Lambda extension through `service-defaults`.
+
+Refer to [Configuration specification](#configuration-specification) section to find a full list of arguments for the Lambda Envoy extension.
+
+### Apply the configuration entry
+
+Apply the `service-defaults` configuration entry.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
+```shell-session
+$ consul config write lambda-envoy-extension.hcl
+```
+
+</Tab>
+<Tab heading="JSON" group="json">
+
+```shell-session
+$ consul config write lambda-envoy-extension.json
+```
+
+</Tab>
+<Tab heading="Kubernetes" group="kubernetes">
+
+```shell-session
+$ kubectl apply lambda-envoy-extension.yaml
+```
+
+</Tab>
+</Tabs>
+
+## Examples
+
+In the following example, the Lambda Envoy extension adds a single Lambda function running in two regions into the mesh. Then, you can use the `lambda` service name to invoke it, as if it was any other service in the mesh.
+
+<CodeBlockConfig filename="lambda-envoy-extension.json">
+
+```hcl
+Kind = "service-defaults"
+Name = "lambda"
+Protocol  = "http"
+EnvoyExtensions {
+  Name = "builtin/aws/lambda"
+  
+  Arguments = {
+    payloadPassthrough: false
+    arn: arn:aws:lambda:us-west-2:111111111111:function:lambda-1234
+  }
+}
+EnvoyExtensions {
+  Name = "builtin/aws/lambda"
+
+  Arguments = {
+    payloadPassthrough: false
+    arn: arn:aws:lambda:us-east-1:111111111111:function:lambda-1234
+ }
+}
+```
+
+</CodeBlockConfig>

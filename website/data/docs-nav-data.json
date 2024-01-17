@@ -85,6 +85,10 @@
         "path": "concepts/service"
       },
       {
+        "title": "Service discovery",
+        "path": "concepts/service-discovery"
+      },
+      {
         "title": "Service mesh",
         "path": "concepts/service-mesh"
       },
@@ -586,26 +590,26 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "monitor"
+        "path": "monitor-consul"
       },
       {
         "title": "Agent telemetry",
         "routes": [
           {
             "title": "Overview",
-            "path": "monitor/telemetry"
+            "path": "monitor-consul/telemetry"
           },
           {
             "title": "Enable host metrics",
-            "path": "monitor/telemetry/enable-host-metrics"
+            "path": "monitor-consul/telemetry/enable-host-metrics"
           },
           {
             "title": "Access and stream metrics",
-            "path": "monitor/telemetry/access-stream-metrics"
+            "path": "monitor-consul/telemetry/access-stream-metrics"
           },
           {
             "title": "Stream metrics to external store",
-            "path": "monitor/telemetry/stream-metrics-external"
+            "path": "monitor-consul/telemetry/stream-metrics-external"
           }
         ]
       },
@@ -614,11 +618,11 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "monitor/log"
+            "path": "monitor-consul/log"
           },
           {
             "title": "Log agent behavior",
-            "path": "monitor/log/agent-behavior"
+            "path": "monitor-consul/log/agent-behavior"
           },
           {
             "title": "Log HTTP API request (Audit log)",
@@ -627,7 +631,7 @@
               "type": "outlined",
               "color": "neutral"
             },
-            "path": "monitor/log/audit-log"
+            "path": "monitor-consul/log/audit-log"
           }
         ]
       }
@@ -1115,6 +1119,10 @@
         "title": "DNS",
         "routes": [
           {
+            "title": "Overview",
+            "path": "discover/dns"
+          },
+          {
             "title": "Configure DNS behavior",
             "path": "discover/dns/configure"
           },
@@ -1184,6 +1192,7 @@
         "routes": [
           {
             "title": "-",
+            "hidden": true,
             "path": "connect/lambda"
           },
           {
@@ -1238,7 +1247,7 @@
           },
           {
             "title": "Proxy integration",
-            "href": "integration/proxy"
+            "href": "integrate/proxy"
           }
         ]
       },
@@ -1677,6 +1686,10 @@
         "path": "manage-traffic/rate-limit"
       },
       {
+        "title": "Split TCP traffic between multi-port services",
+        "path": "manage-traffic/split-multi-port-traffic"
+      },
+      {
         "title": "Manage traffic for peered clusters",
         "routes": [
           {
@@ -1968,27 +1981,27 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "integration"
+        "path": "integrate"
       },
       {
         "title": "Consul tools",
-        "path": "integration/consul-tools"
+        "path": "integrate/consul-tools"
       },
       {
         "title": "Consul integration program",
-        "path": "integration/consul"
+        "path": "integrate/consul"
       },
       {
         "title": "NIA integration program",
-        "path": "integration/nia"
+        "path": "integrate/nia"
       },
       {
         "title": "Vault integration program",
-        "path": "integration/vault"
+        "path": "integrate/vault"
       },
       {
         "title": "Proxy integration",
-        "path": "integration/proxy"
+        "path": "integrate/proxy"
       }
     ]
   },
@@ -2018,6 +2031,10 @@
       {
         "title": "Configure Envoy proxy properties",
         "path": "envoy-extension/property-override"
+      },
+      {
+        "title": "Send access logs to OpenTelemetry collector service",
+        "path": "envoy-extension/otel-access-logging"
       },
       {
         "title": "Run WebAssembly plug-ins",
@@ -2169,6 +2186,10 @@
         "path": "reference-cli"
       },
       {
+        "title": "Agent",
+        "path": "reference-cli/agent"
+      },
+      {
         "title": "Consul",
         "href": "/consul/commands"
       },
@@ -2200,8 +2221,17 @@
     ]
   },
   {
+    "title": "Glossary",
+    "href": "reference/glossary"
+  },
+  {
     "title": "Configuration reference",
     "routes": [
+      {
+        "title": "Glossary",
+        "hidden": true,
+        "path": "reference/glossary"
+      },
       {
         "title": "Access Control Lists (ACLs)",
         "routes": [
