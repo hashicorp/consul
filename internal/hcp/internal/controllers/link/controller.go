@@ -19,9 +19,13 @@ import (
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 )
 
+// HCPClientFn is a function that can be used to create an HCP client from a Link object.
+// This function type should be passed to a LinkController in order to tell it how to make a client from
+// a Link. For normal use, DefaultHCPClientFn should be used, but tests can substitute in a function that creates a
+// mock client.
 type HCPClientFn func(link *pbhcp.Link) (hcpclient.Client, error)
 
-func NewHCPClient(link *pbhcp.Link) (hcpclient.Client, error) {
+var DefaultHCPClientFn HCPClientFn = func(link *pbhcp.Link) (hcpclient.Client, error) {
 	hcpClient, err := hcpclient.NewClient(config.CloudConfig{
 		ResourceID:   link.ResourceId,
 		ClientID:     link.ClientId,

@@ -19,6 +19,6 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(link.LinkController(
 		deps.ResourceApisEnabled,
 		deps.HCPAllowV2ResourceApis,
-		link.NewHCPClient,
+		link.DefaultHCPClientFn,
 	))
 }
