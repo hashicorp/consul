@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -29,7 +28,7 @@ var (
 	WorkloadHealthConditions             = workloadhealth.WorkloadConditions
 	WorkloadAndNodeHealthConditions      = workloadhealth.NodeAndWorkloadConditions
 
-	EndpointsStatusKey                       = endpoints.StatusKey
+	EndpointsStatusKey                       = endpoints.ControllerID
 	EndpointsStatusConditionEndpointsManaged = endpoints.StatusConditionEndpointsManaged
 	EndpointsStatusConditionManaged          = endpoints.ConditionManaged
 	EndpointsStatusConditionUnmanaged        = endpoints.ConditionUnmanaged
@@ -57,8 +56,7 @@ type ControllerDependencies = controllers.Dependencies
 
 func DefaultControllerDependencies() ControllerDependencies {
 	return ControllerDependencies{
-		EndpointsWorkloadMapper: selectiontracker.New(),
-		FailoverMapper:          failovermapper.New(),
+		FailoverMapper: failovermapper.New(),
 	}
 }
 
