@@ -210,7 +210,7 @@ func Test_hcpAccessModeToConsul(t *testing.T) {
 	}
 	for name, tc := range tt {
 		t.Run(name, func(t *testing.T) {
-			accessLevel := hcpAccessModeToConsul(tc.hcpAccessLevel)
+			accessLevel := hcpAccessLevelToConsul(tc.hcpAccessLevel)
 			require.Equal(t, tc.consulAccessLevel, accessLevel)
 		})
 	}

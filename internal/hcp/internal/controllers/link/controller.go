@@ -67,12 +67,12 @@ func (r *linkReconciler) linkingFailed(ctx context.Context, rt controller.Runtim
 	return nil
 }
 
-func hcpAccessModeToConsul(mode *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
-	if mode == nil {
+func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
+	if level == nil {
 		return pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED
 	}
 
-	switch *mode {
+	switch *level {
 	case gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELUNSPECIFIED:
 		return pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED
 	case gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE:
@@ -140,7 +140,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		rt.Logger.Error("error querying HCP for cluster", "error", err)
 		return r.linkingFailed(ctx, rt, res)
 	}
-	accessLevel := hcpAccessModeToConsul(cluster.AccessLevel)
+	accessLevel := hcpAccessLevelToConsul(cluster.AccessLevel)
 
 	if link.HcpClusterUrl != cluster.HCPPortalURL ||
 		link.AccessLevel != accessLevel {
