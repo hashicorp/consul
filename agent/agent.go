@@ -1103,7 +1103,7 @@ func (a *Agent) listenAndServeV2DNS() error {
 	if a.baseDeps.UseV2Resources() {
 		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config)
 	} else {
-		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config)
+		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config, a.RPC, a.logger.Named("catalog-data-fetcher"))
 	}
 
 	// Generate a Query Processor with the appropriate data fetcher
@@ -1115,7 +1115,7 @@ func (a *Agent) listenAndServeV2DNS() error {
 	// create server
 	cfg := dns.Config{
 		AgentConfig: a.config,
-		EntMeta:     a.AgentEnterpriseMeta(), // TODO (v2-dns): does this even work for v2 tenancy?
+		EntMeta:     *a.AgentEnterpriseMeta(),
 		Logger:      a.logger,
 		Processor:   processor,
 		TokenFunc:   a.getTokenFunc(),
