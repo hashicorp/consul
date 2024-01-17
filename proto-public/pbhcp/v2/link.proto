@@ -8,9 +8,9 @@ package hashicorp.consul.hcp.v2;
 import "pbresource/annotations.proto";
 
 enum AccessLevel {
-    ACCESS_LEVEL_UNSPECIFIED = 0;
-    ACCESS_LEVEL_GLOBAL_READ_WRITE = 1;
-    ACCESS_LEVEL_GLOBAL_READ_ONLY = 2;
+  ACCESS_LEVEL_UNSPECIFIED = 0;
+  ACCESS_LEVEL_GLOBAL_READ_WRITE = 1;
+  ACCESS_LEVEL_GLOBAL_READ_ONLY = 2;
 }
 
 message Link {
