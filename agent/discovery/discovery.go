@@ -60,15 +60,26 @@ type QueryPayload struct {
 	DisableFailover bool
 }
 
+// ResultType indicates the Consul resource that a discovery record represents.
+// This is useful for things like adding TTLs for different objects in the DNS.
+type ResultType string
+
+const (
+	ResultTypeService  ResultType = "SERVICE"
+	ResultTypeNode     ResultType = "NODE"
+	ResultTypeVirtual  ResultType = "VIRTUAL"
+	ResultTypeWorkload ResultType = "WORKLOAD"
+)
+
 // Result is a generic format of targets that could be returned in a query.
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Address  string // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
-	Weight   uint32 // SRV queries
-	Port     uint32 // SRV queries
-	TTL      uint32
+	Address  string   // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
+	Weight   uint32   // SRV queries
+	Port     uint32   // SRV queries
 	Metadata []string // Used to collect metadata into TXT Records
+	Type     ResultType
 
 	// Used in SRV & PTR queries to point at an A/AAAA Record.
 	// In V1, this could be a full-qualified Service or Node name.
