@@ -72,8 +72,8 @@ func NewServer(cfg Config) *Server {
 
 var _ pbresource.ResourceServiceServer = (*Server)(nil)
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbresource.RegisterResourceServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbresource.RegisterResourceServiceServer(registrar, s)
 }
 
 // Get token from grpc metadata or AnonymounsTokenId if not found

@@ -882,6 +882,10 @@ func (m *subscriptionManager) subscribeServerAddrs(
 	idx uint64,
 	updateCh chan<- cache.UpdateEvent,
 ) (uint64, error) {
+	// TODO(inproc-grpc) - Look into using the insecure in-process gRPC Channel
+	// to get notified for server address updates instead of hooking into the
+	// subscription service.
+
 	// following code adapted from serverdiscovery/watch_servers.go
 	sub, err := m.backend.Subscribe(&stream.SubscribeRequest{
 		Topic:   autopilotevents.EventTopicReadyServers,

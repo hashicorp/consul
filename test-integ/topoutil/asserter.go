@@ -12,6 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -19,8 +23,6 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // Asserter is a utility to help in reducing boilerplate in invoking test
@@ -365,17 +367,31 @@ func (a *Asserter) CatalogServiceExists(t *testing.T, cluster string, svc string
 	libassert.CatalogServiceExists(t, cl, svc, opts)
 }
 
-// AssertServiceHealth asserts whether the given service is healthy or not
-func (a *Asserter) AssertServiceHealth(t *testing.T, cl *api.Client, serverSVC string, onlypassing bool, count int) {
+// HealthServiceEntries asserts the service has the expected number of instances
+func (a *Asserter) HealthServiceEntries(t *testing.T, cluster string, svc string, passingOnly bool, opts *api.QueryOptions, expectedInstance int) []*api.ServiceEntry {
 	t.Helper()
-	retry.RunWith(&retry.Timer{Timeout: time.Second * 20, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		svcs, _, err := cl.Health().Service(
-			serverSVC,
-			"",
-			onlypassing,
-			nil,
-		)
+	cl := a.mustGetAPIClient(t, cluster)
+	health := cl.Health()
+
+	var serviceEntries []*api.ServiceEntry
+	var err error
+	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+		serviceEntries, _, err = health.Service(svc, "", passingOnly, opts)
 		require.NoError(r, err)
-		require.Equal(r, count, len(svcs))
+		require.Equal(r, expectedInstance, len(serviceEntries))
+	})
+
+	return serviceEntries
+}
+
+// TokenExist asserts the token exists in the cluster and identical to the expected token
+func (a *Asserter) TokenExist(t *testing.T, cluster string, expectedToken *api.ACLToken) {
+	t.Helper()
+	cl := a.mustGetAPIClient(t, cluster)
+	acl := cl.ACL()
+	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+		retrievedToken, _, err := acl.TokenRead(expectedToken.AccessorID, &api.QueryOptions{})
+		require.NoError(r, err)
+		require.True(r, cmp.Equal(expectedToken, retrievedToken), "token %s", expectedToken.Description)
 	})
 }

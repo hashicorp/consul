@@ -41,7 +41,11 @@ type Controller struct {
 	baseBackoff      time.Duration
 	maxBackoff       time.Duration
 	logger           hclog.Logger
+	startCb          RuntimeCallback
+	stopCb           RuntimeCallback
 }
+
+type RuntimeCallback func(context.Context, Runtime)
 
 // NewController creates a controller that is setup to watched the managed type.
 // Extra cache indexes may be provided as well and these indexes will be automatically managed.
@@ -64,6 +68,21 @@ func NewController(name string, managedType *pbresource.Type, indexes ...*index.
 		watches:          make(map[string]*watch),
 		queries:          make(map[string]cache.Query),
 	}
+}
+
+// WithNotifyStart registers a callback to be run when the controller is being started.
+// This happens prior to watches being started and with a fresh cache.
+func (ctl *Controller) WithNotifyStart(start RuntimeCallback) *Controller {
+	ctl.startCb = start
+	return ctl
+}
+
+// WithNotifyStop registers a callback to be run when the controller has been stopped.
+// This happens after all the watches and mapper/reconcile queues have been stopped. The
+// cache will contain everything that was present when we started stopping watches.
+func (ctl *Controller) WithNotifyStop(stop RuntimeCallback) *Controller {
+	ctl.stopCb = stop
+	return ctl
 }
 
 // WithReconciler changes the controller's reconciler.

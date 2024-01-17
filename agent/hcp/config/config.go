@@ -11,6 +11,13 @@ import (
 	"github.com/hashicorp/hcp-sdk-go/resource"
 )
 
+// CloudConfigurer abstracts the cloud config methods needed to connect to HCP
+// in an interface for easier testing.
+type CloudConfigurer interface {
+	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error)
+	Resource() (resource.Resource, error)
+}
+
 // CloudConfig defines configuration for connecting to HCP services
 type CloudConfig struct {
 	ResourceID   string

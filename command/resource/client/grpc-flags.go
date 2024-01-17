@@ -9,12 +9,14 @@ import (
 )
 
 type GRPCFlags struct {
-	address  TValue[string]
-	grpcTLS  TValue[bool]
-	certFile TValue[string]
-	keyFile  TValue[string]
-	caFile   TValue[string]
-	caPath   TValue[string]
+	address   TValue[string]
+	grpcTLS   TValue[bool]
+	certFile  TValue[string]
+	keyFile   TValue[string]
+	caFile    TValue[string]
+	caPath    TValue[string]
+	token     TValue[string]
+	tokenFile TValue[string]
 }
 
 // MergeFlagsIntoGRPCConfig merges flag values into grpc config
@@ -24,8 +26,10 @@ func (f *GRPCFlags) MergeFlagsIntoGRPCConfig(c *GRPCConfig) {
 	if strings.HasPrefix(strings.ToLower(f.address.String()), "https://") {
 		c.GRPCTLS = true
 	}
-	f.address.Set(removeSchemaFromGRPCAddress(f.address.String()))
-	f.address.Merge(&c.Address)
+	if f.address.v != nil {
+		f.address.Set(removeSchemaFromGRPCAddress(f.address.String()))
+		f.address.Merge(&c.Address)
+	}
 	// won't overwrite the value if it's false
 	if f.grpcTLS.v != nil && *f.grpcTLS.v {
 		f.grpcTLS.Merge(&c.GRPCTLS)
@@ -34,6 +38,8 @@ func (f *GRPCFlags) MergeFlagsIntoGRPCConfig(c *GRPCConfig) {
 	f.keyFile.Merge(&c.KeyFile)
 	f.caFile.Merge(&c.CAFile)
 	f.caPath.Merge(&c.CAPath)
+	f.token.Merge(&c.Token)
+	f.tokenFile.Merge(&c.TokenFile)
 }
 
 // merge the client flags into command line flags then parse command line flags
@@ -60,5 +66,25 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 	fs.Var(&f.caPath, "ca-path",
 		"Path to a directory of CA certificates to use for TLS when communicating "+
 			"with Consul. This can also be specified via the CONSUL_CAPATH environment variable.")
+	fs.Var(&f.token, "token",
+		"ACL token to use in the request. This can also be specified via the "+
+			"CONSUL_GRPC_TOKEN environment variable. If unspecified, the query will "+
+			"default to the token of the Consul agent at the GRPC address.")
+	fs.Var(&f.tokenFile, "token-file",
+		"File containing the ACL token to use in the request instead of one specified "+
+			"via the -token-file argument or CONSUL_GRPC_TOKEN_FILE environment variable. "+
+			"Notice the tokenFile takes precedence over token flag and environment variables.")
 	return fs
+}
+
+func MergeFlags(dst, src *flag.FlagSet) {
+	if dst == nil {
+		panic("dst cannot be nil")
+	}
+	if src == nil {
+		return
+	}
+	src.VisitAll(func(f *flag.Flag) {
+		dst.Var(f.Value, f.Name, f.Usage)
+	})
 }

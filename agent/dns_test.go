@@ -116,9 +116,16 @@ func dnsTXT(src string, txt []string) *dns.TXT {
 	}
 }
 
-var versionHCL = map[string]string{
-	"DNS: v1 / Catalog: v1": "",
-	//"DNS: v2 / Catalog: v1": `experiments=["v2-dns"]`,
+func getVersionHCL(enableV2 bool) map[string]string {
+	versions := map[string]string{
+		"DNS: v1 / Catalog: v1": "",
+		//"DNS: v2 / Catalog: v1": `experiments=["v2dns"]`,
+	}
+
+	if enableV2 {
+		versions["DNS: v2 / Catalog: v1"] = `experiments=["v2dns"]`
+	}
+	return versions
 }
 
 func TestRecursorAddr(t *testing.T) {
@@ -182,7 +189,7 @@ func TestDNS_Over_TCP(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -223,7 +230,7 @@ func TestDNS_EmptyAltDomain(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -259,7 +266,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 		},
 	})
 	defer server2.Shutdown()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			// Mock the agent startup with the necessary configs
 			agent := NewTestAgent(t,
@@ -301,7 +308,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
 	})
 	defer server3.Shutdown()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			// Mock the agent startup with the necessary configs
 			agent := NewTestAgent(t,
@@ -326,7 +333,7 @@ func TestDNS_EDNS0(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -374,7 +381,7 @@ func TestDNS_EDNS0_ECS(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -473,7 +480,7 @@ func TestDNS_ReverseLookup(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -521,7 +528,7 @@ func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "custom"
@@ -571,7 +578,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -640,7 +647,7 @@ func TestDNS_SOA_Settings(t *testing.T) {
 		require.Equal(t, uint32(retry), soaRec.Retry)
 		require.Equal(t, uint32(ttl), soaRec.Hdr.Ttl)
 	}
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			// Default configuration
@@ -662,7 +669,7 @@ func TestDNS_VirtualIPLookup(t *testing.T) {
 
 	t.Parallel()
 
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := StartTestAgent(t, TestAgent{HCL: experimentsHCL, Overrides: `peering = { test_allow_peer_registrations = true }`})
 			defer a.Shutdown()
@@ -760,7 +767,7 @@ func TestDNS_InifiniteRecursion(t *testing.T) {
 
 	// This test should not create an infinite recursion
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -822,7 +829,7 @@ func TestDNS_NSRecords(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -865,7 +872,7 @@ func TestDNS_AltDomain_NSRecords(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, `
@@ -921,7 +928,7 @@ func TestDNS_NSRecords_IPV6(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
  		domain = "CONSUL."
@@ -965,7 +972,7 @@ func TestDNS_AltDomain_NSRecords_IPV6(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -1021,7 +1028,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1230,7 +1237,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1365,7 +1372,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1483,7 +1490,7 @@ func TestDNS_Recurse(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -1523,7 +1530,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -1572,7 +1579,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 	defer resolver.Close()
 
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+resolver.LocalAddr().String()+`"] // host must cause a connection|read|write timeout
@@ -1659,7 +1666,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -1777,7 +1784,7 @@ func TestDNS_AddressLookup(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1815,7 +1822,7 @@ func TestDNS_AddressLookupANY(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1851,7 +1858,7 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1883,7 +1890,7 @@ func TestDNS_AddressLookupIPV6(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1932,7 +1939,7 @@ func TestDNS_AddressLookupIPV6InvalidType(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1970,7 +1977,7 @@ func TestDNS_NonExistentDC_Server(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2001,7 +2008,7 @@ func TestDNS_NonExistentDC_RPC(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			s := NewTestAgent(t, `
 		node_name = "test-server"
@@ -2043,7 +2050,7 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2080,7 +2087,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2222,7 +2229,7 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		alt_domain = "test-domain."
@@ -2321,7 +2328,7 @@ func TestDNS_AltDomains_SOA(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		node_name = "test-node"
@@ -2377,7 +2384,7 @@ func TestDNS_AltDomains_Overlap(t *testing.T) {
 	// than one potential match (i.e. ambiguous match)
 	// it should select the longer matching domain when dispatching
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		node_name = "test-node"
@@ -2428,7 +2435,7 @@ func TestDNS_AltDomain_DCName_Overlap(t *testing.T) {
 	// this tests the DC name overlap with the consul domain/alt-domain
 	// we should get response when DC suffix is a prefix of consul alt-domain
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		datacenter = "dc-test"
@@ -2469,7 +2476,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -2526,7 +2533,7 @@ func TestDNS_InvalidQueries(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2575,7 +2582,7 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2616,7 +2623,7 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -2661,7 +2668,7 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 
 func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			req := &dns.Msg{}
@@ -2724,7 +2731,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2768,7 +2775,7 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2820,7 +2827,7 @@ func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 
 func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2881,7 +2888,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2938,7 +2945,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -3022,7 +3029,7 @@ func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -3299,7 +3306,7 @@ func TestDNS_syncExtra(t *testing.T) {
 
 func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -3327,7 +3334,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, experimentsHCL)
@@ -3423,7 +3430,7 @@ func TestDNS_Compression_ReverseLookup(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, experimentsHCL)
@@ -3489,7 +3496,7 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, `
@@ -3683,7 +3690,7 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range versionHCL {
+	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()

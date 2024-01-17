@@ -1426,7 +1426,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		require.NoError(t, s2.fsm.State().PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: p2}))
 
 		// connect the stream
-		mst1, err := s2.peeringServer.Tracker.Connected(s2PeerID1)
+		mst1, err := s2.peerStreamServer.Tracker.Connected(s2PeerID1)
 		require.NoError(t, err)
 
 		// mimic tracking exported services
@@ -1437,7 +1437,7 @@ func TestLeader_PeeringMetrics_emitPeeringMetrics(t *testing.T) {
 		})
 
 		// connect the stream
-		mst2, err := s2.peeringServer.Tracker.Connected(s2PeerID2)
+		mst2, err := s2.peerStreamServer.Tracker.Connected(s2PeerID2)
 		require.NoError(t, err)
 
 		// mimic tracking exported services
