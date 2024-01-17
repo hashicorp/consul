@@ -1009,7 +1009,7 @@
               },
               {
                 "title": "Register tasks with Terraform",
-                "path": "register/service/ecs/automate-terraform"
+                "path": "register/service/ecs/automatic"
               },
               {
                 "title": "Register tasks manually",
@@ -1017,7 +1017,7 @@
               },
               {
                 "title": "Register existing tasks with Terraform",
-                "path": "register/service/ecs/migrate-terraform"
+                "path": "register/service/ecs/migrate"
               },
               {
                 "title": "Configure ECS task bind address",
@@ -1038,7 +1038,7 @@
               },
               {
                 "title": "Register functions with Terraform",
-                "path": "register/service/lambda/automate-terraform"
+                "path": "register/service/lambda/automatic"
               },
               {
                 "title": "Register functions manually",
@@ -1443,6 +1443,11 @@
   },
   {
     "title": "Segment network",
+    "badge": {
+      "text": "ENTERPRISE",
+      "type": "outlined",
+      "color": "neutral"
+    },
     "routes": [
       {
         "title": "Overview",
@@ -1450,20 +1455,10 @@
       },
       {
         "title": "Admin partition",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
         "path": "segment/admin-partition"
       },
       {
         "title": "Namespace",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
         "path": "segment/namespace"
       },
       {
@@ -1564,11 +1559,11 @@
           },
           {
             "title": "Enable traffic across WAN federated datacenters",
-            "path": "link/mesh-gateway/wan-federated-datacenter"
+            "path": "link/mesh-gateway/federation"
           },
           {
             "title": "Enable peering control plane traffic",
-            "path": "link/mesh-gateway/peered-datacenter"
+            "path": "link/mesh-gateway/cluster-peer"
           },
           {
             "title": "Enable traffic across admin partition",
@@ -1645,7 +1640,7 @@
           },
           {
             "title": "Configure TLS on an existing cluster",
-            "path": "secure-mesh/certificate/configure-tls-existing"
+            "path": "secure-mesh/certificate/existing"
           },
           {
             "title": "Use built-in CA",
@@ -1657,7 +1652,7 @@
           },
           {
             "title": "Use AWS certificate manager",
-            "path": "secure-mesh/certificate/aws-cert-manager"
+            "path": "secure-mesh/certificate/acm"
           },
           {
             "title": "Enable permissive mTLS",

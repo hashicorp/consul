@@ -1,0 +1,144 @@
+---
+layout: docs
+page_title: Limit request rates to services in the mesh
+description: Learn how to limit the rate of requests to services in a Consul service mesh. Rate limits on requests improves network resilience and availability.
+---
+
+# Limit request rates to services in the mesh
+
+This topic describes how to configure Consul to limit the request rate to services in the mesh.
+
+<EnterpriseAlert> This feature is available in Consul Enterprise. </EnterpriseAlert>
+
+## Introduction
+
+Consul allows you to configure settings to limit the rate of HTTP requests a service receives from sources in the mesh. Limiting request rates is one strategy for building a resilient and highly-available network.
+
+Consul applies rate limits per service instance. As an example, if you specify a rate limit of 100 requests per second (RPS) for a service and five instances of the service are available, the service accepts a total of 500 RPS, which equals 100 RPS per instance.
+
+You can limit request rates for all traffic to a service, as well as set rate limits for specific URL paths on a service. When multiple rate limits are configured on a service, Consul applies the limit configured for the first matching path. As a result, the maximum RPS for a service is equal to the number of service instances deployed for a service multiplied by either the rate limit configured for that service or the rate limit for the path.
+
+## Requirements
+
+Consul Enterprise v1.17.0 or later
+
+## Limit request rates to a service on all paths
+
+Specify request rate limits in the service defaults configuration entry. Create or edit the existing service defaults configuration entry for your service and specify the following fields:
+
+<Tabs>
+<Tab heading="VMs" group="vms">
+
+1. `RateLimits.InstanceLevel.RequestPerSecond`: Set an average number of requests per second that Consul should allow to the service. The number of requests may momentarily exceed this value up to the value specified in the `RequestsMaxBurst` parameter, but Consul temporarily lowers the speed of the transactions.
+1. `RateLimits.InstanceLevel.RequestsMaxBurst`: Set the maximum number of concurrent requests that Consul momentarily allows to the service. Consul blocks any additional requests over this limit.
+
+The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service to an average of 1000 requests per second, but allows the service to accept up to 1500 concurrent requests.
+
+```hcl
+Kind = "service-defaults"
+Name = "billing"
+Protocol = "http"
+
+RateLimit {
+  InstanceLevel {
+    RequestsPerSecond = 1000
+    RequestsMaxBurst = 1500
+  }
+}
+```
+
+</Tab>
+<Tab heading="Kubernetes" group="k8s">
+
+1. `spec.rateLimits.instanceLevel.requestPerSecond`: Set an average number of requests per second that Consul should allow to the service. The number of requests may momentarily exceed this value up to the value specified in the `requestsMaxBurst` parameter, but Consul temporarily lowers the speed of the transactions.
+1. `spec.rateLimits.instanceLevel.requestsMaxBurst`: Set the maximum number of concurrent requests that Consul momentarily allows to the service. Consul blocks any additional requests over this limit.
+
+The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service to an average of 1000 requests per second, but allows the service to accept up to 1500 concurrent requests.
+
+```yaml
+kind: ServiceDefaults
+name: billing
+protocol: http
+rateLimit:
+  instanceLevel:
+    requestsPerSecond: 1000
+    requestsMaxBurst: 1500
+```
+
+</Tab>
+</Tabs>
+
+Refer to the [service defaults configuration entry reference](/consul/docs/connect/config-entries/service-defaults) for additional specifications and example configurations.
+
+## Specify request rate limits for specific paths
+
+Specify request rate limits in the service defaults configuration entry. Create or edit the existing service defaults configuration entry for your service and configure the following parameters:
+
+<Tabs>
+<Tab heading="VMs" group="vms">
+
+1. Add a `RateLimits.InstanceLevel.Routes` block to the configuration entry. The block contains the limits and matching criteria for determining which paths to set limits on.
+1. In the `Routes` block, configure one of the following match criteria to determine which path to set the limits on:
+   - `PathExact`: Specifies the exact path to match on the request path.
+   - `PathPrefix`: Specifies the path prefix to match on the request path.
+   - `PathRegex`: Specifies a regular expression to match on the request path.
+1. Configure the limits you want to enforce in the `Routes` block as well. You can configure the following parameters:
+   - `RequestsPerSecond`: Set an average number of requests per second that Consul should allow to the service through the matching path. The number of requests may momentarily exceed this value up to the value specified in the `RequestsMaxBurst` parameter, but Consul temporarily lowers the speed of the transactions. This configuration overrides the value specified in `RateLimits.InstanceLevel.RequestPerSecond` field of the configuration entry.
+   - `RequestsMaxBurst`: Set the maximum number of concurrent requests that Consul momentarily allows to the service through the matching path. Consul blocks any additional requests over this limit. This configuration overrides the value specified in `RateLimits.InstanceLevel.RequestsMaxBurst` field of the configuration entry.
+
+The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service depending on the path it received the request on. The service is limited to an average of 500 requests when the request is made on an HTTP path with the `/api` prefix. When an instance of the billing service receives a request from the `/login` path, it is limited to an average of 100 requests per second and 500 concurrent connections.
+
+```hcl
+Kind = "service-defaults"
+Name = "billing"
+Protocol = "http"
+
+RateLimit {
+  InstanceLevel {
+    Routes = [
+      {
+         PathPrefix = "/api"
+         RequestsPerSecond = 500
+      },
+      {
+         PathPrefix = "/login"
+         RequestsPerSecond = 100
+         RequestsMaxBurst = 500
+      }
+    ]
+  }
+}
+```
+
+</Tab>
+<Tab heading="Kubernetes" group="k8s">
+
+1. Add a `spec.rateLimits.instanceLevel.routes` block to the configuration entry. The block contains the limits and matching criteria for determining which paths to set limits on.
+1. In the `routes` block, configure one of the following match criteria for enabling Consul to determine which path to set the limits on:
+   - `pathExact`: Specifies the exact path to match on the request path. When using this field.
+   - `pathPrefix`: Specifies the path prefix to match on the request path.
+   - `pathRegex`: Specifies a regular expression to match on the request path.
+1. Configure the limits you want to enforce in the `routes` block as well. You can configure the following parameters:
+   - `requestsPerSecond`: Set an average number of requests per second that Consul should allow to the service through the matching path. The number of requests may momentarily exceed this value up to the value specified in the `requestsMaxBurst` parameter, but Consul temporarily lowers the speed of the transactions. This configuration overrides the value specified in `spec.rateLimits.instanceLevel.requestPerSecond` field of the CRD.
+   - `requestsMaxBurst`: Set the maximum number of concurrent requests that Consul momentarily allows to the service through the matching path. Consul blocks any additional requests over this limit. This configuration overrides the value specified in `spec.rateLimits.instanceLevel.requestsMaxBurst` field of the CRD.
+
+The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service depending on the path it received the request on. The service is limited to an average of 500 requests when the request is made on an HTTP path with the `/api` prefix. When an instance of the billing service receives a request from the `/login` path, it is limited to an average of 100 requests per second and 500 concurrent connections.
+
+```yaml
+kind: service-defaults
+name: billing
+protocol: http
+rateLimit:
+  instanceLevel:
+    routes:
+      - pathPrefix: /api
+        requestsPerSecond: 500
+      - pathPrefix: /login
+        requestsPerSecond: 100
+        requestsMaxBurst: 500
+```
+
+</Tab>
+</Tabs>
+
+Refer to the [service defaults configuration entry reference](/consul/docs/connect/config-entries/service-defaults) for additional specifications and example configurations.

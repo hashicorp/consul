@@ -8,9 +8,10 @@ description: >-
 # Cluster peering overview
 
 This topic provides an overview of cluster peering, which lets you connect two or more independent Consul clusters so that services deployed to different partitions or datacenters can communicate.
+
 Cluster peering is enabled in Consul by default. For specific information about cluster peering configuration and usage, refer to following pages.
 
-## What is cluster peering?
+## Introduction
 
 Consul supports cluster peering connections between two [admin partitions](/consul/docs/enterprise/admin-partitions) _in different datacenters_. Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a default partition. Meanwhile, admin partitions _in the same datacenter_ do not require cluster peering connections because you can export services between them without generating or exchanging a peering token.
 
