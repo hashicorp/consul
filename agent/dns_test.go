@@ -513,7 +513,8 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	m.SetQuestion("google.com.", dns.TypeA)
 	// Agent request
 	client := new(dns.Client)
-	in, _, _ := client.Exchange(m, agent.DNSAddr())
+	in, _, err := client.Exchange(m, agent.DNSAddr())
+	require.NoError(t, err)
 	// Verify if we hit SERVFAIL from Consul
 	require.Equal(t, dns.RcodeServerFailure, in.Rcode)
 }
