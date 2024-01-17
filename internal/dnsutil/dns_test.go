@@ -50,3 +50,26 @@ func TestValidLabel(t *testing.T) {
 		})
 	}
 }
+
+func TestDNSInvalidRegex(t *testing.T) {
+	tests := []struct {
+		desc    string
+		in      string
+		invalid bool
+	}{
+		{"Valid Hostname", "testnode", false},
+		{"Valid Hostname", "test-node", false},
+		{"Invalid Hostname with special chars", "test#$$!node", true},
+		{"Invalid Hostname with special chars in the end", "testnode%^", true},
+		{"Whitespace", "  ", true},
+		{"Only special chars", "./$", true},
+	}
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			if got, want := InvalidNameRe.MatchString(test.in), test.invalid; got != want {
+				t.Fatalf("Expected %v to return %v", test.in, want)
+			}
+		})
+
+	}
+}
