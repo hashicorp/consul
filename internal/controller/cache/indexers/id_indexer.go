@@ -38,7 +38,7 @@ type idOrRefIndexer struct {
 
 // FromArgs constructs a radix tree key from an ID for lookup.
 func (i idOrRefIndexer) FromArgs(args ...any) ([]byte, error) {
-	return index.ReferenceOrIDFromArgs(args...)
+	return index.MaybePrefixReferenceOrIDFromArgs(args...)
 }
 
 // FromObject constructs a radix tree key from a Resource at write-time, or an
