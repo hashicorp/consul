@@ -36,7 +36,7 @@ var (
 	StatusReasonWorkloadIdentitiesFound      = endpoints.StatusReasonWorkloadIdentitiesFound
 	StatusReasonNoWorkloadIdentitiesFound    = endpoints.StatusReasonNoWorkloadIdentitiesFound
 
-	FailoverStatusKey                                              = failover.StatusKey
+	FailoverStatusKey                                              = failover.ControllerID
 	FailoverStatusConditionAccepted                                = failover.StatusConditionAccepted
 	FailoverStatusConditionAcceptedOKReason                        = failover.OKReason
 	FailoverStatusConditionAcceptedMissingServiceReason            = failover.MissingServiceReason
@@ -58,18 +58,10 @@ func RegisterTypes(r resource.Registry) {
 	types.Register(r)
 }
 
-type ControllerDependencies = controllers.Dependencies
-
-func DefaultControllerDependencies() ControllerDependencies {
-	return ControllerDependencies{
-		FailoverMapper: failovermapper.New(),
-	}
-}
-
 // RegisterControllers registers controllers for the catalog types with
 // the given controller Manager.
-func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
-	controllers.Register(mgr, deps)
+func RegisterControllers(mgr *controller.Manager) {
+	controllers.Register(mgr)
 }
 
 // SimplifyFailoverPolicy fully populates the PortConfigs map and clears the

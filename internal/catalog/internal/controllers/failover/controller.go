@@ -8,52 +8,55 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
+	"github.com/hashicorp/consul/internal/controller/cache/indexers"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// FailoverMapper tracks the relationship between a FailoverPolicy an a Service
-// it references whether due to name-alignment or from a reference in a
-// FailoverDestination leg.
-type FailoverMapper interface {
-	// TrackFailover extracts all Service references from the provided
-	// FailoverPolicy and indexes them so that MapService can turn Service
-	// events into FailoverPolicy events properly.
-	TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy])
+const (
+	destRefsIndexName = "destination-refs"
+)
 
-	// UntrackFailover forgets the links inserted by TrackFailover for the
-	// provided FailoverPolicyID.
-	UntrackFailover(failoverID *pbresource.ID)
-
-	// MapService will take a Service resource and return controller requests
-	// for all FailoverPolicies associated with the Service.
-	MapService(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error)
+func FailoverPolicyController() *controller.Controller {
+	return controller.NewController(
+		ControllerID,
+		pbcatalog.FailoverPolicyType,
+		// We index the destination references of a failover policy so that when the
+		// Service watch fires we can find all FailoverPolicy resources that reference
+		// it to rereconcile them.
+		indexers.RefOrIDIndex(
+			destRefsIndexName,
+			func(res *resource.DecodedResource[*pbcatalog.FailoverPolicy]) []*pbresource.Reference {
+				return res.Data.GetUnderlyingDestinationRefs()
+			},
+		)).
+		WithWatch(
+			pbcatalog.ServiceType,
+			dependency.MultiMapper(
+				// FailoverPolicy is name-aligned with the Service it controls so always
+				// re-reconcile the corresponding FailoverPolicy when a Service changes.
+				dependency.ReplaceType(pbcatalog.FailoverPolicyType),
+				// Also check for all FailoverPolicy resources that have this service as a
+				// destination and re-reconcile those to check for port mapping conflicts.
+				dependency.CacheListMapper(pbcatalog.FailoverPolicyType, destRefsIndexName),
+			),
+		).
+		WithReconciler(newFailoverPolicyReconciler())
 }
 
-func FailoverPolicyController(mapper FailoverMapper) *controller.Controller {
-	if mapper == nil {
-		panic("No FailoverMapper was provided to the FailoverPolicyController constructor")
-	}
-	return controller.NewController(StatusKey, pbcatalog.FailoverPolicyType).
-		WithWatch(pbcatalog.ServiceType, mapper.MapService).
-		WithReconciler(newFailoverPolicyReconciler(mapper))
-}
+type failoverPolicyReconciler struct{}
 
-type failoverPolicyReconciler struct {
-	mapper FailoverMapper
-}
-
-func newFailoverPolicyReconciler(mapper FailoverMapper) *failoverPolicyReconciler {
-	return &failoverPolicyReconciler{
-		mapper: mapper,
-	}
+func newFailoverPolicyReconciler() *failoverPolicyReconciler {
+	return &failoverPolicyReconciler{}
 }
 
 func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	// The runtime is passed by value so replacing it here for the remainder of this
 	// reconciliation request processing will not affect future invocations.
-	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
+	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", ControllerID)
 
 	rt.Logger.Trace("reconciling failover policy")
 
@@ -65,14 +68,10 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		return err
 	}
 	if failoverPolicy == nil {
-		r.mapper.UntrackFailover(failoverPolicyID)
-
 		// Either the failover policy was deleted, or it doesn't exist but an
 		// update to a Service came through and we can ignore it.
 		return nil
 	}
-
-	r.mapper.TrackFailover(failoverPolicy)
 
 	// FailoverPolicy is name-aligned with the Service it controls.
 	serviceID := &pbresource.ID{
@@ -91,7 +90,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		destServices[resource.NewReferenceKey(serviceID)] = service
 	}
 
-	// Denorm the ports and stuff. After this we have no empty ports.
+	// Denormalize the ports and stuff. After this we have no empty ports.
 	if service != nil {
 		failoverPolicy.Data = types.SimplifyFailoverPolicy(
 			service.Data,
@@ -126,7 +125,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 
 	newStatus := computeNewStatus(failoverPolicy, service, destServices)
 
-	if resource.EqualStatus(failoverPolicy.Resource.Status[StatusKey], newStatus, false) {
+	if resource.EqualStatus(failoverPolicy.Resource.Status[ControllerID], newStatus, false) {
 		rt.Logger.Trace("resource's failover policy status is unchanged",
 			"conditions", newStatus.Conditions)
 		return nil
@@ -134,7 +133,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 
 	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
 		Id:     failoverPolicy.Resource.Id,
-		Key:    StatusKey,
+		Key:    ControllerID,
 		Status: newStatus,
 	})
 
@@ -149,11 +148,11 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 }
 
 func getFailoverPolicy(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[*pbcatalog.FailoverPolicy], error) {
-	return resource.GetDecodedResource[*pbcatalog.FailoverPolicy](ctx, rt.Client, id)
+	return cache.GetDecoded[*pbcatalog.FailoverPolicy](rt.Cache, pbcatalog.FailoverPolicyType, "id", id)
 }
 
 func getService(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[*pbcatalog.Service], error) {
-	return resource.GetDecodedResource[*pbcatalog.Service](ctx, rt.Client, id)
+	return cache.GetDecoded[*pbcatalog.Service](rt.Cache, pbcatalog.ServiceType, "id", id)
 }
 
 func computeNewStatus(
