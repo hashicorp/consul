@@ -19,7 +19,6 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	grpcexternal "github.com/hashicorp/consul/agent/grpc-external"
@@ -1676,8 +1675,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Len(t, reply.Nodes, 0)
 	})
 
-	expectNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc1", reply.Datacenter)
 		assert.Equal(t, 0, reply.Failovers)
@@ -1685,8 +1683,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Equal(t, query.Query.DNS, reply.DNS)
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
-	expectFailoverNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectFailoverNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc2", reply.Datacenter)
 		assert.Equal(t, 1, reply.Failovers)
@@ -1695,8 +1692,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
 
-	expectFailoverPeerNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectFailoverPeerNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "", reply.Datacenter)
 		assert.Equal(t, acceptingPeerName, reply.PeerName)
@@ -2509,13 +2505,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(r, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
 
 			for _, node := range reply.Nodes {
-				assert.NotEqual(t, "node3", node.Node.Node)
+				assert.NotEqual(r, "node3", node.Node.Node)
 			}
 
-			expectNodes(t, &query, &reply, 9)
+			expectNodes(r, &query, &reply, 9)
 		})
 	})
 }

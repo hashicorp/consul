@@ -158,7 +158,7 @@ dc:
             <div>
             {items, select,
               0 {Services must be exported from one peer to another to enable service communication across two peers. There don't seem to be any services imported from {name} yet, or you may not have <code>services:read</code> permissions to access to this view.}
-              other {No services where found matching that search, or you may not have access to view the services you are searching for.}
+              other {No services were found matching that search, or you may not have access to view the services you are searching for.}
             }
             </div>
       exported:
@@ -168,7 +168,7 @@ dc:
             <div>
             {items, select,
               0 {Services must be exported from one peer to another to enable service communication across two peers. There don't seem to be any services exported to {name} yet, or you may not have <code>services:read</code> permissions to access to this view.}
-              other {No services where found matching that search, or you may not have access to view the services you are searching for.}
+              other {No services were found matching that search, or you may not have access to view the services you are searching for.}
             }
             </div>
 

@@ -58,11 +58,11 @@ There are two styles for defining table indexes. The original style uses generic
 implementations from [hashicorp/go-memdb] (ex: `StringFieldIndex`). These indexes use
 [reflect] to find values for an index. These generic indexers work well when the index
 value is a single value available directly from the struct field, and there are no
-oss/enterprise differences.
+ce/enterprise differences.
 
 The second style of indexers are custom indexers implemented using only functions and
 based on the types defined in [indexer.go]. This style of index works well when the index
-value is a value derived from one or multiple fields, or when there are oss/enterprise
+value is a value derived from one or multiple fields, or when there are ce/enterprise
 differences between the indexes.
 
 [reflect]: https://golang.org/pkg/reflect/

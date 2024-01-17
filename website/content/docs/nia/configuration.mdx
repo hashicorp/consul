@@ -277,7 +277,7 @@ A `task` block configures which task to execute in automation. Use  the `conditi
 task {
   name           = "taskA"
   description    = ""
-  enabled        = true,
+  enabled        = true
   providers      = []
   module         = "org/example/module"
   version        = "1.0.0"
@@ -564,7 +564,7 @@ task {
     cron = "* * * * Mon"
   }
 
-  module_input “services” {
+  module_input "services" {
     regexp = "^web.*"
     datacenter = "dc1"
     namespace  = "default"

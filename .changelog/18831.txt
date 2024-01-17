@@ -1,0 +1,3 @@
+```release-note:bug
+gateways: Fix a bug where gateway to service mappings weren't being cleaned up properly when externally registered proxies were being deregistered.
+```

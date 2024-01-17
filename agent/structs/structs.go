@@ -413,6 +413,17 @@ func (q QueryBackend) String() string {
 	}
 }
 
+func QueryBackendFromString(s string) QueryBackend {
+	switch s {
+	case "blocking-query":
+		return QueryBackendBlocking
+	case "streaming":
+		return QueryBackendStreaming
+	default:
+		return QueryBackendBlocking
+	}
+}
+
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {

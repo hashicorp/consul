@@ -689,7 +689,61 @@
           },
           {
             "title": "Tokens",
-            "path": "security/acl/acl-tokens"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "security/acl/tokens"
+              },
+              {
+                "title": "Create ACL Tokens",
+                "routes": [
+                  {
+                    "title": "Create a service token",
+                    "path": "security/acl/tokens/create/create-a-service-token"
+                  },
+                  {
+                    "title": "Create an agent token",
+                    "path": "security/acl/tokens/create/create-an-agent-token"
+                  },
+                  {
+                    "title": "Create a UI token",
+                    "path": "security/acl/tokens/create/create-a-ui-token"
+                  },
+                  {
+                    "title": "Create a mesh gateway token",
+                    "path": "security/acl/tokens/create/create-a-mesh-gateway-token"
+                  },
+                  {
+                    "title": "Create an ingress gateway token",
+                    "path": "security/acl/tokens/create/create-an-ingress-gateway-token"
+                  },
+                  {
+                    "title": "Create a terminating gateway token",
+                    "path": "security/acl/tokens/create/create-a-terminating-gateway-token"
+                  },
+                  {
+                    "title": "Create a DNS token",
+                    "path": "security/acl/tokens/create/create-a-dns-token"
+                  },
+                  {
+                    "title": "Create a replication token",
+                    "path": "security/acl/tokens/create/create-a-replication-token"
+                  },
+                  {
+                    "title": "Create a snapshot agent token",
+                    "path": "security/acl/tokens/create/create-a-snapshot-agent-token"
+                  },
+                  {
+                    "title": "Create a token for Vault's Consul storage backend",
+                    "path": "security/acl/tokens/create/create-a-token-for-vault-consul-storage"
+                  },
+                  {
+                    "title": "Create a Consul ESM token",
+                    "path": "security/acl/tokens/create/create-a-consul-esm-token"
+                  }
+                ]
+              }
+            ]
           },
           {
             "title": "Policies",
@@ -1361,6 +1415,10 @@
           {
             "title": "Overview",
             "path": "enterprise/license/overview"
+          },
+          {
+            "title": "Automated License Utilization Reporting",
+            "path": "enterprise/license/utilization-reporting"
           },
           {
             "title": "FAQ",

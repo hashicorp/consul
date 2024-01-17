@@ -70,6 +70,7 @@ module.exports = function (environment, $ = process.env) {
     CONSUL_COPYRIGHT_YEAR: env('CONSUL_COPYRIGHT_YEAR', repositoryYear),
     CONSUL_GIT_SHA: env('CONSUL_GIT_SHA', repositorySHA),
     CONSUL_VERSION: env('CONSUL_VERSION', binaryVersion),
+    // TODO(spatel): CE refactor
     CONSUL_BINARY_TYPE: env('CONSUL_BINARY_TYPE', 'oss'),
 
     // These can be overwritten by the UI user at runtime by setting localStorage values

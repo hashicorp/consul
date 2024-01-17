@@ -23,7 +23,12 @@ var (
 
 // NewServer constructs a gRPC server for the external gRPC port, to which
 // handlers can be registered.
-func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics, tls *tlsutil.Configurator) *grpc.Server {
+func NewServer(
+	logger agentmiddleware.Logger,
+	metricsObj *metrics.Metrics,
+	tls *tlsutil.Configurator,
+	keepaliveParams keepalive.ServerParameters,
+) *grpc.Server {
 	if metricsObj == nil {
 		metricsObj = metrics.Default()
 	}
@@ -51,6 +56,7 @@ func NewServer(logger agentmiddleware.Logger, metricsObj *metrics.Metrics, tls *
 		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(unaryInterceptors...),
 		middleware.WithStreamServerChain(streamInterceptors...),
+		grpc.KeepaliveParams(keepaliveParams),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			// This must be less than the keealive.ClientParameters Time setting, otherwise
 			// the server will disconnect the client for sending too many keepalive pings.

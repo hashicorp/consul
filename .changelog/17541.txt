@@ -1,0 +1,3 @@
+```release-note:bug
+connect: reverts #17317 fix that caused a downstream error for Ingress/Mesh/Terminating GWs when their respective config entry does not already exist.
+```

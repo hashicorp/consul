@@ -48,6 +48,12 @@ Usage: `consul members [options]`
   in the WAN gossip pool. These are generally all the server nodes in
   each datacenter.
 
+- `-filter=<filter>` - Expression to use for filtering the results,
+  e.g., `-filter='Tags["dc"] == dc2'`.
+  See the [`/catalog/nodes` API documentation](/consul/api-docs/catalog#filtering) for a
+  description of what is filterable.
+
+
 #### Enterprise Options
 
 @include 'http_api_partition_options.mdx'

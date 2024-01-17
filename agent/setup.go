@@ -345,7 +345,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		consul.LeaderSummaries,
 		consul.PreparedQuerySummaries,
 		consul.RPCSummaries,
-		consul.SegmentOSSSummaries,
+		consul.SegmentCESummaries,
 		consul.SessionSummaries,
 		consul.SessionEndpointSummaries,
 		consul.TxnSummaries,

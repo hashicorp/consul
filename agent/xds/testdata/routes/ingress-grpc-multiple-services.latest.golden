@@ -1,52 +1,52 @@
 {
-  "versionInfo":  "00000001",
-  "resources":  [
+  "versionInfo": "00000001",
+  "resources": [
     {
-      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "8080",
-      "virtualHosts":  [
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "8080",
+      "virtualHosts": [
         {
-          "name":  "foo",
-          "domains":  [
+          "name": "foo",
+          "domains": [
             "test1.example.com",
             "test2.example.com",
             "test2.example.com:8080",
             "test1.example.com:8080"
           ],
-          "routes":  [
+          "routes": [
             {
-              "match":  {
-                "prefix":  "/"
+              "match": {
+                "prefix": "/"
               },
-              "route":  {
-                "cluster":  "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "timeout":  "22s"
+              "route": {
+                "cluster": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "timeout": "22s"
               }
             }
           ]
         },
         {
-          "name":  "bar",
-          "domains":  [
+          "name": "bar",
+          "domains": [
             "bar.ingress.*",
             "bar.ingress.*:8080"
           ],
-          "routes":  [
+          "routes": [
             {
-              "match":  {
-                "prefix":  "/"
+              "match": {
+                "prefix": "/"
               },
-              "route":  {
-                "cluster":  "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "timeout":  "22s"
+              "route": {
+                "cluster": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "timeout": "22s"
               }
             }
           ]
         }
       ],
-      "validateClusters":  true
+      "validateClusters": true
     }
   ],
-  "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-  "nonce":  "00000001"
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "nonce": "00000001"
 }

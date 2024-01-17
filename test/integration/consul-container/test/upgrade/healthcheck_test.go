@@ -22,7 +22,7 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 		numClients = 1
 	)
 
-	cluster := serversCluster(t, numServers, utils.TargetVersion, utils.TargetImage)
+	cluster := serversCluster(t, numServers, utils.TargetImage, utils.TargetVersion)
 	defer terminate(t, cluster)
 
 	clients := clientsCreate(t, numClients, utils.LatestImage, utils.LatestVersion, cluster)
@@ -268,13 +268,15 @@ func serviceCreate(t *testing.T, client *api.Client, serviceName string) uint64 
 	return meta.LastIndex
 }
 
-func serversCluster(t *testing.T, numServers int, version string, image string) *libcluster.Cluster {
+func serversCluster(t *testing.T, numServers int, image string, version string) *libcluster.Cluster {
 	var configs []libagent.Config
 
 	conf, err := libagent.NewConfigBuilder(nil).
 		Bootstrap(3).
 		ToAgentConfig()
 	require.NoError(t, err)
+	conf.Image = image
+	conf.Version = version
 
 	for i := 0; i < numServers; i++ {
 		configs = append(configs, *conf)

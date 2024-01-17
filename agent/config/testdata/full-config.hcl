@@ -325,6 +325,8 @@ performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5
     rpc_hold_timeout = "15707s"
+    grpc_keepalive_interval = "33s"
+    grpc_keepalive_timeout = "22s"
 }
 pid_file = "43xN80Km"
 ports {

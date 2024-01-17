@@ -5,11 +5,11 @@ import (
 )
 
 var (
-	TargetImage 	string
-	TargetVersion   string
+	TargetImage   string
+	TargetVersion string
 
-	LatestImage 	string
-	LatestVersion   string
+	LatestImage   string
+	LatestVersion string
 )
 
 func init() {

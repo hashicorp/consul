@@ -36,6 +36,14 @@ to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for 
 Users should not upgrade to 1.14.0 if they are using plaintext gRPC connections in
 conjunction with TLS-encrypted HTTP APIs.
 
+#### Vault Enterprise as CA ((#vault-enterprise-as-ca-1-14))
+Using Vault as CA with Consul version 1.14.10 will fail to initialize the CA if [`namespace`](/consul/docs/connect/ca/vault#namespace) is set
+but [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) or [`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace)
+are empty. This is a bug which will be fixed in a future version.
+
+To work around this issue, users must explicitly set [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) and
+[`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace) to the same value as [`namespace`](/consul/docs/connect/ca/vault#namespace).
+Set your configuration by calling [set-config](/consul/commands/connect/ca#set-config) then use [get-config](/consul/commands/connect/ca#get-config) to check.
 
 #### Changes to gRPC TLS configuration
 
@@ -251,6 +259,12 @@ A breaking change was made in Consul 1.13.2 that impacts service mesh operation
 if the Vault policy is not modified as described.
 As a precaution, we recommend both modifying the Vault policy and upgrading
 to Consul 1.13.3 or later to avoid the breaking nature of that change.
+
+### Nomad Incompatibility
+
+Nomad users should not upgrade to Consul 1.13.8 as an API change in Consul
+prevents Nomad from correctly detecting the Consul agent version, resulting in
+allocations not being placed in those clients.
 
 ## Consul 1.12.x ((#consul-1-12-0))
 

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -542,12 +543,6 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 
 	run := func(t *testing.T, tc CASigningKeyTypes, withSudo, expectFailure bool) {
 		t.Parallel()
-
-		if tc.SigningKeyType != tc.CSRKeyType {
-			// TODO: uncomment since the bug is closed
-			// See https://github.com/hashicorp/vault/issues/7709
-			t.Skip("Vault doesn't support cross-signing different key types yet.")
-		}
 
 		testVault1 := NewTestVaultServer(t)
 
@@ -1125,6 +1120,56 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 	require.NotEqual(t, orig, new)
 }
 
+func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+	t.Parallel()
+
+	testVault := NewTestVaultServer(t)
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+	provider := createVaultProvider(t, true, testVault.Addr, token,
+		map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		})
+	res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
+	require.NoError(t, err)
+
+	if res == nil {
+		t.Skip("Vault version < 1.11 does not have multi issuers functionality")
+	}
+
+	// Why 2 issuers? There is always an initial issuer that
+	// gets created before we manage the lifecycle of issuers.
+	// Since we're asserting that the number doesn't grow
+	// this isn't too much of a concern.
+	//
+	// Note the key "keys" refers to the IDs of the resource based
+	// on the endpoint the response is from.
+	require.Len(t, res.Data["keys"], 2)
+
+	res, err = testVault.Client().Logical().List("pki-intermediate/keys")
+	require.NoError(t, err)
+	require.Len(t, res.Data["keys"], 1)
+
+	for i := 0; i < 3; i++ {
+		_, err := provider.GenerateIntermediate()
+		require.NoError(t, err)
+
+		res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
+		require.NoError(t, err)
+		require.Len(t, res.Data["keys"], 2)
+
+		res, err = testVault.Client().Logical().List("pki-intermediate/keys")
+		require.NoError(t, err)
+		assert.Len(t, res.Data["keys"], 1)
+	}
+}
+
 func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 	SkipIfVaultNotPresent(t)
 
@@ -1307,6 +1352,85 @@ func TestVaultCAProvider_ConsulManaged(t *testing.T) {
 	})
 }
 
+func TestVaultCAProvider_EnterpriseNamespace(t *testing.T) {
+	SkipIfVaultNotPresent(t, vaultRequirements{Enterprise: true})
+	t.Parallel()
+
+	cases := map[string]struct {
+		namespaces map[string]string
+	}{
+		"no configured namespaces":             {},
+		"only base namespace provided":         {namespaces: map[string]string{"Namespace": "base-ns"}},
+		"only root namespace provided":         {namespaces: map[string]string{"RootPKINamespace": "root-pki-ns"}},
+		"only intermediate namespace provided": {namespaces: map[string]string{"IntermediatePKINamespace": "int-pki-ns"}},
+		"base and root namespace provided": {
+			namespaces: map[string]string{
+				"Namespace":        "base-ns",
+				"RootPKINamespace": "root-pki-ns",
+			},
+		},
+		"base and intermediate namespace provided": {
+			namespaces: map[string]string{
+				"Namespace":                "base-ns",
+				"IntermediatePKINamespace": "int-pki-ns",
+			},
+		},
+		"root and intermediate namespace provided": {
+			namespaces: map[string]string{
+				"RootPKINamespace":         "root-pki-ns",
+				"IntermediatePKINamespace": "int-pki-ns",
+			},
+		},
+		"all namespaces provided": {
+			namespaces: map[string]string{
+				"Namespace":                "base-ns",
+				"RootPKINamespace":         "root-pki-ns",
+				"IntermediatePKINamespace": "int-pki-ns",
+			},
+		},
+	}
+
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			testVault := NewTestVaultServer(t)
+			token := "root"
+
+			providerConfig := map[string]any{
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+			}
+			for k, v := range c.namespaces {
+				providerConfig[k] = v
+			}
+
+			if len(c.namespaces) > 0 {
+				// If explicit namespaces are provided, try to create the provider before any of the namespaces
+				// have been created. Verify that the provider fails to initialize.
+				provider, err := createVaultProviderE(t, true, testVault.Addr, token, providerConfig)
+				require.Error(t, err)
+				require.NotNil(t, provider)
+			}
+
+			// Create the namespaces
+			client := testVault.Client()
+			client.SetToken(token)
+
+			for _, ns := range c.namespaces {
+				_, err := client.Logical().Write(fmt.Sprintf("/sys/namespaces/%s", ns), map[string]any{})
+				require.NoError(t, err)
+			}
+
+			// Verify that once the namespaces have been created we are able to initialize the provider.
+			provider, err := createVaultProviderE(t, true, testVault.Addr, token, providerConfig)
+			require.NoError(t, err)
+			require.NotNil(t, provider)
+		})
+	}
+}
+
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
 	t.Helper()
 
@@ -1328,6 +1452,15 @@ func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.
 
 func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawConf map[string]any) *VaultProvider {
 	t.Helper()
+
+	provider, err := createVaultProviderE(t, isPrimary, addr, token, rawConf)
+	require.NoError(t, err)
+
+	return provider
+}
+
+func createVaultProviderE(t *testing.T, isPrimary bool, addr, token string, rawConf map[string]any) (*VaultProvider, error) {
+	t.Helper()
 	cfg := vaultProviderConfig(t, addr, token, rawConf)
 
 	provider := NewVaultProvider(hclog.New(nil))
@@ -1338,15 +1471,19 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 	}
 
 	t.Cleanup(provider.Stop)
-	require.NoError(t, provider.Configure(cfg))
+	if err := provider.Configure(cfg); err != nil {
+		return provider, err
+	}
 	if isPrimary {
-		_, err := provider.GenerateRoot()
-		require.NoError(t, err)
-		_, err = provider.GenerateIntermediate()
-		require.NoError(t, err)
+		if _, err := provider.GenerateRoot(); err != nil {
+			return provider, err
+		}
+		if _, err := provider.GenerateIntermediate(); err != nil {
+			return provider, err
+		}
 	}
 
-	return provider
+	return provider, nil
 }
 
 func vaultProviderConfig(t *testing.T, addr, token string, rawConf map[string]any) ProviderConfig {

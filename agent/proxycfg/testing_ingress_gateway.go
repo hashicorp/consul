@@ -1069,10 +1069,10 @@ func TestConfigSnapshotIngressGatewayWithChain(
 		webUpstream := structs.Upstream{
 			DestinationName: "web",
 			// We use empty not default here because of the way upstream identifiers
-			// vary between OSS and Enterprise currently causing test conflicts. In
+			// vary between CE and Enterprise currently causing test conflicts. In
 			// real life `proxycfg` always sets ingress upstream namespaces to
 			// `NamespaceOrDefault` which shouldn't matter because we should be
-			// consistent within a single binary it's just inconvenient if OSS and
+			// consistent within a single binary it's just inconvenient if CE and
 			// enterprise tests generate different output.
 			DestinationNamespace: webEntMeta.NamespaceOrEmpty(),
 			DestinationPartition: webEntMeta.PartitionOrEmpty(),

@@ -31,6 +31,23 @@
         {
           "filterChainMatch": {
             "serverNames": [
+              "server.dc2.peering.f3f41279-001d-42bb-912e-f6103fb036b8"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "mesh_gateway_remote_peering_servers.server.dc2.peering.f3f41279-001d-42bb-912e-f6103fb036b8",
+                "cluster": "server.dc2.peering.f3f41279-001d-42bb-912e-f6103fb036b8"
+              }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
               "server.dc3.peering.f622dc37-7238-4485-ab58-0f53864a9ae5"
             ]
           },

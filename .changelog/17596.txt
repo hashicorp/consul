@@ -1,0 +1,3 @@
+```release-note:improvement
+ debug: change default setting of consul debug command. now default duration is 5ms and default log level is 'TRACE'
+ ```

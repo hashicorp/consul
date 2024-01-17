@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -1139,7 +1138,7 @@ func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool,
 }
 
 // Services returns all services along with a list of associated tags.
-func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, []*structs.ServiceNode, error) {
+func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string, joinServiceNodes bool) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1156,6 +1155,13 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerNam
 	var result []*structs.ServiceNode
 	for service := services.Next(); service != nil; service = services.Next() {
 		result = append(result, service.(*structs.ServiceNode))
+	}
+	if joinServiceNodes {
+		parsedResult, err := parseServiceNodes(tx, ws, result, entMeta, peerName)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed querying and parsing services :%s", err)
+		}
+		return idx, parsedResult, nil
 	}
 	return idx, result, nil
 }
@@ -1985,6 +1991,12 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		if !connectEnabled {
 			if err := cleanupKindServiceName(tx, idx, sn, structs.ServiceKindConnectEnabled); err != nil {
 				return fmt.Errorf("failed to cleanup connect-enabled service name: %v", err)
+			}
+			// we need to do this if the proxy is deleted after the service itself
+			// as the guard after this might not be 1-1 between proxy and service
+			// names.
+			if err := cleanupGatewayWildcards(tx, idx, sn, false); err != nil {
+				return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", psn.String(), err)
 			}
 		}
 	}
@@ -4564,14 +4576,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 
 		var mapping *upstreamDownstream
 		if existing, ok := obj.(*upstreamDownstream); ok {
-			rawCopy, err := copystructure.Copy(existing)
-			if err != nil {
-				return fmt.Errorf("failed to copy existing topology mapping: %v", err)
-			}
-			mapping, ok = rawCopy.(*upstreamDownstream)
-			if !ok {
-				return fmt.Errorf("unexpected topology type %T", rawCopy)
-			}
+			mapping := existing.DeepCopy()
 			mapping.Refs[uid] = struct{}{}
 			mapping.ModifyIndex = idx
 
@@ -4637,14 +4642,7 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 
 	// Do the updates in a separate loop so we don't trash the iterator.
 	for _, m := range mappings {
-		rawCopy, err := copystructure.Copy(m)
-		if err != nil {
-			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
-		}
-		copy, ok := rawCopy.(*upstreamDownstream)
-		if !ok {
-			return fmt.Errorf("unexpected topology type %T", rawCopy)
-		}
+		copy := m.DeepCopy()
 
 		// Bail early if there's no reference to the proxy ID we're deleting
 		if _, ok := copy.Refs[uid]; !ok {

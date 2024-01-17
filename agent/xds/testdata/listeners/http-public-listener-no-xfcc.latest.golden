@@ -110,7 +110,12 @@
                   "randomSampling": {
 
                   }
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],

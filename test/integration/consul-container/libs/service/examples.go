@@ -66,7 +66,7 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 
 	req := testcontainers.ContainerRequest{
 		Image:      hashicorpDockerProxy + "/fortio/fortio",
-		WaitingFor: wait.ForLog("").WithStartupTimeout(10 * time.Second),
+		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,
 		Cmd:        []string{"server", "-http-port", fmt.Sprintf("%d", httpPort), "-grpc-port", fmt.Sprintf("%d", grpcPort), "-redirect-port", "-disabled"},

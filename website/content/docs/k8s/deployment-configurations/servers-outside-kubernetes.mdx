@@ -116,6 +116,10 @@ to create policies, tokens, and an auth method. If you are [enabling Consul Conn
 so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/docs/security/acl/auth-methods/kubernetes)
 with `consul login`.
 
+-> **Note:** If `externalServers.k8sAuthMethodHost` is set and you are also using WAN federation 
+(`global.federation.enabled` is set to `true`), ensure that `global.federation.k8sAuthMethodHost` is set to the same 
+value as `externalServers.k8sAuthMethodHost`.
+
 <CodeBlockConfig filename="values.yaml">
 
 ```yaml

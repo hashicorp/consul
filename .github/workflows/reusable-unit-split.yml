@@ -46,7 +46,7 @@ on:
         required: true
 env:
   TEST_RESULTS: /tmp/test-results
-  GOTESTSUM_VERSION: 1.8.2
+  GOTESTSUM_VERSION: "1.10.1"
   GOARCH: ${{inputs.go-arch}}
   TOTAL_RUNNERS: ${{inputs.runner-count}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
@@ -157,6 +157,8 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
+        # do not run on forks
+        if: ${{ env.DATADOG_API_KEY}}
         env:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml

@@ -54,7 +54,12 @@
                 },
                 "http2ProtocolOptions": {
 
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ]
@@ -112,7 +117,12 @@
                   "randomSampling": {
 
                   }
-                }
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ]

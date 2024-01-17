@@ -1,0 +1,3 @@
+```release-note:bug
+ca: Vault provider now cleans up the previous Vault issuer and key when generating a new leaf signing certificate [[GH-18779](https://github.com/hashicorp/consul/issues/18779)]
+```

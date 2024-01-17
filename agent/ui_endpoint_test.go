@@ -1112,7 +1112,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	require.Nil(t, err)
 	assertIndex(t, resp)
 
-	// Construct expected addresses so that differences between OSS/Ent are
+	// Construct expected addresses so that differences between CE/Ent are
 	// handled by code. We specifically don't include the trailing DNS . here as
 	// we are constructing what we are expecting, not the actual value
 	webDNS := serviceIngressDNSName("web", "dc1", "consul", structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -2617,7 +2617,9 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			require.NoError(t, a.Agent.reloadConfigInternal(&cfg))
 
 			// Now fetch the API handler to run requests against
-			h := a.srv.handler(true)
+			a.enableDebug.Store(true)
+
+			h := a.srv.handler()
 
 			req := httptest.NewRequest("GET", tc.path, nil)
 			rec := httptest.NewRecorder()

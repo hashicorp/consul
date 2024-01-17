@@ -30,6 +30,26 @@
           ]
         }
       ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName": "server.dc2.peering.f3f41279-001d-42bb-912e-f6103fb036b8",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "1.2.3.4",
+                    "portValue": 5200
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",

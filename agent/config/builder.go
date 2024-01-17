@@ -1000,6 +1000,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GRPCPort:                   grpcPort,
 		GRPCTLSAddrs:               grpcTlsAddrs,
 		GRPCTLSPort:                grpcTlsPort,
+		GRPCKeepaliveInterval:      b.durationValWithDefault("performance.grpc_keepalive_interval", c.Performance.GRPCKeepaliveInterval, 30*time.Second),
+		GRPCKeepaliveTimeout:       b.durationValWithDefault("performance.grpc_keepalive_timeout", c.Performance.GRPCKeepaliveTimeout, 20*time.Second),
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
@@ -1122,6 +1124,13 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				"/api/v1/query_range",
 			}
 		}
+	}
+
+	if rt.GRPCKeepaliveInterval < time.Second {
+		return RuntimeConfig{}, fmt.Errorf("performance.grpc_keepalive_interval must be 1s or greater, was: %v", rt.GRPCKeepaliveInterval)
+	}
+	if rt.GRPCKeepaliveTimeout < time.Second {
+		return RuntimeConfig{}, fmt.Errorf("performance.grpc_keepalive_timeout must be 1s or greater, was: %v", rt.GRPCKeepaliveTimeout)
 	}
 
 	if err := b.BuildEnterpriseRuntimeConfig(&rt, &c); err != nil {

@@ -141,7 +141,7 @@ func makeLoggerCallbacks(log hclog.Logger) *xds.CallbackFuncs {
 			log.Trace("gRPC stream opened", "id", id, "addr", addr)
 			return nil
 		},
-		StreamClosedFunc: func(id int64) {
+		StreamClosedFunc: func(id int64, _ *core.Node) {
 			log.Trace("gRPC stream closed", "id", id)
 		},
 		StreamRequestFunc: func(id int64, req *discovery.DiscoveryRequest) error {
@@ -152,7 +152,7 @@ func makeLoggerCallbacks(log hclog.Logger) *xds.CallbackFuncs {
 			)
 			return nil
 		},
-		StreamResponseFunc: func(id int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
+		StreamResponseFunc: func(_ context.Context, id int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
 			log.Trace("gRPC stream response", "id", id,
 				"resp.typeURL", resp.TypeUrl,
 				"resp.version", resp.VersionInfo,

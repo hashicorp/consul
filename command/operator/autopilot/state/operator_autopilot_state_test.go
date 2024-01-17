@@ -104,7 +104,7 @@ func TestStateCommand_JSON(t *testing.T) {
 
 func TestStateCommand_Formatter(t *testing.T) {
 	cases := []string{
-		"oss",
+		"ce",
 		"enterprise",
 	}
 

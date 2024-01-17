@@ -1607,7 +1607,7 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
 	require.NoError(t, err)
-	handle := h.handler(false)
+	handle := h.handler()
 	handle.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusForbidden, resp.Code)
 	require.Contains(t, resp.Body.String(), "Permission denied")
@@ -1644,7 +1644,7 @@ func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
 	require.NoError(t, err)
-	handle := h.handler(false)
+	handle := h.handler()
 	handle.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
@@ -1804,7 +1804,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 		for i := 1; i < 7; i++ {
 			contents, err := ioutil.ReadFile(tmpFile)
 			if err != nil {
-				t.Fatalf("should be able to read file, but had: %#v", err)
+				r.Fatalf("should be able to read file, but had: %#v", err)
 			}
 			contentsStr = string(contents)
 			if contentsStr != "" {
@@ -1891,14 +1891,14 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 		ensureNothingCritical(r, "red-is-dead")
 
 		if err := a.reloadConfigInternal(cfg2); err != nil {
-			t.Fatalf("got error %v want nil", err)
+			r.Fatalf("got error %v want nil", err)
 		}
 
 		// We check that reload does not go to critical
 		ensureNothingCritical(r, "red-is-dead")
 		ensureNothingCritical(r, "testing-agent-reload-001")
 
-		require.NoError(t, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-002"))
+		require.NoError(r, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-002"))
 
 		ensureNothingCritical(r, "red-is-dead")
 	})
@@ -2887,7 +2887,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Equal(r, http.StatusForbidden, resp.Code)
 		})
 	})
 
@@ -2896,7 +2896,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Equal(r, http.StatusForbidden, resp.Code)
 		})
 	})
 
@@ -2905,7 +2905,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusOK, resp.Code)
+			require.Equal(r, http.StatusOK, resp.Code)
 		})
 	})
 
@@ -2914,7 +2914,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Equal(r, http.StatusForbidden, resp.Code)
 		})
 	})
 
@@ -2923,7 +2923,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Equal(r, http.StatusForbidden, resp.Code)
 		})
 	})
 
@@ -2932,7 +2932,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusOK, resp.Code)
+			require.Equal(r, http.StatusOK, resp.Code)
 		})
 	})
 }
@@ -5913,17 +5913,17 @@ func TestAgent_Monitor(t *testing.T) {
 			res := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(res, registerReq)
 			if http.StatusOK != res.Code {
-				t.Fatalf("expected 200 but got %v", res.Code)
+				r.Fatalf("expected 200 but got %v", res.Code)
 			}
 
 			// Wait until we have received some type of logging output
-			require.Eventually(t, func() bool {
+			require.Eventually(r, func() bool {
 				return len(resp.Body.Bytes()) > 0
 			}, 3*time.Second, 100*time.Millisecond)
 
 			cancelFunc()
 			code := <-codeCh
-			require.Equal(t, http.StatusOK, code)
+			require.Equal(r, http.StatusOK, code)
 			got := resp.Body.String()
 
 			// Only check a substring that we are highly confident in finding
@@ -5947,8 +5947,10 @@ func TestAgent_Monitor(t *testing.T) {
 			cancelCtx, cancelFunc := context.WithCancel(context.Background())
 			req = req.WithContext(cancelCtx)
 
+			a.enableDebug.Store(true)
+
 			resp := httptest.NewRecorder()
-			handler := a.srv.handler(true)
+			handler := a.srv.handler()
 			go handler.ServeHTTP(resp, req)
 
 			args := &structs.ServiceDefinition{
@@ -5963,11 +5965,11 @@ func TestAgent_Monitor(t *testing.T) {
 			res := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(res, registerReq)
 			if http.StatusOK != res.Code {
-				t.Fatalf("expected 200 but got %v", res.Code)
+				r.Fatalf("expected 200 but got %v", res.Code)
 			}
 
 			// Wait until we have received some type of logging output
-			require.Eventually(t, func() bool {
+			require.Eventually(r, func() bool {
 				return len(resp.Body.Bytes()) > 0
 			}, 3*time.Second, 100*time.Millisecond)
 			cancelFunc()
@@ -6000,24 +6002,24 @@ func TestAgent_Monitor(t *testing.T) {
 			res := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(res, registerReq)
 			if http.StatusOK != res.Code {
-				t.Fatalf("expected 200 but got %v", res.Code)
+				r.Fatalf("expected 200 but got %v", res.Code)
 			}
 
 			// Wait until we have received some type of logging output
-			require.Eventually(t, func() bool {
+			require.Eventually(r, func() bool {
 				return len(resp.Body.Bytes()) > 0
 			}, 3*time.Second, 100*time.Millisecond)
 
 			cancelFunc()
 			code := <-codeCh
-			require.Equal(t, http.StatusOK, code)
+			require.Equal(r, http.StatusOK, code)
 
 			// Each line is output as a separate JSON object, we grab the first and
 			// make sure it can be unmarshalled.
 			firstLine := bytes.Split(resp.Body.Bytes(), []byte("\n"))[0]
 			var output map[string]interface{}
 			if err := json.Unmarshal(firstLine, &output); err != nil {
-				t.Fatalf("err: %v", err)
+				r.Fatalf("err: %v", err)
 			}
 		})
 	})
@@ -6578,7 +6580,7 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 			dec := json.NewDecoder(resp.Body)
 			value := &structs.IndexedCARoots{}
-			require.NoError(t, dec.Decode(value))
+			require.NoError(r, dec.Decode(value))
 			if ca.ID != value.ActiveRootID {
 				r.Fatalf("%s != %s", ca.ID, value.ActiveRootID)
 			}
@@ -6979,7 +6981,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 			dec := json.NewDecoder(resp.Body)
 			issued2 := &structs.IssuedCert{}
-			require.NoError(t, dec.Decode(issued2))
+			require.NoError(r, dec.Decode(issued2))
 			if issued.CertPEM == issued2.CertPEM {
 				r.Fatalf("leaf has not updated")
 			}
@@ -6991,9 +6993,9 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 			}
 
 			// Verify that the cert is signed by the new CA
-			requireLeafValidUnderCA(t, issued2, ca)
+			requireLeafValidUnderCA(r, issued2, ca)
 
-			require.NotEqual(t, issued, issued2)
+			require.NotEqual(r, issued, issued2)
 		})
 	}
 }
@@ -7370,11 +7372,11 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		// Try and sign again (note no index/wait arg since cache should update in
 		// background even if we aren't actively blocking)
 		a2.srv.h.ServeHTTP(resp, req)
-		require.Equal(t, http.StatusOK, resp.Code)
+		require.Equal(r, http.StatusOK, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(t, dec.Decode(issued2))
+		require.NoError(r, dec.Decode(issued2))
 		if issued.CertPEM == issued2.CertPEM {
 			r.Fatalf("leaf has not updated")
 		}
@@ -7386,9 +7388,9 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		}
 
 		// Verify that the cert is signed by the new CA
-		requireLeafValidUnderCA(t, issued2, dc1_ca2)
+		requireLeafValidUnderCA(r, issued2, dc1_ca2)
 
-		require.NotEqual(t, issued, issued2)
+		require.NotEqual(r, issued, issued2)
 	})
 }
 
@@ -7398,12 +7400,12 @@ func waitForActiveCARoot(t *testing.T, srv *HTTPHandlers, expect *structs.CARoot
 		resp := httptest.NewRecorder()
 		srv.h.ServeHTTP(resp, req)
 		if http.StatusOK != resp.Code {
-			t.Fatalf("expected 200 but got %v", resp.Code)
+			r.Fatalf("expected 200 but got %v", resp.Code)
 		}
 
 		dec := json.NewDecoder(resp.Body)
 		roots := &structs.IndexedCARoots{}
-		require.NoError(t, dec.Decode(roots))
+		require.NoError(r, dec.Decode(roots))
 
 		var root *structs.CARoot
 		for _, r := range roots.Roots {
@@ -8028,4 +8030,60 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 		actual.Proxy.Upstreams = make([]api.Upstream, 0)
 	}
 	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
+}
+
+func TestAgent_Self_Reload(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// create new test agent
+	a := NewTestAgent(t, `
+		log_level = "info"
+		raft_snapshot_threshold = 100
+	`)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec := json.NewDecoder(resp.Body)
+	val := &Self{}
+	require.NoError(t, dec.Decode(val))
+
+	require.Equal(t, "info", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
+	require.Equal(t, float64(100), val.DebugConfig["RaftSnapshotThreshold"].(float64))
+
+	// reload with new config
+	shim := &delegateConfigReloadShim{delegate: a.delegate}
+	a.delegate = shim
+	newCfg := TestConfig(testutil.Logger(t), config.FileSource{
+		Name:   "Reload",
+		Format: "hcl",
+		Data: `
+			data_dir = "` + a.Config.DataDir + `"
+			log_level = "debug"
+			raft_snapshot_threshold = 200	
+		`,
+	})
+	if err := a.reloadConfigInternal(newCfg); err != nil {
+		t.Fatalf("got error %v want nil", err)
+	}
+	require.Equal(t, 200, shim.newCfg.RaftSnapshotThreshold)
+
+	// validate new config is reflected in API response
+	req, _ = http.NewRequest("GET", "/v1/agent/self", nil)
+	resp = httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec = json.NewDecoder(resp.Body)
+	val = &Self{}
+	require.NoError(t, dec.Decode(val))
+	require.Equal(t, "debug", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
+	require.Equal(t, float64(200), val.DebugConfig["RaftSnapshotThreshold"].(float64))
+
 }

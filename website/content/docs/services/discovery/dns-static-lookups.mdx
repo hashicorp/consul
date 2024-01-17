@@ -200,10 +200,12 @@ rabbitmq.node1.dc1.consul.  0 IN  A 10.1.11.20
 If a service registered with Consul is configured with an explicit IP address or addresses in the  [`address`](/consul/docs/services/configuration/services-configuration-reference#address) or [`tagged_address`](/consul/docs/services/configuration/services-configuration-reference#tagged_address) parameter, then Consul returns the hostname in the target field of the answer section for the DNS SRV query according to the following format: 
 
 ```text
-<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+<hexadecimal-encoded IP>.addr.<datacenter>.consul.
 ```
 
 In the following example, the `rabbitmq` service is registered with an explicit IPv4 address of `192.0.2.10`.
+
+<CodeTabs>
 
 ```hcl
 node_name = "node1"
@@ -213,6 +215,9 @@ services {
   address = "192.0.2.10"
   port = 5672
 }
+```
+
+```json
 {
   "node_name": "node1",
   "services": [
@@ -224,6 +229,8 @@ services {
   ]
 }
 ```
+
+</CodeTabs>
 
 The following example SRV query response contains a single record with a hostname written as a hexadecimal value:
 
@@ -241,6 +248,8 @@ $ echo -n "c000020a" | perl -ne 'printf("%vd\n", pack("H*", $_))'
 
 In the following example, the `rabbitmq` service is registered with an explicit IPv6 address of `2001:db8:1:2:cafe::1337`.
 
+<CodeTabs>
+
 ```hcl
 node_name = "node1"
 
@@ -249,6 +258,9 @@ services {
   address = "2001:db8:1:2:cafe::1337"
   port = 5672
 }
+```
+
+```json
 {
   "node_name": "node1",
   "services": [
@@ -260,6 +272,8 @@ services {
   ]
 }
 ```
+
+</CodeTabs>
 
 The following example SRV query response contains a single record with a hostname written as a hexadecimal value:
 
