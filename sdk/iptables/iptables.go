@@ -73,6 +73,11 @@ type Config struct {
 	// AddAdditionalRulesFn can be implemented by the caller to
 	// add environment specific rules (like ECS) that needs to
 	// be executed for traffic redirection to work properly.
+	//
+	// This gets called by the Setup function after all the
+	// first class iptable rules are added. The implemented
+	// function should only call the `AddRule` and optionally
+	// the `Rules` method of the provider.
 	AddAdditionalRulesFn func(iptablesProvider Provider)
 }
 
