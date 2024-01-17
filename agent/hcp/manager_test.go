@@ -22,9 +22,9 @@ func TestManager_Run(t *testing.T) {
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
-	initializeManagementTokenFCalled := false
-	initializeManagementTokenF := func(name, secretID string) error {
-		initializeManagementTokenFCalled = true
+	upsertManagementTokenCalled := false
+	upsertManagementTokenF := func(name, secretID string) error {
+		upsertManagementTokenCalled = true
 		return nil
 	}
 	updateCh := make(chan struct{}, 1)
@@ -58,13 +58,13 @@ func TestManager_Run(t *testing.T) {
 		mockTelemetryCfg, nil).Maybe()
 
 	mgr := NewManager(ManagerConfig{
-		Client:                      client,
-		Logger:                      hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn:                    statusF,
-		InitializeManagementTokenFn: initializeManagementTokenF,
-		CloudConfig:                 cloudCfg,
-		SCADAProvider:               scadaM,
-		TelemetryProvider:           telemetryProvider,
+		Client:                    client,
+		Logger:                    hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		StatusFn:                  statusF,
+		ManagementTokenUpserterFn: upsertManagementTokenF,
+		CloudConfig:               cloudCfg,
+		SCADAProvider:             scadaM,
+		TelemetryProvider:         telemetryProvider,
 	})
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -83,7 +83,7 @@ func TestManager_Run(t *testing.T) {
 	require.Equal(t, client, telemetryProvider.hcpClient)
 	require.NotNil(t, telemetryProvider.GetHeader())
 	require.NotNil(t, telemetryProvider.GetHTTPClient())
-	require.True(t, initializeManagementTokenFCalled, "Initialize management token function not called")
+	require.True(t, upsertManagementTokenCalled, "upsert management token function not called")
 }
 
 func TestManager_SendUpdate(t *testing.T) {

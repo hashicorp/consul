@@ -27,11 +27,11 @@ type ManagerConfig struct {
 	TelemetryProvider *hcpProviderImpl
 
 	StatusFn StatusCallback
-	// Idempotent function to initialize the management token. This will be called periodically in
+	// Idempotent function to upsert the HCP management token. This will be called periodically in
 	// the manager's main loop.
-	InitializeManagementTokenFn InitializeManagementToken
-	MinInterval                 time.Duration
-	MaxInterval                 time.Duration
+	ManagementTokenUpserterFn ManagementTokenUpserter
+	MinInterval               time.Duration
+	MaxInterval               time.Duration
 
 	Logger hclog.Logger
 }
@@ -57,7 +57,7 @@ func (cfg *ManagerConfig) nextHeartbeat() time.Duration {
 }
 
 type StatusCallback func(context.Context) (hcpclient.ServerStatus, error)
-type InitializeManagementToken func(name, secretId string) error
+type ManagementTokenUpserter func(name, secretId string) error
 
 type Manager struct {
 	logger hclog.Logger
@@ -115,10 +115,10 @@ func (m *Manager) Run(ctx context.Context) error {
 
 	// main loop
 	for {
-		// Check for configured management token from HCP. It MUST NOT override the user-provided initial management token.
+		// Check for configured management token from HCP and upsert it if found
 		if hcpManagement := m.cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
-			initTokenErr := m.cfg.InitializeManagementTokenFn("HCP Management Token", hcpManagement)
-			m.logger.Error("failed to initialize HCP management token", "err", initTokenErr)
+			upsertTokenErr := m.cfg.ManagementTokenUpserterFn("HCP Management Token", hcpManagement)
+			m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
 		}
 
 		m.cfgMu.RLock()
