@@ -793,6 +793,10 @@
             "path": "upgrade/ecs/dataplane"
           }
         ]
+      },
+      {
+        "title": "API gateway",
+        "path": "upgrade/api-gateway"
       }
     ]
   },

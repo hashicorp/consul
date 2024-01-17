@@ -30,7 +30,7 @@ Complete the following steps to add an ingress gateway:
 
 ## Enable ingress gateways in the Helm chart
 
-1. Create custom YAML values file and configure the `ingressGateways` object. You can specify one or more gateways for you environment in the `ingressGateways.gateways` field. The only required field for each entry is `ingressGateways.gateways.name`. Refer to the [Helm chart reference](/consul/docs/k8s/helm#ingressgateways) for details about the supported fields. 
+1. Create custom YAML values file and configure the `ingressGateways` object. You can specify one or more gateways for you environment in the `ingressGateways.gateways` field. The only required field for each entry is `ingressGateways.gateways.name`. Refer to the [Helm chart reference](/consul/docs/reference/k8s/helm#ingressgateways) for details about the supported fields. 
  
     The following example configuration creates an ingress as a public, unauthenticated LoadBalancer in your cluster:
 
