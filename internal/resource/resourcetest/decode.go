@@ -16,3 +16,9 @@ func MustDecode[Tp proto.Message](t T, res *pbresource.Resource) *resource.Decod
 	require.NoError(t, err)
 	return dec
 }
+
+func MustDecodeList[Tp proto.Message](t T, resources []*pbresource.Resource) []*resource.DecodedResource[Tp] {
+	dec, err := resource.DecodeList[Tp](resources)
+	require.NoError(t, err)
+	return dec
+}
