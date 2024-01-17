@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -119,7 +120,6 @@ func dnsTXT(src string, txt []string) *dns.TXT {
 func getVersionHCL(enableV2 bool) map[string]string {
 	versions := map[string]string{
 		"DNS: v1 / Catalog: v1": "",
-		//"DNS: v2 / Catalog: v1": `experiments=["v2dns"]`,
 	}
 
 	if enableV2 {
@@ -670,9 +670,9 @@ func TestDNS_VirtualIPLookup(t *testing.T) {
 
 	t.Parallel()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
-			a := StartTestAgent(t, TestAgent{HCL: experimentsHCL, Overrides: `peering = { test_allow_peer_registrations = true }`})
+			a := StartTestAgent(t, TestAgent{HCL: experimentsHCL, Overrides: `peering = { test_allow_peer_registrations = true } log_level = "debug"`})
 			defer a.Shutdown()
 
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -3838,6 +3838,74 @@ func TestPerfectlyRandomChoices(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("size=%d frac=%g", tc.size, tc.frac), func(t *testing.T) {
 			run(t, tc)
+		})
+	}
+}
+
+type testCaseParseLocality struct {
+	name                string
+	labels              []string
+	defaultEntMeta      acl.EnterpriseMeta
+	enterpriseDNSConfig enterpriseDNSConfig
+	expectedResult      queryLocality
+	expectedOK          bool
+}
+
+func Test_ParseLocality(t *testing.T) {
+	testCases := getTestCasesParseLocality()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := &DNSServer{
+				defaultEnterpriseMeta: tc.defaultEntMeta,
+			}
+			actualResult, actualOK := d.parseLocality(tc.labels, &dnsConfig{
+				enterpriseDNSConfig: tc.enterpriseDNSConfig,
+			})
+			require.Equal(t, tc.expectedOK, actualOK)
+			require.Equal(t, tc.expectedResult, actualResult)
+
+		})
+	}
+
+}
+
+func Test_EffectiveDatacenter(t *testing.T) {
+	type testCase struct {
+		name          string
+		queryLocality queryLocality
+		defaultDC     string
+		expected      string
+	}
+	testCases := []testCase{
+		{
+			name: "return datacenter first",
+			queryLocality: queryLocality{
+				datacenter:       "test-dc",
+				peerOrDatacenter: "test-peer",
+			},
+			defaultDC: "default-dc",
+			expected:  "test-dc",
+		},
+		{
+			name: "return PeerOrDatacenter second",
+			queryLocality: queryLocality{
+				peerOrDatacenter: "test-peer",
+			},
+			defaultDC: "default-dc",
+			expected:  "test-peer",
+		},
+		{
+			name:          "return defaultDC as fallback",
+			queryLocality: queryLocality{},
+			defaultDC:     "default-dc",
+			expected:      "default-dc",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.queryLocality.effectiveDatacenter(tc.defaultDC)
+			require.Equal(t, tc.expected, got)
 		})
 	}
 }
