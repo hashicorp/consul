@@ -1,0 +1,164 @@
+---
+layout: docs
+page_title: Split traffic between multi-port services 
+description: Learn how to configure Consul to split TCP traffic between two ports of a multi-port service using the TCPRoute resource and the v2 catalog API
+---
+
+# Split TCP traffic between multi-port services
+
+<Warning>
+
+Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
+
+</Warning>
+
+This page describes the process for splitting TCP, HTTP, and gRPC traffic between two ports of a multi-port service. It includes an example TCPRoute resource configuration to demonstrate Consul's multi-port features.
+
+## Prerequisites
+
+Splitting traffic between two ports of a multi-port service requires the [v2 catalog API](/consul/docs/architecture/catalog/v2).
+
+In addition, how you define a multi-port service affects how Services are addressed in Kubernetes. The instructions on this page offer examples for two configuration methods:
+
+- **Method 1**: Define a single Kubernetes Service that exposes multiple ports
+- **Method 2**: Define multiple Kubernetes Services that expose individual ports
+
+For guidance on enabling the v2 catalog, deploying multi-port services using these methods, and applying traffic permissions to the services, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
+
+## Overview
+
+Complete the following steps to implement a split in TCP traffic between two services:
+
+1. Define the resource's behavior in a custom resource definition (CRD).
+1. Apply the resource to your cluster.
+
+## Define route resource
+
+The following example splits traffic for the services in the `api` Pod.
+
+<Tabs>
+
+<Tab heading="Method 1" group="method1">
+
+TCP traffic for services registered to the Consul catalog that are available at the `admin` port is split so that 50% of the traffic routes to the service at the `api` port and 50% routes to the service at the `admin` port.
+
+<CodeBlockConfig filename="api-split.yaml">
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1
+kind: TCPRoute
+metadata:
+  name: api-split
+spec:
+  parentRefs:
+    - ref:
+        type: 
+          group: catalog
+          groupVersion: v2beta1
+          kind: Service
+        name: api
+      port: "admin"
+  rules:
+    - backendRefs:
+      - backendRef:
+          ref: 
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          port: "api"
+        weight: 50
+      - backendRef:
+          ref: 
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          port: "admin"
+        weight: 50
+```
+
+</CodeBlockConfig>
+</Tab>
+
+<Tab heading="Method 2" group="method2">
+
+TCP traffic for services registered to the Consul catalog that are available at the `api-admin` port is split so that 50% of the traffic routes to the service at the `api` port and 50% routes to the service at the `api-admin` port.
+
+<CodeBlockConfig filename="api-split.yaml">
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1
+kind: TCPRoute
+metadata:
+  name: api-split
+spec:
+  parentRefs:
+    - ref:
+        type: 
+          group: catalog
+          groupVersion: v2beta1
+          kind: Service
+        name: api-admin
+      port: "admin"
+  rules:
+    - backendRefs:
+      - backendRef:
+          ref: 
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          port: "api"
+        weight: 50
+      - backendRef:
+          ref: 
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api-admin
+          port: "admin"
+        weight: 50
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+## Apply the resource
+
+Use the `kubectl` command to apply the resource to your Consul cluster.
+
+```shell-session
+$ kubectl apply -f api-split.yaml
+```
+
+<Tabs>
+
+<Tab heading="Method 1" group="method1">
+
+Then, open a shell session in the `web` container and test the `api` service on port 90.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api:90
+```
+
+</Tab>
+
+<Tab heading="Method 2" group="method2">
+
+Then, open a shell session in the `web` container and test the `api-admin` service on port 90.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api-admin:90
+```
+
+</Tab>
+</Tabs>
+
+Half of the traffic should respond with the `hello world` response from port 80, instead of port 90's response of `hello world from 9090 admin`. Repeat the command several times to verify that you receive both responses.
