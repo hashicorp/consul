@@ -99,6 +99,7 @@ message Resource {
   string generation = 4;
 
   // Metadata contains key/value pairs of arbitrary metadata about the resource.
+  // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
   map<string, string> metadata = 5;
 
   // Status is used by controllers to communicate the result of attempting to

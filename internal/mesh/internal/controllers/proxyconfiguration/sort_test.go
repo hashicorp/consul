@@ -94,7 +94,9 @@ func TestSortProxyConfigurations(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			resourceClient := svctest.RunResourceService(t, types.Register)
+			resourceClient := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(types.Register).
+				Run(t)
 
 			var decProxyCfgs []*types.DecodedProxyConfiguration
 			for i, ws := range c.selectors {

@@ -10,6 +10,10 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
+
+	retry "github.com/avast/retry-go"
+	"github.com/hashicorp/consul/api"
 )
 
 // PrintDetails will dump relevant addressing and naming data to the logger for
@@ -22,7 +26,19 @@ func (s *Sprawl) PrintDetails() error {
 	for _, cluster := range s.topology.Clusters {
 		client := s.clients[cluster.Name]
 
-		cfg, err := client.Operator().RaftGetConfiguration(nil)
+		var cfg *api.RaftConfiguration
+		var err error
+		err = retry.Do(
+			func() error {
+				cfg, err = client.Operator().RaftGetConfiguration(nil)
+				if err != nil {
+					return fmt.Errorf("error get raft config: %w", err)
+				}
+				return nil
+			},
+			retry.MaxDelay(5*time.Second),
+			retry.Attempts(15),
+		)
 		if err != nil {
 			return fmt.Errorf("could not get raft config for cluster %q: %w", cluster.Name, err)
 		}
@@ -59,29 +75,29 @@ func (s *Sprawl) PrintDetails() error {
 				})
 			}
 
-			for _, svc := range node.Services {
-				if svc.IsMeshGateway {
+			for _, wrk := range node.Workloads {
+				if wrk.IsMeshGateway {
 					cd.Apps = append(cd.Apps, appDetail{
 						Type:                  "mesh-gateway",
 						Container:             node.DockerName(),
-						ExposedPort:           node.ExposedPort(svc.Port),
-						ExposedEnvoyAdminPort: node.ExposedPort(svc.EnvoyAdminPort),
+						ExposedPort:           node.ExposedPort(wrk.Port),
+						ExposedEnvoyAdminPort: node.ExposedPort(wrk.EnvoyAdminPort),
 						Addresses:             addrs,
-						Service:               svc.ID.String(),
+						Service:               wrk.ID.String(),
 					})
 				} else {
 					ports := make(map[string]int)
-					for name, port := range svc.Ports {
+					for name, port := range wrk.Ports {
 						ports[name] = node.ExposedPort(port.Number)
 					}
 					cd.Apps = append(cd.Apps, appDetail{
 						Type:                  "app",
 						Container:             node.DockerName(),
-						ExposedPort:           node.ExposedPort(svc.Port),
+						ExposedPort:           node.ExposedPort(wrk.Port),
 						ExposedPorts:          ports,
-						ExposedEnvoyAdminPort: node.ExposedPort(svc.EnvoyAdminPort),
+						ExposedEnvoyAdminPort: node.ExposedPort(wrk.EnvoyAdminPort),
 						Addresses:             addrs,
-						Service:               svc.ID.String(),
+						Service:               wrk.ID.String(),
 					})
 				}
 			}

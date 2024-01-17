@@ -4,14 +4,11 @@
 package types
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -191,67 +188,67 @@ func TestMutateFailoverPolicy(t *testing.T) {
 	}
 }
 
-func TestValidateFailoverPolicy(t *testing.T) {
-	type configTestcase struct {
-		config    *pbcatalog.FailoverConfig
-		expectErr string
+type failoverTestcase struct {
+	failover  *pbcatalog.FailoverPolicy
+	expectErr string
+}
+
+type configTestcase struct {
+	config    *pbcatalog.FailoverConfig
+	expectErr string
+}
+
+func maybeWrap(wrapPrefix, base string) string {
+	if base != "" {
+		return wrapPrefix + base
 	}
+	return ""
+}
 
-	type testcase struct {
-		failover  *pbcatalog.FailoverPolicy
-		expectErr string
+func addFailoverConfigSamenessGroupCases(fpcases map[string]failoverTestcase) {
+
+	configCases := map[string]configTestcase{}
+	configCases["dest with sameness"] = configTestcase{
+		config: &pbcatalog.FailoverConfig{
+			Destinations: []*pbcatalog.FailoverDestination{
+				{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
+			},
+			SamenessGroup: "blah",
+		},
+		expectErr: `invalid "destinations" field: exactly one of destinations or sameness_group should be set`,
 	}
+	configCases["sameness without dest"] = configTestcase{
+		config: &pbcatalog.FailoverConfig{
+			SamenessGroup: "blah",
+		},
+	}
+	for name, tc := range configCases {
+		fpcases["plain config: "+name] = failoverTestcase{
+			failover: &pbcatalog.FailoverPolicy{
+				Config: proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
+			},
+			expectErr: maybeWrap(`invalid "config" field: `, tc.expectErr),
+		}
 
-	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(pbcatalog.FailoverPolicyType, "api").
-			WithTenancy(resource.DefaultNamespacedTenancy()).
-			WithData(t, tc.failover).
-			Build()
-
-		require.NoError(t, MutateFailoverPolicy(res))
-
-		// Verify that mutate didn't actually change the object.
-		got := resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, res)
-		prototest.AssertDeepEqual(t, tc.failover, got.Data)
-
-		err := ValidateFailoverPolicy(res)
-
-		// Verify that validate didn't actually change the object.
-		got = resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, res)
-		prototest.AssertDeepEqual(t, tc.failover, got.Data)
-
-		if tc.expectErr == "" {
-			require.NoError(t, err)
-		} else {
-			testutil.RequireErrorContains(t, err, tc.expectErr)
+		fpcases["ported config: "+name] = failoverTestcase{
+			failover: &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
+				},
+			},
+			expectErr: maybeWrap(`invalid value of key "http" within port_configs: `, tc.expectErr),
 		}
 	}
+}
 
+func getCommonTestCases() map[string]failoverTestcase {
 	configCases := map[string]configTestcase{
-		"dest with sameness": {
-			config: &pbcatalog.FailoverConfig{
-				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
-				},
-				SamenessGroup: "blah",
-			},
-			// TODO(v2): uncomment after this is supported
-			// expectErr: `invalid "destinations" field: exactly one of destinations or sameness_group should be set`,
-			expectErr: `invalid "sameness_group" field: not supported in this release`,
-		},
 		"dest without sameness": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
 					{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
 				},
 			},
-		},
-		"sameness without dest": {
-			config: &pbcatalog.FailoverConfig{
-				SamenessGroup: "blah",
-			},
-			// TODO(v2): remove after this is supported
-			expectErr: `invalid "sameness_group" field: not supported in this release`,
 		},
 		"regions without dest": {
 			config: &pbcatalog.FailoverConfig{
@@ -327,7 +324,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		},
 	}
 
-	cases := map[string]testcase{
+	fpcases := map[string]failoverTestcase{
 		// emptiness
 		"empty": {
 			failover:  &pbcatalog.FailoverPolicy{},
@@ -391,22 +388,15 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		},
 	}
 
-	maybeWrap := func(wrapPrefix, base string) string {
-		if base != "" {
-			return wrapPrefix + base
-		}
-		return ""
-	}
-
 	for name, tc := range configCases {
-		cases["plain config: "+name] = testcase{
+		fpcases["plain config: "+name] = failoverTestcase{
 			failover: &pbcatalog.FailoverPolicy{
 				Config: proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
 			},
 			expectErr: maybeWrap(`invalid "config" field: `, tc.expectErr),
 		}
 
-		cases["ported config: "+name] = testcase{
+		fpcases["ported config: "+name] = failoverTestcase{
 			failover: &pbcatalog.FailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
@@ -415,6 +405,37 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			expectErr: maybeWrap(`invalid value of key "http" within port_configs: `, tc.expectErr),
 		}
 	}
+	return fpcases
+}
+
+func TestValidateFailoverPolicy(t *testing.T) {
+	run := func(t *testing.T, tc failoverTestcase) {
+		res := resourcetest.Resource(pbcatalog.FailoverPolicyType, "api").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, tc.failover).
+			Build()
+
+		require.NoError(t, MutateFailoverPolicy(res))
+
+		// Verify that mutate didn't actually change the object.
+		got := resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, res)
+		prototest.AssertDeepEqual(t, tc.failover, got.Data)
+
+		err := ValidateFailoverPolicy(res)
+
+		// Verify that validate didn't actually change the object.
+		got = resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, res)
+		prototest.AssertDeepEqual(t, tc.failover, got.Data)
+
+		if tc.expectErr == "" {
+			require.NoError(t, err)
+		} else {
+			testutil.RequireErrorContains(t, err, tc.expectErr)
+		}
+	}
+
+	cases := getCommonTestCases()
+	addFailoverConfigSamenessGroupCases(cases)
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -682,152 +703,7 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 
 func TestFailoverPolicyACLs(t *testing.T) {
 	// Wire up a registry to generically invoke hooks
-	registry := resource.NewRegistry()
-	Register(registry)
-
-	newFailover := func(t *testing.T, name, tenancyStr string, destRefs []*pbresource.Reference) []*pbresource.Resource {
-		var dr []*pbcatalog.FailoverDestination
-		for _, destRef := range destRefs {
-			dr = append(dr, &pbcatalog.FailoverDestination{Ref: destRef})
-		}
-
-		res1 := resourcetest.Resource(pbcatalog.FailoverPolicyType, name).
-			WithTenancy(resourcetest.Tenancy(tenancyStr)).
-			WithData(t, &pbcatalog.FailoverPolicy{
-				Config: &pbcatalog.FailoverConfig{Destinations: dr},
-			}).
-			Build()
-		resourcetest.ValidateAndNormalize(t, registry, res1)
-
-		res2 := resourcetest.Resource(pbcatalog.FailoverPolicyType, name).
-			WithTenancy(resourcetest.Tenancy(tenancyStr)).
-			WithData(t, &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": {Destinations: dr},
-				},
-			}).
-			Build()
-		resourcetest.ValidateAndNormalize(t, registry, res2)
-
-		return []*pbresource.Resource{res1, res2}
-	}
-
-	type testcase struct {
-		res     *pbresource.Resource
-		rules   string
-		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
-		readOK  string
-		writeOK string
-	}
-
-	const (
-		DENY    = resourcetest.DENY
-		ALLOW   = resourcetest.ALLOW
-		DEFAULT = resourcetest.DEFAULT
-	)
-
-	serviceRef := func(tenancy, name string) *pbresource.Reference {
-		return newRefWithTenancy(pbcatalog.ServiceType, tenancy, name)
-	}
-
-	resOneDest := func(tenancy, destTenancy string) []*pbresource.Resource {
-		return newFailover(t, "api", tenancy, []*pbresource.Reference{
-			serviceRef(destTenancy, "dest1"),
-		})
-	}
-
-	resTwoDests := func(tenancy, destTenancy string) []*pbresource.Resource {
-		return newFailover(t, "api", tenancy, []*pbresource.Reference{
-			serviceRef(destTenancy, "dest1"),
-			serviceRef(destTenancy, "dest2"),
-		})
-	}
-
-	run := func(t *testing.T, name string, tc resourcetest.ACLTestCase) {
-		t.Run(name, func(t *testing.T) {
-			resourcetest.RunACLTestCase(t, tc, registry)
-		})
-	}
-
-	isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
-
-	serviceRead := func(partition, namespace, name string) string {
-		if isEnterprise {
-			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "read" } } }`, partition, namespace, name)
-		}
-		return fmt.Sprintf(` service %q { policy = "read" } `, name)
-	}
-	serviceWrite := func(partition, namespace, name string) string {
-		if isEnterprise {
-			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "write" } } }`, partition, namespace, name)
-		}
-		return fmt.Sprintf(` service %q { policy = "write" } `, name)
-	}
-
-	assert := func(t *testing.T, name string, rules string, resList []*pbresource.Resource, readOK, writeOK string) {
-		for i, res := range resList {
-			tc := resourcetest.ACLTestCase{
-				AuthCtx: resource.AuthorizerContext(res.Id.Tenancy),
-				Res:     res,
-				Rules:   rules,
-				ReadOK:  readOK,
-				WriteOK: writeOK,
-				ListOK:  DEFAULT,
-			}
-			run(t, fmt.Sprintf("%s-%d", name, i), tc)
-		}
-	}
-
-	tenancies := []string{"default.default"}
-	if isEnterprise {
-		tenancies = append(tenancies, "default.foo", "alpha.default", "alpha.foo")
-	}
-
-	for _, policyTenancyStr := range tenancies {
-		t.Run("policy tenancy: "+policyTenancyStr, func(t *testing.T) {
-			for _, destTenancyStr := range tenancies {
-				t.Run("dest tenancy: "+destTenancyStr, func(t *testing.T) {
-					for _, aclTenancyStr := range tenancies {
-						t.Run("acl tenancy: "+aclTenancyStr, func(t *testing.T) {
-							aclTenancy := resourcetest.Tenancy(aclTenancyStr)
-
-							maybe := func(match string, parentOnly bool) string {
-								if policyTenancyStr != aclTenancyStr {
-									return DENY
-								}
-								if !parentOnly && destTenancyStr != aclTenancyStr {
-									return DENY
-								}
-								return match
-							}
-
-							t.Run("no rules", func(t *testing.T) {
-								rules := ``
-								assert(t, "1dest", rules, resOneDest(policyTenancyStr, destTenancyStr), DENY, DENY)
-								assert(t, "2dests", rules, resTwoDests(policyTenancyStr, destTenancyStr), DENY, DENY)
-							})
-							t.Run("api:read", func(t *testing.T) {
-								rules := serviceRead(aclTenancy.Partition, aclTenancy.Namespace, "api")
-								assert(t, "1dest", rules, resOneDest(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
-								assert(t, "2dests", rules, resTwoDests(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
-							})
-							t.Run("api:write", func(t *testing.T) {
-								rules := serviceWrite(aclTenancy.Partition, aclTenancy.Namespace, "api")
-								assert(t, "1dest", rules, resOneDest(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
-								assert(t, "2dests", rules, resTwoDests(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
-							})
-							t.Run("api:write dest1:read", func(t *testing.T) {
-								rules := serviceWrite(aclTenancy.Partition, aclTenancy.Namespace, "api") +
-									serviceRead(aclTenancy.Partition, aclTenancy.Namespace, "dest1")
-								assert(t, "1dest", rules, resOneDest(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), maybe(ALLOW, false))
-								assert(t, "2dests", rules, resTwoDests(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
-							})
-						})
-					}
-				})
-			}
-		})
-	}
+	testFailOverPolicyAcls(t, false)
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
@@ -840,10 +716,4 @@ func newRefWithTenancy(typ *pbresource.Type, tenancyStr, name string) *pbresourc
 	return resourcetest.Resource(typ, name).
 		WithTenancy(resourcetest.Tenancy(tenancyStr)).
 		Reference("")
-}
-
-func newRefWithPeer(typ *pbresource.Type, name string, peer string) *pbresource.Reference {
-	ref := newRef(typ, name)
-	ref.Tenancy.PeerName = peer
-	return ref
 }

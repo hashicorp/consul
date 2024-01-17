@@ -23,10 +23,12 @@ func RegisterTypes(r resource.Registry) {
 
 // RegisterControllers registers controllers for the tenancy types with
 // the given controller manager.
-func RegisterControllers(mgr *controller.Manager) {
-	controllers.Register(mgr)
+func RegisterControllers(mgr *controller.Manager, deps Dependencies) {
+	controllers.Register(mgr, deps)
 }
 
 func NewV2TenancyBridge() *V2TenancyBridge {
 	return bridge.NewV2TenancyBridge()
 }
+
+type Dependencies = controllers.Dependencies

@@ -37,6 +37,6 @@ func NewServer(cfg Config) *Server {
 	return &Server{cfg}
 }
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbserverdiscovery.RegisterServerDiscoveryServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbserverdiscovery.RegisterServerDiscoveryServiceServer(registrar, s)
 }

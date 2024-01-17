@@ -113,6 +113,17 @@ export default class RepositoryService extends Service {
         return false;
       }
     }
+
+    // We were seeing issues where services were all being unloaded after visiting
+    // a peers imported services page. So if you viewes services -> peered imported services -> services
+    // only the peered services would remain as the others were all unloaded. Not certain if
+    // we should be doing any manual reconciling as it is. Not enough historical context
+    // to determine that at this time.
+    //
+    // https://hashicorp.atlassian.net/browse/NET-6900
+    if (this.env.var('CONSUL_PEERINGS_ENABLED') && this.getModelName() === 'service') {
+      return false;
+    }
     return true;
   }
 

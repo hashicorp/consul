@@ -530,12 +530,12 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 }
 
 func TestConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotTerminatingGatewayServiceSubsets(t, false)
+	return testConfigSnapshotTerminatingGatewayServiceSubsets(t, false, nil)
 }
-func TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotTerminatingGatewayServiceSubsets(t, true)
+func TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t testing.T, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
+	return testConfigSnapshotTerminatingGatewayServiceSubsets(t, true, nsFn)
 }
-func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustCache bool) *ConfigSnapshot {
+func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustCache bool, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
 	var (
 		web   = structs.NewServiceName("web", nil)
 		cache = structs.NewServiceName("cache", nil)
@@ -593,7 +593,7 @@ func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustC
 		})
 	}
 
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, events)
+	return TestConfigSnapshotTerminatingGateway(t, true, nsFn, events)
 }
 
 func TestConfigSnapshotTerminatingGatewayDefaultServiceSubset(t testing.T) *ConfigSnapshot {

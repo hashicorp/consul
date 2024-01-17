@@ -6,12 +6,11 @@
 package consul
 
 import (
-	"testing"
-
+	"github.com/hashicorp/consul/sdk/testutil"
 	hclog "github.com/hashicorp/go-hclog"
 )
 
-func newDefaultDepsEnterprise(t *testing.T, _ hclog.Logger, _ *Config) EnterpriseDeps {
+func newDefaultDepsEnterprise(t testutil.TestingTB, _ hclog.Logger, _ *Config) EnterpriseDeps {
 	t.Helper()
 	return EnterpriseDeps{}
 }

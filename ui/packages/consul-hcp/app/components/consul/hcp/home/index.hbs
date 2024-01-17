@@ -4,7 +4,6 @@
 }}
 
 {{#let @list (env "CONSUL_HCP_URL") as |SNL hcpUrl|}}
-  {{log hcpUrl}}
   {{#if (and SNL hcpUrl)}}
     <SNL.BackLink
       @text={{t "components.hashicorp-consul.side-nav.hcp"}}

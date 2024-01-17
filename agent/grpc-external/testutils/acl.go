@@ -4,8 +4,6 @@
 package testutils
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-uuid"
@@ -13,9 +11,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func ACLAnonymous(t *testing.T) resolver.Result {
+func ACLAnonymous(t testutil.TestingTB) resolver.Result {
 	t.Helper()
 
 	return resolver.Result{
@@ -26,7 +25,7 @@ func ACLAnonymous(t *testing.T) resolver.Result {
 	}
 }
 
-func ACLsDisabled(t *testing.T) resolver.Result {
+func ACLsDisabled(t testutil.TestingTB) resolver.Result {
 	t.Helper()
 
 	return resolver.Result{
@@ -34,7 +33,7 @@ func ACLsDisabled(t *testing.T) resolver.Result {
 	}
 }
 
-func ACLNoPermissions(t *testing.T) resolver.Result {
+func ACLNoPermissions(t testutil.TestingTB) resolver.Result {
 	t.Helper()
 
 	return resolver.Result{
@@ -43,7 +42,7 @@ func ACLNoPermissions(t *testing.T) resolver.Result {
 	}
 }
 
-func ACLServiceWriteAny(t *testing.T) resolver.Result {
+func ACLServiceWriteAny(t testutil.TestingTB) resolver.Result {
 	t.Helper()
 
 	policy, err := acl.NewPolicyFromSource(`
@@ -62,7 +61,7 @@ func ACLServiceWriteAny(t *testing.T) resolver.Result {
 	}
 }
 
-func ACLServiceRead(t *testing.T, serviceName string) resolver.Result {
+func ACLServiceRead(t testutil.TestingTB, serviceName string) resolver.Result {
 	t.Helper()
 
 	aclRule := &acl.Policy{
@@ -84,7 +83,7 @@ func ACLServiceRead(t *testing.T, serviceName string) resolver.Result {
 	}
 }
 
-func ACLUseProvidedPolicy(t *testing.T, aclPolicy *acl.Policy) resolver.Result {
+func ACLUseProvidedPolicy(t testutil.TestingTB, aclPolicy *acl.Policy) resolver.Result {
 	t.Helper()
 
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclPolicy}, nil)
@@ -96,7 +95,7 @@ func ACLUseProvidedPolicy(t *testing.T, aclPolicy *acl.Policy) resolver.Result {
 	}
 }
 
-func ACLOperatorRead(t *testing.T) resolver.Result {
+func ACLOperatorRead(t testutil.TestingTB) resolver.Result {
 	t.Helper()
 
 	aclRule := &acl.Policy{
@@ -113,7 +112,7 @@ func ACLOperatorRead(t *testing.T) resolver.Result {
 	}
 }
 
-func ACLOperatorWrite(t *testing.T) resolver.Result {
+func ACLOperatorWrite(t testutil.TestingTB) resolver.Result {
 	t.Helper()
 
 	aclRule := &acl.Policy{
@@ -130,7 +129,7 @@ func ACLOperatorWrite(t *testing.T) resolver.Result {
 	}
 }
 
-func randomACLIdentity(t *testing.T) structs.ACLIdentity {
+func randomACLIdentity(t testutil.TestingTB) structs.ACLIdentity {
 	id, err := uuid.GenerateUUID()
 	require.NoError(t, err)
 

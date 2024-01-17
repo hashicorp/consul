@@ -1,5 +1,5 @@
-resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidecar" {
-	name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidecar"
+resource "docker_container" "{{.Node.DockerName}}-{{.Workload.ID.TFString}}-sidecar" {
+	name = "{{.Node.DockerName}}-{{.Workload.ID.TFString}}-sidecar"
     network_mode = "container:${docker_container.{{.PodName}}.id}"
     image        = docker_image.{{.ImageResource}}.image_id
     restart      = "on-failure"
@@ -17,7 +17,7 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
     read_only      = true
   }
 
-{{ if .Service.EnableTransparentProxy }}
+{{ if .Workload.EnableTransparentProxy }}
   capabilities {
     add = ["NET_ADMIN"]
   }
@@ -27,17 +27,17 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
   env = [
     "DP_CONSUL_ADDRESSES=server.{{.Node.Cluster}}-consulcluster.lan",
 {{ if .Node.IsV2 }}
-    "DP_PROXY_ID={{.Service.Workload}}",
+    "DP_PROXY_ID={{.Workload.Workload}}",
 {{ if .Enterprise }}
-    "DP_PROXY_NAMESPACE={{.Service.ID.Namespace}}",
-    "DP_PROXY_PARTITION={{.Service.ID.Partition}}",
+    "DP_PROXY_NAMESPACE={{.Workload.ID.Namespace}}",
+    "DP_PROXY_PARTITION={{.Workload.ID.Partition}}",
 {{ end }}
 {{ else }}
     "DP_SERVICE_NODE_NAME={{.Node.PodName}}",
-    "DP_PROXY_SERVICE_ID={{.Service.ID.Name}}-sidecar-proxy",
+    "DP_PROXY_SERVICE_ID={{.Workload.ID.Name}}-sidecar-proxy",
 {{ if .Enterprise }}
-    "DP_SERVICE_NAMESPACE={{.Service.ID.Namespace}}",
-    "DP_SERVICE_PARTITION={{.Service.ID.Partition}}",
+    "DP_SERVICE_NAMESPACE={{.Workload.ID.Namespace}}",
+    "DP_SERVICE_PARTITION={{.Workload.ID.Partition}}",
 {{ end }}
 {{ end }}
 
@@ -46,7 +46,7 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
     "DP_CREDENTIAL_STATIC_TOKEN={{.Token}}",
 {{ end }}
 
-{{ if .Service.EnableTransparentProxy }}
+{{ if .Workload.EnableTransparentProxy }}
     "REDIRECT_TRAFFIC_ARGS=-exclude-inbound-port=19000",
 {{ end }}
 

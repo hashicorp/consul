@@ -1877,7 +1877,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	require.NoError(t, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-001"))
 
 	checkStr := func(r *retry.R, evaluator func(string) error) {
-		t.Helper()
+		r.Helper()
 		contentsStr := ""
 		// Wait for watch to be populated
 		for i := 1; i < 7; i++ {
@@ -1890,14 +1890,14 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 				break
 			}
 			time.Sleep(time.Duration(i) * time.Second)
-			testutil.Logger(t).Info("Watch not yet populated, retrying")
+			testutil.Logger(r).Info("Watch not yet populated, retrying")
 		}
 		if err := evaluator(contentsStr); err != nil {
 			r.Errorf("ERROR: Test failing: %s", err)
 		}
 	}
 	ensureNothingCritical := func(r *retry.R, mustContain string) {
-		t.Helper()
+		r.Helper()
 		eval := func(contentsStr string) error {
 			if strings.Contains(contentsStr, "critical") {
 				return fmt.Errorf("MUST NOT contain critical:= %s", contentsStr)
@@ -1915,7 +1915,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	}
 
 	retry.RunWith(retriesWithDelay(), t, func(r *retry.R) {
-		testutil.Logger(t).Info("Consul is now ready")
+		testutil.Logger(r).Info("Consul is now ready")
 		// it should contain the output
 		checkStr(r, func(contentStr string) error {
 			if contentStr == "[]" {
@@ -4340,7 +4340,7 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 }
 
 // testCreateToken creates a Policy for the provided rules and a Token linked to that Policy.
-func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
+func testCreateToken(t testutil.TestingTB, a *TestAgent, rules string) string {
 	policyName, err := uuid.GenerateUUID() // we just need a unique name for the test and UUIDs are definitely unique
 	require.NoError(t, err)
 
@@ -4369,7 +4369,7 @@ func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
 	return aclResp.SecretID
 }
 
-func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
+func testCreatePolicy(t testutil.TestingTB, a *TestAgent, name, rules string) string {
 	args := map[string]interface{}{
 		"Name":  name,
 		"Rules": rules,

@@ -15,13 +15,14 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
 )
 
-func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session) {
+func verifySession(t testutil.TestingTB, a *TestAgent, want structs.Session) {
 	t.Helper()
 
 	args := &structs.SessionSpecificRequest{
@@ -30,10 +31,10 @@ func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session)
 	}
 	var out structs.IndexedSessions
 	if err := a.RPC(context.Background(), "Session.Get", args, &out); err != nil {
-		r.Fatalf("err: %v", err)
+		t.Fatalf("err: %v", err)
 	}
 	if len(out.Sessions) != 1 {
-		r.Fatalf("bad: %#v", out.Sessions)
+		t.Fatalf("bad: %#v", out.Sessions)
 	}
 
 	// Make a copy so we don't modify the state store copy for an in-mem
@@ -123,7 +124,7 @@ func TestSessionCreate(t *testing.T) {
 			LockDelay:  20 * time.Second,
 			Behavior:   structs.SessionKeysRelease,
 		}
-		verifySession(t, r, a, want)
+		verifySession(r, a, want)
 	})
 }
 
@@ -188,7 +189,7 @@ func TestSessionCreate_NodeChecks(t *testing.T) {
 			LockDelay:     20 * time.Second,
 			Behavior:      structs.SessionKeysRelease,
 		}
-		verifySession(t, r, a, want)
+		verifySession(r, a, want)
 	})
 }
 
@@ -250,7 +251,7 @@ func TestSessionCreate_Delete(t *testing.T) {
 			LockDelay:  20 * time.Second,
 			Behavior:   structs.SessionKeysDelete,
 		}
-		verifySession(t, r, a, want)
+		verifySession(r, a, want)
 	})
 }
 
@@ -288,7 +289,7 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 			LockDelay:  20 * time.Second,
 			Behavior:   structs.SessionKeysRelease,
 		}
-		verifySession(t, r, a, want)
+		verifySession(r, a, want)
 	})
 }
 
@@ -329,7 +330,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 				LockDelay:  20 * time.Second,
 				Behavior:   structs.SessionKeysRelease,
 			}
-			verifySession(t, r, a, want)
+			verifySession(r, a, want)
 		})
 	})
 
@@ -359,7 +360,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 				LockDelay:  20 * time.Second,
 				Behavior:   structs.SessionKeysRelease,
 			}
-			verifySession(t, r, a, want)
+			verifySession(r, a, want)
 		})
 	})
 
@@ -391,7 +392,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 				LockDelay:  20 * time.Second,
 				Behavior:   structs.SessionKeysRelease,
 			}
-			verifySession(t, r, a, want)
+			verifySession(r, a, want)
 		})
 	})
 }
@@ -430,7 +431,7 @@ func makeTestSessionDelete(t *testing.T, srv *HTTPHandlers) string {
 	return sessResp.ID
 }
 
-func makeTestSessionTTL(t *testing.T, srv *HTTPHandlers, ttl string) string {
+func makeTestSessionTTL(t testutil.TestingTB, srv *HTTPHandlers, ttl string) string {
 	t.Helper()
 	// Create Session with TTL
 	body := bytes.NewBuffer(nil)
@@ -488,7 +489,7 @@ func TestSessionCustomTTL(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
-		id := makeTestSessionTTL(t, a.srv, ttl.String())
+		id := makeTestSessionTTL(r, a.srv, ttl.String())
 
 		req, _ := http.NewRequest("GET", "/v1/session/info/"+id, nil)
 		resp := httptest.NewRecorder()

@@ -7,11 +7,12 @@ import (
 	"context"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -25,8 +26,8 @@ func RegisterControllers(mgr *controller.Manager) {
 	mgr.Register(reaperController())
 }
 
-func reaperController() controller.Controller {
-	return controller.ForType(resource.TypeV1Tombstone).
+func reaperController() *controller.Controller {
+	return controller.NewController(statusKeyReaperController, resource.TypeV1Tombstone).
 		WithReconciler(newReconciler())
 }
 

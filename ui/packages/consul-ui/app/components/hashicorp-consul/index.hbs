@@ -73,15 +73,15 @@
   </:notifications>
 
   <:side-nav>
-    <Hds::SideNav @isResponsive={{false}} class='consul-side-nav' data-test-navigation>
+    <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{false}} class='consul-side-nav' data-test-navigation>
       <:header>
         <Hds::SideNav::Header>
           <:logo>
             <Hds::SideNav::Header::HomeLink
               @icon='consul-color'
               @ariaLabel='Consul'
-              @route='index'
-              @query={{hash peer=undefined}}
+              @href={{href-to 'index' params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
             />
           </:logo>
           <:actions>
@@ -217,7 +217,7 @@
             @size='100'
             @color='disabled'
           >
-            {{t "components.hashicorp-consul.side-nav.footer" version=(env 'CONSUL_VERSION')}}
+            {{t "components.hashicorp-consul.side-nav.footer" version=this.consulVersion}}
           </Hds::Text::Display>
           {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
         </footer>

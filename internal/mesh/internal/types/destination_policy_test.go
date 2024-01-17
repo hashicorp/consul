@@ -11,13 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 func TestValidateDestinationPolicy(t *testing.T) {
@@ -545,7 +545,7 @@ func TestDestinationPolicyACLs(t *testing.T) {
 		})
 	}
 
-	isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+	isEnterprise := versiontest.IsEnterprise()
 
 	serviceRead := func(partition, namespace, name string) string {
 		if isEnterprise {

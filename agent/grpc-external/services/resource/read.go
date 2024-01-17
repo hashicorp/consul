@@ -107,7 +107,7 @@ func (s *Server) ensureReadRequestValid(req *pbresource.ReadRequest) (*resource.
 	}
 
 	// Check scope
-	if err = validateScopedTenancy(reg.Scope, req.Id.Type, req.Id.Tenancy); err != nil {
+	if err = validateScopedTenancy(reg.Scope, req.Id.Type, req.Id.Tenancy, false); err != nil {
 		return nil, err
 	}
 

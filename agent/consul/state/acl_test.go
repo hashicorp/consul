@@ -868,6 +868,33 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			},
 			Local: true,
 		},
+		// templated policy: the serviceName specific token
+		&structs.ACLToken{
+			AccessorID: "2f89e357-dedb-8d8f-7f30-1f465a41508a",
+			SecretID:   "21ab62c9-5372-038c-b6ba-424961cb38c7",
+			TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+				{
+					TemplateName: "builtin/service",
+					TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+						Name: "service-1",
+					},
+				},
+			},
+		},
+		// templated policy: the serviceName specific token and local
+		&structs.ACLToken{
+			AccessorID: "5e5d6269-f933-3af2-fe30-259b050223f9",
+			SecretID:   "89a456eb-5d55-9a65-92e1-96935dc5b358",
+			TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+				{
+					TemplateName: "builtin/service",
+					TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+						Name: "service-1",
+					},
+				},
+			},
+			Local: true,
+		},
 	}
 
 	require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
@@ -893,6 +920,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			methodName: "",
 			accessors: []string{
 				acl.AnonymousTokenID,
+				"2f89e357-dedb-8d8f-7f30-1f465a41508a", // templated policy: serviceName + global
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
 				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
@@ -910,6 +938,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			accessors: []string{
 				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
+				"5e5d6269-f933-3af2-fe30-259b050223f9", // templated policies: serviceName + local
 				"a14fa45e-0afe-4b44-961d-a430030ccfe2", // serviceName + local
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 				"f1093997-b6c7-496d-bfb8-6b1b1895641b", // mgmt + local
@@ -1030,18 +1059,58 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			},
 		},
 		{
-			name:       "All",
-			local:      true,
-			global:     true,
-			policy:     "",
-			role:       "",
-			methodName: "",
+			name:        "templated policy: ServiceName - Global",
+			local:       false,
+			global:      true,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "service-1",
+			accessors: []string{
+				"2f89e357-dedb-8d8f-7f30-1f465a41508a", // serviceName + global
+			},
+		},
+		{
+			name:        "templated policy: ServiceName - Local",
+			local:       true,
+			global:      false,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "service-1",
+			accessors: []string{
+				"5e5d6269-f933-3af2-fe30-259b050223f9", // serviceName + local
+			},
+		},
+		{
+			name:        "templated policy: ServiceName - All",
+			local:       true,
+			global:      true,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "service-1",
+			accessors: []string{
+				"2f89e357-dedb-8d8f-7f30-1f465a41508a", // serviceName + global
+				"5e5d6269-f933-3af2-fe30-259b050223f9", // serviceName + local
+			},
+		},
+		{
+			name:        "All",
+			local:       true,
+			global:      true,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "",
 			accessors: []string{
 				acl.AnonymousTokenID,
 				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
+				"2f89e357-dedb-8d8f-7f30-1f465a41508a", // templated policy: serviceName + global
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
+				"5e5d6269-f933-3af2-fe30-259b050223f9", // templated policy: serviceName + local
 				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
 				"80c900e1-2fc5-4685-ae29-1b2d17fc30e4", // serviceName + global
 				"a14fa45e-0afe-4b44-961d-a430030ccfe2", // serviceName + local

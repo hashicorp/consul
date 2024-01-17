@@ -1,6 +1,14 @@
 {
   "admin": {
-    "access_log_path": "/dev/null",
+    "access_log": [
+      {
+        "name": "envoy.access_loggers.file",
+        "typed_config": {
+          "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
+          "path": "/dev/null"
+        }
+      }
+    ],
     "address": {
       "socket_address": {
         "address": "127.0.0.1",
@@ -40,13 +48,20 @@
             "common_tls_context": {
               "validation_context": {
                 "trusted_ca": {
-                  "inline_string": "-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n"
+                  "inline_string": "-----BEGIN CERTIFICATE-----\nMIIEEzCCAvugAwIBAgIUIYIXKNRBFBPuuOit2D2CfVJAoDAwDQYJKoZIhvcNAQEL\nBQAwgZgxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZy\nYW5jaXNjbzEcMBoGA1UECgwTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECwwD\nRGV2MRYwFAYDVQQDDA10ZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0\nQGludGVybmFsLmNvbTAeFw0yMzExMDIxNTUwMjlaFw0zMzEwMzAxNTUwMjlaMIGY\nMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ0ExFjAUBgNVBAcMDVNhbiBGcmFuY2lz\nY28xHDAaBgNVBAoME0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsMA0RldjEW\nMBQGA1UEAwwNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRl\ncm5hbC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCIA00iG5Iv\neRzZwf2P1Laih3eoiK2Wl1Re22cz2Pcpf6gb7agPguwU5Hco0DWzsnmek2Qyw9gl\noroX1t7LbTW2rxbK1hP7PkFCwSxi9u8MZDaLF3a79bwbsYZzf3toeoz8DCBxo9bB\nSSACj4uI/S+lUjMctQrK1nFjGoNUHfxioXPwIJH+TS/76TiZPu3Zj6kN6taVFNe3\nISBNXW6Vg8E3koz+9Bwv0a6Ty7oFRoJXpsud1k/83Iy288jhYDuB56+ypUmcCNqG\nT+e0Bn/VXHx26GXTx97cXSLJE+o+JrHZaI1TcQUL2Z5DJZVJRUg/wtcXggoMLVI1\nO0enJm2jdmLXAgMBAAGjUzBRMB0GA1UdDgQWBBTmrmqnZIdFOj6vhCUAJKLZNUDw\nFDAfBgNVHSMEGDAWgBTmrmqnZIdFOj6vhCUAJKLZNUDwFDAPBgNVHRMBAf8EBTAD\nAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQB3j6gvalxq54hZSwVmVZPMzjdTVYRC11b0\n6C9pWKsLwu+WINcs59ui8wpYVjcw1AK4/2I1Q7P4RgpSarAxG5tYIMB1xcfFKqBn\nf/dDXexONgwpW6SoBJ58c7OB/aH8CenDT8Vwk3fwjYslOywbFRqBjH+PB8uTlu0e\nD1fzjpcQCrQeA5VD4pjJAaTmi7bLVuH5XIya3++f/N3xOn53GVMUDO1OdFz8ZMvJ\nWrrg7E/wMXB1b5Wo2n2ypVU4sejikSjg2nfdLojUWGMrZ8TuUnjFs88PeQ9CObAp\nA36dLfs4JLF3sVOtqTd6BGwegDsmmllYO5Ky6I+laoLSHpGDEihS\n-----END CERTIFICATE-----\n"
                 }
               }
             }
           }
         },
-        "http2_protocol_options": {},
+        "typed_extension_protocol_options": {
+          "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+            "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+            "explicit_http_config": {
+              "http2_protocol_options": {}
+            }
+          }
+        },
         "loadAssignment": {
           "clusterName": "local_agent",
           "endpoints": [

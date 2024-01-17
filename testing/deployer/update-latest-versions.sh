@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 
 ###
 # This script will update the default image names to the latest released versions of
-# Consul, Consul Enterprise, and Consul Dataplane.
+# Consul CE, Consul Enterprise, and Consul Dataplane.
 #
 # For Envoy, it will interrogate the latest version of Consul for it's maximum supported
 # Envoy version and use that.
@@ -32,7 +32,9 @@ docker run -d --name consul-envoy-check "$consul_latest"
 envoy_version=""
 while true; do
     # We have to retry in case consul doesn't fully start up before we get here.
+    set +e
     envoy_version="$(docker exec consul-envoy-check sh -c 'wget -q localhost:8500/v1/agent/self -O -' | jq -r '.xDS.SupportedProxies.envoy[0]')"
+    set -e
     if [[ -n "$envoy_version" ]]; then
         break
     fi
@@ -48,7 +50,7 @@ cat > topology/default_versions.go <<EOF
 package topology
 
 const (
-    DefaultConsulImage           = "hashicorp/consul:${consul_version}"
+    DefaultConsulCEImage         = "hashicorp/consul:${consul_version}"
     DefaultConsulEnterpriseImage = "hashicorp/consul-enterprise:${consul_version}-ent"
     DefaultEnvoyImage            = "envoyproxy/envoy:v${envoy_version}"
     DefaultDataplaneImage        = "hashicorp/consul-dataplane:${dataplane_version}"

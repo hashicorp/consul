@@ -11,21 +11,16 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func TestWriteNamespace_Success(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := svc.Config{TenancyBridge: v2TenancyBridge, UseV2Tenancy: true}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
+	cl := rtest.NewClient(svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t))
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
 		WithTenancy(resource.DefaultPartitionedTenancy()).
@@ -41,10 +36,7 @@ func TestWriteNamespace_Success(t *testing.T) {
 }
 
 func TestReadNamespace_Success(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := svc.Config{TenancyBridge: v2TenancyBridge, UseV2Tenancy: true}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
+	cl := rtest.NewClient(svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t))
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
 		WithData(t, validNamespace()).
@@ -74,10 +66,7 @@ func TestReadNamespace_Success(t *testing.T) {
 }
 
 func TestDeleteNamespace_Success(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := svc.Config{TenancyBridge: v2TenancyBridge, UseV2Tenancy: true}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
+	cl := rtest.NewClient(svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t))
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
 		WithData(t, validNamespace()).Write(t, cl)
@@ -96,10 +85,7 @@ func TestDeleteNamespace_Success(t *testing.T) {
 }
 
 func TestListNamespace_Success(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := svc.Config{TenancyBridge: v2TenancyBridge, UseV2Tenancy: true}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
+	cl := rtest.NewClient(svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t))
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
 		WithData(t, validNamespace()).Write(t, cl)

@@ -242,6 +242,39 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		require.Equal(t, "serviceaccount.namespace==alt and serviceaccount.name==demo", rule.Selector)
 	})
 
+	t.Run("update all fields with policy", func(t *testing.T) {
+		id := createRule(t, false)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-id", id,
+			"-description=test rule edited",
+			"-bind-type", "policy",
+			"-bind-name=policy-updated",
+			"-selector=serviceaccount.namespace==alt and serviceaccount.name==demo",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		rule, _, err := client.ACL().BindingRuleRead(
+			id,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, rule)
+
+		require.Equal(t, "test rule edited", rule.Description)
+		require.Equal(t, "policy-updated", rule.BindName)
+		require.Equal(t, api.BindingRuleBindTypePolicy, rule.BindType)
+		require.Equal(t, "serviceaccount.namespace==alt and serviceaccount.name==demo", rule.Selector)
+	})
+
 	t.Run("update all fields with templated policy", func(t *testing.T) {
 		id := createRule(t, false)
 

@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package resource
+package resource_test
 
 import (
 	"context"
@@ -11,24 +11,27 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/hashicorp/consul/acl"
+	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
-
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
+// TODO: Update all tests to use true/false table test for v2tenancy
+
 func TestWatchList_InputValidation(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	type testCase struct {
 		modFn       func(*pbresource.WatchListRequest)
@@ -108,8 +111,7 @@ func TestWatchList_InputValidation(t *testing.T) {
 func TestWatchList_TypeNotFound(t *testing.T) {
 	t.Parallel()
 
-	server := testServer(t)
-	client := testClient(t, server)
+	client := svctest.NewResourceServiceBuilder().Run(t)
 
 	stream, err := client.WatchList(context.Background(), &pbresource.WatchListRequest{
 		Type:       demo.TypeV2Artist,
@@ -171,9 +173,9 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 	for desc, tc := range wildcardTenancyCases() {
 		t.Run(desc, func(t *testing.T) {
 			ctx := context.Background()
-			server := testServer(t)
-			client := testClient(t, server)
-			demo.RegisterTypes(server.Registry)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
 			// Create a watch.
 			stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
@@ -184,24 +186,30 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			require.NoError(t, err)
 			rspCh := handleResourceStream(t, stream)
 
-			// Testcase will pick one of recordLabel or artist based on scope of type.
+			// Testcase will pick one of executive, recordLabel or artist based on scope of type.
 			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
+			executive, err := demo.GenerateV1Executive("king-arthur", "CEO")
+			require.NoError(t, err)
 
 			// Create and verify upsert event received.
-			recordLabel, err = server.Backend.WriteCAS(ctx, recordLabel)
+			rlRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
 			require.NoError(t, err)
-			artist, err = server.Backend.WriteCAS(ctx, artist)
+			artistRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+			require.NoError(t, err)
+			executiveRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: executive})
 			require.NoError(t, err)
 
 			var expected *pbresource.Resource
 			switch {
-			case proto.Equal(tc.typ, demo.TypeV1RecordLabel):
-				expected = recordLabel
-			case proto.Equal(tc.typ, demo.TypeV2Artist):
-				expected = artist
+			case resource.EqualType(tc.typ, demo.TypeV1RecordLabel):
+				expected = rlRsp.Resource
+			case resource.EqualType(tc.typ, demo.TypeV2Artist):
+				expected = artistRsp.Resource
+			case resource.EqualType(tc.typ, demo.TypeV1Executive):
+				expected = executiveRsp.Resource
 			default:
 				require.Fail(t, "unsupported type", tc.typ)
 			}
@@ -210,7 +218,6 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
 			prototest.AssertDeepEqual(t, expected, rsp.Resource)
 		})
-
 	}
 }
 
@@ -304,7 +311,7 @@ func roundTripACL(t *testing.T, authz acl.Authorizer) (<-chan resourceOrError, *
 	server := testServer(t)
 	client := testClient(t, server)
 
-	mockACLResolver := &MockACLResolver{}
+	mockACLResolver := &svc.MockACLResolver{}
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(authz, nil)
 	server.ACLResolver = mockACLResolver
@@ -395,10 +402,11 @@ type resourceOrError struct {
 
 func TestWatchList_NoTenancy(t *testing.T) {
 	t.Parallel()
+
 	ctx := context.Background()
-	server := testServer(t)
-	client := testClient(t, server)
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	// Create a watch.
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
@@ -411,11 +419,11 @@ func TestWatchList_NoTenancy(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create and verify upsert event received.
-	recordLabel, err = server.Backend.WriteCAS(ctx, recordLabel)
+	rsp1, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
 	require.NoError(t, err)
 
-	rsp := mustGetResource(t, rspCh)
+	rsp2 := mustGetResource(t, rspCh)
 
-	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
-	prototest.AssertDeepEqual(t, recordLabel, rsp.Resource)
+	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp2.Operation)
+	prototest.AssertDeepEqual(t, rsp1.Resource, rsp2.Resource)
 }

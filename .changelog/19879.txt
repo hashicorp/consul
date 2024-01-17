@@ -1,0 +1,3 @@
+```release-note:security
+mesh: update supported envoy version 1.28.0 in addition to 1.25.11, 1.26.6, 1.27.2, 1.28.0 to address [CVE-2023-44487](https://github.com/envoyproxy/envoy/security/advisories/GHSA-jhv4-f7mr-xx76)
+```
