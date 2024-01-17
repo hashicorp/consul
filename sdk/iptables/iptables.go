@@ -69,6 +69,11 @@ type Config struct {
 
 	// IptablesProvider is the Provider that will apply iptables rules.
 	IptablesProvider Provider
+
+	// AddAdditionalRulesFn can be implemented by the caller to
+	// add environment specific rules (like ECS) that needs to
+	// be executed for traffic redirection to work properly.
+	AddAdditionalRulesFn func(iptablesProvider Provider)
 }
 
 // Provider is an interface for executing iptables rules.
@@ -180,6 +185,11 @@ func Setup(cfg Config) error {
 		for _, inboundPort := range cfg.ExcludeInboundPorts {
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyInboundChain, "-p", "tcp", "--dport", inboundPort, "-j", "RETURN")
 		}
+	}
+
+	// Call function to add any additional rules passed on by the caller
+	if cfg.AddAdditionalRulesFn != nil {
+		cfg.AddAdditionalRulesFn(cfg.IptablesProvider)
 	}
 
 	return cfg.IptablesProvider.ApplyRules()
