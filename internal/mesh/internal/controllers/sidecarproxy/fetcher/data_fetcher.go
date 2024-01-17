@@ -34,7 +34,7 @@ func New(client pbresource.ResourceServiceClient, cache *cache.Cache) *Fetcher {
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
-	assertType(pbcatalog.WorkloadType, id.Type)
+	assertResourceType(pbcatalog.WorkloadType, id.Type)
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
 	if err != nil {
 		return nil, err
@@ -50,32 +50,32 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 }
 
 func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*types.DecodedProxyStateTemplate, error) {
-	assertType(pbmesh.ProxyStateTemplateType, id.Type)
+	assertResourceType(pbmesh.ProxyStateTemplateType, id.Type)
 	return resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.client, id)
 }
 
 func (f *Fetcher) FetchComputedTrafficPermissions(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedTrafficPermissions, error) {
-	assertType(pbauth.ComputedTrafficPermissionsType, id.Type)
+	assertResourceType(pbauth.ComputedTrafficPermissionsType, id.Type)
 	return resource.GetDecodedResource[*pbauth.ComputedTrafficPermissions](ctx, f.client, id)
 }
 
 func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) (*types.DecodedServiceEndpoints, error) {
-	assertType(pbcatalog.ServiceEndpointsType, id.Type)
+	assertResourceType(pbcatalog.ServiceEndpointsType, id.Type)
 	return resource.GetDecodedResource[*pbcatalog.ServiceEndpoints](ctx, f.client, id)
 }
 
 func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
-	assertType(pbcatalog.ServiceType, id.Type)
+	assertResourceType(pbcatalog.ServiceType, id.Type)
 	return resource.GetDecodedResource[*pbcatalog.Service](ctx, f.client, id)
 }
 
 func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*types.DecodedDestinations, error) {
-	assertType(pbmesh.DestinationsType, id.Type)
+	assertResourceType(pbmesh.DestinationsType, id.Type)
 	return resource.GetDecodedResource[*pbmesh.Destinations](ctx, f.client, id)
 }
 
 func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedRoutes, error) {
-	assertType(pbmesh.ComputedRoutesType, id.Type)
+	assertResourceType(pbmesh.ComputedRoutesType, id.Type)
 	if !types.IsComputedRoutesType(id.Type) {
 		return nil, fmt.Errorf("id must be a ComputedRoutes type")
 	}
@@ -377,7 +377,7 @@ func isPartOfService(workloadID *pbresource.ID, svc *types.DecodedService) bool 
 	return false
 }
 
-func assertType(expected, actual *pbresource.Type) {
+func assertResourceType(expected, actual *pbresource.Type) {
 	if !proto.Equal(expected, actual) {
 		// this is always a programmer error so safe to panic
 		panic(fmt.Sprintf("expected a query for a type of %q, you provided a type of %q", expected, actual))

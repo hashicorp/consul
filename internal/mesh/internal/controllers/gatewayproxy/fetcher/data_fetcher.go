@@ -30,7 +30,7 @@ func New(client pbresource.ResourceServiceClient, cache *cache.Cache) *Fetcher {
 }
 
 func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*types.DecodedMeshGateway, error) {
-	assertType(pbmesh.MeshGatewayType, id.Type)
+	assertResourceType(pbmesh.MeshGatewayType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbmesh.MeshGateway](ctx, f.client, id)
 	if err != nil {
@@ -43,7 +43,7 @@ func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*typ
 }
 
 func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*types.DecodedProxyStateTemplate, error) {
-	assertType(pbmesh.ProxyStateTemplateType, id.Type)
+	assertResourceType(pbmesh.ProxyStateTemplateType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.client, id)
 	if err != nil {
@@ -56,7 +56,7 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
-	assertType(pbcatalog.WorkloadType, id.Type)
+	assertResourceType(pbcatalog.WorkloadType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
 	if err != nil {
@@ -69,7 +69,7 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 }
 
 func (f *Fetcher) FetchComputedExportedServices(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedExportedServices, error) {
-	assertType(pbmulticluster.ComputedExportedServicesType, id.Type)
+	assertResourceType(pbmulticluster.ComputedExportedServicesType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbmulticluster.ComputedExportedServices](ctx, f.client, id)
 	if err != nil {
@@ -82,7 +82,7 @@ func (f *Fetcher) FetchComputedExportedServices(ctx context.Context, id *pbresou
 }
 
 func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
-	assertType(pbcatalog.ServiceType, id.Type)
+	assertResourceType(pbcatalog.ServiceType, id.Type)
 
 	dec, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, f.client, id)
 	if err != nil {
@@ -94,7 +94,7 @@ func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.D
 	return dec, nil
 }
 
-func assertType(expected, actual *pbresource.Type) {
+func assertResourceType(expected, actual *pbresource.Type) {
 	if !proto.Equal(expected, actual) {
 		// this is always a programmer error so safe to panic
 		panic(fmt.Sprintf("expected a query for a type of %q, you provided a type of %q", expected, actual))
