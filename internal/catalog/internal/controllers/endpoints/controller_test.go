@@ -127,6 +127,12 @@ func TestWorkloadToEndpoint(t *testing.T) {
 			"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
 		},
 		Identity: "test-identity",
+		Dns: &pbcatalog.DNSPolicy{
+			Weights: &pbcatalog.Weights{
+				Passing: 3,
+				Warning: 2,
+			},
+		},
 	}
 
 	data := &workloadData{
@@ -151,6 +157,12 @@ func TestWorkloadToEndpoint(t *testing.T) {
 		// controller tests will prove that the integration works as expected.
 		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
 		Identity:     workload.Identity,
+		Dns: &pbcatalog.DNSPolicy{
+			Weights: &pbcatalog.Weights{
+				Passing: 3,
+				Warning: 2,
+			},
+		},
 	}
 
 	prototest.AssertDeepEqual(t, expected, workloadToEndpoint(service, data))

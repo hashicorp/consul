@@ -391,6 +391,7 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 		Addresses:    workloadAddrs,
 		Ports:        endpointPorts,
 		Identity:     data.workload.Identity,
+		Dns:          data.workload.Dns,
 	}
 }
 
