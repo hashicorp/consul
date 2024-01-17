@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
@@ -20,44 +21,39 @@ import (
 
 const (
 	endpointsMetaManagedBy = "managed-by-controller"
+
+	selectedWorkloadsIndexName = "selected-workloads"
 )
-
-// The WorkloadMapper interface is used to provide an implementation around being able
-// to map a watch even for a Workload resource and translate it to reconciliation requests
-type WorkloadMapper interface {
-	// MapWorkload conforms to the controller.DependencyMapper signature. Given a Workload
-	// resource it should report the resource IDs that have selected the workload.
-	MapWorkload(context.Context, controller.Runtime, *pbresource.Resource) ([]controller.Request, error)
-
-	// TrackIDForSelector should be used to associate the specified WorkloadSelector with
-	// the given resource ID. Future calls to MapWorkload
-	TrackIDForSelector(*pbresource.ID, *pbcatalog.WorkloadSelector)
-
-	// UntrackID should be used to inform the tracker to forget about the specified ID
-	UntrackID(*pbresource.ID)
-}
 
 // ServiceEndpointsController creates a controller to perform automatic endpoint management for
 // services.
-func ServiceEndpointsController(workloadMap WorkloadMapper) *controller.Controller {
-	if workloadMap == nil {
-		panic("No WorkloadMapper was provided to the ServiceEndpointsController constructor")
-	}
-
+func ServiceEndpointsController() *controller.Controller {
 	return controller.NewController(StatusKey, pbcatalog.ServiceEndpointsType).
-		WithWatch(pbcatalog.ServiceType, dependency.ReplaceType(pbcatalog.ServiceEndpointsType)).
-		WithWatch(pbcatalog.WorkloadType, workloadMap.MapWorkload).
-		WithReconciler(newServiceEndpointsReconciler(workloadMap))
+		WithWatch(pbcatalog.ServiceType,
+			// ServiceEndpoints are name-aligned with the Service type
+			dependency.ReplaceType(pbcatalog.ServiceEndpointsType),
+			// This cache index keep track of the relationship between WorkloadSelectors (and the workload names and prefixes
+			// they include) and Services. This allows us to efficiently find all services and service endpoints that are
+			// are affected by the change to a workload.
+			workloadselector.Index[*pbcatalog.Service](selectedWorkloadsIndexName)).
+		WithWatch(pbcatalog.WorkloadType,
+			// The cache index is kept on the Service type but we need to translate events for ServiceEndpoints.
+			// Therefore we need to wrap the mapper from the workloadselector package with one which will
+			// replace the request types of Service with ServiceEndpoints.
+			dependency.WrapAndReplaceType(
+				pbcatalog.ServiceEndpointsType,
+				// This mapper will use the selected-workloads index to find all Services which select this
+				// workload by exact name or by prefix.
+				workloadselector.MapWorkloadsToSelectors(pbcatalog.ServiceType, selectedWorkloadsIndexName),
+			),
+		).
+		WithReconciler(newServiceEndpointsReconciler())
 }
 
-type serviceEndpointsReconciler struct {
-	workloadMap WorkloadMapper
-}
+type serviceEndpointsReconciler struct{}
 
-func newServiceEndpointsReconciler(workloadMap WorkloadMapper) *serviceEndpointsReconciler {
-	return &serviceEndpointsReconciler{
-		workloadMap: workloadMap,
-	}
+func newServiceEndpointsReconciler() *serviceEndpointsReconciler {
+	return &serviceEndpointsReconciler{}
 }
 
 // Reconcile will reconcile one ServiceEndpoints resource in response to some event.
@@ -87,10 +83,6 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	if serviceData == nil {
 		rt.Logger.Trace("service has been deleted")
 
-		// The service was deleted so we need to update the WorkloadMapper to tell it to
-		// stop tracking this service
-		r.workloadMap.UntrackID(req.ID)
-
 		// Note that because we configured ServiceEndpoints to be owned by the service,
 		// the service endpoints object should eventually be automatically deleted.
 		// There is no reason to attempt deletion here.
@@ -113,18 +105,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 		// This service should have its endpoints automatically managed
 		statusConditions = append(statusConditions, ConditionManaged)
 
-		// Inform the WorkloadMapper to track this service and its selectors. So
-		// future workload updates that would be matched by the services selectors
-		// cause this service to be rereconciled.
-		r.workloadMap.TrackIDForSelector(req.ID, serviceData.service.GetWorkloads())
-
-		// Now read and unmarshal all workloads selected by the service. It is imperative
-		// that this happens after we notify the selection tracker to be tracking that
-		// selection criteria. If the order were reversed we could potentially miss
-		// workload creations that should be selected if they happen after gathering
-		// the workloads but before tracking the selector. Tracking first ensures that
-		// any event that happens after that would get mapped to an event for these
-		// endpoints.
+		// Now read and unmarshal all workloads selected by the service.
 		workloadData, err := getWorkloadData(ctx, rt, serviceData)
 		if err != nil {
 			rt.Logger.Trace("error retrieving selected workloads", "error", err)
@@ -176,10 +157,6 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 		rt.Logger.Trace("endpoints are not being automatically managed")
 		// This service is not having its endpoints automatically managed
 		statusConditions = append(statusConditions, ConditionUnmanaged)
-
-		// Inform the WorkloadMapper that it no longer needs to track this service
-		// as it is no longer under endpoint management
-		r.workloadMap.UntrackID(req.ID)
 
 		// Delete the managed ServiceEndpoints if necessary if the metadata would
 		// indicate that they were previously managed by this controller

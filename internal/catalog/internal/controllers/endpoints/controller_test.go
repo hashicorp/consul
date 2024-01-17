@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -441,9 +440,8 @@ type controllerSuite struct {
 	client *rtest.Client
 	rt     controller.Runtime
 
-	tracker    *selectiontracker.WorkloadSelectionTracker
-	reconciler *serviceEndpointsReconciler
-	tenancies  []*pbresource.Tenancy
+	ctl       *controller.TestController
+	tenancies []*pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
@@ -453,23 +451,20 @@ func (suite *controllerSuite) SetupTest() {
 		WithRegisterFns(types.Register).
 		WithTenancies(suite.tenancies...).
 		Run(suite.T())
-	suite.rt = controller.Runtime{
-		Client: client,
-		Logger: testutil.Logger(suite.T()),
-	}
-	suite.client = rtest.NewClient(client)
-	suite.tracker = selectiontracker.New()
-	suite.reconciler = newServiceEndpointsReconciler(suite.tracker)
+	suite.ctl = controller.NewTestController(ServiceEndpointsController(), client).
+		WithLogger(testutil.Logger(suite.T()))
+	suite.rt = suite.ctl.Runtime()
+	suite.client = rtest.NewClient(suite.rt.Client)
 }
 
-func (suite *controllerSuite) requireTracking(workload *pbresource.Resource, ids ...*pbresource.ID) {
-	reqs, err := suite.tracker.MapWorkload(suite.ctx, suite.rt, workload)
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, len(ids))
-	for _, id := range ids {
-		prototest.AssertContainsElement(suite.T(), reqs, controller.Request{ID: id})
-	}
-}
+// func (suite *controllerSuite) requireTracking(workload *pbresource.Resource, ids ...*pbresource.ID) {
+// 	reqs, err := suite.tracker.MapWorkload(suite.ctx, suite.rt, workload)
+// 	require.NoError(suite.T(), err)
+// 	require.Len(suite.T(), reqs, len(ids))
+// 	for _, id := range ids {
+// 		prototest.AssertContainsElement(suite.T(), reqs, controller.Request{ID: id})
+// 	}
+// }
 
 func (suite *controllerSuite) requireEndpoints(resource *pbresource.Resource, expected ...*pbcatalog.Endpoint) {
 	var svcEndpoints pbcatalog.ServiceEndpoints
@@ -479,33 +474,14 @@ func (suite *controllerSuite) requireEndpoints(resource *pbresource.Resource, ex
 }
 
 func (suite *controllerSuite) TestReconcile_ServiceNotFound() {
-	// This test's purpose is to ensure that when we are reconciling
-	// endpoints for a service that no longer exists, we stop
-	// tracking the endpoints resource ID in the selection tracker.
-
-	// generate a workload resource to use for checking if it maps
-	// to a service endpoints object
-
+	// This test really only checks that the Reconcile call will not panic or otherwise error
+	// when the request is for an endpoints object whose corresponding service does not exist.
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		workload := rtest.Resource(pbcatalog.WorkloadType, "foo").WithTenancy(tenancy).Build()
-
-		// ensure that the tracker knows about the service prior to
-		// calling reconcile so that we can ensure it removes tracking
 		id := rtest.Resource(pbcatalog.ServiceEndpointsType, "not-found").WithTenancy(tenancy).ID()
-		suite.tracker.TrackIDForSelector(id, &pbcatalog.WorkloadSelector{Prefixes: []string{""}})
 
-		// verify that mapping the workload to service endpoints returns a
-		// non-empty list prior to reconciliation which should remove the
-		// tracking.
-		suite.requireTracking(workload, id)
-
-		// Because the endpoints don't exist, this reconcile call should
-		// cause tracking of the endpoints to be removed
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
+		// Because the endpoints don't exist, this reconcile call not error but also shouldn't do anything useful.
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: id})
 		require.NoError(suite.T(), err)
-
-		// Now ensure that the tracking was removed
-		suite.requireTracking(workload)
 	})
 }
 
@@ -527,7 +503,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_NoEndpoints() {
 
 		endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, "test").WithTenancy(tenancy).ID()
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpointsID})
 		require.NoError(suite.T(), err)
 
 		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
@@ -556,7 +532,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_ManagedEndpoints() {
 			WithMeta(endpointsMetaManagedBy, StatusKey).
 			Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
 		require.NoError(suite.T(), err)
 		// the status should indicate the services endpoints are not being managed
 		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
@@ -585,7 +561,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_UnmanagedEndpoints() {
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
 			Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
 		require.NoError(suite.T(), err)
 		// the status should indicate the services endpoints are not being managed
 		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
@@ -623,7 +599,7 @@ func (suite *controllerSuite) TestReconcile_Managed_NoPreviousEndpoints() {
 			}).
 			Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpointsID})
 		require.NoError(suite.T(), err)
 
 		// Verify that the services status has been set to indicate endpoints are automatically managed.
@@ -676,7 +652,7 @@ func (suite *controllerSuite) TestReconcile_Managed_ExistingEndpoints() {
 			}).
 			Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
 		require.NoError(suite.T(), err)
 
 		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionManaged)
@@ -699,7 +675,7 @@ func (suite *controllerSuite) TestController() {
 
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(ServiceEndpointsController(suite.tracker))
+	mgr.Register(ServiceEndpointsController())
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
