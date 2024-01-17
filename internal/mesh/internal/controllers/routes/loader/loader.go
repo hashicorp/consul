@@ -224,7 +224,6 @@ func (l *loader) loadUpstreamService(
 			return err
 		}
 		if failoverPolicy != nil {
-			l.mapper.TrackFailoverPolicy(failoverPolicy)
 			l.out.AddFailoverPolicy(failoverPolicy)
 
 			destRefs := failoverPolicy.Data.GetUnderlyingDestinationRefs()
@@ -245,8 +244,6 @@ func (l *loader) loadUpstreamService(
 					}
 				}
 			}
-		} else {
-			l.mapper.UntrackFailoverPolicy(failoverPolicyID)
 		}
 
 		if err := l.loadDestConfig(ctx, logger, svcID); err != nil {

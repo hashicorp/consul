@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache/indexers"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -20,8 +21,30 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+const (
+	failoverDestRefsIndexName = "destination-refs"
+)
+
+func resolveFailoverDestRefs(_ context.Context, rt controller.Runtime, id *pbresource.ID) ([]*pbresource.ID, error) {
+	iter, err := rt.Cache.ListIterator(pbcatalog.FailoverPolicyType, failoverDestRefsIndexName, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var resolved []*pbresource.ID
+	for res := iter.Next(); res != nil; res = iter.Next() {
+		resolved = append(resolved, resource.ReplaceType(pbcatalog.ServiceType, res.Id))
+	}
+
+	return resolved, nil
+}
+
 func Controller() *controller.Controller {
-	mapper := xroutemapper.New()
+	failoverDestRefsIndex := indexers.RefOrIDIndex(failoverDestRefsIndexName, func(dec *resource.DecodedResource[*pbcatalog.FailoverPolicy]) []*pbresource.Reference {
+		return dec.Data.GetUnderlyingDestinationRefs()
+	})
+
+	mapper := xroutemapper.New(resolveFailoverDestRefs)
 
 	r := &routesReconciler{
 		mapper: mapper,
@@ -30,8 +53,8 @@ func Controller() *controller.Controller {
 		WithWatch(pbmesh.HTTPRouteType, mapper.MapHTTPRoute).
 		WithWatch(pbmesh.GRPCRouteType, mapper.MapGRPCRoute).
 		WithWatch(pbmesh.TCPRouteType, mapper.MapTCPRoute).
-		WithWatch(pbmesh.DestinationPolicyType, mapper.MapDestinationPolicy).
-		WithWatch(pbcatalog.FailoverPolicyType, mapper.MapFailoverPolicy).
+		WithWatch(pbmesh.DestinationPolicyType, mapper.MapServiceNameAligned).
+		WithWatch(pbcatalog.FailoverPolicyType, mapper.MapServiceNameAligned, failoverDestRefsIndex).
 		WithWatch(pbcatalog.ServiceType, mapper.MapService).
 		WithReconciler(r)
 }
