@@ -22,9 +22,9 @@ func TestManager_Run(t *testing.T) {
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
-	upsertManagementTokenCalled := false
+	upsertManagementTokenCalled := make(chan struct{}, 1)
 	upsertManagementTokenF := func(name, secretID string) error {
-		upsertManagementTokenCalled = true
+		upsertManagementTokenCalled <- struct{}{}
 		return nil
 	}
 	updateCh := make(chan struct{}, 1)
@@ -83,7 +83,7 @@ func TestManager_Run(t *testing.T) {
 	require.Equal(t, client, telemetryProvider.hcpClient)
 	require.NotNil(t, telemetryProvider.GetHeader())
 	require.NotNil(t, telemetryProvider.GetHTTPClient())
-	require.True(t, upsertManagementTokenCalled, "upsert management token function not called")
+	require.NotEmpty(t, upsertManagementTokenCalled, "upsert management token function not called")
 }
 
 func TestManager_SendUpdate(t *testing.T) {
