@@ -596,39 +596,41 @@ func (s *Server) upsertManagementToken(name, secretID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get %s: %v", name, err)
 	}
-	// Ignoring expiration times to avoid an insertion collision.
-	if token == nil {
-		accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-		if err != nil {
-			return fmt.Errorf("failed to generate the accessor ID for %s: %v", name, err)
-		}
 
-		token := structs.ACLToken{
-			AccessorID:  accessor,
-			SecretID:    secretID,
-			Description: name,
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-			CreateTime:     time.Now(),
-			Local:          false,
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-		}
-
-		token.SetHash(true)
-
-		req := structs.ACLTokenBatchSetRequest{
-			Tokens: structs.ACLTokens{&token},
-			CAS:    false,
-		}
-		if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
-			return fmt.Errorf("failed to create %s: %v", name, err)
-		}
-
-		s.logger.Info("Created ACL token", "description", name)
+	if token != nil {
+		return nil
 	}
+
+	accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+	if err != nil {
+		return fmt.Errorf("failed to generate the accessor ID for %s: %v", name, err)
+	}
+
+	newToken := structs.ACLToken{
+		AccessorID:  accessor,
+		SecretID:    secretID,
+		Description: name,
+		Policies: []structs.ACLTokenPolicyLink{
+			{
+				ID: structs.ACLPolicyGlobalManagementID,
+			},
+		},
+		CreateTime:     time.Now(),
+		Local:          false,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	newToken.SetHash(true)
+
+	req := structs.ACLTokenBatchSetRequest{
+		Tokens: structs.ACLTokens{&newToken},
+		CAS:    false,
+	}
+	if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
+		return fmt.Errorf("failed to create %s: %v", name, err)
+	}
+
+	s.logger.Info("Created ACL token", "description", name)
 
 	return nil
 }
