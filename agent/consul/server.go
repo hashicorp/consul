@@ -590,6 +590,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		TelemetryProvider: flat.HCP.TelemetryProvider,
 		ManagementTokenUpserterFn: func(name, secretId string) error {
 			if s.IsLeader() {
+				// Idea for improvement: Upsert a token with a well-known accessorId here instead
+				// of a randomly generated one. This would prevent any possible insertion collision between
+				// this and the insertion that happens during the ACL initialization process (initializeACLs function)
 				return s.upsertManagementToken(name, secretId)
 			}
 			return nil
