@@ -1139,16 +1139,19 @@ func (a *Agent) listenAndServeV2DNS() error {
 		}(addr)
 	}
 
-	// TODO(v2-dns): implement a new grpcDNS proxy that takes in the new Router object.
-	//s, _ := dns.NewServer(cfg)
-	//
-	//grpcDNS.NewServer(grpcDNS.Config{
-	//	Logger:      a.logger.Named("grpc-api.dns"),
-	//	DNSServeMux: s.mux,
-	//	LocalAddr:   grpcDNS.LocalAddr{IP: net.IPv4(127, 0, 0, 1), Port: a.config.GRPCPort},
-	//}).Register(a.externalGRPCServer)
-	//
-	//a.dnsServers = append(a.dnsServers, s)
+	s, err := dns.NewServer(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create grpc dns server: %w", err)
+	}
+
+	// Create a v2 compatible grpc dns server
+	grpcDNS.NewServerV2(grpcDNS.ConfigV2{
+		Logger:    a.logger.Named("grpc-api.dns"),
+		DNSRouter: s.Router,
+		TokenFunc: a.getTokenFunc(),
+	}).Register(a.externalGRPCServer)
+
+	a.dnsServers = append(a.dnsServers, s)
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)

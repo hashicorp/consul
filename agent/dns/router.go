@@ -104,6 +104,7 @@ type Router struct {
 }
 
 var _ = dns.Handler(&Router{})
+var _ = DNSRouter(&Router{})
 
 func NewRouter(cfg Config) (*Router, error) {
 	// Make sure domains are FQDN, make them case-insensitive for DNSRequestRouter

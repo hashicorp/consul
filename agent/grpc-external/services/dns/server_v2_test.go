@@ -6,84 +6,69 @@ package dns
 import (
 	"context"
 	"errors"
-	"net"
-	"testing"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-	"google.golang.org/grpc"
+	"github.com/stretchr/testify/mock"
 
-	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/proto-public/pbdns"
 )
 
-var txtRR = []string{"Hello world"}
-
-func helloServer(w dns.ResponseWriter, req *dns.Msg) {
-	m := new(dns.Msg)
-	m.SetReply(req)
-
-	m.Extra = make([]dns.RR, 1)
-	m.Extra[0] = &dns.TXT{
-		Hdr: dns.RR_Header{Name: m.Question[0].Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0},
-		Txt: txtRR,
-	}
-	w.WriteMsg(m)
-}
-
-func testClient(t *testing.T, server testutils.GRPCService) pbdns.DNSServiceClient {
-	t.Helper()
-
-	addr := testutils.RunTestServer(t, server)
-
-	//nolint:staticcheck
-	conn, err := grpc.DialContext(context.Background(), addr.String(), grpc.WithInsecure())
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, conn.Close())
-	})
-
-	return pbdns.NewDNSServiceClient(conn)
-}
-
-type DNSTestSuite struct {
-	suite.Suite
-}
-
-func TestDNS_suite(t *testing.T) {
-	suite.Run(t, new(DNSTestSuite))
-}
-
-func (s *DNSTestSuite) TestProxy_Success() {
-	mux := dns.NewServeMux()
-	mux.Handle(".", dns.HandlerFunc(helloServer))
-	server := NewServer(Config{
-		Logger:      hclog.Default(),
-		DNSServeMux: mux,
-		LocalAddr: LocalAddr{
-			net.IPv4(127, 0, 0, 1),
-			0,
+func basicResponse() *dns.Msg {
+	return &dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			Opcode:        dns.OpcodeQuery,
+			Response:      true,
+			Authoritative: true,
 		},
-	})
+		Compress: true,
+		Question: []dns.Question{
+			{
+				Name:   "abc.com.",
+				Qtype:  dns.TypeANY,
+				Qclass: dns.ClassINET,
+			},
+		},
+		Extra: []dns.RR{
+			&dns.TXT{
+				Hdr: dns.RR_Header{
+					Name:   "abc.com.",
+					Rrtype: dns.TypeTXT,
+					Class:  dns.ClassINET,
+					Ttl:    0,
+				},
+				Txt: txtRR,
+			},
+		},
+	}
+}
 
-	client := testClient(s.T(), server)
+func (s *DNSTestSuite) TestProxy_V2Success() {
 
 	testCases := map[string]struct {
-		question    string
-		clientQuery func(qR *pbdns.QueryRequest)
-		expectedErr error
+		question        string
+		configureRouter func(router *agentdns.MockDNSRouter)
+		clientQuery     func(qR *pbdns.QueryRequest)
+		expectedErr     error
 	}{
 
 		"happy path udp": {
 			question: "abc.com.",
+			configureRouter: func(router *agentdns.MockDNSRouter) {
+				router.On("HandleRequest", mock.Anything, mock.Anything, mock.Anything).
+					Return(basicResponse(), nil)
+			},
 			clientQuery: func(qR *pbdns.QueryRequest) {
 				qR.Protocol = pbdns.Protocol_PROTOCOL_UDP
 			},
 		},
 		"happy path tcp": {
 			question: "abc.com.",
+			configureRouter: func(router *agentdns.MockDNSRouter) {
+				router.On("HandleRequest", mock.Anything, mock.Anything, mock.Anything).
+					Return(basicResponse(), nil)
+			},
 			clientQuery: func(qR *pbdns.QueryRequest) {
 				qR.Protocol = pbdns.Protocol_PROTOCOL_TCP
 			},
@@ -104,6 +89,20 @@ func (s *DNSTestSuite) TestProxy_Success() {
 
 	for name, tc := range testCases {
 		s.Run(name, func() {
+			router := agentdns.NewMockDNSRouter(s.T())
+
+			if tc.configureRouter != nil {
+				tc.configureRouter(router)
+			}
+
+			server := NewServerV2(ConfigV2{
+				Logger:    hclog.Default(),
+				DNSRouter: router,
+				TokenFunc: func() string { return "" },
+			})
+
+			client := testClient(s.T(), server)
+
 			req := dns.Msg{}
 			req.SetQuestion(tc.question, dns.TypeA)
 
