@@ -1,0 +1,47 @@
+---
+layout: commands
+page_title: 'Commands: Troubleshoot Ports'
+description: >-
+  The `consul troubleshoot ports` Helps troubleshoot TCP ports by printing if they are open or closed.
+---
+
+# Consul Troubleshoot Upstreams
+
+Command: `consul troubleshoot ports`
+
+The `troubleshoot ports` prints TCP port statuses to help you troubleshoot port connectivity. 
+
+## Usage
+
+Usage: `consul troubleshoot ports [options]`
+
+#### Command Options
+
+- `-host=<value>` - Host name to troubleshoot TCP ports for. You can also set the `CONSUL_HTTP_ADDR`  environment variable instead of using the `-host` flag.
+- `-ports=<value>` - Specifies a comma-separated list of custom ports to check.
+
+## Examples
+
+The following example checks the default ports Consul server uses for TCP connectivity. Note that the `CONSUL_HTTP_ADDR` environment variable is set to `localhost`. As a result, the `-host` flag is not required.
+Refer to [Required Ports](/consul/docs/install/ports) for additional information.
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=localhost
+$ consul troubleshoot ports
+TCP: Port 8501 on localhost is open.
+TCP: Port 8502 on localhost is open.
+TCP: Port 8503 on localhost is open.
+TCP: Port 8302 on localhost is open.
+TCP: Port 8300 on localhost is open.
+TCP: Port 8600 on localhost is open.
+TCP: Port 8301 on localhost is open.
+TCP: Port 8500 on localhost is open.
+```
+
+The following example checks TCP ports status on the `hashicorp.com` host.
+
+```shell-session
+$ consul troubleshoot ports -host hashicorp.com -ports 80,8077
+TCP: Port 80 on hashicorp.com is open.
+TCP: Port 8077 on hashicorp.com is closed, unreachable, or the connection timed out.
+```
