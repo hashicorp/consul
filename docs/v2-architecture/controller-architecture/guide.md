@@ -29,9 +29,38 @@ message Bar {
 }
 ```
 
+Note that the `hashicorp.consul.resource.spec` option is required for any protobuf message type that
+should be managed by the resource service. At a bare minimum the resources scope should be specified:
+
+* `SCOPE_NAMESPACE` defines a resource type which exists inside of a namespace & partition.
+* `SCOPE_PARTITION` defines a resource type which exists inside of a partition level outside of any namespace.
+* `SCOPE_CLUSTER` defines a resource type which exists at the cluster level outside of a partition and namespace.
+* `SCOPE_UNDEFINED` defines a resource type which can exist at different scopes. Generally this should not be used
+  except by some special resources such as the `Tombstone` type which tracks other deleted resources. There are validations
+  in our Go code to ensure that we only allow these special types to use this scope.
+
 ```shell
 $ make proto
 ```
+
+Consul's v2 resource system relies heavily on code generation. Besides the regular Go and gRPC generators we have some
+custom generators that will produce code to support our resource service. The custom resource generator currently provides:
+
+* Package level variables for the API group name and version
+* Package level variables of type `*pbresource.Type` for each kind of resource. The GVK of a resource type is almost always
+  inferred from the protobuf package name + message name (although it can be overridden). These variables make this GVK/Type
+  available for easy use in the Go code. 
+* Package level variables of type `pbresource.Scope` for each kind of resource. These variables are the source-of-truth for
+  what scope a resource type should have.
+* Package level variables to define the string names for all resource kinds.
+* `GetResourceType` method on all resource types. This allows us to go from a protobuf message struct to its canonical resource type.
+* `GetResourceScope` method on all resource types. This allows us to lookup the canonical scope for a resource type from the struct.
+
+
+In the future we will be generating API documentation from our protobuf files so it is imperative that its knowledge of resource
+scopes, names, API groups etc. remains correct. Therefore were possible we should have the .proto be the source of truth and try
+to prevent introducing code into Consul which could ignore what was defined in the proto files and register resources in a different
+manner.
 
 Next, we must add our resource type to the registry. At this point, it's useful
 to add a package (e.g. under [`internal`](../../../internal)) to contain the logic
@@ -52,14 +81,12 @@ import (
 
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbv1alpha1.BarType, 
-		Scope: pbresource.Scope_SCOPE_PARTITION,
 		Proto: &pbv1alpha1.Bar{},
 	})
 }
 ```
-Note that Scope reference the scope of the new resource, `pbresource.Scope_SCOPE_PARTITION` 
-mean that resource will be at the partition level and have no namespace, while `pbresource.Scope_SCOPE_NAMESPACE` mean it will have both a namespace 
+Note that the Scope and Type (Group/Version/Kind) of the resource will be inferred from the protobuf message type using `GetResourceType` and 
+`GetResourceScope` generated methods.mean that resource will be at the partition level and have no namespace, while `pbresource.Scope_SCOPE_NAMESPACE` mean it will have both a namespace 
 and a partition.
 
 Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
@@ -140,9 +167,7 @@ using a validation hook provided in the type registration:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbv1alpha1.BarType,
 		Proto:    &pbv1alpha1.Bar{}, 
-		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: validateBar,
 	})
 }
@@ -173,9 +198,7 @@ a set of ACL hooks:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbv1alpha1.BarType,
 		Proto: &pbv1alpha1.Bar{}, 
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{,
 			Read:  authzReadBar,
 			Write: authzWriteBar,
@@ -212,9 +235,7 @@ by providing a mutation hook:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:   pbv1alpha1.BarType,
 		Proto:  &pbv1alpha1.Bar{}, 
-		Scope:  pbresource.Scope_SCOPE_NAMESPACE,
 		Mutate: mutateBar,
 	})
 }
