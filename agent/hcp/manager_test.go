@@ -38,12 +38,26 @@ func TestManager_Run(t *testing.T) {
 	).Return()
 	scadaM.EXPECT().Start().Return(nil)
 
+	telemetryProvider := &hcpProviderImpl{
+		httpCfg: &httpCfg{},
+		logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		cfg:     defaultDisabledCfg(),
+	}
+
+	mockTelemetryCfg, err := testTelemetryCfg(&testConfig{
+		refreshInterval: 1 * time.Second,
+	})
+	require.NoError(t, err)
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(
+		mockTelemetryCfg, nil).Maybe()
+
 	mgr := NewManager(ManagerConfig{
-		Client:        client,
-		Logger:        hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn:      statusF,
-		CloudConfig:   cloudCfg,
-		SCADAProvider: scadaM,
+		Client:            client,
+		Logger:            hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		StatusFn:          statusF,
+		CloudConfig:       cloudCfg,
+		SCADAProvider:     scadaM,
+		TelemetryProvider: telemetryProvider,
 	})
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -59,6 +73,9 @@ func TestManager_Run(t *testing.T) {
 	// Make sure after manager has stopped no more statuses are pushed.
 	cancel()
 	client.AssertExpectations(t)
+	require.Equal(t, client, telemetryProvider.hcpClient)
+	require.NotNil(t, telemetryProvider.GetHeader())
+	require.NotNil(t, telemetryProvider.GetHTTPClient())
 }
 
 func TestManager_SendUpdate(t *testing.T) {

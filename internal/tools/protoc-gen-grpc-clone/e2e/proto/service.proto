@@ -1,0 +1,22 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL
+
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package hashicorp.consul.internal.protoc_gen_grpc_clone.testing;
+
+service Simple {
+  rpc Something(Req) returns (Resp) {}
+  rpc Flow(Req) returns (stream Resp) {}
+}
+
+message Req {
+  string Foo = 1;
+}
+
+message Resp {
+  string Bar = 1;
+}

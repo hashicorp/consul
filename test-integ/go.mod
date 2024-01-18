@@ -3,6 +3,7 @@ module github.com/hashicorp/consul/test-integ
 go 1.20
 
 require (
+	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/consul/api v1.26.1
 	github.com/hashicorp/consul/proto-public v0.5.1
 	github.com/hashicorp/consul/sdk v0.15.0
@@ -48,7 +49,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.0.1 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/consul v1.16.1 // indirect

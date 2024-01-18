@@ -94,8 +94,8 @@ func requireNotNil(v interface{}, name string) {
 
 var _ pboperator.OperatorServiceServer = (*Server)(nil)
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pboperator.RegisterOperatorServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pboperator.RegisterOperatorServiceServer(registrar, s)
 }
 
 // Backend defines the core integrations the Operator endpoint depends on. A

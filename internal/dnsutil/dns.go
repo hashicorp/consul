@@ -1,12 +1,19 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package dns
+package dnsutil
 
 import (
 	"errors"
 	"regexp"
 )
+
+// MaxLabelLength is the maximum length for a name that can be used in DNS.
+const MaxLabelLength = 63
+
+// InvalidNameRe is a regex that matches characters which can not be included in
+// a DNS name.
+var InvalidNameRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
 // matches valid DNS labels according to RFC 1123, should be at most 63
 // characters according to the RFC

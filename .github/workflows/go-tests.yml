@@ -270,7 +270,6 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: ""
-      go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -293,7 +292,6 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -410,9 +408,11 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-api-1-19:
+  go-test-api-backwards-compatibility:
+    name: go-test-api-${{ needs.get-go-version.outputs.go-version-previous }}
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -420,7 +420,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-version: "1.19"
+      go-version: ${{ needs.get-go-version.outputs.go-version-previous }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -429,9 +429,10 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-api-1-20:
+  go-test-api:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -439,7 +440,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-version: "1.20"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -448,9 +449,11 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-sdk-1-19:
+  go-test-sdk-backwards-compatibility:
+    name: go-test-sdk-${{ needs.get-go-version.outputs.go-version-previous }}
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -458,7 +461,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-version: "1.19"
+      go-version: ${{ needs.get-go-version.outputs.go-version-previous }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -467,9 +470,10 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-sdk-1-20:
+  go-test-sdk:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -477,7 +481,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-version: "1.20"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -523,10 +527,10 @@ jobs:
     - go-test-race
     - go-test-envoyextensions
     - go-test-troubleshoot
-    - go-test-api-1-19
-    - go-test-api-1-20
-    - go-test-sdk-1-19
-    - go-test-sdk-1-20
+    - go-test-api-backwards-compatibility
+    - go-test-api
+    - go-test-sdk-backwards-compatibility
+    - go-test-sdk
     - go-test-32bit
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}

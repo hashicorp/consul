@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 with-expecter: true
-all: true
 recursive: true
+include-regex: ".*"
+exclude-regex: "(serverStream|Is(Inmem|Cloning).*Client)"
 # We don't want the mocks within proto-public to prevent forcing a dependency
 # of the testify library on the modules usage. The mocks are only for
 # internal testing purposes. Other consumers can generated the mocks into

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package meshv2beta1
 
 func (p *ComputedProxyConfiguration) IsTransparentProxy() bool {

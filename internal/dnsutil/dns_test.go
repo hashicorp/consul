@@ -1,12 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package dns_test
+package dnsutil
 
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/dns"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,23 +28,23 @@ func TestValidLabel(t *testing.T) {
 
 	t.Run("*", func(t *testing.T) {
 		t.Run("IsValidLabel", func(t *testing.T) {
-			require.False(t, dns.IsValidLabel("*"))
+			require.False(t, IsValidLabel("*"))
 		})
 		t.Run("ValidateLabel", func(t *testing.T) {
-			require.Error(t, dns.ValidateLabel("*"))
+			require.Error(t, ValidateLabel("*"))
 		})
 	})
 
 	for name, expect := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Run("IsValidDNSLabel", func(t *testing.T) {
-				require.Equal(t, expect, dns.IsValidLabel(name))
+				require.Equal(t, expect, IsValidLabel(name))
 			})
 			t.Run("ValidateLabel", func(t *testing.T) {
 				if expect {
-					require.NoError(t, dns.ValidateLabel(name))
+					require.NoError(t, ValidateLabel(name))
 				} else {
-					require.Error(t, dns.ValidateLabel(name))
+					require.Error(t, ValidateLabel(name))
 				}
 			})
 		})
