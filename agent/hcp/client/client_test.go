@@ -22,6 +22,10 @@ type mockTGW struct {
 	mockError    error
 }
 
+func (m *mockTGW) GetServiceTopology(params *hcptelemetry.GetServiceTopologyParams, authInfo runtime.ClientAuthInfoWriter, opts ...hcptelemetry.ClientOption) (*hcptelemetry.GetServiceTopologyOK, error) {
+	return hcptelemetry.NewGetServiceTopologyOK(), nil
+}
+
 func (m *mockTGW) AgentTelemetryConfig(params *hcptelemetry.AgentTelemetryConfigParams, authInfo runtime.ClientAuthInfoWriter, opts ...hcptelemetry.ClientOption) (*hcptelemetry.AgentTelemetryConfigOK, error) {
 	return m.mockResponse, m.mockError
 }

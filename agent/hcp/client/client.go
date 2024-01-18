@@ -31,6 +31,7 @@ const metricsGatewayPath = "/v1/metrics"
 type Client interface {
 	FetchBootstrap(ctx context.Context) (*BootstrapConfig, error)
 	FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error)
+	GetObservabilitySecret(ctx context.Context) (clientID, clientSecret string, err error)
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
 	GetCluster(ctx context.Context) (*Cluster, error)
@@ -339,4 +340,23 @@ func clusterFromHCP(payload *gnmmod.HashicorpCloudGlobalNetworkManager20220215Ge
 		AccessLevel:  payload.Cluster.ConsulAccessLevel,
 		HCPPortalURL: payload.Cluster.HcpPortalURL,
 	}
+}
+
+func (c *hcpClient) GetObservabilitySecret(ctx context.Context) (string, string, error) {
+	params := hcpgnm.NewGetObservabilitySecretParamsWithContext(ctx).
+		WithID(c.resource.ID).
+		WithLocationOrganizationID(c.resource.Organization).
+		WithLocationProjectID(c.resource.Project)
+
+	resp, err := c.gnm.GetObservabilitySecret(params, nil)
+	if err != nil {
+		return "", "", err
+	}
+
+	if len(resp.GetPayload().Keys) == 0 {
+		return "", "", fmt.Errorf("no observability keys returned for cluster")
+	}
+
+	key := resp.GetPayload().Keys[len(resp.GetPayload().Keys)-1]
+	return key.ClientID, key.ClientSecret, nil
 }
