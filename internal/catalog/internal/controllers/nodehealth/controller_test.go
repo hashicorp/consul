@@ -35,13 +35,23 @@ var (
 		},
 	}
 
-	dnsPolicyData = &pbcatalog.DNSPolicy{
-		Workloads: &pbcatalog.WorkloadSelector{
-			Prefixes: []string{""},
+	workloadData = &pbcatalog.Workload{
+		Addresses: []*pbcatalog.WorkloadAddress{
+			{
+				Host: "127.0.0.1",
+			},
 		},
-		Weights: &pbcatalog.Weights{
-			Passing: 1,
-			Warning: 1,
+		Ports: map[string]*pbcatalog.WorkloadPort{
+			"http": {
+				Port:     8443,
+				Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2,
+			},
+		},
+		NodeName: "foo",
+		Identity: "api",
+		Locality: &pbcatalog.Locality{
+			Region: "us-east-1",
+			Zone:   "1a",
 		},
 	}
 )
@@ -83,7 +93,7 @@ func (suite *nodeHealthControllerTestSuite) writeNode(name string, tenancy *pbre
 func (suite *nodeHealthControllerTestSuite) SetupTest() {
 	suite.tenancies = resourcetest.TestTenancies()
 	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, types.RegisterDNSPolicy).
+		WithRegisterFns(types.Register).
 		WithTenancies(suite.tenancies...).
 		Run(suite.T())
 
@@ -418,11 +428,11 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancy *pbres
 		}
 	}
 
-	// create a DNSPolicy to be owned by the node. The type doesn't really matter it just needs
+	// create a Workload to be owned by the node. The type doesn't really matter it just needs
 	// to be something that doesn't care about its owner. All we want to prove is that we are
 	// filtering out non-NodeHealthStatus types appropriately.
-	resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy-"+tenancy.Partition+"-"+tenancy.Namespace).
-		WithData(suite.T(), dnsPolicyData).
+	resourcetest.Resource(pbcatalog.WorkloadType, "test-workload-"+tenancy.Partition+"-"+tenancy.Namespace).
+		WithData(suite.T(), workloadData).
 		WithOwner(suite.nodeNoHealth).
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.resourceClient)
