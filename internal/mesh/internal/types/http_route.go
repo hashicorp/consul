@@ -16,10 +16,8 @@ import (
 )
 
 func RegisterHTTPRoute(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmesh.HTTPRouteType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmesh.HTTPRoute{},
-		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateHTTPRoute,
 		Validate: ValidateHTTPRoute,
 		ACLs:     xRouteACLHooks[*pbmesh.HTTPRoute](),

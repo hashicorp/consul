@@ -9,9 +9,7 @@ import (
 )
 
 func RegisterComputedExplicitDestinations(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:  pbmesh.ComputedExplicitDestinationsType,
+	r.Register(resource.RegisterRequest{
 		Proto: &pbmesh.ComputedExplicitDestinations{},
-		Scope: resource.ScopeNamespace,
 	})
 }

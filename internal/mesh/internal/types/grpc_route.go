@@ -14,10 +14,8 @@ import (
 )
 
 func RegisterGRPCRoute(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmesh.GRPCRouteType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmesh.GRPCRoute{},
-		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateGRPCRoute,
 		Validate: ValidateGRPCRoute,
 		ACLs:     xRouteACLHooks[*pbmesh.GRPCRoute](),

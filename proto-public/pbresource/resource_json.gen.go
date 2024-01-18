@@ -82,17 +82,6 @@ func (this *Reference) UnmarshalJSON(b []byte) error {
 	return ResourceUnmarshaler.Unmarshal(b, this)
 }
 
-// MarshalJSON is a custom marshaler for Tombstone
-func (this *Tombstone) MarshalJSON() ([]byte, error) {
-	str, err := ResourceMarshaler.Marshal(this)
-	return []byte(str), err
-}
-
-// UnmarshalJSON is a custom unmarshaler for Tombstone
-func (this *Tombstone) UnmarshalJSON(b []byte) error {
-	return ResourceUnmarshaler.Unmarshal(b, this)
-}
-
 // MarshalJSON is a custom marshaler for ReadRequest
 func (this *ReadRequest) MarshalJSON() ([]byte, error) {
 	str, err := ResourceMarshaler.Marshal(this)

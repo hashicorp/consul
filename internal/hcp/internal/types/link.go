@@ -18,10 +18,8 @@ var (
 )
 
 func RegisterLink(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbhcp.LinkType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbhcp.Link{},
-		Scope:    resource.ScopeCluster,
 		Validate: ValidateLink,
 	})
 }

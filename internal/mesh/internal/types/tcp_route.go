@@ -13,10 +13,8 @@ import (
 )
 
 func RegisterTCPRoute(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmesh.TCPRouteType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmesh.TCPRoute{},
-		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateTCPRoute,
 		Validate: ValidateTCPRoute,
 		ACLs:     xRouteACLHooks[*pbmesh.TCPRoute](),

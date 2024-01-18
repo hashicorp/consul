@@ -18,10 +18,8 @@ import (
 type DecodedFailoverPolicy = resource.DecodedResource[*pbcatalog.FailoverPolicy]
 
 func RegisterFailoverPolicy(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbcatalog.FailoverPolicyType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbcatalog.FailoverPolicy{},
-		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateFailoverPolicy,
 		Validate: ValidateFailoverPolicy,
 		ACLs: &resource.ACLHooks{

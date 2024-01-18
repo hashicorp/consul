@@ -14,10 +14,8 @@ import (
 type DecodedComputedFailoverPolicy = resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]
 
 func RegisterComputedFailoverPolicy(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbcatalog.ComputedFailoverPolicyType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbcatalog.ComputedFailoverPolicy{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateComputedFailoverPolicy,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookFailoverPolicy,

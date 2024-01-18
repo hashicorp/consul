@@ -15,8 +15,7 @@ import (
 type DecodedComputedTrafficPermissions = resource.DecodedResource[*pbauth.ComputedTrafficPermissions]
 
 func RegisterComputedTrafficPermission(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:  pbauth.ComputedTrafficPermissionsType,
+	r.Register(resource.RegisterRequest{
 		Proto: &pbauth.ComputedTrafficPermissions{},
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookComputedTrafficPermissions,
@@ -24,7 +23,6 @@ func RegisterComputedTrafficPermission(r resource.Registry) {
 			List:  resource.NoOpACLListHook,
 		},
 		Validate: ValidateComputedTrafficPermissions,
-		Scope:    resource.ScopeNamespace,
 	})
 }
 

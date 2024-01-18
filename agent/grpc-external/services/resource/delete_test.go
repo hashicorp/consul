@@ -23,7 +23,9 @@ import (
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
-	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
+	pbinternalresource "github.com/hashicorp/consul/proto/private/pbresource/v1"
 )
 
 func TestDelete_InputValidation(t *testing.T) {
@@ -240,7 +242,7 @@ func TestDelete_Success(t *testing.T) {
 		// based on the tenancy test case.
 		deleteId := modFn(artist.Id, recordLabel.Id)
 		deleteReq := tc.deleteReqFn(recordLabel)
-		if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
+		if proto.Equal(deleteId.Type, pbdemov2.ArtistType) {
 			deleteReq = tc.deleteReqFn(artist)
 		}
 
@@ -255,7 +257,7 @@ func TestDelete_Success(t *testing.T) {
 
 		// Derive tombstone name from resource that was deleted.
 		tname := svc.TombstoneNameFor(originalRecordLabelId)
-		if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
+		if proto.Equal(deleteId.Type, pbdemov2.ArtistType) {
 			tname = svc.TombstoneNameFor(originalArtistId)
 		}
 
@@ -263,7 +265,7 @@ func TestDelete_Success(t *testing.T) {
 		_, err = client.Read(ctx, &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Name:    tname,
-				Type:    resource.TypeV1Tombstone,
+				Type:    pbinternalresource.TombstoneType,
 				Tenancy: deleteReq.Id.Tenancy,
 			},
 		})
@@ -315,7 +317,7 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 			rsp2, err := client.Read(ctx, &pbresource.ReadRequest{
 				Id: &pbresource.ID{
 					Name:    svc.TombstoneNameFor(artist.Id),
-					Type:    resource.TypeV1Tombstone,
+					Type:    pbinternalresource.TombstoneType,
 					Tenancy: artist.Id.Tenancy,
 				},
 			})
@@ -327,7 +329,7 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 			require.NoError(t, err)
 
 			// verify no new tombstones created and artist's existing tombstone deleted
-			rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy})
+			rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: pbinternalresource.TombstoneType, Tenancy: artist.Id.Tenancy})
 			require.NoError(t, err)
 			require.Empty(t, rsp3.Resources)
 		})
@@ -396,9 +398,9 @@ func TestDelete_MarkedForDeletionWhenFinalizersPresent(t *testing.T) {
 				Run(t)
 
 			// Create a resource with a finalizer
-			res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
+			res := rtest.Resource(pbdemov1.ArtistType, "manwithnoname").
 				WithTenancy(resource.DefaultClusteredTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
+				WithData(t, &pbdemov1.Artist{Name: "Man With No Name"}).
 				WithMeta(resource.FinalizerKey, "finalizer1").
 				Write(t, client)
 
@@ -433,9 +435,9 @@ func TestDelete_ImmediatelyDeletedAfterFinalizersRemoved(t *testing.T) {
 				Run(t)
 
 			// Create a resource with a finalizer
-			res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
+			res := rtest.Resource(pbdemov1.ArtistType, "manwithnoname").
 				WithTenancy(resource.DefaultClusteredTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
+				WithData(t, &pbdemov1.Artist{Name: "Man With No Name"}).
 				WithMeta(resource.FinalizerKey, "finalizer1").
 				Write(t, client)
 

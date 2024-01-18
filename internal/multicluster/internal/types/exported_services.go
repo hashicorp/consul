@@ -11,10 +11,8 @@ import (
 )
 
 func RegisterExportedServices(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmulticluster.ExportedServicesType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmulticluster.ExportedServices{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateExportedServices,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookExportedServices,

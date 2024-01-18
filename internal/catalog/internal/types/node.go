@@ -15,10 +15,8 @@ import (
 type DecodedNode = resource.DecodedResource[*pbcatalog.Node]
 
 func RegisterNode(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbcatalog.NodeType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbcatalog.Node{},
-		Scope:    resource.ScopePartition,
 		Validate: ValidateNode,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookNode,

@@ -11,10 +11,8 @@ import (
 // RegisterMeshConfiguration takes the resource registry and registers
 // the MeshConfiguration resource to it.
 func RegisterMeshConfiguration(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmesh.MeshConfigurationType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmesh.MeshConfiguration{},
-		Scope:    resource.ScopePartition,
 		ACLs:     nil, // TODO NET-6423
 		Mutate:   nil, // TODO NET-6425
 		Validate: nil, // TODO NET-6424

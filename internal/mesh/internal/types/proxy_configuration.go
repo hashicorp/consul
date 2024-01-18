@@ -16,10 +16,8 @@ import (
 )
 
 func RegisterProxyConfiguration(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmesh.ProxyConfigurationType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmesh.ProxyConfiguration{},
-		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateProxyConfiguration,
 		Validate: ValidateProxyConfiguration,
 		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.ProxyConfiguration](),

@@ -9,9 +9,7 @@ import (
 )
 
 func RegisterComputedProxyConfiguration(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:  pbmesh.ComputedProxyConfigurationType,
+	r.Register(resource.RegisterRequest{
 		Proto: &pbmesh.ComputedProxyConfiguration{},
-		Scope: resource.ScopeNamespace,
 	})
 }

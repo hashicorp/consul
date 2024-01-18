@@ -13,11 +13,12 @@ import (
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
+	pbinternalresource "github.com/hashicorp/consul/proto/private/pbresource/v1"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -41,7 +42,7 @@ func TestReconcile_ResourceWithNoChildren(t *testing.T) {
 
 		// Retrieve tombstone
 		listRsp, err := client.List(ctx, &pbresource.ListRequest{
-			Type:    resource.TypeV1Tombstone,
+			Type:    pbinternalresource.TombstoneType,
 			Tenancy: tenancy,
 		})
 		require.NoError(t, err)
@@ -108,7 +109,7 @@ func TestReconcile_ResourceWithChildren(t *testing.T) {
 
 		// Retrieve the tombstone
 		listRsp, err := client.List(ctx, &pbresource.ListRequest{
-			Type:    resource.TypeV1Tombstone,
+			Type:    pbinternalresource.TombstoneType,
 			Tenancy: writeRsp.Resource.Id.Tenancy,
 		})
 		require.NoError(t, err)
@@ -126,7 +127,7 @@ func TestReconcile_ResourceWithChildren(t *testing.T) {
 
 		// Verify 3 albums deleted
 		listRsp, err = client.List(ctx, &pbresource.ListRequest{
-			Type:    demo.TypeV2Album,
+			Type:    pbdemov2.AlbumType,
 			Tenancy: artist.Id.Tenancy,
 		})
 		require.NoError(t, err)
@@ -152,7 +153,7 @@ func TestReconcile_ResourceWithChildren(t *testing.T) {
 
 		// Verify tombstones for 3 albums created
 		listRsp, err = client.List(ctx, &pbresource.ListRequest{
-			Type:    resource.TypeV1Tombstone,
+			Type:    pbinternalresource.TombstoneType,
 			Tenancy: artist.Id.Tenancy,
 		})
 		require.NoError(t, err)
@@ -180,7 +181,7 @@ func TestReconcile_RequeueWithDelayWhenSecondPassDelayNotElapsed(t *testing.T) {
 
 		// Retrieve tombstone
 		listRsp, err := client.List(ctx, &pbresource.ListRequest{
-			Type:    resource.TypeV1Tombstone,
+			Type:    pbinternalresource.TombstoneType,
 			Tenancy: writeRsp.Resource.Id.Tenancy,
 		})
 		require.NoError(t, err)

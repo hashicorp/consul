@@ -123,15 +123,15 @@ func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (
 	return reg, nil
 }
 
-func wildcardTenancyFor(scope resource.Scope) *pbresource.Tenancy {
+func wildcardTenancyFor(scope pbresource.Scope) *pbresource.Tenancy {
 	var defaultTenancy *pbresource.Tenancy
 
 	switch scope {
-	case resource.ScopeCluster:
+	case pbresource.Scope_SCOPE_CLUSTER:
 		defaultTenancy = &pbresource.Tenancy{
 			PeerName: storage.Wildcard,
 		}
-	case resource.ScopePartition:
+	case pbresource.Scope_SCOPE_PARTITION:
 		defaultTenancy = &pbresource.Tenancy{
 			Partition: storage.Wildcard,
 			PeerName:  storage.Wildcard,

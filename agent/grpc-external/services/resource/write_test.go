@@ -470,7 +470,7 @@ func TestWrite_Create_With_DeletionTimestamp_Fails(t *testing.T) {
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
 
-	res := rtest.Resource(demo.TypeV1Artist, "blur").
+	res := rtest.Resource(pbdemov1.ArtistType, "blur").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbdemov1.Artist{Name: "Blur"}).
 		WithMeta(resource.DeletionTimestampKey, time.Now().Format(time.RFC3339)).
@@ -700,7 +700,7 @@ func TestWrite_Update_GroupVersion(t *testing.T) {
 	require.NoError(t, err)
 
 	res = rsp1.Resource
-	res.Id.Type = demo.TypeV1Artist
+	res.Id.Type = pbdemov1.ArtistType
 
 	// translate artistV2 to artistV1
 	var artistV2 pbdemov2.Artist
@@ -970,13 +970,13 @@ func TestEnsureFinalizerRemoved(t *testing.T) {
 
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
-			input := rtest.Resource(demo.TypeV1Artist, "artist1").
+			input := rtest.Resource(pbdemov1.ArtistType, "artist1").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, &pbdemov1.Artist{Name: "artist1"}).
 				WithMeta(resource.DeletionTimestampKey, "someTimestamp").
 				Build()
 
-			existing := rtest.Resource(demo.TypeV1Artist, "artist1").
+			existing := rtest.Resource(pbdemov1.ArtistType, "artist1").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, &pbdemov1.Artist{Name: "artist1"}).
 				WithMeta(resource.DeletionTimestampKey, "someTimestamp").
@@ -1053,7 +1053,7 @@ func TestWrite_ResourceFrozenAfterMarkedForDeletion(t *testing.T) {
 				Run(t)
 
 			// Create a resource with finalizers
-			res := rtest.Resource(demo.TypeV1Artist, "joydivision").
+			res := rtest.Resource(pbdemov1.ArtistType, "joydivision").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, &pbdemo.Artist{Name: "Joy Division"}).
 				WithMeta(resource.FinalizerKey, "finalizer1 finalizer2").
@@ -1121,7 +1121,7 @@ func TestWrite_NonCASWritePreservesFinalizers(t *testing.T) {
 				Run(t)
 
 			// Create the resource based on tc.existingMetadata
-			builder := rtest.Resource(demo.TypeV1Artist, "joydivision").
+			builder := rtest.Resource(pbdemov1.ArtistType, "joydivision").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, &pbdemo.Artist{Name: "Joy"})
 
@@ -1133,7 +1133,7 @@ func TestWrite_NonCASWritePreservesFinalizers(t *testing.T) {
 			res := builder.Write(t, client)
 
 			// Build resource for user write based on tc.inputMetadata
-			builder = rtest.Resource(demo.TypeV1Artist, res.Id.Name).
+			builder = rtest.Resource(pbdemov1.ArtistType, res.Id.Name).
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
 
@@ -1187,7 +1187,7 @@ func TestWrite_NonCASWritePreservesDeletionTimestamp(t *testing.T) {
 				Run(t)
 
 			// Create the resource based on tc.existingMetadata
-			builder := rtest.Resource(demo.TypeV1Artist, "joydivision").
+			builder := rtest.Resource(pbdemov1.ArtistType, "joydivision").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
 
@@ -1207,7 +1207,7 @@ func TestWrite_NonCASWritePreservesDeletionTimestamp(t *testing.T) {
 			require.NoError(t, err)
 
 			// Build resource for user write based on tc.inputMetadata
-			builder = rtest.Resource(demo.TypeV1Artist, res.Id.Name).
+			builder = rtest.Resource(pbdemov1.ArtistType, res.Id.Name).
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
 

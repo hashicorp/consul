@@ -15,10 +15,8 @@ import (
 type DecodedVirtualIPs = resource.DecodedResource[*pbcatalog.VirtualIPs]
 
 func RegisterVirtualIPs(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbcatalog.VirtualIPsType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbcatalog.VirtualIPs{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateVirtualIPs,
 		ACLs: &resource.ACLHooks{
 			Read: func(authorizer acl.Authorizer, context *acl.AuthorizerContext, id *pbresource.ID, p *pbresource.Resource) error {

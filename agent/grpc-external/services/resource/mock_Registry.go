@@ -15,23 +15,23 @@ type MockRegistry struct {
 }
 
 // Register provides a mock function with given fields: reg
-func (_m *MockRegistry) Register(reg internalresource.Registration) {
+func (_m *MockRegistry) Register(reg internalresource.RegisterRequest) {
 	_m.Called(reg)
 }
 
 // Resolve provides a mock function with given fields: typ
-func (_m *MockRegistry) Resolve(typ *pbresource.Type) (internalresource.Registration, bool) {
+func (_m *MockRegistry) Resolve(typ *pbresource.Type) (internalresource.RegisterRequest, bool) {
 	ret := _m.Called(typ)
 
-	var r0 internalresource.Registration
+	var r0 internalresource.RegisterRequest
 	var r1 bool
-	if rf, ok := ret.Get(0).(func(*pbresource.Type) (internalresource.Registration, bool)); ok {
+	if rf, ok := ret.Get(0).(func(*pbresource.Type) (internalresource.RegisterRequest, bool)); ok {
 		return rf(typ)
 	}
-	if rf, ok := ret.Get(0).(func(*pbresource.Type) internalresource.Registration); ok {
+	if rf, ok := ret.Get(0).(func(*pbresource.Type) internalresource.RegisterRequest); ok {
 		r0 = rf(typ)
 	} else {
-		r0 = ret.Get(0).(internalresource.Registration)
+		r0 = ret.Get(0).(internalresource.RegisterRequest)
 	}
 
 	if rf, ok := ret.Get(1).(func(*pbresource.Type) bool); ok {

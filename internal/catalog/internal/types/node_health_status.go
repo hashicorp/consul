@@ -15,10 +15,8 @@ import (
 type DecodedNodeHealthStatus = resource.DecodedResource[*pbcatalog.NodeHealthStatus]
 
 func RegisterNodeHealthStatus(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbcatalog.NodeHealthStatusType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbcatalog.NodeHealthStatus{},
-		Scope:    resource.ScopePartition,
 		Validate: ValidateNodeHealthStatus,
 		ACLs: &resource.ACLHooks{
 			Read:  resource.AuthorizeReadWithResource(aclReadHookNodeHealthStatus),

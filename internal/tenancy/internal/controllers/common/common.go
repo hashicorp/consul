@@ -49,7 +49,7 @@ func EnsureHasFinalizer(ctx context.Context, rt controller.Runtime, res *pbresou
 	return err
 }
 
-func EnsureTenantsDeleted(ctx context.Context, rt controller.Runtime, registry resource.Registry, res *pbresource.Resource, tenantScope resource.Scope, tenancy *pbresource.Tenancy) error {
+func EnsureTenantsDeleted(ctx context.Context, rt controller.Runtime, registry resource.Registry, res *pbresource.Resource, tenantScope pbresource.Scope, tenancy *pbresource.Tenancy) error {
 	// Useful stats to keep track of on every sweep
 	numExistingHasFinalizer := 0
 	numExistingOwned := 0

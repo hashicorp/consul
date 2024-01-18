@@ -29,8 +29,8 @@ func RegisterControllers(mgr *controller.Manager) {
 }
 
 func artistController() *controller.Controller {
-	return controller.NewController("artists", TypeV2Artist).
-		WithWatch(TypeV2Album, dependency.MapOwner).
+	return controller.NewController("artists", pbdemov2.ArtistType).
+		WithWatch(pbdemov2.AlbumType, dependency.MapOwner).
 		WithReconciler(&artistReconciler{})
 }
 
@@ -70,7 +70,7 @@ func (r *artistReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 	}
 
 	actualAlbums, err := rt.Client.List(ctx, &pbresource.ListRequest{
-		Type:       TypeV2Album,
+		Type:       pbdemov2.AlbumType,
 		Tenancy:    res.Id.Tenancy,
 		NamePrefix: fmt.Sprintf("%s-", res.Id.Name),
 	})

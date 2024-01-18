@@ -13,10 +13,8 @@ import (
 )
 
 func RegisterDestinationsConfiguration(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmesh.DestinationsConfigurationType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmesh.DestinationsConfiguration{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDestinationsConfiguration,
 		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.DestinationsConfiguration](),
 	})

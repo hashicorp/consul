@@ -322,7 +322,7 @@ func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resourc
 	}
 
 	// Check scope
-	if reg.Scope == resource.ScopePartition && req.Resource.Id.Tenancy.Namespace != "" {
+	if reg.Scope == pbresource.Scope_SCOPE_PARTITION && req.Resource.Id.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
 			codes.InvalidArgument,
 			"partition scoped resource %s cannot have a namespace. got: %s",

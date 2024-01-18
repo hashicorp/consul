@@ -23,6 +23,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
@@ -69,21 +71,21 @@ func TestWatchList_InputValidation(t *testing.T) {
 		},
 		"partitioned type provides non-empty namespace": {
 			modFn: func(req *pbresource.WatchListRequest) {
-				req.Type = demo.TypeV1RecordLabel
+				req.Type = pbdemov1.RecordLabelType
 				req.Tenancy.Namespace = "bad"
 			},
 			errContains: "cannot have a namespace",
 		},
 		"cluster scope with non-empty partition": {
 			modFn: func(req *pbresource.WatchListRequest) {
-				req.Type = demo.TypeV1Executive
+				req.Type = pbdemov1.ExecutiveType
 				req.Tenancy = &pbresource.Tenancy{Partition: "bad"}
 			},
 			errContains: "cannot have a partition",
 		},
 		"cluster scope with non-empty namespace": {
 			modFn: func(req *pbresource.WatchListRequest) {
-				req.Type = demo.TypeV1Executive
+				req.Type = pbdemov1.ExecutiveType
 				req.Tenancy = &pbresource.Tenancy{Namespace: "bad"}
 			},
 			errContains: "cannot have a namespace",
@@ -92,7 +94,7 @@ func TestWatchList_InputValidation(t *testing.T) {
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			req := &pbresource.WatchListRequest{
-				Type:    demo.TypeV2Album,
+				Type:    pbdemov2.AlbumType,
 				Tenancy: resource.DefaultNamespacedTenancy(),
 			}
 			tc.modFn(req)
@@ -114,7 +116,7 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 	client := svctest.NewResourceServiceBuilder().Run(t)
 
 	stream, err := client.WatchList(context.Background(), &pbresource.WatchListRequest{
-		Type:       demo.TypeV2Artist,
+		Type:       pbdemov2.ArtistType,
 		Tenancy:    resource.DefaultNamespacedTenancy(),
 		NamePrefix: "",
 	})
@@ -136,7 +138,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 
 	// create a watch
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type:       demo.TypeV2Artist,
+		Type:       pbdemov2.ArtistType,
 		Tenancy:    resource.DefaultNamespacedTenancy(),
 		NamePrefix: "",
 	})
@@ -204,11 +206,11 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 
 			var expected *pbresource.Resource
 			switch {
-			case resource.EqualType(tc.typ, demo.TypeV1RecordLabel):
+			case resource.EqualType(tc.typ, pbdemov1.RecordLabelType):
 				expected = rlRsp.Resource
-			case resource.EqualType(tc.typ, demo.TypeV2Artist):
+			case resource.EqualType(tc.typ, pbdemov2.ArtistType):
 				expected = artistRsp.Resource
-			case resource.EqualType(tc.typ, demo.TypeV1Executive):
+			case resource.EqualType(tc.typ, pbdemov1.ExecutiveType):
 				expected = executiveRsp.Resource
 			default:
 				require.Fail(t, "unsupported type", tc.typ)
@@ -234,7 +236,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 
 	// create a watch for TypeArtistV1
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type:       demo.TypeV1Artist,
+		Type:       pbdemov1.ArtistType,
 		Tenancy:    resource.DefaultNamespacedTenancy(),
 		NamePrefix: "",
 	})
@@ -410,7 +412,7 @@ func TestWatchList_NoTenancy(t *testing.T) {
 
 	// Create a watch.
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type: demo.TypeV1RecordLabel,
+		Type: pbdemov1.RecordLabelType,
 	})
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)

@@ -15,10 +15,8 @@ import (
 type DecodedDNSPolicy = resource.DecodedResource[*pbcatalog.DNSPolicy]
 
 func RegisterDNSPolicy(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbcatalog.DNSPolicyType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbcatalog.DNSPolicy{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,
 		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.DNSPolicy](),
 	})

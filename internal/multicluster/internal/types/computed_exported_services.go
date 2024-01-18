@@ -15,10 +15,8 @@ const (
 )
 
 func RegisterComputedExportedServices(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmulticluster.ComputedExportedServicesType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmulticluster.ComputedExportedServices{},
-		Scope:    resource.ScopePartition,
 		Validate: ValidateComputedExportedServices,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookComputedExportedServices,

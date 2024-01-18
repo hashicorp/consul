@@ -9,10 +9,8 @@ import (
 )
 
 func RegisterMeshGateway(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     pbmesh.MeshGatewayType,
+	r.Register(resource.RegisterRequest{
 		Proto:    &pbmesh.MeshGateway{},
-		Scope:    resource.ScopePartition,
 		ACLs:     nil, // TODO NET-6416
 		Mutate:   nil, // TODO NET-6418
 		Validate: nil, // TODO NET-6417

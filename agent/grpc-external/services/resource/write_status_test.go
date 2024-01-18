@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 )
 
 // TODO: Update all tests to use true/false table test for v2tenancy
@@ -82,148 +84,148 @@ func TestWriteStatus_InputValidation(t *testing.T) {
 		errContains string
 	}{
 		"no id": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id = nil },
 			errContains: "id is required",
 		},
 		"no type": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Type = nil },
 			errContains: "id.type is required",
 		},
 		"no name": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Name = "" },
 			errContains: "id.name is required",
 		},
 		"no uid": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Uid = "" },
 			errContains: "id.uid is required",
 		},
 		"name mixed case": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Name = "U2" },
 			errContains: "id.name invalid",
 		},
 		"name too long": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Id.Name = strings.Repeat("a", resource.MaxNameLength+1)
 			},
 			errContains: "id.name invalid",
 		},
 		"partition mixed case": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "Default" },
 			errContains: "id.tenancy.partition invalid",
 		},
 		"partition too long": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Id.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
 			},
 			errContains: "id.tenancy.partition invalid",
 		},
 		"namespace mixed case": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Namespace = "Default" },
 			errContains: "id.tenancy.namespace invalid",
 		},
 		"namespace too long": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Id.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
 			},
 			errContains: "id.tenancy.namespace invalid",
 		},
 		"no key": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Key = "" },
 			errContains: "key is required",
 		},
 		"no status": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status = nil },
 			errContains: "status is required",
 		},
 		"no observed generation": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status.ObservedGeneration = "" },
 			errContains: "status.observed_generation is required",
 		},
 		"bad observed generation": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status.ObservedGeneration = "bogus" },
 			errContains: "status.observed_generation is not valid",
 		},
 		"no condition type": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Type = "" },
 			errContains: "status.conditions[0].type is required",
 		},
 		"no reference type": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Type = nil },
 			errContains: "status.conditions[0].resource.type is required",
 		},
 		"no reference tenancy": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Tenancy = nil },
 			errContains: "status.conditions[0].resource.tenancy is required",
 		},
 		"no reference name": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Name = "" },
 			errContains: "status.conditions[0].resource.name is required",
 		},
 		"reference name mixed case": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Name = "U2" },
 			errContains: "status.conditions[0].resource.name invalid",
 		},
 		"reference name too long": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Status.Conditions[0].Resource.Name = strings.Repeat("r", resource.MaxNameLength+1)
 			},
 			errContains: "status.conditions[0].resource.name invalid",
 		},
 		"reference partition mixed case": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Status.Conditions[0].Resource.Tenancy.Partition = "Default"
 			},
 			errContains: "status.conditions[0].resource.tenancy.partition invalid",
 		},
 		"reference partition too long": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Status.Conditions[0].Resource.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
 			},
 			errContains: "status.conditions[0].resource.tenancy.partition invalid",
 		},
 		"reference namespace mixed case": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Status.Conditions[0].Resource.Tenancy.Namespace = "Default"
 			},
 			errContains: "status.conditions[0].resource.tenancy.namespace invalid",
 		},
 		"reference namespace too long": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Status.Conditions[0].Resource.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
 			},
 			errContains: "status.conditions[0].resource.tenancy.namespace invalid",
 		},
 		"updated at provided": {
-			typ:         demo.TypeV2Artist,
+			typ:         pbdemov2.ArtistType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Status.UpdatedAt = timestamppb.Now() },
 			errContains: "status.updated_at is automatically set and cannot be provided",
 		},
 		"partition scoped type provides namespace in tenancy": {
-			typ:         demo.TypeV1RecordLabel,
+			typ:         pbdemov1.RecordLabelType,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Namespace = "bad" },
 			errContains: "cannot have a namespace",
 		},
@@ -233,9 +235,9 @@ func TestWriteStatus_InputValidation(t *testing.T) {
 			var res *pbresource.Resource
 			var err error
 			switch {
-			case resource.EqualType(demo.TypeV2Artist, tc.typ):
+			case resource.EqualType(pbdemov2.ArtistType, tc.typ):
 				res, err = demo.GenerateV2Artist()
-			case resource.EqualType(demo.TypeV1RecordLabel, tc.typ):
+			case resource.EqualType(pbdemov1.RecordLabelType, tc.typ):
 				res, err = demo.GenerateV1RecordLabel("looney-tunes")
 			default:
 				t.Fatal("unsupported type", tc.typ)
@@ -298,38 +300,38 @@ func TestWriteStatus_Success(t *testing.T) {
 
 func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 	for desc, tc := range map[string]struct {
-		scope resource.Scope
+		scope pbresource.Scope
 		modFn func(req *pbresource.WriteStatusRequest)
 	}{
 		"namespaced resource provides nonempty partition and namespace": {
-			scope: resource.ScopeNamespace,
+			scope: pbresource.Scope_SCOPE_NAMESPACE,
 			modFn: func(req *pbresource.WriteStatusRequest) {},
 		},
 		"namespaced resource inherits tokens partition when empty": {
-			scope: resource.ScopeNamespace,
+			scope: pbresource.Scope_SCOPE_NAMESPACE,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "" },
 		},
 		"namespaced resource inherits tokens namespace when empty": {
-			scope: resource.ScopeNamespace,
+			scope: pbresource.Scope_SCOPE_NAMESPACE,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Namespace = "" },
 		},
 		"namespaced resource inherits tokens partition and namespace when empty": {
-			scope: resource.ScopeNamespace,
+			scope: pbresource.Scope_SCOPE_NAMESPACE,
 			modFn: func(req *pbresource.WriteStatusRequest) {
 				req.Id.Tenancy.Partition = ""
 				req.Id.Tenancy.Namespace = ""
 			},
 		},
 		"namespaced resource inherits tokens partition and namespace when tenancy nil": {
-			scope: resource.ScopeNamespace,
+			scope: pbresource.Scope_SCOPE_NAMESPACE,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy = nil },
 		},
 		"partitioned resource provides nonempty partition": {
-			scope: resource.ScopePartition,
+			scope: pbresource.Scope_SCOPE_PARTITION,
 			modFn: func(req *pbresource.WriteStatusRequest) {},
 		},
 		"partitioned resource inherits tokens partition when empty": {
-			scope: resource.ScopePartition,
+			scope: pbresource.Scope_SCOPE_PARTITION,
 			modFn: func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "" },
 		},
 	} {
@@ -342,9 +344,9 @@ func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 			var res *pbresource.Resource
 			var err error
 			switch tc.scope {
-			case resource.ScopeNamespace:
+			case pbresource.Scope_SCOPE_NAMESPACE:
 				res, err = demo.GenerateV2Artist()
-			case resource.ScopePartition:
+			case pbresource.Scope_SCOPE_PARTITION:
 				res, err = demo.GenerateV1RecordLabel("looney-tunes")
 			}
 			require.NoError(t, err)
@@ -373,25 +375,25 @@ func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 
 func TestWriteStatus_Tenancy_NotFound(t *testing.T) {
 	for desc, tc := range map[string]struct {
-		scope       resource.Scope
+		scope       pbresource.Scope
 		modFn       func(req *pbresource.WriteStatusRequest)
 		errCode     codes.Code
 		errContains string
 	}{
 		"namespaced resource provides nonexistant partition": {
-			scope:       resource.ScopeNamespace,
+			scope:       pbresource.Scope_SCOPE_NAMESPACE,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "bad" },
 			errCode:     codes.InvalidArgument,
 			errContains: "partition",
 		},
 		"namespaced resource provides nonexistant namespace": {
-			scope:       resource.ScopeNamespace,
+			scope:       pbresource.Scope_SCOPE_NAMESPACE,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Namespace = "bad" },
 			errCode:     codes.InvalidArgument,
 			errContains: "namespace",
 		},
 		"partitioned resource provides nonexistant partition": {
-			scope:       resource.ScopePartition,
+			scope:       pbresource.Scope_SCOPE_PARTITION,
 			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "bad" },
 			errCode:     codes.InvalidArgument,
 			errContains: "partition",
@@ -407,9 +409,9 @@ func TestWriteStatus_Tenancy_NotFound(t *testing.T) {
 			var res *pbresource.Resource
 			var err error
 			switch tc.scope {
-			case resource.ScopeNamespace:
+			case pbresource.Scope_SCOPE_NAMESPACE:
 				res, err = demo.GenerateV2Artist()
-			case resource.ScopePartition:
+			case pbresource.Scope_SCOPE_PARTITION:
 				res, err = demo.GenerateV1RecordLabel("looney-tunes")
 			}
 			require.NoError(t, err)
@@ -551,7 +553,7 @@ func validWriteStatusRequest(t *testing.T, res *pbresource.Resource) *pbresource
 	t.Helper()
 
 	switch {
-	case resource.EqualType(res.Id.Type, demo.TypeV2Artist):
+	case resource.EqualType(res.Id.Type, pbdemov2.ArtistType):
 		album, err := demo.GenerateV2Album(res.Id)
 		require.NoError(t, err)
 		return &pbresource.WriteStatusRequest{
@@ -571,7 +573,7 @@ func validWriteStatusRequest(t *testing.T, res *pbresource.Resource) *pbresource
 				},
 			},
 		}
-	case resource.EqualType(res.Id.Type, demo.TypeV1RecordLabel):
+	case resource.EqualType(res.Id.Type, pbdemov1.RecordLabelType):
 		artist, err := demo.GenerateV2Artist()
 		require.NoError(t, err)
 		return &pbresource.WriteStatusRequest{
