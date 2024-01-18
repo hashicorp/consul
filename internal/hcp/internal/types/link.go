@@ -6,9 +6,10 @@ package types
 import (
 	"errors"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
-	"github.com/hashicorp/go-multierror"
 )
 
 type DecodedLink = resource.DecodedResource[*pbhcp.Link]

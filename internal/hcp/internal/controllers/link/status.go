@@ -6,6 +6,8 @@ package link
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/internal/resource"
+	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -44,4 +46,22 @@ func ConditionLinked(resourceId string) *pbresource.Condition {
 		Reason:  LinkedReason,
 		Message: fmt.Sprintf(LinkedMessageFormat, resourceId),
 	}
+}
+
+func IsLinked(res *pbresource.Resource) (linked bool, reason string) {
+	if !resource.EqualType(res.GetId().GetType(), pbhcp.LinkType) {
+		return false, "resource is not hcp.Link type"
+	}
+
+	linkStatus, ok := res.GetStatus()[StatusKey]
+	if !ok {
+		return false, "link status not set"
+	}
+
+	for _, cond := range linkStatus.GetConditions() {
+		if cond.Type == StatusLinked && cond.GetState() == pbresource.Condition_STATE_TRUE {
+			return true, ""
+		}
+	}
+	return false, "link status does not include positive linked condition"
 }
