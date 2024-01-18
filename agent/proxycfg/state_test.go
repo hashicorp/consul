@@ -957,7 +957,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
-							}, nil),
+							}),
 					},
 					Err: nil,
 				},
@@ -967,7 +967,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
-							}, nil),
+							}),
 					},
 					Err: nil,
 				},
@@ -977,7 +977,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
-							}, nil),
+							}),
 					},
 					Err: nil,
 				},
@@ -987,7 +987,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
-							}, nil),
+							}),
 					},
 					Err: nil,
 				},
@@ -997,14 +997,14 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
-							}, discoChainSetWithEntries(&structs.ServiceResolverConfigEntry{
+							}, &structs.ServiceResolverConfigEntry{
 								Kind: structs.ServiceResolver,
 								Name: "api-dc2",
 								Redirect: &structs.ServiceResolverRedirect{
 									Service:    "api",
 									Datacenter: "dc2",
 								},
-							})),
+							}),
 					},
 					Err: nil,
 				},
@@ -1014,7 +1014,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-to-peer", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
-							}, discoChainSetWithEntries(&structs.ServiceResolverConfigEntry{
+							}, &structs.ServiceResolverConfigEntry{
 								Kind: structs.ServiceResolver,
 								Name: "api-failover-to-peer",
 								Failover: map[string]structs.ServiceResolverFailover{
@@ -1024,7 +1024,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 										},
 									},
 								},
-							})),
+							}),
 					},
 					Err: nil,
 				},
