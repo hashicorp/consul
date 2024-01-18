@@ -37,7 +37,6 @@ message APIGatewayListener {
 	APIGatewayTLSConfiguration tls = 5;
 
 	//TODO NET-7311 @Gateway-Management
-
 }
 
 // APIGatewayTLSConfiguration specifies the configuration of a listener’s
@@ -56,5 +55,5 @@ message APIGatewayTLSConfiguration {
 	// Define a subset of cipher suites to restrict
 	// Only applicable to connections negotiated via TLS 1.2 or earlier
 	repeated string cipherSuites = 4;
-
 }
+
