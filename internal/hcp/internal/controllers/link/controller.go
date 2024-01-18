@@ -52,23 +52,24 @@ type linkReconciler struct {
 	hcpClientFn            HCPClientFn
 }
 
-func (r *linkReconciler) linkingFailed(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) error {
-	newStatus := &pbresource.Status{
-		ObservedGeneration: res.Generation,
-		Conditions:         []*pbresource.Condition{ConditionFailed},
-	}
-	if resource.EqualStatus(res.Status[StatusKey], newStatus, false) {
+func (r *linkReconciler) writeStatusIfNotEqual(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, status *pbresource.Status) error {
+	if resource.EqualStatus(res.Status[StatusKey], status, false) {
 		return nil
 	}
 	_, err := rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
 		Id:     res.Id,
 		Key:    StatusKey,
-		Status: newStatus,
+		Status: status,
 	})
-	if err != nil {
-		return err
+	return err
+}
+
+func (r *linkReconciler) linkingFailed(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) error {
+	newStatus := &pbresource.Status{
+		ObservedGeneration: res.Generation,
+		Conditions:         []*pbresource.Condition{ConditionFailed},
 	}
-	return nil
+	return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
@@ -119,17 +120,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 			ObservedGeneration: res.Generation,
 			Conditions:         []*pbresource.Condition{ConditionDisabled},
 		}
-		if resource.EqualStatus(res.Status[StatusKey], newStatus, false) {
-			return nil
-		}
-		_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-			Id:     res.Id,
-			Key:    StatusKey,
-			Status: newStatus,
-		})
-		if err != nil {
-			return err
-		}
+		return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
 	}
 
 	hcpClient, err := r.hcpClientFn(&link)
@@ -176,18 +167,5 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		Conditions:         []*pbresource.Condition{ConditionLinked(link.ResourceId)},
 	}
 
-	if resource.EqualStatus(res.Status[StatusKey], newStatus, false) {
-		return nil
-	}
-	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-		Id:     res.Id,
-		Key:    StatusKey,
-		Status: newStatus,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
 }

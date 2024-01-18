@@ -6,7 +6,6 @@ package link
 import (
 	"context"
 	"fmt"
-
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -106,8 +105,7 @@ func (suite *controllerSuite) TestController_Ok() {
 func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mockClient, mockClientFunc := mockHcpClientFn(suite.T())
-	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{}, nil)
+	_, mockClientFunc := mockHcpClientFn(suite.T())
 	mgr.Register(LinkController(true, false, mockClientFunc))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
