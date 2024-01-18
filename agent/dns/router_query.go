@@ -14,10 +14,10 @@ import (
 )
 
 // buildQueryFromDNSMessage returns a discovery.Query from a DNS message.
-func buildQueryFromDNSMessage(req *dns.Msg, domain, altDomain string, cfg *RouterDynamicConfig, defaultEntMeta acl.EnterpriseMeta) (*discovery.Query, error) {
+func buildQueryFromDNSMessage(req *dns.Msg, domain, altDomain string, cfgCtx *RouterDynamicConfig, defaultEntMeta acl.EnterpriseMeta) (*discovery.Query, error) {
 	queryType, queryParts, querySuffixes := getQueryTypePartsAndSuffixesFromDNSMessage(req, domain, altDomain)
 
-	locality, ok := ParseLocality(querySuffixes, defaultEntMeta, cfg.enterpriseDNSConfig)
+	locality, ok := ParseLocality(querySuffixes, defaultEntMeta, cfgCtx.enterpriseDNSConfig)
 	if !ok {
 		return nil, errors.New("invalid locality")
 	}

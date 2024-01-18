@@ -3228,6 +3228,7 @@ func checkDNSService(
 			udp_answer_limit = `+fmt.Sprintf("%d", aRecordLimit)+`
 		}
 	`+experimentsHCL)
+			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 			choices := perfectlyRandomChoices(generateNumNodes, pctNodesWithIPv6)

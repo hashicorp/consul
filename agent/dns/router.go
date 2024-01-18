@@ -33,7 +33,8 @@ const (
 
 var (
 	errInvalidQuestion = fmt.Errorf("invalid question")
-	errNameNotFound    = fmt.Errorf("invalid question")
+	errNameNotFound    = fmt.Errorf("name not found")
+	errRecursionFailed = fmt.Errorf("recursion failed")
 )
 
 // TODO (v2-dns): metrics
@@ -74,10 +75,18 @@ type DiscoveryQueryProcessor interface {
 	QueryByIP(net.IP, discovery.Context) ([]*discovery.Result, error)
 }
 
+// dnsRecursor is an interface that can be used to mock calls to external DNS servers for unit testing.
+//
+//go:generate mockery --name dnsRecursor --inpackage
+type dnsRecursor interface {
+	handle(req *dns.Msg, cfgCtx *RouterDynamicConfig, remoteAddr net.Addr) (*dns.Msg, error)
+}
+
 // Router replaces miekg/dns.ServeMux with a simpler router that only checks for the 2-3 valid domains
 // that Consul supports and forwards to a single DiscoveryQueryProcessor handler. If there is no match, it will recurse.
 type Router struct {
 	processor  DiscoveryQueryProcessor
+	recursor   dnsRecursor
 	domain     string
 	altDomain  string
 	datacenter string
@@ -102,11 +111,15 @@ func NewRouter(cfg Config) (*Router, error) {
 	altDomain := dns.CanonicalName(cfg.AgentConfig.DNSAltDomain)
 
 	// TODO (v2-dns): need to figure out tenancy information here in a way that work for V2 and V1
+
+	logger := cfg.Logger.Named(logging.DNS)
+
 	router := &Router{
 		processor:      cfg.Processor,
+		recursor:       newRecursor(logger),
 		domain:         domain,
 		altDomain:      altDomain,
-		logger:         cfg.Logger.Named(logging.DNS),
+		logger:         logger,
 		tokenFunc:      cfg.TokenFunc,
 		defaultEntMeta: cfg.EntMeta,
 	}
@@ -119,7 +132,7 @@ func NewRouter(cfg Config) (*Router, error) {
 
 // HandleRequest is used to process an individual DNS request. It returns a message in success or fail cases.
 func (r *Router) HandleRequest(req *dns.Msg, reqCtx discovery.Context, remoteAddress net.Addr) *dns.Msg {
-	cfg := r.dynamicConfig.Load().(*RouterDynamicConfig)
+	configCtx := r.dynamicConfig.Load().(*RouterDynamicConfig)
 
 	err := validateAndNormalizeRequest(req)
 	if err != nil {
@@ -127,43 +140,52 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx discovery.Context, remoteAdd
 		if errors.Is(err, errInvalidQuestion) {
 			return createRefusedResponse(req)
 		}
-		return createServerFailureResponse(req, cfg, false)
+		return createServerFailureResponse(req, configCtx, false)
 	}
 
 	reqType, responseDomain, needRecurse := r.parseDomain(req)
-
-	if needRecurse && canRecurse(cfg) {
-		// TODO (v2-dns): handle recursion
-		r.logger.Error("recursion not implemented")
-		return createServerFailureResponse(req, cfg, false)
+	if needRecurse && !canRecurse(configCtx) {
+		return createServerFailureResponse(req, configCtx, true)
 	}
 
-	results, err := r.getQueryResults(req, reqCtx, reqType, cfg)
+	if needRecurse {
+		// This assumes `canRecurse(configCtx)` is true above
+		resp, err := r.recursor.handle(req, configCtx, remoteAddress)
+		if err != nil && !errors.Is(err, errRecursionFailed) {
+			r.logger.Error("unhandled error recursing DNS query", "error", err)
+		}
+		if err != nil {
+			return createServerFailureResponse(req, configCtx, true)
+		}
+		return resp
+	}
+
+	results, err := r.getQueryResults(req, reqCtx, reqType, configCtx)
 
 	if err != nil && errors.Is(err, errNameNotFound) {
 		r.logger.Error("name not found", "name", req.Question[0].Name)
-		return createNameErrorResponse(req, cfg, responseDomain)
+		return createNameErrorResponse(req, configCtx, responseDomain)
 	}
 	if err != nil {
 		r.logger.Error("error processing discovery query", "error", err)
-		return createServerFailureResponse(req, cfg, false)
+		return createServerFailureResponse(req, configCtx, false)
 	}
 
 	// This needs the question information because it affects the serialization format.
 	// e.g., the Consul service has the same "results" for both NS and A/AAAA queries, but the serialization differs.
-	resp, err := r.serializeQueryResults(req, results, cfg, responseDomain)
+	resp, err := r.serializeQueryResults(req, results, configCtx, responseDomain)
 	if err != nil {
 		r.logger.Error("error serializing DNS results", "error", err)
-		return createServerFailureResponse(req, cfg, false)
+		return createServerFailureResponse(req, configCtx, false)
 	}
 	return resp
 }
 
 // getQueryResults returns a discovery.Result from a DNS message.
-func (r *Router) getQueryResults(req *dns.Msg, reqCtx discovery.Context, reqType requestType, cfg *RouterDynamicConfig) ([]*discovery.Result, error) {
+func (r *Router) getQueryResults(req *dns.Msg, reqCtx discovery.Context, reqType requestType, cfgCtx *RouterDynamicConfig) ([]*discovery.Result, error) {
 	switch reqType {
 	case requestTypeName:
-		query, err := buildQueryFromDNSMessage(req, r.domain, r.altDomain, cfg, r.defaultEntMeta)
+		query, err := buildQueryFromDNSMessage(req, r.domain, r.altDomain, cfgCtx, r.defaultEntMeta)
 		if err != nil {
 			r.logger.Error("error building discovery query from DNS request", "error", err)
 			return nil, err
@@ -194,29 +216,6 @@ func (r *Router) ReloadConfig(newCfg *config.RuntimeConfig) error {
 		return fmt.Errorf("error loading DNS config: %w", err)
 	}
 	r.dynamicConfig.Store(cfg)
-	return nil
-}
-
-// defaultAgentDNSRequestContext returns a default request context based on the agent's config.
-func (r *Router) defaultAgentDNSRequestContext() discovery.Context {
-	return discovery.Context{
-		Token: r.tokenFunc(),
-		// TODO (v2-dns): tenancy information; maybe we choose not to specify and use the default
-		// attached to the Router (from the agent's config)
-	}
-}
-
-// validateAndNormalizeRequest validates the DNS request and normalizes the request name.
-func validateAndNormalizeRequest(req *dns.Msg) error {
-	// like upstream miekg/dns, we require at least one question,
-	// but we will only answer the first.
-	if len(req.Question) == 0 {
-		return errInvalidQuestion
-	}
-
-	// We mutate the request name to respond with the canonical name.
-	// This is Consul convention.
-	req.Question[0].Name = dns.CanonicalName(req.Question[0].Name)
 	return nil
 }
 
@@ -281,6 +280,29 @@ func (r *Router) serializeQueryResults(req *dns.Msg, results []*discovery.Result
 	return resp, nil
 }
 
+// defaultAgentDNSRequestContext returns a default request context based on the agent's config.
+func (r *Router) defaultAgentDNSRequestContext() discovery.Context {
+	return discovery.Context{
+		Token: r.tokenFunc(),
+		// TODO (v2-dns): tenancy information; maybe we choose not to specify and use the default
+		// attached to the Router (from the agent's config)
+	}
+}
+
+// validateAndNormalizeRequest validates the DNS request and normalizes the request name.
+func validateAndNormalizeRequest(req *dns.Msg) error {
+	// like upstream miekg/dns, we require at least one question,
+	// but we will only answer the first.
+	if len(req.Question) == 0 {
+		return errInvalidQuestion
+	}
+
+	// We mutate the request name to respond with the canonical name.
+	// This is Consul convention.
+	req.Question[0].Name = dns.CanonicalName(req.Question[0].Name)
+	return nil
+}
+
 // stripSuffix strips off the suffixes that may have been added to the request name.
 func stripSuffix(target string) (string, bool) {
 	enableFailover := false
@@ -333,7 +355,14 @@ func getDynamicRouterConfig(conf *config.RuntimeConfig) (*RouterDynamicConfig, e
 
 	// TODO (v2-dns): add service TTL recalculation
 
-	// TODO (v2-dns): add recursor address formatting
+	for _, r := range conf.DNSRecursors {
+		ra, err := formatRecursorAddress(r)
+		if err != nil {
+			return nil, fmt.Errorf("invalid recursor address: %w", err)
+		}
+		cfg.Recursors = append(cfg.Recursors, ra)
+	}
+
 	return cfg, nil
 }
 
@@ -349,9 +378,65 @@ func createServerFailureResponse(req *dns.Msg, cfg *RouterDynamicConfig, recursi
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.SetRcode(req, dns.RcodeServerFailure)
-	// TODO (2-dns): set EDNS
 	m.RecursionAvailable = recursionAvailable
+	if edns := req.IsEdns0(); edns != nil {
+		setEDNS(req, m, true)
+	}
 	return m
+}
+
+// setEDNS is used to set the responses EDNS size headers and
+// possibly the ECS headers as well if they were present in the
+// original request
+func setEDNS(request *dns.Msg, response *dns.Msg, ecsGlobal bool) {
+	edns := request.IsEdns0()
+	if edns == nil {
+		return
+	}
+
+	// cannot just use the SetEdns0 function as we need to embed
+	// the ECS option as well
+	ednsResp := new(dns.OPT)
+	ednsResp.Hdr.Name = "."
+	ednsResp.Hdr.Rrtype = dns.TypeOPT
+	ednsResp.SetUDPSize(edns.UDPSize())
+
+	// Setup the ECS option if present
+	if subnet := ednsSubnetForRequest(request); subnet != nil {
+		subOp := new(dns.EDNS0_SUBNET)
+		subOp.Code = dns.EDNS0SUBNET
+		subOp.Family = subnet.Family
+		subOp.Address = subnet.Address
+		subOp.SourceNetmask = subnet.SourceNetmask
+		if c := response.Rcode; ecsGlobal || c == dns.RcodeNameError || c == dns.RcodeServerFailure || c == dns.RcodeRefused || c == dns.RcodeNotImplemented {
+			// reply is globally valid and should be cached accordingly
+			subOp.SourceScope = 0
+		} else {
+			// reply is only valid for the subnet it was queried with
+			subOp.SourceScope = subnet.SourceNetmask
+		}
+		ednsResp.Option = append(ednsResp.Option, subOp)
+	}
+
+	response.Extra = append(response.Extra, ednsResp)
+}
+
+// ednsSubnetForRequest looks through the request to find any EDS subnet options
+func ednsSubnetForRequest(req *dns.Msg) *dns.EDNS0_SUBNET {
+	// IsEdns0 returns the EDNS RR if present or nil otherwise
+	edns := req.IsEdns0()
+
+	if edns == nil {
+		return nil
+	}
+
+	for _, o := range edns.Option {
+		if subnet, ok := o.(*dns.EDNS0_SUBNET); ok {
+			return subnet
+		}
+	}
+
+	return nil
 }
 
 // createRefusedResponse returns a REFUSED message.

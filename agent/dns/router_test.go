@@ -4,6 +4,7 @@
 package dns
 
 import (
+	"errors"
 	"net"
 	"testing"
 	"time"
@@ -31,6 +32,7 @@ func Test_HandleRequest(t *testing.T) {
 		name                 string
 		agentConfig          *config.RuntimeConfig // This will override the default test Router Config
 		configureDataFetcher func(fetcher discovery.CatalogDataFetcher)
+		configureRecursor    func(recursor dnsRecursor)
 		mockProcessorError   error
 		request              *dns.Msg
 		requestContext       *discovery.Context
@@ -39,6 +41,191 @@ func Test_HandleRequest(t *testing.T) {
 	}
 
 	testCases := []testCase{
+		// recursor queries
+		{
+			name: "recursors not configured, non-matching domain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			// configureRecursor: call not expected.
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      false,
+					Rcode:              dns.RcodeServerFailure,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "google.com.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+		},
+		{
+			name: "recursors configured, matching domain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				resp := &dns.Msg{
+					MsgHdr: dns.MsgHdr{
+						Opcode:        dns.OpcodeQuery,
+						Response:      true,
+						Authoritative: true,
+						Rcode:         dns.RcodeSuccess,
+					},
+					Question: []dns.Question{
+						{
+							Name:   "google.com.",
+							Qtype:  dns.TypeA,
+							Qclass: dns.ClassINET,
+						},
+					},
+					Answer: []dns.RR{
+						&dns.A{
+							Hdr: dns.RR_Header{
+								Name:   "google.com.",
+								Rrtype: dns.TypeA,
+								Class:  dns.ClassINET,
+							},
+							A: net.ParseIP("1.2.3.4"),
+						},
+					},
+				}
+				recursor.(*mockDnsRecursor).On("handle",
+					mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+					Rcode:         dns.RcodeSuccess,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "google.com.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+				},
+			},
+		},
+		{
+			name: "recursors configured, matching domain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				recursor.(*mockDnsRecursor).On("handle", mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, errRecursionFailed)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      false,
+					Rcode:              dns.RcodeServerFailure,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "google.com.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+		},
+		{
+			name: "recursors configured, unhandled error calling recursors",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				err := errors.New("ahhhhh!!!!")
+				recursor.(*mockDnsRecursor).On("handle", mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, err)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      false,
+					Rcode:              dns.RcodeServerFailure,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "google.com.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+		},
 		// addr queries
 		{
 			name: "test A 'addr.' query, ipv4 response",
@@ -533,6 +720,12 @@ func Test_HandleRequest(t *testing.T) {
 
 		router, err := NewRouter(cfg)
 		require.NoError(t, err)
+
+		// Replace the recursor with a mock and configure
+		router.recursor = newMockDnsRecursor(t)
+		if tc.configureRecursor != nil {
+			tc.configureRecursor(router.recursor)
+		}
 
 		ctx := tc.requestContext
 		if ctx == nil {

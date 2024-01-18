@@ -33,7 +33,6 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
-	libdns "github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -128,6 +127,7 @@ func getVersionHCL(enableV2 bool) map[string]string {
 	return versions
 }
 
+// Copied to agent/dns/recursor_test.go
 func TestRecursorAddr(t *testing.T) {
 	t.Parallel()
 	addr, err := recursorAddr("8.8.8.8")
@@ -230,7 +230,7 @@ func TestDNS_EmptyAltDomain(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -266,7 +266,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 		},
 	})
 	defer server2.Shutdown()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			// Mock the agent startup with the necessary configs
 			agent := NewTestAgent(t,
@@ -308,7 +308,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
 	})
 	defer server3.Shutdown()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			// Mock the agent startup with the necessary configs
 			agent := NewTestAgent(t,
@@ -1491,7 +1491,7 @@ func TestDNS_Recurse(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -1531,7 +1531,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -1580,7 +1580,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 	defer resolver.Close()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+resolver.LocalAddr().String()+`"] // host must cause a connection|read|write timeout
@@ -3497,7 +3497,7 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, `
@@ -3540,29 +3540,6 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 				t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
 			}
 		})
-	}
-}
-
-func TestDNSInvalidRegex(t *testing.T) {
-	tests := []struct {
-		desc    string
-		in      string
-		invalid bool
-	}{
-		{"Valid Hostname", "testnode", false},
-		{"Valid Hostname", "test-node", false},
-		{"Invalid Hostname with special chars", "test#$$!node", true},
-		{"Invalid Hostname with special chars in the end", "testnode%^", true},
-		{"Whitespace", "  ", true},
-		{"Only special chars", "./$", true},
-	}
-	for _, test := range tests {
-		t.Run(test.desc, func(t *testing.T) {
-			if got, want := libdns.InvalidNameRe.MatchString(test.in), test.invalid; got != want {
-				t.Fatalf("Expected %v to return %v", test.in, want)
-			}
-		})
-
 	}
 }
 
