@@ -24,10 +24,11 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI        cli.Ui
-	flags     *flag.FlagSet
-	grpcFlags *client.GRPCFlags
-	help      string
+	UI            cli.Ui
+	flags         *flag.FlagSet
+	grpcFlags     *client.GRPCFlags
+	resourceFlags *client.ResourceFlags
+	help          string
 
 	filePath string
 }
@@ -38,7 +39,9 @@ func (c *cmd) init() {
 		"File path with resource definition")
 
 	c.grpcFlags = &client.GRPCFlags{}
+	c.resourceFlags = &client.ResourceFlags{}
 	client.MergeFlags(c.flags, c.grpcFlags.ClientFlags())
+	client.MergeFlags(c.flags, c.resourceFlags.ResourceFlags())
 	c.help = client.Usage(help, c.flags)
 }
 
@@ -52,31 +55,30 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 			return 1
 		}
-		c.UI.Error(fmt.Sprintf("Failed to run apply command: %v", err))
+		c.UI.Error(fmt.Sprintf("Failed to run read command: %v", err))
 		return 1
 	}
 
 	// collect resource type, name and tenancy
 	if c.flags.Lookup("f").Value.String() != "" {
-		if c.filePath != "" {
-			parsedResource, err := resource.ParseResourceFromFile(c.filePath)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
-				return 1
-			}
-
-			if parsedResource == nil {
-				c.UI.Error("Unable to parse the file argument")
-				return 1
-			}
-
-			resourceType = parsedResource.Id.Type
-			resourceTenancy = parsedResource.Id.Tenancy
-			resourceName = parsedResource.Id.Name
-		} else {
+		if c.filePath == "" {
 			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
 			return 1
 		}
+		parsedResource, err := resource.ParseResourceFromFile(c.filePath)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
+			return 1
+		}
+
+		if parsedResource == nil {
+			c.UI.Error("The parsed resource is nil")
+			return 1
+		}
+
+		resourceType = parsedResource.Id.Type
+		resourceTenancy = parsedResource.Id.Tenancy
+		resourceName = parsedResource.Id.Name
 	} else {
 		var err error
 		resourceType, resourceName, err = resource.GetTypeAndResourceName(args)
@@ -96,9 +98,9 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		resourceTenancy = &pbresource.Tenancy{
-			Namespace: c.grpcFlags.Namespace(),
-			Partition: c.grpcFlags.Partition(),
-			PeerName:  c.grpcFlags.Peername(),
+			Namespace: c.resourceFlags.Namespace(),
+			Partition: c.resourceFlags.Partition(),
+			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
 
@@ -111,20 +113,20 @@ func (c *cmd) Run(args []string) int {
 	c.grpcFlags.MergeFlagsIntoGRPCConfig(config)
 	resourceClient, err := client.NewGRPCClient(config)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	// read resource
 	res := resource.ResourceGRPC{C: resourceClient}
-	entry, err := res.Read(resourceType, resourceTenancy, resourceName, c.grpcFlags.Stale())
+	entry, err := res.Read(resourceType, resourceTenancy, resourceName, c.resourceFlags.Stale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading resource %s/%s: %v", resourceType, resourceName, err))
 		return 1
 	}
 
 	// display response
-	b, err := json.MarshalIndent(entry, "", "    ")
+	b, err := json.MarshalIndent(entry, "", resource.OUTPUT_INDENT)
 	if err != nil {
 		c.UI.Error("Failed to encode output data")
 		return 1
@@ -159,12 +161,12 @@ $ consul resource read -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
-  Type = gvk("catalog.v2beta1.Service")
-  Name = "card-processor"
-  Tenancy {
-    Namespace = "payments"
-    Partition = "billing"
-    PeerName = "eu"
-  }
+	Type = gvk("catalog.v2beta1.Service")
+	Name = "card-processor"
+	Tenancy {
+		Namespace = "payments"
+		Partition = "billing"
+		PeerName = "eu"
+	}
 }
 `
