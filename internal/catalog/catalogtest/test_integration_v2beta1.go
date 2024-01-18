@@ -115,10 +115,10 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 	})
 
 	testutil.RunStep(t, "service-reconciliation", func(t *testing.T) {
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "foo").ID(), endpoints.StatusKey, endpoints.ConditionUnmanaged)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "api").ID(), endpoints.StatusKey, endpoints.ConditionManaged)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "http-api").ID(), endpoints.StatusKey, endpoints.ConditionManaged)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "grpc-api").ID(), endpoints.StatusKey, endpoints.ConditionManaged)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "foo").ID(), endpoints.ControllerID, endpoints.ConditionUnmanaged)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "api").ID(), endpoints.ControllerID, endpoints.ConditionManaged)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "http-api").ID(), endpoints.ControllerID, endpoints.ConditionManaged)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "grpc-api").ID(), endpoints.ControllerID, endpoints.ConditionManaged)
 	})
 
 	testutil.RunStep(t, "service-endpoints-generation", func(t *testing.T) {
