@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/mitchellh/cli"
 
@@ -80,15 +81,19 @@ func (c *cmd) Run(args []string) int {
 		}
 	} else {
 		var err error
-		//TODO fix the have to provide resource name error
-		resourceType, _, err = resource.GetTypeAndResourceName(args)
+		args := c.flags.Args()
+		if err = validateArgs(args); err != nil {
+			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
+			return 1
+		}
+		resourceType, err = resource.InferTypeFromResourceType(args[0])
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
 			return 1
 		}
 
-		inputArgs := args[2:]
-		fmt.Printf("inputArgs: %v\n", inputArgs)
+		// skip resource type to parse remaining args
+		inputArgs := c.flags.Args()[1:]
 		err = resource.ParseInputParams(inputArgs, c.flags)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error parsing input arguments: %v", err))
@@ -137,6 +142,19 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
+func validateArgs(args []string) error {
+	if args == nil {
+		return fmt.Errorf("Must include resource type or flag arguments")
+	}
+	if len(args) < 1 {
+		return fmt.Errorf("Must include resource type argument")
+	}
+	if len(args) > 1 && !strings.HasPrefix(args[1], "-") {
+		return fmt.Errorf("Must include flag arguments after resource type")
+	}
+	return nil
+}
+
 func (c *cmd) Synopsis() string {
 	return synopsis
 }
@@ -165,9 +183,9 @@ Sample demo.hcl:
 ID {
 	Type = gvk("group.version.kind")
 	Tenancy {
-	  Namespace = "default"
-	  Partition = "default"
-	  PeerName = "local"
+		Namespace = "default"
+		Partition = "default"
+		PeerName = "local"
 	}
   }
 `
