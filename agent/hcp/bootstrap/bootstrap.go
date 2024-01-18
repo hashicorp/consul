@@ -126,7 +126,7 @@ func AddAclPolicyAccessControlHeader(baseLoader ConfigLoader) ConfigLoader {
 			rc.HTTPResponseHeaders[accessControlHeaderName] = prevValue + "," + accessControlHeaderValue
 		}
 
-		return res, err
+		return res, nil
 	}
 }
 
