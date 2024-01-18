@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+const OUTPUT_INDENT = "  "
+
 type OuterResource struct {
 	ID         *ID            `json:"id"`
 	Owner      *ID            `json:"owner"`
@@ -163,7 +165,7 @@ func GetTypeAndResourceName(args []string) (resourceType *pbresource.Type, resou
 
 	resourceType, e = InferTypeFromResourceType(args[0])
 
-	return
+	return resourceType, resourceName, e
 }
 
 type Resource struct {
