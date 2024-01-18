@@ -311,7 +311,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"condition-not-found": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   "other",
@@ -325,7 +325,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"invalid-reason": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -339,7 +339,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"passing": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -353,7 +353,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"warning": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -367,7 +367,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"critical": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -381,7 +381,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"maintenance": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -777,7 +777,7 @@ func (suite *controllerSuite) TestController() {
 		// Update the health status of the workload
 		suite.client.WriteStatus(suite.ctx, &pbresource.WriteStatusRequest{
 			Id:  workload.Id,
-			Key: workloadhealth.StatusKey,
+			Key: workloadhealth.ControllerID,
 			Status: &pbresource.Status{
 				ObservedGeneration: workload.Generation,
 				Conditions: []*pbresource.Condition{

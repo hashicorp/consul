@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
-	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -25,7 +24,7 @@ var (
 	NodeHealthStatusConditionHealthy = nodehealth.StatusConditionHealthy
 	NodeHealthConditions             = nodehealth.Conditions
 
-	WorkloadHealthStatusKey              = workloadhealth.StatusKey
+	WorkloadHealthStatusKey              = workloadhealth.ControllerID
 	WorkloadHealthStatusConditionHealthy = workloadhealth.StatusConditionHealthy
 	WorkloadHealthConditions             = workloadhealth.WorkloadConditions
 	WorkloadAndNodeHealthConditions      = workloadhealth.NodeAndWorkloadConditions
@@ -64,9 +63,8 @@ type ControllerDependencies = controllers.Dependencies
 
 func DefaultControllerDependencies() ControllerDependencies {
 	return ControllerDependencies{
-		WorkloadHealthNodeMapper: nodemapper.New(),
-		EndpointsWorkloadMapper:  selectiontracker.New(),
-		FailoverMapper:           failovermapper.New(),
+		EndpointsWorkloadMapper: selectiontracker.New(),
+		FailoverMapper:          failovermapper.New(),
 	}
 }
 

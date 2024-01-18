@@ -235,7 +235,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 // or the status isn't in the expected form then this function will return
 // HEALTH_CRITICAL.
 func determineWorkloadHealth(workload *pbresource.Resource) pbcatalog.Health {
-	status, found := workload.Status[workloadhealth.StatusKey]
+	status, found := workload.Status[workloadhealth.ControllerID]
 	if !found {
 		return pbcatalog.Health_HEALTH_CRITICAL
 	}
