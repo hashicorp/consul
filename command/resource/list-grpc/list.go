@@ -25,10 +25,11 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI        cli.Ui
-	flags     *flag.FlagSet
-	grpcFlags *client.GRPCFlags
-	help      string
+	UI            cli.Ui
+	flags         *flag.FlagSet
+	grpcFlags     *client.GRPCFlags
+	resourceFlags *client.ResourceFlags
+	help          string
 
 	filePath string
 	prefix   string
@@ -42,7 +43,9 @@ func (c *cmd) init() {
 		"Name prefix for listing resources if you need ambiguous match")
 
 	c.grpcFlags = &client.GRPCFlags{}
+	c.resourceFlags = &client.ResourceFlags{}
 	client.MergeFlags(c.flags, c.grpcFlags.ClientFlags())
+	client.MergeFlags(c.flags, c.resourceFlags.ResourceFlags())
 	c.help = client.Usage(help, c.flags)
 }
 
@@ -61,24 +64,23 @@ func (c *cmd) Run(args []string) int {
 
 	// collect resource type, name and tenancy
 	if c.flags.Lookup("f").Value.String() != "" {
-		if c.filePath != "" {
-			parsedResource, err := resource.ParseResourceFromFile(c.filePath)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
-				return 1
-			}
-
-			if parsedResource == nil {
-				c.UI.Error("Unable to parse the file argument")
-				return 1
-			}
-
-			resourceType = parsedResource.Id.Type
-			resourceTenancy = parsedResource.Id.Tenancy
-		} else {
+		if c.filePath == "" {
 			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
 			return 1
 		}
+		parsedResource, err := resource.ParseResourceFromFile(c.filePath)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
+			return 1
+		}
+
+		if parsedResource == nil {
+			c.UI.Error("Unable to parse the file argument")
+			return 1
+		}
+
+		resourceType = parsedResource.Id.Type
+		resourceTenancy = parsedResource.Id.Tenancy
 	} else {
 		var err error
 		args := c.flags.Args()
@@ -104,9 +106,9 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		resourceTenancy = &pbresource.Tenancy{
-			Namespace: c.grpcFlags.Namespace(),
-			Partition: c.grpcFlags.Partition(),
-			PeerName:  c.grpcFlags.Peername(),
+			Namespace: c.resourceFlags.Namespace(),
+			Partition: c.resourceFlags.Partition(),
+			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
 
@@ -125,14 +127,14 @@ func (c *cmd) Run(args []string) int {
 
 	// list resource
 	res := resource.ResourceGRPC{C: resourceClient}
-	entry, err := res.List(resourceType, resourceTenancy, c.prefix, c.grpcFlags.Stale())
+	entry, err := res.List(resourceType, resourceTenancy, c.prefix, c.resourceFlags.Stale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error listing resource %s/%s: %v", resourceType, c.prefix, err))
 		return 1
 	}
 
 	// display response
-	b, err := json.MarshalIndent(entry, "", "    ")
+	b, err := json.MarshalIndent(entry, "", resource.OUTPUT_INDENT)
 	if err != nil {
 		c.UI.Error("Failed to encode output data")
 		return 1
