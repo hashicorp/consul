@@ -793,6 +793,10 @@
             "path": "upgrade/ecs/dataplane"
           }
         ]
+      },
+      {
+        "title": "API gateway",
+        "path": "upgrade/api-gateway"
       }
     ]
   },
@@ -1306,15 +1310,15 @@
           },
           {
             "title": "Technical specifications (Kubernetes)",
-            "path": "access/api-gateway/k8s-tech-specs"
+            "path": "access/api-gateway/tech-specs"
           },
           {
             "title": "Install on Kubernetes",
-            "path": "access/api-gateway/k8s-install"
+            "path": "access/api-gateway/install"
           },
           {
             "title": "Upgrade on Kubernetes",
-            "path": "access/api-gateway/k8s-upgrade"
+            "href": "upgrade/api-gateway/"
           },
           {
             "title": "Deploy listener",
@@ -1342,11 +1346,11 @@
               },
               {
                 "title": "Reroute traffic in Kubernetes",
-                "path": "access/api-gateway/define-route/k8s-reroute-traffic"
+                "path": "access/api-gateway/define-route/reroute"
               },
               {
                 "title": "Route to peered services in Kubernetes",
-                "path": "access/api-gateway/define-route/k8s-route-peered"
+                "path": "access/api-gateway/define-route/peer"
               }
             ]
           },
@@ -1355,15 +1359,15 @@
             "routes": [
               {
                 "title": "Encrypt traffic on VMs",
-                "path": "access/api-gateway/secure-traffic/vm"
+                "path": "access/api-gateway/secure-traffic/encrypt"
               },
               {
                 "title": "Verify requests with JWTS on VMs",
-                "path": "access/api-gateway/secure-traffic/vm-jwt"
+                "path": "access/api-gateway/secure-traffic/jwt-vm"
               },
               {
                 "title": "Verify requests with JWTS on Kubernetes",
-                "path": "access/api-gateway/secure-traffic/k8s-jwt"
+                "path": "access/api-gateway/secure-traffic/jwt-k8s"
               }
             ]
           },
@@ -1422,8 +1426,12 @@
             "path": "access/ingress-gateway"
           },
           {
-            "title": "Create and manage ingress gateway",
-            "path": "access/ingress-gateway/create"
+            "title": "Create ingress gateways on VMs",
+            "path": "access/ingress-gateway/create-vm"
+          },
+          {
+            "title": "Create ingress gateways on K8s",
+            "path": "access/ingress-gateway/create-k8s"
           },
           {
             "title": "Serve TLS certificate from external service",
@@ -2217,6 +2225,10 @@
       {
         "title": "Consul-Terraform-Sync (CTS)",
         "path": "common-error-messages/cts"
+      },
+      {
+        "title": "API gateway",
+        "path": "common-error-messages/api-gateway"
       }
     ]
   },
@@ -2424,7 +2436,7 @@
         "path": "reference/health-check"
       },
       {
-        "title": "Kubernetes",
+        "title": "Consul on Kubernetes",
         "routes": [
           {
             "title": "Annotations and labels",
@@ -2476,7 +2488,7 @@
             ]
           },
           {
-            "title": "Helm chart",
+            "title": "Consul Helm chart",
             "path": "reference/k8s/helm"
           }
         ]
