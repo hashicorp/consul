@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/controllers/link"
+	"github.com/hashicorp/consul/internal/hcp/internal/controllers/telemetrystate"
 )
 
 type Dependencies struct {
@@ -27,4 +28,6 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 		deps.DataDir,
 		deps.HCPManager,
 	))
+
+	mgr.Register(telemetrystate.TelemetryStateController(link.DefaultHCPClientFn))
 }
