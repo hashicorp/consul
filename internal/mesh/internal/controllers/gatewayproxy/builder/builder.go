@@ -195,11 +195,6 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 	return clusters
 }
 
-func (b *proxyStateTemplateBuilder) endpoints() map[string]*pbproxystate.Endpoints {
-	// TODO NET-6431
-	return nil
-}
-
 func (b *proxyStateTemplateBuilder) routes() map[string]*pbproxystate.Route {
 	// TODO NET-6428
 	return nil
@@ -210,7 +205,6 @@ func (b *proxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
 		ProxyState: &meshv2beta1.ProxyState{
 			Identity:  b.identity(),
 			Listeners: b.listeners(),
-			Endpoints: b.endpoints(),
 			Clusters:  b.clusters(),
 			Routes:    b.routes(),
 		},
