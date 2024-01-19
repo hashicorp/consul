@@ -8,7 +8,7 @@ description: Learn how to use the `ext-authz` Envoy extension to delegate data p
 
 This topic describes how to use the external authorization Envoy extension to delegate data plane authorization requests to Apigee.
 
-For more detailed guidance, refer to the [`learn-consul-apigee-external-authz` repo](https://github.com/hashicorp-education/learn-consul-apigee-external-authz) on GitHub.
+For more detailed guidance, refer to the [`learn-consul-apigee-external-authz` repository](https://github.com/hashicorp-education/learn-consul-apigee-external-authz) on GitHub.
 
 ## Workflow
 
@@ -22,12 +22,11 @@ Complete the following steps to use the external authorization extension with Ap
 
 The [Apigee Adapter for Envoy](https://cloud.google.com/apigee/docs/api-platform/envoy-adapter/v2.0.x/concepts) is an Apigee-managed API gateway that uses Envoy to proxy API traffic.
 
-To download and install Apigee Adapter for Envoy, refer to the [getting started documentation](https://cloud.google.com/apigee/docs/api-platform/envoy-adapter/v2.0.x/getting-started) or follow along with the [`learn-consul-apigee-external-authz` repo](https://github.com/hashicorp-education/learn-consul-apigee-external-authz) on GitHub.
+To download and install Apigee Adapter for Envoy, refer to the [getting started documentation](https://cloud.google.com/apigee/docs/api-platform/envoy-adapter/v2.0.x/getting-started) or follow along with the [`learn-consul-apigee-external-authz` GitHub repository](https://github.com/hashicorp-education/learn-consul-apigee-external-authz).
 
 After you deploy the service in your desired runtime, create a service defaults configuration entry for the service's gRPC protocol.
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 <CodeBlockConfig filename="apigee-remote-service-envoy.hcl">
 
 ```hcl
@@ -35,9 +34,8 @@ Kind = "service-defaults"
 Name = "apigee-remote-service-envoy"
 Protocol = "grpc"
 ```
+
 </CodeBlockConfig>
-</Tab>
-<Tab heading="JSON" group="json">
 <CodeBlockConfig filename="apigee-remote-service-envoy.json">
 
 ```json
@@ -49,8 +47,6 @@ Protocol = "grpc"
 ```
 
 </CodeBlockConfig>
-</Tab>
-<Tab heading="YAML" group="yaml">
 <CodeBlockConfig filename="apigee-remote-service-envoy.yaml">
 
 ```yaml
@@ -62,9 +58,9 @@ metadata:
 spec:
   protocol: grpc
 ```
+
 </CodeBlockConfig>
-</Tab>
-</Tabs>
+</CodeTabs>
 
 ## Configure the `EnvoyExtensions`
 
@@ -81,8 +77,7 @@ Consul applies Envoy extensions configured in proxy defaults before it applies e
 
 The following example configures the default behavior for all services named `api` so that the Envoy proxies running as sidecars for those service instances target the apigee-remote-service-envoy service for gRPC authorization requests:
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 <CodeBlockConfig filename="api-auth-service-defaults.hcl">
 
 ```hcl
@@ -107,9 +102,6 @@ EnvoyExtensions = [
 ]
 ```
 </CodeBlockConfig>
-</Tab>
-
-<Tab heading="JSON" group="json">
 <CodeBlockConfig filename="api-auth-service-defaults.json">
 
 ```json
@@ -136,9 +128,6 @@ EnvoyExtensions = [
 ```
 
 </CodeBlockConfig>
-</Tab>
-
-<Tab heading="YAML" group="yaml">
 <CodeBlockConfig filename="api-auth-service-defaults.yaml">
 
 ```yaml
@@ -160,40 +149,35 @@ spec:
               namespace: apigee
 ```
 </CodeBlockConfig>
-</Tab>
-</Tabs>
+</CodeTabs>
 
 Refer to the [external authorization extension configuration reference](/consul/docs/connect/proxies/envoy-extensions/configuration/ext-authz) for details on how to configure the extension. 
 
 Refer to the [proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) and [service defaults configuration entry reference](/consul/docs/connect/config-entries/service-defaults) for details on how to define the configuration entries. 
 
+<Warning>
+  Adding Envoy extensions default proxy configurations may have unintended consequences. We recommend configuring `EnvoyExtensions` in service defaults configuration entries in most cases.
+</Warning>
+
 ## Apply the configuration entry
 
 On the CLI, you can use the `consul config write` command and specify the names of the configuration entries to apply them to Consul. For Kubernetes-orchestrated networks, use the `kubectl apply` command to update the relevant CRD.
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 
 ```shell-session
 $ consul config write apigee-remote-service-envoy.hcl
 $ consul config write api-auth-service-defaults.hcl
 ```
 
-</Tab>
-<Tab heading="JSON" group="json">
-
 ```shell-session
 $ consul config write apigee-remote-service-envoy.json
 $ consul config write api-auth-service-defaults.json
 ```
-
-</Tab>
-<Tab heading="YAML" group="yaml">
 
 ```shell-session
 $ kubectl apply -f apigee-remote-service-envoy.yaml
 $ kubectl apply -f api-auth-service-defaults.yaml
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
