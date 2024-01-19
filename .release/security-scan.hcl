@@ -17,8 +17,8 @@ container {
 	alpine_secdb = true
 
 	secrets {
-		matchers = {
-			// Use default list, minus Vault (`hashicorp`), which has experienced false positives.
+		matchers {
+			// Use most of default list, minus Vault (`hashicorp`), which has experienced false positives.
 			// See https://github.com/hashicorp/security-scanner/blob/v0.0.2/pkg/scanner/secrets.go#L130C2-L130C2
 			known = [
 				// "hashicorp",
@@ -53,16 +53,18 @@ binary {
 	# (yarn.lock) in the Consul binary. This is something we may investigate in the future.
 	
 	secrets {
-		// Use most of default list, minus Vault (`hashicorp`), which has experienced false positives.
-		// See https://github.com/hashicorp/security-scanner/blob/v0.0.2/pkg/scanner/secrets.go#L130C2-L130C2
-		known = [
-			// "hashicorp",
-			"aws",
-			"google",
-			"slack",
-			"github",
-			"azure",
-			"npm",
-		]
+		matchers {
+			// Use most of default list, minus Vault (`hashicorp`), which has experienced false positives.
+			// See https://github.com/hashicorp/security-scanner/blob/v0.0.2/pkg/scanner/secrets.go#L130C2-L130C2
+			known = [
+				// "hashicorp",
+				"aws",
+				"google",
+				"slack",
+				"github",
+				"azure",
+				"npm",
+			]
+		}
 	}
 }
