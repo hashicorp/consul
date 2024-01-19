@@ -351,6 +351,17 @@ service ResourceService {
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
+
+  // MutateAndValidate a resource.
+  //
+  // Applies a resource type's registered mutation and validation hooks to
+  // a resource.
+  rpc MutateAndValidate(MutateAndValidateRequest) returns (MutateAndValidateResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+        operation_type: OPERATION_TYPE_READ,
+        operation_category: OPERATION_CATEGORY_RESOURCE
+    };
+  }
 }
 
 // ReadRequest contains the parameters to the Read endpoint.
@@ -487,4 +498,14 @@ message WatchEvent {
 
   // Resource the event relates to.
   Resource resource = 2;
+}
+
+// MutateAndValidateRequest contains the parameters to the MutateAndValidate endpoint.
+message MutateAndValidateRequest {
+  Resource resource = 1;
+}
+
+// MutateAndValidateResponse contains the results of calling the MutateAndValidate endpoint.
+message MutateAndValidateResponse {
+  Resource resource = 1;
 }
