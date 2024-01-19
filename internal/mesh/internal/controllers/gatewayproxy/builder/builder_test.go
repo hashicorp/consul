@@ -197,7 +197,7 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 			"without address ports": suite.workloadWithOutAddressPorts,
 		} {
 			testutil.RunStep(suite.T(), name, func(t *testing.T) {
-				builder := NewProxyStateTemplateBuilder(workload, suite.exportedServicesPeerData, logger, f, dc, trustDomain)
+				builder := NewProxyStateTemplateBuilder(workload, suite.exportedServicesPeerData.Data.Services, logger, f, dc, trustDomain)
 				expectedProxyStateTemplate := &pbmesh.ProxyStateTemplate{
 					ProxyState: &pbmesh.ProxyState{
 						Identity: &pbresource.Reference{
@@ -223,7 +223,7 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 										L4: &pbproxystate.L4Destination{
 											Destination: &pbproxystate.L4Destination_Cluster{
 												Cluster: &pbproxystate.DestinationCluster{
-													Name: "",
+													Name: xdscommon.BlackHoleClusterName,
 												},
 											},
 											StatPrefix: "prefix",
@@ -267,6 +267,17 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 							},
 						},
 						Clusters: map[string]*pbproxystate.Cluster{
+							xdscommon.BlackHoleClusterName: {
+								Name:     xdscommon.BlackHoleClusterName,
+								Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
+								Group: &pbproxystate.Cluster_EndpointGroup{
+									EndpointGroup: &pbproxystate.EndpointGroup{
+										Group: &pbproxystate.EndpointGroup_Static{
+											Static: &pbproxystate.StaticEndpointGroup{},
+										},
+									},
+								},
+							},
 							fmt.Sprintf("mesh.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")): {
 								Name: fmt.Sprintf("mesh.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")),
 								Group: &pbproxystate.Cluster_EndpointGroup{
