@@ -26,12 +26,12 @@ type proxyStateTemplateBuilder struct {
 	workload         *types.DecodedWorkload
 	dataFetcher      *fetcher.Fetcher
 	dc               string
-	exportedServices *types.DecodedComputedExportedServices
+	exportedServices []*pbmulticluster.ComputedExportedService
 	logger           hclog.Logger
 	trustDomain      string
 }
 
-func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices *types.DecodedComputedExportedServices, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string) *proxyStateTemplateBuilder {
+func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices []*pbmulticluster.ComputedExportedService, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string) *proxyStateTemplateBuilder {
 	return &proxyStateTemplateBuilder{
 		workload:         workload,
 		dataFetcher:      dataFetcher,
@@ -100,7 +100,7 @@ func (b *proxyStateTemplateBuilder) buildListener(address *pbcatalog.WorkloadAdd
 				L4: &pbproxystate.L4Destination{
 					Destination: &pbproxystate.L4Destination_Cluster{
 						Cluster: &pbproxystate.DestinationCluster{
-							Name: "",
+							Name: xdscommon.BlackHoleClusterName,
 						},
 					},
 					StatPrefix: "prefix",
@@ -117,11 +117,7 @@ func (b *proxyStateTemplateBuilder) buildListener(address *pbcatalog.WorkloadAdd
 func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
 	var routers []*pbproxystate.Router
 
-	if b.exportedServices == nil {
-		return routers
-	}
-
-	for _, exportedService := range b.exportedServices.Data.Services {
+	for _, exportedService := range b.exportedServices {
 		serviceID := resource.IDFromReference(exportedService.TargetRef)
 		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
 		if err != nil {
@@ -160,11 +156,7 @@ func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
 func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster {
 	clusters := map[string]*pbproxystate.Cluster{}
 
-	if b.exportedServices == nil {
-		return clusters
-	}
-
-	for _, exportedService := range b.exportedServices.Data.Services {
+	for _, exportedService := range b.exportedServices {
 		serviceID := resource.IDFromReference(exportedService.TargetRef)
 		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
 		if err != nil {
@@ -190,6 +182,19 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 				}
 			}
 		}
+	}
+
+	// Add black hole cluster for any unmatched traffic
+	clusters[xdscommon.BlackHoleClusterName] = &pbproxystate.Cluster{
+		Name:     xdscommon.BlackHoleClusterName,
+		Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
+		Group: &pbproxystate.Cluster_EndpointGroup{
+			EndpointGroup: &pbproxystate.EndpointGroup{
+				Group: &pbproxystate.EndpointGroup_Static{
+					Static: &pbproxystate.StaticEndpointGroup{},
+				},
+			},
+		},
 	}
 
 	return clusters
@@ -219,11 +224,7 @@ func (b *proxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
 func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate.EndpointRef {
 	requiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 
-	if b.exportedServices == nil {
-		return requiredEndpoints
-	}
-
-	for _, exportedService := range b.exportedServices.Data.Services {
+	for _, exportedService := range b.exportedServices {
 		serviceID := resource.IDFromReference(exportedService.TargetRef)
 		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
 		if err != nil {
