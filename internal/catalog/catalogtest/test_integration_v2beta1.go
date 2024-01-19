@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 var (
@@ -62,26 +63,37 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 	c := rtest.NewClient(client)
 
 	testutil.RunStep(t, "resources-exist", func(t *testing.T) {
-		c.RequireResourceExists(t, rtest.Resource(pbcatalog.ServiceType, "api").ID())
-		c.RequireResourceExists(t, rtest.Resource(pbcatalog.ServiceType, "http-api").ID())
-		c.RequireResourceExists(t, rtest.Resource(pbcatalog.ServiceType, "grpc-api").ID())
-		c.RequireResourceExists(t, rtest.Resource(pbcatalog.ServiceType, "foo").ID())
+		// When this test suite is run against multiple servers with the resource service client
+		// pointed at a Raft follower, there can be a race between Raft replicating all the data
+		// to the followers and these verifications running. Instead of wrapping each one of these
+		// in their own Wait/Retry func the whole set of them is being wrapped.
+		retry.Run(t, func(r *retry.R) {
+			c.RequireResourceExists(r, rtest.Resource(pbcatalog.ServiceType, "api").ID())
+			c.RequireResourceExists(r, rtest.Resource(pbcatalog.ServiceType, "http-api").ID())
+			c.RequireResourceExists(r, rtest.Resource(pbcatalog.ServiceType, "grpc-api").ID())
+			c.RequireResourceExists(r, rtest.Resource(pbcatalog.ServiceType, "foo").ID())
 
-		for i := 1; i < 5; i++ {
-			nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultPartitionedTenancy()).ID()
-			c.RequireResourceExists(t, nodeId)
+			for i := 1; i < 5; i++ {
+				nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultPartitionedTenancy()).ID()
+				c.RequireResourceExists(r, nodeId)
 
-			res := c.RequireResourceExists(t, rtest.Resource(pbcatalog.NodeHealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
-			rtest.RequireOwner(t, res, nodeId, true)
-		}
+				res := c.RequireResourceExists(r, rtest.Resource(pbcatalog.NodeHealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
+				rtest.RequireOwner(r, res, nodeId, true)
+			}
 
-		for i := 1; i < 21; i++ {
-			workloadId := rtest.Resource(pbcatalog.WorkloadType, fmt.Sprintf("api-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-			c.RequireResourceExists(t, workloadId)
+			for i := 1; i < 21; i++ {
+				workloadId := rtest.Resource(pbcatalog.WorkloadType, fmt.Sprintf("api-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+				c.RequireResourceExists(r, workloadId)
 
-			res := c.RequireResourceExists(t, rtest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("api-%d-health", i)).ID())
-			rtest.RequireOwner(t, res, workloadId, true)
-		}
+				res := c.RequireResourceExists(r, rtest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("api-%d-health", i)).ID())
+				rtest.RequireOwner(r, res, workloadId, true)
+			}
+		},
+			// Using a 2 second retry because Raft replication really ought to be this fast for our integration
+			// tests and if the test hardware cannot get 100 logs replicated to all followers in 2 seconds or
+			// less then we have some serious issues that warrant investigation.
+			retry.WithRetryer(retry.TwoSeconds()),
+		)
 	})
 
 	testutil.RunStep(t, "node-health-reconciliation", func(t *testing.T) {
