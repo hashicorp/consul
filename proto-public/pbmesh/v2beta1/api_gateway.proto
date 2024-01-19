@@ -9,51 +9,54 @@ import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
 message APIGateway {
-	option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
-	// GatewayClassName is the name of the GatewayClass used by the MeshGateway
-	string gateway_class_name = 1;
+  // GatewayClassName is the name of the GatewayClass used by the MeshGateway
+  string gateway_class_name = 1;
 
-	// +kubebuilder:validation:MinItems=1
-	repeated APIGatewayListener listeners = 2;
-
+  // +kubebuilder:validation:MinItems=1
+  repeated APIGatewayListener listeners = 2;
 }
 
 message APIGatewayListener {
-	// Name is the name of the listener in a given gateway. This must be
-	// unique within a gateway.
-	string name = 1;
-	// +kubebuilder:validation:Maximum=65535
-	// +kubebuilder:validation:Minimum=0
-	uint32 port = 2;
-	// Protocol is the protocol that a listener should use, it must
-	// either be "http" or "tcp"
-	// +kubebuilder:validation≈ftg6:Enum=tcp,http
-	string protocol = 3;
-	// Hostname is the host name that a listener should be bound to, if
-	// unspecified, the listener accepts requests for all hostnames.
-	string hostname = 4;
-	// TLS is the TLS settings for the listener.
-	APIGatewayTLSConfiguration tls = 5;
+  // Name is the name of the listener in a given gateway. This must be
+  // unique within a gateway.
+  string name = 1;
 
-	//TODO NET-7311 @Gateway-Management
+  // +kubebuilder:validation:Maximum=65535
+  // +kubebuilder:validation:Minimum=0
+  uint32 port = 2;
+
+  // Protocol is the protocol that a listener should use, it must
+  // either be "http" or "tcp"
+  // +kubebuilder:validation≈ftg6:Enum=tcp,http
+  string protocol = 3;
+
+  // Hostname is the host name that a listener should be bound to, if
+  // unspecified, the listener accepts requests for all hostnames.
+  string hostname = 4;
+
+  // TLS is the TLS settings for the listener.
+  APIGatewayTLSConfiguration tls = 5;
+  //TODO NET-7311 @Gateway-Management
 }
 
 // APIGatewayTLSConfiguration specifies the configuration of a listener’s
 // TLS settings.
 message APIGatewayTLSConfiguration {
-	// Certificates is a set of references to certificates
-	// that a gateway listener uses for TLS termination.
-	repeated hashicorp.consul.resource.Reference certificates = 1;
+  // Certificates is a set of references to certificates
+  // that a gateway listener uses for TLS termination.
+  repeated hashicorp.consul.resource.Reference certificates = 1;
 
-	// MaxVersion is the maximum TLS version that the listener
-	// should support.
-	optional string maxVersion = 2;
-	// MinVersion is the minimum TLS version that the listener
-	// should support.
-	optional string minVersion = 3;
-	// Define a subset of cipher suites to restrict
-	// Only applicable to connections negotiated via TLS 1.2 or earlier
-	repeated string cipherSuites = 4;
+  // MaxVersion is the maximum TLS version that the listener
+  // should support.
+  optional string maxVersion = 2;
+
+  // MinVersion is the minimum TLS version that the listener
+  // should support.
+  optional string minVersion = 3;
+
+  // Define a subset of cipher suites to restrict
+  // Only applicable to connections negotiated via TLS 1.2 or earlier
+  repeated string cipherSuites = 4;
 }
-

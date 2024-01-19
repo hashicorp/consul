@@ -29,6 +29,3 @@ message MeshGatewayListener {
   // +kubebuilder:validation:Enum=TCP
   string protocol = 3;
 }
-
-
-
