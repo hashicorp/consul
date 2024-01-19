@@ -7,6 +7,8 @@ exclude (
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
 )
 
+retract v0.5.1
+
 require (
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
