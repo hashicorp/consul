@@ -9,6 +9,8 @@ import { inject as service } from '@ember/service';
 
 export default class LinkToHcpBannerComponent extends Component {
   @service('hcp-link-status') hcpLinkStatus;
+  @service('env') env;
+
   @action
   onDismiss() {
     this.hcpLinkStatus.dismissHcpLinkBanner();
