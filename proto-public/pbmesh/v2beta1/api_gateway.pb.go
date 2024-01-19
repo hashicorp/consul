@@ -100,7 +100,7 @@ type APIGatewayListener struct {
 	// unspecified, the listener accepts requests for all hostnames.
 	Hostname string `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	// TLS is the TLS settings for the listener.
-	Tls *APIGatewayTLSConfiguration `protobuf:"bytes,5,opt,name=tls,proto3" json:"tls,omitempty"`
+	Tls *APIGatewayTLSConfiguration `protobuf:"bytes,5,opt,name=tls,proto3" json:"tls,omitempty"` //TODO NET-7311 @Gateway-Management
 }
 
 func (x *APIGatewayListener) Reset() {
