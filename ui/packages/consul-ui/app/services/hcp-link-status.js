@@ -10,9 +10,6 @@ export default class HcpLinkStatus extends Service {
   userDismissedBanner = false;
 
   get shouldDisplayBanner() {
-    console.log(
-      `alreadyLinked: ${this.alreadyLinked}, userDismissedBanner: ${this.userDismissedBanner}`
-    );
     return !this.alreadyLinked && !this.userDismissedBanner;
   }
 
