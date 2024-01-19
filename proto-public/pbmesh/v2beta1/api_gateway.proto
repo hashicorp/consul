@@ -12,7 +12,7 @@ import "pbresource/resource.proto";
 message APIGateway {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
-  // GatewayClassName is the name of the GatewayClass used by the MeshGateway
+  // GatewayClassName is the name of the GatewayClass used by the APIGateway
   string gateway_class_name = 1;
 
   // +kubebuilder:validation:MinItems=1
