@@ -5,6 +5,7 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
+import "pbmesh/v2beta1/pbproxystate/transport_socket.proto";
 import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
@@ -48,15 +49,6 @@ message APIGatewayTLSConfiguration {
   // that a gateway listener uses for TLS termination.
   repeated hashicorp.consul.resource.Reference certificates = 1;
 
-  // MaxVersion is the maximum TLS version that the listener
-  // should support.
-  optional string max_version = 2;
-
-  // MinVersion is the minimum TLS version that the listener
-  // should support.
-  optional string min_version = 3;
-
-  // Define a subset of cipher suites to restrict
-  // Only applicable to connections negotiated via TLS 1.2 or earlier
-  repeated string cipher_suites = 4;
+  // TLSParameters contains
+  optional pbproxystate.TLSParameters tls_parameters = 2;
 }
