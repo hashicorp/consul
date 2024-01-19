@@ -6,14 +6,17 @@ package link
 import (
 	"context"
 	"fmt"
-	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
+	"testing"
+
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"testing"
+
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -78,7 +81,7 @@ func (suite *controllerSuite) TestController_Ok() {
 		HCPPortalURL: "http://test.com",
 		AccessLevel:  &readOnly,
 	}, nil)
-	mgr.Register(LinkController(false, false, mockClientFn))
+	mgr.Register(LinkController(false, false, mockClientFn, config.CloudConfig{}))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -102,11 +105,54 @@ func (suite *controllerSuite) TestController_Ok() {
 	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY, updatedLink.AccessLevel)
 }
 
+func (suite *controllerSuite) TestController_Initialize() {
+	// Run the controller manager with a configured link
+	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+
+	mockClient, mockClientFn := mockHcpClientFn(suite.T())
+	readWrite := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE
+	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
+		HCPPortalURL: "http://test.com",
+		AccessLevel:  &readWrite,
+	}, nil)
+
+	cloudCfg := config.CloudConfig{
+		ClientID:     "client-id-abc",
+		ClientSecret: "client-secret-abc",
+		ResourceID:   "resource-id-abc",
+	}
+
+	mgr.Register(LinkController(false, false, mockClientFn, cloudCfg))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	// Wait for link to be created by initializer
+	id := &pbresource.ID{
+		Type: pbhcp.LinkType,
+		Name: types.LinkName,
+	}
+	suite.T().Cleanup(suite.deleteResourceFunc(id))
+	r := suite.client.WaitForResourceExists(suite.T(), id)
+
+	// Check that created link has expected values
+	var link pbhcp.Link
+	err := r.Data.UnmarshalTo(&link)
+	require.NoError(suite.T(), err)
+
+	require.Equal(suite.T(), cloudCfg.ResourceID, link.ResourceId)
+	require.Equal(suite.T(), cloudCfg.ClientID, link.ClientId)
+	require.Equal(suite.T(), cloudCfg.ClientSecret, link.ClientSecret)
+	require.Equal(suite.T(), types.MetadataSourceConfig, r.Metadata[types.MetadataSourceKey])
+
+	// Wait for link to be connected successfully
+	suite.client.WaitForStatusCondition(suite.T(), id, StatusKey, ConditionLinked(link.ResourceId))
+}
+
 func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	_, mockClientFunc := mockHcpClientFn(suite.T())
-	mgr.Register(LinkController(true, false, mockClientFunc))
+	mgr.Register(LinkController(true, false, mockClientFunc, config.CloudConfig{}))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -132,7 +178,7 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 		HCPPortalURL: "http://test.com",
 	}, nil)
 
-	mgr.Register(LinkController(true, true, mockClientFunc))
+	mgr.Register(LinkController(true, true, mockClientFunc, config.CloudConfig{}))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -156,7 +202,7 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 	mockClient, mockClientFunc := mockHcpClientFn(suite.T())
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, fmt.Errorf("error"))
 
-	mgr.Register(LinkController(true, true, mockClientFunc))
+	mgr.Register(LinkController(true, true, mockClientFunc, config.CloudConfig{}))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 

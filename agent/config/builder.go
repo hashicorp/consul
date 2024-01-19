@@ -2570,7 +2570,9 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 
 func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
-		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
+		ResourceID:   os.Getenv("HCP_RESOURCE_ID"),
+		ClientID:     os.Getenv("HCP_CLIENT_ID"),
+		ClientSecret: os.Getenv("HCP_CLIENT_SECRET"),
 	}
 	// Node id might get overridden in setup.go:142
 	nodeID := stringVal(v.NodeID)
@@ -2581,8 +2583,6 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 		return val
 	}
 
-	val.ClientID = stringVal(v.Cloud.ClientID)
-	val.ClientSecret = stringVal(v.Cloud.ClientSecret)
 	val.AuthURL = stringVal(v.Cloud.AuthURL)
 	val.Hostname = stringVal(v.Cloud.Hostname)
 	val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
@@ -2590,6 +2590,15 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	if resourceID := stringVal(v.Cloud.ResourceID); resourceID != "" {
 		val.ResourceID = resourceID
 	}
+
+	if clientID := stringVal(v.Cloud.ClientID); clientID != "" {
+		val.ClientID = clientID
+	}
+
+	if clientSecret := stringVal(v.Cloud.ClientSecret); clientSecret != "" {
+		val.ClientSecret = clientSecret
+	}
+
 	return val
 }
 

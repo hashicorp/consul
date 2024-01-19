@@ -12,6 +12,7 @@ A controller consists of several parts:
 2. **Additional watched types** - These are additional types a controller may care about in addition to the main watched type.
 3. **Additional custom watches** - These are the watches for things that aren't resources in Consul. 
 4. **Reconciler** - This is the instance that's responsible for reconciling requests whenever there's an event for the main watched type or for any of the watched types.
+5. **Initializer** - This is responsible for anything that needs to be executed when the controller is started.
 
 A basic controller setup could look like this:
 
