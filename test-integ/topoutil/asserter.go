@@ -367,27 +367,29 @@ func (a *Asserter) CatalogServiceExists(t *testing.T, cluster string, svc string
 	libassert.CatalogServiceExists(t, cl, svc, opts)
 }
 
-// HealthServiceEntries asserts the service has the expected number of instances
-func (a *Asserter) HealthServiceEntries(t *testing.T, cluster string, svc string, passingOnly bool, opts *api.QueryOptions, expectedInstance int) []*api.ServiceEntry {
+// HealthServiceEntries asserts the service has the expected number of instances and checks
+func (a *Asserter) HealthServiceEntries(t *testing.T, cluster string, node *topology.Node, svc string, passingOnly bool, opts *api.QueryOptions, expectedInstance int, expectedChecks int) []*api.ServiceEntry {
 	t.Helper()
-	cl := a.mustGetAPIClient(t, cluster)
+	cl, err := a.sp.APIClientForNode(cluster, node.ID(), "")
+	require.NoError(t, err)
 	health := cl.Health()
 
 	var serviceEntries []*api.ServiceEntry
-	var err error
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
 		serviceEntries, _, err = health.Service(svc, "", passingOnly, opts)
 		require.NoError(r, err)
-		require.Equal(r, expectedInstance, len(serviceEntries))
+		require.Equalf(r, expectedInstance, len(serviceEntries), "dc: %s, service: %s", cluster, serviceEntries[0].Service.Service)
+		require.Equalf(r, expectedChecks, len(serviceEntries[0].Checks), "dc: %s, service: %s", cluster, serviceEntries[0].Service.Service)
 	})
 
 	return serviceEntries
 }
 
 // TokenExist asserts the token exists in the cluster and identical to the expected token
-func (a *Asserter) TokenExist(t *testing.T, cluster string, expectedToken *api.ACLToken) {
+func (a *Asserter) TokenExist(t *testing.T, cluster string, node *topology.Node, expectedToken *api.ACLToken) {
 	t.Helper()
-	cl := a.mustGetAPIClient(t, cluster)
+	cl, err := a.sp.APIClientForNode(cluster, node.ID(), "")
+	require.NoError(t, err)
 	acl := cl.ACL()
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
 		retrievedToken, _, err := acl.TokenRead(expectedToken.AccessorID, &api.QueryOptions{})
