@@ -26,8 +26,7 @@ Consul applies Envoy extensions configured in proxy defaults before it applies e
 
 The following example shows a service defaults configuration entry for the `api` service that directs the Envoy proxy to make gRPC authorization requests to the `authz` service:
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 <CodeBlockConfig filename="api-auth-service-defaults.hcl">
 
 ```hcl
@@ -52,8 +51,6 @@ EnvoyExtensions = [
 ]
 ```
 </CodeBlockConfig>
-</Tab>
-<Tab heading="JSON" group="json">
 <CodeBlockConfig filename="api-auth-service-defaults.json">
 
 ```json
@@ -80,8 +77,6 @@ EnvoyExtensions = [
 ```
 
 </CodeBlockConfig>
-</Tab>
-<Tab heading="Kubernetes" group="yaml">
 <CodeBlockConfig filename="api-auth-service-defaults.yaml">
 
 ```yaml
@@ -103,14 +98,15 @@ spec:
               namespace: authz
 ```
 </CodeBlockConfig>
-</Tab>
-</Tabs>
+</CodeTabs>
 
 Refer to the [external authorization extension configuration reference](/consul/docs/connect/proxies/envoy-extensions/configuration/ext-authz) for details on how to configure the extension. 
 
 Refer to the [proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) and [service defaults configuration entry reference](/consul/docs/connect/config-entries/service-defaults) for details on how to define the configuration entries. 
 
-!> **Warning:** Adding Envoy extensions default proxy configurations may have unintended consequences. We recommend configuring `EnvoyExtensions` in service defaults configuration entries in most cases.
+<Warning>
+  Adding Envoy extensions default proxy configurations may have unintended consequences. We recommend configuring `EnvoyExtensions` in service defaults configuration entries in most cases.
+</Warning>
 
 ### Unsupported Envoy configuration fields
 
@@ -118,7 +114,7 @@ The following Envoy configurations are not supported:
 
 | Configuration | Workaround |
 | --- | --- |
-| `deny_at_disable` | Disable filter by removing it from the service’s configuration in the configuration entry. |
+| `deny_at_disable` | Disable filter by removing it from the service's configuration in the configuration entry. |
 | `failure_mode_allow` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
 | `filter_enabled` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
 | `filter_enabled_metadata` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
@@ -128,26 +124,18 @@ The following Envoy configurations are not supported:
 
 If your network is deployed to virtual machines, use the `consul config write` command and specify the proxy defaults or service defaults configuration entry to apply the configuration. For Kubernetes-orchestrated networks, use the `kubectl apply` command. The following example applies the extension in a proxy defaults configuration entry.
 
-<Tabs>
-<Tab heading="HCL" group="hcl">
+<CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 
 ```shell-session
 $ consul config write api-auth-service-defaults.hcl
 ```
 
-</Tab>
-<Tab heading="JSON" group="json">
-
 ```shell-session
 $ consul config write api-auth-service-defaults.json
 ```
-
-</Tab>
-<Tab heading="Kubernetes" group="kubernetes">
 
 ```shell-session
 $ kubectl apply -f api-auth-service-defaults.yaml
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>

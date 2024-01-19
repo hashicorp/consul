@@ -155,6 +155,10 @@ Refer to the [external authorization extension configuration reference](/consul/
 
 Refer to the [proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) and [service defaults configuration entry reference](/consul/docs/connect/config-entries/service-defaults) for details on how to define the configuration entries. 
 
+<Warning>
+  Adding Envoy extensions default proxy configurations may have unintended consequences. We recommend configuring `EnvoyExtensions` in service defaults configuration entries in most cases.
+</Warning>
+
 ## Apply the configuration entry
 
 On the CLI, you can use the `consul config write` command and specify the names of the configuration entries to apply them to Consul. For Kubernetes-orchestrated networks, use the `kubectl apply` command to update the relevant CRD.
