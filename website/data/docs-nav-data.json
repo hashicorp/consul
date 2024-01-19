@@ -2041,7 +2041,7 @@
         "path": "envoy-extension/property-override"
       },
       {
-        "title": "Send access logs to OpenTelemetry collector service",
+        "title": "Send access logs to OpenTelemetry",
         "path": "envoy-extension/otel-access-logging"
       },
       {

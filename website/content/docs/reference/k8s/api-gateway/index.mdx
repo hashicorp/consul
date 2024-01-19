@@ -1,13 +1,5 @@
 ---
 layout: docs
-<<<<<<< HEAD
-page_title: Consul integration overview
-description: >-
-  Consul documentation provides reference material for all features and options available in Consul.
----
-
-# Consul integration overview
-=======
 page_title: Consul API gateway configuration overview
 description: >-
   Configure your Consul API Gateway to manage traffic into your service mesh. Learn about the Kubernetes Gateway Specification items you can configure and how to configure custom API Gateways.
@@ -29,4 +21,3 @@ Apply the following configuration items if your network runs on Kubernetes:
 | [`Routes`](/consul/docs/connect/gateways/api-gateway/configuration/routes) | Specifies paths from the gateway listener to backend services. | <nobr>[Define routes on Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/routes-k8s)</nobr><p>[Reroute traffic in Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests)</p><p>[Route traffic to peered services in Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services)</p> |
 | [`MeshServices`](/consul/docs/connect/gateways/api-gateway/configuration/meshservices) | Enables routes to reference services in Consul. | [Route traffic to peered services in Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services) |
 | [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions) | Specifies traffic communication rules between services in the mesh. Intentions also enforce rules for service-to-service traffic routed through a Consul API gateway. | General configuration for securing a service mesh | 
->>>>>>> 1c605e71a218900f8b6962fa1a6c44e1953d1e3d
