@@ -5,6 +5,7 @@ package link
 
 import (
 	"context"
+	"crypto/tls"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -31,11 +32,18 @@ import (
 type HCPClientFn func(link *pbhcp.Link) (hcpclient.Client, error)
 
 var DefaultHCPClientFn HCPClientFn = func(link *pbhcp.Link) (hcpclient.Client, error) {
-	hcpClient, err := hcpclient.NewClient(config.CloudConfig{
+	cfg := config.CloudConfig{
 		ResourceID:   link.ResourceId,
 		ClientID:     link.ClientId,
 		ClientSecret: link.ClientSecret,
-	})
+	}
+	if link.HcpConfig != nil {
+		cfg.AuthURL = link.HcpConfig.AuthUrl
+		cfg.ScadaAddress = link.HcpConfig.ScadaAddress
+		cfg.Hostname = link.HcpConfig.ApiAddress
+		cfg.TLSConfig = &tls.Config{InsecureSkipVerify: link.HcpConfig.TlsInsecureSkipVerify}
+	}
+	hcpClient, err := hcpclient.NewClient(cfg)
 	if err != nil {
 		return nil, err
 	}

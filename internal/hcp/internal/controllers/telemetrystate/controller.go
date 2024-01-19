@@ -24,6 +24,8 @@ var (
 	}
 )
 
+const MetaKeyDebugSkipDeletion = StatusKey + "/debug/skip-deletion"
+
 func TelemetryStateController(hcpClientFn link.HCPClientFn) *controller.Controller {
 	return controller.NewController(StatusKey, pbhcp.TelemetryStateType).
 		WithWatch(pbhcp.LinkType, dependency.ReplaceType(pbhcp.TelemetryStateType)).
@@ -83,13 +85,20 @@ func (r *telemetryStateReconciler) Reconcile(ctx context.Context, rt controller.
 		return nil
 	}
 
+	// TODO allow hcp client config override from hcp TelemetryConfig
+	hcpCfg := res.GetData().HcpConfig
+
+	// TODO implement proxy options from hcp
+	proxyCfg := &pbhcp.ProxyConfig{}
+
 	state := &pbhcp.TelemetryState{
 		ResourceId:   res.GetData().ResourceId,
 		ClientId:     clientID,
 		ClientSecret: clientSecret,
-		Endpoint:     tCfg.Endpoint,
-		Labels:       tCfg.MetricsConfig.Labels,
-		Metrics: &pbhcp.MetricsState{
+		HcpConfig:    hcpCfg,
+		Proxy:        proxyCfg,
+		Metrics: &pbhcp.MetricsConfig{
+			Labels:   tCfg.MetricsConfig.Labels,
 			Disabled: tCfg.MetricsConfig.Disabled,
 		},
 	}
@@ -133,6 +142,11 @@ func (r *telemetryStateReconciler) ensureStateDeleted(ctx context.Context, rt co
 	}
 
 	rt.Logger.Trace("deleting telemetry-state")
+	if _, ok := resp.GetResource().Metadata[MetaKeyDebugSkipDeletion]; ok {
+		rt.Logger.Debug("skip-deletion metadata key found, skipping deletion of telemetry-state resource")
+		return nil
+	}
+
 	if _, err := rt.Client.Delete(ctx, &pbresource.DeleteRequest{Id: resp.GetResource().GetId()}); err != nil {
 		rt.Logger.Error("error deleting telemetry-state resource", "error", err)
 		return err

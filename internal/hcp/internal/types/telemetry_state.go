@@ -57,5 +57,9 @@ func validateTelemetryState(res *DecodedTelemetryState) error {
 		})
 	}
 
+	if res.Data.HcpConfig != nil {
+		err = multierror.Append(err, validateHCPConfig(res.Data.HcpConfig))
+	}
+
 	return err
 }
