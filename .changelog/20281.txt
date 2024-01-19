@@ -1,0 +1,4 @@
+```release-note:security
+Upgrade gopkg.in/yaml.v3 to address [CVE-2022-28948](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-28948)
+Upgrade gopkg.in/yaml.v2 to address [CVE-2021-4235](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-4235)
+```
