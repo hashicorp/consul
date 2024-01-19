@@ -6,14 +6,14 @@ package helpers
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/catalog/internal/testhelpers"
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func RunWorkloadSelectingTypeACLsTests[T catalog.WorkloadSelecting](t *testing.T, typ *pbresource.Type,
+func RunWorkloadSelectingTypeACLsTests[T workloadselector.WorkloadSelecting](t *testing.T, typ *pbresource.Type,
 	getData func(selector *pbcatalog.WorkloadSelector) T,
 	registerFunc func(registry resource.Registry),
 ) {

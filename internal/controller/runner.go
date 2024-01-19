@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/internal/controller/cache"
+	"github.com/hashicorp/consul/internal/protoutil"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -29,17 +30,34 @@ type Runtime struct {
 // controllerRunner contains the actual implementation of running a controller
 // including creating watches, calling the reconciler, handling retries, etc.
 type controllerRunner struct {
-	ctrl   *Controller
-	client pbresource.ResourceServiceClient
-	logger hclog.Logger
-	cache  cache.Cache
+	ctrl *Controller
+	// watchClient will be used by the controller infrastructure internally to
+	// perform watches and maintain the cache. On servers, this client will use
+	// the in-memory gRPC clients which DO NOT cause cloning of data returned by
+	// the resource service. This is desirable so that our cache doesn't incur
+	// the overhead of duplicating all resources that are watched. Generally
+	// dependency mappers and reconcilers should not be given this client so
+	// that they can be free to modify the data they are returned.
+	watchClient pbresource.ResourceServiceClient
+	// runtimeClient will be used by dependency mappers and reconcilers to
+	// access the resource service. On servers, this client will use the in-memory
+	// gRPC client wrapped with the cloning client to force cloning of protobuf
+	// messages as they pass through the client. This is desirable so that
+	// controllers and their mappers can be free to modify the data returned
+	// to them without having to think about the fact that the data should
+	// be immutable as it is shared with the controllers cache as well as the
+	// resource service itself.
+	runtimeClient pbresource.ResourceServiceClient
+	logger        hclog.Logger
+	cache         cache.Cache
 }
 
 func newControllerRunner(c *Controller, client pbresource.ResourceServiceClient, defaultLogger hclog.Logger) *controllerRunner {
 	return &controllerRunner{
-		ctrl:   c,
-		client: client,
-		logger: c.buildLogger(defaultLogger),
+		ctrl:          c,
+		watchClient:   client,
+		runtimeClient: pbresource.NewCloningResourceServiceClient(client),
+		logger:        c.buildLogger(defaultLogger),
 		// Do not build the cache here. If we build/set it when the controller runs
 		// then if a controller is restarted it will invalidate the previous cache automatically.
 	}
@@ -49,7 +67,31 @@ func (c *controllerRunner) run(ctx context.Context) error {
 	c.logger.Debug("controller running")
 	defer c.logger.Debug("controller stopping")
 
+	// Initialize the controller if required
+	if c.ctrl.initializer != nil {
+		c.logger.Debug("controller initializing")
+		err := c.ctrl.initializer.Initialize(ctx, c.runtime(c.logger))
+		if err != nil {
+			return err
+		}
+		c.logger.Debug("controller initialized")
+	}
+
 	c.cache = c.ctrl.buildCache()
+	defer func() {
+		// once no longer running we should nil out the cache
+		// so that we don't hold pointers to resources which may
+		// become out of date in the future.
+		c.cache = nil
+	}()
+
+	if c.ctrl.startCb != nil {
+		c.ctrl.startCb(ctx, c.runtime(c.logger))
+	}
+
+	if c.ctrl.stopCb != nil {
+		defer c.ctrl.stopCb(ctx, c.runtime(c.logger))
+	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
 	recQueue := runQueue[Request](groupCtx, c.ctrl)
@@ -112,7 +154,7 @@ func runQueue[T queue.ItemType](ctx context.Context, ctrl *Controller) queue.Wor
 }
 
 func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {
-	wl, err := c.client.WatchList(ctx, &pbresource.WatchListRequest{
+	wl, err := c.watchClient.WatchList(ctx, &pbresource.WatchListRequest{
 		Type: typ,
 		Tenancy: &pbresource.Tenancy{
 			Partition: storage.Wildcard,
@@ -143,7 +185,15 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 			c.cache.Delete(event.Resource)
 		}
 
-		add(event.Resource)
+		// Before adding the resource into the queue we must clone it.
+		// While we want the cache to not have duplicate copies of all the
+		// data, we do want downstream consumers like dependency mappers and
+		// controllers to be able to freely modify the data they are given.
+		// Therefore we clone the resource here to prevent any accidental
+		// mutation of data held by the cache (and presumably by the resource
+		// service assuming that the regular client we were given is the inmem
+		// variant)
+		add(protoutil.Clone(event.Resource))
 	}
 }
 
@@ -266,9 +316,14 @@ func (c *controllerRunner) handlePanic(fn func() error) (err error) {
 
 func (c *controllerRunner) runtime(logger hclog.Logger) Runtime {
 	return Runtime{
-		Client: c.client,
+		// dependency mappers and controllers are always given the cloning client
+		// so that they do not have to care about mutating values that they read
+		// through the client.
+		Client: c.runtimeClient,
 		Logger: logger,
-		Cache:  c.cache,
+		// ensure that resources queried via the cache get cloned so that the
+		// dependency mapper or reconciler is free to modify them.
+		Cache: cache.NewCloningReadOnlyCache(c.cache),
 	}
 }
 

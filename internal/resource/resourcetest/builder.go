@@ -113,13 +113,15 @@ func (b *resourceBuilder) Build() *pbresource.Resource {
 	}
 
 	// Now create the status map
-	res.Status = make(map[string]*pbresource.Status)
-	for key, original := range b.statuses {
-		status := &pbresource.Status{
-			ObservedGeneration: res.Generation,
-			Conditions:         original.Conditions,
+	if len(b.statuses) > 0 {
+		res.Status = make(map[string]*pbresource.Status)
+		for key, original := range b.statuses {
+			status := &pbresource.Status{
+				ObservedGeneration: res.Generation,
+				Conditions:         original.Conditions,
+			}
+			res.Status[key] = status
 		}
-		res.Status[key] = status
 	}
 
 	return res

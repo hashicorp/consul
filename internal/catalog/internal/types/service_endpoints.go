@@ -167,5 +167,13 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 		}
 	}
 
+	// Validate DNS
+	if dnsErr := validateDNSPolicy(endpoint.Dns); dnsErr != nil {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "dns_policy",
+			Wrapped: dnsErr,
+		})
+	}
+
 	return err
 }

@@ -22,7 +22,7 @@ type GRPCClient struct {
 func NewGRPCClient(config *GRPCConfig) (*GRPCClient, error) {
 	conn, err := dial(config)
 	if err != nil {
-		return nil, fmt.Errorf("**** error dialing grpc: %+v", err)
+		return nil, fmt.Errorf("error dialing grpc: %+v", err)
 	}
 	return &GRPCClient{
 		Client: pbresource.NewResourceServiceClient(conn),

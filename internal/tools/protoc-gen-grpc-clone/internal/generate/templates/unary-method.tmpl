@@ -1,0 +1,10 @@
+func (c {{.CloningClientTypeName}}) {{.Method.GoName}}(ctx context.Context, in*{{.Method.Input.GoIdent.GoName}}, opts...grpc.CallOption) (*{{.Method.Output.GoIdent.GoName}}, error) {
+   in = proto.Clone(in).(*{{.Method.Input.GoIdent.GoName}})
+   
+   out, err := c.{{.ClientTypeName}}.{{.Method.GoName}}(ctx, in)
+   if err != nil {
+      return nil, err
+   }
+   
+   return proto.Clone(out).(*{{.Method.Output.GoIdent.GoName}}), nil
+}

@@ -12,6 +12,10 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 )
 
+// NOTE: these functions have also been copied to agent/dns package for dns v2.
+// If you change these functions, please also change the ones in agent/dns as well.
+// These v1 versions will soon be deprecated.
+
 type enterpriseDNSConfig struct{}
 
 func getEnterpriseDNSConfig(conf *config.RuntimeConfig) enterpriseDNSConfig {

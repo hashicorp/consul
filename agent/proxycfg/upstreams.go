@@ -354,6 +354,14 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 				Partition:  s.proxyID.PartitionOrDefault(),
 				Datacenter: s.source.Datacenter,
 			}
+		default:
+			// if target.MeshGateway.Mode is not set and target is not peered we don't want to set up watches for the gateway.
+			// This is important specifically in wan-fed without mesh gateway use case, as for this case
+			//the source and target DC could be different but there is not  mesh-gateway so no need to watch
+			// a costly watch (Internal.ServiceDump)
+			if target.Peer == "" {
+				continue
+			}
 		}
 		if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
 			needGateways[gk.String()] = struct{}{}
@@ -393,6 +401,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		if _, ok := snap.WatchedGateways[uid][key]; ok {
 			continue
 		}
+
 		gwKey := gatewayKeyFromString(key)
 
 		s.logger.Trace("initializing watch of mesh gateway",
@@ -411,13 +420,14 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			key:                 gwKey,
 			upstreamID:          uid,
 		}
+
 		err := watchMeshGateway(ctx, opts)
 		if err != nil {
 			cancel()
 			return err
 		}
-
 		snap.WatchedGateways[uid][key] = cancel
+
 	}
 
 	for key, cancelFn := range snap.WatchedGateways[uid] {

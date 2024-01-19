@@ -14,6 +14,12 @@ import (
 // TestController is most useful when writing unit tests for a controller where
 // individual Reconcile calls need to be made instead of having a Manager
 // execute the controller in response to watch events.
+//
+// TODO(controller-testing) Ideally this would live within the controllertest
+// package. However it makes light use of unexported fields on the Controller
+// and therefore cannot live in another package without more refactorings
+// to have the Controller include a config struct of sorts defined in an
+// internal package with exported fields. For now this seems fine.
 type TestController struct {
 	c      *Controller
 	cache  cache.Cache
@@ -34,6 +40,11 @@ func NewTestController(ctl *Controller, client pbresource.ResourceServiceClient)
 		client: cache.NewCachedClient(ctlCache, client),
 		logger: ctl.buildLogger(hclog.NewNullLogger()),
 	}
+}
+
+func (tc *TestController) WithLogger(logger hclog.Logger) *TestController {
+	tc.logger = tc.c.buildLogger(logger)
+	return tc
 }
 
 // Reconcile invokes the controllers configured reconciler with the cache enabled Runtime

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/config"
+	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -22,10 +24,40 @@ func TestManager_Run(t *testing.T) {
 	}
 	updateCh := make(chan struct{}, 1)
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Once()
+
+	cloudCfg := config.CloudConfig{
+		ResourceID: "organization/85702e73-8a3d-47dc-291c-379b783c5804/project/8c0547c0-10e8-1ea2-dffe-384bee8da634/hashicorp.consul.global-network-manager.cluster/test",
+		NodeID:     "node-1",
+	}
+	scadaM := scada.NewMockProvider(t)
+	scadaM.EXPECT().UpdateHCPConfig(cloudCfg).Return(nil)
+	scadaM.EXPECT().UpdateMeta(
+		map[string]string{
+			"consul_server_id": string(cloudCfg.NodeID),
+		},
+	).Return()
+	scadaM.EXPECT().Start().Return(nil)
+
+	telemetryProvider := &hcpProviderImpl{
+		httpCfg: &httpCfg{},
+		logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		cfg:     defaultDisabledCfg(),
+	}
+
+	mockTelemetryCfg, err := testTelemetryCfg(&testConfig{
+		refreshInterval: 1 * time.Second,
+	})
+	require.NoError(t, err)
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(
+		mockTelemetryCfg, nil).Maybe()
+
 	mgr := NewManager(ManagerConfig{
-		Client:   client,
-		Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn: statusF,
+		Client:            client,
+		Logger:            hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		StatusFn:          statusF,
+		CloudConfig:       cloudCfg,
+		SCADAProvider:     scadaM,
+		TelemetryProvider: telemetryProvider,
 	})
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -41,6 +73,9 @@ func TestManager_Run(t *testing.T) {
 	// Make sure after manager has stopped no more statuses are pushed.
 	cancel()
 	client.AssertExpectations(t)
+	require.Equal(t, client, telemetryProvider.hcpClient)
+	require.NotNil(t, telemetryProvider.GetHeader())
+	require.NotNil(t, telemetryProvider.GetHTTPClient())
 }
 
 func TestManager_SendUpdate(t *testing.T) {

@@ -18,6 +18,5 @@ func Register(r resource.Registry) {
 	RegisterComputedFailoverPolicy(r)
 	// todo (v2): re-register once these resources are implemented.
 	//RegisterHealthChecks(r)
-	//RegisterDNSPolicy(r)
 	//RegisterVirtualIPs(r)
 }
