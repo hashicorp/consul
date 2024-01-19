@@ -588,6 +588,15 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		Logger:            logger.Named("hcp_manager"),
 		SCADAProvider:     flat.HCP.Provider,
 		TelemetryProvider: flat.HCP.TelemetryProvider,
+		ManagementTokenUpserterFn: func(name, secretId string) error {
+			if s.IsLeader() {
+				// Idea for improvement: Upsert a token with a well-known accessorId here instead
+				// of a randomly generated one. This would prevent any possible insertion collision between
+				// this and the insertion that happens during the ACL initialization process (initializeACLs function)
+				return s.upsertManagementToken(name, secretId)
+			}
+			return nil
+		},
 	})
 
 	var recorder *middleware.RequestRecorder
