@@ -40,9 +40,9 @@ require (
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
 	github.com/hashicorp/consul/api v1.27.0
 	github.com/hashicorp/consul/envoyextensions v0.5.2
-	github.com/hashicorp/consul/proto-public v0.5.1
+	github.com/hashicorp/consul/proto-public v0.5.2
 	github.com/hashicorp/consul/sdk v0.15.1
-	github.com/hashicorp/consul/troubleshoot v0.4.1
+	github.com/hashicorp/consul/troubleshoot v0.5.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
