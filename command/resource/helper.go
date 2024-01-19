@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const OUTPUT_INDENT = "  "
+const JSON_INDENT = "  "
 
 type OuterResource struct {
 	ID         *ID            `json:"id"`
