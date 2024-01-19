@@ -8,6 +8,7 @@ import sinon from 'sinon';
 const userDismissedBannerStub = sinon.stub();
 const userHasLinkedStub = sinon.stub();
 const dismissHcpLinkBannerStub = sinon.stub();
+const bannerSelector = '[data-test-link-to-hcp-banner]';
 module('Integration | Component | link-to-hcp-banner', function (hooks) {
   setupRenderingTest(hooks);
 
@@ -35,8 +36,8 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
   test('it renders banner when hcp-link-status says it should', async function (assert) {
     await render(hbs`<LinkToHcpBanner />`);
 
-    assert.dom('[data-test-link-to-hcp-banner]').exists({ count: 1 });
-    await click('[data-test-link-to-hcp-banner] button[aria-label="Dismiss"]');
+    assert.dom(bannerSelector).exists({ count: 1 });
+    await click(`${bannerSelector} button[aria-label="Dismiss"]`);
     assert.ok(dismissHcpLinkBannerStub.calledOnce, 'userDismissedBanner was called');
     // Can't test that banner is no longer visible since service isn't hooked up
     assert
@@ -62,7 +63,7 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
     }
     this.owner.register('service:hcp-link-status', HcpLinkStatusStub);
     await render(hbs`<LinkToHcpBanner />`);
-    assert.dom('[data-test-link-to-hcp-banner]').doesNotExist();
+    assert.dom(bannerSelector).doesNotExist();
   });
 
   test('it displays different banner text when consul is enterprise', async function (assert) {

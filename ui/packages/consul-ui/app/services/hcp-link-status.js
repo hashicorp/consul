@@ -18,10 +18,6 @@ export default class HcpLinkStatus extends Service {
     this.userDismissedBanner = !!localStorage.getItem(LOCAL_STORAGE_KEY);
   }
 
-  userDismissedBanner() {
-    return !!localStorage.getItem(LOCAL_STORAGE_KEY);
-  }
-
   userHasLinked() {
     // TODO: CC-7145 - once can fetch the link status from the backend, fetch it and set it here
   }
