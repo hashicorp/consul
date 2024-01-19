@@ -29,10 +29,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
-	libdns "github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -119,7 +119,6 @@ func dnsTXT(src string, txt []string) *dns.TXT {
 func getVersionHCL(enableV2 bool) map[string]string {
 	versions := map[string]string{
 		"DNS: v1 / Catalog: v1": "",
-		//"DNS: v2 / Catalog: v1": `experiments=["v2dns"]`,
 	}
 
 	if enableV2 {
@@ -128,6 +127,7 @@ func getVersionHCL(enableV2 bool) map[string]string {
 	return versions
 }
 
+// Copied to agent/dns/recursor_test.go
 func TestRecursorAddr(t *testing.T) {
 	t.Parallel()
 	addr, err := recursorAddr("8.8.8.8")
@@ -230,7 +230,7 @@ func TestDNS_EmptyAltDomain(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -266,7 +266,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 		},
 	})
 	defer server2.Shutdown()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			// Mock the agent startup with the necessary configs
 			agent := NewTestAgent(t,
@@ -308,7 +308,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
 	})
 	defer server3.Shutdown()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			// Mock the agent startup with the necessary configs
 			agent := NewTestAgent(t,
@@ -320,7 +320,8 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 			m.SetQuestion("google.com.", dns.TypeA)
 			// Agent request
 			client := new(dns.Client)
-			in, _, _ := client.Exchange(m, agent.DNSAddr())
+			in, _, err := client.Exchange(m, agent.DNSAddr())
+			require.NoError(t, err)
 			// Verify if we hit SERVFAIL from Consul
 			require.Equal(t, dns.RcodeServerFailure, in.Rcode)
 		})
@@ -669,9 +670,9 @@ func TestDNS_VirtualIPLookup(t *testing.T) {
 
 	t.Parallel()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
-			a := StartTestAgent(t, TestAgent{HCL: experimentsHCL, Overrides: `peering = { test_allow_peer_registrations = true }`})
+			a := StartTestAgent(t, TestAgent{HCL: experimentsHCL, Overrides: `peering = { test_allow_peer_registrations = true } log_level = "debug"`})
 			defer a.Shutdown()
 
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1490,7 +1491,7 @@ func TestDNS_Recurse(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -1530,7 +1531,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -1579,7 +1580,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 	defer resolver.Close()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+resolver.LocalAddr().String()+`"] // host must cause a connection|read|write timeout
@@ -3496,7 +3497,7 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, `
@@ -3539,29 +3540,6 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 				t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
 			}
 		})
-	}
-}
-
-func TestDNSInvalidRegex(t *testing.T) {
-	tests := []struct {
-		desc    string
-		in      string
-		invalid bool
-	}{
-		{"Valid Hostname", "testnode", false},
-		{"Valid Hostname", "test-node", false},
-		{"Invalid Hostname with special chars", "test#$$!node", true},
-		{"Invalid Hostname with special chars in the end", "testnode%^", true},
-		{"Whitespace", "  ", true},
-		{"Only special chars", "./$", true},
-	}
-	for _, test := range tests {
-		t.Run(test.desc, func(t *testing.T) {
-			if got, want := libdns.InvalidNameRe.MatchString(test.in), test.invalid; got != want {
-				t.Fatalf("Expected %v to return %v", test.in, want)
-			}
-		})
-
 	}
 }
 
@@ -3837,6 +3815,74 @@ func TestPerfectlyRandomChoices(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("size=%d frac=%g", tc.size, tc.frac), func(t *testing.T) {
 			run(t, tc)
+		})
+	}
+}
+
+type testCaseParseLocality struct {
+	name                string
+	labels              []string
+	defaultEntMeta      acl.EnterpriseMeta
+	enterpriseDNSConfig enterpriseDNSConfig
+	expectedResult      queryLocality
+	expectedOK          bool
+}
+
+func Test_ParseLocality(t *testing.T) {
+	testCases := getTestCasesParseLocality()
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := &DNSServer{
+				defaultEnterpriseMeta: tc.defaultEntMeta,
+			}
+			actualResult, actualOK := d.parseLocality(tc.labels, &dnsConfig{
+				enterpriseDNSConfig: tc.enterpriseDNSConfig,
+			})
+			require.Equal(t, tc.expectedOK, actualOK)
+			require.Equal(t, tc.expectedResult, actualResult)
+
+		})
+	}
+
+}
+
+func Test_EffectiveDatacenter(t *testing.T) {
+	type testCase struct {
+		name          string
+		queryLocality queryLocality
+		defaultDC     string
+		expected      string
+	}
+	testCases := []testCase{
+		{
+			name: "return datacenter first",
+			queryLocality: queryLocality{
+				datacenter:       "test-dc",
+				peerOrDatacenter: "test-peer",
+			},
+			defaultDC: "default-dc",
+			expected:  "test-dc",
+		},
+		{
+			name: "return PeerOrDatacenter second",
+			queryLocality: queryLocality{
+				peerOrDatacenter: "test-peer",
+			},
+			defaultDC: "default-dc",
+			expected:  "test-peer",
+		},
+		{
+			name:          "return defaultDC as fallback",
+			queryLocality: queryLocality{},
+			defaultDC:     "default-dc",
+			expected:      "default-dc",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.queryLocality.effectiveDatacenter(tc.defaultDC)
+			require.Equal(t, tc.expected, got)
 		})
 	}
 }

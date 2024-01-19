@@ -38,7 +38,7 @@ type controllerSuite struct {
 func (suite *controllerSuite) SetupTest() {
 	suite.tenancies = rtest.TestTenancies()
 	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, types.RegisterDNSPolicy).
+		WithRegisterFns(types.Register).
 		WithTenancies(suite.tenancies...).
 		Run(suite.T())
 

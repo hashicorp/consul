@@ -12,14 +12,12 @@ import (
 )
 
 type Dependencies struct {
-	WorkloadHealthNodeMapper workloadhealth.NodeMapper
-	EndpointsWorkloadMapper  endpoints.WorkloadMapper
-	FailoverMapper           failover.FailoverMapper
+	FailoverMapper failover.FailoverMapper
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(nodehealth.NodeHealthController())
-	mgr.Register(workloadhealth.WorkloadHealthController(deps.WorkloadHealthNodeMapper))
-	mgr.Register(endpoints.ServiceEndpointsController(deps.EndpointsWorkloadMapper))
+	mgr.Register(workloadhealth.WorkloadHealthController())
+	mgr.Register(endpoints.ServiceEndpointsController())
 	mgr.Register(failover.FailoverPolicyController(deps.FailoverMapper))
 }

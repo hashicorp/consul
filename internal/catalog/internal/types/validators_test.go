@@ -468,6 +468,79 @@ func TestValidateWorkloadAddress(t *testing.T) {
 	}
 }
 
+func TestValidateDNSPolicy(t *testing.T) {
+	type testCase struct {
+		policy      *pbcatalog.DNSPolicy
+		validateErr func(*testing.T, error)
+	}
+
+	cases := map[string]testCase{
+		"invalid-passing-weight-too-high": {
+			policy: &pbcatalog.DNSPolicy{
+				Weights: &pbcatalog.Weights{
+					Passing: 1000000,
+				},
+			},
+			validateErr: func(t *testing.T, err error) {
+				var actual resource.ErrInvalidField
+				require.ErrorAs(t, err, &actual)
+				require.Equal(t, "passing", actual.Name)
+				require.ErrorIs(t, err, errDNSPassingWeightOutOfRange)
+			},
+		},
+		"invalid-passing-weight-too-low": {
+			policy: &pbcatalog.DNSPolicy{
+				Weights: &pbcatalog.Weights{
+					Passing: 0,
+				},
+			},
+			validateErr: func(t *testing.T, err error) {
+				var actual resource.ErrInvalidField
+				require.ErrorAs(t, err, &actual)
+				require.Equal(t, "passing", actual.Name)
+				require.ErrorIs(t, err, errDNSPassingWeightOutOfRange)
+			},
+		},
+		"invalid-warning-weight": {
+			policy: &pbcatalog.DNSPolicy{
+				Weights: &pbcatalog.Weights{
+					Passing: 1,
+					Warning: 1000000,
+				},
+			},
+			validateErr: func(t *testing.T, err error) {
+				var actual resource.ErrInvalidField
+				require.ErrorAs(t, err, &actual)
+				require.Equal(t, "warning", actual.Name)
+				require.ErrorIs(t, err, errDNSWarningWeightOutOfRange)
+			},
+		},
+		"ok": {
+			policy: &pbcatalog.DNSPolicy{
+				Weights: &pbcatalog.Weights{
+					Passing: 3,
+					Warning: 0,
+				},
+			},
+		},
+		"nil ok": {
+			policy: &pbcatalog.DNSPolicy{},
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := validateDNSPolicy(tcase.policy)
+			if tcase.validateErr != nil {
+				require.Error(t, err)
+				tcase.validateErr(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateReferenceType(t *testing.T) {
 	allowedType := &pbresource.Type{
 		Group:        "foo",

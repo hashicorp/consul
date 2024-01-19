@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 
 	"github.com/hashicorp/go-multierror"
 
@@ -22,7 +23,7 @@ func RegisterProxyConfiguration(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateProxyConfiguration,
 		Validate: ValidateProxyConfiguration,
-		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.ProxyConfiguration](),
+		ACLs:     workloadselector.ACLHooks[*pbmesh.ProxyConfiguration](),
 	})
 }
 

@@ -10,11 +10,9 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
-	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -25,12 +23,12 @@ var (
 	NodeHealthStatusConditionHealthy = nodehealth.StatusConditionHealthy
 	NodeHealthConditions             = nodehealth.Conditions
 
-	WorkloadHealthStatusKey              = workloadhealth.StatusKey
+	WorkloadHealthStatusKey              = workloadhealth.ControllerID
 	WorkloadHealthStatusConditionHealthy = workloadhealth.StatusConditionHealthy
 	WorkloadHealthConditions             = workloadhealth.WorkloadConditions
 	WorkloadAndNodeHealthConditions      = workloadhealth.NodeAndWorkloadConditions
 
-	EndpointsStatusKey                       = endpoints.StatusKey
+	EndpointsStatusKey                       = endpoints.ControllerID
 	EndpointsStatusConditionEndpointsManaged = endpoints.StatusConditionEndpointsManaged
 	EndpointsStatusConditionManaged          = endpoints.ConditionManaged
 	EndpointsStatusConditionUnmanaged        = endpoints.ConditionUnmanaged
@@ -48,12 +46,6 @@ var (
 	FailoverStatusConditionAcceptedUsingMeshDestinationPortReason  = failover.UsingMeshDestinationPortReason
 )
 
-type WorkloadSelecting = types.WorkloadSelecting
-
-func ACLHooksForWorkloadSelectingType[T WorkloadSelecting]() *resource.ACLHooks {
-	return types.ACLHooksForWorkloadSelectingType[T]()
-}
-
 // RegisterTypes adds all resource types within the "catalog" API group
 // to the given type registry
 func RegisterTypes(r resource.Registry) {
@@ -64,9 +56,7 @@ type ControllerDependencies = controllers.Dependencies
 
 func DefaultControllerDependencies() ControllerDependencies {
 	return ControllerDependencies{
-		WorkloadHealthNodeMapper: nodemapper.New(),
-		EndpointsWorkloadMapper:  selectiontracker.New(),
-		FailoverMapper:           failovermapper.New(),
+		FailoverMapper: failovermapper.New(),
 	}
 }
 

@@ -1,0 +1,7 @@
+```release-note:enhancement
+ProxyCfg: avoid setting a watch on `Internal.ServiceDump` when mesh gateway is not used.
+```
+
+```release-note:enhancement
+ProxyCfg: only return the nodes list when querying the `Internal.ServiceDump` watch from proxycfg
+```
