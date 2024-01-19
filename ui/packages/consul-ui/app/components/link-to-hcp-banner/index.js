@@ -5,11 +5,13 @@
 
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
+import { inject as service } from '@ember/service';
 
 export default class LinkToHcpBannerComponent extends Component {
+  @service('hcp-link-status') hcpLinkStatus;
   @action
   onDismiss() {
-    console.log('Dismissed');
+    this.hcpLinkStatus.dismissHcpLinkBanner();
   }
   @action
   onClusterLink() {

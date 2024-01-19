@@ -2,11 +2,18 @@
   Copyright (c) HashiCorp, Inc.
   SPDX-License-Identifier: BUSL-1.1
 }}
-
-<Hds::Alert @type="page" @color="highlight" @onDismiss={{this.onDismiss}} class="link-to-hcp-banner" as |A|>
-    <A.Title>Link this cluster to HCP Consul Central in a few steps to start managing your clusters in one place</A.Title>
-    <A.Description>By linking your clusters to HCP Consul Central, you’ll get global, cross-cluster metrics, visual service maps, and a global API. HCP Consul Central’s full feature set is included with an Enterprise license.</A.Description>
-    <A.Button @text="Link this cluster" @color="secondary" {{on "click" this.onClusterLink}}></A.Button>
-    <A.Link::Standalone @color="secondary" @icon="docs-link" @iconPosition="trailing" @text="Linking documentation" @href="#" />
-    <A.Link::Standalone @color="secondary" @icon="docs-link" @iconPosition="trailing" @text="Consul Central documentation" @href="#" />
-</Hds::Alert>
+{{#if this.hcpLinkStatus.shouldDisplayBanner}}
+    <Hds::Alert @type="page" @color="highlight" @onDismiss={{this.onDismiss}} class="link-to-hcp-banner" as |A|>
+        <A.Title>Link this cluster to HCP Consul Central in a few steps to start managing your clusters in one place
+        </A.Title>
+        <A.Description>By linking your clusters to HCP Consul Central, you’ll get global, cross-cluster metrics, visual
+            service maps, and a global API. HCP Consul Central’s full feature set is included with an Enterprise
+            license.
+        </A.Description>
+        <A.Button @text="Link this cluster" @color="secondary" {{on "click" this.onClusterLink}}></A.Button>
+        <A.Link::Standalone @color="secondary" @icon="docs-link" @iconPosition="trailing" @text="Linking documentation"
+                            @href="#"/>
+        <A.Link::Standalone @color="secondary" @icon="docs-link" @iconPosition="trailing"
+                            @text="Consul Central documentation" @href="#"/>
+    </Hds::Alert>
+{{/if}}
