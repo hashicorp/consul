@@ -21,11 +21,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/fullstorydev/grpchan/inprocgrpc"
-	"go.etcd.io/bbolt"
-	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -36,7 +31,11 @@ import (
 	walmetrics "github.com/hashicorp/raft-wal/metrics"
 	"github.com/hashicorp/raft-wal/verifier"
 	"github.com/hashicorp/serf/serf"
+	"go.etcd.io/bbolt"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/connect"
@@ -135,6 +134,19 @@ const (
 	V2TenancyExperimentName       = "v2tenancy"
 	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )
+
+// IsExperimentAllowedOnSecondaries returns true if an experiment is currently
+// disallowed for wan federated secondary datacenters.
+//
+// Likely these will all be short lived exclusions.
+func IsExperimentAllowedOnSecondaries(name string) bool {
+	switch name {
+	case CatalogResourceExperimentName, V2DNSExperimentName, V2TenancyExperimentName:
+		return false
+	default:
+		return true
+	}
+}
 
 const (
 	aclPolicyReplicationRoutineName       = "ACL policy replication"
