@@ -5,11 +5,15 @@ package link
 
 import (
 	"context"
+	"fmt"
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -28,6 +32,16 @@ type controllerSuite struct {
 
 	ctl       linkReconciler
 	tenancies []*pbresource.Tenancy
+}
+
+func mockHcpClientFn(t *testing.T) (*hcpclient.MockClient, HCPClientFn) {
+	mockClient := hcpclient.NewMockClient(t)
+
+	mockClientFunc := func(link *pbhcp.Link) (hcpclient.Client, error) {
+		return mockClient, nil
+	}
+
+	return mockClient, mockClientFunc
 }
 
 func (suite *controllerSuite) SetupTest() {
@@ -58,7 +72,13 @@ func (suite *controllerSuite) deleteResourceFunc(id *pbresource.ID) func() {
 func (suite *controllerSuite) TestController_Ok() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(LinkController(false, false))
+	mockClient, mockClientFn := mockHcpClientFn(suite.T())
+	readOnly := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY
+	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
+		HCPPortalURL: "http://test.com",
+		AccessLevel:  &readOnly,
+	}, nil)
+	mgr.Register(LinkController(false, false, mockClientFn))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -75,12 +95,18 @@ func (suite *controllerSuite) TestController_Ok() {
 	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
 
 	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionLinked(linkData.ResourceId))
+	var updatedLink pbhcp.Link
+	updatedLinkResource := suite.client.WaitForNewVersion(suite.T(), link.Id, link.Version)
+	require.NoError(suite.T(), updatedLinkResource.Data.UnmarshalTo(&updatedLink))
+	require.Equal(suite.T(), "http://test.com", updatedLink.HcpClusterUrl)
+	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY, updatedLink.AccessLevel)
 }
 
 func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(LinkController(true, false))
+	_, mockClientFunc := mockHcpClientFn(suite.T())
+	mgr.Register(LinkController(true, false, mockClientFunc))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -89,7 +115,6 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 		ClientSecret: "abc",
 		ResourceId:   "abc",
 	}
-	// The controller is currently a no-op, so there is nothing to test other than making sure we do not panic
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
@@ -102,7 +127,12 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_LinkNotDisabled() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(LinkController(true, true))
+	mockClient, mockClientFunc := mockHcpClientFn(suite.T())
+	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
+		HCPPortalURL: "http://test.com",
+	}, nil)
+
+	mgr.Register(LinkController(true, true, mockClientFunc))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -111,7 +141,6 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 		ClientSecret: "abc",
 		ResourceId:   "abc",
 	}
-	// The controller is currently a no-op, so there is nothing to test other than making sure we do not panic
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
@@ -119,4 +148,68 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
 
 	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionLinked(linkData.ResourceId))
+}
+
+func (suite *controllerSuite) TestController_GetClusterError() {
+	// Run the controller manager
+	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+	mockClient, mockClientFunc := mockHcpClientFn(suite.T())
+	mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, fmt.Errorf("error"))
+
+	mgr.Register(LinkController(true, true, mockClientFunc))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	linkData := &pbhcp.Link{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
+	}
+	link := rtest.Resource(pbhcp.LinkType, "global").
+		WithData(suite.T(), linkData).
+		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
+
+	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionFailed)
+}
+
+func Test_hcpAccessModeToConsul(t *testing.T) {
+	type testCase struct {
+		hcpAccessLevel    *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel
+		consulAccessLevel pbhcp.AccessLevel
+	}
+	tt := map[string]testCase{
+		"unspecified": {
+			hcpAccessLevel: func() *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel {
+				t := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELUNSPECIFIED
+				return &t
+			}(),
+			consulAccessLevel: pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED,
+		},
+		"invalid": {
+			hcpAccessLevel:    nil,
+			consulAccessLevel: pbhcp.AccessLevel_ACCESS_LEVEL_UNSPECIFIED,
+		},
+		"read_only": {
+			hcpAccessLevel: func() *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel {
+				t := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY
+				return &t
+			}(),
+			consulAccessLevel: pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY,
+		},
+		"read_write": {
+			hcpAccessLevel: func() *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel {
+				t := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE
+				return &t
+			}(),
+			consulAccessLevel: pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE,
+		},
+	}
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			accessLevel := hcpAccessLevelToConsul(tc.hcpAccessLevel)
+			require.Equal(t, tc.consulAccessLevel, accessLevel)
+		})
+	}
 }
