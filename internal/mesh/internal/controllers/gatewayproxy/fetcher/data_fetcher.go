@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -38,18 +37,13 @@ func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*typ
 	dec, err := resource.GetDecodedResource[*pbmesh.MeshGateway](ctx, f.client, id)
 	if err != nil {
 		return nil, err
-	} else if dec == nil {
-		return nil, nil
 	}
 
 	return dec, nil
 }
 
 // FetchMeshGateways fetches all MeshGateway resources known to the local server.
-func (f *Fetcher) FetchMeshGateways(ctx context.Context) ([]*types.DecodedMeshGateway, error) {
-	tenancy := resource.DefaultClusteredTenancy()
-	tenancy.Partition = acl.WildcardPartitionName
-
+func (f *Fetcher) FetchMeshGateways(ctx context.Context, tenancy *pbresource.Tenancy) ([]*types.DecodedMeshGateway, error) {
 	dec, err := resource.ListDecodedResource[*pbmesh.MeshGateway](ctx, f.client, &pbresource.ListRequest{
 		Type:    pbmesh.MeshGatewayType,
 		Tenancy: tenancy,
@@ -69,8 +63,6 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 	dec, err := resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.client, id)
 	if err != nil {
 		return nil, err
-	} else if dec == nil {
-		return nil, nil
 	}
 
 	return dec, nil
@@ -84,8 +76,6 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
 	if err != nil {
 		return nil, err
-	} else if dec == nil {
-		return nil, nil
 	}
 
 	return dec, nil
@@ -99,8 +89,6 @@ func (f *Fetcher) FetchComputedExportedServices(ctx context.Context, id *pbresou
 	dec, err := resource.GetDecodedResource[*pbmulticluster.ComputedExportedServices](ctx, f.client, id)
 	if err != nil {
 		return nil, err
-	} else if dec == nil {
-		return nil, nil
 	}
 
 	return dec, nil
@@ -114,8 +102,17 @@ func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.D
 	dec, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, f.client, id)
 	if err != nil {
 		return nil, err
-	} else if dec == nil {
-		return nil, nil
+	}
+
+	return dec, nil
+}
+
+func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) (*types.DecodedServiceEndpoints, error) {
+	assertResourceType(pbcatalog.ServiceEndpointsType, id.Type)
+
+	dec, err := resource.GetDecodedResource[*pbcatalog.ServiceEndpoints](ctx, f.client, id)
+	if err != nil {
+		return nil, err
 	}
 
 	return dec, nil
