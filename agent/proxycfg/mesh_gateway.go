@@ -292,6 +292,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceKind:    structs.ServiceKindMeshGateway,
 					UseServiceKind: true,
+					NodesOnly:      true,
 					Source:         *s.source,
 					EnterpriseMeta: *entMeta,
 				}, fmt.Sprintf("mesh-gateway:%s", gk.String()), s.ch)

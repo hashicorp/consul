@@ -644,6 +644,7 @@ type ServiceDumpRequest struct {
 	Datacenter         string
 	ServiceKind        ServiceKind
 	UseServiceKind     bool
+	NodesOnly          bool
 	Source             QuerySource
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	PeerName           string
@@ -676,6 +677,7 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash([]interface{}{
 		keyKind,
 		r.UseServiceKind,
+		r.NodesOnly,
 		r.Filter,
 		r.EnterpriseMeta,
 	}, nil)
