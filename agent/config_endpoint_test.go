@@ -813,6 +813,6 @@ func TestConfig_Exported_Services(t *testing.T) {
 				},
 			},
 		}
-		require.ElementsMatch(t, expected, services)
+		require.Equal(t, expected, services)
 	})
 }

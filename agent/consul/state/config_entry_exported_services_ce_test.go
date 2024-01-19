@@ -15,22 +15,36 @@ import (
 )
 
 func TestStore_prepareExportedServicesResponse(t *testing.T) {
-	var exportedServices = make(map[structs.ServiceName]map[structs.ServiceConsumer]struct{})
 
-	svc1 := structs.NewServiceName("db", nil)
-	exportedServices[svc1] = make(map[structs.ServiceConsumer]struct{})
-	exportedServices[svc1][structs.ServiceConsumer{Peer: "west"}] = struct{}{}
-	exportedServices[svc1][structs.ServiceConsumer{Peer: "east"}] = struct{}{}
+	exportedServices := []structs.ExportedService{
+		{
+			Name: "db",
+			Consumers: []structs.ServiceConsumer{
+				{
+					Peer: "west",
+				},
+				{
+					Peer: "east",
+				},
+				{
+					Partition: "part",
+				},
+			},
+		},
+		{
+			Name: "web",
+			Consumers: []structs.ServiceConsumer{
+				{
+					Peer: "peer-a",
+				},
+				{
+					Peer: "peer-b",
+				},
+			},
+		},
+	}
 
-	// Adding partition to ensure that it's not included in response
-	exportedServices[svc1][structs.ServiceConsumer{Partition: "east"}] = struct{}{}
-
-	svc2 := structs.NewServiceName("web", nil)
-	exportedServices[svc2] = make(map[structs.ServiceConsumer]struct{})
-	exportedServices[svc2][structs.ServiceConsumer{Peer: "peer-a"}] = struct{}{}
-	exportedServices[svc2][structs.ServiceConsumer{Peer: "peer-b"}] = struct{}{}
-
-	resp := prepareExportedServicesResponse(exportedServices)
+	resp := prepareExportedServicesResponse(exportedServices, nil)
 
 	expected := []*pbconfigentry.ResolvedExportedService{
 		{
@@ -47,7 +61,7 @@ func TestStore_prepareExportedServicesResponse(t *testing.T) {
 		},
 	}
 
-	require.ElementsMatch(t, expected, resp)
+	require.Equal(t, expected, resp)
 }
 
 func TestStore_ResolvedExportingServices(t *testing.T) {
@@ -122,22 +136,22 @@ func TestStore_ResolvedExportingServices(t *testing.T) {
 		idx, services, err := s.ResolvedExportedServices(ws, defaultMeta)
 		require.NoError(t, err)
 		require.Equal(t, tc.idx, idx)
-		require.ElementsMatch(t, tc.expect, services)
+		require.Equal(t, tc.expect, services)
 	}
 
 	t.Run("only exported services are included", func(t *testing.T) {
 		tc := testCase{
 			expect: []*pbconfigentry.ResolvedExportedService{
 				{
-					Service: "db",
-					Consumers: &pbconfigentry.Consumers{
-						Peers: []string{"east", "west"},
-					},
-				},
-				{
 					Service: "cache",
 					Consumers: &pbconfigentry.Consumers{
 						Peers: []string{"east"},
+					},
+				},
+				{
+					Service: "db",
+					Consumers: &pbconfigentry.Consumers{
+						Peers: []string{"east", "west"},
 					},
 				},
 			},
@@ -166,7 +180,7 @@ func TestStore_ResolvedExportingServices(t *testing.T) {
 		tc := testCase{
 			expect: []*pbconfigentry.ResolvedExportedService{
 				{
-					Service: "db",
+					Service: "backend",
 					Consumers: &pbconfigentry.Consumers{
 						Peers: []string{"west"},
 					},
@@ -178,13 +192,14 @@ func TestStore_ResolvedExportingServices(t *testing.T) {
 					},
 				},
 				{
-					Service: "frontend",
+					Service: "db",
 					Consumers: &pbconfigentry.Consumers{
 						Peers: []string{"west"},
 					},
 				},
+
 				{
-					Service: "backend",
+					Service: "frontend",
 					Consumers: &pbconfigentry.Consumers{
 						Peers: []string{"west"},
 					},
@@ -206,4 +221,97 @@ func TestStore_ResolvedExportingServices(t *testing.T) {
 		require.Equal(t, c.Last(), idx)
 		require.Nil(t, result)
 	})
+}
+
+func TestStore_getUniqueExportedServices(t *testing.T) {
+
+	exportedServices := []structs.ExportedService{
+		{
+			Name: "db",
+			Consumers: []structs.ServiceConsumer{
+				{
+					Peer: "west",
+				},
+				{
+					Peer: "east",
+				},
+				{
+					Partition: "part",
+				},
+			},
+		},
+		{
+			Name: "web",
+			Consumers: []structs.ServiceConsumer{
+				{
+					Peer: "peer-a",
+				},
+				{
+					Peer: "peer-b",
+				},
+			},
+		},
+		{
+			Name: "db",
+			Consumers: []structs.ServiceConsumer{
+				{
+					Peer: "west",
+				},
+				{
+					Peer: "west-2",
+				},
+			},
+		},
+		{
+			Name: "db",
+			Consumers: []structs.ServiceConsumer{
+				{
+					Peer: "west",
+				},
+				{
+					Peer: "west-2",
+				},
+			},
+		},
+	}
+
+	resp := getUniqueExportedServices(exportedServices, nil)
+
+	expected := []structs.ExportedService{
+		{
+			Name: "db",
+			Consumers: []structs.ServiceConsumer{
+				{
+					Peer: "west",
+				},
+				{
+					Peer: "east",
+				},
+				{
+					Partition: "part",
+				},
+				{
+					Peer: "west-2",
+				},
+			},
+		},
+		{
+			Name: "web",
+			Consumers: []structs.ServiceConsumer{
+				{
+					Peer: "peer-a",
+				},
+				{
+					Peer: "peer-b",
+				},
+			},
+		},
+	}
+
+	require.Equal(t, 2, len(resp))
+
+	for idx, expSvc := range expected {
+		require.Equal(t, expSvc.Name, resp[idx].Name)
+		require.ElementsMatch(t, expSvc.Consumers, resp[idx].Consumers)
+	}
 }

@@ -35,13 +35,14 @@ func (s *Store) GetSimplifiedExportedServices(ws memdb.WatchSet, entMeta acl.Ent
 	return getSimplifiedExportedServices(tx, ws, nil, entMeta)
 }
 
-func prepareExportedServicesResponse(exportedServices map[structs.ServiceName]map[structs.ServiceConsumer]struct{}) []*pbconfigentry.ResolvedExportedService {
-	var resp []*pbconfigentry.ResolvedExportedService
+func prepareExportedServicesResponse(exportedServices []structs.ExportedService, entMeta *acl.EnterpriseMeta) []*pbconfigentry.ResolvedExportedService {
 
-	for svc, consumers := range exportedServices {
+	resp := make([]*pbconfigentry.ResolvedExportedService, len(exportedServices))
+
+	for idx, exportedService := range exportedServices {
 		consumerPeers := []string{}
 
-		for consumer := range consumers {
+		for _, consumer := range exportedService.Consumers {
 			if consumer.Peer != "" {
 				consumerPeers = append(consumerPeers, consumer.Peer)
 			}
@@ -49,12 +50,12 @@ func prepareExportedServicesResponse(exportedServices map[structs.ServiceName]ma
 
 		sort.Strings(consumerPeers)
 
-		resp = append(resp, &pbconfigentry.ResolvedExportedService{
-			Service: svc.Name,
+		resp[idx] = &pbconfigentry.ResolvedExportedService{
+			Service: exportedService.Name,
 			Consumers: &pbconfigentry.Consumers{
 				Peers: consumerPeers,
 			},
-		})
+		}
 	}
 
 	return resp

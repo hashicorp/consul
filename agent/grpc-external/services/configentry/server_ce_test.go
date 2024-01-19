@@ -63,15 +63,15 @@ func TestGetResolvedExportedServices(t *testing.T) {
 
 	expected := []*pbconfigentry.ResolvedExportedService{
 		{
-			Service: "db",
-			Consumers: &pbconfigentry.Consumers{
-				Peers: []string{"east", "west"},
-			},
-		},
-		{
 			Service: "cache",
 			Consumers: &pbconfigentry.Consumers{
 				Peers: []string{"east"},
+			},
+		},
+		{
+			Service: "db",
+			Consumers: &pbconfigentry.Consumers{
+				Peers: []string{"east", "west"},
 			},
 		},
 	}
@@ -79,5 +79,5 @@ func TestGetResolvedExportedServices(t *testing.T) {
 	ctx := grpc.NewContextWithServerTransportStream(context.Background(), &testutils.MockServerTransportStream{})
 	resp, err := server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
 	require.NoError(t, err)
-	require.ElementsMatch(t, expected, resp.Services)
+	require.Equal(t, expected, resp.Services)
 }

@@ -5,6 +5,7 @@ package state
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -88,21 +89,7 @@ func resolvedExportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.Ent
 		return maxIdx, nil, nil
 	}
 
-	// Services -> ServiceConsumers
-	var exportedServices = make(map[structs.ServiceName]map[structs.ServiceConsumer]struct{})
-
-	// Helper function for inserting data and auto-creating maps.
-	insertEntry := func(m map[structs.ServiceName]map[structs.ServiceConsumer]struct{}, service structs.ServiceName, consumers []structs.ServiceConsumer) {
-		for _, c := range consumers {
-			cons, ok := m[service]
-			if !ok {
-				cons = make(map[structs.ServiceConsumer]struct{})
-				m[service] = cons
-			}
-
-			cons[c] = struct{}{}
-		}
-	}
+	var exportedServices []structs.ExportedService
 
 	for _, svc := range exports.Services {
 		// Prevent exporting the "consul" service.
@@ -111,11 +98,10 @@ func resolvedExportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.Ent
 		}
 
 		svcEntMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
-		svcName := structs.NewServiceName(svc.Name, &svcEntMeta)
 
-		// If this isn't a wildcard, we can simply add it to the list of services to watch and move to the next entry.
+		// If this isn't a wildcard, we can simply add it to the list of exportedServices and move to the next entry.
 		if svc.Name != structs.WildcardSpecifier {
-			insertEntry(exportedServices, svcName, svc.Consumers)
+			exportedServices = append(exportedServices, svc)
 			continue
 		}
 
@@ -130,12 +116,59 @@ func resolvedExportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.Ent
 		for _, sn := range typicalServices {
 			// Prevent exporting the "consul" service.
 			if sn.Service.Name != structs.ConsulServiceName {
-				insertEntry(exportedServices, sn.Service, svc.Consumers)
+				exportedServices = append(exportedServices, structs.ExportedService{
+					Name:      sn.Service.Name,
+					Namespace: sn.Service.NamespaceOrDefault(),
+					Consumers: svc.Consumers,
+				})
 			}
 		}
 	}
 
-	resp = prepareExportedServicesResponse(exportedServices)
+	uniqueExportedServices := getUniqueExportedServices(exportedServices, entMeta)
+	resp = prepareExportedServicesResponse(uniqueExportedServices, entMeta)
 
 	return maxIdx, resp, nil
+}
+
+// getUniqueExportedServices removes duplicate services and consumers. Services are also sorted in ascending order
+func getUniqueExportedServices(exportedServices []structs.ExportedService, entMeta *acl.EnterpriseMeta) []structs.ExportedService {
+	// Services -> ServiceConsumers
+	var exportedServicesMapper = make(map[structs.ServiceName]map[structs.ServiceConsumer]struct{})
+	for _, svc := range exportedServices {
+		svcEntMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
+		svcName := structs.NewServiceName(svc.Name, &svcEntMeta)
+
+		for _, c := range svc.Consumers {
+			cons, ok := exportedServicesMapper[svcName]
+			if !ok {
+				cons = make(map[structs.ServiceConsumer]struct{})
+				exportedServicesMapper[svcName] = cons
+			}
+			cons[c] = struct{}{}
+		}
+	}
+
+	uniqueExportedServices := make([]structs.ExportedService, 0, len(exportedServicesMapper))
+
+	for svc, cons := range exportedServicesMapper {
+		consumers := make([]structs.ServiceConsumer, 0, len(cons))
+		for con := range cons {
+			consumers = append(consumers, con)
+		}
+
+		uniqueExportedServices = append(uniqueExportedServices, structs.ExportedService{
+			Name:      svc.Name,
+			Namespace: svc.NamespaceOrDefault(),
+			Consumers: consumers,
+		})
+
+	}
+
+	sort.Slice(uniqueExportedServices, func(i, j int) bool {
+		return (uniqueExportedServices[i].Name < uniqueExportedServices[j].Name) ||
+			(uniqueExportedServices[i].Name == uniqueExportedServices[j].Name && uniqueExportedServices[i].Namespace < uniqueExportedServices[j].Namespace)
+	})
+
+	return uniqueExportedServices
 }
