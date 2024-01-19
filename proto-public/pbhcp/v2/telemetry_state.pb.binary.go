@@ -18,11 +18,21 @@ func (msg *TelemetryState) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *MetricsState) MarshalBinary() ([]byte, error) {
+func (msg *MetricsConfig) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *MetricsState) UnmarshalBinary(b []byte) error {
+func (msg *MetricsConfig) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ProxyConfig) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ProxyConfig) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

@@ -2,6 +2,7 @@ package telemetrystate
 
 import (
 	"context"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -71,8 +72,13 @@ func (suite *controllerSuite) TestController_Ok() {
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	mockClient, mockClientFn := mockHcpClientFn(suite.T())
 	mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{
-		Endpoint:      "test",
-		MetricsConfig: &hcpclient.MetricsConfig{},
+		MetricsConfig: &hcpclient.MetricsConfig{
+			Endpoint: &url.URL{
+				Scheme: "http",
+				Host:   "localhost",
+				Path:   "/test",
+			},
+		},
 		RefreshConfig: &hcpclient.RefreshConfig{},
 	}, nil)
 	mockClient.EXPECT().GetObservabilitySecret(mock.Anything).Return("xxx", "yyy", nil)
@@ -98,5 +104,31 @@ func (suite *controllerSuite) TestController_Ok() {
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), linkData.ResourceId, decodedState.GetData().ResourceId)
 	require.Equal(suite.T(), "xxx", decodedState.GetData().ClientId)
-	require.Equal(suite.T(), "test", decodedState.GetData().Endpoint)
+	require.Equal(suite.T(), "http://localhost/test", decodedState.GetData().Metrics.Endpoint)
+
+	suite.client.MustDelete(suite.T(), link.Id)
+	suite.client.WaitForDeletion(suite.T(), tsRes.Id)
+}
+
+func (suite *controllerSuite) TestController_LinkingDisabled() {
+	// Run the controller manager
+	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+	_, mockClientFn := mockHcpClientFn(suite.T())
+	mgr.Register(TelemetryStateController(mockClientFn))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	linkData := &pbhcp.Link{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
+	}
+
+	linkRes := rtest.Resource(pbhcp.LinkType, "global").
+		WithData(suite.T(), linkData).
+		WithStatus(link.StatusKey, &pbresource.Status{Conditions: []*pbresource.Condition{link.ConditionDisabled}}).
+		Write(suite.T(), suite.client)
+
+	suite.client.WaitForReconciliation(suite.T(), linkRes.Id, link.StatusKey)
+	suite.client.RequireResourceNotFound(suite.T(), &pbresource.ID{Name: "global", Type: pbhcp.TelemetryStateType})
 }

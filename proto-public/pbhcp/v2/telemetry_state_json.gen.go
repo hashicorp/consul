@@ -16,14 +16,25 @@ func (this *TelemetryState) UnmarshalJSON(b []byte) error {
 	return TelemetryStateUnmarshaler.Unmarshal(b, this)
 }
 
-// MarshalJSON is a custom marshaler for MetricsState
-func (this *MetricsState) MarshalJSON() ([]byte, error) {
+// MarshalJSON is a custom marshaler for MetricsConfig
+func (this *MetricsConfig) MarshalJSON() ([]byte, error) {
 	str, err := TelemetryStateMarshaler.Marshal(this)
 	return []byte(str), err
 }
 
-// UnmarshalJSON is a custom unmarshaler for MetricsState
-func (this *MetricsState) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON is a custom unmarshaler for MetricsConfig
+func (this *MetricsConfig) UnmarshalJSON(b []byte) error {
+	return TelemetryStateUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for ProxyConfig
+func (this *ProxyConfig) MarshalJSON() ([]byte, error) {
+	str, err := TelemetryStateMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for ProxyConfig
+func (this *ProxyConfig) UnmarshalJSON(b []byte) error {
 	return TelemetryStateUnmarshaler.Unmarshal(b, this)
 }
 
