@@ -58,7 +58,7 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 			return 1
 		}
-		c.UI.Error(fmt.Sprintf("Failed to run apply command: %v", err))
+		c.UI.Error(fmt.Sprintf("Failed to run list command: %v", err))
 		return 1
 	}
 
