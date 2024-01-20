@@ -134,7 +134,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// display response
-	b, err := json.MarshalIndent(entry, "", resource.OUTPUT_INDENT)
+	b, err := json.MarshalIndent(entry, "", resource.JSON_INDENT)
 	if err != nil {
 		c.UI.Error("Failed to encode output data")
 		return 1
