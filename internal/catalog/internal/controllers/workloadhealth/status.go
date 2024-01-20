@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	StatusKey              = "consul.io/workload-health"
+	ControllerID           = "consul.io/workload-health"
 	StatusConditionHealthy = "healthy"
 
 	NodeAndWorkloadHealthyMessage   = "All workload and associated node health checks are passing"

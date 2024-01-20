@@ -144,7 +144,7 @@ func TestResourceRead(t *testing.T) {
 			name:         "read resource that doesn't exist",
 			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
 			expectedCode: 1,
-			errMsg:       "Error reading resource group:\"demo\" group_version:\"v2\" kind:\"Artist\"/fake-korn: error reading resource: rpc error: code = NotFound desc = resource not found\n",
+			errMsg:       "error reading resource: rpc error: code = NotFound desc = resource not found\n",
 		},
 	}
 
@@ -154,7 +154,7 @@ func TestResourceRead(t *testing.T) {
 			c := New(ui)
 			cliArgs := append(tc.args, defaultCmdArgs...)
 			code := c.Run(cliArgs)
-			require.Equal(t, tc.errMsg, ui.ErrorWriter.String())
+			require.Contains(t, ui.ErrorWriter.String(), tc.errMsg)
 			require.Equal(t, tc.expectedCode, code)
 		})
 	}

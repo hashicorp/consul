@@ -33,6 +33,7 @@ type DependencyMapper func(
 type Controller struct {
 	name             string
 	reconciler       Reconciler
+	initializer      Initializer
 	managedTypeWatch *watch
 	watches          map[string]*watch
 	queries          map[string]cache.Query
@@ -308,4 +309,16 @@ func (r Request) Key() string {
 		r.ID.Name,
 		r.ID.Uid,
 	)
+}
+
+// Initializer implements the business logic that is executed when the
+// controller is first started.
+type Initializer interface {
+	Initialize(ctx context.Context, rt Runtime) error
+}
+
+// WithInitializer changes the controller's initializer.
+func (c *Controller) WithInitializer(initializer Initializer) *Controller {
+	c.initializer = initializer
+	return c
 }

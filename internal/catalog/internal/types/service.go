@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 )
@@ -21,7 +22,7 @@ func RegisterService(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateService,
 		Mutate:   MutateService,
-		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.Service](),
+		ACLs:     workloadselector.ACLHooks[*pbcatalog.Service](),
 	})
 }
 

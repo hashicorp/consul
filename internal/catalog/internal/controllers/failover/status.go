@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	StatusKey               = "consul.io/failover-policy"
+	ControllerID            = "consul.io/failover-policy"
 	StatusConditionAccepted = "accepted"
 
 	OKReason  = "Ok"

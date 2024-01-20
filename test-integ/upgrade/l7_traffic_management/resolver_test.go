@@ -54,7 +54,7 @@ func TestTrafficManagement_ResolverDefaultSubset_Agentless(t *testing.T) {
 	sp := ct.Sprawl
 	cfg := sp.Config()
 	require.NoError(t, ct.Sprawl.LoadKVDataToCluster("dc1", 1, &api.WriteOptions{}))
-	require.NoError(t, sp.Upgrade(cfg, "dc1", sprawl.UpgradeTypeStandard, utils.TargetImages(), nil))
+	require.NoError(t, sp.Upgrade(cfg, "dc1", sprawl.UpgradeTypeStandard, utils.TargetImages(), nil, nil))
 	t.Log("Finished standard upgrade ...")
 
 	// verify data is not lost

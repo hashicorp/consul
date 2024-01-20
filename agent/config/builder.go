@@ -316,8 +316,10 @@ func formatFromFileExtension(name string) string {
 
 type byName []os.FileInfo
 
-func (a byName) Len() int           { return len(a) }
-func (a byName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byName) Len() int { return len(a) }
+
+func (a byName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a byName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
 // build constructs the runtime configuration from the config sources
@@ -1142,6 +1144,15 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		// Allow override of this check for development/testing purposes. Should not be used in production
 		if !stringslice.Contains(rt.Experiments, consul.HCPAllowV2ResourceAPIs) {
 			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
+		}
+	}
+
+	// For now, disallow usage of several v2 experiments in secondary datacenters.
+	if rt.ServerMode && rt.PrimaryDatacenter != rt.Datacenter {
+		for _, name := range rt.Experiments {
+			if !consul.IsExperimentAllowedOnSecondaries(name) {
+				return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include `%s` for servers in secondary datacenters", name)
+			}
 		}
 	}
 
@@ -2570,7 +2581,9 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 
 func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
-		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
+		ResourceID:   os.Getenv("HCP_RESOURCE_ID"),
+		ClientID:     os.Getenv("HCP_CLIENT_ID"),
+		ClientSecret: os.Getenv("HCP_CLIENT_SECRET"),
 	}
 	// Node id might get overridden in setup.go:142
 	nodeID := stringVal(v.NodeID)
@@ -2581,8 +2594,6 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 		return val
 	}
 
-	val.ClientID = stringVal(v.Cloud.ClientID)
-	val.ClientSecret = stringVal(v.Cloud.ClientSecret)
 	val.AuthURL = stringVal(v.Cloud.AuthURL)
 	val.Hostname = stringVal(v.Cloud.Hostname)
 	val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
@@ -2590,6 +2601,15 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	if resourceID := stringVal(v.Cloud.ResourceID); resourceID != "" {
 		val.ResourceID = resourceID
 	}
+
+	if clientID := stringVal(v.Cloud.ClientID); clientID != "" {
+		val.ClientID = clientID
+	}
+
+	if clientSecret := stringVal(v.Cloud.ClientSecret); clientSecret != "" {
+		val.ClientSecret = clientSecret
+	}
+
 	return val
 }
 

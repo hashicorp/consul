@@ -586,6 +586,55 @@ func (s *Server) initializeManagementToken(name, secretID string) error {
 	return nil
 }
 
+func (s *Server) upsertManagementToken(name, secretID string) error {
+	state := s.fsm.State()
+	if _, err := uuid.ParseUUID(secretID); err != nil {
+		s.logger.Warn("Configuring a non-UUID management token is deprecated")
+	}
+
+	_, token, err := state.ACLTokenGetBySecret(nil, secretID, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get %s: %v", name, err)
+	}
+
+	if token != nil {
+		return nil
+	}
+
+	accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+	if err != nil {
+		return fmt.Errorf("failed to generate the accessor ID for %s: %v", name, err)
+	}
+
+	newToken := structs.ACLToken{
+		AccessorID:  accessor,
+		SecretID:    secretID,
+		Description: name,
+		Policies: []structs.ACLTokenPolicyLink{
+			{
+				ID: structs.ACLPolicyGlobalManagementID,
+			},
+		},
+		CreateTime:     time.Now(),
+		Local:          false,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	newToken.SetHash(true)
+
+	req := structs.ACLTokenBatchSetRequest{
+		Tokens: structs.ACLTokens{&newToken},
+		CAS:    false,
+	}
+	if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
+		return fmt.Errorf("failed to create %s: %v", name, err)
+	}
+
+	s.logger.Info("Created ACL token", "description", name)
+
+	return nil
+}
+
 func (s *Server) insertAnonymousToken() error {
 	state := s.fsm.State()
 	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)

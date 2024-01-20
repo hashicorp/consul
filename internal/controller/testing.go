@@ -42,6 +42,11 @@ func NewTestController(ctl *Controller, client pbresource.ResourceServiceClient)
 	}
 }
 
+func (tc *TestController) WithLogger(logger hclog.Logger) *TestController {
+	tc.logger = tc.c.buildLogger(logger)
+	return tc
+}
+
 // Reconcile invokes the controllers configured reconciler with the cache enabled Runtime
 func (tc *TestController) Reconcile(ctx context.Context, req Request) error {
 	return tc.c.reconciler.Reconcile(ctx, tc.Runtime(), req)

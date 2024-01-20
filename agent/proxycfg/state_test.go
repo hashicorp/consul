@@ -838,6 +838,282 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			stages:   []verificationStage{stage0, stage1},
 		}
 	}
+	newConnectProxyCaseMeshDefault := func() testCase {
+		ns := structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "web-sidecar-proxy",
+			Service: "web-sidecar-proxy",
+			Address: "10.0.1.1",
+			Port:    443,
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "web",
+				Upstreams: structs.Upstreams{
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypePreparedQuery,
+						DestinationName: "query",
+						LocalBindPort:   10001,
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api",
+						LocalBindPort:   10002,
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api-failover-direct",
+						Datacenter:      "dc2",
+						LocalBindPort:   10005,
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeNone,
+						},
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api-failover-to-peer",
+						LocalBindPort:   10007,
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api-dc2",
+						LocalBindPort:   10006,
+					},
+				},
+			},
+		}
+
+		ixnMatch := TestIntentions()
+
+		stage0 := verificationStage{
+			requiredWatches: map[string]verifyWatchRequest{
+				intentionsWatchID: genVerifyIntentionWatch("web", "dc1"),
+				meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
+				fmt.Sprintf("discovery-chain:%s", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api",
+					EvaluateInDatacenter: "dc1",
+					EvaluateInNamespace:  "default",
+					EvaluateInPartition:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeDefault,
+					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
+					},
+				}),
+				fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api-failover-direct",
+					EvaluateInDatacenter: "dc2",
+					EvaluateInNamespace:  "default",
+					EvaluateInPartition:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeNone,
+					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
+					},
+				}),
+				fmt.Sprintf("discovery-chain:%s-failover-to-peer", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api-failover-to-peer",
+					EvaluateInDatacenter: "dc1",
+					EvaluateInNamespace:  "default",
+					EvaluateInPartition:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeDefault,
+					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
+					},
+				}),
+				fmt.Sprintf("discovery-chain:%s-dc2", apiUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api-dc2",
+					EvaluateInDatacenter: "dc1",
+					EvaluateInNamespace:  "default",
+					EvaluateInPartition:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeDefault,
+					},
+					QueryOptions: structs.QueryOptions{
+						Token: aclToken,
+					},
+				}),
+				"upstream:" + pqUID.String(): genVerifyPreparedQueryWatch("query", "dc1"),
+				rootsWatchID:                 genVerifyDCSpecificWatch("dc1"),
+				leafWatchID:                  genVerifyLeafWatch("web", "dc1"),
+			},
+			events: []UpdateEvent{
+				rootWatchEvent(),
+				{
+					CorrelationID: leafWatchID,
+					Result:        issuedCert,
+					Err:           nil,
+				},
+				{
+					CorrelationID: intentionsWatchID,
+					Result:        ixnMatch,
+					Err:           nil,
+				},
+				{
+					CorrelationID: meshConfigEntryID,
+					Result:        &structs.ConfigEntryResponse{},
+				},
+				{
+					CorrelationID: fmt.Sprintf("discovery-chain:%s", apiUID.String()),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
+							}, nil),
+					},
+					Err: nil,
+				},
+				{
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-remote?dc=dc2", apiUID.String()),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "default", "dc2", "trustdomain.consul",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
+							}, nil),
+					},
+					Err: nil,
+				},
+				{
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-local?dc=dc2", apiUID.String()),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "default", "dc2", "trustdomain.consul",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
+							}, nil),
+					},
+					Err: nil,
+				},
+				{
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", apiUID.String()),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "default", "dc2", "trustdomain.consul",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
+							}, nil),
+					},
+					Err: nil,
+				},
+				{
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-dc2", apiUID.String()),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "default", "dc1", "trustdomain.consul",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
+							}, discoChainSetWithEntries(&structs.ServiceResolverConfigEntry{
+								Kind: structs.ServiceResolver,
+								Name: "api-dc2",
+								Redirect: &structs.ServiceResolverRedirect{
+									Service:    "api",
+									Datacenter: "dc2",
+								},
+							})),
+					},
+					Err: nil,
+				},
+				{
+					CorrelationID: fmt.Sprintf("discovery-chain:%s-failover-to-peer", apiUID.String()),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-to-peer", "default", "default", "dc1", "trustdomain.consul",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeDefault
+							}, discoChainSetWithEntries(&structs.ServiceResolverConfigEntry{
+								Kind: structs.ServiceResolver,
+								Name: "api-failover-to-peer",
+								Failover: map[string]structs.ServiceResolverFailover{
+									"*": {
+										Targets: []structs.ServiceResolverFailoverTarget{
+											{Peer: "cluster-01"},
+										},
+									},
+								},
+							})),
+					},
+					Err: nil,
+				},
+				{
+					CorrelationID: "mesh-gateway:dc1",
+					Result: &structs.IndexedCheckServiceNodes{
+						Nodes: structs.CheckServiceNodes{
+							{
+								Node: &structs.Node{
+									Node:    "node1",
+									Address: "10.1.2.3",
+								},
+								Service: structs.TestNodeServiceMeshGateway(t),
+							},
+						},
+					},
+				},
+			},
+			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+				require.True(t, snap.Valid())
+				require.True(t, snap.MeshGateway.isEmpty())
+				require.Equal(t, indexedRoots, snap.Roots)
+
+				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
+				require.Len(t, snap.ConnectProxy.DiscoveryChain, 4, "%+v", snap.ConnectProxy.DiscoveryChain)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 4, "%+v", snap.ConnectProxy.WatchedUpstreams)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 4, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+				require.Len(t, snap.ConnectProxy.WatchedGateways, 4, "%+v", snap.ConnectProxy.WatchedGateways)
+				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 4, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+
+				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+
+				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
+				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
+
+				require.True(t, snap.ConnectProxy.IntentionsSet)
+				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
+				require.True(t, snap.ConnectProxy.MeshConfigSet)
+
+				// No event is expected as all services use default or remote mode
+				require.Equal(t, 0, snap.ConnectProxy.WatchedLocalGWEndpoints.Len())
+			},
+		}
+
+		stage1 := verificationStage{
+			requiredWatches: map[string]verifyWatchRequest{
+				fmt.Sprintf("upstream-target:api.default.default.dc1:%s", apiUID.String()):                                        genVerifyServiceSpecificRequest("api", "", "dc1", true),
+				fmt.Sprintf("upstream-target:api-failover-direct.default.default.dc2:%s-failover-direct?dc=dc2", apiUID.String()): genVerifyServiceSpecificRequest("api-failover-direct", "", "dc2", true),
+				upstreamPeerWatchIDPrefix + fmt.Sprintf("%s-failover-to-peer?peer=cluster-01", apiUID.String()):                   genVerifyServiceSpecificPeeredRequest("api-failover-to-peer", "", "dc1", "cluster-01", true),
+			},
+			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+				require.True(t, snap.Valid())
+				require.True(t, snap.MeshGateway.isEmpty())
+				require.Equal(t, indexedRoots, snap.Roots)
+
+				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
+				require.Len(t, snap.ConnectProxy.DiscoveryChain, 4, "%+v", snap.ConnectProxy.DiscoveryChain)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 4, "%+v", snap.ConnectProxy.WatchedUpstreams)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 4, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+				require.Len(t, snap.ConnectProxy.WatchedGateways, 4, "%+v", snap.ConnectProxy.WatchedGateways)
+				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 4, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+
+				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+
+				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
+				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
+
+				require.True(t, snap.ConnectProxy.IntentionsSet)
+				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
+
+			},
+		}
+
+		return testCase{
+			ns:       ns,
+			sourceDC: "dc1",
+			stages:   []verificationStage{stage0, stage1},
+		}
+	}
 
 	dbIxnMatch := structs.SimplifiedIntentions{
 		{
@@ -3444,8 +3720,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"connect-proxy":                    newConnectProxyCase(structs.MeshGatewayModeDefault),
-		"connect-proxy-mesh-gateway-local": newConnectProxyCase(structs.MeshGatewayModeLocal),
+		"connect-proxy":                      newConnectProxyCase(structs.MeshGatewayModeDefault),
+		"connect-proxy-mesh-gateway-default": newConnectProxyCaseMeshDefault(),
+		"connect-proxy-mesh-gateway-local":   newConnectProxyCase(structs.MeshGatewayModeLocal),
 		"connect-proxy-with-peers": {
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindConnectProxy,

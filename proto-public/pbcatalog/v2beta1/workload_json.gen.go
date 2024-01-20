@@ -49,6 +49,28 @@ func (this *Locality) UnmarshalJSON(b []byte) error {
 	return WorkloadUnmarshaler.Unmarshal(b, this)
 }
 
+// MarshalJSON is a custom marshaler for DNSPolicy
+func (this *DNSPolicy) MarshalJSON() ([]byte, error) {
+	str, err := WorkloadMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for DNSPolicy
+func (this *DNSPolicy) UnmarshalJSON(b []byte) error {
+	return WorkloadUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for Weights
+func (this *Weights) MarshalJSON() ([]byte, error) {
+	str, err := WorkloadMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for Weights
+func (this *Weights) UnmarshalJSON(b []byte) error {
+	return WorkloadUnmarshaler.Unmarshal(b, this)
+}
+
 var (
 	WorkloadMarshaler   = &protojson.MarshalOptions{}
 	WorkloadUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const OUTPUT_INDENT = "  "
+const JSON_INDENT = "  "
 
 type OuterResource struct {
 	ID         *ID            `json:"id"`
@@ -152,7 +152,6 @@ func ParseInputParams(inputArgs []string, flags *flag.FlagSet) error {
 	return nil
 }
 
-// TODO get this function out of this helper file and create a new file in read branch
 func GetTypeAndResourceName(args []string) (resourceType *pbresource.Type, resourceName string, e error) {
 	if len(args) < 2 {
 		return nil, "", fmt.Errorf("Must specify two arguments: resource type and resource name")

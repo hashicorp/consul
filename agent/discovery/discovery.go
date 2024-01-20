@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -25,6 +26,7 @@ type QueryType string
 const (
 	QueryTypeConnect       QueryType = "CONNECT" // deprecated: use for V1 only
 	QueryTypeIngress       QueryType = "INGRESS" // deprecated: use for V1 only
+	QueryTypeInvalid       QueryType = "INVALID"
 	QueryTypeNode          QueryType = "NODE"
 	QueryTypePreparedQuery QueryType = "PREPARED_QUERY" // deprecated: use for V1 only
 	QueryTypeService       QueryType = "SERVICE"
@@ -32,6 +34,7 @@ const (
 	QueryTypeWorkload      QueryType = "WORKLOAD" // V2-only
 )
 
+// Context is used to pass information about the request.
 type Context struct {
 	Token            string
 	DefaultPartition string
@@ -39,12 +42,12 @@ type Context struct {
 	DefaultLocality  *structs.Locality
 }
 
+// QueryTenancy is used to filter catalog data based on tenancy.
 type QueryTenancy struct {
-	Partition     string
-	Namespace     string
-	SamenessGroup string
-	Peer          string
-	Datacenter    string
+	EnterpriseMeta acl.EnterpriseMeta
+	SamenessGroup  string
+	Peer           string
+	Datacenter     string
 }
 
 // QueryPayload represents all information needed by the data backend
@@ -60,15 +63,26 @@ type QueryPayload struct {
 	DisableFailover bool
 }
 
+// ResultType indicates the Consul resource that a discovery record represents.
+// This is useful for things like adding TTLs for different objects in the DNS.
+type ResultType string
+
+const (
+	ResultTypeService  ResultType = "SERVICE"
+	ResultTypeNode     ResultType = "NODE"
+	ResultTypeVirtual  ResultType = "VIRTUAL"
+	ResultTypeWorkload ResultType = "WORKLOAD"
+)
+
 // Result is a generic format of targets that could be returned in a query.
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Address  string // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
-	Weight   uint32 // SRV queries
-	Port     uint32 // SRV queries
-	TTL      uint32
+	Address  string   // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
+	Weight   uint32   // SRV queries
+	Port     uint32   // SRV queries
 	Metadata []string // Used to collect metadata into TXT Records
+	Type     ResultType
 
 	// Used in SRV & PTR queries to point at an A/AAAA Record.
 	// In V1, this could be a full-qualified Service or Node name.
@@ -76,6 +90,7 @@ type Result struct {
 	Target string
 }
 
+// LookupType is used by the CatalogDataFetcher to properly filter endpoints.
 type LookupType string
 
 const (
@@ -113,10 +128,12 @@ type CatalogDataFetcher interface {
 	FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error)
 }
 
+// QueryProcessor is used to process a Discovery Query and return the results.
 type QueryProcessor struct {
 	dataFetcher CatalogDataFetcher
 }
 
+// NewQueryProcessor creates a new QueryProcessor.
 func NewQueryProcessor(dataFetcher CatalogDataFetcher) *QueryProcessor {
 	return &QueryProcessor{
 		dataFetcher: dataFetcher,
@@ -152,6 +169,7 @@ func (p *QueryProcessor) QueryByName(query *Query, ctx Context) ([]*Result, erro
 	}
 }
 
+// QueryByIP is used to look up a service or node from an IP address.
 func (p *QueryProcessor) QueryByIP(ip net.IP, ctx Context) ([]*Result, error) {
 	return p.dataFetcher.FetchRecordsByIp(ctx, ip)
 }

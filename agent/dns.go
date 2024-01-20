@@ -1060,6 +1060,8 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			} else {
 				resp.Answer = append(resp.Answer, aaaaRecord)
 			}
+		default:
+			return invalid()
 		}
 		return nil
 	default:

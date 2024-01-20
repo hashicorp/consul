@@ -26,12 +26,13 @@ type Server struct {
 // Config represent all the DNS configuration required to construct a DNS server.
 type Config struct {
 	AgentConfig *config.RuntimeConfig
-	EntMeta     *acl.EnterpriseMeta
+	EntMeta     acl.EnterpriseMeta
 	Logger      hclog.Logger
 	Processor   DiscoveryQueryProcessor
 	TokenFunc   func() string
 }
 
+// NewServer creates a new DNS server.
 func NewServer(config Config) (*Server, error) {
 	router, err := NewRouter(config)
 	if err != nil {
@@ -45,6 +46,7 @@ func NewServer(config Config) (*Server, error) {
 	return srv, nil
 }
 
+// ListenAndServe starts the DNS server.
 func (d *Server) ListenAndServe(network, addr string, notif func()) error {
 	d.Server = &dns.Server{
 		Addr:              addr,
@@ -63,6 +65,7 @@ func (d *Server) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	return d.Router.ReloadConfig(newCfg)
 }
 
+// Shutdown stops the DNS server.
 func (d *Server) Shutdown() {
 	if d.Server != nil {
 		d.logger.Info("Stopping server",
