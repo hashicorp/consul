@@ -1,0 +1,230 @@
+---
+layout: docs
+page_title: Enable ACLs in WAN federated datacenters
+description: >-
+  Consul's access control list (ACL) system can span multiple datacenters that are WAN federated. Learn how to replicate the ACL system from the primary datacenter to secondary datacenters using a replication token.
+---
+
+# Enable ACLs in WAN federated datacenters
+
+This topic describes how to set up Consul's access control list (ACL) system in cluster deployments that span multiple data centers. This documentation is applicable to new clusters rather than existing clusters.
+
+# Requirements
+
+Consul versions 1.4.0 and later
+
+## Configure ACLs in the Primary Datacenter
+
+In a [federated Consul deployment](/consul/docs/k8s/deployment-configurations/multi-cluster), one of the datacenters is marked as the primary datacenter. You should add the `acl` configuration block to the primary datacenter server's configuration file as shown in the following example.
+
+Refer to the [ACL stanza in the Agent](/consul/docs/reference/agent#acl) reference docs for more detailed descriptions of each attribute.
+
+<Note title="Versions before 1.11.0">
+  The `initial_management` token was called the `master` token in versions prior to 1.11.0.
+</Note>
+
+<CodeTabs heading="ACL Configuration in Primary">
+
+```hcl
+bootstrap_expect =  3
+primary_datacenter =  "PRIMARY_DATACENTER_VALUE"
+acl = {
+ enabled =  true
+ default_policy = "deny"
+ down_policy = "deny"
+ enable_token_persistence = true
+ enable_token_replication = true
+ tokens = {
+   initial_management =  "ACL_MANAGEMENT_TOKEN"
+   agent = "YOUR_ACL_AGENT_TOKEN"
+  }
+}
+
+```
+
+```json
+{
+  "bootstrap_expect": 3,
+  "primary_datacenter": "PRIMARY_DATACENTER_VALUE",
+  "acl": {
+    "enabled": true,
+    "default_policy": "deny",
+    "down_policy": "deny",
+    "enable_token_persistence": true,
+    "enable_token_replication": true,
+    "tokens": {
+      "initial_management": "ACL_MANAGEMENT_TOKEN",
+      "agent": "ACL_AGENT_TOKEN"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+<Warning title="Enterprise deployments">
+
+Note that most enterprise deployments have security requirements that prevent specifying tokens in configuration files. The configuration example also sets the `enable_token_persistence` attribute so that the token is stored to disk in the agent's [data directory](/consul/docs/reference/agent#_data_dir). Any changes to the token through the [API](/consul/api-docs/agent#update-acl-tokens) will be persist to the same location, and the value in the configuration file will be ignored.
+
+</Warning>
+
+You can also set the ACL agent token with the [`consul acl set-agent-token`](/consul/commands/acl/set-agent-token) command.
+
+```shell-session
+$ consul acl set-agent-token agent "<agent_token>"
+```
+
+## Configure servers in secondary datacenters
+
+You must configure servers in secondary data centers to point to the primary data center. You need to provide the ACL replication token to the secondary data centers.
+
+### Create the replication token
+
+Replication tokens are required to replicate ACL tokens and to create [configuration entries](/consul/docs/agent/config-entries) and [auth methods](/consul/docs/secure-consul/acl/auth-methods) in connected secondary datacenters.
+
+Replication tokens require the following permissions:
+
+| Permission           | Description                         |
+| -------------------- | ----------------------------------- | 
+| `acl = "write"`      | The permission allows you to replicate tokens. |
+| `operator = "write"` | This permission enables the `proxy-default` configuration entries to be replicated and enables CA  certificate signing in the secondary datacenter. |
+| `policy = "read"` and `intentions = "read"` in the `service_prefix` field | These permissions enable `service-default` configuration entries, CA, and intention data to be replicated for all services. |
+
+<CodeTabs heading="Replication Token Policy">
+
+<CodeBlockConfig filename="replication-policy.hcl">
+
+```hcl
+acl = "write"
+operator = "write"
+service_prefix "" {
+  policy = "read"
+  intentions = "read"
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+Create a replication policy.
+
+```shell-session
+$ consul acl policy create -name replication -rules @replication-policy.hcl
+```
+
+Create the replication token with your newly created replication policy.
+
+```shell-session
+$ consul acl token create -description "replication token" -policy-name replication
+```
+
+### Configure the replication token in secondary datacenters
+
+Add the replication token to the ACL stanza in secondary datacenters.
+
+<CodeTabs heading="ACL Configuration in Secondaries">
+
+```hcl
+primary_datacenter = "PRIMARY_DATACENTER_NAME"
+acl = {
+   enabled = true
+   default_policy =  "deny"
+   down_policy =  "deny"
+   tokens = {
+      agent =  "ACL_AGENT_TOKEN"
+      replication = "ACL_REPLICATION_TOKEN"
+   }
+}
+```
+
+```json
+{
+  "primary_datacenter": "PRIMARY_DATACENTER_VALUE",
+  "acl": {
+    "enabled": true,
+    "default_policy": "deny",
+    "down_policy": "deny",
+    "tokens": {
+      "agent": "ACL_AGENT_TOKEN",
+      "replication": "ACL_REPLICATION_TOKEN"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+<Warning>
+
+When enabling ACL token replication in secondary datacenters, global tokens present in the secondary datacenter will be lost. For production environments, we recommend configuring ACL replication when you initially bootstrap your datacenter.
+
+</Warning>
+
+If you are using [Consul Enterprise](/consul/docs/enterprise) and the [admin partitions](/consul/docs/enterprise/admin-partitions), only ACL tokens in the default partition are replicated to other datacenters.
+
+## WAN join servers
+
+This step is required for new federated cluster deployments in order for servers in each federated datacenter to discover each other.
+
+Run the following command from one of the server nodes.
+
+```shell-session
+$ consul join -token="ACL_MANAGEMENT_TOKEN" -wan [server 1, server 2, ...]
+```
+
+## Configure clients in secondary datacenters
+
+When ACLs are enabled, client agents need a special token known as the [`agent token`](/consul/docs/secure-consul/acl/tokens#acl-agent-token) to perform internal operations. Agent tokens need to have the right policies for node related actions, including registering itself in the catalog, updating node level health checks, and performing [anti-entropy](/consul/docs/architecture/anti-entropy) syncing.
+
+### Generate agent ACL token
+
+ACL [node identities](/consul/docs/secure-consul/acl#node-identities) help you creating agent tokens with appropriately scoped policies.
+
+Generate the ACL token using node identity.
+
+```shell-session
+$ consul acl token create -node-identity=<NODE_NAME>:<DATACENTER>
+```
+
+### Configure clients to use the ACL agent token
+
+Update the client agents to include the token value from the previous step. Replace the `ACL_AGENT_TOKEN` value below with the secret ID value from the command output.
+
+<CodeTabs heading = "ACL Configuration in Client Agents">
+
+```hcl
+primary_datacenter = "PRIMARY_DATACENTER_NAME"
+acl = {
+   enabled = true
+   default_policy =  "deny"
+   down_policy =  "deny"
+   tokens = {
+      agent =  "ACL_AGENT_TOKEN"
+   }
+}
+```
+
+```json
+{
+  "primary_datacenter": "PRIMARY_DATACENTER_VALUE",
+  "acl": {
+    "enabled": true,
+    "default_policy": "deny",
+    "down_policy": "deny",
+    "tokens": {
+      "agent": "ACL_AGENT_TOKEN"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+You need to restart the client agents for ACL related configuration changes to take effect.
+
+## Summary
+
+After completing the above steps, a federated Consul cluster can be used with ACLs. Refer to
+[ACL Replication Guide](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
+for more on this topic.

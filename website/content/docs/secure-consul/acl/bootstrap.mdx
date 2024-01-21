@@ -1,0 +1,346 @@
+---
+layout: docs
+page_title: Bootstrap ACL system
+description: >-
+  TODO
+---
+
+# Bootstrap ACL system
+
+This page details the process to bootstrap the ACL system and create tokens with minimum privileges for the Consul server agents, client agents, and services. Refer to [ACL overview](/secure-consul/acl) for more information about how the ACL system secures access to Consul operations, and service and agent communications.
+
+## Overview
+
+Complete the following steps to bootstrap the ACL system:
+
+1. Enable ACLs on the agent.
+1. Create the initial bootstrap token.
+
+Then, you will create and add ACL tokens to server agents, client agents, and services. This will let your agents and services interact with each other.
+
+## Requirements
+
+For best results, we recommend bootstrapping your ACL system after you have deployed your initial Consul cluster (register your agents and services), but before you use Consul for service discovery or mesh.
+
+## Enable ACLs on the agents
+
+Add the following [ACL parameters](/consul/docs/reference/agent#acl) to the agent's configuration file and restart the Consul service. In order for Consul to correctly enable ACL configuration, you need to apply the same parameters to every server and client in your Consul datacenter. You should update the configuration files on all the servers first and then initiate a rolling restart.
+
+The following example enables ACL and sets the default policy to `deny`. This means only explicitly named resources are allowed to access Consul. It also enables token persistence, which will persist the token to disk and reload it when an agent restarts.
+
+<CodeBlockConfig filename="agent.hcl">
+
+```hcl
+acl = {
+  enabled = true
+  default_policy = "deny"
+  enable_token_persistence = true
+}
+```
+
+</CodeBlockConfig>
+
+The following table describes common agent configuration fields where ACLs are applicable and whether the configurations apply to servers, clients, or both. Refer to the [Agent](/consul/docs/reference/agent#acl) reference docs for a full list of configuratable fields.
+
+| Configuration option | Servers    | Clients    | Description |
+| -------------------- | ---------- | ---------- | ----------- |
+| [`acl.enabled`](/consul/docs/reference/agent#acl_enabled) | `required` | `required` | Controls whether ACLs are enabled |
+| [`acl.default_policy`](/consul/docs/reference/agent#acl_default_policy) | `optional` | `N/A` | Determines `allowlist` or `denylist` mode |
+| [`acl.down_policy`](/consul/docs/reference/agent#acl_down_policy) | `optional` | `optional` | Determines what to do when the remote token or policy resolution fails |
+| [`acl.role_ttl`](/consul/docs/reference/agent#acl_role_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL Roles |
+| [`acl.policy_ttl`](/consul/docs/reference/agent#acl_policy_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL Policies |
+| [`acl.token_ttl`](/consul/docs/reference/agent#acl_token_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL Tokens |
+
+If you want to reduce Consul client restarts, you can enable the ACLs on them when [you apply the token](#apply-individual-tokens-to-agents).
+
+<Tip title="Bootstrap ACLs on existing datacenter">
+
+If you bootstrap ACLs on an existing datacenter, enable the ACLs on the agents first with `default_policy = "allow"` to reduce downtime. This will enable ACLs but will allow all operations, letting Consul function normally while you create the tokens and apply them.
+
+</Tip>
+
+## Create the initial bootstrap token
+
+Use the `acl bootstrap` command on one of the Consul servers.
+
+```shell-session
+$ consul acl bootstrap
+```
+
+The output gives you important information about the token, including the associated policy `global-management` and `SecretID`. The value of the `SecretID` is also known as the ACL token. This token is an opaque UUID that identifies the requester so that the ACL system can determine whether it should grant or deny access to the requested resource.
+
+By default, Consul assigns the `global-management` policy to the bootstrap token, which has unrestricted privileges. While it is important to have a token with unrestricted privileges in case of emergencies, only a small number of ACL administrators should have access to it.
+
+When you are setting up the ACL system, temporarily set the `CONSUL_HTTP_TOKEN` environment variable to the bootstrap token on one Consul server agent. This gives you the necessary privileges to interact with Consul to create additional ACL tokens and policies.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=<token>
+```
+
+## Apply individual tokens to agents
+
+Adding tokens to agents is a two step process. You need to do this for each server and client agent in your Consul datacenter.
+
+1. [Create the agent token](#create-the-agent-token)
+1. [Add token to agents](#add-token-to-agents)
+
+### Create the agent token
+
+Create an individual token for each Consul agent by specifying a [node identity](/consul/docs/secure-consul/acl#node-identities) with the node's name and datacenter. A node identity grants the privileges necessary to register a node by that name and read any service in the catalog.
+
+```shell-session
+$ consul acl token create -description "<node_name> agent token" \
+  -node-identity "<node_name>:<datacenter_of_node>"
+```
+
+This command returns the token information, including the description and node identity information.
+
+Repeat this process for each agent. It is the ACL administrator's responsibility to save tokens in a secure location. We recommend using Vault to save these tokens.
+
+<!-- TODO: add link out to specific tutorial or usage docs for this -->
+
+### Add token to agents
+
+Apply the agent token to your Consul servers and ensure they are working correctly before applying the agent token to your Consul clients.
+
+You can add the token to the Consul agent in three ways: the agent configuration file, CLI, or API. We recommend using the agent configuration file. If your agent restarts, it will reload the token from the agent configuration file.
+
+<Tabs>
+<Tab heading="Configuration file">
+
+Set the token in the [agent](/consul/docs/reference/agent#acl_tokens_agent) configuration file by adding the following snippet to your existing Consul configuration or create a new file in the Consul configuration directory.
+
+```hcl
+acl {
+  tokens {
+    agent  = "<agent_token_secret_id>"
+  }
+}
+```
+
+Set `CONSUL_HTTP_TOKEN` to the same token on the agent environment to reload Consul configuration.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN="<agent_token_secret_id>"
+```
+
+Reload Consul configuration.
+
+```shell-session
+$ consul reload
+```
+
+</Tab>
+<Tab heading="CLI">
+
+Use the [`set-agent-token`](/consul/commands/acl/set-agent-token) sub-command to set the agent token.
+
+Set `CONSUL_HTTP_TOKEN` to a token with `acl:write` permission. You can use the bootstrap token or create a new token using the  `global-management` policy.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN="<bootstrap_token>"
+```
+
+Then, apply token to agent.
+
+```shell-session
+$ consul acl set-agent-token agent "<agent_token_secret_id>"
+```
+
+</Tab>
+<Tab heading="API">
+
+Use the [`/agent/token/agent`](/consul/api-docs/agent#update-acl-tokens) API endpoint to set the agent token.
+
+Set the `X-Consul-Token` to a token with `acl:write` permission. You can use the bootstrap token or create a new token using the  `global-management` policy.
+
+Create a payload for the API request.
+
+<CodeBlockConfig filename="payload.json">
+
+```json
+{
+  "Token": "<agent_token_secret_id>"
+}
+```
+
+</CodeBlockConfig>
+
+Then, apply the token to the agent. Replace `<agent_ip>` with the IP address of the Consul agent.
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    --header "X-Consul-Token: <<bootstrap_token>" \
+    http://<agent_ip>:8500/v1/agent/token/acl_token
+```
+
+</Tab>
+</Tabs>
+
+You will need to complete this process on every agent. 
+
+Once complete, every agent should have a token that has read and write permissions to Consul, but only for node-related actions. Actions for individual services are not yet allowed.
+
+<Tip title="Bootstrap ACLs on existing datacenter">
+
+If bootstrapping ACLs on an existing datacenter, remember to update the default policy to `default_policy = "deny"` and initiate another rolling restart after applying the token.
+
+</Tip>
+
+You must always add agent tokens to server agents using this process. However, Consul can automatically apply the agent tokens required by client agents with its auto-config feature. Auto-config involves issuing and validating secure JWTs using an OIDC identity provider (IdP). 
+
+<!-- Deprecate this -->
+<!-- To learn more, follow the [Automate Consul Agent Security with Auto-Config](/consul/tutorials/security-operations/docker-compose-auto-config) tutorial. -->
+
+## Apply individual tokens to agents Add tokens to services
+
+Service tokens are necessary for managing the service's information in the catalog, including registration and health checks.
+
+The process to create and apply tokens to services is similar to agents.
+
+1. [Create the service token](#create-the-service-token)
+1. [Add token to service definition](#add-token-to-service-definition). If you are using service mesh, you must also provide the token to the Envoy sidecar proxy.
+
+### Create the service token
+
+Create an individual token for each Consul service by specifying a [service identity](/consul/docs/secure-consul/acl#service-identities) with the service's name and datacenter. A service identity grants the privileges necessary to register a service instance by that name and an associated service mesh sidecar proxy, and to read any service in the catalog.
+
+```shell-session
+$ consul acl token create -description "Token for <service_name>" \
+  -service-identity "<service_name>"
+```
+
+The command will return information about the token, including the description and service identity information. Save the token to a secure location. We recommend using Vault to save these tokens.
+
+Alternatively, you can automate service token creation using Consul [auth methods](/consul/docs/security/acl/auth-methods). Auth methods map attributes from a trusted source of identity such as Kubernetes, JWT, OIDC, or AWS-IAM to ACL tokens with properly scoped policies. For example, you can use a verified JWT to generate a service token by mapping a JWT attribute to a service identity through an auth method with a [service-type binding rule](/consul/api-docs/acl/binding-rules#bindtype-service). The ACL administrator is still responsible for setting up external automation to provide the service ACL tokens generated by Consul auth methods to [the services](#add-token-to-service-definition) and their sidecar proxies.
+
+### Add token to service definition
+
+Next, add the token to the service definition. The following example service definition file that specifies the service token for both service mesh and service discovery (non-mesh) use cases. Refer to the [Service](/consul/docs/reference/service#token) reference docs for a full list of service attributes.
+
+<Tabs>
+<Tab heading="Service Mesh">
+
+<CodeTabs>
+
+<CodeBlockConfig highlight="5-7">
+
+```hcl
+service {
+  name = "dashboard",
+  port = 9002,
+
+  # This service instance's sidecar proxy should be given the same ACL token
+  # when launched with "consul connect envoy".
+  token = "57c5d69a-5f19-469b-0543-12a487eecc66",
+
+  connect {
+    sidecar_service {}
+  }
+
+  check {
+    id = "dashboard-check",
+    http = "http://localhost:9002/health",
+    method = "GET",
+    interval = "1s",
+    timeout = "1s"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="6">
+
+```json
+{
+  "service": {
+    "name": "dashboard",
+    "port": 9002,
+
+    "token": "57c5d69a-5f19-469b-0543-12a487eecc66",
+
+    "connect": {
+      "sidecar_service": {}
+    },
+
+    "check": {
+      "id": "dashboard-check",
+      "http": "http://localhost:9002/health",
+      "method": "GET",
+      "interval": "1s",
+      "timeout": "1s"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+<!-- TODO: Update link -->
+If the service in [Consul service mesh](), its sidecar proxy requires the service token. You must provide the token directly to the sidecar proxy; Consul cannot retrieved the token from the service definition.
+
+Provide the service token when launching the Envoy sidecar proxy instance with [`consul connect envoy`](/consul/commands/connect/envoy) through either environment variables or CLI flags.
+
+1. Environment variables: [`CONSUL_HTTP_TOKEN`](/consul/commands#consul_http_token) or [`CONSUL_HTTP_TOKEN_FILE`](/consul/commands#consul_http_token_file)
+1. CLI flags: [`-token`](/consul/commands/connect/envoy#token) or [`-token-file`](/consul/commands/connect/envoy#token-file)
+
+</Tab>
+<Tab heading="Service discovery (non-mesh)">
+
+<CodeTabs>
+<CodeBlockConfig highlight="5">
+
+```hcl
+service {
+  name = "dashboard",
+  port = 9002,
+
+  token = "57c5d69a-5f19-469b-0543-12a487eecc66",
+
+  check {
+    id = "dashboard-check",
+    http = "http://localhost:9002/health",
+    method = "GET",
+    interval = "1s",
+    timeout = "1s"
+  }
+}
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig highlight="6">
+
+```json
+{
+  "service": {
+    "name": "dashboard",
+    "port": 9002,
+
+    "token": "57c5d69a-5f19-469b-0543-12a487eecc66",
+
+    "check": {
+      "id": "dashboard-check",
+      "http": "http://localhost:9002/health",
+      "method": "GET",
+      "interval": "1s",
+      "timeout": "1s"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+Refer to [Register services and health checks](/consul/docs/register/service) for instructions on registering services. If the service is already registered, re-register it with the token. 
+
+## Next steps
+
+TODO: link out to create common acls
