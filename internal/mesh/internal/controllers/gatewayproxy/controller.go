@@ -119,9 +119,8 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Type: pbmulticluster.ComputedExportedServicesType,
 	}
 
-
 	var exportedServices []*pbmulticluster.ComputedExportedService
-	dec, err := dataFetcher.FetchExportedServices(ctx, exportedServicesID)
+	dec, err := dataFetcher.FetchComputedExportedServices(ctx, exportedServicesID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated exported services", "error", err)
 	} else if dec == nil {
