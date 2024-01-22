@@ -8,10 +8,6 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 )
 
-type Dependencies struct {
-	TrafficPermissionsMapper trafficpermissions.TrafficPermissionsMapper
-}
-
-func Register(mgr *controller.Manager, deps Dependencies) {
-	mgr.Register(trafficpermissions.Controller(deps.TrafficPermissionsMapper))
+func Register(mgr *controller.Manager) {
+	mgr.Register(trafficpermissions.Controller())
 }
