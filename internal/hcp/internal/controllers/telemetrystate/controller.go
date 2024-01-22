@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package telemetrystate
 
 import (
@@ -44,10 +47,6 @@ func (r *telemetryStateReconciler) Reconcile(ctx context.Context, rt controller.
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
 
 	rt.Logger.Trace("reconciling telemetry-state")
-
-	if resource.EqualID(req.ID, globalID) {
-
-	}
 
 	// First get the link resource in order to build a hcp client. If the link resource
 	// doesn't exist then the telemetry-state should not exist either.

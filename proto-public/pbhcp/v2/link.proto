@@ -5,8 +5,8 @@ syntax = "proto3";
 
 package hashicorp.consul.hcp.v2;
 
-import "pbresource/annotations.proto";
 import "pbhcp/v2/hcp_config.proto";
+import "pbresource/annotations.proto";
 
 enum AccessLevel {
   ACCESS_LEVEL_UNSPECIFIED = 0;

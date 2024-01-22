@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package types
 
 import (
@@ -55,10 +58,6 @@ func validateTelemetryState(res *DecodedTelemetryState) error {
 			Name:    "resource_id",
 			Wrapped: resource.ErrMissing,
 		})
-	}
-
-	if res.Data.HcpConfig != nil {
-		err = multierror.Append(err, validateHCPConfig(res.Data.HcpConfig))
 	}
 
 	return err

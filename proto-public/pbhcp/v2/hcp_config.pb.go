@@ -24,16 +24,21 @@ const (
 )
 
 // HCPConfig is used to configure the HCP SDK for communicating with
-// the HashiCorp Cloud Platform
+// the HashiCorp Cloud Platform. All configuration is optional with default
+// values provided by the SDK.
 type HCPConfig struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	AuthUrl               string `protobuf:"bytes,1,opt,name=auth_url,json=authUrl,proto3" json:"auth_url,omitempty"`
-	ApiAddress            string `protobuf:"bytes,2,opt,name=api_address,json=apiAddress,proto3" json:"api_address,omitempty"`
-	ScadaAddress          string `protobuf:"bytes,3,opt,name=scada_address,json=scadaAddress,proto3" json:"scada_address,omitempty"`
-	TlsInsecureSkipVerify bool   `protobuf:"varint,4,opt,name=tls_insecure_skip_verify,json=tlsInsecureSkipVerify,proto3" json:"tls_insecure_skip_verify,omitempty"`
+	// AuthUrl is the URL which will be used to authenticate.
+	AuthUrl string `protobuf:"bytes,1,opt,name=auth_url,json=authUrl,proto3" json:"auth_url,omitempty"`
+	// ApiAddress is the address (<hostname>[:port]) of the HCP api.
+	ApiAddress string `protobuf:"bytes,2,opt,name=api_address,json=apiAddress,proto3" json:"api_address,omitempty"`
+	// ScadaAddress is the address (<hostname>[:port]) of the HCP SCADA endpoint.
+	ScadaAddress string `protobuf:"bytes,3,opt,name=scada_address,json=scadaAddress,proto3" json:"scada_address,omitempty"`
+	// TlsInsecureSkipVerify if true will ignore server name verification when making HTTPS requests
+	TlsInsecureSkipVerify bool `protobuf:"varint,4,opt,name=tls_insecure_skip_verify,json=tlsInsecureSkipVerify,proto3" json:"tls_insecure_skip_verify,omitempty"`
 }
 
 func (x *HCPConfig) Reset() {

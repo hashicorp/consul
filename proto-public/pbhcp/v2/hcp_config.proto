@@ -6,10 +6,18 @@ syntax = "proto3";
 package hashicorp.consul.hcp.v2;
 
 // HCPConfig is used to configure the HCP SDK for communicating with
-// the HashiCorp Cloud Platform
+// the HashiCorp Cloud Platform. All configuration is optional with default
+// values provided by the SDK.
 message HCPConfig {
+  // AuthUrl is the URL which will be used to authenticate.
   string auth_url = 1;
+
+  // ApiAddress is the address (<hostname>[:port]) of the HCP api.
   string api_address = 2;
+
+  // ScadaAddress is the address (<hostname>[:port]) of the HCP SCADA endpoint.
   string scada_address = 3;
+
+  // TlsInsecureSkipVerify if true will ignore server name verification when making HTTPS requests
   bool tls_insecure_skip_verify = 4;
 }

@@ -2,29 +2,54 @@ syntax = "proto3";
 
 package hashicorp.consul.hcp.v2;
 
-import "pbresource/annotations.proto";
 import "pbhcp/v2/hcp_config.proto";
+import "pbresource/annotations.proto";
 
+// TelemetryState describes configuration required to forward telemetry to the HashiCorp Cloud Platform.
+// This resource is managed internally and is only written if the cluster is linked to HCP. Any
+// manual changes to the resource will be reconciled and overwritten with the internally computed
+// state.
 message TelemetryState {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
 
+  // ResourceId is the identifier for the cluster linked with HCP.
   string resource_id = 1;
+
+  // ClientId is the oauth client identifier for cluster.
+  // This client has capabilities limited to writing telemetry data for this cluster.
   string client_id = 2;
+
+  // ClientSecret is the oauth secret used to authenticate requests to send telemetry data to HCP.
   string client_secret = 3;
+
   HCPConfig hcp_config = 4;
   ProxyConfig proxy = 5;
   MetricsConfig metrics = 6;
 }
 
+// MetricsConfig configures metric specific collection details
 message MetricsConfig {
+  // Endpoint is the HTTPS address and path to forward metrics to
   string endpoint = 1;
+
+  // IncludeList contains patterns to match against metric names. Only matched metrics are forwarded.
   repeated string include_list = 2;
-  map<string,string> labels = 3;
+
+  // Labels contains key value pairs that are associated with all metrics collected and fowarded.
+  map<string, string> labels = 3;
+
+  // Disabled toggles metric forwarding. If true, metric forwarding will stop until disabled is set to false.
   bool disabled = 4;
 }
 
+// ProxyConfig describes configuration for forwarding requests through an http proxy
 message ProxyConfig {
+  // HttpProxy configures the http proxy to use for HTTP (non-TLS) requests.
   string http_proxy = 1;
+
+  // HttpsProxy configures the http proxy to use for HTTPS (TLS) requests.
   string https_proxy = 2;
+
+  // NoProxy can be configured to include domains which should NOT be forwarded through the configured http proxy
   repeated string no_proxy = 3;
 }

@@ -35,7 +35,6 @@ var (
 // TelemetryConfig contains configuration for telemetry data forwarded by Consul servers
 // to the HCP Telemetry gateway.
 type TelemetryConfig struct {
-	Endpoint      string
 	MetricsConfig *MetricsConfig
 	RefreshConfig *RefreshConfig
 }
@@ -91,7 +90,6 @@ func convertAgentTelemetryResponse(ctx context.Context, resp *hcptelemetry.Agent
 	metricLabels := convertMetricLabels(telemetryConfig.Labels, cfg)
 
 	return &TelemetryConfig{
-		Endpoint: telemetryConfig.Endpoint,
 		MetricsConfig: &MetricsConfig{
 			Endpoint: metricsEndpoint,
 			Labels:   metricLabels,
