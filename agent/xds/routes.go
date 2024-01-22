@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/response"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
@@ -832,6 +833,10 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 		em.PathSpecifier = &envoy_route_v3.RouteMatch_Prefix{
 			Prefix: "/",
 		}
+	}
+
+	if match.HTTP.CaseInsensitive {
+		em.CaseSensitive = wrapperspb.Bool(false)
 	}
 
 	if len(match.HTTP.Header) > 0 {
