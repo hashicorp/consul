@@ -26,14 +26,14 @@ import (
 )
 
 const (
-	subDir = "hcp-config"
+	SubDir = "hcp-config"
 
-	caFileName      = "server-tls-cas.pem"
-	certFileName    = "server-tls-cert.pem"
-	configFileName  = "server-config.json"
-	keyFileName     = "server-tls-key.pem"
-	tokenFileName   = "hcp-management-token"
-	successFileName = "successful-bootstrap"
+	CAFileName      = "server-tls-cas.pem"
+	CertFileName    = "server-tls-cert.pem"
+	ConfigFileName  = "server-config.json"
+	KeyFileName     = "server-tls-key.pem"
+	TokenFileName   = "hcp-management-token"
+	SuccessFileName = "successful-bootstrap"
 )
 
 // UI is a shim to allow the agent command to pass in it's mitchelh/cli.UI so we
@@ -57,7 +57,7 @@ type RawBootstrapConfig struct {
 
 // fetchBootstrapConfig will fetch boostrap configuration from remote servers and persist it to disk.
 // It will retry until successful or a terminal error condition is found (e.g. permission denied).
-func fetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir string, ui UI) (*RawBootstrapConfig, error) {
+func FetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir string, ui UI) (*RawBootstrapConfig, error) {
 	w := retry.Waiter{
 		MinWait: 1 * time.Second,
 		MaxWait: 5 * time.Minute,
@@ -114,7 +114,7 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.Boot
 	}
 
 	// Create subdir if it's not already there.
-	dir := filepath.Join(dataDir, subDir)
+	dir := filepath.Join(dataDir, SubDir)
 	if err := lib.EnsurePath(dir, true); err != nil {
 		return "", fmt.Errorf("failed to ensure directory %q: %w", dir, err)
 	}
@@ -144,7 +144,7 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.Boot
 
 	var cfgJSON string
 	if bsCfg.TLSCert != "" {
-		if err := validateTLSCerts(bsCfg.TLSCert, bsCfg.TLSCertKey, bsCfg.TLSCAs); err != nil {
+		if err := ValidateTLSCerts(bsCfg.TLSCert, bsCfg.TLSCertKey, bsCfg.TLSCAs); err != nil {
 			return "", fmt.Errorf("invalid certificates: %w", err)
 		}
 
@@ -155,9 +155,9 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.Boot
 		}
 
 		// Store paths to the persisted TLS cert files.
-		cfg["ca_file"] = filepath.Join(dir, caFileName)
-		cfg["cert_file"] = filepath.Join(dir, certFileName)
-		cfg["key_file"] = filepath.Join(dir, keyFileName)
+		cfg["ca_file"] = filepath.Join(dir, CAFileName)
+		cfg["cert_file"] = filepath.Join(dir, CertFileName)
+		cfg["key_file"] = filepath.Join(dir, KeyFileName)
 
 		// Convert the bootstrap config map back into a string
 		cfgJSONBytes, err := json.Marshal(cfg)
@@ -193,7 +193,7 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.Boot
 }
 
 func persistSuccessMarker(dir string) error {
-	name := filepath.Join(dir, successFileName)
+	name := filepath.Join(dir, SuccessFileName)
 	return os.WriteFile(name, []byte(""), 0600)
 
 }
@@ -206,7 +206,7 @@ func persistTLSCerts(dir string, serverCert, serverKey string, caCerts []string)
 	// Write out CA cert(s). We write them all to one file because Go's x509
 	// machinery will read as many certs as it finds from each PEM file provided
 	// and add them separaetly to the CertPool for validation
-	f, err := os.OpenFile(filepath.Join(dir, caFileName), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := os.OpenFile(filepath.Join(dir, CAFileName), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
@@ -221,11 +221,11 @@ func persistTLSCerts(dir string, serverCert, serverKey string, caCerts []string)
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, certFileName), []byte(serverCert), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, CertFileName), []byte(serverCert), 0600); err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, keyFileName), []byte(serverKey), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, KeyFileName), []byte(serverKey), 0600); err != nil {
 		return err
 	}
 
@@ -242,26 +242,26 @@ func validateManagementToken(token string) error {
 }
 
 func persistManagementToken(dir, token string) error {
-	name := filepath.Join(dir, tokenFileName)
+	name := filepath.Join(dir, TokenFileName)
 	return os.WriteFile(name, []byte(token), 0600)
 }
 
 func persistBootstrapConfig(dir, cfgJSON string) error {
 	// Persist the important bits we got from bootstrapping. The TLS certs are
 	// already persisted, just need to persist the config we are going to add.
-	name := filepath.Join(dir, configFileName)
+	name := filepath.Join(dir, ConfigFileName)
 	return os.WriteFile(name, []byte(cfgJSON), 0600)
 }
 
-func loadPersistedBootstrapConfig(dataDir string, ui UI) (*RawBootstrapConfig, bool) {
+func LoadPersistedBootstrapConfig(dataDir string, ui UI) (*RawBootstrapConfig, bool) {
 	if dataDir == "" {
 		// There's no files to load when in dev mode.
 		return nil, false
 	}
 
-	dir := filepath.Join(dataDir, subDir)
+	dir := filepath.Join(dataDir, SubDir)
 
-	_, err := os.Stat(filepath.Join(dir, successFileName))
+	_, err := os.Stat(filepath.Join(dir, SuccessFileName))
 	if os.IsNotExist(err) {
 		// Haven't bootstrapped from HCP.
 		return nil, false
@@ -295,7 +295,7 @@ func loadPersistedBootstrapConfig(dataDir string, ui UI) (*RawBootstrapConfig, b
 }
 
 func loadBootstrapConfigJSON(dataDir string) (string, error) {
-	filename := filepath.Join(dataDir, subDir, configFileName)
+	filename := filepath.Join(dataDir, SubDir, ConfigFileName)
 
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -313,7 +313,7 @@ func loadBootstrapConfigJSON(dataDir string) (string, error) {
 }
 
 func loadManagementToken(dir string) (string, error) {
-	name := filepath.Join(dir, tokenFileName)
+	name := filepath.Join(dir, TokenFileName)
 	bytes, err := os.ReadFile(name)
 	if os.IsNotExist(err) {
 		return "", errors.New("configuration files on disk are incomplete, missing: " + name)
@@ -332,9 +332,9 @@ func loadManagementToken(dir string) (string, error) {
 
 func checkCerts(dir string) error {
 	files := []string{
-		filepath.Join(dir, caFileName),
-		filepath.Join(dir, certFileName),
-		filepath.Join(dir, keyFileName),
+		filepath.Join(dir, CAFileName),
+		filepath.Join(dir, CertFileName),
+		filepath.Join(dir, KeyFileName),
 	}
 
 	missing := make([]string, 0)
@@ -360,28 +360,28 @@ func checkCerts(dir string) error {
 		return fmt.Errorf("configuration files on disk are incomplete, missing: %v", missing)
 	}
 
-	cert, key, caCerts, err := loadCerts(dir)
+	cert, key, caCerts, err := LoadCerts(dir)
 	if err != nil {
 		return fmt.Errorf("failed to load certs from disk: %w", err)
 	}
 
-	if err = validateTLSCerts(cert, key, caCerts); err != nil {
+	if err = ValidateTLSCerts(cert, key, caCerts); err != nil {
 		return fmt.Errorf("invalid certs on disk: %w", err)
 	}
 	return nil
 }
 
-func loadCerts(dir string) (cert, key string, caCerts []string, err error) {
-	certPEMBlock, err := os.ReadFile(filepath.Join(dir, certFileName))
+func LoadCerts(dir string) (cert, key string, caCerts []string, err error) {
+	certPEMBlock, err := os.ReadFile(filepath.Join(dir, CertFileName))
 	if err != nil {
 		return "", "", nil, err
 	}
-	keyPEMBlock, err := os.ReadFile(filepath.Join(dir, keyFileName))
+	keyPEMBlock, err := os.ReadFile(filepath.Join(dir, KeyFileName))
 	if err != nil {
 		return "", "", nil, err
 	}
 
-	caPEMs, err := os.ReadFile(filepath.Join(dir, caFileName))
+	caPEMs, err := os.ReadFile(filepath.Join(dir, CAFileName))
 	if err != nil {
 		return "", "", nil, err
 	}
@@ -420,12 +420,12 @@ func splitCACerts(caPEMs []byte) ([]string, error) {
 	return out, nil
 }
 
-// validateTLSCerts checks that the CA cert, server cert, and key on disk are structurally valid.
+// ValidateTLSCerts checks that the CA cert, server cert, and key on disk are structurally valid.
 //
 // OPTIMIZE: This could be improved by returning an error if certs are expired or close to expiration.
 // However, that requires issuing new certs on bootstrap requests, since returning an error
 // would trigger a re-fetch from HCP.
-func validateTLSCerts(cert, key string, caCerts []string) error {
+func ValidateTLSCerts(cert, key string, caCerts []string) error {
 	leaf, err := tls.X509KeyPair([]byte(cert), []byte(key))
 	if err != nil {
 		return errors.New("invalid server certificate or key")

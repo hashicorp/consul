@@ -11,8 +11,11 @@ package loader
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/hcp/bootstrap"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 )
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
@@ -21,7 +24,7 @@ type ConfigLoader func(source config.Source) (config.LoadResult, error)
 // fetch from HCP servers if the local data is incomplete.
 // It must be passed a (CLI) UI implementation so it can deliver progress
 // updates to the user, for example if it is waiting to retry for a long period.
-func LoadConfig(ctx context.Context, client hcpclient.Client, dataDir string, loader ConfigLoader, ui UI) (ConfigLoader, error) {
+func LoadConfig(ctx context.Context, client hcpclient.Client, dataDir string, loader ConfigLoader, ui bootstrap.UI) (ConfigLoader, error) {
 	ui.Output("Loading configuration from HCP")
 
 	// See if we have existing config on disk
@@ -41,12 +44,19 @@ func LoadConfig(ctx context.Context, client hcpclient.Client, dataDir string, lo
 	// at a later time. Currently, if we observe the existing-cluster marker we
 	// don't attempt to fetch any additional configuration from HCP.
 
-	cfg, ok := loadPersistedBootstrapConfig(dataDir, ui)
+	cfg, ok := bootstrap.LoadPersistedBootstrapConfig(dataDir, ui)
+	if ok {
+		// Persisted bootstrap config exists, but needs to be validated
+		err := validatePersistedConfig(dataDir)
+		if err != nil {
+			ok = false
+		}
+	}
 	if !ok {
 		ui.Info("Fetching configuration from HCP servers")
 
 		var err error
-		cfg, err = fetchBootstrapConfig(ctx, client, dataDir, ui)
+		cfg, err = bootstrap.FetchBootstrapConfig(ctx, client, dataDir, ui)
 		if err != nil {
 			return nil, fmt.Errorf("failed to bootstrap from HCP: %w", err)
 		}
@@ -106,7 +116,7 @@ func AddAclPolicyAccessControlHeader(baseLoader ConfigLoader) ConfigLoader {
 // Note that since the ConfigJSON is stored as the baseLoader's DefaultConfig, its data is the first
 // to be merged by the config.builder and could be overwritten by user-provided values in config files or
 // CLI flags. However, values set to RuntimeConfig after the baseLoader call are final.
-func bootstrapConfigLoader(baseLoader ConfigLoader, cfg *RawBootstrapConfig) ConfigLoader {
+func bootstrapConfigLoader(baseLoader ConfigLoader, cfg *bootstrap.RawBootstrapConfig) ConfigLoader {
 	return func(source config.Source) (config.LoadResult, error) {
 		// Don't allow any further attempts to provide a DefaultSource. This should
 		// only ever be needed later in client agent AutoConfig code but that should
@@ -144,13 +154,14 @@ const (
 
 // finalizeRuntimeConfig will set additional HCP-specific values that are not
 // handled by the config.builder.
-func finalizeRuntimeConfig(rc *config.RuntimeConfig, cfg *RawBootstrapConfig) {
+func finalizeRuntimeConfig(rc *config.RuntimeConfig, cfg *bootstrap.RawBootstrapConfig) {
 	rc.Cloud.ManagementToken = cfg.ManagementToken
 }
 
-func validatePersistedConfig(dataDir string, filename string) error {
-	// Attempt to load persisted config to check for errors and basic validity.
-	// Errors here will raise issues like referencing unsupported config fields.
+// validatePersistedConfig attempts to load persisted config to check for errors and basic validity.
+// Errors here will raise issues like referencing unsupported config fields.
+func validatePersistedConfig(dataDir string) error {
+	filename := filepath.Join(dataDir, bootstrap.SubDir, bootstrap.ConfigFileName)
 	_, err := config.Load(config.LoadOpts{
 		ConfigFiles: []string{filename},
 		HCL: []string{
