@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package types
+package workloadselector
 
 import (
 	"github.com/hashicorp/consul/acl"
@@ -38,7 +38,7 @@ func aclWriteHookResourceWithWorkloadSelector[T WorkloadSelecting](authorizer ac
 	return nil
 }
 
-func ACLHooksForWorkloadSelectingType[T WorkloadSelecting]() *resource.ACLHooks {
+func ACLHooks[T WorkloadSelecting]() *resource.ACLHooks {
 	return &resource.ACLHooks{
 		Read:  aclReadHookResourceWithWorkloadSelector,
 		Write: resource.DecodeAndAuthorizeWrite(aclWriteHookResourceWithWorkloadSelector[T]),

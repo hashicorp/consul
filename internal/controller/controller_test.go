@@ -50,6 +50,7 @@ func TestController_API(t *testing.T) {
 	})
 
 	rec := newTestReconciler()
+	init := newTestInitializer(1)
 	client := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
@@ -70,12 +71,16 @@ func TestController_API(t *testing.T) {
 		WithQuery("some-query", errQuery).
 		WithCustomWatch(concertSource, concertMapper).
 		WithBackoff(10*time.Millisecond, 100*time.Millisecond).
-		WithReconciler(rec)
+		WithReconciler(rec).
+		WithInitializer(init)
 
 	mgr := controller.NewManager(client, testutil.Logger(t))
 	mgr.Register(ctrl)
 	mgr.SetRaftLeader(true)
 	go mgr.Run(testContext(t))
+
+	// Wait for initialization to complete
+	init.wait(t)
 
 	t.Run("managed resource type", func(t *testing.T) {
 		res, err := demo.GenerateV2Artist()
@@ -214,6 +219,44 @@ func TestController_API(t *testing.T) {
 		_, req = rec.wait(t)
 		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
 	})
+}
+
+func TestController_API_InitializeRetry(t *testing.T) {
+	t.Parallel()
+
+	// Configure initializer to error initially in order to test retries
+	expectedInitAttempts := 2
+	init := newTestInitializer(expectedInitAttempts)
+
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+	rec := newTestReconciler()
+
+	ctrl := controller.
+		NewController("artist", pbdemov2.ArtistType).
+		WithBackoff(10*time.Millisecond, 100*time.Millisecond).
+		WithReconciler(rec).
+		WithInitializer(init)
+
+	mgr := controller.NewManager(client, testutil.Logger(t))
+	mgr.Register(ctrl)
+	mgr.SetRaftLeader(true)
+	go mgr.Run(testContext(t))
+
+	// Wait for initialization attempts to complete
+	for i := 0; i < expectedInitAttempts; i++ {
+		init.wait(t)
+	}
+
+	// Create a resource and expect it to reconcile now that initialization is complete
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	rec.wait(t)
 }
 
 func waitForAtomicBoolValue(t testutil.TestingTB, actual *atomic.Bool, expected bool) {
@@ -492,4 +535,44 @@ type Concert struct {
 
 func (c Concert) Key() string {
 	return c.name
+}
+
+func newTestInitializer(errorCount int) *testInitializer {
+	return &testInitializer{
+		calls:            make(chan error, 1),
+		expectedAttempts: errorCount,
+	}
+}
+
+type testInitializer struct {
+	expectedAttempts int // number of times the initializer should run to test retries
+	attempts         int // running count of times initialize is called
+	calls            chan error
+}
+
+func (i *testInitializer) Initialize(_ context.Context, _ controller.Runtime) error {
+	i.attempts++
+	if i.attempts < i.expectedAttempts {
+		// Return an error to cause a retry
+		err := errors.New("initialization error")
+		i.calls <- err
+		return err
+	} else {
+		i.calls <- nil
+		return nil
+	}
+}
+
+func (i *testInitializer) wait(t *testing.T) {
+	t.Helper()
+	select {
+	case err := <-i.calls:
+		if err == nil {
+			// Initialize did not error, no more calls should be expected
+			close(i.calls)
+		}
+		return
+	case <-time.After(1000 * time.Millisecond):
+		t.Fatal("Initialize was not called after 1000ms")
+	}
 }

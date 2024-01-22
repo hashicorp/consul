@@ -11,7 +11,6 @@ const (
 	Version   = "v2beta1"
 
 	ComputedFailoverPolicyKind = "ComputedFailoverPolicy"
-	DNSPolicyKind              = "DNSPolicy"
 	FailoverPolicyKind         = "FailoverPolicy"
 	HealthChecksKind           = "HealthChecks"
 	HealthStatusKind           = "HealthStatus"
@@ -28,12 +27,6 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         ComputedFailoverPolicyKind,
-	}
-
-	DNSPolicyType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         DNSPolicyKind,
 	}
 
 	FailoverPolicyType = &pbresource.Type{

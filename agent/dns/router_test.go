@@ -4,14 +4,17 @@
 package dns
 
 import (
+	"errors"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/discovery"
 )
@@ -25,20 +28,205 @@ import (
 // 4. Something case insensitive
 
 func Test_HandleRequest(t *testing.T) {
-
 	type testCase struct {
-		name                        string
-		agentConfig                 *config.RuntimeConfig // This will override the default test Router Config
-		mockProcessorResponseByName []*discovery.Result   // These will be fed to the mock processor to be returned in order
-		mockProcessorResponseByIP   []*discovery.Result
-		mockProcessorError          error
-		request                     *dns.Msg
-		requestContext              *discovery.Context
-		remoteAddress               net.Addr
-		response                    *dns.Msg
+		name                 string
+		agentConfig          *config.RuntimeConfig // This will override the default test Router Config
+		configureDataFetcher func(fetcher discovery.CatalogDataFetcher)
+		configureRecursor    func(recursor dnsRecursor)
+		mockProcessorError   error
+		request              *dns.Msg
+		requestContext       *discovery.Context
+		remoteAddress        net.Addr
+		response             *dns.Msg
 	}
 
 	testCases := []testCase{
+		// recursor queries
+		{
+			name: "recursors not configured, non-matching domain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			// configureRecursor: call not expected.
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      false,
+					Rcode:              dns.RcodeServerFailure,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "google.com.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+		},
+		{
+			name: "recursors configured, matching domain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				resp := &dns.Msg{
+					MsgHdr: dns.MsgHdr{
+						Opcode:        dns.OpcodeQuery,
+						Response:      true,
+						Authoritative: true,
+						Rcode:         dns.RcodeSuccess,
+					},
+					Question: []dns.Question{
+						{
+							Name:   "google.com.",
+							Qtype:  dns.TypeA,
+							Qclass: dns.ClassINET,
+						},
+					},
+					Answer: []dns.RR{
+						&dns.A{
+							Hdr: dns.RR_Header{
+								Name:   "google.com.",
+								Rrtype: dns.TypeA,
+								Class:  dns.ClassINET,
+							},
+							A: net.ParseIP("1.2.3.4"),
+						},
+					},
+				}
+				recursor.(*mockDnsRecursor).On("handle",
+					mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+					Rcode:         dns.RcodeSuccess,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "google.com.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+				},
+			},
+		},
+		{
+			name: "recursors configured, matching domain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				recursor.(*mockDnsRecursor).On("handle", mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, errRecursionFailed)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      false,
+					Rcode:              dns.RcodeServerFailure,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "google.com.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+		},
+		{
+			name: "recursors configured, unhandled error calling recursors",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "google.com",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				err := errors.New("ahhhhh!!!!")
+				recursor.(*mockDnsRecursor).On("handle", mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, err)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      false,
+					Rcode:              dns.RcodeServerFailure,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "google.com.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+		},
+		// addr queries
 		{
 			name: "test A 'addr.' query, ipv4 response",
 			request: &dns.Msg{
@@ -421,19 +609,128 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 		},
+		// virtual ip queries - we will test just the A record, since the
+		// AAAA and SRV records are handled the same way and the complete
+		// set of addr tests above cover the rest of the cases.
+		{
+			name: "test A 'virtual.' query, ipv4 response",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "c000020a.virtual.consul", // "intentionally missing the trailing dot"
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				fetcher.(*discovery.MockCatalogDataFetcher).On("FetchVirtualIP",
+					mock.Anything, mock.Anything).Return(&discovery.Result{
+					Address: "240.0.0.2",
+					Type:    discovery.ResultTypeVirtual,
+				}, nil)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "c000020a.virtual.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "c000020a.virtual.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("240.0.0.2"),
+					},
+				},
+			},
+		},
+		{
+			name: "test A 'virtual.' query, ipv6 response",
+			// Since we asked for an A record, the AAAA record that resolves from the address is attached as an extra
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "20010db800010002cafe000000001337.virtual.dc1.consul",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				fetcher.(*discovery.MockCatalogDataFetcher).On("FetchVirtualIP",
+					mock.Anything, mock.Anything).Return(&discovery.Result{
+					Address: "2001:db8:1:2:cafe::1337",
+					Type:    discovery.ResultTypeVirtual,
+				}, nil)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "20010db800010002cafe000000001337.virtual.dc1.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Extra: []dns.RR{
+					&dns.AAAA{
+						Hdr: dns.RR_Header{
+							Name:   "20010db800010002cafe000000001337.virtual.dc1.consul.",
+							Rrtype: dns.TypeAAAA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						AAAA: net.ParseIP("2001:db8:1:2:cafe::1337"),
+					},
+				},
+			},
+		},
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		cfg := buildDNSConfig(tc.agentConfig, tc.mockProcessorResponseByName, tc.mockProcessorResponseByIP, tc.mockProcessorError)
+		cdf := &discovery.MockCatalogDataFetcher{}
+		if tc.configureDataFetcher != nil {
+			tc.configureDataFetcher(cdf)
+		}
+		cfg := buildDNSConfig(tc.agentConfig, cdf, tc.mockProcessorError)
 
 		router, err := NewRouter(cfg)
 		require.NoError(t, err)
+
+		// Replace the recursor with a mock and configure
+		router.recursor = newMockDnsRecursor(t)
+		if tc.configureRecursor != nil {
+			tc.configureRecursor(router.recursor)
+		}
 
 		ctx := tc.requestContext
 		if ctx == nil {
 			ctx = &discovery.Context{}
 		}
-
 		actual := router.HandleRequest(tc.request, *ctx, tc.remoteAddress)
 		require.Equal(t, tc.response, actual)
 	}
@@ -446,7 +743,7 @@ func Test_HandleRequest(t *testing.T) {
 
 }
 
-func buildDNSConfig(agentConfig *config.RuntimeConfig, _ []*discovery.Result, _ []*discovery.Result, _ error) Config {
+func buildDNSConfig(agentConfig *config.RuntimeConfig, cdf discovery.CatalogDataFetcher, _ error) Config {
 	cfg := Config{
 		AgentConfig: &config.RuntimeConfig{
 			DNSDomain:  "consul",
@@ -458,9 +755,9 @@ func buildDNSConfig(agentConfig *config.RuntimeConfig, _ []*discovery.Result, _ 
 				Minttl:  4,
 			},
 		},
-		EntMeta:   nil,
+		EntMeta:   acl.EnterpriseMeta{},
 		Logger:    hclog.NewNullLogger(),
-		Processor: nil, // TODO (v2-dns): build this from a mock with the reponses loaded
+		Processor: discovery.NewQueryProcessor(cdf),
 		TokenFunc: func() string { return "" },
 	}
 

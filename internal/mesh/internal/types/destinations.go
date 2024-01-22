@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -22,7 +23,7 @@ func RegisterDestinations(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateDestinations,
 		Validate: ValidateDestinations,
-		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.Destinations](),
+		ACLs:     workloadselector.ACLHooks[*pbmesh.Destinations](),
 	})
 }
 

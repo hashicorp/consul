@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package types
+package workloadselector
 
 import (
 	"google.golang.org/protobuf/proto"
