@@ -20,55 +20,29 @@ Consul supports two general strategies for extending east/west service mesh traf
 
 Consul community edition supports basic cluster peering and federation scenarios. Implementing advanced scenarios such as federated network areas and cluster peering between multiple admin partitions in datacenters require Consul Enterprise. Refer to [Consul Enterprise](consul/docs/enterprise) for more information.
 
-## Workflows
+## Features
 
-Each strategy for extending your network has a distinct workflow to establish and verify traffic across datacenters in your service mesh. In production environments, we recommend you also [secure service mesh communication with mesh gateways](/consul/docs/link/mesh-gateway).
+Use the following Consul features to link segments of your service mesh.
 
 ### Cluster peering
 
-The workflow to establish a cluster peering connection consists of the following steps:
-
-1. Create a peering token in one cluster.
-1. Use the peering token to establish peering with a second cluster.
-1. Export services between clusters.
-1. Create intentions to authorize services for peers.
+@include 'feature/cluster-peering.mdx'
 
 ### WAN federation
 
-The workflow to enable WAN federation consists of the following steps:
-
-1. Deploy a primary datacenter.
-1. Distribute certificates and configurations to secondary datacenters.
-1. Join additional datacenters to a WAN gossip pool.
-1. Verify members of WAN gossip pool.
+@include 'feature/wan-federation.mdx'
 
 ### Federated network areas
 
-The workflow to federate network areas consists of the following steps:
-
-1. Create network areas.
-1. Join datacenters in WAN gossip pool.
-1. Verify members of WAN gossip pool.
+@include 'feature/network-area.mdx'
 
 ### Secure communication with mesh gateways
 
-In production environments, we recommend deploying mesh gateways to further secure communication between datacenters deployed to different cloud regions or platforms. The workflow to deploy mesh gateways between each segment of your network consists of the following steps:
-
-1. Create a mesh gateway and register it with Consul.
-1. Configure the mesh gateway mode for the datacenter.
-1. Declare the mesh gateway as an explicit upstream for the datacenter's proxies.
+@include 'feature/mesh-gateway.mdx'
 
 ## Guidance
 
 The following resources are available to help you extend your service mesh in an east/west direction by linking segments of your network.
-
-### Documentation for each feature
-
-For a complete list of documentation for a specific feature, refer to the following topics:
-
-- [Cluster peering documentation](/consul/docs/link/cluster-peering#guidance)
-- [WAN federation documentation](/consul/docs/link/wan-federation#guidance)
-- [Mesh gateways documentation](/consul/docs/link/mesh-gateway#guidance)
 
 ### Runtime-specific usage documentation
 
