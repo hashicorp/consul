@@ -95,7 +95,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.setRunning(true)
 
 	var err error
-	m.logger.Debug("HCP manager starting")
+	m.logger.Info("HCP manager starting")
 
 	// Update and start the SCADA provider
 	err = m.startSCADAProvider()
@@ -119,24 +119,35 @@ func (m *Manager) Start(ctx context.Context) error {
 		return nil
 	case <-m.updateCh: // empty the update chan if there is a queued update to prevent repeated update in main loop
 		err = m.sendUpdate()
+		if err != nil {
+			m.setRunning(false)
+			return err
+		}
 	default:
 		err = m.sendUpdate()
+		if err != nil {
+			m.setRunning(false)
+			return err
+		}
 	}
 
 	// main loop
 	go func() {
 		for {
-			// Check for configured management token from HCP and upsert it if found
-			if hcpManagement := m.cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
-				upsertTokenErr := m.cfg.ManagementTokenUpserterFn("HCP Management Token", hcpManagement)
-				if upsertTokenErr != nil {
-					m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
-				}
-			}
-
 			m.cfgMu.RLock()
 			cfg := m.cfg
 			m.cfgMu.RUnlock()
+
+			// Check for configured management token from HCP and upsert it if found
+			if hcpManagement := cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
+				if cfg.ManagementTokenUpserterFn != nil {
+					upsertTokenErr := cfg.ManagementTokenUpserterFn("HCP Management Token", hcpManagement)
+					if upsertTokenErr != nil {
+						m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
+					}
+				}
+			}
+
 			nextUpdate := cfg.nextHeartbeat()
 			if err != nil {
 				m.logger.Error("failed to send server status to HCP", "err", err, "next_heartbeat", nextUpdate.String())
@@ -208,12 +219,17 @@ func (m *Manager) GetCloudConfig() config.CloudConfig {
 
 func (m *Manager) UpdateConfig(client hcpclient.Client, cloudCfg config.CloudConfig) {
 	m.cfgMu.Lock()
+	// Save original values
+	originalCfg := m.cfg.CloudConfig
+	originalClient := m.cfg.Client
+
+	// Update with new values
 	m.cfg.Client = client
 	m.cfg.CloudConfig = cloudCfg
 	m.cfgMu.Unlock()
 
-	if m.isRunning() {
-		// Send update with new configuration values if already running
+	// Send update if already running and values were updated
+	if m.isRunning() && (originalClient != client || originalCfg != cloudCfg) {
 		m.SendUpdate()
 	}
 }

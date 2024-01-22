@@ -2095,30 +2095,6 @@ func TestServer_Peering_LeadershipCheck(t *testing.T) {
 	require.NotEqual(t, s2.config.RPCAddr.String(), peeringLeaderAddr)
 }
 
-func TestServer_hcpManager(t *testing.T) {
-	_, conf1 := testServerConfig(t)
-	conf1.BootstrapExpect = 1
-	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
-	hcp1 := hcpclient.NewMockClient(t)
-	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcpclient.ServerStatus) bool {
-		return status.ID == string(conf1.NodeID)
-	})).Run(func(ctx context.Context, status *hcpclient.ServerStatus) {
-		require.Equal(t, status.LanAddress, "127.0.0.2")
-	}).Call.Return(nil)
-
-	deps1 := newDefaultDeps(t, conf1)
-	deps1.HCP.Client = hcp1
-	s1, err := newServerWithDeps(t, conf1, deps1)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer s1.Shutdown()
-	require.NotNil(t, s1.hcpManager)
-	waitForLeaderEstablishment(t, s1)
-	hcp1.AssertExpectations(t)
-
-}
-
 func TestServer_addServerTLSInfo(t *testing.T) {
 	testCases := map[string]struct {
 		errMsg            string
