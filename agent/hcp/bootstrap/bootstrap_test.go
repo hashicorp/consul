@@ -48,9 +48,6 @@ func TestBootstrapConfigLoader(t *testing.T) {
 	// bootstrap_expect and management token are injected from bootstrap config received from HCP.
 	require.Equal(t, 8, result.RuntimeConfig.BootstrapExpect)
 	require.Equal(t, "test-token", result.RuntimeConfig.Cloud.ManagementToken)
-
-	// Response header is always injected from a constant.
-	require.Equal(t, "x-consul-default-acl-policy", result.RuntimeConfig.HTTPResponseHeaders[accessControlHeaderName])
 }
 
 func Test_finalizeRuntimeConfig(t *testing.T) {
@@ -65,28 +62,68 @@ func Test_finalizeRuntimeConfig(t *testing.T) {
 	}
 
 	tt := map[string]testCase{
-		"set header if not present": {
+		"set management token": {
 			rc: &config.RuntimeConfig{},
 			cfg: &RawBootstrapConfig{
 				ManagementToken: "test-token",
 			},
 			verifyFn: func(t *testing.T, rc *config.RuntimeConfig) {
 				require.Equal(t, "test-token", rc.Cloud.ManagementToken)
-				require.Equal(t, "x-consul-default-acl-policy", rc.HTTPResponseHeaders[accessControlHeaderName])
 			},
 		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func Test_AddAclPolicyAccessControlHeader(t *testing.T) {
+	type testCase struct {
+		rc         *config.RuntimeConfig
+		cfg        *RawBootstrapConfig
+		baseLoader ConfigLoader
+		verifyFn   func(t *testing.T, rc *config.RuntimeConfig)
+	}
+	run := func(t *testing.T, tc testCase) {
+		loader := AddAclPolicyAccessControlHeader(tc.baseLoader)
+		result, err := loader(nil)
+		require.NoError(t, err)
+		tc.verifyFn(t, result.RuntimeConfig)
+	}
+
+	tt := map[string]testCase{
 		"append to header if present": {
-			rc: &config.RuntimeConfig{
-				HTTPResponseHeaders: map[string]string{
-					accessControlHeaderName: "Content-Encoding",
-				},
-			},
-			cfg: &RawBootstrapConfig{
-				ManagementToken: "test-token",
+			baseLoader: func(source config.Source) (config.LoadResult, error) {
+				return config.Load(config.LoadOpts{
+					DefaultConfig: config.DefaultSource(),
+					HCL: []string{
+						`server = true`,
+						`bind_addr = "127.0.0.1"`,
+						`data_dir = "/tmp/consul-data"`,
+						fmt.Sprintf(`http_config = { response_headers = { %s = "test" } }`, accessControlHeaderName),
+					},
+				})
 			},
 			verifyFn: func(t *testing.T, rc *config.RuntimeConfig) {
-				require.Equal(t, "test-token", rc.Cloud.ManagementToken)
-				require.Equal(t, "Content-Encoding,x-consul-default-acl-policy", rc.HTTPResponseHeaders[accessControlHeaderName])
+				require.Equal(t, "test,x-consul-default-acl-policy", rc.HTTPResponseHeaders[accessControlHeaderName])
+			},
+		},
+		"set header if not present": {
+			baseLoader: func(source config.Source) (config.LoadResult, error) {
+				return config.Load(config.LoadOpts{
+					DefaultConfig: config.DefaultSource(),
+					HCL: []string{
+						`server = true`,
+						`bind_addr = "127.0.0.1"`,
+						`data_dir = "/tmp/consul-data"`,
+					},
+				})
+			},
+			verifyFn: func(t *testing.T, rc *config.RuntimeConfig) {
+				require.Equal(t, "x-consul-default-acl-policy", rc.HTTPResponseHeaders[accessControlHeaderName])
 			},
 		},
 	}
