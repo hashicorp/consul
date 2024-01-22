@@ -103,7 +103,7 @@ func (suite *controllerSuite) TestController_Ok() {
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 
 	link := rtest.Resource(pbhcp.LinkType, "global").
@@ -134,7 +134,7 @@ func (suite *controllerSuite) TestController_Initialize() {
 	cloudCfg := config.CloudConfig{
 		ClientID:     "client-id-abc",
 		ClientSecret: "client-secret-abc",
-		ResourceID:   "resource-id-abc",
+		ResourceID:   types.GenerateTestResourceID(suite.T()),
 	}
 
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
@@ -189,7 +189,7 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
@@ -231,7 +231,7 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
@@ -263,7 +263,7 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
