@@ -269,6 +269,18 @@ type Reconciler interface {
 	Reconcile(ctx context.Context, rt Runtime, req Request) error
 }
 
+// ReconcileFunc is a convenience type for implementing the Reconciler interface
+// for simple functions.
+func ReconcileFunc(f func(context.Context, Runtime, Request) error) Reconciler {
+	return reconcileFunc(f)
+}
+
+type reconcileFunc func(context.Context, Runtime, Request) error
+
+func (f reconcileFunc) Reconcile(ctx context.Context, rt Runtime, req Request) error {
+	return f(ctx, rt, req)
+}
+
 // RequeueAfterError is an error that allows a Reconciler to override the
 // exponential backoff behavior of the Controller, rather than applying
 // the backoff algorithm, returning a RequeueAfterError will cause the

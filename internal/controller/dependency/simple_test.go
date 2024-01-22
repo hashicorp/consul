@@ -8,10 +8,15 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func resourceID(group string, version string, kind string, name string) *pbresource.ID {
@@ -138,4 +143,52 @@ func TestReplaceType(t *testing.T) {
 		Name:    "arr-matey",
 	}
 	prototest.AssertDeepEqual(t, expected, reqs[0].ID)
+}
+
+func TestMapDecoded(t *testing.T) {
+	mapper := MapDecoded[*pbdemo.Artist](func(_ context.Context, _ controller.Runtime, res *resource.DecodedResource[*pbdemo.Artist]) ([]controller.Request, error) {
+		return []controller.Request{
+			{
+				ID: &pbresource.ID{
+					Type:    res.Id.Type,
+					Tenancy: res.Id.Tenancy,
+					// not realistic for how the Artist's Name is intended but we just want to pull
+					// some data out of the decoded portion and return it.
+					Name: res.Data.Name,
+				},
+			},
+		}, nil
+	})
+
+	for _, tenancy := range resourcetest.TestTenancies() {
+		t.Run(resourcetest.TenancySubTestName(tenancy), func(t *testing.T) {
+			ctx := testutil.TestContext(t)
+
+			res1 := resourcetest.Resource(pbdemo.ArtistType, "foo").
+				WithTenancy(tenancy).
+				WithData(t, &pbdemo.Artist{Name: "something"}).
+				Build()
+
+			res2 := resourcetest.Resource(pbdemo.ArtistType, "foo").
+				WithTenancy(tenancy).
+				// Wrong data type here to force an error in the outer decoder
+				WithData(t, &pbdemo.Album{Name: "else"}).
+				Build()
+
+			reqs, err := mapper(ctx, controller.Runtime{}, res1)
+			require.NoError(t, err)
+			require.Len(t, reqs, 1)
+
+			expected := &pbresource.ID{
+				Type:    res1.Id.Type,
+				Tenancy: res1.Id.Tenancy,
+				Name:    "something",
+			}
+			prototest.AssertDeepEqual(t, expected, reqs[0].ID)
+
+			reqs, err = mapper(ctx, controller.Runtime{}, res2)
+			require.Nil(t, reqs)
+			require.Error(t, err)
+		})
+	}
 }

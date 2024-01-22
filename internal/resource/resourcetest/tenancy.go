@@ -66,6 +66,10 @@ func DefaultTenancyForType(t *testing.T, reg resource.Registration) *pbresource.
 	}
 }
 
+func TenancySubTestName(tenancy *pbresource.Tenancy) string {
+	return fmt.Sprintf("Namespace_%s_Partition_%s", tenancy.Namespace, tenancy.Partition)
+}
+
 func AppendTenancyInfoSubtest(name string, subtestName string, tenancy *pbresource.Tenancy) string {
 	return fmt.Sprintf("%s_%s_Namespace_%s_Partition/%s", name, tenancy.Namespace, tenancy.Partition, subtestName)
 }
