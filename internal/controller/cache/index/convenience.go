@@ -11,6 +11,10 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type IndexQueryOptions struct {
+	Prefix bool
+}
+
 func IndexFromID(id *pbresource.ID, includeUid bool) []byte {
 	var b Builder
 	b.Raw(IndexFromType(id.Type))
@@ -85,6 +89,14 @@ var ReferenceOrIDFromArgs = SingleValueFromArgs[resource.ReferenceOrID](func(r r
 
 var PrefixReferenceOrIDFromArgs = SingleValueFromArgs[resource.ReferenceOrID](func(r resource.ReferenceOrID) ([]byte, error) {
 	return PrefixIndexFromRefOrID(r), nil
+})
+
+var MaybePrefixReferenceOrIDFromArgs = SingleValueFromOneOrTwoArgs[resource.ReferenceOrID, IndexQueryOptions](func(r resource.ReferenceOrID, opts IndexQueryOptions) ([]byte, error) {
+	if opts.Prefix {
+		return PrefixIndexFromRefOrID(r), nil
+	} else {
+		return IndexFromRefOrID(r), nil
+	}
 })
 
 func SingleValueFromArgs[T any](indexer func(value T) ([]byte, error)) func(args ...any) ([]byte, error) {

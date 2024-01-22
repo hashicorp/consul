@@ -26,9 +26,12 @@ type ManagerConfig struct {
 	SCADAProvider     scada.Provider
 	TelemetryProvider *hcpProviderImpl
 
-	StatusFn    StatusCallback
-	MinInterval time.Duration
-	MaxInterval time.Duration
+	StatusFn StatusCallback
+	// Idempotent function to upsert the HCP management token. This will be called periodically in
+	// the manager's main loop.
+	ManagementTokenUpserterFn ManagementTokenUpserter
+	MinInterval               time.Duration
+	MaxInterval               time.Duration
 
 	Logger hclog.Logger
 }
@@ -54,6 +57,7 @@ func (cfg *ManagerConfig) nextHeartbeat() time.Duration {
 }
 
 type StatusCallback func(context.Context) (hcpclient.ServerStatus, error)
+type ManagementTokenUpserter func(name, secretId string) error
 
 type Manager struct {
 	logger hclog.Logger
@@ -111,6 +115,14 @@ func (m *Manager) Run(ctx context.Context) error {
 
 	// main loop
 	for {
+		// Check for configured management token from HCP and upsert it if found
+		if hcpManagement := m.cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
+			upsertTokenErr := m.cfg.ManagementTokenUpserterFn("HCP Management Token", hcpManagement)
+			if upsertTokenErr != nil {
+				m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
+			}
+		}
+
 		m.cfgMu.RLock()
 		cfg := m.cfg
 		m.cfgMu.RUnlock()

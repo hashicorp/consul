@@ -13,6 +13,12 @@ import (
 
 type DecodedLink = resource.DecodedResource[*pbhcp.Link]
 
+const (
+	LinkName             = "global"
+	MetadataSourceKey    = "source"
+	MetadataSourceConfig = "config"
+)
+
 var (
 	linkConfigurationNameError = errors.New("only a single Link resource is allowed and it must be named global")
 )
@@ -31,7 +37,7 @@ var ValidateLink = resource.DecodeAndValidate(validateLink)
 func validateLink(res *DecodedLink) error {
 	var err error
 
-	if res.Id.Name != "global" {
+	if res.Id.Name != LinkName {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "name",
 			Wrapped: linkConfigurationNameError,

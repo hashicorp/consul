@@ -7,6 +7,12 @@ package hashicorp.consul.hcp.v2;
 
 import "pbresource/annotations.proto";
 
+enum AccessLevel {
+  ACCESS_LEVEL_UNSPECIFIED = 0;
+  ACCESS_LEVEL_GLOBAL_READ_WRITE = 1;
+  ACCESS_LEVEL_GLOBAL_READ_ONLY = 2;
+}
+
 message Link {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
 
@@ -14,4 +20,5 @@ message Link {
   string client_id = 2;
   string client_secret = 3;
   string hcp_cluster_url = 4;
+  AccessLevel access_level = 5;
 }

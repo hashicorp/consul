@@ -14,9 +14,11 @@ const (
 
 	StatusLinked                         = "linked"
 	LinkedReason                         = "SUCCESS"
+	FailedReason                         = "FAILED"
 	DisabledReasonV2ResourcesUnsupported = "DISABLED_V2_RESOURCES_UNSUPPORTED"
 
 	LinkedMessageFormat                = "Successfully linked to cluster '%s'"
+	FailedMessage                      = "Failed to link to HCP"
 	DisabledResourceAPIsEnabledMessage = "Link is disabled because resource-apis are enabled"
 )
 
@@ -26,6 +28,12 @@ var (
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  DisabledReasonV2ResourcesUnsupported,
 		Message: DisabledResourceAPIsEnabledMessage,
+	}
+	ConditionFailed = &pbresource.Condition{
+		Type:    StatusLinked,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  FailedReason,
+		Message: FailedMessage,
 	}
 )
 

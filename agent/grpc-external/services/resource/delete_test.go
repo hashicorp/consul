@@ -180,7 +180,7 @@ func TestDelete_ACLs(t *testing.T) {
 			authz: AuthorizerFrom(t, demo.ArtistV1WritePolicy),
 			assertErrFn: func(err error) {
 				require.Error(t, err)
-				require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+				require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String(), err)
 			},
 		},
 		"delete allowed": {
@@ -287,6 +287,52 @@ func TestDelete_Success(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDelete_NonCAS_Retry(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	demo.RegisterTypes(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	// Simulate conflicting versions by blocking the RPC after it has read the
+	// current version of the resource, but before it tries to do a CAS delete
+	// based on that version.
+	backend := &blockOnceBackend{
+		Backend: server.Backend,
+
+		readCompletedCh: make(chan struct{}),
+		blockCh:         make(chan struct{}),
+	}
+	server.Backend = backend
+
+	deleteResultCh := make(chan error)
+	go func() {
+		_, err := client.Delete(testContext(t), &pbresource.DeleteRequest{Id: rsp1.Resource.Id, Version: ""})
+		deleteResultCh <- err
+	}()
+
+	// Wait for the read, to ensure the Delete in the goroutine above has read the
+	// current version of the resource.
+	<-backend.readCompletedCh
+
+	// Update the artist so that its version is different from the version read by Delete
+	res = modifyArtist(t, rsp1.Resource)
+	_, err = backend.WriteCAS(testContext(t), res)
+	require.NoError(t, err)
+
+	// Unblock the Delete by allowing the backend read to return and attempt a CAS delete.
+	// The CAS delete should fail once, and they retry the backend read/delete cycle again
+	// successfully.
+	close(backend.blockCh)
+
+	// Check that the delete succeeded anyway because of a retry.
+	require.NoError(t, <-deleteResultCh)
 }
 
 func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {

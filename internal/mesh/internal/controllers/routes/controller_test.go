@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/controllertest"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -31,7 +31,6 @@ type controllerSuite struct {
 
 	ctx       context.Context
 	client    *rtest.Client
-	rt        controller.Runtime
 	tenancies []*pbresource.Tenancy
 
 	refs *testResourceRef
@@ -46,30 +45,20 @@ type testResourceRef struct {
 func (suite *controllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
 	suite.tenancies = rtest.TestTenancies()
-	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, catalog.RegisterTypes).
+
+	client := controllertest.NewControllerTestBuilder().
 		WithTenancies(suite.tenancies...).
+		WithResourceRegisterFns(types.Register, catalog.RegisterTypes).
+		WithControllerRegisterFns(func(mgr *controller.Manager) {
+			mgr.Register(Controller())
+		}).
 		Run(suite.T())
 
-	suite.rt = controller.Runtime{
-		Client: client,
-		Logger: testutil.Logger(suite.T()),
-	}
 	suite.client = rtest.NewClient(client)
 }
 
 func (suite *controllerSuite) TestController() {
-	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(Controller())
-	mgr.SetRaftLeader(true)
-	go mgr.Run(suite.ctx)
-
 	suite.runTestCaseWithTenancies(func(refs *testResourceRef) {
-
-		backendName := func(name, port string, tenancy *pbresource.Tenancy) string {
-			return fmt.Sprintf("catalog.v2beta1.Service/%s.local.%s/%s?port=%s", tenancy.Partition, tenancy.Namespace, name, port)
-		}
-
 		var (
 			apiServiceRef = refs.apiServiceRef
 			fooServiceRef = refs.fooServiceRef
@@ -136,7 +125,6 @@ func (suite *controllerSuite) TestController() {
 		})
 
 		// Let the default http/http2/grpc routes get created.
-
 		apiServiceData = &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{
 				Prefixes: []string{"api-"},
@@ -1427,4 +1415,8 @@ func (suite *controllerSuite) runTestCaseWithTenancies(testFunc func(ref *testRe
 
 func (suite *controllerSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) string {
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
+}
+
+func backendName(name, port string, tenancy *pbresource.Tenancy) string {
+	return fmt.Sprintf("catalog.v2beta1.Service/%s.local.%s/%s?port=%s", tenancy.Partition, tenancy.Namespace, name, port)
 }
