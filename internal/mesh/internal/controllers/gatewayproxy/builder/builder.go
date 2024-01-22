@@ -6,8 +6,10 @@ package builder
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -21,6 +23,8 @@ import (
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+const nullRouteClusterName = "null_route_cluster"
 
 type proxyStateTemplateBuilder struct {
 	workload         *types.DecodedWorkload
@@ -100,7 +104,7 @@ func (b *proxyStateTemplateBuilder) buildListener(address *pbcatalog.WorkloadAdd
 				L4: &pbproxystate.L4Destination{
 					Destination: &pbproxystate.L4Destination_Cluster{
 						Cluster: &pbproxystate.DestinationCluster{
-							Name: xdscommon.BlackHoleClusterName,
+							Name: nullRouteClusterName,
 						},
 					},
 					StatPrefix: "prefix",
@@ -184,17 +188,21 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 		}
 	}
 
-	// Add black hole cluster for any unmatched traffic
-	clusters[xdscommon.BlackHoleClusterName] = &pbproxystate.Cluster{
-		Name:     xdscommon.BlackHoleClusterName,
-		Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
+	// Add null route cluster for any unmatched traffic
+	clusters[nullRouteClusterName] = &pbproxystate.Cluster{
+		Name: nullRouteClusterName,
 		Group: &pbproxystate.Cluster_EndpointGroup{
 			EndpointGroup: &pbproxystate.EndpointGroup{
 				Group: &pbproxystate.EndpointGroup_Static{
-					Static: &pbproxystate.StaticEndpointGroup{},
+					Static: &pbproxystate.StaticEndpointGroup{
+						Config: &pbproxystate.StaticEndpointGroupConfig{
+							ConnectTimeout: durationpb.New(10 * time.Second),
+						},
+					},
 				},
 			},
 		},
+		Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
 	}
 
 	return clusters
