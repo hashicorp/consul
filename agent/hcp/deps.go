@@ -30,9 +30,13 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger, dataDir string) (Deps,
 	ctx := context.Background()
 	ctx = hclog.WithContext(ctx, logger)
 
-	hcpClient, err := client.NewClient(cfg)
-	if err != nil {
-		return Deps{}, fmt.Errorf("failed to init client: %w", err)
+	var hcpClient client.Client
+	if cfg.ResourceID != "" {
+		var err error
+		hcpClient, err = client.NewClient(cfg)
+		if err != nil {
+			return Deps{}, fmt.Errorf("failed to init client: %w", err)
+		}
 	}
 
 	provider, err := scada.New(logger.Named("scada"))
