@@ -609,7 +609,7 @@
             "path": "secure-consul/security-model"
           },
           {
-            "title": "Consul core",
+            "title": "Consul Core",
             "path": "secure-consul/security-model/core"
           },
           {

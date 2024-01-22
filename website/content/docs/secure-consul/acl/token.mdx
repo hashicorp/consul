@@ -17,10 +17,26 @@ Refer to the [ACL workflow overview](/consul/docs/security/acl#workflow-overview
 
 ## Create tokens
 
-The ACLs administrator can use the API or CLI to create and link tokens to entities that enable permissions to resources. Refer to the [ACL API](/consul/api-docs/acl) and [ACL CLI](/consul/commands/acl) documentation for instructions on how to create and link tokens. Tokens can also be created dynamically from trusted external system using an [auth method](/consul/docs/security/acl/auth-methods).
+The ACLs administrator can use the API or CLI to create and link tokens to entities that enable permissions to resources. 
 
-<!-- We're deprecating this -->
-<!-- Refer to the [Secure Consul with Access Control Lists (ACLs)](/consul/tutorials/security/access-control-setup-production) tutorial for help getting started with creating tokens. The tutorial includes an interactive sandbox so that you can perform the procedures without configuring your local environment. -->
+<Tabs>
+<Tab heading="CLI">
+
+```shell-session
+$ consul acl token create -description "Read nodes and services" -policy-name node-services-read
+```
+
+</Tab>
+<Tab heading="API">
+
+```shell-session
+$ curl --request PUT --data @payload.json http://127.0.0.1:8500/v1/acl/token
+```
+
+</Tab>
+</Tabs>
+
+Refer to the [ACL API](/consul/api-docs/acl/tokenscl) and [ACL CLI](/consul/commands/acl/token/create) documentation for more details on how to create and link tokens. Tokens can also be created dynamically from trusted external system using an [auth method](/consul/docs/security/acl/auth-methods).
 
 ## Pass tokens
 
