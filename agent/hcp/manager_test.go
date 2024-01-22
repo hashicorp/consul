@@ -22,12 +22,18 @@ func TestManager_Run(t *testing.T) {
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
+	upsertManagementTokenCalled := make(chan struct{}, 1)
+	upsertManagementTokenF := func(name, secretID string) error {
+		upsertManagementTokenCalled <- struct{}{}
+		return nil
+	}
 	updateCh := make(chan struct{}, 1)
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Once()
 
 	cloudCfg := config.CloudConfig{
-		ResourceID: "organization/85702e73-8a3d-47dc-291c-379b783c5804/project/8c0547c0-10e8-1ea2-dffe-384bee8da634/hashicorp.consul.global-network-manager.cluster/test",
-		NodeID:     "node-1",
+		ResourceID:      "organization/85702e73-8a3d-47dc-291c-379b783c5804/project/8c0547c0-10e8-1ea2-dffe-384bee8da634/hashicorp.consul.global-network-manager.cluster/test",
+		NodeID:          "node-1",
+		ManagementToken: "fake-token",
 	}
 	scadaM := scada.NewMockProvider(t)
 	scadaM.EXPECT().UpdateHCPConfig(cloudCfg).Return(nil)
@@ -52,12 +58,13 @@ func TestManager_Run(t *testing.T) {
 		mockTelemetryCfg, nil).Maybe()
 
 	mgr := NewManager(ManagerConfig{
-		Client:            client,
-		Logger:            hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn:          statusF,
-		CloudConfig:       cloudCfg,
-		SCADAProvider:     scadaM,
-		TelemetryProvider: telemetryProvider,
+		Client:                    client,
+		Logger:                    hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		StatusFn:                  statusF,
+		ManagementTokenUpserterFn: upsertManagementTokenF,
+		CloudConfig:               cloudCfg,
+		SCADAProvider:             scadaM,
+		TelemetryProvider:         telemetryProvider,
 	})
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -76,6 +83,7 @@ func TestManager_Run(t *testing.T) {
 	require.Equal(t, client, telemetryProvider.hcpClient)
 	require.NotNil(t, telemetryProvider.GetHeader())
 	require.NotNil(t, telemetryProvider.GetHTTPClient())
+	require.NotEmpty(t, upsertManagementTokenCalled, "upsert management token function not called")
 }
 
 func TestManager_SendUpdate(t *testing.T) {
