@@ -189,19 +189,21 @@ func (ct *commonTopo) ValidateWorkloads(t *testing.T) {
 	t.Helper()
 	ct.Assert = topoutil.NewAsserter(ct.Sprawl)
 	cluster := ct.Sprawl.Topology().Clusters[dc1]
+	node := cluster.Nodes[0]
 
 	staticServerWorkload := cluster.WorkloadByID(
 		topology.NewNodeID("dc1-client1", defaultPartition),
 		ct.StaticServerSID,
 	)
 	ct.Assert.HTTPStatus(t, staticServerWorkload, staticServerWorkload.Port, 200)
-	ct.Assert.HealthServiceEntries(t, cluster.Name, ct.StaticServerSID.Name, true, &api.QueryOptions{}, 1)
+	ct.Assert.HealthServiceEntries(t, cluster.Name, node, ct.StaticServerSID.Name, true, &api.QueryOptions{}, 1, 0)
 
 	staticClientWorkload := cluster.WorkloadByID(
 		topology.NewNodeID("dc1-client2", defaultPartition),
 		ct.StaticClientSID,
 	)
-	ct.Assert.HealthServiceEntries(t, cluster.Name, ct.StaticClientSID.Name, true, &api.QueryOptions{}, 1)
+
+	ct.Assert.HealthServiceEntries(t, cluster.Name, node, ct.StaticClientSID.Name, true, &api.QueryOptions{}, 1, 0)
 
 	// check the service exists in catalog
 	svcs := cluster.WorkloadsByID(ct.StaticClientSID)
