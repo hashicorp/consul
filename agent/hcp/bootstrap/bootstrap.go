@@ -73,6 +73,10 @@ func FetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir 
 
 		cfg, err := fetchBootstrapConfig(reqCtx, client, dataDir)
 		if err != nil {
+			if errors.Is(err, hcpclient.ErrUnauthorized) || errors.Is(err, hcpclient.ErrForbidden) {
+				// Don't retry on terminal errors
+				return nil, err
+			}
 			ui.Error(fmt.Sprintf("Error: failed to fetch bootstrap config from HCP, will retry in %s: %s",
 				w.NextWait().Round(time.Second), err))
 			if err := w.Wait(ctx); err != nil {

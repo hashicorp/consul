@@ -207,6 +207,7 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
 		HCPPortalURL: "http://test.com",
 	}, nil)
+
 	token, err := uuid.GenerateUUID()
 	require.NoError(suite.T(), err)
 	mockClient.EXPECT().FetchBootstrap(mock.Anything).
@@ -243,35 +244,58 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 }
 
 func (suite *controllerSuite) TestController_GetClusterError() {
-	// Run the controller manager
-	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mockClient, mockClientFunc := mockHcpClientFn(suite.T())
-	mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, fmt.Errorf("error"))
-
-	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
-	mgr.Register(LinkController(
-		true,
-		true,
-		mockClientFunc,
-		config.CloudConfig{},
-		dataDir,
-	))
-
-	mgr.SetRaftLeader(true)
-	go mgr.Run(suite.ctx)
-
-	linkData := &pbhcp.Link{
-		ClientId:     "abc",
-		ClientSecret: "abc",
-		ResourceId:   types.GenerateTestResourceID(suite.T()),
+	type testCase struct {
+		expectErr       error
+		expectCondition *pbresource.Condition
 	}
-	link := rtest.Resource(pbhcp.LinkType, "global").
-		WithData(suite.T(), linkData).
-		Write(suite.T(), suite.client)
+	tt := map[string]testCase{
+		"unexpected": {
+			expectErr:       fmt.Errorf("error"),
+			expectCondition: ConditionFailed,
+		},
+		"unauthorized": {
+			expectErr:       hcpclient.ErrUnauthorized,
+			expectCondition: ConditionUnauthorized,
+		},
+		"forbidden": {
+			expectErr:       hcpclient.ErrForbidden,
+			expectCondition: ConditionForbidden,
+		},
+	}
 
-	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
+	for name, tc := range tt {
+		suite.T().Run(name, func(t *testing.T) {
+			// Run the controller manager
+			mgr := controller.NewManager(suite.client, suite.rt.Logger)
+			mockClient, mockClientFunc := mockHcpClientFn(suite.T())
+			mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, tc.expectErr)
 
-	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionFailed)
+			dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+			mgr.Register(LinkController(
+				true,
+				true,
+				mockClientFunc,
+				config.CloudConfig{},
+				dataDir,
+			))
+
+			mgr.SetRaftLeader(true)
+			go mgr.Run(suite.ctx)
+
+			linkData := &pbhcp.Link{
+				ClientId:     "abc",
+				ClientSecret: "abc",
+				ResourceId:   types.GenerateTestResourceID(suite.T()),
+			}
+			link := rtest.Resource(pbhcp.LinkType, "global").
+				WithData(suite.T(), linkData).
+				Write(suite.T(), suite.client)
+
+			suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
+
+			suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, tc.expectCondition)
+		})
+	}
 }
 
 func Test_hcpAccessModeToConsul(t *testing.T) {

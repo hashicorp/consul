@@ -16,13 +16,11 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
+	"github.com/hashicorp/consul/internal/storage"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // HCPClientFn is a function that can be used to create an HCP client from a Link object.
@@ -67,26 +65,6 @@ type linkReconciler struct {
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
 	dataDir                string
-}
-
-func (r *linkReconciler) writeStatusIfNotEqual(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, status *pbresource.Status) error {
-	if resource.EqualStatus(res.Status[StatusKey], status, false) {
-		return nil
-	}
-	_, err := rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-		Id:     res.Id,
-		Key:    StatusKey,
-		Status: status,
-	})
-	return err
-}
-
-func (r *linkReconciler) linkingFailed(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) error {
-	newStatus := &pbresource.Status{
-		ObservedGeneration: res.Generation,
-		Conditions:         []*pbresource.Condition{ConditionFailed},
-	}
-	return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
@@ -137,12 +115,12 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 			ObservedGeneration: res.Generation,
 			Conditions:         []*pbresource.Condition{ConditionDisabled},
 		}
-		return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
+		return writeStatusIfNotEqual(ctx, rt, res, newStatus)
 	}
 
 	hcpClient, err := r.hcpClientFn(&link)
 	if err != nil {
-		rt.Logger.Error("error creating HCP Client", "error", err)
+		rt.Logger.Error("error creating HCP client", "error", err)
 		return err
 	}
 
@@ -150,7 +128,8 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	cluster, err := hcpClient.GetCluster(ctx)
 	if err != nil {
 		rt.Logger.Error("error querying HCP for cluster", "error", err)
-		return r.linkingFailed(ctx, rt, res)
+		linkingFailed(ctx, rt, res, err)
+		return err
 	}
 	accessLevel := hcpAccessLevelToConsul(cluster.AccessLevel)
 
@@ -184,13 +163,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	if accessLevel != pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY {
 		_, err = bootstrap.LoadManagementToken(ctx, rt.Logger, hcpClient, r.dataDir)
 		if err != nil {
-			rt.Logger.Error("error loading management token", "error", err)
-			newStatus := &pbresource.Status{
-				ObservedGeneration: res.Generation,
-				Conditions:         []*pbresource.Condition{ConditionFailed},
-			}
-
-			r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
+			linkingFailed(ctx, rt, res, err)
 			return err
 		}
 		// TODO: Update the HCP manager with the loaded management token as part of CC-7044
@@ -201,7 +174,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		Conditions:         []*pbresource.Condition{ConditionLinked(link.ResourceId)},
 	}
 
-	return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
+	return writeStatusIfNotEqual(ctx, rt, res, newStatus)
 }
 
 type linkInitializer struct {

@@ -5,9 +5,11 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
@@ -172,6 +174,72 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 				loaded:  false,
 				warning: "is not a valid UUID",
 			},
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestFetchBootstrapConfig(t *testing.T) {
+	type testCase struct {
+		expectFetchErr error
+		expectRetry    bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		ui := cli.NewMockUi()
+		dataDir := testutil.TempDir(t, "fetch-bootstrap-cfg")
+		clientM := hcpclient.NewMockClient(t)
+
+		if tc.expectFetchErr != nil && tc.expectRetry {
+			clientM.On("FetchBootstrap", mock.Anything).
+				Return(nil, tc.expectFetchErr)
+		} else if tc.expectFetchErr != nil && !tc.expectRetry {
+			clientM.On("FetchBootstrap", mock.Anything).
+				Return(nil, tc.expectFetchErr).Once()
+		} else {
+			validToken, err := uuid.GenerateUUID()
+			require.NoError(t, err)
+			clientM.EXPECT().FetchBootstrap(mock.Anything).Return(&hcpclient.BootstrapConfig{
+				ManagementToken: validToken,
+				ConsulConfig:    "{}",
+			}, nil).Once()
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		cfg, err := FetchBootstrapConfig(ctx, clientM, dataDir, ui)
+
+		if tc.expectFetchErr == nil {
+			require.NoError(t, err)
+			require.NotNil(t, cfg)
+			return
+		}
+
+		require.Error(t, err)
+		require.Nil(t, cfg)
+		if tc.expectRetry {
+			require.ErrorIs(t, err, context.DeadlineExceeded)
+		} else {
+			require.ErrorIs(t, err, tc.expectFetchErr)
+		}
+	}
+
+	tt := map[string]testCase{
+		"success": {},
+		"unauthorized": {
+			expectFetchErr: hcpclient.ErrUnauthorized,
+		},
+		"forbidden": {
+			expectFetchErr: hcpclient.ErrForbidden,
+		},
+		"retryable fetch error": {
+			expectFetchErr: errors.New("error"),
+			expectRetry:    true,
 		},
 	}
 
