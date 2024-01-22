@@ -4,14 +4,19 @@
 package bootstrap
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,9 +33,7 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		dataDir, err := os.MkdirTemp(os.TempDir(), "load-bootstrap-test-")
-		require.NoError(t, err)
-		t.Cleanup(func() { os.RemoveAll(dataDir) })
+		dataDir := testutil.TempDir(t, "load-bootstrap-cfg")
 
 		dir := filepath.Join(dataDir, SubDir)
 
@@ -52,6 +55,7 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 
 		var token string
 		if !tc.disableManagementToken {
+			var err error
 			token, err = uuid.GenerateUUID()
 			require.NoError(t, err)
 			require.NoError(t, persistManagementToken(dir, token))
@@ -168,6 +172,73 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 				loaded:  false,
 				warning: "is not a valid UUID",
 			},
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestLoadManagementToken(t *testing.T) {
+	type testCase struct {
+		skipHCPConfigDir bool
+		skipTokenFile    bool
+		tokenFileContent string
+		skipBootstrap    bool
+	}
+
+	validToken, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	run := func(t *testing.T, tc testCase) {
+		dataDir := testutil.TempDir(t, "load-management-token")
+
+		hcpCfgDir := filepath.Join(dataDir, SubDir)
+		if !tc.skipHCPConfigDir {
+			err := os.Mkdir(hcpCfgDir, 0755)
+			require.NoError(t, err)
+		}
+
+		tokenFilePath := filepath.Join(hcpCfgDir, TokenFileName)
+		if !tc.skipTokenFile {
+			err := os.WriteFile(tokenFilePath, []byte(tc.tokenFileContent), 0600)
+			require.NoError(t, err)
+		}
+
+		clientM := hcpclient.NewMockClient(t)
+		if !tc.skipBootstrap {
+			clientM.EXPECT().FetchBootstrap(mock.Anything).Return(&hcpclient.BootstrapConfig{
+				ManagementToken: validToken,
+				ConsulConfig:    "{}",
+			}, nil).Once()
+		}
+
+		token, err := LoadManagementToken(context.Background(), hclog.NewNullLogger(), clientM, dataDir)
+		require.NoError(t, err)
+		require.Equal(t, validToken, token)
+
+		bytes, err := os.ReadFile(tokenFilePath)
+		require.NoError(t, err)
+		require.Equal(t, validToken, string(bytes))
+	}
+
+	tt := map[string]testCase{
+		"token configured": {
+			skipBootstrap:    true,
+			tokenFileContent: validToken,
+		},
+		"no token configured": {
+			skipTokenFile: true,
+		},
+		"invalid token configured": {
+			tokenFileContent: "invalid",
+		},
+		"no hcp-config directory": {
+			skipHCPConfigDir: true,
+			skipTokenFile:    true,
 		},
 	}
 

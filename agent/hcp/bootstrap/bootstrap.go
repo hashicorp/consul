@@ -22,6 +22,7 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -55,7 +56,7 @@ type RawBootstrapConfig struct {
 	ManagementToken string
 }
 
-// fetchBootstrapConfig will fetch boostrap configuration from remote servers and persist it to disk.
+// FetchBootstrapConfig will fetch bootstrap configuration from remote servers and persist it to disk.
 // It will retry until successful or a terminal error condition is found (e.g. permission denied).
 func FetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir string, ui UI) (*RawBootstrapConfig, error) {
 	w := retry.Waiter{
@@ -64,14 +65,13 @@ func FetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir 
 		Jitter:  retry.NewJitter(50),
 	}
 
-	var bsCfg *hcpclient.BootstrapConfig
 	for {
 		// Note we don't want to shadow `ctx` here since we need that for the Wait
 		// below.
 		reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		resp, err := client.FetchBootstrap(reqCtx)
+		cfg, err := fetchBootstrapConfig(reqCtx, client, dataDir)
 		if err != nil {
 			ui.Error(fmt.Sprintf("Error: failed to fetch bootstrap config from HCP, will retry in %s: %s",
 				w.NextWait().Round(time.Second), err))
@@ -81,12 +81,22 @@ func FetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir 
 			// Finished waiting, restart loop
 			continue
 		}
-		bsCfg = resp
-		break
+		return cfg, nil
+	}
+}
+
+// fetchBootstrapConfig will fetch  the bootstrap configuration from remote servers and persist it to disk.
+func fetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir string) (*RawBootstrapConfig, error) {
+	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	resp, err := client.FetchBootstrap(reqCtx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch bootstrap config from HCP: %w", err)
 	}
 
+	bsCfg := resp
 	devMode := dataDir == ""
-
 	cfgJSON, err := persistAndProcessConfig(dataDir, devMode, bsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to persist config for existing cluster: %w", err)
@@ -442,4 +452,26 @@ func ValidateTLSCerts(cert, key string, caCerts []string) error {
 		}
 	}
 	return nil
+}
+
+// LoadManagementToken returns the management token, either by loading it from the persisted
+// token config file or by fetching it from HCP if the token file does not exist.
+func LoadManagementToken(ctx context.Context, logger hclog.Logger, client hcpclient.Client, dataDir string) (string, error) {
+	hcpCfgDir := filepath.Join(dataDir, SubDir)
+	token, err := loadManagementToken(hcpCfgDir)
+
+	if err != nil {
+		logger.Debug("fetching configuration from HCP")
+		var err error
+		cfg, err := fetchBootstrapConfig(ctx, client, dataDir)
+		if err != nil {
+			return "", err
+		}
+		logger.Debug("configuration fetched from HCP and saved on local disk")
+		token = cfg.ManagementToken
+	} else {
+		logger.Trace("loaded HCP configuration from local disk")
+	}
+
+	return token, nil
 }
