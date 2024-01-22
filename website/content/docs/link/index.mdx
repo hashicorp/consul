@@ -24,32 +24,19 @@ Consul community edition supports basic cluster peering and federation scenarios
 
 ## Cluster peering
 
-Cluster peering lets you connect two or more independent Consul clusters so that services deployed to different partitions or datacenters can communicate. Add a sentence or two about how cluster peering works.
-
-Refer to the [Cluster peering documentation](/consul/docs/link/cluster-peering#guidance) for more information.
+@include 'feature/cluster-peering.mdx'
 
 ## WAN federation
 
-In Consul, federation is the act of joining two or more Consul datacenters. When datacenters are joined, Consul servers in each datacenter can communicate with one another. This enables the following features:
-
-1. Services on all clusters can make calls to each other through Consul Service Mesh.
-1. Intentions can be used to enforce rules about which services can communicate across all clusters.
-1. L7 Routing Rules can enable multi-cluster failover and traffic splitting.
-1. The Consul UI has a drop-down menu that lets you navigate between datacenters.
-
-Refer to the [WAN federation documentation](/consul/docs/link/wan-federation#guidance) for more information.
+@include 'feature/wan-federation.mdx'
 
 ## Federated network areas
 
-Network areas specify a relationship between a pair of Consul datacenters. Operators create reciprocal areas on each side of the relationship and then join them together, so a given Consul datacenter can participate in many areas, even when some of the peer areas cannot contact each other. This allows for more flexible relationships between Consul datacenters, such as hub/spoke or more general tree structures. Traffic between areas is all performed via server RPC (8300/tcp) so it can be secured with just TLS.
-
-Refer to the [Network area documentation](/consul/docs/link/network-area) for more information.
+@include 'feature/network-area.mdx'
 
 ## Secure communication with mesh gateways
 
-Mesh gateways enable service mesh traffic to be routed between different Consul datacenters. Datacenters can reside in different clouds or runtime environments where general interconnectivity between all services in all datacenters isn't feasible. In production environments, we recommend deploying mesh gateways to further secure communication between datacenters deployed to different cloud regions or platforms.
-
-Refer to the [Mesh gateway documentation](/consul/docs/link/mesh-gateway) for more information.
+@include 'feature/mesh-gateway.mdx'
 
 ## Guidance
 
