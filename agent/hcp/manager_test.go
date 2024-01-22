@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func TestManager_Run(t *testing.T) {
+func TestManager_Start(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
@@ -36,12 +36,12 @@ func TestManager_Run(t *testing.T) {
 		ManagementToken: "fake-token",
 	}
 	scadaM := scada.NewMockProvider(t)
-	scadaM.EXPECT().UpdateHCPConfig(cloudCfg).Return(nil)
+	scadaM.EXPECT().UpdateHCPConfig(cloudCfg).Return(nil).Once()
 	scadaM.EXPECT().UpdateMeta(
 		map[string]string{
 			"consul_server_id": string(cloudCfg.NodeID),
 		},
-	).Return()
+	).Return().Once()
 	scadaM.EXPECT().Start().Return(nil)
 
 	telemetryProvider := &hcpProviderImpl{
@@ -70,7 +70,7 @@ func TestManager_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	go mgr.Run(ctx)
+	mgr.Start(ctx)
 	select {
 	case <-updateCh:
 	case <-time.After(time.Second):
@@ -105,7 +105,7 @@ func TestManager_SendUpdate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go mgr.Run(ctx)
+	mgr.Start(ctx)
 	select {
 	case <-updateCh:
 	case <-time.After(time.Second):
@@ -141,7 +141,7 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go mgr.Run(ctx)
+	mgr.Start(ctx)
 	select {
 	case <-updateCh:
 	case <-time.After(time.Second):

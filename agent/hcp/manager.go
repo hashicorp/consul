@@ -62,6 +62,9 @@ type ManagementTokenUpserter func(name, secretId string) error
 type Manager struct {
 	logger hclog.Logger
 
+	running bool
+	runLock sync.RWMutex
+
 	cfg   ManagerConfig
 	cfgMu sync.RWMutex
 
@@ -81,12 +84,16 @@ func NewManager(cfg ManagerConfig) *Manager {
 	}
 }
 
-// Run executes the Manager it's designed to be run in its own goroutine for
-// the life of a server agent. It should be run even if HCP is not configured
-// yet for servers since a config update might configure it later and
-// UpdateConfig called. It will effectively do nothing if there are no HCP
-// credentials set other than wait for some to be added.
-func (m *Manager) Run(ctx context.Context) error {
+// Start executes the logic for connecting to HCP and sending periodic server updates. If the
+// manager has been previously started, it will not start again.
+func (m *Manager) Start(ctx context.Context) error {
+	// Check if the manager has already started
+	if m.isRunning() {
+		m.logger.Trace("HCP manager already started")
+		return nil
+	}
+	m.setRunning(true)
+
 	var err error
 	m.logger.Debug("HCP manager starting")
 
@@ -94,18 +101,21 @@ func (m *Manager) Run(ctx context.Context) error {
 	err = m.startSCADAProvider()
 	if err != nil {
 		m.logger.Error("failed to start scada provider", "error", err)
+		m.setRunning(false)
 		return err
 	}
 
 	// Update and start the telemetry provider to enable the HCP metrics sink
 	if err := m.startTelemetryProvider(ctx); err != nil {
 		m.logger.Error("failed to update telemetry config provider", "error", err)
+		m.setRunning(false)
 		return err
 	}
 
 	// immediately send initial update
 	select {
 	case <-ctx.Done():
+		m.setRunning(false)
 		return nil
 	case <-m.updateCh: // empty the update chan if there is a queued update to prevent repeated update in main loop
 		err = m.sendUpdate()
@@ -114,34 +124,39 @@ func (m *Manager) Run(ctx context.Context) error {
 	}
 
 	// main loop
-	for {
-		// Check for configured management token from HCP and upsert it if found
-		if hcpManagement := m.cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
-			upsertTokenErr := m.cfg.ManagementTokenUpserterFn("HCP Management Token", hcpManagement)
-			if upsertTokenErr != nil {
-				m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
+	go func() {
+		for {
+			// Check for configured management token from HCP and upsert it if found
+			if hcpManagement := m.cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
+				upsertTokenErr := m.cfg.ManagementTokenUpserterFn("HCP Management Token", hcpManagement)
+				if upsertTokenErr != nil {
+					m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
+				}
+			}
+
+			m.cfgMu.RLock()
+			cfg := m.cfg
+			m.cfgMu.RUnlock()
+			nextUpdate := cfg.nextHeartbeat()
+			if err != nil {
+				m.logger.Error("failed to send server status to HCP", "err", err, "next_heartbeat", nextUpdate.String())
+			}
+
+			select {
+			case <-ctx.Done():
+				m.setRunning(false)
+				return
+
+			case <-m.updateCh:
+				err = m.sendUpdate()
+
+			case <-time.After(nextUpdate):
+				err = m.sendUpdate()
 			}
 		}
+	}()
 
-		m.cfgMu.RLock()
-		cfg := m.cfg
-		m.cfgMu.RUnlock()
-		nextUpdate := cfg.nextHeartbeat()
-		if err != nil {
-			m.logger.Error("failed to send server status to HCP", "err", err, "next_heartbeat", nextUpdate.String())
-		}
-
-		select {
-		case <-ctx.Done():
-			return nil
-
-		case <-m.updateCh:
-			err = m.sendUpdate()
-
-		case <-time.After(nextUpdate):
-			err = m.sendUpdate()
-		}
-	}
+	return err
 }
 
 func (m *Manager) startSCADAProvider() error {
@@ -246,4 +261,16 @@ func (m *Manager) sendUpdate() error {
 	}
 
 	return m.cfg.Client.PushServerStatus(ctx, &s)
+}
+
+func (m *Manager) isRunning() bool {
+	m.runLock.RLock()
+	defer m.runLock.RUnlock()
+	return m.running
+}
+
+func (m *Manager) setRunning(s bool) {
+	m.runLock.Lock()
+	defer m.runLock.Unlock()
+	m.running = s
 }
