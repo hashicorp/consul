@@ -327,7 +327,6 @@ func (s *Server) setupGRPCServices(config *Config, deps Deps) error {
 	// it is only accessed via the internalGRPCHandler with an actual network
 	// conn managed  by the Agents GRPCConnPool.
 	err = s.registerConfigEntryServer(
-		config,
 		s.internalGRPCHandler,
 	)
 	if err != nil {
@@ -549,11 +548,10 @@ func (s *Server) registerServerDiscoveryServer(resolver serverdiscovery.ACLResol
 	return nil
 }
 
-func (s *Server) registerConfigEntryServer(config *Config, registrars ...grpc.ServiceRegistrar) error {
+func (s *Server) registerConfigEntryServer(registrars ...grpc.ServiceRegistrar) error {
 
-	s.configEntryBackend = NewConfigEntryBackend(s)
 	srv := configentry.NewServer(configentry.Config{
-		Backend: s.configEntryBackend,
+		Backend: NewConfigEntryBackend(s),
 		Logger:  s.loggers.Named(logging.GRPCAPI).Named(logging.ConfigEntry),
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)

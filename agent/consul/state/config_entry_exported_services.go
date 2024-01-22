@@ -97,13 +97,13 @@ func resolvedExportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.Ent
 			continue
 		}
 
-		svcEntMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
-
 		// If this isn't a wildcard, we can simply add it to the list of exportedServices and move to the next entry.
 		if svc.Name != structs.WildcardSpecifier {
 			exportedServices = append(exportedServices, svc)
 			continue
 		}
+
+		svcEntMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
 
 		// If all services in the namespace are exported by the wildcard, query those service names.
 		idx, typicalServices, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, svcEntMeta)

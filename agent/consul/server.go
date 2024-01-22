@@ -51,7 +51,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
-	"github.com/hashicorp/consul/agent/grpc-external/services/configentry"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/hcp"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
@@ -437,9 +436,6 @@ type Server struct {
 	// peeringBackend is shared between the external and internal gRPC services for peering
 	peeringBackend *PeeringBackend
 
-	// configEntryBackend is shared between the external and internal gRPC services for config entries
-	configEntryBackend *ConfigEntryBackend
-
 	// peerStreamServer is a server used to handle peering streams from external clusters.
 	peerStreamServer *peerstream.Server
 
@@ -452,8 +448,6 @@ type Server struct {
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
-
-	configEntryServer *configentry.Server
 
 	// routineManager is responsible for managing longer running go routines
 	// run by the Server

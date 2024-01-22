@@ -82,22 +82,3 @@ func (e *ExportedServicesConfigEntry) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(source)
 }
-
-type ResolvedExportedService struct {
-	// Service is the name of the service which is exported.
-	Service string
-
-	// Partition of the service
-	Partition string `json:",omitempty"`
-
-	// Namespace of the service
-	Namespace string `json:",omitempty"`
-
-	// Consumers is a list of downstream consumers of the service.
-	Consumers ResolvedConsumers
-}
-
-type ResolvedConsumers struct {
-	Peers      []string `json:",omitempty"`
-	Partitions []string `json:",omitempty"`
-}
