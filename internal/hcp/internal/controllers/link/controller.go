@@ -9,9 +9,9 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
@@ -42,7 +42,13 @@ var DefaultHCPClientFn HCPClientFn = func(link *pbhcp.Link) (hcpclient.Client, e
 	return hcpClient, nil
 }
 
-func LinkController(resourceApisEnabled bool, hcpAllowV2ResourceApis bool, hcpClientFn HCPClientFn, cfg config.CloudConfig) *controller.Controller {
+func LinkController(
+	resourceApisEnabled bool,
+	hcpAllowV2ResourceApis bool,
+	hcpClientFn HCPClientFn,
+	cfg config.CloudConfig,
+	dataDir string,
+) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
 		WithInitializer(&linkInitializer{
 			cloudConfig: cfg,
@@ -51,6 +57,7 @@ func LinkController(resourceApisEnabled bool, hcpAllowV2ResourceApis bool, hcpCl
 			resourceApisEnabled:    resourceApisEnabled,
 			hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
 			hcpClientFn:            hcpClientFn,
+			dataDir:                dataDir,
 		})
 }
 
@@ -58,6 +65,7 @@ type linkReconciler struct {
 	resourceApisEnabled    bool
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
+	dataDir                string
 }
 
 func (r *linkReconciler) writeStatusIfNotEqual(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, status *pbresource.Status) error {

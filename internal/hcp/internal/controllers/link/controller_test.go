@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -49,7 +48,7 @@ func mockHcpClientFn(t *testing.T) (*hcpclient.MockClient, HCPClientFn) {
 
 func (suite *controllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	suite.tenancies = resourcetest.TestTenancies()
+	suite.tenancies = rtest.TestTenancies()
 	client := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(types.Register).
 		WithTenancies(suite.tenancies...).
@@ -81,7 +80,14 @@ func (suite *controllerSuite) TestController_Ok() {
 		HCPPortalURL: "http://test.com",
 		AccessLevel:  &readOnly,
 	}, nil)
-	mgr.Register(LinkController(false, false, mockClientFn, config.CloudConfig{}))
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+	mgr.Register(LinkController(
+		false,
+		false,
+		mockClientFn,
+		config.CloudConfig{},
+		dataDir,
+	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -122,7 +128,15 @@ func (suite *controllerSuite) TestController_Initialize() {
 		ResourceID:   "resource-id-abc",
 	}
 
-	mgr.Register(LinkController(false, false, mockClientFn, cloudCfg))
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+
+	mgr.Register(LinkController(
+		false,
+		false,
+		mockClientFn,
+		cloudCfg,
+		dataDir,
+	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -152,7 +166,14 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	_, mockClientFunc := mockHcpClientFn(suite.T())
-	mgr.Register(LinkController(true, false, mockClientFunc, config.CloudConfig{}))
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+	mgr.Register(LinkController(
+		true,
+		false,
+		mockClientFunc,
+		config.CloudConfig{},
+		dataDir,
+	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -178,7 +199,16 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 		HCPPortalURL: "http://test.com",
 	}, nil)
 
-	mgr.Register(LinkController(true, true, mockClientFunc, config.CloudConfig{}))
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+
+	mgr.Register(LinkController(
+		true,
+		true,
+		mockClientFunc,
+		config.CloudConfig{},
+		dataDir,
+	))
+
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -202,7 +232,15 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 	mockClient, mockClientFunc := mockHcpClientFn(suite.T())
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, fmt.Errorf("error"))
 
-	mgr.Register(LinkController(true, true, mockClientFunc, config.CloudConfig{}))
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+	mgr.Register(LinkController(
+		true,
+		true,
+		mockClientFunc,
+		config.CloudConfig{},
+		dataDir,
+	))
+
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
