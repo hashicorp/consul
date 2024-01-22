@@ -15,68 +15,55 @@ For more information about how to divide your network, including the difference 
 
 Consul supports two general strategies for extending east/west service mesh traffic across your network:
 
-- Cluster peering
-- Wide Area Network (WAN) federation
+1. Cluster peering
+1. Wide Area Network (WAN) federation
+
+Each strategy for extending your network has a distinct workflow to establish and verify traffic across datacenters in your service mesh.
 
 Consul community edition supports basic cluster peering and federation scenarios. Implementing advanced scenarios such as federated network areas and cluster peering between multiple admin partitions in datacenters require Consul Enterprise. Refer to [Consul Enterprise](consul/docs/enterprise) for more information.
 
-## Workflows
+## Cluster peering
 
-Each strategy for extending your network has a distinct workflow to establish and verify traffic across datacenters in your service mesh. In production environments, we recommend you also [secure service mesh communication with mesh gateways](/consul/docs/link/mesh-gateway).
+Cluster peering lets you connect two or more independent Consul clusters so that services deployed to different partitions or datacenters can communicate. Add a sentence or two about how cluster peering works.
 
-### Cluster peering
+Refer to the [Cluster peering documentation](/consul/docs/link/cluster-peering#guidance) for more information.
 
-The workflow to establish a cluster peering connection consists of the following steps:
-
-1. Create a peering token in one cluster.
-1. Use the peering token to establish peering with a second cluster.
-1. Export services between clusters.
-1. Create intentions to authorize services for peers.
-
-### WAN federation
-
-The workflow to enable WAN federation consists of the following steps:
-
-1. Deploy a primary datacenter.
-1. Distribute certificates and configurations to secondary datacenters.
-1. Join additional datacenters to a WAN gossip pool.
-1. Verify members of WAN gossip pool.
-
-### Federated network areas
-
-The workflow to federate network areas consists of the following steps:
-
-1. Create network areas.
-1. Join datacenters in WAN gossip pool.
-1. Verify members of WAN gossip pool.
-
-### Secure communication with mesh gateways
-
-In production environments, we recommend deploying mesh gateways to further secure communication between datacenters deployed to different cloud regions or platforms. The workflow to deploy mesh gateways between each segment of your network consists of the following steps:
-
-1. Create a mesh gateway and register it with Consul.
-1. Configure the mesh gateway mode for the datacenter.
-1. Declare the mesh gateway as an explicit upstream for the datacenter's proxies.
-
-When configuring cluster peering connections on virtual machines, you must also configure ACLs between mesh gateways. This step is required for cluster peering connections between mesh gateways, but is not required for WAN federation through mesh gateways.
-
-## Guidance
-
-The following resources are available to help you extend your service mesh in an east/west direction by linking segments of your network.
-
-### Cluster peering on VMs usage documentation
-
-Refer to the following pages for guidance about using cluster peering with Consul on Kubernetes:
+Refer to the following pages for guidance about using cluster peering with Consul on VMs:
 
 - [Establish cluster peering connections on VMs](/consul/docs/link/cluster-peering/establish/vm)
 - [Manage cluster peering connections on VMs](/consul/docs/link/cluster-peering/manage/vms)
 
-### WAN federation on Kubernetes
+## WAN federation
+
+In Consul, federation is the act of joining two or more Consul datacenters. When datacenters are joined, Consul servers in each datacenter can communicate with one another. This enables the following features:
+
+1. Services on all clusters can make calls to each other through Consul Service Mesh.
+1. Intentions can be used to enforce rules about which services can communicate across all clusters.
+1. L7 Routing Rules can enable multi-cluster failover and traffic splitting.
+1. The Consul UI has a drop-down menu that lets you navigate between datacenters.
+
+Refer to the [WAN federation documentation](/consul/docs/link/wan-federation#guidance) for more information.
 
 Refer to the following pages for guidance about using WAN federation with Consul on Kubernetes:
 
 - [WAN federation between VMs](/consul/docs/link/wan-federation/vm)
 - [WAN federation between virtual machines and Kubernetes clusters](/consul/docs/link/wan-federation/k8s-vm)
+
+## Federated network areas
+
+Network areas specify a relationship between a pair of Consul datacenters. Operators create reciprocal areas on each side of the relationship and then join them together, so a given Consul datacenter can participate in many areas, even when some of the peer areas cannot contact each other. This allows for more flexible relationships between Consul datacenters, such as hub/spoke or more general tree structures. Traffic between areas is all performed via server RPC (8300/tcp) so it can be secured with just TLS.
+
+Refer to the [Network area documentation](/consul/docs/link/network-area) for more information.
+
+## Secure communication with mesh gateways
+
+Mesh gateways enable service mesh traffic to be routed between different Consul datacenters. Datacenters can reside in different clouds or runtime environments where general interconnectivity between all services in all datacenters isn't feasible. In production environments, we recommend deploying mesh gateways to further secure communication between datacenters deployed to different cloud regions or platforms.
+
+Refer to the [Mesh gateway documentation](/consul/docs/link/mesh-gateway) for more information.
+
+## Guidance
+
+The following resources are available to help you extend your service mesh in an east/west direction by linking segments of your network.
 
 ### Reference documentation
 
