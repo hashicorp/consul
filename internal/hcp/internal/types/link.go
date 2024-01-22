@@ -5,15 +5,11 @@ package types
 
 import (
 	"errors"
-	"fmt"
-	"testing"
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-uuid"
 	hcpresource "github.com/hashicorp/hcp-sdk-go/resource"
-	"github.com/stretchr/testify/require"
 )
 
 type DecodedLink = resource.DecodedResource[*pbhcp.Link]
@@ -80,17 +76,4 @@ func validateLink(res *DecodedLink) error {
 	}
 
 	return err
-}
-
-func GenerateTestResourceID(t *testing.T) string {
-	t.Helper()
-
-	orgID, err := uuid.GenerateUUID()
-	require.NoError(t, err)
-
-	projectID, err := uuid.GenerateUUID()
-	require.NoError(t, err)
-
-	template := "organization/%s/project/%s/hashicorp.consul.global-network-manager.cluster/test-cluster"
-	return fmt.Sprintf(template, orgID, projectID)
 }
