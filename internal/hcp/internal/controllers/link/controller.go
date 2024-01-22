@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
@@ -47,6 +48,7 @@ func LinkController(
 	hcpClientFn HCPClientFn,
 	cfg config.CloudConfig,
 	dataDir string,
+	hcpManager *hcp.Manager,
 ) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
 		WithInitializer(&linkInitializer{
@@ -57,6 +59,7 @@ func LinkController(
 			hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
 			hcpClientFn:            hcpClientFn,
 			dataDir:                dataDir,
+			hcpManager:             hcpManager,
 		})
 }
 
@@ -65,6 +68,7 @@ type linkReconciler struct {
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
 	dataDir                string
+	hcpManager             *hcp.Manager
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {

@@ -993,6 +993,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
 		CloudConfig:            deps.HCP.Config,
 		DataDir:                deps.HCP.DataDir,
+		HCPManager:             s.hcpManager,
 	})
 
 	// When not enabled, the v1 tenancy bridge is used by default.
