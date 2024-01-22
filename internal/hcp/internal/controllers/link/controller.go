@@ -13,6 +13,7 @@ import (
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/resource"
@@ -176,6 +177,23 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 			rt.Logger.Error("error updating link", "error", err)
 			return err
 		}
+	}
+
+	// Load the management token if access is not set to read-only. Read-only clusters
+	// will not have a management token provided by HCP.
+	if accessLevel != pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY {
+		_, err = bootstrap.LoadManagementToken(ctx, rt.Logger, hcpClient, r.dataDir)
+		if err != nil {
+			rt.Logger.Error("error loading management token", "error", err)
+			newStatus := &pbresource.Status{
+				ObservedGeneration: res.Generation,
+				Conditions:         []*pbresource.Condition{ConditionFailed},
+			}
+
+			r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
+			return err
+		}
+		// TODO: Update the HCP manager with the loaded management token as part of CC-7044
 	}
 
 	newStatus = &pbresource.Status{

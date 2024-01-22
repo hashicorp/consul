@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/hashicorp/go-uuid"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -32,7 +33,6 @@ type controllerSuite struct {
 	client *rtest.Client
 	rt     controller.Runtime
 
-	ctl       linkReconciler
 	tenancies []*pbresource.Tenancy
 }
 
@@ -75,11 +75,20 @@ func (suite *controllerSuite) TestController_Ok() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	mockClient, mockClientFn := mockHcpClientFn(suite.T())
-	readOnly := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY
+	readWrite := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
 		HCPPortalURL: "http://test.com",
-		AccessLevel:  &readOnly,
+		AccessLevel:  &readWrite,
 	}, nil)
+
+	token, err := uuid.GenerateUUID()
+	require.NoError(suite.T(), err)
+	mockClient.EXPECT().FetchBootstrap(mock.Anything).
+		Return(&hcpclient.BootstrapConfig{
+			ManagementToken: token,
+			ConsulConfig:    "{}",
+		}, nil).Once()
+
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
 	mgr.Register(LinkController(
 		false,
@@ -108,7 +117,7 @@ func (suite *controllerSuite) TestController_Ok() {
 	updatedLinkResource := suite.client.WaitForNewVersion(suite.T(), link.Id, link.Version)
 	require.NoError(suite.T(), updatedLinkResource.Data.UnmarshalTo(&updatedLink))
 	require.Equal(suite.T(), "http://test.com", updatedLink.HcpClusterUrl)
-	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY, updatedLink.AccessLevel)
+	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE, updatedLink.AccessLevel)
 }
 
 func (suite *controllerSuite) TestController_Initialize() {
@@ -116,10 +125,10 @@ func (suite *controllerSuite) TestController_Initialize() {
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 
 	mockClient, mockClientFn := mockHcpClientFn(suite.T())
-	readWrite := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE
+	readOnly := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
 		HCPPortalURL: "http://test.com",
-		AccessLevel:  &readWrite,
+		AccessLevel:  &readOnly,
 	}, nil)
 
 	cloudCfg := config.CloudConfig{
@@ -198,6 +207,13 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
 		HCPPortalURL: "http://test.com",
 	}, nil)
+	token, err := uuid.GenerateUUID()
+	require.NoError(suite.T(), err)
+	mockClient.EXPECT().FetchBootstrap(mock.Anything).
+		Return(&hcpclient.BootstrapConfig{
+			ManagementToken: token,
+			ConsulConfig:    "{}",
+		}, nil).Once()
 
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
 
