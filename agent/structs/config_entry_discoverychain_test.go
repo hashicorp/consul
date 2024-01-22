@@ -2742,6 +2742,20 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 			}),
 			validateErr: "contains an invalid retry condition: \"invalid-retry-condition\"",
 		},
+		////////////////
+		{
+			name: "default route with case insensitive match",
+			entry: makerouter(routeMatch(httpMatch(&ServiceRouteHTTPMatch{
+				CaseInsensitive: true,
+			}))),
+		},
+		{
+			name: "route with path prefix and case insensitive match /apI",
+			entry: makerouter(routeMatch(httpMatch(&ServiceRouteHTTPMatch{
+				PathPrefix:      "/apI",
+				CaseInsensitive: true,
+			}))),
+		},
 	}
 
 	for _, tc := range cases {
