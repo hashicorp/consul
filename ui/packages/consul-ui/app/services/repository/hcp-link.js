@@ -12,7 +12,7 @@ export default class HcpLinkService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:partition/:ns/:dc/hcp-links')
+  @dataSource('/:partition/:ns/:dc/hcp-link')
   async findAll() {
     // TODO: check which method exactly is called here
     return super.findAll(...arguments);
