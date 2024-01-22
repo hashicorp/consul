@@ -596,7 +596,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
 		CloudConfig:       s.config.Cloud,
-		Client:            flat.HCP.Client,
 		StatusFn:          s.hcpServerStatus(flat),
 		Logger:            logger.Named("hcp_manager"),
 		SCADAProvider:     flat.HCP.Provider,
@@ -954,6 +953,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	go s.updateMetrics()
 
 	// Now we are setup, configure the HCP manager
+	s.hcpManager.UpdateConfig(flat.HCP.Client, s.config.Cloud)
 	err = s.hcpManager.Start(&lib.StopChannelContext{StopCh: shutdownCh})
 	if err != nil {
 		logger.Error("error starting HCP manager, some HashiCorp Cloud Platform functionality has been disabled",

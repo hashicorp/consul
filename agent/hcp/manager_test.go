@@ -58,11 +58,9 @@ func TestManager_Start(t *testing.T) {
 		mockTelemetryCfg, nil).Maybe()
 
 	mgr := NewManager(ManagerConfig{
-		Client:                    client,
 		Logger:                    hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		StatusFn:                  statusF,
 		ManagementTokenUpserterFn: upsertManagementTokenF,
-		CloudConfig:               cloudCfg,
 		SCADAProvider:             scadaM,
 		TelemetryProvider:         telemetryProvider,
 	})
@@ -70,6 +68,7 @@ func TestManager_Start(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
+	mgr.UpdateConfig(client, cloudCfg)
 	mgr.Start(ctx)
 	select {
 	case <-updateCh:

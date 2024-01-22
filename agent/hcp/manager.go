@@ -199,21 +199,23 @@ func (m *Manager) startTelemetryProvider(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) UpdateConfig(cfg ManagerConfig) {
-	m.cfgMu.Lock()
-	defer m.cfgMu.Unlock()
-	old := m.cfg
-	m.cfg = cfg
-	if old.enabled() || cfg.enabled() {
-		// Only log about this if cloud is actually configured or it would be
-		// confusing. We check both old and new in case we are disabling cloud or
-		// enabling it or just updating it.
-		m.logger.Info("updated HCP configuration")
-	}
+func (m *Manager) GetCloudConfig() config.CloudConfig {
+	m.cfgMu.RLock()
+	defer m.cfgMu.RUnlock()
 
-	// Send a new status update since we might have just gotten connection details
-	// for the first time.
-	m.SendUpdate()
+	return m.cfg.CloudConfig
+}
+
+func (m *Manager) UpdateConfig(client hcpclient.Client, cloudCfg config.CloudConfig) {
+	m.cfgMu.Lock()
+	m.cfg.Client = client
+	m.cfg.CloudConfig = cloudCfg
+	m.cfgMu.Unlock()
+
+	if m.isRunning() {
+		// Send update with new configuration values if already running
+		m.SendUpdate()
+	}
 }
 
 func (m *Manager) SendUpdate() {
@@ -260,7 +262,7 @@ func (m *Manager) sendUpdate() error {
 		return err
 	}
 
-	return m.cfg.Client.PushServerStatus(ctx, &s)
+	return cfg.Client.PushServerStatus(ctx, &s)
 }
 
 func (m *Manager) isRunning() bool {
