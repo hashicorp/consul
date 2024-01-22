@@ -119,15 +119,14 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Type: pbmulticluster.ComputedExportedServicesType,
 	}
 
-	exportedServices, err := dataFetcher.FetchExportedServices(ctx, exportedServicesID)
-	if err != nil || exportedServices == nil {
-		if err != nil {
-			rt.Logger.Error("error reading the associated exported services", "error", err)
-		}
-
-		if exportedServices == nil {
-			rt.Logger.Error("exported services was nil")
-		}
+	var exportedServices []*pbmulticluster.ComputedExportedService
+	dec, err := dataFetcher.FetchExportedServices(ctx, exportedServicesID)
+	if err != nil {
+		rt.Logger.Error("error reading the associated exported services", "error", err)
+	} else if dec == nil {
+		rt.Logger.Error("exported services was nil")
+	} else {
+		exportedServices = dec.Data.Services
 	}
 
 	trustDomain, err := r.getTrustDomain()
