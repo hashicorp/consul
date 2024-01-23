@@ -67,7 +67,7 @@ require (
 	github.com/hashicorp/hcdiag v0.5.1
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hcl/v2 v2.14.1
-	github.com/hashicorp/hcp-scada-provider v0.2.4-0.20231215224332-eb6c5d2e36d2
+	github.com/hashicorp/hcp-scada-provider v0.2.4
 	github.com/hashicorp/hcp-sdk-go v0.80.0
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 	github.com/hashicorp/memberlist v0.5.0
