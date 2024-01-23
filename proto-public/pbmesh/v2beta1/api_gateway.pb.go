@@ -181,7 +181,7 @@ type APIGatewayTLSConfiguration struct {
 	// Certificates is a set of references to certificates
 	// that a gateway listener uses for TLS termination.
 	Certificates []*pbresource.Reference `protobuf:"bytes,1,rep,name=certificates,proto3" json:"certificates,omitempty"`
-	// TLSParameters contains
+	// TLSParameters contains optional configuration for running TLS termination.
 	TlsParameters *pbproxystate.TLSParameters `protobuf:"bytes,2,opt,name=tls_parameters,json=tlsParameters,proto3,oneof" json:"tls_parameters,omitempty"`
 }
 
