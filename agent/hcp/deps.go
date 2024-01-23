@@ -20,7 +20,7 @@ import (
 type Deps struct {
 	Config            config.CloudConfig
 	Provider          scada.Provider
-	Sink              metrics.MetricSink
+	Sink              metrics.ShutdownSink
 	TelemetryProvider *hcpProviderImpl
 	DataDir           string
 }
@@ -63,7 +63,7 @@ func sink(
 	ctx context.Context,
 	metricsClient telemetry.MetricsClient,
 	cfgProvider *hcpProviderImpl,
-) (metrics.MetricSink, error) {
+) (metrics.ShutdownSink, error) {
 	logger := hclog.FromContext(ctx)
 
 	reader := telemetry.NewOTELReader(metricsClient, cfgProvider)

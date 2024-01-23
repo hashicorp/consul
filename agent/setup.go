@@ -271,6 +271,9 @@ func (bd BaseDeps) Close() {
 	bd.AutoConfig.Stop()
 	bd.LeafCertManager.Stop()
 	bd.MetricsConfig.Cancel()
+	if bd.HCP.Sink != nil {
+		bd.HCP.Sink.Shutdown()
+	}
 
 	for _, fn := range []func(){bd.deregisterBalancer, bd.deregisterResolver, bd.stopHostCollector} {
 		if fn != nil {
