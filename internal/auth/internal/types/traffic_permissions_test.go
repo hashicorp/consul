@@ -52,7 +52,7 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action_ACTION_UNSPECIFIED,
 				Permissions: nil,
 			},
-			expectErr: `invalid "data.action" field: action must be either allow or deny`,
+			expectErr: `invalid "data.action" field`,
 		},
 		"invalid-action": {
 			tp: &pbauth.TrafficPermissions{
@@ -62,7 +62,7 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action(50),
 				Permissions: nil,
 			},
-			expectErr: `invalid "data.action" field: action must be either allow or deny`,
+			expectErr: `invalid "data.action" field`,
 		},
 		"no-destination": {
 			tp: &pbauth.TrafficPermissions{

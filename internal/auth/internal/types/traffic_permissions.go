@@ -106,20 +106,18 @@ func firstNonEmptyString(a, b, c string) (string, bool) {
 
 var ValidateTrafficPermissions = resource.DecodeAndValidate(validateTrafficPermissions)
 
+// validator takes a traffic permission and ensures that it conforms to the actions allowed in
+// either CE or Enterprise versions of Consul
+type validator interface {
+	ValidateAction(res *DecodedTrafficPermissions) error
+}
+
 func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 	var merr error
 
-	// enumcover:pbauth.Action
-	switch res.Data.Action {
-	case pbauth.Action_ACTION_ALLOW:
-	case pbauth.Action_ACTION_DENY:
-	case pbauth.Action_ACTION_UNSPECIFIED:
-		fallthrough
-	default:
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "data.action",
-			Wrapped: errInvalidAction,
-		})
+	err := v.ValidateAction(res)
+	if err != nil {
+		merr = multierror.Append(merr, err)
 	}
 
 	if res.Data.Destination == nil || (len(res.Data.Destination.IdentityName) == 0) {
