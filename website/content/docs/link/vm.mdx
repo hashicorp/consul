@@ -20,65 +20,38 @@ Consul supports two general strategies for extending east/west service mesh traf
 
 Consul community edition supports basic cluster peering and federation scenarios. Implementing advanced scenarios such as federated network areas and cluster peering between multiple admin partitions in datacenters require Consul Enterprise. Refer to [Consul Enterprise](consul/docs/enterprise) for more information.
 
-## Workflows
+## Cluster peering
 
-Each strategy for extending your network has a distinct workflow to establish and verify traffic across datacenters in your service mesh. In production environments, we recommend you also [secure service mesh communication with mesh gateways](/consul/docs/link/mesh-gateway).
+@include 'feature/cluster-peering.mdx'
 
-### Cluster peering
-
-The workflow to establish a cluster peering connection consists of the following steps:
-
-1. Create a peering token in one cluster.
-1. Use the peering token to establish peering with a second cluster.
-1. Export services between clusters.
-1. Create intentions to authorize services for peers.
-
-### WAN federation
-
-The workflow to enable WAN federation consists of the following steps:
-
-1. Deploy a primary datacenter.
-1. Distribute certificates and configurations to secondary datacenters.
-1. Join additional datacenters to a WAN gossip pool.
-1. Verify members of WAN gossip pool.
-
-### Federated network areas
-
-The workflow to federate network areas consists of the following steps:
-
-1. Create network areas.
-1. Join datacenters in WAN gossip pool.
-1. Verify members of WAN gossip pool.
-
-### Secure communication with mesh gateways
-
-In production environments, we recommend deploying mesh gateways to further secure communication between datacenters deployed to different cloud regions or platforms. The workflow to deploy mesh gateways between each segment of your network consists of the following steps:
-
-1. Create a mesh gateway and register it with Consul.
-1. Configure the mesh gateway mode for the datacenter.
-1. Declare the mesh gateway as an explicit upstream for the datacenter's proxies.
-
-When configuring cluster peering connections on virtual machines, you must also configure ACLs between mesh gateways. This step is required for cluster peering connections between mesh gateways, but is not required for WAN federation through mesh gateways.
-
-## Guidance
-
-The following resources are available to help you extend your service mesh in an east/west direction by linking segments of your network.
-
-### Cluster peering on VMs usage documentation
-
-Refer to the following pages for guidance about using cluster peering with Consul on Kubernetes:
+Refer to the following pages for guidance about using cluster peering with Consul on VMs:
 
 - [Establish cluster peering connections on VMs](/consul/docs/link/cluster-peering/establish/vm)
 - [Manage cluster peering connections on VMs](/consul/docs/link/cluster-peering/manage/vms)
 
-### WAN federation on Kubernetes
+## WAN federation
 
-Refer to the following pages for guidance about using WAN federation with Consul on Kubernetes:
+@include 'feature/wan-federation.mdx'
+
+Refer to the following pages for guidance about using WAN federation with Consul on VMs:
 
 - [WAN federation between VMs](/consul/docs/link/wan-federation/vm)
 - [WAN federation between virtual machines and Kubernetes clusters](/consul/docs/link/wan-federation/k8s-vm)
 
-### Reference documentation
+## Federated network areas
+
+@include 'feature/network-area.mdx'
+
+## Secure communication with mesh gateways
+
+@include 'feature/mesh-gateway.mdx'
+
+Refer to the following pages for guidance about using mesh gateways with Consul:
+
+- [WAN federation with mesh gateways](/consul/docs/link/mesh-gateway/federation)
+- [Cluster peering with mesh gateways](/consul/docs/link/mesh-gateway/cluster-peering)
+
+## Reference documentation
 
 For reference material related to the processes for extending your service mesh by linking segments of your network, refer to the following pages:
 
@@ -90,7 +63,7 @@ For reference material related to the processes for extending your service mesh 
 - [Mesh gateway configuration reference](/consul/docs/reference/proxy/connect-proxy)
 - [Proxy defaults configuration reference](/consul/docs/reference/config-entry/proxy-defaults)
 
-### Constraints, limitations, and troubleshooting
+## Constraints, limitations, and troubleshooting
 
 If you experience errors when linking segments of your network, refer to the following list of technical constraints.
 

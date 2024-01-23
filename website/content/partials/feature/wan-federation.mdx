@@ -1,7 +1,3 @@
-In Consul, Wide Area Network (WAN) federation joins two or more Consul datacenters. These datacenters communicate using WAN gossip to function as if they were a single datacenter. WAN federation enables the following multi-cluster service mesh scenarios:
+Wide Area Network (WAN) federation joins two or more Consul datacenters. When you enable WAN federation in each server cluster and declare one of them the primary datacenter, Consul agents can communicate using WAN gossip to function as if they were a single datacenter. 
 
-1. Services on all clusters can make calls to each other through Consul's service mesh.
-1. Intentions can enforce rules about service communication across all clusters.
-1. L7 routing that defines behavior for multi-cluster failover and traffic splitting.
-
-Refer to the [WAN federation documentation](/consul/docs/link/wan-federation#guidance) for more information.
+WAN federation in your service mesh enables service-to-service communication across cloud regions, key/value store replication, and advanced strategies for traffic management such as [service failover](/consul/docs/manage-traffic/failover). Refer to the [WAN federation documentation](/consul/docs/link/wan-federation#guidance) for more information.
