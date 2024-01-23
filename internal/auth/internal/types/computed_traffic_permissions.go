@@ -41,7 +41,7 @@ func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) 
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, wrapErr); err != nil {
+		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
@@ -54,7 +54,7 @@ func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) 
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, wrapErr); err != nil {
+		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
