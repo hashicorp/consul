@@ -9,7 +9,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
@@ -55,7 +55,7 @@ func ValidateNamespace(res *pbresource.Resource) error {
 		return errInvalidName
 	}
 
-	if !dns.IsValidLabel(res.Id.Name) {
+	if !dnsutil.IsValidLabel(res.Id.Name) {
 		return fmt.Errorf("namespace name %q is not a valid DNS hostname", res.Id.Name)
 	}
 

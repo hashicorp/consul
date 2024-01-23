@@ -112,3 +112,50 @@ func TestDecode(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestDecodeList(t *testing.T) {
+	t.Run("good", func(t *testing.T) {
+		artist1, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+		artist2, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+		dec1, err := resource.Decode[*pbdemo.Artist](artist1)
+		require.NoError(t, err)
+		dec2, err := resource.Decode[*pbdemo.Artist](artist2)
+		require.NoError(t, err)
+
+		resources := []*pbresource.Resource{artist1, artist2}
+
+		decList, err := resource.DecodeList[*pbdemo.Artist](resources)
+		require.NoError(t, err)
+		require.Len(t, decList, 2)
+
+		prototest.AssertDeepEqual(t, dec1.Resource, decList[0].Resource)
+		prototest.AssertDeepEqual(t, dec1.Data, decList[0].Data)
+		prototest.AssertDeepEqual(t, dec2.Resource, decList[1].Resource)
+		prototest.AssertDeepEqual(t, dec2.Data, decList[1].Data)
+	})
+
+	t.Run("bad", func(t *testing.T) {
+		artist1, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		foo := &pbresource.Resource{
+			Id: &pbresource.ID{
+				Type:    demo.TypeV2Artist,
+				Tenancy: resource.DefaultNamespacedTenancy(),
+				Name:    "babypants",
+			},
+			Data: &anypb.Any{
+				TypeUrl: "garbage",
+				Value:   []byte("more garbage"),
+			},
+			Metadata: map[string]string{
+				"generated_at": time.Now().Format(time.RFC3339),
+			},
+		}
+
+		_, err = resource.DecodeList[*pbdemo.Artist]([]*pbresource.Resource{artist1, foo})
+		require.Error(t, err)
+	})
+}

@@ -137,7 +137,7 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, wrapErr); err != nil {
+		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
@@ -145,7 +145,7 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 	return merr
 }
 
-func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
+func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(error) error) error {
 	var merr error
 
 	if len(p.Sources) == 0 {
@@ -163,7 +163,7 @@ func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 				Wrapped: err,
 			})
 		}
-		if sourceHasIncompatibleTenancies(src) {
+		if sourceHasIncompatibleTenancies(src, id) {
 			merr = multierror.Append(merr, wrapSrcErr(resource.ErrInvalidListElement{
 				Name:    "source",
 				Wrapped: errSourcesTenancy,
@@ -194,7 +194,7 @@ func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 					Wrapped: err,
 				})
 			}
-			if sourceHasIncompatibleTenancies(d) {
+			if sourceHasIncompatibleTenancies(d, id) {
 				merr = multierror.Append(merr, wrapExclSrcErr(resource.ErrInvalidField{
 					Name:    "exclude_source",
 					Wrapped: errSourcesTenancy,
@@ -263,9 +263,12 @@ func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 	return merr
 }
 
-func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe) bool {
+func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe, id *pbresource.ID) bool {
+	if id.Tenancy == nil {
+		id.Tenancy = &pbresource.Tenancy{}
+	}
 	peerSet := src.GetPeer() != resource.DefaultPeerName
-	apSet := src.GetPartition() != resource.DefaultPartitionName
+	apSet := src.GetPartition() != id.Tenancy.Partition
 	sgSet := src.GetSamenessGroup() != ""
 
 	return (apSet && peerSet) || (apSet && sgSet) || (peerSet && sgSet)

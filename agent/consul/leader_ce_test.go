@@ -48,16 +48,16 @@ func TestServer_InitTenancy(t *testing.T) {
 		Name:    resource.DefaultNamespaceName,
 	}
 
-	ns, err := s.resourceServiceServer.Backend.Read(context.Background(), storage.StrongConsistency, nsID)
+	ns, err := s.storageBackend.Read(context.Background(), storage.StrongConsistency, nsID)
 	require.NoError(t, err)
 	require.Equal(t, resource.DefaultNamespaceName, ns.Id.Name)
 
 	// explicitly call initiTenancy to verify we do not re-create namespace
-	err = s.initTenancy(context.Background(), s.resourceServiceServer.Backend)
+	err = s.initTenancy(context.Background(), s.storageBackend)
 	require.NoError(t, err)
 
 	// read again
-	actual, err := s.resourceServiceServer.Backend.Read(context.Background(), storage.StrongConsistency, nsID)
+	actual, err := s.storageBackend.Read(context.Background(), storage.StrongConsistency, nsID)
 	require.NoError(t, err)
 
 	require.Equal(t, ns.Id.Uid, actual.Id.Uid)

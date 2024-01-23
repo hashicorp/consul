@@ -1,0 +1,3 @@
+```release-note:breaking-change
+config-entries: Allow disabling request and idle timeouts with negative values in service router and service resolver config entries.
+```

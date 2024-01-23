@@ -10,23 +10,23 @@ const (
 	GroupName = "catalog"
 	Version   = "v2beta1"
 
-	DNSPolicyKind        = "DNSPolicy"
-	FailoverPolicyKind   = "FailoverPolicy"
-	HealthChecksKind     = "HealthChecks"
-	HealthStatusKind     = "HealthStatus"
-	NodeKind             = "Node"
-	NodeHealthStatusKind = "NodeHealthStatus"
-	ServiceKind          = "Service"
-	ServiceEndpointsKind = "ServiceEndpoints"
-	VirtualIPsKind       = "VirtualIPs"
-	WorkloadKind         = "Workload"
+	ComputedFailoverPolicyKind = "ComputedFailoverPolicy"
+	FailoverPolicyKind         = "FailoverPolicy"
+	HealthChecksKind           = "HealthChecks"
+	HealthStatusKind           = "HealthStatus"
+	NodeKind                   = "Node"
+	NodeHealthStatusKind       = "NodeHealthStatus"
+	ServiceKind                = "Service"
+	ServiceEndpointsKind       = "ServiceEndpoints"
+	VirtualIPsKind             = "VirtualIPs"
+	WorkloadKind               = "Workload"
 )
 
 var (
-	DNSPolicyType = &pbresource.Type{
+	ComputedFailoverPolicyType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,
-		Kind:         DNSPolicyKind,
+		Kind:         ComputedFailoverPolicyKind,
 	}
 
 	FailoverPolicyType = &pbresource.Type{

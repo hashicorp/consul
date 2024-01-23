@@ -6,6 +6,7 @@ package multicluster
 import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/multicluster/internal/controllers"
+	exportedServicesSamenessGroupExpander "github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )
@@ -23,8 +24,16 @@ func RegisterTypes(r resource.Registry) {
 	types.Register(r)
 }
 
+type ControllerDependencies = controllers.Dependencies
+
+func DefaultControllerDependencies() ControllerDependencies {
+	return ControllerDependencies{
+		ExportedServicesSamenessGroupsExpander: exportedServicesSamenessGroupExpander.New(),
+	}
+}
+
 // RegisterControllers registers controllers for the multicluster types with
 // the given controller Manager.
-func RegisterControllers(mgr *controller.Manager) {
-	controllers.Register(mgr)
+func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
+	controllers.Register(mgr, deps)
 }

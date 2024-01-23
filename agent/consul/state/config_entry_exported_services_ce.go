@@ -6,9 +6,12 @@
 package state
 
 import (
+	"sort"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbconfigentry"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -30,4 +33,30 @@ func (s *Store) GetSimplifiedExportedServices(ws memdb.WatchSet, entMeta acl.Ent
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return getSimplifiedExportedServices(tx, ws, nil, entMeta)
+}
+
+func prepareExportedServicesResponse(exportedServices []structs.ExportedService, entMeta *acl.EnterpriseMeta) []*pbconfigentry.ResolvedExportedService {
+
+	resp := make([]*pbconfigentry.ResolvedExportedService, len(exportedServices))
+
+	for idx, exportedService := range exportedServices {
+		consumerPeers := []string{}
+
+		for _, consumer := range exportedService.Consumers {
+			if consumer.Peer != "" {
+				consumerPeers = append(consumerPeers, consumer.Peer)
+			}
+		}
+
+		sort.Strings(consumerPeers)
+
+		resp[idx] = &pbconfigentry.ResolvedExportedService{
+			Service: exportedService.Name,
+			Consumers: &pbconfigentry.Consumers{
+				Peers: consumerPeers,
+			},
+		}
+	}
+
+	return resp
 }

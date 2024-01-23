@@ -21,7 +21,9 @@
                     "name": "envoy.filters.http.lua",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-                      "inlineCode": "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
+                      "defaultSourceCode": {
+                        "inlineString": "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
+                      }
                     }
                   },
                   {
@@ -130,7 +132,6 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\1"
@@ -144,7 +145,6 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\2"
@@ -158,7 +158,6 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\3"
@@ -172,7 +171,6 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\4"
@@ -186,7 +184,6 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
-                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\5"

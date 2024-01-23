@@ -34,9 +34,12 @@
             ],
             "tlsParams": {},
             "validationContext": {
-              "matchSubjectAltNames": [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/insecure"
+                  "matcher": {
+                    "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/insecure"
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {
@@ -82,9 +85,12 @@
             ],
             "tlsParams": {},
             "validationContext": {
-              "matchSubjectAltNames": [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/secure"
+                  "matcher": {
+                    "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/secure"
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {

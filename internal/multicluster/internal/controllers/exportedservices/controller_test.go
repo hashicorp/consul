@@ -14,6 +14,7 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -27,12 +28,13 @@ import (
 
 type controllerSuite struct {
 	suite.Suite
-	ctx          context.Context
-	client       *rtest.Client
-	rt           controller.Runtime
-	isEnterprise bool
-	reconciler   *reconciler
-	tenancies    []*pbresource.Tenancy
+	ctx                   context.Context
+	client                *rtest.Client
+	rt                    controller.Runtime
+	isEnterprise          bool
+	reconciler            *reconciler
+	samenessGroupExpander ExportedServicesSamenessGroupExpander
+	tenancies             []*pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
@@ -44,12 +46,16 @@ func (suite *controllerSuite) SetupTest() {
 		WithTenancies(rtest.Tenancy("default.app"), rtest.Tenancy("foo.app")).
 		Run(suite.T())
 
+	suite.samenessGroupExpander = expander.New()
+
 	suite.client = rtest.NewClient(client)
 	suite.rt = controller.Runtime{
 		Client: suite.client,
 		Logger: testutil.Logger(suite.T()),
 	}
-	suite.reconciler = &reconciler{}
+	suite.reconciler = &reconciler{
+		samenessGroupExpander: suite.samenessGroupExpander,
+	}
 	suite.isEnterprise = versiontest.IsEnterprise()
 }
 
@@ -64,14 +70,14 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoExportedServices() {
 
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		oldCESData := &pbmulticluster.ComputedExportedServices{
-			Consumers: []*pbmulticluster.ComputedExportedService{
+			Services: []*pbmulticluster.ComputedExportedService{
 				{
 					TargetRef: &pbresource.Reference{
 						Type:    pbcatalog.ServiceType,
 						Tenancy: tenancy,
 						Name:    "svc0",
 					},
-					Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+					Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 						suite.constructConsumer("test-peer", "peer"),
 					},
 				},
@@ -79,7 +85,7 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoExportedServices() {
 		}
 
 		if suite.isEnterprise {
-			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, suite.constructConsumer("peer-n", "partition"))
+			oldCESData.Services[0].Consumers = append(oldCESData.Services[0].Consumers, suite.constructConsumer("part-n", "partition"))
 		}
 
 		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
@@ -102,14 +108,14 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoMatchingServices() {
 
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		oldCESData := &pbmulticluster.ComputedExportedServices{
-			Consumers: []*pbmulticluster.ComputedExportedService{
+			Services: []*pbmulticluster.ComputedExportedService{
 				{
 					TargetRef: &pbresource.Reference{
 						Type:    pbcatalog.ServiceType,
 						Tenancy: tenancy,
 						Name:    "svc0",
 					},
-					Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+					Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 						suite.constructConsumer("test-peer", "peer"),
 					},
 				},
@@ -117,7 +123,7 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoMatchingServices() {
 		}
 
 		if suite.isEnterprise {
-			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, suite.constructConsumer("part-n", "partition"))
+			oldCESData.Services[0].Consumers = append(oldCESData.Services[0].Consumers, suite.constructConsumer("part-n", "partition"))
 		}
 
 		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
@@ -165,14 +171,14 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES() {
 
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		oldCESData := &pbmulticluster.ComputedExportedServices{
-			Consumers: []*pbmulticluster.ComputedExportedService{
+			Services: []*pbmulticluster.ComputedExportedService{
 				{
 					TargetRef: &pbresource.Reference{
 						Type:    pbcatalog.ServiceType,
 						Tenancy: tenancy,
 						Name:    "svc-0",
 					},
-					Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+					Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 						suite.constructConsumer("peer-1", "peer"),
 					},
 				},
@@ -180,7 +186,7 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES() {
 		}
 
 		if suite.isEnterprise {
-			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, suite.constructConsumer("part-n", "partition"))
+			oldCESData.Services[0].Consumers = append(oldCESData.Services[0].Consumers, suite.constructConsumer("part-n", "partition"))
 		}
 
 		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
@@ -280,14 +286,14 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 		var expectedCES *pbmulticluster.ComputedExportedServices
 		if suite.isEnterprise {
 			expectedCES = &pbmulticluster.ComputedExportedServices{
-				Consumers: []*pbmulticluster.ComputedExportedService{
+				Services: []*pbmulticluster.ComputedExportedService{
 					{
 						TargetRef: &pbresource.Reference{
 							Type:    pbcatalog.ServiceType,
 							Tenancy: tenancy,
 							Name:    "svc-0",
 						},
-						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+						Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 							suite.constructConsumer("peer-1", "peer"),
 							suite.constructConsumer("peer-2", "peer"),
 							suite.constructConsumer("part-1", "partition"),
@@ -300,7 +306,7 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 							Tenancy: tenancy,
 							Name:    "svc-1",
 						},
-						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+						Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 							suite.constructConsumer("peer-2", "peer"),
 							suite.constructConsumer("part-1", "partition"),
 							suite.constructConsumer("part-n", "partition"),
@@ -312,7 +318,7 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 							Tenancy: tenancy,
 							Name:    "svc-2",
 						},
-						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+						Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 							suite.constructConsumer("peer-2", "peer"),
 							suite.constructConsumer("part-1", "partition"),
 							suite.constructConsumer("part-n", "partition"),
@@ -322,14 +328,14 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 			}
 		} else {
 			expectedCES = &pbmulticluster.ComputedExportedServices{
-				Consumers: []*pbmulticluster.ComputedExportedService{
+				Services: []*pbmulticluster.ComputedExportedService{
 					{
 						TargetRef: &pbresource.Reference{
 							Type:    pbcatalog.ServiceType,
 							Tenancy: resource.DefaultNamespacedTenancy(),
 							Name:    "svc-0",
 						},
-						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+						Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 							suite.constructConsumer("peer-1", "peer"),
 							suite.constructConsumer("peer-2", "peer"),
 						},
@@ -345,7 +351,7 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 func (suite *controllerSuite) TestController() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(Controller())
+	mgr.Register(Controller(suite.samenessGroupExpander))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -378,7 +384,7 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService := constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("part-0", "partition"),
 				}),
@@ -401,7 +407,7 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("part-0", "partition"),
@@ -409,7 +415,7 @@ func (suite *controllerSuite) TestController() {
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc2", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
 			),
@@ -424,7 +430,7 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("part-0", "partition"),
@@ -432,13 +438,13 @@ func (suite *controllerSuite) TestController() {
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc2", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc3", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
 			),
@@ -453,7 +459,7 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("part-0", "partition"),
@@ -461,7 +467,7 @@ func (suite *controllerSuite) TestController() {
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc2", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
 			),
@@ -483,14 +489,14 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -499,7 +505,7 @@ func (suite *controllerSuite) TestController() {
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc2", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
@@ -514,21 +520,21 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc4", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -537,7 +543,7 @@ func (suite *controllerSuite) TestController() {
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc2", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
@@ -552,14 +558,14 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -568,12 +574,13 @@ func (suite *controllerSuite) TestController() {
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc2", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 		)
+
 		prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, computedCES)
 
 		suite.writeService("svc5", tenancy)
@@ -583,14 +590,14 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -599,14 +606,14 @@ func (suite *controllerSuite) TestController() {
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc2", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc5", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
@@ -621,7 +628,7 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("part-0", "partition"),
@@ -629,13 +636,13 @@ func (suite *controllerSuite) TestController() {
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc2", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc5", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
 			),
@@ -648,7 +655,7 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("part-0", "partition"),
 				},
@@ -666,7 +673,7 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
 			),
@@ -679,13 +686,13 @@ func (suite *controllerSuite) TestController() {
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
 			),
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
-				[]*pbmulticluster.ComputedExportedServicesConsumer{
+				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-0", "peer"),
 					suite.constructConsumer("part-0", "partition"),
 				},
@@ -756,10 +763,10 @@ func (suite *controllerSuite) writePartitionedExportedService(name string, tenan
 		Write(suite.T(), suite.client)
 }
 
-func (suite *controllerSuite) constructConsumer(name, consumerType string) *pbmulticluster.ComputedExportedServicesConsumer {
+func (suite *controllerSuite) constructConsumer(name, consumerType string) *pbmulticluster.ComputedExportedServiceConsumer {
 	if consumerType == "peer" {
-		return &pbmulticluster.ComputedExportedServicesConsumer{
-			ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
+		return &pbmulticluster.ComputedExportedServiceConsumer{
+			Tenancy: &pbmulticluster.ComputedExportedServiceConsumer_Peer{
 				Peer: name,
 			},
 		}
@@ -769,15 +776,15 @@ func (suite *controllerSuite) constructConsumer(name, consumerType string) *pbmu
 		return nil
 	}
 
-	return &pbmulticluster.ComputedExportedServicesConsumer{
-		ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
+	return &pbmulticluster.ComputedExportedServiceConsumer{
+		Tenancy: &pbmulticluster.ComputedExportedServiceConsumer_Partition{
 			Partition: name,
 		},
 	}
 }
 
-func constructComputedExportedService(ref *pbresource.Reference, consumers []*pbmulticluster.ComputedExportedServicesConsumer) *pbmulticluster.ComputedExportedService {
-	finalConsumers := make([]*pbmulticluster.ComputedExportedServicesConsumer, 0)
+func constructComputedExportedService(ref *pbresource.Reference, consumers []*pbmulticluster.ComputedExportedServiceConsumer) *pbmulticluster.ComputedExportedService {
+	finalConsumers := make([]*pbmulticluster.ComputedExportedServiceConsumer, 0)
 	for _, c := range consumers {
 		if c == nil {
 			continue
@@ -792,9 +799,9 @@ func constructComputedExportedService(ref *pbresource.Reference, consumers []*pb
 	}
 }
 
-func constructComputedExportedServices(consumers ...*pbmulticluster.ComputedExportedService) *pbmulticluster.ComputedExportedServices {
+func constructComputedExportedServices(services ...*pbmulticluster.ComputedExportedService) *pbmulticluster.ComputedExportedServices {
 	return &pbmulticluster.ComputedExportedServices{
-		Consumers: consumers,
+		Services: services,
 	}
 }
 

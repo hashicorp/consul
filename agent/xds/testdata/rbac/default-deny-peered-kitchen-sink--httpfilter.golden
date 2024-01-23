@@ -15,7 +15,6 @@
               "authenticated": {
                 "principalName": {
                   "safeRegex": {
-                    "googleRe2": {},
                     "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                   }
                 }
@@ -28,7 +27,6 @@
                     "authenticated": {
                       "principalName": {
                         "safeRegex": {
-                          "googleRe2": {},
                           "regex": "^spiffe://test.consul/gateway/mesh/dc/[^/]+$"
                         }
                       }
@@ -42,7 +40,6 @@
                             "name": "x-forwarded-client-cert",
                             "stringMatch": {
                               "safeRegex": {
-                                "googleRe2": {},
                                 "regex": "^[^,]+;URI=spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/[^/]+(?:,.*)?$"
                               }
                             }
@@ -54,7 +51,6 @@
                               "name": "x-forwarded-client-cert",
                               "stringMatch": {
                                 "safeRegex": {
-                                  "googleRe2": {},
                                   "regex": "^[^,]+;URI=spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/web(?:,.*)?$"
                                 }
                               }

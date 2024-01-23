@@ -11,15 +11,9 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 )
 
-type Dependencies struct {
-	WorkloadHealthNodeMapper workloadhealth.NodeMapper
-	EndpointsWorkloadMapper  endpoints.WorkloadMapper
-	FailoverMapper           failover.FailoverMapper
-}
-
-func Register(mgr *controller.Manager, deps Dependencies) {
+func Register(mgr *controller.Manager) {
 	mgr.Register(nodehealth.NodeHealthController())
-	mgr.Register(workloadhealth.WorkloadHealthController(deps.WorkloadHealthNodeMapper))
-	mgr.Register(endpoints.ServiceEndpointsController(deps.EndpointsWorkloadMapper))
-	mgr.Register(failover.FailoverPolicyController(deps.FailoverMapper))
+	mgr.Register(workloadhealth.WorkloadHealthController())
+	mgr.Register(endpoints.ServiceEndpointsController())
+	mgr.Register(failover.FailoverPolicyController())
 }
