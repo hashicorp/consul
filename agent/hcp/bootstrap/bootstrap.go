@@ -465,7 +465,7 @@ func LoadManagementToken(ctx context.Context, logger hclog.Logger, client hcpcli
 	token, err := loadManagementToken(hcpCfgDir)
 
 	if err != nil {
-		logger.Debug("fetching configuration from HCP")
+		logger.Debug("failed to load management token from local disk, fetching configuration from HCP", "error", err)
 		var err error
 		cfg, err := fetchBootstrapConfig(ctx, client, dataDir)
 		if err != nil {

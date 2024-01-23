@@ -94,5 +94,11 @@ func linkingFailed(ctx context.Context, rt controller.Runtime, res *pbresource.R
 		Conditions:         []*pbresource.Condition{condition},
 	}
 
-	return writeStatusIfNotEqual(ctx, rt, res, newStatus)
+	writeErr := writeStatusIfNotEqual(ctx, rt, res, newStatus)
+	if writeErr != nil {
+		rt.Logger.Error("error writing status", "error", writeErr)
+		return writeErr
+	}
+
+	return nil
 }
