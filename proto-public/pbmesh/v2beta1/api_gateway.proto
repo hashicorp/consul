@@ -49,6 +49,6 @@ message APIGatewayTLSConfiguration {
   // that a gateway listener uses for TLS termination.
   repeated hashicorp.consul.resource.Reference certificates = 1;
 
-  // TLSParameters contains
+  // TLSParameters contains optional configuration for running TLS termination. 
   optional pbproxystate.TLSParameters tls_parameters = 2;
 }
