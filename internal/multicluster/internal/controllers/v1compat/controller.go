@@ -6,7 +6,7 @@ package v1compat
 import (
 	"context"
 	"fmt"
-	"slices"
+	"sort"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -23,7 +23,7 @@ const (
 	controllerMetaKey = "managed-by-controller"
 )
 
-type ConfigEntry interface {
+type AggregatedConfig interface {
 	GetExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) (*structs.ExportedServicesConfigEntry, error)
 	WriteExportedServicesConfigEntry(context.Context, *structs.ExportedServicesConfigEntry) error
 	DeleteExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) error
@@ -43,8 +43,8 @@ func mapExportedServices(_ context.Context, _ controller.Runtime, res *pbresourc
 	}, nil
 }
 
-func Controller(config ConfigEntry) controller.Controller {
-	return controller.ForType(pbmulticluster.ComputedExportedServicesType).
+func Controller(config AggregatedConfig) *controller.Controller {
+	return controller.NewController(ControllerName, pbmulticluster.ComputedExportedServicesType).
 		WithWatch(pbmulticluster.PartitionExportedServicesType, mapExportedServices).
 		WithWatch(pbmulticluster.NamespaceExportedServicesType, mapExportedServices).
 		WithWatch(pbmulticluster.ExportedServicesType, mapExportedServices).
@@ -53,7 +53,7 @@ func Controller(config ConfigEntry) controller.Controller {
 }
 
 type reconciler struct {
-	config ConfigEntry
+	config AggregatedConfig
 }
 
 // Reconcile will reconcile one ComputedExportedServices in response to some event.
@@ -203,7 +203,7 @@ func (c *exportConsumers) configEntryConsumers() []structs.ServiceConsumer {
 	consumers := make([]structs.ServiceConsumer, 0, len(c.partitions)+len(c.peers)+len(c.samenessGroups))
 
 	partitions := keys(c.partitions)
-	slices.Sort(partitions)
+	sort.Strings(partitions)
 	for _, consumer := range partitions {
 		consumers = append(consumers, structs.ServiceConsumer{
 			Partition: consumer,
@@ -211,7 +211,7 @@ func (c *exportConsumers) configEntryConsumers() []structs.ServiceConsumer {
 	}
 
 	peers := keys(c.peers)
-	slices.Sort(peers)
+	sort.Strings(peers)
 	for _, consumer := range peers {
 		consumers = append(consumers, structs.ServiceConsumer{
 			Partition: consumer,
@@ -219,7 +219,7 @@ func (c *exportConsumers) configEntryConsumers() []structs.ServiceConsumer {
 	}
 
 	samenessGroups := keys(c.samenessGroups)
-	slices.Sort(samenessGroups)
+	sort.Strings(samenessGroups)
 	for _, consumer := range samenessGroups {
 		consumers = append(consumers, structs.ServiceConsumer{
 			Partition: consumer,
@@ -276,7 +276,7 @@ func (t *exportTracker) allExports() []structs.ExportedService {
 	}
 
 	namespaces := keys(t.namespaces)
-	slices.Sort(namespaces)
+	sort.Strings(namespaces)
 	for _, ns := range namespaces {
 		exports = append(exports, structs.ExportedService{
 			Name:      "*",
@@ -286,23 +286,23 @@ func (t *exportTracker) allExports() []structs.ExportedService {
 	}
 
 	services := keys(t.services)
-	slices.SortFunc(services, func(a, b resource.ReferenceKey) int {
+	sort.Slice(services, func(i, j int) bool {
 		// the partitions must already be equal because we are only
 		// looking at resource exports for a single partition.
 
-		if a.Namespace < b.Namespace {
-			return -1
-		} else if a.Namespace > b.Namespace {
-			return 1
+		if services[i].Namespace < services[j].Namespace {
+			return false
+		} else if services[i].Namespace > services[j].Namespace {
+			return true
 		}
 
-		if a.Name < b.Name {
-			return -1
-		} else if a.Name > b.Name {
-			return 1
+		if services[i].Name < services[j].Name {
+			return false
+		} else if services[i].Name > services[j].Name {
+			return true
 		}
 
-		return 0
+		return false
 	})
 	for _, svcKey := range services {
 		exports = append(exports, structs.ExportedService{

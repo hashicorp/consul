@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/multicluster/internal/controllers"
 	exportedServicesSamenessGroupExpander "github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander"
+	"github.com/hashicorp/consul/internal/multicluster/internal/controllers/v1compat"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )
@@ -26,9 +27,10 @@ func RegisterTypes(r resource.Registry) {
 
 type ControllerDependencies = controllers.Dependencies
 
-func DefaultControllerDependencies() ControllerDependencies {
+func DefaultControllerDependencies(ac v1compat.AggregatedConfig) ControllerDependencies {
 	return ControllerDependencies{
 		ExportedServicesSamenessGroupsExpander: exportedServicesSamenessGroupExpander.New(),
+		ConfigEntryExports:                     ac,
 	}
 }
 
