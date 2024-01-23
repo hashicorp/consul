@@ -74,7 +74,12 @@ func (s *Sprawl) rejoinServers(cluster *topology.Cluster) error {
 
 	servers := cluster.ServerNodes()
 
-	recoveryToken := s.secrets.ReadGeneric(cluster.Name, secrets.AgentRecovery)
+	var recoveryToken string
+	if servers[0].Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
+		recoveryToken = s.secrets.ReadGeneric(cluster.Name, secrets.AgentRecovery)
+	} else {
+		recoveryToken = s.secrets.ReadGeneric(cluster.Name, secrets.BootstrapToken)
+	}
 
 	node0, rest := servers[0], servers[1:]
 	client, err := util.ProxyNotPooledAPIClient(
