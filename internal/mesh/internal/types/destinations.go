@@ -99,7 +99,7 @@ func validateDestinations(res *DecodedDestinations) error {
 			merr = multierror.Append(merr, refErr)
 		}
 
-		if portErr := catalog.ValidatePortName(dest.DestinationPort); portErr != nil {
+		if portErr := catalog.ValidateServicePortID(dest.DestinationPort); portErr != nil {
 			merr = multierror.Append(merr, wrapDestErr(resource.ErrInvalidField{
 				Name:    "destination_port",
 				Wrapped: portErr,

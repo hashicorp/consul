@@ -9,6 +9,7 @@ import (
 	"math"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
@@ -23,11 +24,21 @@ const (
 	// 108 characters is the max size that Linux (and probably other OSes) will
 	// allow for the length of the Unix socket path.
 	maxUnixSocketPathLen = 108
+
+	// IANA service name. Applies to non-numeric port names in Consul and Kubernetes.
+	// See https://datatracker.ietf.org/doc/html/rfc6335#section-5.1 for definition.
+	// Length and at-least-one-alpha requirements are checked separately since
+	// Go re2 does not have lookaheads and for pattern legibility.
+	ianaSvcNameRegex     = `^[a-zA-Z0-9]+(?:-?[a-zA-Z0-9]+)*$`
+	atLeastOneAlphaRegex = `^.*[a-zA-Z].*$`
 )
 
 var (
 	dnsLabelRegex   = `^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`
 	dnsLabelMatcher = regexp.MustCompile(dnsLabelRegex)
+
+	ianaSvcNameMatcher     = regexp.MustCompile(ianaSvcNameRegex)
+	atLeastOneAlphaMatcher = regexp.MustCompile(atLeastOneAlphaRegex)
 )
 
 func isValidIPAddress(host string) bool {
@@ -55,6 +66,19 @@ func isValidDNSLabel(label string) bool {
 	}
 
 	return dnsLabelMatcher.Match([]byte(label))
+}
+
+func isValidPortName(name string) bool {
+	if len(name) > 15 {
+		return false
+	}
+
+	nameB := []byte(name)
+	return atLeastOneAlphaMatcher.Match(nameB) && ianaSvcNameMatcher.Match([]byte(name))
+}
+
+func isValidPhysicalPortNumber[V int | uint32](i V) bool {
+	return i > 0 && i <= math.MaxUint16
 }
 
 func IsValidUnixSocketPath(host string) bool {
@@ -145,8 +169,44 @@ func ValidatePortName(name string) error {
 		return resource.ErrEmpty
 	}
 
-	if !isValidDNSLabel(name) {
-		return errNotDNSLabel
+	if !isValidPortName(name) {
+		return errNotPortName
+	}
+
+	return nil
+}
+
+// ValidateServicePortID validates that the given string is a valid ID for referencing
+// aservice port. This can be either a string virtual port number or target port name.
+// See Service.ServicePort doc for more details.
+func ValidateServicePortID(id string) error {
+	if id == "" {
+		return resource.ErrEmpty
+	}
+
+	if !isValidPortName(id) {
+		// Unlike an unset ServicePort.VirtualPort, a _reference_ to a service virtual
+		// port must be a real port number.
+		if i, err := strconv.Atoi(id); err != nil || !isValidPhysicalPortNumber(i) {
+			return errInvalidPortID
+		}
+	}
+
+	return nil
+}
+
+func ValidateVirtualPort[V int | uint32](port V) error {
+	// Allow 0 for unset virtual port values.
+	if port != 0 && !isValidPhysicalPortNumber(port) {
+		return errInvalidVirtualPort
+	}
+
+	return nil
+}
+
+func ValidatePhysicalPort[V int | uint32](port V) error {
+	if !isValidPhysicalPortNumber(port) {
+		return errInvalidPhysicalPort
 	}
 
 	return nil

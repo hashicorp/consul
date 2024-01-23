@@ -539,7 +539,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 								if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 									continue
 								}
-								if sp.TargetPort == dest.PortName {
+								if sp.MatchesPortId(dest.PortName) {
 									dest.VirtualPort = sp.VirtualPort
 								}
 							}
