@@ -580,7 +580,16 @@
           },
           {
             "title": "Encrypt gossip traffic",
-            "path": "secure-consul/encryption/gossip"
+            "routes": [
+              {
+                "title": "Enable on new datacenters",
+                "path": "secure-consul/encryption/gossip/enable"
+              },
+              {
+                "title": "Enable on existing datacenters",
+                "path": "secure-consul/encryption/gossip/existing"
+              }
+            ]
           },
           {
             "title": "Encrypt RPC traffic (TLS)",
@@ -594,7 +603,7 @@
                 "path": "secure-consul/encryption/tls/openssl"
               },
               {
-                "title": "Update existing Consul agents",
+                "title": "Update existing Consul datacenters",
                 "path": "secure-consul/encryption/tls/existing"
               }
             ]
@@ -2275,7 +2284,7 @@
     "title": "Configuration reference",
     "routes": [
       {
-        "title": "Access Control Lists (ACLs)",
+        "title": "Access control lists (ACLs)",
         "routes": [
           {
             "title": "Auth methods",

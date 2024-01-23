@@ -1,35 +1,33 @@
 ---
 layout: docs
-page_title: Secure Consul agent communication with TLS encryption
+page_title: Enable TLS encryption with built-in CA
 description: >-
   TODO
 ---
 
-# Secure Consul agent communication with TLS encryption
+# Enable TLS encryption with built-in CA
 
-https://developer.hashicorp.com/consul/tutorials/security/tls-encryption-secure
+This page describes how to enable TLS encryption to secure Consul agent communication. Consul supports using TLS to verify the authenticity of servers and clients. To enable TLS, Consul requires that all servers have certificates that are signed by a single certificate authority (CA). Clients should also have certificates that are authenticated with the same CA.
 
-Securing your datacenter with TLS encryption is an important step for production deployments. TLS configuration is also a prerequisite of our [Security Model](/consul/docs/security). Correctly configuring TLS can be a complex process, especially given the wide range of deployment methodologies. This tutorial will provide you with a production ready TLS configuration for RPC and consensus communication. However, you will need to [secure HTTP communication](/consul/tutorials/security-operations/tls-encryption-openssl-secure#configure-the-consul-cli-for-https) for the CLI and UI separately.
+This page provides instructions for enabling TLS encryption for new Consul datacenters. If you are adding TLS encryption to an existing Consul datacenter, refer to [Enable TLS encryption for existing datacenters](/consul/docs/secure-consul/encryption/gossip/existing.mdx).
 
-Consul supports using TLS to verify the authenticity of servers and clients. To enable TLS, Consul requires that all servers have certificates that are signed by a single certificate authority (CA). Clients should also have certificates that are authenticated with the same CA.
+## Workflow
 
-If you want to secure service-to-service communication with TLS, review the [secure service communication](/consul/tutorials/developer-mesh/service-mesh-with-envoy-proxy) tutorial.
+The following steps describe the general workflow for enabling TLS encryption for new Consul datacenters:
 
-## Prerequisites
-
-The certificate generation and distribution steps outlined in this tutorial are meant for new Consul datacenters. All the steps should be completed before you start the agent. Review the [Deployment Guide](/consul/tutorials/production-deploy/deployment-guide) if you're getting started.
-
-If you need to enable TLS encryption on an existing datacenter, review this tutorial and then complete the [update Agents to Communicate with TLS tutorial](/consul/tutorials/security-operations/tls-encryption-secure-existing-datacenter). The tutorial for the existing datacenter includes steps for a zero-downtime update of the agents.
-
-This tutorial is structured in way that you build knowledge with every step. We recommend to read the whole tutorial before starting with the actual work.
+1. Initialize the built-in CA
+1. Create the server certificates
+1. Distribute the server certificates
+1. Distribute client certificate
+1. Start Consul
 
 ## Initialize the built-in CA
 
-One of the first steps to configuring TLS for Consul is generating certificates. In order to prevent unauthorized datacenter access, Consul requires all certificates be signed by the same CA. This should be a _private_ CA and not a public one as any certificate signed by this CA will be allowed to communicate with the datacenter.
+To configure TLS for Consul, you must generate the certificates. Consul requires all certificates be signed by the same CA to prevent unauthorized datacenter access. This should be a _private_ CA and not a public one since any certificate signed by this CA can communicate with Consul.
 
-There are a variety of tools for managing your own CA, [like the PKI secret backend in Vault](/vault/docs/secrets/pki), but for the sake of simplicity this tutorial you will use Consul's built-in TLS helpers to create a CA. You will only need to create one CA for the datacenter. You should generate all certificates on the same node or workstation that is used to create the CA. The node or workstation should be stable, preferably not a Consul agent or a cloud server.
+There are many tools to manage your own CA, like [Vault PKI secret backend](/vault/docs/secrets/pki). These instructions will use Consul's built-in TLS helpers to create a CA. You will only need to create one CA for the datacenter. You should generate all certificates on the same node or workstation that you used to create the CA. This node or workstation should be stable, preferably not a Consul agent or a cloud server.
 
-You can create the CA and certificates before starting Consul, as long as you have the Consul binary installed in your path.
+Create the CA and certificates.
 
 ```shell-session
 $ consul tls ca create
@@ -37,17 +35,20 @@ $ consul tls ca create
 ==> Saved consul-agent-ca-key.pem
 ```
 
+This will generate two files:
+
 - The CA certificate, `consul-agent-ca.pem`, contains the public key necessary to validate Consul certificates and therefore must be distributed to **every** node that runs a consul agent.
+
 - The CA key, `consul-agent-ca-key.pem`, will be used to sign certificates for Consul nodes and must be kept private. Possession of this key allows anyone to run Consul as a trusted server or generate new valid certificates for the datacenter and obtain access to all Consul data, including ACL tokens.
 
 ## Create the server certificates
 
 Create a server certificate for datacenter `dc1` and domain `consul`, if your datacenter or domain is different, remember to use the appropriate flags.
 
-Repeat this process on the same node where you created the CA, until there is an _individual_ certificate for each server. The command can be called over and over again, it will automatically increase the certificate and key numbers. You will need to distribute the certificates to the servers.
+Repeat this process on the same node where you created the CA, until there is an _individual_ certificate for each server. You can use this command repeatedly since it will automatically increase the certificate and key numbers. Distribute the certificates to the servers.
 
 <Tabs>
-<Tab heading="Single Consul Datacenter">
+<Tab heading="Single Consul datacenter">
 
 The following example creates a server certificate for a single Consul datacenter named `dc1`.
 
@@ -63,11 +64,11 @@ $ consul tls cert create -server -dc dc1
 ```
 
 </Tab>
-<Tab heading="Federated Consul Datacenter">
+<Tab heading="Federated Consul datacenter">
 
 A federated Consul environment requires the server certificate to include the names of all Consul datacenters that are within the federated environment.
-  
-The `-additional-dnsname` flag allows you to provide an additional DNS name for Subject Alternative Names. `localhost` is always included. This flag may be provided multiple times.
+
+The `-additional-dnsname` flag lets you provide an additional DNS name for Subject Alternative Names. `localhost` is always included. You may use this flag multiple times.
 
 The following example creates a server certificate for federated environment that contains two Consul datacenters.
 
@@ -87,7 +88,7 @@ $ consul tls cert create -server -dc dc1 -additional-dnsname="*.dc2.consul"
 
 Refer to the [TLS `cert`](/consul/commands/tls/cert) CLI documentation to learn more about TLS cert creation options.
 
-In order to authenticate Consul servers, servers are provided with a special certificate - one that contains `server.dc1.consul` in the `Common Name` and in the `Subject Alternative Name`. If you enable [`verify_server_hostname`](/consul/docs/agent/config/config-files#verify_server_hostname), only agents that provide such certificate are allowed to boot as a server. Without `verify_server_hostname = true` an attacker could compromise a Consul client agent and restart the agent as a server in order to get access to all the data in your datacenter. This is why server certificates are special, and only servers should have them provisioned.
+To authenticate Consul servers, you must provide servers with a special certificate - one that contains `server.dc1.consul` in the `Common Name` and in the `Subject Alternative Name`. If you enable [`verify_server_hostname`](/consul/docs/agent/config/config-files#verify_server_hostname), only agents that provide such certificate are allowed to boot as a server. Without `verify_server_hostname = true` an attacker could compromise a Consul client agent and restart the agent as a server in order to get access to all the data in your datacenter. This is why server certificates are special, and only servers should have them provisioned.
 
 <Note>
   
@@ -95,9 +96,9 @@ In order to authenticate Consul servers, servers are provided with a special cer
 
 </Note>
 
-### Distribute the server certificates
+## Distribute the server certificates
 
-After generating the server certificates, you will need to distribute them to the Consul servers and put their on-disk location in the agent configuration file.
+After generating the server certificates, you need to distribute them to the Consul servers and put their on-disk location in the agent configuration file.
 
 You need to copy the following files to your Consul server:
 
@@ -109,22 +110,21 @@ Repeat this process until all servers have these three files.
 
 ## Distribute client certificate
 
-There are two methods for distributing client certificates: auto encryption and operator. We recommend the [auto-encryption method](/consul/docs/agent/config/config-files#auto_encrypt) to alleviate the client certificate generation and distribution step for operators. This method uses the Connect CA to generate client certificates, which are automatically distributed to all Consul clients.
+There are two methods for distributing client certificates: 
 
-Use the operator method if you need to use a third-party CA or need more fine-grained control over certificate management. Review the [Secure Agent Communication with Existing Certificate Authority](/consul/tutorials/security-operations/tls-encryption-openssl-secure) tutorial for an example of using OpenSSL as a third-party CA.
+1. **Auto-encryption method.** We recommend the [auto-encryption method](/consul/docs/agent/config/config-files#auto_encrypt) to alleviate the client certificate generation and distribution step for operators. This method uses the Connect CA to generate client certificates, which are automatically distributed to all Consul clients.
+
+1. **Operator method.** Use this method if you need to use a third-party CA or need more fine-grained control over certificate management.
 
 ### Configure the servers
 
 <Tabs>
 <Tab heading="Auto-encryption method" group="auto-encrypt">
 
-Earlier, you created the server certificates and distributed them. To use auto-encryption to distribute the client certificates, you will need to enable the `auto_encrypt` feature. Configure your servers with the following options.
+Earlier, you created the server certificates and distributed them. To use auto-encryption to distribute the client certificates, enable the `auto_encrypt` feature. The following example configuration set the certificate files and enable auto-encrypt.
 
-<Note>
+Since Consul will load all files in the configuration directory, you can add the following configuration as new files. You can also add them to an existing configuration file. Verify that the syntax is valid using [`consul validate`](/consul/commands/validate).
 
-Consul will load all files in the configuration directory, for the following examples, you can add the configuration as new files. You can also add them to an existing configuration file, however, you should ensure that the syntax is valid before applying it to the agent. You can use [`consul validate`](/consul/commands/validate) to check configuration validity forboth JSON and HCL files.
-
-</Note>
 <CodeTabs heading="Consul server agent auto encrypt TLS configuration">
 
 ```hcl
@@ -160,8 +160,7 @@ In addition to the `verify` settings, you need to enable `allow_tls`. The `verif
 </Tab>
 <Tab heading="Operator method" group="operator">
 
-Configure the servers with the following options, including the agent TLS configuration for Consul servers and
-copied certificate files.
+Configure the servers with the following options, including the agent TLS configuration for Consul servers and copied certificate files.
 
 <CodeTabs heading="Consul client agent manual TLS configuration">
 
@@ -189,8 +188,6 @@ key_file = "dc1-server-consul-0-key.pem"
 
 Consul will use TLS to verify the authenticity of the servers with [`verify_outgoing`](/consul/docs/agent/config/config-files#verify_outgoing) and [`verify_server_hostname`](/consul/docs/agent/config/config-files#verify_server_hostname). You can also use TLS to also optionally verify client certificates when using [`verify_incoming`](/consul/docs/agent/config/config-files#verify_incoming).
 
-Review the [docs for specifics](/consul/docs/security/encryption).
-
 </Tab>
 </Tabs>
 
@@ -199,7 +196,7 @@ Review the [docs for specifics](/consul/docs/security/encryption).
 <Tabs>
 <Tab heading="Auto-encryption method" group="auto-encrypt">
 
-With auto-encryption, you can configure the Consul servers to automatically distribute certificates to the clients. To use this feature, you will need to configure clients to automatically get the certificates from the server.
+With auto-encryption, you can configure the Consul servers to automatically distribute certificates to the clients. To use this feature, configure the clients to automatically get the certificates from the server.
 
 <Note> This method stores the certificates in memory, they are not persisted. </Note>
 
@@ -235,7 +232,7 @@ auto_encrypt = {
 </Tab>
 <Tab heading="Operator method" group="operator">
 
-To encrypt client communication, you will need to distribute the CA certificate, a client certificate, and its private key to each client.
+To encrypt client communication, distribute the CA certificate, a client certificate, and its private key to each client.
 
 First, generate a client certificate. On the node where you created the CA and server certificates, generate a client certificate.
 
@@ -246,9 +243,9 @@ $ consul tls cert create -client
 ==> Saved dc1-client-consul-0-key.pem
 ```
 
-The client certificate should also be signed by your CA, but it does not have that special `Subject Alternative Name` which means that if `verify_server_hostname` is enabled, they cannot start as a server.
+You should also sign the client certificate with your CA. However, your CA does not have the special `Subject Alternative Name` which means that if `verify_server_hostname` is enabled, you cannot start the server.
 
-Now that you have created the client certificate, configure the client agents with the newly generated client certificates
+Now that you have created the client certificate, configure the client agents with the newly generated client certificates.
 
 <CodeTabs>
 
@@ -279,8 +276,7 @@ key_file = "dc1-client-consul-0-key.pem"
 
 ## Start Consul
 
-Now that you have configured your servers and clients, you can start the Consul
-process.
+Now that you have configured your servers and clients, you can start Consul.
 
 ```shell-session
 $ systemctl start consul
@@ -288,9 +284,4 @@ $ systemctl start consul
 
 Your agents will only be communicating with TLS encryption for RPC and consensus.
 
-## Next steps
-
-You have configured your Consul agents with TLS for encrypted communication. With the auto encryption method, your
-client certificates are managed by the server. With the operator method, you distributed all the certificates, but have a more flexible configuration.
-
-To secure your Consul deployment, we recommend enabling [gossip encryption](/consul/tutorials/security/gossip-encryption-secure) and [ACLs](/consul/tutorials/security/access-control-setup-production) with default deny.
+You have configured your Consul agents with TLS for encrypted communication. With the auto encryption method, your client certificates are managed by the server. With the operator method, you distributed all the certificates, but have a more flexible configuration.
