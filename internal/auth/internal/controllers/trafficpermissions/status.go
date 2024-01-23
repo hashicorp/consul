@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	StatusKey                           = "consul.io/traffic-permissions"
+	ControllerID                        = "consul.io/traffic-permissions"
 	StatusTrafficPermissionsComputed    = "Traffic permissions have been computed"
 	StatusTrafficPermissionsNotComputed = "Traffic permissions have not been computed"
 	ConditionPermissionsAppliedMsg      = "Workload identity %s has new permissions"

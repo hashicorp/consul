@@ -1040,7 +1040,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 			ProxyUpdater:    proxyUpdater,
 		})
 
-		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
+		auth.RegisterControllers(s.controllerManager)
 	}
 
 	reaper.RegisterControllers(s.controllerManager)

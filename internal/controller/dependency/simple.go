@@ -6,6 +6,8 @@ package dependency
 import (
 	"context"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -50,5 +52,17 @@ func ReplaceType(desiredType *pbresource.Type) controller.DependencyMapper {
 				},
 			},
 		}, nil
+	}
+}
+
+type DecodedDependencyMapper[T proto.Message] func(context.Context, controller.Runtime, *resource.DecodedResource[T]) ([]controller.Request, error)
+
+func MapDecoded[T proto.Message](mapper DecodedDependencyMapper[T]) controller.DependencyMapper {
+	return func(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+		decoded, err := resource.Decode[T](res)
+		if err != nil {
+			return nil, err
+		}
+		return mapper(ctx, rt, decoded)
 	}
 }
