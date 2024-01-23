@@ -110,7 +110,9 @@ type ResourceServiceClient interface {
 	// MutateAndValidate a resource.
 	//
 	// Applies a resource type's registered mutation and validation hooks to
-	// a resource.
+	// a resource. This is useful for filling in defaults and validating inputs before
+	// doing a Write. It not a pre-requisite since the Write endpoint will also apply
+	// the hooks.
 	MutateAndValidate(ctx context.Context, in *MutateAndValidateRequest, opts ...grpc.CallOption) (*MutateAndValidateResponse, error)
 }
 
@@ -309,7 +311,9 @@ type ResourceServiceServer interface {
 	// MutateAndValidate a resource.
 	//
 	// Applies a resource type's registered mutation and validation hooks to
-	// a resource.
+	// a resource. This is useful for filling in defaults and validating inputs before
+	// doing a Write. It not a pre-requisite since the Write endpoint will also apply
+	// the hooks.
 	MutateAndValidate(context.Context, *MutateAndValidateRequest) (*MutateAndValidateResponse, error)
 }
 
