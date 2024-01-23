@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/services/configentry"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
@@ -322,6 +323,16 @@ func (s *Server) setupGRPCServices(config *Config, deps Deps) error {
 		return err
 	}
 
+	// register the configEntry service on the internal interface only. As
+	// it is only accessed via the internalGRPCHandler with an actual network
+	// conn managed  by the Agents GRPCConnPool.
+	err = s.registerConfigEntryServer(
+		s.internalGRPCHandler,
+	)
+	if err != nil {
+		return err
+	}
+
 	// enable grpc server reflection for the external gRPC interface only
 	reflection.Register(s.externalGRPCServer)
 
@@ -528,6 +539,24 @@ func (s *Server) registerServerDiscoveryServer(resolver serverdiscovery.ACLResol
 		Publisher:   s.publisher,
 		ACLResolver: resolver,
 		Logger:      s.loggers.Named(logging.GRPCAPI).Named(logging.ServerDiscovery),
+	})
+
+	for _, reg := range registrars {
+		srv.Register(reg)
+	}
+
+	return nil
+}
+
+func (s *Server) registerConfigEntryServer(registrars ...grpc.ServiceRegistrar) error {
+
+	srv := configentry.NewServer(configentry.Config{
+		Backend: NewConfigEntryBackend(s),
+		Logger:  s.loggers.Named(logging.GRPCAPI).Named(logging.ConfigEntry),
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		FSMServer: s,
 	})
 
 	for _, reg := range registrars {

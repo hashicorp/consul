@@ -1,0 +1,3 @@
+```release-note:improvement
+api: add a new api(/v1/exported-services) to list all the exported service and their consumers. 
+```

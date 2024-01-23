@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/types"
 )
@@ -602,4 +603,19 @@ func serviceRefFromStructs(a structs.ServiceRouteReferences) map[string]*ListOfR
 		}
 	}
 	return m
+}
+
+func (r *ResolvedExportedService) ToAPI() *api.ResolvedExportedService {
+	var t api.ResolvedExportedService
+
+	t.Service = r.Service
+	if r.EnterpriseMeta != nil {
+		t.Namespace = r.EnterpriseMeta.Namespace
+		t.Partition = r.EnterpriseMeta.Partition
+	}
+
+	t.Consumers.Peers = r.Consumers.Peers
+	t.Consumers.Partitions = r.Consumers.Partitions
+
+	return &t
 }
