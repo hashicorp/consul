@@ -181,6 +181,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				newID("static-server-v1", tenancy),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
+					wrk.V2Services = []string{"static-server-v1", "static-server"}
 					wrk.Meta = map[string]string{
 						"version": "v1",
 					}
@@ -200,6 +201,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				newID("static-server-v2", tenancy),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
+					wrk.V2Services = []string{"static-server-v2", "static-server"}
 					wrk.Meta = map[string]string{
 						"version": "v2",
 					}
@@ -219,6 +221,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				newID("static-client", tenancy),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
+					wrk.V2Services = []string{"static-client"}
 					for i, tenancy := range c.tenancies {
 						wrk.Destinations = append(wrk.Destinations, &topology.Destination{
 
@@ -296,40 +299,60 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		}},
 	})
 
-	staticServerService := sprawltest.MustSetResourceData(t, &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    pbcatalog.ServiceType,
-			Name:    "static-server",
-			Tenancy: tenancy,
-		},
-	}, &pbcatalog.Service{
-		Workloads: &pbcatalog.WorkloadSelector{
-			// This will result in a 50/50 uncontrolled split.
-			Prefixes: []string{"static-server-"},
-		},
-		Ports: []*pbcatalog.ServicePort{
+	portsFunc := func(offset uint32) []*pbcatalog.ServicePort {
+		return []*pbcatalog.ServicePort{
 			{
-				TargetPort: "http",
-				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+				TargetPort:  "http",
+				VirtualPort: 8005 + offset,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 			},
 			{
-				TargetPort: "http2",
-				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP2,
+				TargetPort:  "http2",
+				VirtualPort: 8006 + offset,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP2,
 			},
 			{
-				TargetPort: "grpc",
-				Protocol:   pbcatalog.Protocol_PROTOCOL_GRPC,
+				TargetPort:  "grpc",
+				VirtualPort: 9005 + offset,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_GRPC,
 			},
 			{
-				TargetPort: "tcp",
-				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
+				TargetPort:  "tcp",
+				VirtualPort: 10005 + offset,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
 			},
 			{
 				TargetPort: "mesh",
 				Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
 			},
+		}
+	}
+
+	// Differ parent and backend virtual ports to verify we route to each correctly.
+	parentServicePorts := portsFunc(0)
+	backendServicePorts := portsFunc(100)
+
+	// Explicitly define backend services s.t. they are not inferred from workload,
+	// which would assign random virtual ports.
+	cluster.Services = map[topology.ID]*pbcatalog.Service{
+		newID("static-client", tenancy): {
+			Ports: []*pbcatalog.ServicePort{
+				{
+					TargetPort: "mesh",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
+				},
+			},
 		},
-	})
+		newID("static-server", tenancy): {
+			Ports: parentServicePorts,
+		},
+		newID("static-server-v1", tenancy): {
+			Ports: backendServicePorts,
+		},
+		newID("static-server-v2", tenancy): {
+			Ports: backendServicePorts,
+		},
+	}
 
 	httpServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
@@ -345,7 +368,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 					Name:    "static-server",
 					Tenancy: tenancy,
 				},
-				Port: "http",
+				Port: "8005", // use mix of target and virtual parent ports
 			},
 			{
 				Ref: &pbresource.Reference{
@@ -406,6 +429,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 							Name:    "static-server-v1",
 							Tenancy: tenancy,
 						},
+						Port: "9105", // use mix of virtual and target (inferred from parent) ports
 					},
 					Weight: 10,
 				},
@@ -436,7 +460,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				Name:    "static-server",
 				Tenancy: tenancy,
 			},
-			Port: "tcp",
+			Port: "10005", // use virtual parent port
 		}},
 		Rules: []*pbmesh.TCPRouteRule{{
 			BackendRefs: []*pbmesh.TCPBackendRef{
@@ -447,6 +471,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 							Name:    "static-server-v1",
 							Tenancy: tenancy,
 						},
+						Port: "10105", // use explicit virtual port
 					},
 					Weight: 10,
 				},
@@ -457,6 +482,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 							Name:    "static-server-v2",
 							Tenancy: tenancy,
 						},
+						Port: "tcp", // use explicit target port
 					},
 					Weight: 90,
 				},
@@ -471,7 +497,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 	)
 
 	cluster.InitialResources = append(cluster.InitialResources,
-		staticServerService,
 		v1TrafficPerms,
 		v2TrafficPerms,
 		httpServerRoute,
