@@ -1,0 +1,6 @@
+```release-note:feature
+cloud: Adds new API/CLI to initiate and manage link cluster to HCP Consul Central
+```
+```release-note:breaking-change
+telemetry: Adds fix to always default to prefixing gauge-type metrics with the hostname of the Consul agent, even if only the default metric sinks are enabled.
+```
