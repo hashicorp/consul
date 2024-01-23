@@ -603,7 +603,7 @@
                 "path": "secure-consul/encryption/tls/openssl"
               },
               {
-                "title": "Update existing Consul datacenters",
+                "title": "Enable on existing datacenters",
                 "path": "secure-consul/encryption/tls/existing"
               }
             ]
