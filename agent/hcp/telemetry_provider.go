@@ -56,6 +56,9 @@ type hcpProviderImpl struct {
 	// running indicates if the HCP telemetry config provider has been started
 	running bool
 
+	// stopCh is used to signal that the telemetry config provider should stop running.
+	stopCh chan struct{}
+
 	// hcpClient is an authenticated client used to make HTTP requests to HCP.
 	hcpClient client.Client
 
@@ -139,7 +142,7 @@ func (h *hcpProviderImpl) run(ctx context.Context) error {
 	// Try to initialize config once before starting periodic fetch.
 	h.updateConfig(ctx)
 
-	ticker := time.NewTicker(h.cfg.refreshInterval)
+	ticker := time.NewTicker(h.getRefreshInterval())
 	defer ticker.Stop()
 	for {
 		select {
@@ -148,6 +151,8 @@ func (h *hcpProviderImpl) run(ctx context.Context) error {
 				ticker.Reset(newRefreshInterval)
 			}
 		case <-ctx.Done():
+			return nil
+		case <-h.stopCh:
 			return nil
 		}
 	}
@@ -222,6 +227,13 @@ func (h *hcpProviderImpl) modifyDynamicCfg(newCfg *dynamicConfig) {
 	h.rw.Unlock()
 
 	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
+}
+
+func (h *hcpProviderImpl) getRefreshInterval() time.Duration {
+	h.rw.RLock()
+	defer h.rw.RUnlock()
+
+	return h.cfg.refreshInterval
 }
 
 // GetEndpoint acquires a read lock to return endpoint configuration for consumers.
@@ -322,7 +334,30 @@ func (h *hcpProviderImpl) setRunning(r bool) bool {
 		return false
 	}
 
+	// Initialize or close the stop channel depending what running status
+	// we're transitioning to. Channel must be initialized on start since
+	// a provider can be stopped and started multiple times.
+	if r {
+		h.stopCh = make(chan struct{})
+	} else {
+		close(h.stopCh)
+	}
+
 	h.running = r
 
 	return true
+}
+
+// Stop acquires a write lock to mark the provider as not running and sends a stop signal to the
+// main run loop. It also updates the provider with a disabled configuration.
+func (h *hcpProviderImpl) Stop() {
+	changed := h.setRunning(false)
+	if !changed {
+		h.logger.Trace("telemetry config provider already stopped")
+		return
+	}
+
+	h.cfg = defaultDisabledCfg()
+
+	h.logger.Debug("telemetry config provider stopped")
 }

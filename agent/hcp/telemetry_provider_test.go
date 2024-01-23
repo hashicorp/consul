@@ -316,15 +316,16 @@ func TestTelemetryConfigProvider_Run(t *testing.T) {
 		HCPConfig: mockHCPCfg,
 	})
 
-	var count int
+	// Expect at least two update config calls to validate provider is running
+	// and has entered the main run loop
 	select {
 	case <-testUpdateConfigCh:
-		// Expect/wait for at least two update config calls
-		count++
-		if count > 2 {
-			break
-		}
 	case <-time.After(time.Second):
+		require.Fail(t, "provider did not attempt to update config in expected time")
+	}
+	select {
+	case <-testUpdateConfigCh:
+	case <-time.After(time.Millisecond * 500):
 		require.Fail(t, "provider did not attempt to update config in expected time")
 	}
 
@@ -433,6 +434,62 @@ func TestTelemetryConfigProvider_updateHTTPConfig(t *testing.T) {
 			require.Equal(t, expectedHeader, provider.GetHeader())
 		})
 	}
+}
+
+func TestTelemetryConfigProvider_Stop(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	provider := NewHCPProvider(ctx)
+
+	testUpdateConfigCh := make(chan struct{}, 1)
+	provider.testUpdateConfigCh = testUpdateConfigCh
+
+	// Configure mocks
+	mockClient := client.NewMockClient(t)
+	mTelemetryCfg, err := testTelemetryCfg(&testConfig{
+		endpoint: "http://test.com/v1/metrics",
+		filters:  "test",
+		labels: map[string]string{
+			"test_label": "123",
+		},
+		refreshInterval: testRefreshInterval,
+	})
+	require.NoError(t, err)
+	mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mTelemetryCfg, nil)
+	mockHCPCfg := &config.MockCloudCfg{}
+
+	// Run provider
+	provider.Run(context.Background(), &HCPProviderCfg{
+		HCPClient: mockClient,
+		HCPConfig: mockHCPCfg,
+	})
+
+	// Wait for at least two update config calls to ensure provider is running
+	// and has entered the main run loop
+	select {
+	case <-testUpdateConfigCh:
+	case <-time.After(time.Second):
+		require.Fail(t, "provider did not attempt to update config in expected time")
+	}
+	select {
+	case <-testUpdateConfigCh:
+	case <-time.After(time.Millisecond * 500):
+		require.Fail(t, "provider did not attempt to update config in expected time")
+	}
+
+	// Stop the provider
+	provider.Stop()
+	require.Equal(t, defaultDisabledCfg(), provider.cfg)
+	select {
+	case <-testUpdateConfigCh:
+		require.Fail(t, "provider should not attempt to update config after stop")
+	case <-time.After(time.Second):
+		// Success, no updates have happened after stopping
+	}
+
+	mockClient.AssertExpectations(t)
 }
 
 // mockRaceClient is a mock HCP client that fetches TelemetryConfig.
