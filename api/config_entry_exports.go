@@ -3,7 +3,9 @@
 
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // ExportedServicesConfigEntry manages the exported services for a single admin partition.
 // Admin Partitions are a Consul Enterprise feature.

@@ -53,6 +53,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/services/configentry"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
@@ -428,6 +429,9 @@ type Server struct {
 
 	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
 	peeringServer *peering.Server
+
+	// configEntryBackend is shared between the external and internal gRPC services for config entry
+	configEntryServer *configentry.Server
 
 	// xdsCapacityController controls the number of concurrent xDS streams the
 	// server is able to handle.
@@ -1017,6 +1021,15 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 	})
 	s.operatorServer = o
 
+	s.configEntryServer = configentry.NewServer(configentry.Config{
+		Backend: NewConfigEntryBackend(s),
+		Logger:  deps.Logger.Named("grpc-api.configentry"),
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		FSMServer: s,
+	})
+
 	register := func(srv *grpc.Server) {
 		if config.RPCConfig.EnableStreaming {
 			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
@@ -1025,6 +1038,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		}
 		s.peeringServer.Register(srv)
 		s.operatorServer.Register(srv)
+		s.configEntryServer.Register(srv)
 		s.registerEnterpriseGRPCServices(deps, srv)
 
 		// Note: these external gRPC services are also exposed on the internal server to

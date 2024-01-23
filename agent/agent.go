@@ -76,6 +76,7 @@ import (
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/pbconfigentry"
 	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
@@ -403,8 +404,9 @@ type Agent struct {
 
 	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
 	// into Agent, which will allow us to remove this field.
-	rpcClientHealth      *health.Client
-	rpcClientConfigEntry *configentry.Client
+	rpcClientHealth       *health.Client
+	rpcClientConfigEntry  *configentry.Client
+	grpcClientConfigEntry pbconfigentry.ConfigEntryServiceClient
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
@@ -507,6 +509,7 @@ func New(bd BaseDeps) (*Agent, error) {
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
 	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
+	a.grpcClientConfigEntry = pbconfigentry.NewConfigEntryServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
 	a.rpcClientConfigEntry = &configentry.Client{
