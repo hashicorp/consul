@@ -14,6 +14,9 @@ module('Acceptance | link to hcp banner', function (hooks) {
   hooks.beforeEach(function () {
     // clear local storage so we don't have any settings
     window.localStorage.clear();
+    // setupTestEnv(this.owner, {
+    //   CONSUL_ACLS_ENABLED: true,
+    // });
   });
 
   test('the banner is initially displayed on services page', async function (assert) {
