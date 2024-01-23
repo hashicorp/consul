@@ -50,56 +50,66 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	// Apply defaults when tenancy units empty.
 	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
 
-	existing, err := s.Backend.Read(ctx, consistency, req.Id)
-	switch {
-	case errors.Is(err, storage.ErrNotFound):
-		// Deletes are idempotent so no-op when not found
-		return &pbresource.DeleteResponse{}, nil
-	case err != nil:
-		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
-	}
-
-	// Check ACLs
-	err = reg.ACLs.Write(authz, authzContext, existing)
-	switch {
-	case acl.IsErrPermissionDenied(err):
-		return nil, status.Error(codes.PermissionDenied, err.Error())
-	case err != nil:
-		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
-	}
-
-	deleteVersion := req.Version
-	deleteId := req.Id
-	if deleteVersion == "" || deleteId.Uid == "" {
-		deleteVersion = existing.Version
-		deleteId = existing.Id
-	}
-
-	// Check finalizers for a deferred delete
-	if resource.HasFinalizers(existing) {
-		if resource.IsMarkedForDeletion(existing) {
-			// Delete previously requested and finalizers still present so nothing to do
-			return &pbresource.DeleteResponse{}, nil
+	// Only non-CAS deletes (version=="") are automatically retried.
+	err = s.retryCAS(ctx, req.Version, func() error {
+		existing, err := s.Backend.Read(ctx, consistency, req.Id)
+		switch {
+		case errors.Is(err, storage.ErrNotFound):
+			// Deletes are idempotent so no-op when not found
+			return nil
+		case err != nil:
+			return status.Errorf(codes.Internal, "failed read: %v", err)
 		}
 
-		// Mark for deletion and let controllers that put finalizers in place do their
-		// thing. Note we're passing in a clone of the recently read resource since
-		// we've not crossed a network/serialization boundary since the read and we
-		// don't want to mutate the in-mem reference.
-		return s.markForDeletion(ctx, clone(existing))
-	}
+		// Check ACLs
+		err = reg.ACLs.Write(authz, authzContext, existing)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			return status.Error(codes.PermissionDenied, err.Error())
+		case err != nil:
+			return status.Errorf(codes.Internal, "failed write acl: %v", err)
+		}
 
-	// Continue with an immediate delete
-	if err := s.maybeCreateTombstone(ctx, deleteId); err != nil {
-		return nil, err
-	}
+		deleteVersion := req.Version
+		deleteId := req.Id
+		if deleteVersion == "" || deleteId.Uid == "" {
+			deleteVersion = existing.Version
+			deleteId = existing.Id
+		}
 
-	err = s.Backend.DeleteCAS(ctx, deleteId, deleteVersion)
+		// Check finalizers for a deferred delete
+		if resource.HasFinalizers(existing) {
+			if resource.IsMarkedForDeletion(existing) {
+				// Delete previously requested and finalizers still present so nothing to do
+				return nil
+			}
+
+			// Mark for deletion and let controllers that put finalizers in place do their
+			// thing. Note we're passing in a clone of the recently read resource since
+			// we've not crossed a network/serialization boundary since the read and we
+			// don't want to mutate the in-mem reference.
+			_, err := s.markForDeletion(ctx, clone(existing))
+			return err
+		}
+
+		// Continue with an immediate delete
+		if err := s.maybeCreateTombstone(ctx, deleteId); err != nil {
+			return err
+		}
+
+		err = s.Backend.DeleteCAS(ctx, deleteId, deleteVersion)
+		return err
+	})
+
 	switch {
 	case err == nil:
 		return &pbresource.DeleteResponse{}, nil
 	case errors.Is(err, storage.ErrCASFailure):
 		return nil, status.Error(codes.Aborted, err.Error())
+	case isGRPCStatusError(err):
+		// Pass through gRPC errors from internal calls to resource service
+		// endpoints (e.g. Write when marking for deletion).
+		return nil, err
 	default:
 		return nil, status.Errorf(codes.Internal, "failed delete: %v", err)
 	}

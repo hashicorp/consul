@@ -358,8 +358,8 @@ service ResourceService {
   // a resource.
   rpc MutateAndValidate(MutateAndValidateRequest) returns (MutateAndValidateResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
-        operation_type: OPERATION_TYPE_READ,
-        operation_category: OPERATION_CATEGORY_RESOURCE
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
 }

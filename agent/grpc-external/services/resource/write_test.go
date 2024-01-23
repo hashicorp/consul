@@ -5,7 +5,6 @@ package resource_test
 
 import (
 	"context"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -22,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
@@ -471,8 +469,8 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	backend := &blockOnceBackend{
 		Backend: server.Backend,
 
-		readCh:  make(chan struct{}),
-		blockCh: make(chan struct{}),
+		readCompletedCh: make(chan struct{}),
+		blockCh:         make(chan struct{}),
 	}
 	server.Backend = backend
 
@@ -487,7 +485,7 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 
 	// Wait for the read, to ensure the Write in the goroutine above has read the
 	// current version of the resource.
-	<-backend.readCh
+	<-backend.readCompletedCh
 
 	// Update the resource.
 	res = modifyArtist(t, rsp1.Resource)
@@ -612,27 +610,6 @@ func TestWrite_Owner_Uid(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uid, rsp.GetResource().GetOwner().GetUid())
 	})
-}
-
-type blockOnceBackend struct {
-	storage.Backend
-
-	done    uint32
-	readCh  chan struct{}
-	blockCh chan struct{}
-}
-
-func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
-	res, err := b.Backend.Read(ctx, consistency, id)
-
-	// Block for exactly one call to Read. All subsequent calls (including those
-	// concurrent to the blocked call) will return immediately.
-	if atomic.CompareAndSwapUint32(&b.done, 0, 1) {
-		close(b.readCh)
-		<-b.blockCh
-	}
-
-	return res, err
 }
 
 func TestEnsureFinalizerRemoved(t *testing.T) {

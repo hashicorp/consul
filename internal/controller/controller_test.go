@@ -50,8 +50,7 @@ func TestController_API(t *testing.T) {
 	})
 
 	rec := newTestReconciler()
-	expectedInitAttempts := 2 // testing retries
-	init := newTestInitializer(expectedInitAttempts)
+	init := newTestInitializer(1)
 	client := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
@@ -80,11 +79,8 @@ func TestController_API(t *testing.T) {
 	mgr.SetRaftLeader(true)
 	go mgr.Run(testContext(t))
 
-	t.Run("initialize", func(t *testing.T) {
-		for i := 0; i < expectedInitAttempts; i++ {
-			init.wait(t)
-		}
-	})
+	// Wait for initialization to complete
+	init.wait(t)
 
 	t.Run("managed resource type", func(t *testing.T) {
 		res, err := demo.GenerateV2Artist()
@@ -223,6 +219,44 @@ func TestController_API(t *testing.T) {
 		_, req = rec.wait(t)
 		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
 	})
+}
+
+func TestController_API_InitializeRetry(t *testing.T) {
+	t.Parallel()
+
+	// Configure initializer to error initially in order to test retries
+	expectedInitAttempts := 2
+	init := newTestInitializer(expectedInitAttempts)
+
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+	rec := newTestReconciler()
+
+	ctrl := controller.
+		NewController("artist", pbdemov2.ArtistType).
+		WithBackoff(10*time.Millisecond, 100*time.Millisecond).
+		WithReconciler(rec).
+		WithInitializer(init)
+
+	mgr := controller.NewManager(client, testutil.Logger(t))
+	mgr.Register(ctrl)
+	mgr.SetRaftLeader(true)
+	go mgr.Run(testContext(t))
+
+	// Wait for initialization attempts to complete
+	for i := 0; i < expectedInitAttempts; i++ {
+		init.wait(t)
+	}
+
+	// Create a resource and expect it to reconcile now that initialization is complete
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	rec.wait(t)
 }
 
 func waitForAtomicBoolValue(t testutil.TestingTB, actual *atomic.Bool, expected bool) {
