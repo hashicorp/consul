@@ -35,8 +35,8 @@ SPDX-License-Identifier: BUSL-1.1
   <DataSource @src={{uri 'settings://consul:token' }} @onchange={{action (mut token) value='data' }} />
   {{/if}}
 
-  <DataSource @src={{uri '/${partition}/*/${dc}/hcp-link' (hash dc=dc.Name partition=partition name=dc.Name) }} as
-    |hcpLink|>
+  <DataSource @src={{uri '/${partition}/*/${dc}/hcp-link' (hash dc=dc.Name partition=partition name=dc.Name) }} as |hcpLink|>
+    The Status is: {{hcpLink.isLinked}}
     {{#if (not-eq route.currentName 'oauth-provider-debug')}}
 
     {{! redirect if we aren't on a URL with dc information }}

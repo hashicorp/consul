@@ -6,9 +6,9 @@
 import Adapter from './application';
 
 export default class HcpLinkAdapter extends Adapter {
-  requestForQueryRecord(request, { dc, ns, partition, index, id }) {
+  requestForQuery(request, { dc, ns, partition, index, id }) {
     return request`
-      GET /v2/link
+      GET api/hcp/v2/link
 
       ${{
         ns,
