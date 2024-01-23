@@ -7,10 +7,9 @@ import (
 	"context"
 	"strings"
 
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/hcp/bootstrap"
@@ -18,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -106,6 +106,21 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	if err := res.Data.UnmarshalTo(&link); err != nil {
 		rt.Logger.Error("error unmarshalling link data", "error", err)
 		return err
+	}
+
+	err = addFinalizer(ctx, rt, res)
+	if err != nil {
+		rt.Logger.Error("error adding finalizer to link resource", "error", err)
+		return err
+	}
+
+	if resource.IsMarkedForDeletion(res) {
+		err := cleanup(ctx, rt, res, r.dataDir)
+		if err != nil {
+			rt.Logger.Error("error cleaning up link resource", "error", err)
+			return err
+		}
+		return nil
 	}
 
 	// Validation - Ensure V2 Resource APIs are not enabled unless hcpAllowV2ResourceApis flag is set
