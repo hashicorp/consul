@@ -24,7 +24,7 @@ const (
 	baseL7PermissionKey = "consul-intentions-layer7"
 )
 
-// MakeL4RBAC returns the envoy deny and allow rules from the traffic permissions. After calling this function these
+// MakeRBAC returns the envoy deny and allow rules from the traffic permissions. After calling this function these
 // rules can be put into a network rbac filter or http rbac filter depending on the local app port protocol.
 func MakeRBAC(trafficPermissions *pbproxystate.TrafficPermissions, makePolicies func([]*pbproxystate.Permission) map[string]*envoy_rbac_v3.Policy) (deny *envoy_rbac_v3.RBAC, allow *envoy_rbac_v3.RBAC, err error) {
 	var denyRBAC *envoy_rbac_v3.RBAC
@@ -134,23 +134,17 @@ func makeRBACHTTPFilter(rbac *envoy_rbac_v3.RBAC) (*envoy_http_v3.HttpFilter, er
 }
 
 func makeL4RBACPolicies(l4Permissions []*pbproxystate.Permission) map[string]*envoy_rbac_v3.Policy {
-	policyLabel := func(i int) string {
-		if len(l4Permissions) == 1 {
-			return baseL4PermissionKey
-		}
-		return fmt.Sprintf("%s-%d", baseL4PermissionKey, i)
-	}
-
 	policies := make(map[string]*envoy_rbac_v3.Policy, len(l4Permissions))
 
 	for i, permission := range l4Permissions {
 		if len(permission.DestinationRules) != 0 {
 			// This is an L7-only permission
+			// ports are split out for separate configuration before this point and L7 filters are configured separately
 			continue
 		}
 		policy := makeL4RBACPolicy(permission)
 		if policy != nil {
-			policies[policyLabel(i)] = policy
+			policies[l4PolicyLabel(l4Permissions, i)] = policy
 		}
 	}
 
@@ -158,7 +152,7 @@ func makeL4RBACPolicies(l4Permissions []*pbproxystate.Permission) map[string]*en
 }
 
 func makeL4RBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
-	if len(p.Principals) == 0 {
+	if p == nil || len(p.Principals) == 0 {
 		return nil
 	}
 
@@ -172,6 +166,13 @@ func makeL4RBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
 		Principals:  principals,
 		Permissions: []*envoy_rbac_v3.Permission{anyPermission()},
 	}
+}
+
+func l4PolicyLabel(perms []*pbproxystate.Permission, i int) string {
+	if len(perms) == 1 {
+		return baseL4PermissionKey
+	}
+	return fmt.Sprintf("%s-%d", baseL4PermissionKey, i)
 }
 
 func makeL7RBACPolicies(l7Permissions []*pbproxystate.Permission) map[string]*envoy_rbac_v3.Policy {
@@ -188,12 +189,6 @@ func makeL7RBACPolicies(l7Permissions []*pbproxystate.Permission) map[string]*en
 			l4Perms = append(l4Perms, p)
 		}
 	}
-	l4PolicyLabel := func(i int) string {
-		if len(l4Perms) == 1 {
-			return baseL4PermissionKey
-		}
-		return fmt.Sprintf("%s-%d", baseL4PermissionKey, i)
-	}
 
 	policies := make(map[string]*envoy_rbac_v3.Policy, len(l7Permissions))
 
@@ -207,7 +202,7 @@ func makeL7RBACPolicies(l7Permissions []*pbproxystate.Permission) map[string]*en
 	for i, permission := range l4Perms {
 		policy := makeL4RBACPolicy(permission)
 		if policy != nil {
-			policies[l4PolicyLabel(i)] = policy
+			policies[l4PolicyLabel(l4Perms, i)] = policy
 		}
 	}
 
@@ -215,7 +210,7 @@ func makeL7RBACPolicies(l7Permissions []*pbproxystate.Permission) map[string]*en
 }
 
 func makeL7RBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
-	if len(p.Principals) == 0 {
+	if p == nil || len(p.Principals) == 0 {
 		return nil
 	}
 

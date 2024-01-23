@@ -187,9 +187,9 @@ func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]st
 		PathRegex:  dr.PathRegex,
 		Methods:    dr.Methods,
 	}
-	var hrs []*pbproxystate.DestinationRuleHeader
-	for _, hr := range dr.Headers {
-		hrs = append(hrs, &pbproxystate.DestinationRuleHeader{
+	hrs := make([]*pbproxystate.DestinationRuleHeader, len(dr.Headers))
+	for i, hr := range dr.Headers {
+		hrs[i] = &pbproxystate.DestinationRuleHeader{
 			Name:    hr.Name,
 			Present: hr.Present,
 			Exact:   hr.Exact,
@@ -197,7 +197,7 @@ func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]st
 			Suffix:  hr.Suffix,
 			Regex:   hr.Regex,
 			Invert:  hr.Invert,
-		})
+		}
 	}
 	psdr.DestinationRuleHeader = hrs
 
