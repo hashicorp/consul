@@ -10,6 +10,7 @@ const (
 	GroupName = "mesh"
 	Version   = "v2beta1"
 
+	APIGatewayKind                   = "APIGateway"
 	ComputedExplicitDestinationsKind = "ComputedExplicitDestinations"
 	ComputedProxyConfigurationKind   = "ComputedProxyConfiguration"
 	ComputedRoutesKind               = "ComputedRoutes"
@@ -28,6 +29,12 @@ const (
 )
 
 var (
+	APIGatewayType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         APIGatewayKind,
+	}
+
 	ComputedExplicitDestinationsType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,
