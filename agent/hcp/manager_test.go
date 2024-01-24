@@ -109,16 +109,23 @@ func TestManager_StartMultipleTimes(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	// Start the manager for the first time, expect one update
+	// Start the manager twice concurrently, expect only one update
 	mgr.UpdateConfig(client, cloudCfg)
-	mgr.Start(ctx)
+	go mgr.Start(ctx)
+	go mgr.Start(ctx)
 	select {
 	case <-updateCh:
 	case <-time.After(time.Second):
 		require.Fail(t, "manager did not send update in expected time")
 	}
 
-	// Start the manager again, don't expect an update since already running
+	select {
+	case <-updateCh:
+		require.Fail(t, "manager sent an update when not expected")
+	case <-time.After(time.Second):
+	}
+
+	// Try start the manager again, still don't expect an update since already running
 	mgr.Start(ctx)
 	select {
 	case <-updateCh:

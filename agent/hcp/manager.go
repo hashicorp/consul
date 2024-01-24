@@ -88,11 +88,11 @@ func NewManager(cfg ManagerConfig) *Manager {
 // manager has been previously started, it will not start again.
 func (m *Manager) Start(ctx context.Context) error {
 	// Check if the manager has already started
-	if m.isRunning() {
+	changed := m.setRunning(true)
+	if !changed {
 		m.logger.Trace("HCP manager already started")
 		return nil
 	}
-	m.setRunning(true)
 
 	var err error
 	m.logger.Info("HCP manager starting")
@@ -287,8 +287,17 @@ func (m *Manager) isRunning() bool {
 	return m.running
 }
 
-func (m *Manager) setRunning(s bool) {
+// setRunning sets the running status of the manager to the given value. If the
+// given value is the same as the current running status, it returns false. If
+// current status is updated to the given status, it returns true.
+func (m *Manager) setRunning(r bool) bool {
 	m.runLock.Lock()
 	defer m.runLock.Unlock()
-	m.running = s
+
+	if m.running == r {
+		return false
+	}
+
+	m.running = r
+	return true
 }

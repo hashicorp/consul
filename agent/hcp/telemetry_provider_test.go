@@ -331,6 +331,63 @@ func TestTelemetryConfigProvider_Run(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
+func TestTelemetryConfigProvider_MultipleRun(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	provider := NewHCPProvider(ctx)
+
+	testUpdateConfigCh := make(chan struct{}, 1)
+	provider.testUpdateConfigCh = testUpdateConfigCh
+
+	// Configure mocks
+	mockClient := client.NewMockClient(t)
+	mTelemetryCfg, err := testTelemetryCfg(&testConfig{
+		refreshInterval: 30 * time.Minute,
+	})
+	require.NoError(t, err)
+	mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(mTelemetryCfg, nil)
+	mockHCPCfg := &config.MockCloudCfg{}
+
+	// Run provider twice in parallel
+	go provider.Run(context.Background(), &HCPProviderCfg{
+		HCPClient: mockClient,
+		HCPConfig: mockHCPCfg,
+	})
+	go provider.Run(context.Background(), &HCPProviderCfg{
+		HCPClient: mockClient,
+		HCPConfig: mockHCPCfg,
+	})
+
+	// Expect only one update config call
+	select {
+	case <-testUpdateConfigCh:
+	case <-time.After(time.Second):
+		require.Fail(t, "provider did not attempt to update config in expected time")
+	}
+
+	select {
+	case <-testUpdateConfigCh:
+		require.Fail(t, "provider unexpectedly updated config")
+	case <-time.After(time.Second):
+	}
+
+	// Try calling run again, should not update again
+	provider.Run(context.Background(), &HCPProviderCfg{
+		HCPClient: mockClient,
+		HCPConfig: mockHCPCfg,
+	})
+
+	select {
+	case <-testUpdateConfigCh:
+		require.Fail(t, "provider unexpectedly updated config")
+	case <-time.After(time.Second):
+	}
+
+	mockClient.AssertExpectations(t)
+}
+
 func TestTelemetryConfigProvider_updateHTTPConfig(t *testing.T) {
 	for name, test := range map[string]struct {
 		wantErr string
