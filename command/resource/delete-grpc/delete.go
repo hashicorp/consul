@@ -97,8 +97,8 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		resourceTenancy = &pbresource.Tenancy{
-			Namespace: c.resourceFlags.Namespace(),
 			Partition: c.resourceFlags.Partition(),
+			Namespace: c.resourceFlags.Namespace(),
 			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
@@ -156,8 +156,8 @@ ID {
 	Type = gvk("catalog.v2beta1.Service")
 	Name = "card-processor"
 	Tenancy {
-		Namespace = "payments"
 		Partition = "billing"
+		Namespace = "payments"
 		PeerName = "eu"
 	}
 }

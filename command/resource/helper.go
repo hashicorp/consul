@@ -36,8 +36,8 @@ type OuterResource struct {
 }
 
 type Tenancy struct {
-	Namespace string `json:"namespace"`
 	Partition string `json:"partition"`
+	Namespace string `json:"namespace"`
 	PeerName  string `json:"peerName"`
 }
 

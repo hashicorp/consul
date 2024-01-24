@@ -134,8 +134,8 @@ Usage: consul resource apply [options] <resource>
 		Type = gvk("group.version.kind")
 		Name = "resource-name"
 		Tenancy {
-			Namespace = "default"
 			Partition = "default"
+			Namespace = "default"
 			PeerName = "local"
 		}
 	}
