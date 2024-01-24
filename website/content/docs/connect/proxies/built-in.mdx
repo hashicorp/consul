@@ -24,23 +24,25 @@ for the built-in proxy.
   "service": {
     "name": "example-service",
     "connect": {
-      "proxy": {
-        "config": {
-          "bind_address": "0.0.0.0",
-          "bind_port": 20000,
-          "local_service_address": "127.0.0.1:1234",
-          "local_connect_timeout_ms": 1000,
-          "handshake_timeout_ms": 10000,
-          "upstreams": []
-        },
-        "upstreams": [
-          {
-            "destination_name": "example-upstream",
-            "config": {
-              "connect_timeout_ms": 1000
+      "sidecar_service": {
+        "proxy": {
+          "config": {
+            "bind_address": "0.0.0.0",
+            "bind_port": 20000,
+            "local_service_address": "127.0.0.1:1234",
+            "local_connect_timeout_ms": 1000,
+            "handshake_timeout_ms": 10000,
+            "upstreams": []
+          },
+          "upstreams": [
+            {
+              "destination_name": "example-upstream",
+              "config": {
+                "connect_timeout_ms": 1000
+              }
             }
-          }
-        ]
+          ]
+        }
       }
     }
   }
