@@ -11,6 +11,8 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 
+	"github.com/stretchr/testify/require"
+
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -20,7 +22,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -192,97 +193,6 @@ func TestTrafficPermission_TCP_DefaultDeny(t *testing.T) {
 			client2TCPSuccess:  true,
 			client2EchoSuccess: true,
 		},
-		"deny takes precedence over allow": {
-			tp1: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: staticServerIdentity,
-				},
-				Action: pbauth.Action_ACTION_DENY,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								IdentityName: "static-client-1-identity",
-								Namespace:    "default",
-								Partition:    "default",
-								Peer:         "local",
-							},
-						},
-					},
-				},
-			},
-			tp2: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: staticServerIdentity,
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								IdentityName: "static-client-1-identity",
-								Namespace:    "default",
-								Partition:    "default",
-								Peer:         "local",
-							},
-						},
-					},
-				},
-			},
-			client1TCPSuccess:  false,
-			client1EchoSuccess: false,
-			client2TCPSuccess:  false,
-			client2EchoSuccess: false,
-		},
-		"deny all exclude service + allow on that service": {
-			tp1: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: staticServerIdentity,
-				},
-				Action: pbauth.Action_ACTION_DENY,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Namespace: "default",
-								Partition: "default",
-								Peer:      "local",
-								Exclude: []*pbauth.ExcludeSource{
-									{
-										IdentityName: "static-client-1-identity",
-										Namespace:    "default",
-										Partition:    "default",
-										Peer:         "local",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			tp2: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: staticServerIdentity,
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								IdentityName: "static-client-1-identity",
-								Namespace:    "default",
-								Partition:    "default",
-								Peer:         "local",
-							},
-						},
-					},
-				},
-			},
-			client1TCPSuccess:  true,
-			client1EchoSuccess: true,
-			client2TCPSuccess:  false,
-			client2EchoSuccess: false,
-		},
 	}
 
 	runTrafficPermissionsTests(t, true, cases)
@@ -303,18 +213,6 @@ func TestTrafficPermission_TCP_DefaultAllow(t *testing.T) {
 					IdentityName: staticServerIdentity,
 				},
 				Action: pbauth.Action_ACTION_ALLOW,
-			},
-			client1TCPSuccess:  false,
-			client1EchoSuccess: false,
-			client2TCPSuccess:  false,
-			client2EchoSuccess: false,
-		},
-		"empty deny denies everything": {
-			tp1: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: staticServerIdentity,
-				},
-				Action: pbauth.Action_ACTION_DENY,
 			},
 			client1TCPSuccess:  false,
 			client1EchoSuccess: false,

@@ -56,14 +56,14 @@ func TestValidateComputedFailoverPolicy(t *testing.T) {
 			testutil.RequireErrorContains(t, err, tc.expectErr)
 		}
 	}
-	cases := convertToComputedFailverPolicyTestCases(getCommonTestCases())
-	cases["plain config: sameness_group"] = computedFailoverTestcase{
+	cases := convertToComputedFailverPolicyTestCases(getComputedFailoverCases())
+	cases["plain config: config"] = computedFailoverTestcase{
 		failover: &pbcatalog.ComputedFailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				SamenessGroup: "test",
 			},
 		},
-		expectErr: `invalid "config" field: computed failover policy cannot have a sameness_group`,
+		expectErr: `invalid "config" field: computed failover policy cannot have a config`,
 	}
 	cases["ported config: sameness_group"] = computedFailoverTestcase{
 		failover: &pbcatalog.ComputedFailoverPolicy{
@@ -109,7 +109,7 @@ func testFailOverPolicyAcls(t *testing.T, isComputedFailoverPolicy bool) {
 		if isComputedFailoverPolicy {
 			typ = pbcatalog.ComputedFailoverPolicyType
 			cfgData = &pbcatalog.ComputedFailoverPolicy{
-				Config: cfgDests,
+				PortConfigs: portedCfgDests,
 			}
 			portedCfgData = &pbcatalog.ComputedFailoverPolicy{
 				PortConfigs: portedCfgDests,

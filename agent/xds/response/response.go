@@ -78,3 +78,12 @@ func MakeEnvoyRegexMatch(patt string) *envoy_matcher_v3.RegexMatcher {
 		Regex: patt,
 	}
 }
+
+func MakeEnvoyStringMatcher(patt string) *envoy_matcher_v3.StringMatcher {
+	return &envoy_matcher_v3.StringMatcher{
+		MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+			SafeRegex: MakeEnvoyRegexMatch(patt),
+		},
+		IgnoreCase: true,
+	}
+}

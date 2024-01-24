@@ -33,7 +33,10 @@ func New(client pbresource.ResourceServiceClient, cache *cache.Cache) *Fetcher {
 	}
 }
 
+// FetchWorkload fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a Workload type.
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
+	assertResourceType(pbcatalog.WorkloadType, id.Type)
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
 	if err != nil {
 		return nil, err
@@ -48,27 +51,45 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 	return dec, err
 }
 
+// FetchProxyStateTemplate fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ProxyStateTemplate type.
 func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*types.DecodedProxyStateTemplate, error) {
+	assertResourceType(pbmesh.ProxyStateTemplateType, id.Type)
 	return resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.client, id)
 }
 
+// FetchComputedTrafficPermissions fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ComputedTrafficPermissons type.
 func (f *Fetcher) FetchComputedTrafficPermissions(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedTrafficPermissions, error) {
+	assertResourceType(pbauth.ComputedTrafficPermissionsType, id.Type)
 	return resource.GetDecodedResource[*pbauth.ComputedTrafficPermissions](ctx, f.client, id)
 }
 
+// FetchServiceEndpoints fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ServiceEndpoints type.
 func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) (*types.DecodedServiceEndpoints, error) {
+	assertResourceType(pbcatalog.ServiceEndpointsType, id.Type)
 	return resource.GetDecodedResource[*pbcatalog.ServiceEndpoints](ctx, f.client, id)
 }
 
+// FetchService fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a Service type.
 func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
+	assertResourceType(pbcatalog.ServiceType, id.Type)
 	return resource.GetDecodedResource[*pbcatalog.Service](ctx, f.client, id)
 }
 
+// FetchDestinations fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a Destinations type.
 func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*types.DecodedDestinations, error) {
+	assertResourceType(pbmesh.DestinationsType, id.Type)
 	return resource.GetDecodedResource[*pbmesh.Destinations](ctx, f.client, id)
 }
 
+// FetchComputedRoutes fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ComputedRoutes type.
 func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedRoutes, error) {
+	assertResourceType(pbmesh.ComputedRoutesType, id.Type)
 	if !types.IsComputedRoutesType(id.Type) {
 		return nil, fmt.Errorf("id must be a ComputedRoutes type")
 	}
@@ -83,11 +104,10 @@ func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*
 	return dec, err
 }
 
-func (f *Fetcher) FetchExplicitDestinationsData(
+func (f *Fetcher) FetchComputedExplicitDestinationsData(
 	ctx context.Context,
 	proxyID *pbresource.ID,
 ) ([]*intermediateTypes.Destination, error) {
-
 	var destinations []*intermediateTypes.Destination
 
 	// Fetch computed explicit destinations first.
@@ -107,9 +127,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 	for _, dest := range cd.GetData().GetDestinations() {
 		d := &intermediateTypes.Destination{}
 
-		var (
-			serviceID = resource.IDFromReference(dest.DestinationRef)
-		)
+		serviceID := resource.IDFromReference(dest.DestinationRef)
 
 		// Fetch Service
 		svc, err := f.FetchService(ctx, serviceID)
@@ -371,4 +389,11 @@ func isPartOfService(workloadID *pbresource.ID, svc *types.DecodedService) bool 
 		}
 	}
 	return false
+}
+
+func assertResourceType(expected, actual *pbresource.Type) {
+	if !proto.Equal(expected, actual) {
+		// this is always a programmer error so safe to panic
+		panic(fmt.Sprintf("expected a query for a type of %q, you provided a type of %q", expected, actual))
+	}
 }

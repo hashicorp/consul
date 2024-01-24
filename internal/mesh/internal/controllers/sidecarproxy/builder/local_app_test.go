@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/testing/golden"
@@ -103,8 +104,8 @@ func TestBuildLocalApp(t *testing.T) {
 
 		for name, c := range cases {
 			t.Run(resourcetest.AppendTenancyInfoSubtest(t.Name(), name, tenancy), func(t *testing.T) {
-				proxyTmpl := New(testProxyStateTemplateID(tenancy), testIdentityRef(tenancy), "foo.consul", "dc1", true, nil).
-					BuildLocalApp(c.workload, nil).
+				proxyTmpl := New(testProxyStateTemplateID(tenancy), testIdentityRef(tenancy), "foo.consul", "dc1", c.defaultAllow, nil).
+					BuildLocalApp(c.workload, c.ctp).
 					Build()
 
 				// sort routers because of test flakes where order was flip flopping.
@@ -168,7 +169,7 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			// source/local-and-inbound-connections shows that configuring LocalCOnnection
+			// source/local-and-inbound-connections shows that configuring LocalConnection
 			// and InboundConnections in DynamicConfig will set fields on standard clusters and routes,
 			// but will not set fields on exposed path clusters and routes.
 			"source/local-and-inbound-connections": {
@@ -247,7 +248,7 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 	}, t)
 }
 
-func TestBuildL4TrafficPermissions(t *testing.T) {
+func TestBuildTrafficPermissions(t *testing.T) {
 	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
 		testTrustDomain := "test.consul"
 
@@ -495,6 +496,54 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 					},
 					"p2": {
 						DefaultAllow: false,
+					},
+				},
+			},
+			"preserves default deny http rules": {
+				defaultAllow: false,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "foo",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PortNames: []string{"p2"},
+									Methods:   []string{"GET"},
+									PathExact: "/bar",
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p2": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathExact: "/bar",
+										Methods:   []string{"GET"},
+									},
+								},
+							},
+						},
 					},
 				},
 			},

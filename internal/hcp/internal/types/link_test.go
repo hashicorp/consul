@@ -35,7 +35,7 @@ func TestValidateLink_Ok(t *testing.T) {
 	data := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   GenerateTestResourceID(t),
 	}
 
 	res := createCloudLinkResource(t, data)
@@ -60,7 +60,7 @@ func TestValidateLink_InvalidName(t *testing.T) {
 	data := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   GenerateTestResourceID(t),
 	}
 
 	res := createCloudLinkResource(t, data)
@@ -70,7 +70,7 @@ func TestValidateLink_InvalidName(t *testing.T) {
 
 	expected := resource.ErrInvalidField{
 		Name:    "name",
-		Wrapped: linkConfigurationNameError,
+		Wrapped: errLinkConfigurationName,
 	}
 
 	var actual resource.ErrInvalidField
@@ -82,7 +82,7 @@ func TestValidateLink_MissingClientId(t *testing.T) {
 	data := &pbhcp.Link{
 		ClientId:     "",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   GenerateTestResourceID(t),
 	}
 
 	res := createCloudLinkResource(t, data)
@@ -103,7 +103,7 @@ func TestValidateLink_MissingClientSecret(t *testing.T) {
 	data := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "",
-		ResourceId:   "abc",
+		ResourceId:   GenerateTestResourceID(t),
 	}
 
 	res := createCloudLinkResource(t, data)
@@ -141,6 +141,27 @@ func TestValidateLink_MissingResourceId(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
+func TestValidateLink_InvalidResourceId(t *testing.T) {
+	data := &pbhcp.Link{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
+	}
+
+	res := createCloudLinkResource(t, data)
+
+	err := ValidateLink(res)
+
+	expected := resource.ErrInvalidField{
+		Name:    "resource_id",
+		Wrapped: errInvalidHCPResourceID,
+	}
+
+	var actual resource.ErrInvalidField
+	require.ErrorAs(t, err, &actual)
+	require.Equal(t, expected, actual)
+}
+
 // Currently, we have no specific ACLs configured so the default `operator` permissions are required
 func TestLinkACLs(t *testing.T) {
 	registry := resource.NewRegistry()
@@ -149,7 +170,7 @@ func TestLinkACLs(t *testing.T) {
 	data := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   GenerateTestResourceID(t),
 	}
 	link := createCloudLinkResource(t, data)
 

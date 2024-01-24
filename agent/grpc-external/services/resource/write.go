@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/oklog/ulid/v2"
 	"golang.org/x/exp/maps"
@@ -18,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -251,41 +249,6 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		return nil, status.Errorf(codes.Internal, "failed to write resource: %v", err.Error())
 	}
 	return &pbresource.WriteResponse{Resource: result}, nil
-}
-
-// retryCAS retries the given operation with exponential backoff if the user
-// didn't provide a version. This is intended to hide failures when the user
-// isn't intentionally performing a CAS operation (all writes are, by design,
-// CAS operations at the storage backend layer).
-func (s *Server) retryCAS(ctx context.Context, vsn string, cas func() error) error {
-	if vsn != "" {
-		return cas()
-	}
-
-	const maxAttempts = 5
-
-	// These parameters are fairly arbitrary, so if you find better ones then go
-	// ahead and swap them out! In general, we want to wait long enough to smooth
-	// over small amounts of storage replication lag, but not so long that we make
-	// matters worse by holding onto load.
-	backoff := &retry.Waiter{
-		MinWait: 50 * time.Millisecond,
-		MaxWait: 1 * time.Second,
-		Jitter:  retry.NewJitter(50),
-		Factor:  75 * time.Millisecond,
-	}
-
-	var err error
-	for i := 1; i <= maxAttempts; i++ {
-		if err = cas(); !errors.Is(err, storage.ErrCASFailure) {
-			break
-		}
-		if backoff.Wait(ctx) != nil {
-			break
-		}
-		s.Logger.Trace("retrying failed CAS operation", "failure_count", i)
-	}
-	return err
 }
 
 func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resource.Registration, error) {

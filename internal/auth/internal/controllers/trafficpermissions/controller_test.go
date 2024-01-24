@@ -12,9 +12,11 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/internal/auth/internal/controllers/trafficpermissions/expander"
 	"github.com/hashicorp/consul/internal/auth/internal/mappers/trafficpermissionsmapper"
 	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -32,27 +34,31 @@ type controllerSuite struct {
 	rt     controller.Runtime
 
 	mapper       *trafficpermissionsmapper.TrafficPermissionsMapper
+	sgExpander   expander.SamenessGroupExpander
 	reconciler   *reconciler
 	tenancies    []*pbresource.Tenancy
 	isEnterprise bool
 }
 
 func (suite *controllerSuite) SetupTest() {
+
 	suite.isEnterprise = versiontest.IsEnterprise()
 	suite.tenancies = resourcetest.TestTenancies()
 	suite.ctx = testutil.TestContext(suite.T())
 	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register).
+		WithRegisterFns(types.Register, multicluster.RegisterTypes).
 		WithTenancies(suite.tenancies...).
 		Run(suite.T())
 
 	suite.client = rtest.NewClient(client)
+
 	suite.rt = controller.Runtime{
 		Client: suite.client,
 		Logger: testutil.Logger(suite.T()),
 	}
 	suite.mapper = trafficpermissionsmapper.New()
-	suite.reconciler = &reconciler{mapper: suite.mapper}
+	suite.sgExpander = expander.GetSamenessGroupExpander()
+	suite.reconciler = &reconciler{mapper: suite.mapper, sgExpander: suite.sgExpander}
 }
 
 func (suite *controllerSuite) requireTrafficPermissionsTracking(tp *pbresource.Resource, ids ...*pbresource.ID) {
@@ -108,7 +114,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).
 			WithTenancy(tenancy).
@@ -148,7 +154,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 
 		// Ensure that the CTP was created
 		ctp := suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctp, []*pbauth.Permission{p2}, []*pbauth.Permission{p1})
+		suite.requireCTP(ctp, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{})
 		rtest.RequireOwner(suite.T(), ctp, wi.Id, true)
 	})
 }
@@ -168,11 +174,12 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
 		wi1ID := &pbresource.ID{
 			Name:    "wi1",
 			Type:    pbauth.ComputedTrafficPermissionsType,
@@ -263,7 +270,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).Write(suite.T(), suite.client)
 		suite.requireTrafficPermissionsTracking(tp1, id)
@@ -291,7 +298,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 
 		// Ensure that the CTP was updated
 		ctpResource = suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctpResource, []*pbauth.Permission{p2}, []*pbauth.Permission{p1})
+		suite.requireCTP(ctpResource, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{})
 		rtest.RequireOwner(suite.T(), ctpResource, wi.Id, true)
 		assertCTPDefaultStatus(suite.T(), ctpResource, false)
 
@@ -309,7 +316,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p3},
 		}).Write(suite.T(), suite.client)
 		suite.requireTrafficPermissionsTracking(tp3, id)
@@ -319,11 +326,11 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 
 		// Ensure that the CTP was updated
 		ctpResource = suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctpResource, []*pbauth.Permission{p2}, []*pbauth.Permission{p1, p3})
+		suite.requireCTP(ctpResource, []*pbauth.Permission{p1, p2, p3}, []*pbauth.Permission{})
 		rtest.RequireOwner(suite.T(), ctpResource, wi.Id, true)
 		assertCTPDefaultStatus(suite.T(), ctpResource, false)
 
-		// Delete the traffic permissions without updating the caches. Ensure is default is right even when the caches contain stale data.
+		// Delete the traffic permissions without updating the caches. Ensure is default is right even when the caches contain stale samenessGroupsForTrafficPermission.
 		suite.client.MustDelete(suite.T(), tp1.Id)
 		suite.client.MustDelete(suite.T(), tp2.Id)
 		suite.client.MustDelete(suite.T(), tp3.Id)
@@ -361,7 +368,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).
 			WithTenancy(tenancy).
@@ -391,7 +398,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		require.NoError(suite.T(), err)
 
 		ctp := suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctp, []*pbauth.Permission{p2}, []*pbauth.Permission{p1})
+		suite.requireCTP(ctp, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{})
 		rtest.RequireOwner(suite.T(), ctp, wi.Id, true)
 
 		// Delete TP2
@@ -402,7 +409,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 
 		// Ensure that the CTP was updated
 		ctp = suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctp, []*pbauth.Permission{}, []*pbauth.Permission{p1})
+		suite.requireCTP(ctp, []*pbauth.Permission{p1}, []*pbauth.Permission{})
 
 		// Ensure TP2 is untracked
 		newTps := suite.mapper.GetTrafficPermissionsForCTP(ctp.Id)
@@ -427,7 +434,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).
 			WithTenancy(tenancy).
@@ -475,7 +482,7 @@ func (suite *controllerSuite) TestControllerBasic() {
 	// TODO: refactor this
 	// In this test we check basic operations for a workload identity and referencing traffic permission
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(Controller(suite.mapper))
+	mgr.Register(Controller(suite.mapper, suite.sgExpander))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -588,7 +595,7 @@ func (suite *controllerSuite) TestControllerBasicWithMultipleTenancyLevels() {
 	// TODO: refactor this
 	// In this test we check basic operations for a workload identity and referencing traffic permission
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(Controller(suite.mapper))
+	mgr.Register(Controller(suite.mapper, suite.sgExpander))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -709,7 +716,7 @@ func (suite *controllerSuite) TestControllerMultipleTrafficPermissions() {
 	suite.T().Skip("flaky behavior observed")
 	// In this test we check operations for a workload identity and multiple referencing traffic permissions
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(Controller(suite.mapper))
+	mgr.Register(Controller(suite.mapper, suite.sgExpander))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 

@@ -41,9 +41,10 @@ type ServiceRouteMatch struct {
 }
 
 type ServiceRouteHTTPMatch struct {
-	PathExact  string `json:",omitempty" alias:"path_exact"`
-	PathPrefix string `json:",omitempty" alias:"path_prefix"`
-	PathRegex  string `json:",omitempty" alias:"path_regex"`
+	PathExact       string `json:",omitempty" alias:"path_exact"`
+	PathPrefix      string `json:",omitempty" alias:"path_prefix"`
+	PathRegex       string `json:",omitempty" alias:"path_regex"`
+	CaseInsensitive bool   `json:",omitempty" alias:"case_insensitive"`
 
 	Header     []ServiceRouteHTTPMatchHeader     `json:",omitempty"`
 	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty" alias:"query_param"`

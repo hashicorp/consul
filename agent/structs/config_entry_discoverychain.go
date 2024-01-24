@@ -372,9 +372,10 @@ func (m *ServiceRouteMatch) IsEmpty() bool {
 
 // ServiceRouteHTTPMatch is a set of http-specific match criteria.
 type ServiceRouteHTTPMatch struct {
-	PathExact  string `json:",omitempty" alias:"path_exact"`
-	PathPrefix string `json:",omitempty" alias:"path_prefix"`
-	PathRegex  string `json:",omitempty" alias:"path_regex"`
+	PathExact       string `json:",omitempty" alias:"path_exact"`
+	PathPrefix      string `json:",omitempty" alias:"path_prefix"`
+	PathRegex       string `json:",omitempty" alias:"path_regex"`
+	CaseInsensitive bool   `json:",omitempty" alias:"case_insensitive"`
 
 	Header     []ServiceRouteHTTPMatchHeader     `json:",omitempty"`
 	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty" alias:"query_param"`
@@ -385,6 +386,7 @@ func (m *ServiceRouteHTTPMatch) IsEmpty() bool {
 	return m.PathExact == "" &&
 		m.PathPrefix == "" &&
 		m.PathRegex == "" &&
+		!m.CaseInsensitive &&
 		len(m.Header) == 0 &&
 		len(m.QueryParam) == 0 &&
 		len(m.Methods) == 0

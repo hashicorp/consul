@@ -6,6 +6,7 @@ package resource_test
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
@@ -281,6 +283,27 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 		},
 	}
 	return tenancyCases
+}
+
+type blockOnceBackend struct {
+	storage.Backend
+
+	done            uint32
+	readCompletedCh chan struct{}
+	blockCh         chan struct{}
+}
+
+func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
+	res, err := b.Backend.Read(ctx, consistency, id)
+
+	// Block for exactly one call to Read. All subsequent calls (including those
+	// concurrent to the blocked call) will return immediately.
+	if atomic.CompareAndSwapUint32(&b.done, 0, 1) {
+		close(b.readCompletedCh)
+		<-b.blockCh
+	}
+
+	return res, err
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

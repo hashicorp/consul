@@ -61,6 +61,17 @@ routes = [
   },
   {
     match { http {
+      path_prefix = "/prefix-case-insensitive/"
+      case_insensitive = true
+      }
+    }
+    destination {
+      service_subset = "v1"
+      prefix_rewrite = "/"
+    }
+  },
+  {
+    match { http {
       path_regex = "/deb[ug]{2}"
       header = [{
         name  = "x-test-debug"
