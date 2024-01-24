@@ -1,0 +1,3 @@
+```release-note:feature
+v2: Support virtual port references in config
+```

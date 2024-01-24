@@ -67,7 +67,7 @@ func (b *Builder) buildDestination(
 	var virtualPortNumber uint32
 	if destination.Explicit == nil {
 		for _, port := range destination.Service.Data.Ports {
-			if port.TargetPort == cpr.ParentRef.Port {
+			if port.MatchesPortId(cpr.ParentRef.Port) {
 				virtualPortNumber = port.VirtualPort
 			}
 		}

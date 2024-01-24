@@ -91,6 +91,8 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 	}
 
 	// Denormalize the ports and stuff. After this we have no empty ports.
+	// Capture original raw config for pre-normalization status conditions.
+	rawFailoverPolicy := failoverPolicy.Data
 	if service != nil {
 		failoverPolicy.Data = types.SimplifyFailoverPolicy(
 			service.Data,
@@ -123,7 +125,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		}
 	}
 
-	newStatus := computeNewStatus(failoverPolicy, service, destServices)
+	newStatus := computeNewStatus(rawFailoverPolicy, failoverPolicy, service, destServices)
 
 	if resource.EqualStatus(failoverPolicy.Resource.Status[ControllerID], newStatus, false) {
 		rt.Logger.Trace("resource's failover policy status is unchanged",
@@ -148,6 +150,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 }
 
 func computeNewStatus(
+	rawFailoverPolicy *pbcatalog.FailoverPolicy,
 	failoverPolicy *resource.DecodedResource[*pbcatalog.FailoverPolicy],
 	service *resource.DecodedResource[*pbcatalog.Service],
 	destServices map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service],
@@ -171,6 +174,24 @@ func computeNewStatus(
 
 	var conditions []*pbresource.Condition
 
+	// We need to validate port mappings on the raw input config due to the
+	// possibility of duplicate mappings, which will be normalized into one
+	// mapping by target port key.
+	usedTargetPorts := make(map[string]any)
+	for port := range rawFailoverPolicy.PortConfigs {
+		svcPort := service.Data.FindPortByID(port)
+		targetPort := svcPort.GetTargetPort() // svcPort could be nil
+
+		serviceRef := resource.NewReferenceKey(service.Id).ToReference()
+		if svcPort == nil {
+			conditions = append(conditions, ConditionUnknownPort(serviceRef, port))
+		} else if _, ok := usedTargetPorts[targetPort]; ok {
+			conditions = append(conditions, ConditionConflictDestinationPort(serviceRef, svcPort))
+		} else {
+			usedTargetPorts[targetPort] = struct{}{}
+		}
+	}
+
 	if failoverPolicy.Data.Config != nil {
 		for _, dest := range failoverPolicy.Data.Config.Destinations {
 			// We know from validation that a Ref must be set, and the type it
@@ -189,11 +210,7 @@ func computeNewStatus(
 		// TODO: validate that referenced sameness groups exist
 	}
 
-	for port, pc := range failoverPolicy.Data.PortConfigs {
-		if _, ok := allowedPortProtocols[port]; !ok {
-			conditions = append(conditions, ConditionUnknownPort(port))
-		}
-
+	for _, pc := range failoverPolicy.Data.PortConfigs {
 		for _, dest := range pc.Destinations {
 			// We know from validation that a Ref must be set, and the type it
 			// points to is a Service.

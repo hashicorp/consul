@@ -86,8 +86,8 @@ func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	return types.ValidateSelector(sel, allowEmpty)
 }
 
-func ValidatePortName(name string) error {
-	return types.ValidatePortName(name)
+func ValidateServicePortID(id string) error {
+	return types.ValidateServicePortID(id)
 }
 
 func IsValidUnixSocketPath(host string) bool {

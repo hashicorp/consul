@@ -61,8 +61,9 @@ func TestController(t *testing.T) {
 			apiServiceData := &pbcatalog.Service{
 				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
 				Ports: []*pbcatalog.ServicePort{{
-					TargetPort: "http",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+					VirtualPort: 8080,
+					TargetPort:  "http",
+					Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 				}},
 			}
 			svc := rtest.Resource(pbcatalog.ServiceType, "api").
@@ -75,7 +76,37 @@ func TestController(t *testing.T) {
 			client.WaitForStatusCondition(t, failover.Id, ControllerID, ConditionOK)
 			t.Logf("reconciled to accepted")
 
-			// Update the failover to reference an unknown port
+			// Update the failover to reference a port twice (once by virtual, once by target port)
+			failoverData = &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{{
+							Ref:  apiServiceRef,
+							Port: "http",
+						}},
+					},
+					"8080": {
+						Destinations: []*pbcatalog.FailoverDestination{{
+							Ref:  apiServiceRef,
+							Port: "http",
+						}},
+					},
+				},
+			}
+			svc = rtest.Resource(pbcatalog.FailoverPolicyType, "api").
+				WithData(t, failoverData).
+				WithTenancy(tenancy).
+				Write(t, client)
+
+			t.Cleanup(func() { client.MustDelete(t, svc.Id) })
+
+			client.WaitForStatusCondition(t, failover.Id, ControllerID, ConditionConflictDestinationPort(apiServiceRef, &pbcatalog.ServicePort{
+				VirtualPort: 8080,
+				TargetPort:  "http",
+			}))
+			t.Logf("reconciled to using duplicate destination port")
+
+			// Update the failover to fix the duplicate, but reference an unknown port
 			failoverData = &pbcatalog.FailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
@@ -99,7 +130,7 @@ func TestController(t *testing.T) {
 
 			t.Cleanup(func() { client.MustDelete(t, svc.Id) })
 
-			client.WaitForStatusCondition(t, failover.Id, ControllerID, ConditionUnknownPort("admin"))
+			client.WaitForStatusCondition(t, failover.Id, ControllerID, ConditionUnknownPort(apiServiceRef, "admin"))
 			t.Logf("reconciled to unknown admin port")
 
 			// update the service to fix the stray reference, but point to a mesh port
@@ -107,12 +138,14 @@ func TestController(t *testing.T) {
 				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
 				Ports: []*pbcatalog.ServicePort{
 					{
-						TargetPort: "http",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						TargetPort:  "http",
+						VirtualPort: 8080,
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 					{
-						TargetPort: "admin",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
+						TargetPort:  "admin",
+						VirtualPort: 10000,
+						Protocol:    pbcatalog.Protocol_PROTOCOL_MESH,
 					},
 				},
 			}
@@ -131,12 +164,14 @@ func TestController(t *testing.T) {
 				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
 				Ports: []*pbcatalog.ServicePort{
 					{
-						TargetPort: "http",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						VirtualPort: 8080,
+						TargetPort:  "http",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 					{
-						TargetPort: "admin",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						VirtualPort: 10000,
+						TargetPort:  "admin",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 				},
 			}
@@ -200,12 +235,14 @@ func TestController(t *testing.T) {
 				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"other-"}},
 				Ports: []*pbcatalog.ServicePort{
 					{
-						TargetPort: "http",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						VirtualPort: 8080,
+						TargetPort:  "http",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 					{
-						TargetPort: "admin",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						VirtualPort: 10000,
+						TargetPort:  "admin",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 				},
 			}

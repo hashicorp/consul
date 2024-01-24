@@ -127,19 +127,19 @@ func validateFailoverPolicy(res *DecodedFailoverPolicy) error {
 		}
 	}
 
-	for portName, pc := range res.Data.PortConfigs {
+	for portId, pc := range res.Data.PortConfigs {
 		wrapConfigErr := func(err error) error {
 			return resource.ErrInvalidMapValue{
 				Map:     "port_configs",
-				Key:     portName,
+				Key:     portId,
 				Wrapped: err,
 			}
 		}
-		if portNameErr := ValidatePortName(portName); portNameErr != nil {
+		if portIdErr := ValidateServicePortID(portId); portIdErr != nil {
 			merr = multierror.Append(merr, resource.ErrInvalidMapKey{
 				Map:     "port_configs",
-				Key:     portName,
-				Wrapped: portNameErr,
+				Key:     portId,
+				Wrapped: portIdErr,
 			})
 		}
 
@@ -227,10 +227,10 @@ func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, port
 	// assumed and will be reconciled.
 	if dest.Port != "" {
 		if ported {
-			if portNameErr := ValidatePortName(dest.Port); portNameErr != nil {
+			if portIdErr := ValidateServicePortID(dest.Port); portIdErr != nil {
 				merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 					Name:    "port",
-					Wrapped: portNameErr,
+					Wrapped: portIdErr,
 				}))
 			}
 		} else {
@@ -273,6 +273,27 @@ func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.Failover
 	if failover.PortConfigs == nil {
 		failover.PortConfigs = make(map[string]*pbcatalog.FailoverConfig)
 	}
+
+	// Normalize all port configs to use the target port of the corresponding service port.
+	normalizedPortConfigs := make(map[string]*pbcatalog.FailoverConfig)
+	for port, pc := range failover.PortConfigs {
+		svcPort := svc.FindPortByID(port)
+
+		if svcPort != nil {
+			if _, ok := normalizedPortConfigs[svcPort.TargetPort]; ok {
+				// This is a duplicate virtual and target port mapping that will be reported as a status condition.
+				// Only update if this is the "canonical" mapping; otherwise, it's virtual, and we should ignore.
+				if port != svcPort.TargetPort {
+					continue
+				}
+			}
+			normalizedPortConfigs[svcPort.TargetPort] = pc
+		}
+		// Else this is an invalid reference that will be reported as a status condition.
+		// Drop for safety and simpler output.
+	}
+
+	failover.PortConfigs = normalizedPortConfigs
 
 	for _, port := range svc.Ports {
 		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
