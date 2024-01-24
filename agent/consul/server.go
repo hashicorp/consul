@@ -36,6 +36,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/connect"
@@ -1005,7 +1006,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager)
-		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies())
+		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err
@@ -1042,6 +1043,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
 	}
+
+	multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 
 	reaper.RegisterControllers(s.controllerManager)
 
