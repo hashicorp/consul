@@ -1,0 +1,114 @@
+{
+  "httpFilters": [
+    {
+      "name": "envoy.filters.http.rbac",
+      "typedConfig": {
+        "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+        "rules": {
+          "action": "DENY",
+          "policies": {
+            "consul-intentions-layer4": {
+              "permissions": [
+                {
+                  "any": true
+                }
+              ],
+              "principals": [
+                {
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/db$"
+                      }
+                    }
+                  }
+                },
+                {
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/cron$"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "envoy.filters.http.rbac",
+      "typedConfig": {
+        "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+        "rules": {
+          "policies": {
+            "consul-intentions-layer4-0": {
+              "permissions": [
+                {
+                  "any": true
+                }
+              ],
+              "principals": [
+                {
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/api$"
+                      }
+                    }
+                  }
+                },
+                {
+                  "andIds": {
+                    "ids": [
+                      {
+                        "authenticated": {
+                          "principalName": {
+                            "safeRegex": {
+                              "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "notId": {
+                          "authenticated": {
+                            "principalName": {
+                              "safeRegex": {
+                                "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/unsafe$"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "consul-intentions-layer4-1": {
+              "permissions": [
+                {
+                  "any": true
+                }
+              ],
+              "principals": [
+                {
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -120,7 +120,19 @@
             },
             "statPrefix": "public_listener",
             "staticRoute": true,
-            "trafficPermissions": {}
+            "trafficPermissions": {
+              "allowPermissions": [
+                {
+                  "principals": [
+                    {
+                      "spiffe": {
+                        "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
           },
           "match": {
             "alpnProtocols": [
@@ -145,7 +157,19 @@
             },
             "statPrefix": "public_listener",
             "staticRoute": true,
-            "trafficPermissions": {}
+            "trafficPermissions": {
+              "allowPermissions": [
+                {
+                  "principals": [
+                    {
+                      "spiffe": {
+                        "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
           },
           "match": {
             "alpnProtocols": [
@@ -171,7 +195,19 @@
             },
             "statPrefix": "public_listener",
             "staticRoute": true,
-            "trafficPermissions": {}
+            "trafficPermissions": {
+              "allowPermissions": [
+                {
+                  "principals": [
+                    {
+                      "spiffe": {
+                        "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
           },
           "match": {
             "alpnProtocols": [
@@ -195,7 +231,19 @@
               "name": "local_app:tcp"
             },
             "statPrefix": "public_listener",
-            "trafficPermissions": {}
+            "trafficPermissions": {
+              "allowPermissions": [
+                {
+                  "principals": [
+                    {
+                      "spiffe": {
+                        "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
           },
           "match": {
             "alpnProtocols": [
