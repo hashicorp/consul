@@ -90,7 +90,7 @@ $ curl --request PUT \
 
 The Link API described here is an alternative method to accomplish the same thing as [configuration-based linking](/consul/docs/agent/config/config-files#self-managed-hcp-parameters). You should generally only choose one method or the other for linking your cluster, not both. If you do use both methods, they interract in the following ways:
 
-* Values set in the configuration will take precedence over what was set in the API/CLI when Consul is started.
+* When Consul is started, values set in the `cloud` configuration will take precedence over what was previously set by the API or CLI.
 * SMCC can only be unlinked by the API/CLI, regardless of if they were established via configuration or API/CLI.
 
 ## Read Link
