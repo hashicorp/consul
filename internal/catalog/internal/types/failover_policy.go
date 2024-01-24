@@ -115,19 +115,27 @@ func validateFailoverPolicy(res *DecodedFailoverPolicy) error {
 		})
 	}
 
-	if res.Data.Config != nil {
+	if err := validateCommonFailoverConfigs(res.Data); err != nil {
+		merr = multierror.Append(merr, err)
+	}
+	return merr
+}
+
+func validateCommonFailoverConfigs(res *pbcatalog.FailoverPolicy) error {
+	var merr error
+	if res.Config != nil {
 		wrapConfigErr := func(err error) error {
 			return resource.ErrInvalidField{
 				Name:    "config",
 				Wrapped: err,
 			}
 		}
-		if cfgErr := validateFailoverConfig(res.Data.Config, false, wrapConfigErr); cfgErr != nil {
+		if cfgErr := validateFailoverConfig(res.Config, false, wrapConfigErr); cfgErr != nil {
 			merr = multierror.Append(merr, cfgErr)
 		}
 	}
 
-	for portName, pc := range res.Data.PortConfigs {
+	for portName, pc := range res.PortConfigs {
 		wrapConfigErr := func(err error) error {
 			return resource.ErrInvalidMapValue{
 				Map:     "port_configs",
@@ -147,7 +155,6 @@ func validateFailoverPolicy(res *DecodedFailoverPolicy) error {
 			merr = multierror.Append(merr, cfgErr)
 		}
 
-		// TODO: should sameness group be a ref once that's a resource?
 	}
 
 	return merr

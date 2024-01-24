@@ -7,6 +7,7 @@ package hashicorp.consul.catalog.v2beta1;
 
 import "pbcatalog/v2beta1/failover_policy.proto";
 import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
 
 // This is a Resource type.
 message ComputedFailoverPolicy {
@@ -18,4 +19,8 @@ message ComputedFailoverPolicy {
   // PortConfigs defines failover for a specific port on this service and takes
   // precedence over Config.
   map<string, FailoverConfig> port_configs = 2;
+
+  // BoundReferences is a slice of mixed type references of resources that were
+  // involved in the formulation of this resource.
+  repeated hashicorp.consul.resource.Reference bound_references = 3;
 }

@@ -217,6 +217,13 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 				Wrapped: err,
 			})
 		}
+		// TODO: remove this when L7 traffic permissions are implemented
+		if len(dest.PathExact) > 0 || len(dest.PathPrefix) > 0 || len(dest.PathRegex) > 0 || len(dest.Methods) > 0 || dest.Header != nil {
+			merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
+				Name:    "destination_rule",
+				Wrapped: ErrL7NotSupported,
+			}))
+		}
 		if (len(dest.PathExact) > 0 && len(dest.PathPrefix) > 0) ||
 			(len(dest.PathRegex) > 0 && len(dest.PathExact) > 0) ||
 			(len(dest.PathRegex) > 0 && len(dest.PathPrefix) > 0) {
@@ -224,23 +231,6 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 				Name:    "destination_rule",
 				Wrapped: errInvalidPrefixValues,
 			}))
-		}
-		if len(dest.Headers) > 0 {
-			for h, hdr := range dest.Headers {
-				wrapHeaderErr := func(err error) error {
-					return wrapDestRuleErr(resource.ErrInvalidListElement{
-						Name:    "destination_header_rules",
-						Index:   h,
-						Wrapped: err,
-					})
-				}
-				if len(hdr.Name) == 0 {
-					merr = multierror.Append(merr, wrapHeaderErr(resource.ErrInvalidListElement{
-						Name:    "destination_header_rule",
-						Wrapped: errHeaderRulesInvalid,
-					}))
-				}
-			}
 		}
 		if len(dest.Exclude) > 0 {
 			for e, excl := range dest.Exclude {
@@ -250,6 +240,13 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 						Index:   e,
 						Wrapped: err,
 					})
+				}
+				// TODO: remove this when L7 traffic permissions are implemented
+				if len(excl.PathExact) > 0 || len(excl.PathPrefix) > 0 || len(excl.PathRegex) > 0 || len(excl.Methods) > 0 || excl.Header != nil {
+					merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
+						Name:    "exclude_permission_rules",
+						Wrapped: ErrL7NotSupported,
+					}))
 				}
 				if (len(excl.PathExact) > 0 && len(excl.PathPrefix) > 0) ||
 					(len(excl.PathRegex) > 0 && len(excl.PathExact) > 0) ||
