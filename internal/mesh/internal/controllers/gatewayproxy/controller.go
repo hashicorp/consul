@@ -79,6 +79,27 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 
+	// TODO NET-7014 Determine what gateway controls this workload
+	// For now, we cheat by knowing the MeshGateway's name, type + tenancy ahead of time
+	gatewayID := &pbresource.ID{
+		Name:    "mesh-gateway",
+		Type:    pbmesh.MeshGatewayType,
+		Tenancy: resource.DefaultPartitionedTenancy(),
+	}
+
+	// Check if the gateway exists.
+	gateway, err := dataFetcher.FetchMeshGateway(ctx, gatewayID)
+	if err != nil {
+		rt.Logger.Error("error reading the associated gateway", "error", err)
+		return err
+	}
+	if gateway == nil {
+		// If gateway has been deleted, then return as ProxyStateTemplate should be
+		// cleaned up by the garbage collector because of the owner reference.
+		rt.Logger.Trace("gateway doesn't exist; skipping reconciliation", "gateway", gatewayID)
+		return nil
+	}
+
 	proxyStateTemplate, err := dataFetcher.FetchProxyStateTemplate(ctx, req.ID)
 	if err != nil {
 		rt.Logger.Error("error reading proxy state template", "error", err)
