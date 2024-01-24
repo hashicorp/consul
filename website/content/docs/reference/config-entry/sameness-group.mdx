@@ -9,7 +9,7 @@ description: >-
 
 This page provides reference information for sameness group configuration entries. Sameness groups associate identical admin partitions to facilitate traffic between identical services. When partitions are part of the same Consul datacenter, you can create a sameness group by listing them in the `Members[].Partition` field. When partitions are located on remote clusters, you must establish cluster peering connections between remote partitions in order to add them to a sameness group in the `Members[].Peer` field.
 
-To learn more about creating a sameness group, refer to [Create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) or [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups).
+To learn more about creating a sameness group, refer to [Create sameness groups](/consul/docs/link/cluster-peering/usage/create-sameness-groups) or [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups).
 
 ## Configuration model
 
@@ -198,7 +198,7 @@ Specifies a partition in the local datacenter that is a member of the sameness g
 
 Specifies the name of a cluster peer that is a member of the sameness group.
 
-Cluster peering connections must be established before adding a remote partition to the list of members. Refer to [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
+Cluster peering connections must be established before adding a remote partition to the list of members. Refer to [establish cluster peering connections](/consul/docs/link/cluster-peering/establish-connection/vm) for more information.
 
 #### Values
 
@@ -310,7 +310,7 @@ Specifies a partition in the local datacenter that is a member of the sameness g
 
 Specifies the name of a cluster peer that is a member of the sameness group.
 
-Cluster peering connections must be established before adding a peer to the list of members. Refer to [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
+Cluster peering connections must be established before adding a peer to the list of members. Refer to [establish cluster peering connections](/consul/docs/link/cluster-peering/establish-connection/vm) for more information.
 
 #### Values
 
