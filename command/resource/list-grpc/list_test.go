@@ -60,7 +60,7 @@ func TestResourceListCommand(t *testing.T) {
 			},
 		},
 		{
-			name:   "sample output",
+			name:   "sample output with name prefix",
 			output: "\"name\": \"korn\"",
 			extraArgs: []string{
 				"demo.v2.Artist",
