@@ -300,7 +300,7 @@ func InferTypeFromResourceType(resourceType string) (*pbresource.Type, error) {
 			Kind:         s[2],
 		}, nil
 	default:
-		return nil, fmt.Errorf("Must provide resource type argument with either in group.verion.kind format or its shorthand name")
+		return nil, fmt.Errorf("Must provide resource type argument with either in group.version.kind format or its shorthand name")
 	}
 }
 

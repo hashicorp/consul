@@ -7,13 +7,14 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
 
 	"github.com/stretchr/testify/require"
 
-	apply "github.com/hashicorp/consul/command/resource/apply"
+	"github.com/hashicorp/consul/command/resource/apply"
 )
 
 func TestResourceListCommand(t *testing.T) {
@@ -148,7 +149,7 @@ func TestResourceListInvalidArgs(t *testing.T) {
 				"-partition=default",
 			},
 			expectedCode: 1,
-			expectedErr:  errors.New("Must include resource type argument in group.verion.kind format"),
+			expectedErr:  errors.New("Must include resource type argument in group.version.kind format"),
 		},
 		"resource name is provided": {
 			args: []string{
