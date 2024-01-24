@@ -102,7 +102,7 @@ func TestMutateAndValidate_TypeNotFound(t *testing.T) {
 }
 
 func TestMutateAndValidate_Success(t *testing.T) {
-	run := func(t *testing.T, v2tenancy bool, client pbresource.ResourceServiceClient, tc mavOrWriteSuccessTestCase) {
+	run := func(t *testing.T, client pbresource.ResourceServiceClient, tc mavOrWriteSuccessTestCase) {
 		recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 		require.NoError(t, err)
 
@@ -123,7 +123,7 @@ func TestMutateAndValidate_Success(t *testing.T) {
 
 			for desc, tc := range mavOrWriteSuccessTestCases(t) {
 				t.Run(desc, func(t *testing.T) {
-					run(t, v2tenancy, client, tc)
+					run(t, client, tc)
 				})
 			}
 		})
