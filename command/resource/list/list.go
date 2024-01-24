@@ -12,10 +12,10 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -25,73 +25,75 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
+	UI            cli.Ui
+	flags         *flag.FlagSet
+	grpcFlags     *client.GRPCFlags
+	resourceFlags *client.ResourceFlags
+	help          string
 
 	filePath string
+	prefix   string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.http = &flags.HTTPFlags{}
-	c.flags.StringVar(&c.filePath, "f", "", "File path with resource definition")
-	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.MultiTenancyFlags())
-	flags.Merge(c.flags, c.http.AddPeerName())
-	c.help = flags.Usage(help, c.flags)
+	c.flags.StringVar(&c.filePath, "f", "",
+		"File path with resource definition")
+	c.flags.StringVar(&c.prefix, "p", "",
+		"Name prefix for listing resources if you need ambiguous match")
+
+	c.grpcFlags = &client.GRPCFlags{}
+	c.resourceFlags = &client.ResourceFlags{}
+	client.MergeFlags(c.flags, c.grpcFlags.ClientFlags())
+	client.MergeFlags(c.flags, c.resourceFlags.ResourceFlags())
+	c.help = client.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
-	var gvk *resource.GVK
-	var opts *client.QueryOptions
+	var resourceType *pbresource.Type
+	var resourceTenancy *pbresource.Tenancy
 
 	if err := c.flags.Parse(args); err != nil {
 		if !errors.Is(err, flag.ErrHelp) {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 			return 1
 		}
+		c.UI.Error(fmt.Sprintf("Failed to run list command: %v", err))
+		return 1
 	}
 
+	// collect resource type, name and tenancy
 	if c.flags.Lookup("f").Value.String() != "" {
-		if c.filePath != "" {
-			parsedResource, err := resource.ParseResourceFromFile(c.filePath)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
-				return 1
-			}
-
-			if parsedResource == nil {
-				c.UI.Error("Unable to parse the file argument")
-				return 1
-			}
-
-			gvk = &resource.GVK{
-				Group:   parsedResource.Id.Type.GetGroup(),
-				Version: parsedResource.Id.Type.GetGroupVersion(),
-				Kind:    parsedResource.Id.Type.GetKind(),
-			}
-			opts = &client.QueryOptions{
-				Namespace:         parsedResource.Id.Tenancy.GetNamespace(),
-				Partition:         parsedResource.Id.Tenancy.GetPartition(),
-				Peer:              parsedResource.Id.Tenancy.GetPeerName(),
-				Token:             c.http.Token(),
-				RequireConsistent: !c.http.Stale(),
-			}
-		} else {
+		if c.filePath == "" {
 			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
 			return 1
 		}
-	} else {
-		var err error
-		// extract resource type
-		gvk, err = getResourceType(c.flags.Args())
+		parsedResource, err := resource.ParseResourceFromFile(c.filePath)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Incorrect argument format: %v", err))
+			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
 			return 1
 		}
+
+		if parsedResource == nil {
+			c.UI.Error("Unable to parse the file argument")
+			return 1
+		}
+
+		resourceType = parsedResource.Id.Type
+		resourceTenancy = parsedResource.Id.Tenancy
+	} else {
+		var err error
+		args := c.flags.Args()
+		if err = validateArgs(args); err != nil {
+			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
+			return 1
+		}
+		resourceType, err = resource.InferTypeFromResourceType(args[0])
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
+			return 1
+		}
+
 		// skip resource type to parse remaining args
 		inputArgs := c.flags.Args()[1:]
 		err = resource.ParseInputParams(inputArgs, c.flags)
@@ -103,34 +105,36 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error("Incorrect argument format: File argument is not needed when resource information is provided with the command")
 			return 1
 		}
-
-		opts = &client.QueryOptions{
-			Namespace:         c.http.Namespace(),
-			Partition:         c.http.Partition(),
-			Peer:              c.http.PeerName(),
-			Token:             c.http.Token(),
-			RequireConsistent: !c.http.Stale(),
+		resourceTenancy = &pbresource.Tenancy{
+			Partition: c.resourceFlags.Partition(),
+			Namespace: c.resourceFlags.Namespace(),
+			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
 
-	config := api.DefaultConfig()
-
-	c.http.MergeOntoConfig(config)
-	resourceClient, err := client.NewClient(config)
+	// initialize client
+	config, err := client.LoadGRPCConfig(nil)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error loading config: %s", err))
+		return 1
+	}
+	c.grpcFlags.MergeFlagsIntoGRPCConfig(config)
+	resourceClient, err := client.NewGRPCClient(config)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
 		return 1
 	}
 
-	res := resource.Resource{C: resourceClient}
-
-	entry, err := res.List(gvk, opts)
+	// list resource
+	res := resource.ResourceGRPC{C: resourceClient}
+	entry, err := res.List(resourceType, resourceTenancy, c.prefix, c.resourceFlags.Stale())
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading resources for type %s: %v", gvk, err))
+		c.UI.Error(fmt.Sprintf("Error listing resource %s/%s: %v", resourceType, c.prefix, err))
 		return 1
 	}
 
-	b, err := json.MarshalIndent(entry, "", "    ")
+	// display response
+	b, err := json.MarshalIndent(entry, "", resource.JSON_INDENT)
 	if err != nil {
 		c.UI.Error("Failed to encode output data")
 		return 1
@@ -140,26 +144,17 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func getResourceType(args []string) (gvk *resource.GVK, e error) {
+func validateArgs(args []string) error {
+	if args == nil {
+		return fmt.Errorf("Must include resource type or flag arguments")
+	}
 	if len(args) < 1 {
-		return nil, fmt.Errorf("Must include resource type argument")
+		return fmt.Errorf("Must include resource type argument")
 	}
-	// it should not have resource name
 	if len(args) > 1 && !strings.HasPrefix(args[1], "-") {
-		return nil, fmt.Errorf("Must include flag arguments after resource type")
+		return fmt.Errorf("Must include flag arguments after resource type")
 	}
-
-	s := strings.Split(args[0], ".")
-	if len(s) < 3 {
-		return nil, fmt.Errorf("Must include resource type argument in group.version.kind format")
-	}
-	gvk = &resource.GVK{
-		Group:   s[0],
-		Version: s[1],
-		Kind:    s[2],
-	}
-
-	return
+	return nil
 }
 
 func (c *cmd) Synopsis() string {
@@ -170,7 +165,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Reads all resources by type"
+const synopsis = "Lists all resources by name prefix"
 const help = `
 Usage: consul resource list [type] -partition=<default> -namespace=<default> -peer=<local>
 or
@@ -181,19 +176,18 @@ and outputs in JSON format.
 
 Example:
 
-$ consul resource list catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource list catalog.v2beta1.Service -p=card -partition=billing -namespace=payments -peer=eu
 
-$ consul resource list -f=demo.hcl
+$ consul resource list -f=demo.hcl -p=card
 
 Sample demo.hcl:
 
 ID {
 	Type = gvk("group.version.kind")
-	Name = "resource-name"
 	Tenancy {
-	  Namespace = "default"
-	  Partition = "default"
-	  PeerName = "local"
+		Partition = "default"
+		Namespace = "default"
+		PeerName = "local"
 	}
   }
 `
