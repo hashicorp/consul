@@ -6,10 +6,11 @@ package catalogv2beta1
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestFailoverPolicy_IsEmpty(t *testing.T) {
