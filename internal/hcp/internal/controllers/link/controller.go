@@ -132,6 +132,10 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		return writeStatusIfNotEqual(ctx, rt, res, newStatus)
 	}
 
+	// Merge the link data with the existing cloud config so that we only overwrite the
+	// fields that are provided by the link. This ensures that:
+	// 1. The HCP configuration (i.e., how to connect to HCP) is preserved
+	// 2. The Consul agent's node ID and node name are preserved
 	existingCfg := r.hcpManager.GetCloudConfig()
 	newCfg := config.CloudConfig{
 		ResourceID:   link.ResourceId,

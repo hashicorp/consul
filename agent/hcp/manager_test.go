@@ -76,13 +76,18 @@ func TestManager_Start(t *testing.T) {
 		require.Fail(t, "manager did not send update in expected time")
 	}
 
+	select {
+	case <-upsertManagementTokenCalled:
+	case <-time.After(time.Second):
+		require.Fail(t, "manager did not upsert management token in expected time")
+	}
+
 	// Make sure after manager has stopped no more statuses are pushed.
 	cancel()
 	client.AssertExpectations(t)
 	require.Equal(t, client, telemetryProvider.hcpClient)
 	require.NotNil(t, telemetryProvider.GetHeader())
 	require.NotNil(t, telemetryProvider.GetHTTPClient())
-	require.NotEmpty(t, upsertManagementTokenCalled, "upsert management token function not called")
 }
 
 func TestManager_StartMultipleTimes(t *testing.T) {
