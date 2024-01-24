@@ -54,6 +54,11 @@ function main {
         status_stage "Generating protobuf module: $mod"
         (
             cd $mod
+
+			# Check that the resources in a given module have valid versions.
+			# TODO: should we only do this for ./proto-public?
+			validate_resource_version
+
             buf generate
             for proto_file in $(buf ls-files)
             do
@@ -77,6 +82,28 @@ function main {
     status "Generated protoset file"
 
     return 0
+}
+
+# List all of the files in the current buf module and check for a valid version string.
+# A version string is treated as the second element in a directory path. E.g. /path/[VERSION]/file.proto
+function validate_resource_version {
+	for FILE in $(buf ls-files)
+    do
+		# Split the path by / and return the second element.
+		VERSION=$(echo "$FILE" | cut -d "/" -f 2)
+
+		# If the version is empty or ends in .proto, skip.
+		# E.g. /some_path/file.proto
+		if [ "$VERSION" == "" ] || [ "${VERSION##*.}" = "proto" ]; then
+			continue
+		fi
+
+		# Return an error if the version string does not match the regex.
+		if ! [[ "$VERSION" =~ v[0-9]+((alpha|beta)[1-9])? ]]; then
+			err "Invalid version string \"$VERSION\" in module $FILE"
+			return 1
+		fi
+	done
 }
 
 function postprocess_protobuf_code {
