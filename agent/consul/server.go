@@ -601,7 +601,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		SCADAProvider:     flat.HCP.Provider,
 		TelemetryProvider: flat.HCP.TelemetryProvider,
 		ManagementTokenUpserterFn: func(name, secretId string) error {
-			if s.config.ACLsEnabled && s.IsLeader() {
+			// Check the state of the server before attempting to upsert the token. Otherwise,
+			// the upsert will fail and log errors that do not require action from the user.
+			if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
 				// Idea for improvement: Upsert a token with a well-known accessorId here instead
 				// of a randomly generated one. This would prevent any possible insertion collision between
 				// this and the insertion that happens during the ACL initialization process (initializeACLs function)
