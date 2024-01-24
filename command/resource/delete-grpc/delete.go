@@ -118,7 +118,7 @@ func (c *cmd) Run(args []string) int {
 
 	// delete resource
 	res := resource.ResourceGRPC{C: resourceClient}
-	err = res.Delete(resourceType, resourceTenancy, resourceName, c.resourceFlags.Stale())
+	err = res.Delete(resourceType, resourceTenancy, resourceName)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error deleting resource %s/%s: %v", resourceType, resourceName, err))
 		return 1

@@ -96,15 +96,12 @@ func (resource *ResourceGRPC) List(resourceType *pbresource.Type, resourceTenanc
 	return listRsp.Resources, err
 }
 
-func (resource *ResourceGRPC) Delete(resourceType *pbresource.Type, resourceTenancy *pbresource.Tenancy, resourceName string, stale bool) error {
+func (resource *ResourceGRPC) Delete(resourceType *pbresource.Type, resourceTenancy *pbresource.Tenancy, resourceName string) error {
 	token, err := resource.C.Config.GetToken()
 	if err != nil {
 		return err
 	}
 	ctx := context.Background()
-	if !stale {
-		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
-	}
 	if token != "" {
 		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
 	}
