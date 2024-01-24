@@ -54,9 +54,9 @@ func TestResourceListCommand(t *testing.T) {
 			output: "\"name\": \"korn\"",
 			extraArgs: []string{
 				"demo.v2.Artist",
+				"-partition=default",
 				"-namespace=default",
 				"-peer=local",
-				"-partition=default",
 			},
 		},
 		{
@@ -65,9 +65,9 @@ func TestResourceListCommand(t *testing.T) {
 			extraArgs: []string{
 				"demo.v2.Artist",
 				"-p=korn",
+				"-partition=default",
 				"-namespace=default",
 				"-peer=local",
-				"-partition=default",
 			},
 		},
 		{
@@ -150,9 +150,9 @@ func TestResourceListInvalidArgs(t *testing.T) {
 		"file argument with resource type": {
 			args: []string{
 				"demo.v2.Artist",
+				"-partition=default",
 				"-namespace=default",
 				"-peer=local",
-				"-partition=default",
 				fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 				"-token=root",
 				"-f=demo.hcl",
@@ -163,9 +163,9 @@ func TestResourceListInvalidArgs(t *testing.T) {
 		"resource type invalid": {
 			args: []string{
 				"test",
+				"-partition=default",
 				"-namespace=default",
 				"-peer=local",
-				"-partition=default",
 			},
 			expectedCode: 1,
 			expectedErr:  errors.New("Incorrect argument format: The shorthand name does not map to any existing resource type"),

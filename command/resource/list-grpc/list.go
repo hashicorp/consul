@@ -106,8 +106,8 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		resourceTenancy = &pbresource.Tenancy{
-			Namespace: c.resourceFlags.Namespace(),
 			Partition: c.resourceFlags.Partition(),
+			Namespace: c.resourceFlags.Namespace(),
 			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
@@ -185,8 +185,8 @@ Sample demo.hcl:
 ID {
 	Type = gvk("group.version.kind")
 	Tenancy {
-		Namespace = "default"
 		Partition = "default"
+		Namespace = "default"
 		PeerName = "local"
 	}
   }

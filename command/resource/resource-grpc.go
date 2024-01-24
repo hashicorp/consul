@@ -95,3 +95,29 @@ func (resource *ResourceGRPC) List(resourceType *pbresource.Type, resourceTenanc
 
 	return listRsp.Resources, err
 }
+
+func (resource *ResourceGRPC) Delete(resourceType *pbresource.Type, resourceTenancy *pbresource.Tenancy, resourceName string) error {
+	token, err := resource.C.Config.GetToken()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	if token != "" {
+		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
+	}
+
+	defer resource.C.Conn.Close()
+	_, err = resource.C.Client.Delete(ctx, &pbresource.DeleteRequest{
+		Id: &pbresource.ID{
+			Type:    resourceType,
+			Tenancy: resourceTenancy,
+			Name:    resourceName,
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("error deleting resource: %+v", err)
+	}
+
+	return nil
+}
