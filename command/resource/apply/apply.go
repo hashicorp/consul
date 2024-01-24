@@ -83,8 +83,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// write resource
-	res := resource.ResourceGRPC{C: resourceClient}
-	entry, err := res.Apply(parsedResource)
+	entry, err := resourceClient.Apply(parsedResource)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing resource %s/%s: %v", parsedResource.Id.Type, parsedResource.Id.GetName(), err))
 		return 1

@@ -4,13 +4,19 @@
 package client
 
 import (
+	"context"
 	"fmt"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
+)
+
+const (
+	HeaderConsulToken = "x-consul-token"
 )
 
 type GRPCClient struct {
@@ -29,6 +35,107 @@ func NewGRPCClient(config *GRPCConfig) (*GRPCClient, error) {
 		Config: config,
 		Conn:   conn,
 	}, nil
+}
+
+func (client *GRPCClient) Apply(parsedResource *pbresource.Resource) (*pbresource.Resource, error) {
+	token, err := client.Config.GetToken()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	if token != "" {
+		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
+	}
+
+	defer client.Conn.Close()
+	writeRsp, err := client.Client.Write(ctx, &pbresource.WriteRequest{Resource: parsedResource})
+	if err != nil {
+		return nil, fmt.Errorf("error writing resource: %+v", err)
+	}
+
+	return writeRsp.Resource, err
+}
+
+func (client *GRPCClient) Read(resourceType *pbresource.Type, resourceTenancy *pbresource.Tenancy, resourceName string, stale bool) (*pbresource.Resource, error) {
+	token, err := client.Config.GetToken()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	if !stale {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
+	}
+	if token != "" {
+		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
+	}
+
+	defer client.Conn.Close()
+	readRsp, err := client.Client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Type:    resourceType,
+			Tenancy: resourceTenancy,
+			Name:    resourceName,
+		},
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("error reading resource: %+v", err)
+	}
+
+	return readRsp.Resource, err
+}
+
+func (client *GRPCClient) List(resourceType *pbresource.Type, resourceTenancy *pbresource.Tenancy, prefix string, stale bool) ([]*pbresource.Resource, error) {
+	token, err := client.Config.GetToken()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	if !stale {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
+	}
+	if token != "" {
+		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
+	}
+
+	defer client.Conn.Close()
+	listRsp, err := client.Client.List(ctx, &pbresource.ListRequest{
+		Type:       resourceType,
+		Tenancy:    resourceTenancy,
+		NamePrefix: prefix,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("error listing resource: %+v", err)
+	}
+
+	return listRsp.Resources, err
+}
+
+func (client *GRPCClient) Delete(resourceType *pbresource.Type, resourceTenancy *pbresource.Tenancy, resourceName string) error {
+	token, err := client.Config.GetToken()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	if token != "" {
+		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
+	}
+
+	defer client.Conn.Close()
+	_, err = client.Client.Delete(ctx, &pbresource.DeleteRequest{
+		Id: &pbresource.ID{
+			Type:    resourceType,
+			Tenancy: resourceTenancy,
+			Name:    resourceName,
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("error deleting resource: %+v", err)
+	}
+
+	return nil
 }
 
 func dial(c *GRPCConfig) (*grpc.ClientConn, error) {

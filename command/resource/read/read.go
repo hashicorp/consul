@@ -118,8 +118,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// read resource
-	res := resource.ResourceGRPC{C: resourceClient}
-	entry, err := res.Read(resourceType, resourceTenancy, resourceName, c.resourceFlags.Stale())
+	entry, err := resourceClient.Read(resourceType, resourceTenancy, resourceName, c.resourceFlags.Stale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading resource %s/%s: %v", resourceType, resourceName, err))
 		return 1

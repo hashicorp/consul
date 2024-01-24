@@ -126,8 +126,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// list resource
-	res := resource.ResourceGRPC{C: resourceClient}
-	entry, err := res.List(resourceType, resourceTenancy, c.prefix, c.resourceFlags.Stale())
+	entry, err := resourceClient.List(resourceType, resourceTenancy, c.prefix, c.resourceFlags.Stale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error listing resource %s/%s: %v", resourceType, c.prefix, err))
 		return 1
