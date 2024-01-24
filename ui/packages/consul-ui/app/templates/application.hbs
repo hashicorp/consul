@@ -1,6 +1,6 @@
 {{!
-Copyright (c) HashiCorp, Inc.
-SPDX-License-Identifier: BUSL-1.1
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
 <Route @name={{routeName}} as |route|>
@@ -19,10 +19,13 @@ SPDX-License-Identifier: BUSL-1.1
   {{/if}}
 
   {{! Listen out for blocking query/client setting changes }}
-  <DataSource @src={{uri 'settings://consul:client' }} @onchange={{route-action 'onClientChanged' }} />
+  <DataSource
+    @src={{uri 'settings://consul:client'}}
+    @onchange={{route-action 'onClientChanged'}}
+  />
 
   {{! Tell CSS about our theme }}
-  <DataSource @src={{uri 'settings://consul:theme' }} as |source|>
+  <DataSource @src={{uri 'settings://consul:theme'}} as |source|>
     {{#each-in source.data as |key value|}}
       {{#if (and value (includes key (array 'color-scheme' 'contrast')))}}
         {{document-attrs class=(concat "prefers-" key "-" value) }}
@@ -32,7 +35,10 @@ SPDX-License-Identifier: BUSL-1.1
 
   {{! If ACLs are enabled try get a token }}
   {{#if (can 'use acls')}}
-    <DataSource @src={{uri 'settings://consul:token' }} @onchange={{action (mut token) value='data' }} />
+    <DataSource
+      @src={{uri 'settings://consul:token'}}
+      @onchange={{action (mut token) value='data'}}
+    />
   {{/if}}
 
   {{#if (not-eq route.currentName 'oauth-provider-debug')}}
@@ -50,9 +56,10 @@ SPDX-License-Identifier: BUSL-1.1
     {{else}}
     {{! If we are notfound, guess the params we need }}
       {{#if (eq route.currentName 'notfound')}}
-        <DataSource @src={{uri '/*/*/*/notfound/${path}' (hash path=route.params.notfound)}} @onchange={{action (mut
-                                                                                                                  notfound)
-                                                                                                                value='data' }} />
+        <DataSource
+          @src={{uri '/*/*/*/notfound/${path}' (hash path=route.params.notfound)}}
+          @onchange={{action (mut notfound) value='data'}}
+        />
       {{/if}}
 
       {{! Make sure we guess and default to the right params when not found }}
@@ -68,7 +75,7 @@ SPDX-License-Identifier: BUSL-1.1
 
       {{! Make sure we have enough to show the app chrome}}
       {{! Don't show anything until we have a list of DCs }}
-        <DataSource @src={{uri '/*/*/*/datacenters' }} as |dcs|>
+        <DataSource @src={{uri '/*/*/*/datacenters'}} as |dcs|>
           {{! Once we have a list of DCs make sure the DC we are asking for exists }}
           {{! If not use the DC that the UI is running in }}
           {{#let
@@ -83,23 +90,36 @@ SPDX-License-Identifier: BUSL-1.1
             {{#if (and (gt dc.Name.length 0) dcs)}}
 
             {{! figure out our current DC and convert it to a model }}
-              <DataSource @src={{uri '/${partition}/*/${dc}/datacenter-cache/${name}'
-                                     (hash dc=dc.Name partition=partition
-                                       name=dc.Name) }} as |dc|>
+              <DataSource
+                @src={{uri
+                '/${partition}/*/${dc}/datacenter-cache/${name}'
+                (hash dc=dc.Name partition=partition name=dc.Name)
+              }}
+                as |dc|
+              >
                 {{#if dc.data}}
-                <DataSource @src={{uri '/${partition}/*/${dc}/hcp-link' (hash dc=dc.Name partition=partition name=dc.Name) }} @open={{true}} as |hcpLink|>
-                  {{hcpLink.data.isLinked}}
-                  {{json-stringify hcpLink}}
-                  <HashicorpConsul id='wrapper' @dcs={{dcs}} @dc={{dc.data}} @partition={{partition}} @nspace={{nspace}}
-                                   @user={{hash token=token}} @onchange={{action 'reauthorize' }} as |consul|>
+                  <DataSource @src={{uri '/${partition}/*/${dc}/hcp-link' (hash dc=dc.Name partition=partition name=dc.Name) }} @open={{true}} as |hcpLink|>
+                    <HashicorpConsul
+                    id='wrapper'
+                    @dcs={{dcs}}
+                    @dc={{dc.data}}
+                    @partition={{partition}}
+                    @nspace={{nspace}}
+                    @user={{hash token=token}}
+                    @onchange={{action 'reauthorize'}}
+                    as |consul|
+                  >
 
                     {{#if error}}
                     {{! If we got an error from anything, show an error page }}
                       <AppError @error={{error}} @login={{consul.login.open}} />
                     {{else}}
                     {{! Otherwise show the rest of the app}}
-                      <Outlet @name='application' @model={{hash app=consul user=(hash token=token) dc=dc.data dcs=dcs}}
-                              as |o|>
+                      <Outlet
+                        @name='application'
+                        @model={{hash app=consul user=(hash token=token) dc=dc.data dcs=dcs}}
+                        as |o|
+                      >
                         {{outlet}}
                       </Outlet>
 
@@ -108,7 +128,7 @@ SPDX-License-Identifier: BUSL-1.1
                     {{/if}}
 
                   </HashicorpConsul>
-                </DataSource>
+                  </DataSource>
                 {{/if}}
               </DataSource>
             {{/if}}
