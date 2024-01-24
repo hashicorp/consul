@@ -1,3 +1,24 @@
+## 1.16.5 (January 23, 2024)
+
+SECURITY:
+
+* Update RSA key generation to use a key size of at least 2048 bits. [[GH-20112](https://github.com/hashicorp/consul/issues/20112)]
+* Upgrade OpenShift container images to use `ubi9-minimal:9.3` as the base image. [[GH-20014](https://github.com/hashicorp/consul/issues/20014)]
+
+IMPROVEMENTS:
+
+* Upgrade to use Go 1.21.6. [[GH-20062](https://github.com/hashicorp/consul/issues/20062)]
+* connect: Remove usage of deprecated Envoy field `match_subject_alt_names` in favor of `match_typed_subject_alt_names`. [[GH-19954](https://github.com/hashicorp/consul/issues/19954)]
+* connect: replace usage of deprecated Envoy field `envoy.config.router.v3.WeightedCluster.total_weight`. [[GH-20011](https://github.com/hashicorp/consul/issues/20011)]
+* xds: Replace usage of deprecated Envoy field `envoy.config.cluster.v3.Cluster.http_protocol_options` [[GH-20010](https://github.com/hashicorp/consul/issues/20010)]
+* xds: remove usages of deprecated Envoy fields: `envoy.config.cluster.v3.Cluster.http2_protocol_options`, `envoy.config.bootstrap.v3.Admin.access_log_path` [[GH-19940](https://github.com/hashicorp/consul/issues/19940)]
+* xds: replace usage of deprecated Envoy field `envoy.extensions.filters.http.lua.v3.Lua.inline_code` [[GH-20012](https://github.com/hashicorp/consul/issues/20012)]
+
+BUG FIXES:
+
+* prepared-query: (Enterprise-only) Fix issue where sameness-group failover targets to peers would attempt to query data from the default partition, rather than the sameness-group's partition always.
+* ui: update token list on Role details page to show only linked tokens [[GH-19912](https://github.com/hashicorp/consul/issues/19912)]
+
 ## 1.16.4 (December 12, 2023)
 
 SECURITY:
