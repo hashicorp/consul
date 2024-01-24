@@ -200,7 +200,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		BuildLocalApp(workloadDataWithInheritedPorts, ctp)
 
 	// Get all destinationsData.
-	destinationsData, err := dataFetcher.FetchExplicitDestinationsData(ctx, req.ID)
+	destinationsData, err := dataFetcher.FetchComputedExplicitDestinationsData(ctx, req.ID)
 	if err != nil {
 		rt.Logger.Error("error fetching explicit destinations for this proxy", "error", err)
 		return err
@@ -253,7 +253,6 @@ func (r *reconciler) workloadPortProtocolsFromService(
 	workload *types.DecodedWorkload,
 	logger hclog.Logger,
 ) (map[string]*pbcatalog.WorkloadPort, error) {
-
 	// Fetch all services for this workload.
 	serviceIDs := r.cache.ServicesForWorkload(workload.GetResource().GetId())
 
