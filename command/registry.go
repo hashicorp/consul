@@ -118,6 +118,7 @@ import (
 	resourceapplygrpc "github.com/hashicorp/consul/command/resource/apply-grpc"
 	resourcedelete "github.com/hashicorp/consul/command/resource/delete"
 	resourcelist "github.com/hashicorp/consul/command/resource/list"
+	resourcelistgrpc "github.com/hashicorp/consul/command/resource/list-grpc"
 	resourceread "github.com/hashicorp/consul/command/resource/read"
 	resourcereadgrpc "github.com/hashicorp/consul/command/resource/read-grpc"
 	"github.com/hashicorp/consul/command/rtt"
@@ -263,6 +264,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		// will be refactored to resource apply
 		entry{"resource apply-grpc", func(ui cli.Ui) (cli.Command, error) { return resourceapplygrpc.New(ui), nil }},
 		entry{"resource read-grpc", func(ui cli.Ui) (cli.Command, error) { return resourcereadgrpc.New(ui), nil }},
+		entry{"resource list-grpc", func(ui cli.Ui) (cli.Command, error) { return resourcelistgrpc.New(ui), nil }},
 		entry{"resource list", func(ui cli.Ui) (cli.Command, error) { return resourcelist.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},

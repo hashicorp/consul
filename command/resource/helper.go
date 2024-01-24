@@ -162,7 +162,7 @@ func GetTypeAndResourceName(args []string) (resourceType *pbresource.Type, resou
 	}
 	resourceName = args[1]
 
-	resourceType, e = inferTypeFromResourceType(args[0])
+	resourceType, e = InferTypeFromResourceType(args[0])
 
 	return resourceType, resourceName, e
 }
@@ -269,7 +269,7 @@ func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse,
 	return out, nil
 }
 
-func inferTypeFromResourceType(resourceType string) (*pbresource.Type, error) {
+func InferTypeFromResourceType(resourceType string) (*pbresource.Type, error) {
 	s := strings.Split(resourceType, ".")
 	switch length := len(s); {
 	// only kind is provided
