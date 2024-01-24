@@ -69,6 +69,7 @@ import (
 	"github.com/hashicorp/consul/command/debug"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
+	exportedservices "github.com/hashicorp/consul/command/exportedservices"
 	"github.com/hashicorp/consul/command/forceleave"
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/intention"
@@ -212,6 +213,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"debug", func(ui cli.Ui) (cli.Command, error) { return debug.New(ui), nil }},
 		entry{"event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil }},
 		entry{"exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil }},
+		entry{"exported-services", func(ui cli.Ui) (cli.Command, error) { return exportedservices.New(ui), nil }},
 		entry{"force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil }},
 		entry{"info", func(ui cli.Ui) (cli.Command, error) { return info.New(ui), nil }},
 		entry{"intention", func(ui cli.Ui) (cli.Command, error) { return intention.New(), nil }},

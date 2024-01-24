@@ -132,6 +132,10 @@
     "path": "event"
   },
   {
+    "title": "Exported Services",
+    "path": "exported-services"
+  },
+  {
     "title": "Health",
     "path": "health"
   },
