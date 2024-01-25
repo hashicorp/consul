@@ -135,7 +135,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
-	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
+	handler := NewHandler("/api", client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
@@ -363,7 +363,7 @@ func TestResourceReadHandler(t *testing.T) {
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
-	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
+	handler := NewHandler("/api", client, r, parseToken, hclog.NewNullLogger())
 
 	createdResource := createResource(t, handler, nil)
 
@@ -417,7 +417,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
 
-	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
+	handler := NewHandler("/api", client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should surface PermissionDenied error from resource service", func(t *testing.T) {
 		createResource(t, handler, nil)
@@ -494,7 +494,7 @@ func TestResourceListHandler(t *testing.T) {
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
 
-	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
+	handler := NewHandler("/api", client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should return MethodNotAllowed", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
