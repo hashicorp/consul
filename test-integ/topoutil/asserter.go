@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -127,6 +128,41 @@ func (a *Asserter) AssertEnvoyPresentsCertURIWithClient(t *testing.T, workload *
 	libassert.AssertEnvoyPresentsCertURIWithClient(t, client, addr, workload.ID.Name)
 }
 
+func (a *Asserter) AssertEnvoyHTTPrbacFiltersContainIntentions(t *testing.T, workload *topology.Workload) {
+	t.Helper()
+	client, addr := a.getEnvoyClient(t, workload)
+	var (
+		dump string
+		err  error
+	)
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 1 * time.Second}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		dump, _, err = libassert.GetEnvoyOutputWithClient(client, addr, "config_dump", map[string]string{})
+		if err != nil {
+			r.Fatal("could not fetch envoy configuration")
+		}
+	})
+	// the steps below validate that the json result from envoy config dump configured active listeners with rbac and http filters
+	filter := `.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[].filters[] | select(.name == "envoy.filters.network.http_connection_manager") | .typed_config.http_filters | map(.name) | join(","))"`
+	errorStateFilter := `.configs[2].dynamic_listeners[].error_state"`
+	configErrorStates, _ := utils.JQFilter(dump, errorStateFilter)
+	require.Nil(t, configErrorStates, "there should not be any error states on listener configuration")
+	results, err := utils.JQFilter(dump, filter)
+	require.NoError(t, err, "could not parse envoy configuration")
+	var filteredResult []string
+	for _, result := range results {
+		parts := strings.Split(strings.ReplaceAll(result, `,`, " "), " ")
+		sanitizedResult := append(parts[:0], parts[1:]...)
+		filteredResult = append(filteredResult, sanitizedResult...)
+	}
+	require.Contains(t, filteredResult, "envoy.filters.http.rbac")
+	require.Contains(t, filteredResult, "envoy.filters.http.router")
+	require.Contains(t, dump, "intentions")
+}
+
 // HTTPServiceEchoes verifies that a post to the given ip/port combination
 // returns the data in the response body. Optional path can be provided to
 // differentiate requests.
@@ -243,7 +279,7 @@ func (a *Asserter) fortioFetch2Destination(
 ) (body []byte, res *http.Response) {
 	t.Helper()
 
-	err, res := getFortioFetch2DestinationResponse(t, client, addr, dest, path)
+	err, res := getFortioFetch2DestinationResponse(t, client, addr, dest, path, nil)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
@@ -258,7 +294,7 @@ func (a *Asserter) fortioFetch2Destination(
 	return body, res
 }
 
-func getFortioFetch2DestinationResponse(t testutil.TestingTB, client *http.Client, addr string, dest *topology.Destination, path string) (error, *http.Response) {
+func getFortioFetch2DestinationResponse(t testutil.TestingTB, client *http.Client, addr string, dest *topology.Destination, path string, headers map[string]string) (error, *http.Response) {
 	var actualURL string
 	if dest.Implied {
 		actualURL = fmt.Sprintf("http://%s--%s--%s.virtual.consul:%d/%s",
@@ -279,6 +315,9 @@ func getFortioFetch2DestinationResponse(t testutil.TestingTB, client *http.Clien
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	require.NoError(t, err)
 
+	for h, v := range headers {
+		req.Header.Set(h, v)
+	}
 	res, err := client.Do(req)
 	require.NoError(t, err)
 	return err, res
@@ -339,13 +378,16 @@ func (a *Asserter) FortioFetch2FortioName(
 	})
 }
 
-// FortioFetch2ServiceUnavailable uses the /fortio/fetch2 endpoint to do a header echo check against an destination
-// fortio and asserts that the service is unavailable (503)
 func (a *Asserter) FortioFetch2ServiceUnavailable(t *testing.T, fortioWrk *topology.Workload, dest *topology.Destination) {
 	const kPassphrase = "x-passphrase"
 	const passphrase = "hello"
 	path := (fmt.Sprintf("/?header=%s:%s", kPassphrase, passphrase))
+	a.FortioFetch2ServiceStatusCodes(t, fortioWrk, dest, path, nil, []int{http.StatusServiceUnavailable})
+}
 
+// FortioFetch2ServiceStatusCodes uses the /fortio/fetch2 endpoint to do a header echo check against a destination
+// fortio and asserts that the returned status code matches the desired one(s)
+func (a *Asserter) FortioFetch2ServiceStatusCodes(t *testing.T, fortioWrk *topology.Workload, dest *topology.Destination, path string, headers map[string]string, statuses []int) {
 	var (
 		node   = fortioWrk.Node
 		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.PortOrDefault(dest.PortName))
@@ -353,9 +395,9 @@ func (a *Asserter) FortioFetch2ServiceUnavailable(t *testing.T, fortioWrk *topol
 	)
 
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		_, res := getFortioFetch2DestinationResponse(r, client, addr, dest, path)
+		_, res := getFortioFetch2DestinationResponse(r, client, addr, dest, path, headers)
 		defer res.Body.Close()
-		require.Equal(r, http.StatusServiceUnavailable, res.StatusCode)
+		require.Contains(r, statuses, res.StatusCode)
 	})
 }
 
