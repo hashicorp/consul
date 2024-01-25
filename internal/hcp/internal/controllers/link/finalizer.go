@@ -8,14 +8,19 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func cleanup(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, dataDir string) error {
+func cleanup(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, hcpManager hcp.Manager, dataDir string) error {
 	rt.Logger.Trace("cleaning up link resource")
+
+	rt.Logger.Debug("stopping HCP manager")
+	hcpManager.Stop()
+
 	if dataDir != "" {
 		hcpConfigDir := filepath.Join(dataDir, bootstrap.SubDir)
 		rt.Logger.Debug("deleting hcp-config dir", "dir", hcpConfigDir)
