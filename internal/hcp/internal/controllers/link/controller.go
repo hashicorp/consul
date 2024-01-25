@@ -114,8 +114,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	}
 
 	if resource.IsMarkedForDeletion(res) {
-		err := cleanup(ctx, rt, res, r.dataDir)
-		if err != nil {
+		if err = cleanup(ctx, rt, res, r.dataDir); err != nil {
 			rt.Logger.Error("error cleaning up link resource", "error", err)
 			return err
 		}
