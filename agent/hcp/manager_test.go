@@ -11,6 +11,7 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -259,4 +260,73 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 		require.Fail(t, "manager did not send update in expected time")
 	}
 	client.AssertExpectations(t)
+}
+
+func TestManager_Stop(t *testing.T) {
+	client := hcpclient.NewMockClient(t)
+
+	// Configure status function and upsert called in sendUpdate
+	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
+		return hcpclient.ServerStatus{ID: t.Name()}, nil
+	}
+	upsertManagementTokenCalled := make(chan struct{}, 1)
+	upsertManagementTokenF := func(name, secretID string) error {
+		upsertManagementTokenCalled <- struct{}{}
+		return nil
+	}
+	updateCh := make(chan struct{}, 1)
+	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
+
+	// Configure the SCADA provider
+	scadaM := scada.NewMockProvider(t)
+	scadaM.EXPECT().UpdateHCPConfig(mock.Anything).Return(nil).Once()
+	scadaM.EXPECT().UpdateMeta(mock.Anything).Return().Once()
+	scadaM.EXPECT().Start().Return(nil).Once()
+	scadaM.EXPECT().Stop().Return(nil).Once()
+
+	// Configure the telemetry provider
+	telemetryM := NewMockTelemetryProvider(t)
+	telemetryM.EXPECT().Start(mock.Anything, mock.Anything).Return(nil).Once()
+	telemetryM.EXPECT().Stop().Return().Once()
+
+	// Configure manager with all its dependencies
+	mgr := NewManager(ManagerConfig{
+		Logger:                    testutil.Logger(t),
+		StatusFn:                  statusF,
+		Client:                    client,
+		ManagementTokenUpserterFn: upsertManagementTokenF,
+		SCADAProvider:             scadaM,
+		TelemetryProvider:         telemetryM,
+		CloudConfig:               config.CloudConfig{},
+	})
+	mgr.testUpdateSent = updateCh
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	// Start the manager
+	err := mgr.Start(ctx)
+	require.NoError(t, err)
+	select {
+	case <-updateCh:
+	case <-time.After(time.Second):
+		require.Fail(t, "manager did not send update in expected time")
+	}
+	// Send an update to ensure the manager is running in its main loop
+	mgr.SendUpdate()
+	select {
+	case <-updateCh:
+	case <-time.After(time.Second):
+		require.Fail(t, "manager did not send update in expected time")
+	}
+
+	// Stop the manager
+	mgr.Stop()
+
+	// Send an update, expect no update since manager is stopped
+	mgr.SendUpdate()
+	select {
+	case <-updateCh:
+		require.Fail(t, "manager sent update after stopped")
+	case <-time.After(time.Second):
+	}
 }

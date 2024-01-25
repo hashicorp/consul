@@ -70,6 +70,7 @@ type Manager struct {
 	cfgMu sync.RWMutex
 
 	updateCh chan struct{}
+	stopCh   chan struct{}
 
 	// testUpdateSent is set by unit tests to signal when the manager's status update has triggered
 	testUpdateSent chan struct{}
@@ -118,6 +119,8 @@ func (m *Manager) Start(ctx context.Context) error {
 	case <-ctx.Done():
 		m.setRunning(false)
 		return nil
+	case <-m.stopCh:
+		return nil
 	case <-m.updateCh: // empty the update chan if there is a queued update to prevent repeated update in main loop
 		err = m.sendUpdate()
 		if err != nil {
@@ -157,6 +160,9 @@ func (m *Manager) Start(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				m.setRunning(false)
+				return
+
+			case <-m.stopCh:
 				return
 
 			case <-m.updateCh:
@@ -299,6 +305,39 @@ func (m *Manager) setRunning(r bool) bool {
 		return false
 	}
 
+	// Initialize or close the stop channel depending what running status
+	// we're transitioning to. Channel must be initialized on start since
+	// a provider can be stopped and started multiple times.
+	if r {
+		m.stopCh = make(chan struct{})
+	} else {
+		close(m.stopCh)
+	}
+
 	m.running = r
 	return true
+}
+
+// Stop stops the manager's main loop that sends updates
+// and stops the SCADA provider and telemetry provider.
+func (m *Manager) Stop() {
+	changed := m.setRunning(false)
+	if !changed {
+		m.logger.Trace("HCP manager already stopped")
+		return
+	}
+	m.logger.Info("HCP manager stopping")
+
+	m.cfgMu.RLock()
+	defer m.cfgMu.RUnlock()
+
+	if m.cfg.SCADAProvider != nil {
+		m.cfg.SCADAProvider.Stop()
+	}
+
+	if m.cfg.TelemetryProvider != nil && reflect.ValueOf(m.cfg.TelemetryProvider).IsValid() {
+		m.cfg.TelemetryProvider.Stop()
+	}
+
+	m.logger.Info("HCP manager stopped")
 }
