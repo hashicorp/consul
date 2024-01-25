@@ -108,8 +108,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		return err
 	}
 
-	err = addFinalizer(ctx, rt, res)
-	if err != nil {
+	if err = addFinalizer(ctx, rt, res); err != nil {
 		rt.Logger.Error("error adding finalizer to link resource", "error", err)
 		return err
 	}
