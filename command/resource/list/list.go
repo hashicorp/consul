@@ -151,7 +151,7 @@ func getResourceType(args []string) (gvk *resource.GVK, e error) {
 
 	s := strings.Split(args[0], ".")
 	if len(s) < 3 {
-		return nil, fmt.Errorf("Must include resource type argument in group.verion.kind format")
+		return nil, fmt.Errorf("Must include resource type argument in group.version.kind format")
 	}
 	gvk = &resource.GVK{
 		Group:   s[0],

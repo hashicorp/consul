@@ -132,6 +132,10 @@
     "path": "event"
   },
   {
+    "title": "HCP Consul Central Link",
+    "path": "hcp-link"
+  },
+  {
     "title": "Health",
     "path": "health"
   },

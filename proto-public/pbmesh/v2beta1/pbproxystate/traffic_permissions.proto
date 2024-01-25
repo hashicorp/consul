@@ -17,9 +17,9 @@ message TrafficPermissions {
 message Permission {
   repeated Principal principals = 1;
 
-  // We don't need destination rules here yet because they either apply to L7 features or multi-ports.
   // In the case of multiple ports, the sidecar proxy controller is responsible for filtering
   // per-port permissions.
+  repeated DestinationRule destination_rules = 2;
 }
 
 message Principal {
@@ -34,4 +34,22 @@ message Spiffe {
   // xfcc_regex specifies that Envoy needs to find the spiffe id in an xfcc header.
   // It is currently unused, but considering this is important for to avoid breaking changes.
   string xfcc_regex = 2;
+}
+
+message DestinationRule {
+  string path_exact = 1;
+  string path_prefix = 2;
+  string path_regex = 3;
+  repeated string methods = 4;
+  repeated DestinationRuleHeader destination_rule_header = 5;
+}
+
+message DestinationRuleHeader {
+  string name = 1;
+  bool present = 2;
+  string exact = 3;
+  string prefix = 4;
+  string suffix = 5;
+  string regex = 6;
+  bool invert = 7;
 }

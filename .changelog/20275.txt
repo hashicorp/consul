@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Added a banner to let users link their clusters to HCP
+```

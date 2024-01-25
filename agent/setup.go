@@ -141,12 +141,16 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		// This values is set late within newNodeIDFromConfig above
 		cfg.Cloud.NodeID = cfg.NodeID
 
-		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"))
+		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"), cfg.DataDir)
 		if err != nil {
 			return d, err
 		}
 		if d.HCP.Sink != nil {
 			extraSinks = append(extraSinks, d.HCP.Sink)
+		}
+	} else {
+		d.HCP = hcp.Deps{
+			DataDir: cfg.DataDir,
 		}
 	}
 

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -144,9 +145,10 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx discovery.Context, remoteAdd
 		return createServerFailureResponse(req, configCtx, false)
 	}
 
-	reqType, responseDomain, needRecurse := r.parseDomain(req)
+	responseDomain, needRecurse := r.parseDomain(req)
 	if needRecurse && !canRecurse(configCtx) {
-		return createServerFailureResponse(req, configCtx, true)
+		// This is the same error as an unmatched domain
+		return createRefusedResponse(req)
 	}
 
 	if needRecurse {
@@ -161,15 +163,23 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx discovery.Context, remoteAdd
 		return resp
 	}
 
+	reqType := parseRequestType(req)
 	results, err := r.getQueryResults(req, reqCtx, reqType, configCtx)
-
-	if err != nil && errors.Is(err, errNameNotFound) {
+	switch {
+	case errors.Is(err, errNameNotFound):
 		r.logger.Error("name not found", "name", req.Question[0].Name)
-		return createNameErrorResponse(req, configCtx, responseDomain)
-	}
-	if err != nil {
+
+		ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, ecsGlobal)
+	// TODO (v2-dns): there is another case here where the discovery service returns "name not found"
+	case errors.Is(err, discovery.ErrNoData):
+		r.logger.Debug("no data available", "name", req.Question[0].Name)
+
+		ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeSuccess, ecsGlobal)
+	case err != nil:
 		r.logger.Error("error processing discovery query", "error", err)
-		return createServerFailureResponse(req, configCtx, false)
+		return createServerFailureResponse(req, configCtx, canRecurse(configCtx))
 	}
 
 	// This needs the question information because it affects the serialization format.
@@ -185,6 +195,17 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx discovery.Context, remoteAdd
 // getQueryResults returns a discovery.Result from a DNS message.
 func (r *Router) getQueryResults(req *dns.Msg, reqCtx discovery.Context, reqType requestType, cfgCtx *RouterDynamicConfig) ([]*discovery.Result, error) {
 	switch reqType {
+	case requestTypeConsul:
+		// This is a special case of discovery.QueryByName where we know that we need to query the consul service
+		// regardless of the question name.
+		query := &discovery.Query{
+			QueryType: discovery.QueryTypeService,
+			QueryPayload: discovery.QueryPayload{
+				Name: structs.ConsulServiceName,
+			},
+			Limit: 3, // TODO (v2-dns): need to thread this through to the backend and make sure we shuffle the results
+		}
+		return r.processor.QueryByName(query, reqCtx)
 	case requestTypeName:
 		query, err := buildQueryFromDNSMessage(req, r.domain, r.altDomain, cfgCtx, r.defaultEntMeta)
 		if err != nil {
@@ -224,44 +245,58 @@ func (r *Router) ReloadConfig(newCfg *config.RuntimeConfig) error {
 type requestType string
 
 const (
-	requestTypeName    requestType = "NAME" // A/AAAA/CNAME/SRV/SOA
-	requestTypeIP      requestType = "IP"
-	requestTypeAddress requestType = "ADDR"
+	requestTypeName    requestType = "NAME"   // A/AAAA/CNAME/SRV
+	requestTypeIP      requestType = "IP"     // PTR
+	requestTypeAddress requestType = "ADDR"   // Custom addr. A/AAAA lookups
+	requestTypeConsul  requestType = "CONSUL" // SOA/NS
 )
 
-// parseQuery converts a DNS message into a generic discovery request.
+// parseDomain converts a DNS message into a generic discovery request.
 // If the request domain does not match "consul." or the alternative domain,
 // it will return true for needRecurse. The logic is based on miekg/dns.ServeDNS matcher.
 // The implementation assumes that the only valid domains are "consul." and the alternative domain, and
 // that DS query types are not supported.
-func (r *Router) parseDomain(req *dns.Msg) (requestType, string, bool) {
+func (r *Router) parseDomain(req *dns.Msg) (string, bool) {
 	target := dns.CanonicalName(req.Question[0].Name)
 	target, _ = stripSuffix(target)
 
 	for offset, overflow := 0, false; !overflow; offset, overflow = dns.NextLabel(target, offset) {
 		subdomain := target[offset:]
 		switch subdomain {
+		case ".":
+			// We don't support consul having a domain or altdomain attached to the root.
+			return "", true
 		case r.domain:
-			if isAddrSubdomain(target) {
-				return requestTypeAddress, r.domain, false
-			}
-			return requestTypeName, r.domain, false
-
+			return r.domain, false
 		case r.altDomain:
-			// TODO (v2-dns): the default, unspecified alt domain should be ".". Next label should never return this
-			// but write a test to verify that.
-			if isAddrSubdomain(target) {
-				return requestTypeAddress, r.altDomain, false
-			}
-			return requestTypeName, r.altDomain, false
+			return r.altDomain, false
 		case arpaDomain:
 			// PTR queries always respond with the primary domain.
-			return requestTypeIP, r.domain, false
+			return r.domain, false
 			// Default: fallthrough
 		}
 	}
 	// No match found; recurse if possible
-	return "", "", true
+	return "", true
+}
+
+// parseRequestType inspects the DNS message type and question name to determine the requestType of request.
+// We assume by the time this is called, we are responding to a question with a domain we serve.
+// This is used internally to determine which query processor method (if any) to invoke.
+func parseRequestType(req *dns.Msg) requestType {
+	switch {
+	case req.Question[0].Qtype == dns.TypeSOA || req.Question[0].Qtype == dns.TypeNS:
+		// SOA and NS type supersede the domain
+		// NOTE!: In V1 of the DNS server it was possible to serve a PTR lookup using the arpa domain but a SOA question type.
+		// This also included the SOA record. This seemed inconsistent and unnecessary - it was removed for simplicity.
+		return requestTypeConsul
+	case isPTRSubdomain(req.Question[0].Name):
+		return requestTypeIP
+	case isAddrSubdomain(req.Question[0].Name):
+		return requestTypeAddress
+	default:
+		return requestTypeName
+	}
 }
 
 // serializeQueryResults converts a discovery.Result into a DNS message.
@@ -272,7 +307,10 @@ func (r *Router) serializeQueryResults(req *dns.Msg, results []*discovery.Result
 	resp.Authoritative = true
 	resp.RecursionAvailable = canRecurse(cfg)
 
-	// TODO (v2-dns): add SOA if that is the question type
+	// Always add the SOA record if requested.
+	if req.Question[0].Qtype == dns.TypeSOA {
+		resp.Answer = append(resp.Answer, makeSOARecord(responseDomain, cfg))
+	}
 
 	for _, result := range results {
 		appendResultToDNSResponse(result, req, resp, responseDomain, cfg)
@@ -332,6 +370,18 @@ func isAddrSubdomain(domain string) bool {
 		return labels[1] == addrLabel
 	}
 	return false
+}
+
+// isPTRSubdomain returns true if the domain ends in the PTR domain, "in-addr.arpa.".
+func isPTRSubdomain(domain string) bool {
+	labels := dns.SplitDomainName(domain)
+	labelCount := len(labels)
+
+	if labelCount < 3 {
+		return false
+	}
+
+	return fmt.Sprintf("%s.%s.", labels[labelCount-2], labels[labelCount-1]) == arpaDomain
 }
 
 // getDynamicRouterConfig takes agent config and creates/resets the config used by DNS Router
@@ -402,7 +452,7 @@ func setEDNS(request *dns.Msg, response *dns.Msg, ecsGlobal bool) {
 	ednsResp.Hdr.Rrtype = dns.TypeOPT
 	ednsResp.SetUDPSize(edns.UDPSize())
 
-	// Setup the ECS option if present
+	// Set up the ECS option if present
 	if subnet := ednsSubnetForRequest(request); subnet != nil {
 		subOp := new(dns.EDNS0_SUBNET)
 		subOp.Code = dns.EDNS0SUBNET
@@ -426,7 +476,6 @@ func setEDNS(request *dns.Msg, response *dns.Msg, ecsGlobal bool) {
 func ednsSubnetForRequest(req *dns.Msg) *dns.EDNS0_SUBNET {
 	// IsEdns0 returns the EDNS RR if present or nil otherwise
 	edns := req.IsEdns0()
-
 	if edns == nil {
 		return nil
 	}
@@ -436,11 +485,11 @@ func ednsSubnetForRequest(req *dns.Msg) *dns.EDNS0_SUBNET {
 			return subnet
 		}
 	}
-
 	return nil
 }
 
-// createRefusedResponse returns a REFUSED message.
+// createRefusedResponse returns a REFUSED message. This is the default behavior for unmatched queries in
+// upstream miekg/dns.
 func createRefusedResponse(req *dns.Msg) *dns.Msg {
 	// Return a REFUSED message
 	m := &dns.Msg{}
@@ -448,32 +497,20 @@ func createRefusedResponse(req *dns.Msg) *dns.Msg {
 	return m
 }
 
-// createNameErrorResponse returns a NXDOMAIN message.
-func createNameErrorResponse(req *dns.Msg, cfg *RouterDynamicConfig, domain string) *dns.Msg {
-	// Return a NXDOMAIN message
+// createAuthoritativeResponse returns an authoritative message that contains the SOA in the event that data is
+// not return for a query. There can be multiple reasons for not returning data, hence the rcode argument.
+func createAuthoritativeResponse(req *dns.Msg, cfg *RouterDynamicConfig, domain string, rcode int, ecsGlobal bool) *dns.Msg {
 	m := &dns.Msg{}
-	m.SetRcode(req, dns.RcodeNameError)
+	m.SetRcode(req, rcode)
 	m.Compress = !cfg.DisableCompression
 	m.Authoritative = true
+	m.RecursionAvailable = canRecurse(cfg)
+	if edns := req.IsEdns0(); edns != nil {
+		setEDNS(req, m, ecsGlobal)
+	}
 
 	// We add the SOA on NameErrors
-	// TODO (v2-dns): refactor into a common function
-	soa := &dns.SOA{
-		Hdr: dns.RR_Header{
-			Name:   domain,
-			Rrtype: dns.TypeSOA,
-			Class:  dns.ClassINET,
-			// Has to be consistent with MinTTL to avoid invalidation
-			Ttl: cfg.SOAConfig.Minttl,
-		},
-		Ns:      "ns." + domain,
-		Serial:  uint32(time.Now().Unix()),
-		Mbox:    "hostmaster." + domain,
-		Refresh: cfg.SOAConfig.Refresh,
-		Retry:   cfg.SOAConfig.Retry,
-		Expire:  cfg.SOAConfig.Expire,
-		Minttl:  cfg.SOAConfig.Minttl,
-	}
+	soa := makeSOARecord(domain, cfg)
 	m.Ns = append(m.Ns, soa)
 
 	return m
@@ -504,7 +541,7 @@ func buildAddressResults(req *dns.Msg) ([]*discovery.Result, error) {
 }
 
 // buildQueryFromDNSMessage appends the discovery result to the dns message.
-func appendResultToDNSResponse(result *discovery.Result, req *dns.Msg, resp *dns.Msg, _ string, cfg *RouterDynamicConfig) {
+func appendResultToDNSResponse(result *discovery.Result, req *dns.Msg, resp *dns.Msg, domain string, cfg *RouterDynamicConfig) {
 	ip, ok := convertToIp(result)
 
 	// if the result is not an IP, we can try to recurse on the hostname.
@@ -516,7 +553,7 @@ func appendResultToDNSResponse(result *discovery.Result, req *dns.Msg, resp *dns
 
 	var ttl uint32
 	switch result.Type {
-	case discovery.ResultTypeNode, discovery.ResultTypeVirtual:
+	case discovery.ResultTypeNode, discovery.ResultTypeVirtual, discovery.ResultTypeWorkload:
 		ttl = uint32(cfg.NodeTTL / time.Second)
 	case discovery.ResultTypeService:
 		// TODO (v2-dns): implement service TTL using the radix tree
@@ -527,12 +564,32 @@ func appendResultToDNSResponse(result *discovery.Result, req *dns.Msg, resp *dns
 
 	record, isIPV4 := makeRecord(qName, ip, ttl)
 
-	if qType == dns.TypeSRV {
+	// TODO (v2-dns): skip records that refer to a workload/node that don't have a valid DNS name.
+
+	// Special case responses
+	switch qType {
+	case dns.TypeSOA:
+		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
+		// to be returned in the result.
+		fqdn := fmt.Sprintf("%s.%s.%s", result.Target, strings.ToLower(string(result.Type)), domain)
+		extraRecord, _ := makeRecord(fqdn, ip, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
+
+		resp.Ns = append(resp.Ns, makeNSRecord(domain, fqdn, ttl))
+		resp.Extra = append(resp.Extra, extraRecord)
+		return
+	case dns.TypeNS:
+		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
+		fqdn := fmt.Sprintf("%s.%s.%s.", result.Target, strings.ToLower(string(result.Type)), domain)
+		extraRecord, _ := makeRecord(fqdn, ip, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
+
+		resp.Answer = append(resp.Ns, makeNSRecord(domain, fqdn, ttl))
+		resp.Extra = append(resp.Extra, extraRecord)
+		return
+	case dns.TypeSRV:
 		// We put A/AAAA/CNAME records in the additional section for SRV requests
 		resp.Extra = append(resp.Extra, record)
 
 		// TODO (v2-dns): implement SRV records for the answer section
-
 		return
 	}
 
@@ -558,11 +615,41 @@ func convertToIp(result *discovery.Result) (net.IP, bool) {
 	return ip, true
 }
 
-// n A or AAAA record for the given name and IP.
+func makeSOARecord(domain string, cfg *RouterDynamicConfig) dns.RR {
+	return &dns.SOA{
+		Hdr: dns.RR_Header{
+			Name:   domain,
+			Rrtype: dns.TypeSOA,
+			Class:  dns.ClassINET,
+			// Has to be consistent with MinTTL to avoid invalidation
+			Ttl: cfg.SOAConfig.Minttl,
+		},
+		Ns:      "ns." + domain,
+		Serial:  uint32(time.Now().Unix()),
+		Mbox:    "hostmaster." + domain,
+		Refresh: cfg.SOAConfig.Refresh,
+		Retry:   cfg.SOAConfig.Retry,
+		Expire:  cfg.SOAConfig.Expire,
+		Minttl:  cfg.SOAConfig.Minttl,
+	}
+}
+
+func makeNSRecord(domain, fqdn string, ttl uint32) dns.RR {
+	return &dns.NS{
+		Hdr: dns.RR_Header{
+			Name:   domain,
+			Rrtype: dns.TypeNS,
+			Class:  dns.ClassINET,
+			Ttl:    ttl,
+		},
+		Ns: fqdn,
+	}
+}
+
+// makeRecord an A or AAAA record for the given name and IP.
 // Note: we might want to pass in the Query Name here, which is used in addr. and virtual. queries
 // since there is only ever one result. Right now choosing to leave it off for simplification.
 func makeRecord(name string, ip net.IP, ttl uint32) (dns.RR, bool) {
-
 	isIPV4 := ip.To4() != nil
 
 	if isIPV4 {

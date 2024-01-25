@@ -112,6 +112,17 @@ func (c CloningResourceServiceClient) Delete(ctx context.Context, in *DeleteRequ
 	return proto.Clone(out).(*DeleteResponse), nil
 }
 
+func (c CloningResourceServiceClient) MutateAndValidate(ctx context.Context, in *MutateAndValidateRequest, opts ...grpc.CallOption) (*MutateAndValidateResponse, error) {
+	in = proto.Clone(in).(*MutateAndValidateRequest)
+
+	out, err := c.ResourceServiceClient.MutateAndValidate(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.Clone(out).(*MutateAndValidateResponse), nil
+}
+
 func (c CloningResourceServiceClient) WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error) {
 	in = proto.Clone(in).(*WatchListRequest)
 

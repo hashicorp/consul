@@ -12,10 +12,38 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+var (
+	ErrNoData       = fmt.Errorf("no data")
+	ErrECSNotGlobal = fmt.Errorf("ECS response is not global")
+)
+
+// ECSNotGlobalError may be used to wrap an error or nil, to indicate that the
+// EDNS client subnet source scope is not global.
+// TODO (v2-dns): prepared queries errors are wrapped by this
+type ECSNotGlobalError struct {
+	error
+}
+
+func (e ECSNotGlobalError) Error() string {
+	if e.error == nil {
+		return ""
+	}
+	return e.error.Error()
+}
+
+func (e ECSNotGlobalError) Is(other error) bool {
+	return other == ErrECSNotGlobal
+}
+
+func (e ECSNotGlobalError) Unwrap() error {
+	return e.error
+}
+
 // Query is used to request a name-based Service Discovery lookup.
 type Query struct {
 	QueryType    QueryType
 	QueryPayload QueryPayload
+	Limit        int
 }
 
 // QueryType is used to filter service endpoints.

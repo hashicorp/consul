@@ -7,21 +7,20 @@ import (
 	"context"
 	"strings"
 
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
-
+	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // HCPClientFn is a function that can be used to create an HCP client from a Link object.
@@ -42,7 +41,13 @@ var DefaultHCPClientFn HCPClientFn = func(link *pbhcp.Link) (hcpclient.Client, e
 	return hcpClient, nil
 }
 
-func LinkController(resourceApisEnabled bool, hcpAllowV2ResourceApis bool, hcpClientFn HCPClientFn, cfg config.CloudConfig) *controller.Controller {
+func LinkController(
+	resourceApisEnabled bool,
+	hcpAllowV2ResourceApis bool,
+	hcpClientFn HCPClientFn,
+	cfg config.CloudConfig,
+	dataDir string,
+) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
 		WithInitializer(&linkInitializer{
 			cloudConfig: cfg,
@@ -51,6 +56,7 @@ func LinkController(resourceApisEnabled bool, hcpAllowV2ResourceApis bool, hcpCl
 			resourceApisEnabled:    resourceApisEnabled,
 			hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
 			hcpClientFn:            hcpClientFn,
+			dataDir:                dataDir,
 		})
 }
 
@@ -58,26 +64,7 @@ type linkReconciler struct {
 	resourceApisEnabled    bool
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
-}
-
-func (r *linkReconciler) writeStatusIfNotEqual(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, status *pbresource.Status) error {
-	if resource.EqualStatus(res.Status[StatusKey], status, false) {
-		return nil
-	}
-	_, err := rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-		Id:     res.Id,
-		Key:    StatusKey,
-		Status: status,
-	})
-	return err
-}
-
-func (r *linkReconciler) linkingFailed(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) error {
-	newStatus := &pbresource.Status{
-		ObservedGeneration: res.Generation,
-		Conditions:         []*pbresource.Condition{ConditionFailed},
-	}
-	return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
+	dataDir                string
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
@@ -121,6 +108,19 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		return err
 	}
 
+	if err = addFinalizer(ctx, rt, res); err != nil {
+		rt.Logger.Error("error adding finalizer to link resource", "error", err)
+		return err
+	}
+
+	if resource.IsMarkedForDeletion(res) {
+		if err = cleanup(ctx, rt, res, r.dataDir); err != nil {
+			rt.Logger.Error("error cleaning up link resource", "error", err)
+			return err
+		}
+		return nil
+	}
+
 	// Validation - Ensure V2 Resource APIs are not enabled unless hcpAllowV2ResourceApis flag is set
 	var newStatus *pbresource.Status
 	if r.resourceApisEnabled && !r.hcpAllowV2ResourceApis {
@@ -128,12 +128,12 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 			ObservedGeneration: res.Generation,
 			Conditions:         []*pbresource.Condition{ConditionDisabled},
 		}
-		return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
+		return writeStatusIfNotEqual(ctx, rt, res, newStatus)
 	}
 
 	hcpClient, err := r.hcpClientFn(&link)
 	if err != nil {
-		rt.Logger.Error("error creating HCP Client", "error", err)
+		rt.Logger.Error("error creating HCP client", "error", err)
 		return err
 	}
 
@@ -141,7 +141,8 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	cluster, err := hcpClient.GetCluster(ctx)
 	if err != nil {
 		rt.Logger.Error("error querying HCP for cluster", "error", err)
-		return r.linkingFailed(ctx, rt, res)
+		linkingFailed(ctx, rt, res, err)
+		return err
 	}
 	accessLevel := hcpAccessLevelToConsul(cluster.AccessLevel)
 
@@ -170,12 +171,23 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		}
 	}
 
+	// Load the management token if access is not set to read-only. Read-only clusters
+	// will not have a management token provided by HCP.
+	if accessLevel != pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY {
+		_, err = bootstrap.LoadManagementToken(ctx, rt.Logger, hcpClient, r.dataDir)
+		if err != nil {
+			linkingFailed(ctx, rt, res, err)
+			return err
+		}
+		// TODO: Update the HCP manager with the loaded management token as part of CC-7044
+	}
+
 	newStatus = &pbresource.Status{
 		ObservedGeneration: res.Generation,
 		Conditions:         []*pbresource.Condition{ConditionLinked(link.ResourceId)},
 	}
 
-	return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
+	return writeStatusIfNotEqual(ctx, rt, res, newStatus)
 }
 
 type linkInitializer struct {

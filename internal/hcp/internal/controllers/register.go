@@ -4,7 +4,6 @@
 package controllers
 
 import (
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/controllers/link"
@@ -14,7 +13,7 @@ type Dependencies struct {
 	CloudConfig            config.CloudConfig
 	ResourceApisEnabled    bool
 	HCPAllowV2ResourceApis bool
-	HCPClient              hcpclient.Client
+	DataDir                string
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
@@ -23,5 +22,6 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 		deps.HCPAllowV2ResourceApis,
 		link.DefaultHCPClientFn,
 		deps.CloudConfig,
+		deps.DataDir,
 	))
 }
