@@ -83,8 +83,8 @@ func requireNotNil(v interface{}, name string) {
 
 var _ pbpeerstream.PeerStreamServiceServer = (*Server)(nil)
 
-func (s *Server) Register(registrar grpc.ServiceRegistrar) {
-	pbpeerstream.RegisterPeerStreamServiceServer(registrar, s)
+func (s *Server) Register(grpcServer *grpc.Server) {
+	pbpeerstream.RegisterPeerStreamServiceServer(grpcServer, s)
 }
 
 type Backend interface {

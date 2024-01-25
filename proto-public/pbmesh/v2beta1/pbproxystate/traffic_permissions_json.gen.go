@@ -49,28 +49,6 @@ func (this *Spiffe) UnmarshalJSON(b []byte) error {
 	return TrafficPermissionsUnmarshaler.Unmarshal(b, this)
 }
 
-// MarshalJSON is a custom marshaler for DestinationRule
-func (this *DestinationRule) MarshalJSON() ([]byte, error) {
-	str, err := TrafficPermissionsMarshaler.Marshal(this)
-	return []byte(str), err
-}
-
-// UnmarshalJSON is a custom unmarshaler for DestinationRule
-func (this *DestinationRule) UnmarshalJSON(b []byte) error {
-	return TrafficPermissionsUnmarshaler.Unmarshal(b, this)
-}
-
-// MarshalJSON is a custom marshaler for DestinationRuleHeader
-func (this *DestinationRuleHeader) MarshalJSON() ([]byte, error) {
-	str, err := TrafficPermissionsMarshaler.Marshal(this)
-	return []byte(str), err
-}
-
-// UnmarshalJSON is a custom unmarshaler for DestinationRuleHeader
-func (this *DestinationRuleHeader) UnmarshalJSON(b []byte) error {
-	return TrafficPermissionsUnmarshaler.Unmarshal(b, this)
-}
-
 var (
 	TrafficPermissionsMarshaler   = &protojson.MarshalOptions{}
 	TrafficPermissionsUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

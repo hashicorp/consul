@@ -27,7 +27,7 @@ var (
 	testData embed.FS
 )
 
-// RunCatalogV2Beta1IntegrationTest will push up a bunch of catalog related data and then
+// RunCatalogV1Alpha1IntegrationTest will push up a bunch of catalog related data and then
 // verify that all the expected reconciliations happened correctly. This test is
 // intended to exercise a large swathe of behavior of the overall catalog package.
 // Besides just controller reconciliation behavior, the intent is also to verify
@@ -67,17 +67,21 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 		// pointed at a Raft follower, there can be a race between Raft replicating all the data
 		// to the followers and these verifications running. Instead of wrapping each one of these
 		// in their own Wait/Retry func the whole set of them is being wrapped.
-		retry.Run(t, func(r *retry.R) {
+		//
+		// Using a 2 second retry because Raft replication really ought to be this fast for our integration
+		// tests and if the test hardware cannot get 100 logs replicated to all followers in 2 seconds or
+		// less then we have some serious issues that warrant investigation.
+		retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
 			c.RequireResourceExists(r, rtest.Resource(pbcatalog.ServiceType, "api").ID())
 			c.RequireResourceExists(r, rtest.Resource(pbcatalog.ServiceType, "http-api").ID())
 			c.RequireResourceExists(r, rtest.Resource(pbcatalog.ServiceType, "grpc-api").ID())
 			c.RequireResourceExists(r, rtest.Resource(pbcatalog.ServiceType, "foo").ID())
 
 			for i := 1; i < 5; i++ {
-				nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultPartitionedTenancy()).ID()
+				nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 				c.RequireResourceExists(r, nodeId)
 
-				res := c.RequireResourceExists(r, rtest.Resource(pbcatalog.NodeHealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
+				res := c.RequireResourceExists(r, rtest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
 				rtest.RequireOwner(r, res, nodeId, true)
 			}
 
@@ -88,49 +92,44 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 				res := c.RequireResourceExists(r, rtest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("api-%d-health", i)).ID())
 				rtest.RequireOwner(r, res, workloadId, true)
 			}
-		},
-			// Using a 2 second retry because Raft replication really ought to be this fast for our integration
-			// tests and if the test hardware cannot get 100 logs replicated to all followers in 2 seconds or
-			// less then we have some serious issues that warrant investigation.
-			retry.WithRetryer(retry.TwoSeconds()),
-		)
+		})
 	})
 
 	testutil.RunStep(t, "node-health-reconciliation", func(t *testing.T) {
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-1").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionPassing)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-2").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionWarning)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-3").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-4").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-1").ID(), nodehealth.StatusKey, nodehealth.ConditionPassing)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-2").ID(), nodehealth.StatusKey, nodehealth.ConditionWarning)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-3").ID(), nodehealth.StatusKey, nodehealth.ConditionCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-4").ID(), nodehealth.StatusKey, nodehealth.ConditionMaintenance)
 	})
 
 	testutil.RunStep(t, "workload-health-reconciliation", func(t *testing.T) {
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-1").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadPassing)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-2").ID(), workloadhealth.ControllerID, workloadhealth.ConditionWorkloadWarning)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-3").ID(), workloadhealth.ControllerID, workloadhealth.ConditionWorkloadCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-4").ID(), workloadhealth.ControllerID, workloadhealth.ConditionWorkloadMaintenance)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-5").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeWarning)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-6").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadWarning)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-7").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-8").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadMaintenance)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-9").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-10").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-11").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-12").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadMaintenance)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-13").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeMaintenance)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-14").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadMaintenance)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-15").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadMaintenance)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-16").ID(), workloadhealth.ControllerID, workloadhealth.ConditionNodeAndWorkloadMaintenance)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-17").ID(), workloadhealth.ControllerID, workloadhealth.ConditionWorkloadPassing)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-18").ID(), workloadhealth.ControllerID, workloadhealth.ConditionWorkloadWarning)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-19").ID(), workloadhealth.ControllerID, workloadhealth.ConditionWorkloadCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-20").ID(), workloadhealth.ControllerID, workloadhealth.ConditionWorkloadMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-1").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadPassing)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-2").ID(), workloadhealth.StatusKey, workloadhealth.ConditionWorkloadWarning)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-3").ID(), workloadhealth.StatusKey, workloadhealth.ConditionWorkloadCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-4").ID(), workloadhealth.StatusKey, workloadhealth.ConditionWorkloadMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-5").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeWarning)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-6").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadWarning)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-7").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-8").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-9").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-10").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-11").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-12").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-13").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-14").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-15").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-16").ID(), workloadhealth.StatusKey, workloadhealth.ConditionNodeAndWorkloadMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-17").ID(), workloadhealth.StatusKey, workloadhealth.ConditionWorkloadPassing)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-18").ID(), workloadhealth.StatusKey, workloadhealth.ConditionWorkloadWarning)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-19").ID(), workloadhealth.StatusKey, workloadhealth.ConditionWorkloadCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.WorkloadType, "api-20").ID(), workloadhealth.StatusKey, workloadhealth.ConditionWorkloadMaintenance)
 	})
 
 	testutil.RunStep(t, "service-reconciliation", func(t *testing.T) {
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "foo").ID(), endpoints.ControllerID, endpoints.ConditionUnmanaged)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "api").ID(), endpoints.ControllerID, endpoints.ConditionManaged)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "http-api").ID(), endpoints.ControllerID, endpoints.ConditionManaged)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "grpc-api").ID(), endpoints.ControllerID, endpoints.ConditionManaged)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "foo").ID(), endpoints.StatusKey, endpoints.ConditionUnmanaged)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "api").ID(), endpoints.StatusKey, endpoints.ConditionManaged)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "http-api").ID(), endpoints.StatusKey, endpoints.ConditionManaged)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.ServiceType, "grpc-api").ID(), endpoints.StatusKey, endpoints.ConditionManaged)
 	})
 
 	testutil.RunStep(t, "service-endpoints-generation", func(t *testing.T) {

@@ -41,10 +41,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
                   }
                 }
@@ -92,10 +92,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
                   }
                 }
@@ -143,10 +143,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
                   }
                 }
@@ -194,10 +194,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
                   }
                 }

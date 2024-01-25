@@ -146,58 +146,6 @@ func (s *Sprawl) createAnonymousPolicy(cluster *topology.Cluster) error {
 	return nil
 }
 
-// assignAgentJoinPolicyToAnonymousToken is used only for version prior to agent token
-func (s *Sprawl) assignAgentJoinPolicyToAnonymousToken(cluster *topology.Cluster) error {
-	var (
-		client = s.clients[cluster.Name]
-	)
-
-	acl := client.ACL()
-	anonymousTok, _, err := acl.TokenRead(anonymousTokenAccessorID, &api.QueryOptions{})
-	if err != nil {
-		return nil
-	}
-
-	rule := `
-service_prefix "" {
-	policy = "read"
-}
-	
-agent_prefix "" {
-	policy = "read"
-}
-	
-node_prefix "" {
-	policy = "write"
-}
-
-operator = "write"
-`
-	policy, _, err := acl.PolicyCreate(
-		&api.ACLPolicy{
-			Name:  "client-join-policy",
-			Rules: rule,
-		},
-		&api.WriteOptions{},
-	)
-
-	if err != nil {
-		return err
-	}
-
-	anonymousTok.Policies = append(anonymousTok.Policies,
-		&api.ACLLink{
-			Name: policy.Name,
-		},
-	)
-	_, _, err = acl.TokenUpdate(anonymousTok, &api.WriteOptions{})
-	if err != nil {
-		return nil
-	}
-
-	return nil
-}
-
 func (s *Sprawl) createAgentTokens(cluster *topology.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
@@ -210,20 +158,18 @@ func (s *Sprawl) createAgentTokens(cluster *topology.Cluster) error {
 			continue
 		}
 
-		if node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
-			if tok := s.secrets.ReadAgentToken(cluster.Name, node.ID()); tok == "" {
-				token, err := CreateOrUpdateToken(client, tokenForNode(node, cluster.Enterprise))
-				if err != nil {
-					return fmt.Errorf("node %s: %w", node.Name, err)
-				}
-
-				logger.Debug("created agent token",
-					"node", node.ID(),
-					"token", token.SecretID,
-				)
-
-				s.secrets.SaveAgentToken(cluster.Name, node.ID(), token.SecretID)
+		if tok := s.secrets.ReadAgentToken(cluster.Name, node.ID()); tok == "" {
+			token, err := CreateOrUpdateToken(client, tokenForNode(node, cluster.Enterprise))
+			if err != nil {
+				return err
 			}
+
+			logger.Debug("created agent token",
+				"node", node.ID(),
+				"token", token.SecretID,
+			)
+
+			s.secrets.SaveAgentToken(cluster.Name, node.ID(), token.SecretID)
 		}
 	}
 

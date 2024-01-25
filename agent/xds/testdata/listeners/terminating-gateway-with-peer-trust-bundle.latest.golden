@@ -184,6 +184,7 @@
                           "authenticated": {
                             "principalName": {
                               "safeRegex": {
+                                "googleRe2": {},
                                 "regex": "^spiffe://foo.bar.gov/ns/default/dc/[^/]+/svc/source$"
                               }
                             }

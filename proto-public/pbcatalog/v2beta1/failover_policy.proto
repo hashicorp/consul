@@ -43,8 +43,6 @@ message FailoverDestination {
   string datacenter = 3;
 }
 
-// +kubebuilder:validation:Enum=FAILOVER_MODE_UNSPECIFIED;FAILOVER_MODE_SEQUENTIAL;FAILOVER_MODE_ORDER_BY_LOCALITY
-// +kubebuilder:validation:Type=string
 enum FailoverMode {
   FAILOVER_MODE_UNSPECIFIED = 0;
   FAILOVER_MODE_SEQUENTIAL = 1;

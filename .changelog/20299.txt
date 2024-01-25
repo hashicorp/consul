@@ -1,3 +1,0 @@
-```release-note:feature
-v2: prevent use of the v2 experiments in secondary datacenters for now
-```

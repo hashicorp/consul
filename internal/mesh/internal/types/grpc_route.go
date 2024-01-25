@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterGRPCRoute(r resource.Registry) {
@@ -24,16 +25,20 @@ func RegisterGRPCRoute(r resource.Registry) {
 	})
 }
 
-var MutateGRPCRoute = resource.DecodeAndMutate(mutateGRPCRoute)
+func MutateGRPCRoute(res *pbresource.Resource) error {
+	var route pbmesh.GRPCRoute
 
-func mutateGRPCRoute(res *DecodedGRPCRoute) (bool, error) {
+	if err := res.Data.UnmarshalTo(&route); err != nil {
+		return resource.NewErrDataParse(&route, err)
+	}
+
 	changed := false
 
-	if mutateParentRefs(res.Id.Tenancy, res.Data.ParentRefs) {
+	if mutateParentRefs(res.Id.Tenancy, route.ParentRefs) {
 		changed = true
 	}
 
-	for _, rule := range res.Data.Rules {
+	for _, rule := range route.Rules {
 		for _, backend := range rule.BackendRefs {
 			if backend.BackendRef == nil || backend.BackendRef.Ref == nil {
 				continue
@@ -44,25 +49,33 @@ func mutateGRPCRoute(res *DecodedGRPCRoute) (bool, error) {
 		}
 	}
 
-	return changed, nil
+	if !changed {
+		return nil
+	}
+
+	return res.Data.MarshalFrom(&route)
 }
 
-var ValidateGRPCRoute = resource.DecodeAndValidate(validateGRPCRoute)
+func ValidateGRPCRoute(res *pbresource.Resource) error {
+	var route pbmesh.GRPCRoute
 
-func validateGRPCRoute(res *DecodedGRPCRoute) error {
+	if err := res.Data.UnmarshalTo(&route); err != nil {
+		return resource.NewErrDataParse(&route, err)
+	}
+
 	var merr error
-	if err := validateParentRefs(res.Id, res.Data.ParentRefs); err != nil {
+	if err := validateParentRefs(res.Id, route.ParentRefs); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 
-	if len(res.Data.Hostnames) > 0 {
+	if len(route.Hostnames) > 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "hostnames",
 			Wrapped: errors.New("should not populate hostnames"),
 		})
 	}
 
-	for i, rule := range res.Data.Rules {
+	for i, rule := range route.Rules {
 		wrapRuleErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "rules",

@@ -547,7 +547,8 @@ func (s *StringMatcher) toEnvoy() *envoy_type_matcher_v3.StringMatcher {
 		return &envoy_type_matcher_v3.StringMatcher{
 			MatchPattern: &envoy_type_matcher_v3.StringMatcher_SafeRegex{
 				SafeRegex: &envoy_type_matcher_v3.RegexMatcher{
-					Regex: s.SafeRegex,
+					EngineType: &envoy_type_matcher_v3.RegexMatcher_GoogleRe2{},
+					Regex:      s.SafeRegex,
 				},
 			},
 		}

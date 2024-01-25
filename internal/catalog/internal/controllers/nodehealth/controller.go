@@ -7,22 +7,18 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/controller/cache"
-	"github.com/hashicorp/consul/internal/controller/cache/indexers"
-	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	nodeOwnerIndexName = "owner"
-)
-
-func NodeHealthController() *controller.Controller {
-	return controller.NewController(StatusKey, pbcatalog.NodeType).
-		WithWatch(pbcatalog.NodeHealthStatusType, dependency.MapOwnerFiltered(pbcatalog.NodeType), indexers.OwnerIndex(nodeOwnerIndexName)).
+func NodeHealthController() controller.Controller {
+	return controller.ForType(pbcatalog.NodeType).
+		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.NodeType)).
 		WithReconciler(&nodeHealthReconciler{})
 }
 
@@ -36,36 +32,38 @@ func (r *nodeHealthReconciler) Reconcile(ctx context.Context, rt controller.Runt
 	rt.Logger.Trace("reconciling node health")
 
 	// read the node
-	node, err := rt.Cache.Get(pbcatalog.NodeType, "id", req.ID)
-	if err != nil {
-		rt.Logger.Error("the cache has returned an unexpected error", "error", err)
-		return err
-	}
-	if node == nil {
+	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: req.ID})
+	switch {
+	case status.Code(err) == codes.NotFound:
 		rt.Logger.Trace("node has been deleted")
 		return nil
+	case err != nil:
+		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
+		return err
 	}
 
-	health, err := getNodeHealth(rt, req.ID)
+	res := rsp.Resource
+
+	health, err := getNodeHealth(ctx, rt, req.ID)
 	if err != nil {
 		rt.Logger.Error("failed to calculate the nodes health", "error", err)
 		return err
 	}
 
 	newStatus := &pbresource.Status{
-		ObservedGeneration: node.Generation,
+		ObservedGeneration: res.Generation,
 		Conditions: []*pbresource.Condition{
 			Conditions[health],
 		},
 	}
 
-	if resource.EqualStatus(node.Status[StatusKey], newStatus, false) {
+	if resource.EqualStatus(res.Status[StatusKey], newStatus, false) {
 		rt.Logger.Trace("resources node health status is unchanged", "health", health.String())
 		return nil
 	}
 
 	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-		Id:     node.Id,
+		Id:     res.Id,
 		Key:    StatusKey,
 		Status: newStatus,
 	})
@@ -79,24 +77,30 @@ func (r *nodeHealthReconciler) Reconcile(ctx context.Context, rt controller.Runt
 	return nil
 }
 
-func getNodeHealth(rt controller.Runtime, nodeRef *pbresource.ID) (pbcatalog.Health, error) {
-	iter, err := cache.ListIteratorDecoded[*pbcatalog.NodeHealthStatus](rt.Cache, pbcatalog.NodeHealthStatusType, nodeOwnerIndexName, nodeRef)
+func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresource.ID) (pbcatalog.Health, error) {
+	rsp, err := rt.Client.ListByOwner(ctx, &pbresource.ListByOwnerRequest{
+		Owner: nodeRef,
+	})
+
 	if err != nil {
 		return pbcatalog.Health_HEALTH_CRITICAL, err
 	}
 
 	health := pbcatalog.Health_HEALTH_PASSING
 
-	for hs, err := iter.Next(); hs != nil || err != nil; hs, err = iter.Next() {
-		if err != nil {
-			// This should be impossible as the resource service + type validations the
-			// catalog is performing will ensure that no data gets written where unmarshalling
-			// to this type will error.
-			return pbcatalog.Health_HEALTH_CRITICAL, fmt.Errorf("error getting decoded health status data: %w", err)
-		}
+	for _, res := range rsp.Resources {
+		if resource.EqualType(res.Id.Type, pbcatalog.HealthStatusType) {
+			var hs pbcatalog.HealthStatus
+			if err := res.Data.UnmarshalTo(&hs); err != nil {
+				// This should be impossible as the resource service + type validations the
+				// catalog is performing will ensure that no data gets written where unmarshalling
+				// to this type will error.
+				return pbcatalog.Health_HEALTH_CRITICAL, fmt.Errorf("error unmarshalling health status data: %w", err)
+			}
 
-		if hs.Data.Status > health {
-			health = hs.Data.Status
+			if hs.Status > health {
+				health = hs.Status
+			}
 		}
 	}
 

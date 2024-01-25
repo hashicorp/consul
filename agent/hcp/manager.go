@@ -9,8 +9,6 @@ import (
 	"time"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/consul/agent/hcp/config"
-	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
 )
@@ -21,17 +19,11 @@ var (
 )
 
 type ManagerConfig struct {
-	Client            hcpclient.Client
-	CloudConfig       config.CloudConfig
-	SCADAProvider     scada.Provider
-	TelemetryProvider *hcpProviderImpl
+	Client hcpclient.Client
 
-	StatusFn StatusCallback
-	// Idempotent function to upsert the HCP management token. This will be called periodically in
-	// the manager's main loop.
-	ManagementTokenUpserterFn ManagementTokenUpserter
-	MinInterval               time.Duration
-	MaxInterval               time.Duration
+	StatusFn    StatusCallback
+	MinInterval time.Duration
+	MaxInterval time.Duration
 
 	Logger hclog.Logger
 }
@@ -57,7 +49,6 @@ func (cfg *ManagerConfig) nextHeartbeat() time.Duration {
 }
 
 type StatusCallback func(context.Context) (hcpclient.ServerStatus, error)
-type ManagementTokenUpserter func(name, secretId string) error
 
 type Manager struct {
 	logger hclog.Logger
@@ -71,7 +62,9 @@ type Manager struct {
 	testUpdateSent chan struct{}
 }
 
-// NewManager returns a Manager initialized with the given configuration.
+// NewManager returns an initialized Manager with a zero configuration. It won't
+// do anything until UpdateConfig is called with a config that provides
+// credentials to contact HCP.
 func NewManager(cfg ManagerConfig) *Manager {
 	return &Manager{
 		logger: cfg.Logger,
@@ -86,27 +79,14 @@ func NewManager(cfg ManagerConfig) *Manager {
 // yet for servers since a config update might configure it later and
 // UpdateConfig called. It will effectively do nothing if there are no HCP
 // credentials set other than wait for some to be added.
-func (m *Manager) Run(ctx context.Context) error {
+func (m *Manager) Run(ctx context.Context) {
 	var err error
 	m.logger.Debug("HCP manager starting")
-
-	// Update and start the SCADA provider
-	err = m.startSCADAProvider()
-	if err != nil {
-		m.logger.Error("failed to start scada provider", "error", err)
-		return err
-	}
-
-	// Update and start the telemetry provider to enable the HCP metrics sink
-	if err := m.startTelemetryProvider(ctx); err != nil {
-		m.logger.Error("failed to update telemetry config provider", "error", err)
-		return err
-	}
 
 	// immediately send initial update
 	select {
 	case <-ctx.Done():
-		return nil
+		return
 	case <-m.updateCh: // empty the update chan if there is a queued update to prevent repeated update in main loop
 		err = m.sendUpdate()
 	default:
@@ -115,14 +95,6 @@ func (m *Manager) Run(ctx context.Context) error {
 
 	// main loop
 	for {
-		// Check for configured management token from HCP and upsert it if found
-		if hcpManagement := m.cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
-			upsertTokenErr := m.cfg.ManagementTokenUpserterFn("HCP Management Token", hcpManagement)
-			if upsertTokenErr != nil {
-				m.logger.Error("failed to upsert HCP management token", "err", upsertTokenErr)
-			}
-		}
-
 		m.cfgMu.RLock()
 		cfg := m.cfg
 		m.cfgMu.RUnlock()
@@ -133,7 +105,7 @@ func (m *Manager) Run(ctx context.Context) error {
 
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 
 		case <-m.updateCh:
 			err = m.sendUpdate()
@@ -142,46 +114,6 @@ func (m *Manager) Run(ctx context.Context) error {
 			err = m.sendUpdate()
 		}
 	}
-}
-
-func (m *Manager) startSCADAProvider() error {
-	provider := m.cfg.SCADAProvider
-	if provider == nil {
-		return nil
-	}
-
-	// Update the SCADA provider configuration with HCP configurations
-	m.logger.Debug("updating scada provider with HCP configuration")
-	err := provider.UpdateHCPConfig(m.cfg.CloudConfig)
-	if err != nil {
-		m.logger.Error("failed to update scada provider with HCP configuration", "err", err)
-		return err
-	}
-
-	// Update the SCADA provider metadata
-	provider.UpdateMeta(map[string]string{
-		"consul_server_id": string(m.cfg.CloudConfig.NodeID),
-	})
-
-	// Start the SCADA provider
-	err = provider.Start()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *Manager) startTelemetryProvider(ctx context.Context) error {
-	if m.cfg.TelemetryProvider == nil {
-		return nil
-	}
-
-	m.cfg.TelemetryProvider.Run(ctx, &HCPProviderCfg{
-		HCPClient: m.cfg.Client,
-		HCPConfig: &m.cfg.CloudConfig,
-	})
-
-	return nil
 }
 
 func (m *Manager) UpdateConfig(cfg ManagerConfig) {

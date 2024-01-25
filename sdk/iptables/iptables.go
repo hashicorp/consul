@@ -69,16 +69,6 @@ type Config struct {
 
 	// IptablesProvider is the Provider that will apply iptables rules.
 	IptablesProvider Provider
-
-	// AddAdditionalRulesFn can be implemented by the caller to
-	// add environment specific rules (like ECS) that needs to
-	// be executed for traffic redirection to work properly.
-	//
-	// This gets called by the Setup function after all the
-	// first class iptable rules are added. The implemented
-	// function should only call the `AddRule` and optionally
-	// the `Rules` method of the provider.
-	AddAdditionalRulesFn func(iptablesProvider Provider)
 }
 
 // Provider is an interface for executing iptables rules.
@@ -88,11 +78,8 @@ type Provider interface {
 	// ApplyRules executes rules that have been added via AddRule.
 	// This operation is currently not atomic, and if there's an error applying rules,
 	// you may be left in a state where partial rules were applied.
-	// ApplyRules should not be called twice on the same instance in order to avoid
-	// duplicate rule application.
 	ApplyRules() error
-	// Rules returns the list of rules that have been added (including those not yet
-	// applied).
+	// Rules returns the list of rules that have been added but not applied yet.
 	Rules() []string
 }
 
@@ -190,11 +177,6 @@ func Setup(cfg Config) error {
 		for _, inboundPort := range cfg.ExcludeInboundPorts {
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyInboundChain, "-p", "tcp", "--dport", inboundPort, "-j", "RETURN")
 		}
-	}
-
-	// Call function to add any additional rules passed on by the caller
-	if cfg.AddAdditionalRulesFn != nil {
-		cfg.AddAdditionalRulesFn(cfg.IptablesProvider)
 	}
 
 	return cfg.IptablesProvider.ApplyRules()

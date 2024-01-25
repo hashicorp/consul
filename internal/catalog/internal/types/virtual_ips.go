@@ -12,8 +12,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type DecodedVirtualIPs = resource.DecodedResource[*pbcatalog.VirtualIPs]
-
 func RegisterVirtualIPs(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.VirtualIPsType,
@@ -32,11 +30,15 @@ func RegisterVirtualIPs(r resource.Registry) {
 	})
 }
 
-var ValidateVirtualIPs = resource.DecodeAndValidate(validateVirtualIPs)
+func ValidateVirtualIPs(res *pbresource.Resource) error {
+	var vips pbcatalog.VirtualIPs
 
-func validateVirtualIPs(res *DecodedVirtualIPs) error {
+	if err := res.Data.UnmarshalTo(&vips); err != nil {
+		return resource.NewErrDataParse(&vips, err)
+	}
+
 	var err error
-	for idx, ip := range res.Data.Ips {
+	for idx, ip := range vips.Ips {
 		if vipErr := validateIPAddress(ip.Address); vipErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:  "ips",

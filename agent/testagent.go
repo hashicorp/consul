@@ -76,7 +76,7 @@ type TestAgent struct {
 
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
-	dns dnsServer
+	dns *DNSServer
 
 	// srv is an HTTPHandlers that may be used to test http endpoints.
 	srv *HTTPHandlers
@@ -136,8 +136,8 @@ func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) 
 func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	t.Helper()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		r.Helper()
-		if err := a.Start(r); err != nil {
+		t.Helper()
+		if err := a.Start(t); err != nil {
 			r.Fatal(err)
 		}
 	})
@@ -171,7 +171,7 @@ func TestConfigHCL(nodeID string) string {
 
 // Start starts a test agent. It returns an error if the agent could not be started.
 // If no error is returned, the caller must call Shutdown() when finished.
-func (a *TestAgent) Start(t testutil.TestingTB) error {
+func (a *TestAgent) Start(t *testing.T) error {
 	t.Helper()
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
@@ -436,7 +436,7 @@ func (a *TestAgent) DNSAddr() string {
 	if a.dns == nil {
 		return ""
 	}
-	return a.dns.GetAddr()
+	return a.dns.Addr
 }
 
 func (a *TestAgent) HTTPAddr() string {
@@ -516,10 +516,10 @@ func (r *retryShim) Name() string {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(t testutil.TestingTB, useHTTPS bool) string {
+func randomPortsSource(t *testing.T, useHTTPS bool) string {
 	var ports []int
 	retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
-		ports = freeport.GetN(r, 7)
+		ports = freeport.GetN(&retryShim{r, t.Name()}, 7)
 	})
 
 	var http, https int

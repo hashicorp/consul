@@ -1,3 +1,0 @@
-```release-note:improvement
-cloud: unconditionally add Access-Control-Expose-Headers HTTP header
-```

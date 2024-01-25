@@ -64,21 +64,6 @@ func TestValidateWorkload_Ok(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestValidateWorkload_OkWithDNSPolicy(t *testing.T) {
-	data := validWorkload()
-	data.Dns = &pbcatalog.DNSPolicy{
-		Weights: &pbcatalog.Weights{
-			Passing: 3,
-			Warning: 2,
-		},
-	}
-
-	res := createWorkloadResource(t, data)
-
-	err := ValidateWorkload(res)
-	require.NoError(t, err)
-}
-
 func TestValidateWorkload_ParseError(t *testing.T) {
 	// Any type other than the Workload type would work
 	// to cause the error we are expecting
@@ -319,24 +304,6 @@ func TestValidateWorkload_Locality(t *testing.T) {
 	var actual resource.ErrInvalidField
 	require.ErrorAs(t, err, &actual)
 	require.Equal(t, expected, actual)
-}
-
-func TestValidateWorkload_DNSPolicy(t *testing.T) {
-	data := validWorkload()
-	data.Dns = &pbcatalog.DNSPolicy{
-		Weights: &pbcatalog.Weights{
-			Passing: 0, // Needs to be a positive integer
-		},
-	}
-
-	res := createWorkloadResource(t, data)
-
-	err := ValidateWorkload(res)
-	require.Error(t, err)
-
-	var actual resource.ErrInvalidField
-	require.ErrorAs(t, err, &actual)
-	require.ErrorIs(t, err, errDNSPassingWeightOutOfRange)
 }
 
 func TestWorkloadACLs(t *testing.T) {

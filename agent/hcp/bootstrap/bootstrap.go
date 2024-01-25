@@ -106,30 +106,6 @@ func LoadConfig(ctx context.Context, client hcpclient.Client, dataDir string, lo
 	return newLoader, nil
 }
 
-func AddAclPolicyAccessControlHeader(baseLoader ConfigLoader) ConfigLoader {
-	return func(source config.Source) (config.LoadResult, error) {
-		res, err := baseLoader(source)
-		if err != nil {
-			return res, err
-		}
-
-		rc := res.RuntimeConfig
-
-		// HTTP response headers are modified for the HCP UI to work.
-		if rc.HTTPResponseHeaders == nil {
-			rc.HTTPResponseHeaders = make(map[string]string)
-		}
-		prevValue, ok := rc.HTTPResponseHeaders[accessControlHeaderName]
-		if !ok {
-			rc.HTTPResponseHeaders[accessControlHeaderName] = accessControlHeaderValue
-		} else {
-			rc.HTTPResponseHeaders[accessControlHeaderName] = prevValue + "," + accessControlHeaderValue
-		}
-
-		return res, nil
-	}
-}
-
 // bootstrapConfigLoader is a ConfigLoader for passing bootstrap JSON config received from HCP
 // to the config.builder. ConfigLoaders are functions used to build an agent's RuntimeConfig
 // from various sources like files and flags. This config is contained in the config.LoadResult.
@@ -190,6 +166,17 @@ const (
 // handled by the config.builder.
 func finalizeRuntimeConfig(rc *config.RuntimeConfig, cfg *RawBootstrapConfig) {
 	rc.Cloud.ManagementToken = cfg.ManagementToken
+
+	// HTTP response headers are modified for the HCP UI to work.
+	if rc.HTTPResponseHeaders == nil {
+		rc.HTTPResponseHeaders = make(map[string]string)
+	}
+	prevValue, ok := rc.HTTPResponseHeaders[accessControlHeaderName]
+	if !ok {
+		rc.HTTPResponseHeaders[accessControlHeaderName] = accessControlHeaderValue
+	} else {
+		rc.HTTPResponseHeaders[accessControlHeaderName] = prevValue + "," + accessControlHeaderValue
+	}
 }
 
 // fetchBootstrapConfig will fetch boostrap configuration from remote servers and persist it to disk.

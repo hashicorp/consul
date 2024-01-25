@@ -5,8 +5,8 @@
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "address": {
         "socketAddress": {
-          "address": "127.0.0.1",
-          "portValue": 9191
+          "address": "11.11.11.11",
+          "portValue": 11111
         }
       },
       "filterChains": [
@@ -16,15 +16,14 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "db.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "upstream.prepared_query_db"
+                "cluster": "random-cluster",
+                "statPrefix": "foo-stats"
               }
             }
           ]
         }
       ],
-      "name": "prepared_query:db:127.0.0.1:9191",
-      "trafficDirection": "OUTBOUND"
+      "name": "db:custom-upstream"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
@@ -38,48 +37,11 @@
         {
           "filters": [
             {
-              "name": "envoy.filters.network.http_connection_manager",
+              "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "http2ProtocolOptions": {},
-                "httpFilters": [
-                  {
-                    "name": "envoy.filters.http.router",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
-                    }
-                  }
-                ],
-                "routeConfig": {
-                  "name": "prepared_query:geo-cache",
-                  "virtualHosts": [
-                    {
-                      "domains": [
-                        "*"
-                      ],
-                      "name": "prepared_query:geo-cache",
-                      "routes": [
-                        {
-                          "match": {
-                            "prefix": "/"
-                          },
-                          "route": {
-                            "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "statPrefix": "upstream.prepared_query_geo-cache",
-                "tracing": {
-                  "randomSampling": {}
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
-                  }
-                ]
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.prepared_query_geo-cache"
               }
             }
           ]

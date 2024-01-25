@@ -244,7 +244,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleInsecureConn(conn)
 
 	case pool.RPCGRPC:
-		s.internalGRPCHandler.Handle(conn)
+		s.grpcHandler.Handle(conn)
 
 	case pool.RPCRaftForwarding:
 		s.handleRaftForwarding(conn)
@@ -315,7 +315,7 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		s.handleSnapshotConn(tlsConn)
 
 	case pool.ALPN_RPCGRPC:
-		s.internalGRPCHandler.Handle(tlsConn)
+		s.grpcHandler.Handle(tlsConn)
 
 	case pool.ALPN_RPCRaftForwarding:
 		s.handleRaftForwarding(tlsConn)

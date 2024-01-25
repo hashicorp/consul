@@ -280,17 +280,6 @@ func (client *Client) WaitForStatusCondition(t T, id *pbresource.ID, statusKey s
 	return res
 }
 
-func (client *Client) WaitForStatusConditionAnyGen(t T, id *pbresource.ID, statusKey string, condition *pbresource.Condition) *pbresource.Resource {
-	t.Helper()
-
-	var res *pbresource.Resource
-	client.retry(t, func(r *retry.R) {
-		res = client.RequireStatusCondition(r, id, statusKey, condition)
-	})
-
-	return res
-}
-
 func (client *Client) WaitForStatusConditions(t T, id *pbresource.ID, statusKey string, conditions ...*pbresource.Condition) *pbresource.Resource {
 	t.Helper()
 
@@ -319,17 +308,6 @@ func (client *Client) WaitForResourceState(t T, id *pbresource.ID, verify func(T
 	client.retry(t, func(r *retry.R) {
 		res = client.RequireResourceExists(r, id)
 		verify(r, res)
-	})
-
-	return res
-}
-
-func (client *Client) WaitForResourceExists(t T, id *pbresource.ID) *pbresource.Resource {
-	t.Helper()
-
-	var res *pbresource.Resource
-	client.retry(t, func(r *retry.R) {
-		res = client.RequireResourceExists(r, id)
 	})
 
 	return res
@@ -366,7 +344,7 @@ func (client *Client) MustDelete(t T, id *pbresource.ID) {
 // to the delete.
 func (client *Client) CleanupDelete(t T, id *pbresource.ID) {
 	t.Helper()
-	client.retryDelete(t, id, false)
+	client.retryDelete(t, id, true)
 }
 
 func (client *Client) retryDelete(t T, id *pbresource.ID, shouldDelay bool) {

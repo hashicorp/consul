@@ -1364,7 +1364,7 @@ func TestConfigSnapshotIngressGateway_TLSMinVersionListenersGatewayDefaults(t te
 					Port:     8083,
 					Protocol: "http",
 					Services: []structs.IngressService{
-						{Name: "s4"},
+						{Name: "s3"},
 					},
 					TLS: &structs.GatewayTLSConfig{
 						Enabled:       true,

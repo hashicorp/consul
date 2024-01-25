@@ -273,7 +273,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			n.Index = nextIndex
 			nextIndex++
 
-			n.Images = c.Images.OverrideWith(n.Images.ChooseConsul(c.Enterprise)).ChooseNode(n.Kind)
+			n.Images = c.Images.OverrideWith(n.Images).ChooseNode(n.Kind)
 
 			n.Cluster = c.Name
 			n.Datacenter = c.Datacenter
@@ -694,12 +694,11 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 	}
 
 	t := &Topology{
-		ID:           id,
-		Networks:     networks,
-		Clusters:     clusters,
-		Images:       images,
-		Peerings:     raw.Peerings,
-		NetworkAreas: raw.NetworkAreas,
+		ID:       id,
+		Networks: networks,
+		Clusters: clusters,
+		Images:   images,
+		Peerings: raw.Peerings,
 	}
 
 	if prev != nil {

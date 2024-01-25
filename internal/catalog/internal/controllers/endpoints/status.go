@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ControllerID                    = "consul.io/endpoint-manager"
+	StatusKey                       = "consul.io/endpoint-manager"
 	StatusConditionEndpointsManaged = "EndpointsManaged"
 
 	StatusReasonSelectorNotFound = "SelectorNotFound"

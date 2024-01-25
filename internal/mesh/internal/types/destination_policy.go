@@ -29,19 +29,23 @@ func RegisterDestinationPolicy(r resource.Registry) {
 	})
 }
 
-var ValidateDestinationPolicy = resource.DecodeAndValidate(validateDestinationPolicy)
+func ValidateDestinationPolicy(res *pbresource.Resource) error {
+	var policy pbmesh.DestinationPolicy
 
-func validateDestinationPolicy(res *DecodedDestinationPolicy) error {
+	if err := res.Data.UnmarshalTo(&policy); err != nil {
+		return resource.NewErrDataParse(&policy, err)
+	}
+
 	var merr error
 
-	if len(res.Data.PortConfigs) == 0 {
+	if len(policy.PortConfigs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "port_configs",
 			Wrapped: resource.ErrEmpty,
 		})
 	}
 
-	for port, pc := range res.Data.PortConfigs {
+	for port, pc := range policy.PortConfigs {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidMapValue{
 				Map:     "port_configs",

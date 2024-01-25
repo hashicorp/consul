@@ -16,9 +16,7 @@ import (
 )
 
 func TestArtistReconciler(t *testing.T) {
-	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(RegisterTypes).
-		Run(t)
+	client := svctest.RunResourceService(t, RegisterTypes)
 
 	// Seed the database with an artist.
 	res, err := GenerateV2Artist()

@@ -6,7 +6,7 @@ package workloadselectionmapper
 import (
 	"context"
 
-	"github.com/hashicorp/consul/internal/catalog/workloadselector"
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/common"
 	"github.com/hashicorp/consul/internal/resource"
@@ -15,12 +15,12 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type Mapper[T workloadselector.WorkloadSelecting] struct {
+type Mapper[T catalog.WorkloadSelecting] struct {
 	workloadSelectionTracker *selectiontracker.WorkloadSelectionTracker
 	computedType             *pbresource.Type
 }
 
-func New[T workloadselector.WorkloadSelecting](computedType *pbresource.Type) *Mapper[T] {
+func New[T catalog.WorkloadSelecting](computedType *pbresource.Type) *Mapper[T] {
 	if computedType == nil {
 		panic("computed type is required")
 	}

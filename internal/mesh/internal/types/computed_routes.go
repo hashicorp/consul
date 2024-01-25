@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
@@ -29,12 +30,16 @@ func RegisterComputedRoutes(r resource.Registry) {
 	})
 }
 
-var ValidateComputedRoutes = resource.DecodeAndValidate(validateComputedRoutes)
+func ValidateComputedRoutes(res *pbresource.Resource) error {
+	var config pbmesh.ComputedRoutes
 
-func validateComputedRoutes(res *DecodedComputedRoutes) error {
+	if err := res.Data.UnmarshalTo(&config); err != nil {
+		return resource.NewErrDataParse(&config, err)
+	}
+
 	var merr error
 
-	if len(res.Data.PortedConfigs) == 0 {
+	if len(config.PortedConfigs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "ported_configs",
 			Wrapped: resource.ErrEmpty,
@@ -43,7 +48,7 @@ func validateComputedRoutes(res *DecodedComputedRoutes) error {
 
 	// TODO(rb): do more elaborate validation
 
-	for port, pmc := range res.Data.PortedConfigs {
+	for port, pmc := range config.PortedConfigs {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidMapValue{
 				Map:     "ported_configs",

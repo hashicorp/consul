@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/workloadselectionmapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -22,14 +21,14 @@ import (
 
 const ControllerName = "consul.io/proxy-configuration-controller"
 
-func Controller(proxyConfigMapper *workloadselectionmapper.Mapper[*pbmesh.ProxyConfiguration]) *controller.Controller {
+func Controller(proxyConfigMapper *workloadselectionmapper.Mapper[*pbmesh.ProxyConfiguration]) controller.Controller {
 	if proxyConfigMapper == nil {
 		panic("proxy config mapper is required")
 	}
 
-	return controller.NewController(ControllerName, pbmesh.ComputedProxyConfigurationType).
+	return controller.ForType(pbmesh.ComputedProxyConfigurationType).
 		WithWatch(pbmesh.ProxyConfigurationType, proxyConfigMapper.MapToComputedType).
-		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ComputedProxyConfigurationType)).
+		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ComputedProxyConfigurationType)).
 		WithReconciler(&reconciler{proxyConfigMapper: proxyConfigMapper})
 }
 

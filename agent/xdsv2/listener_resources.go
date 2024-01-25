@@ -42,16 +42,18 @@ const (
 	envoyHttpConnectionManagerFilterName       = "envoy.filters.network.http_connection_manager"
 )
 
-func (pr *ProxyResources) makeEnvoyResourceGraphsStartingFromListeners() error {
+func (pr *ProxyResources) makeXDSListeners() ([]proto.Message, error) {
+	listeners := make([]proto.Message, 0)
+
 	for _, l := range pr.proxyState.Listeners {
 		protoListener, err := pr.makeListener(l)
 		// TODO: aggregate errors for listeners and still return any properly formed listeners.
 		if err != nil {
-			return err
+			return nil, err
 		}
-		pr.envoyResources[xdscommon.ListenerType][protoListener.Name] = protoListener
+		listeners = append(listeners, protoListener)
 	}
-	return nil
+	return listeners, nil
 }
 
 func (pr *ProxyResources) makeListener(listener *pbproxystate.Listener) (*envoy_listener_v3.Listener, error) {
@@ -303,11 +305,11 @@ func (pr *ProxyResources) makeEnvoyResourcesForSNIDestination(sni *pbproxystate.
 }
 
 func (pr *ProxyResources) makeEnvoyResourcesForL4Destination(l4 *pbproxystate.Router_L4) ([]*envoy_listener_v3.Filter, error) {
-	err := pr.makeEnvoyClustersAndEndpointsFromL4Destination(l4.L4)
+	err := pr.makeEnvoyClusterFromL4Destination(l4.L4)
 	if err != nil {
 		return nil, err
 	}
-	envoyFilters, err := pr.makeL4Filters(l4.L4)
+	envoyFilters, err := makeL4Filters(l4.L4)
 	return envoyFilters, err
 }
 
@@ -332,7 +334,7 @@ func getAlpnProtocols(protocol pbproxystate.L7Protocol) []string {
 	return alpnProtocols
 }
 
-func (pr *ProxyResources) makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
+func makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	if l4 != nil {
 		rbacFilters, err := MakeRBACNetworkFilters(l4.TrafficPermissions)
@@ -392,7 +394,9 @@ func (pr *ProxyResources) makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envo
 func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	var httpConnMgr *envoy_http_v3.HttpConnectionManager
+
 	if l7 != nil {
+		// TODO: Intentions will be added in the future.
 		if l7.MaxInboundConnections > 0 {
 			connLimitFilter, err := makeEnvoyConnectionLimitFilter(l7.MaxInboundConnections)
 			if err != nil {
@@ -438,7 +442,7 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 			}
 		} else {
 			// Add Envoy route under the route resource since it's not inlined.
-			pr.envoyResources[xdscommon.RouteType][routeConfig.Name] = routeConfig
+			pr.envoyResources[xdscommon.RouteType] = append(pr.envoyResources[xdscommon.RouteType], routeConfig)
 
 			httpConnMgr.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_Rds{
 				Rds: &envoy_http_v3.Rds{
@@ -1129,6 +1133,9 @@ func parseXFCCToDynamicMetaHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
 				RegexValueRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
 					Pattern: &envoy_matcher_v3.RegexMatcher{
 						Regex: downstreamServiceIdentityMatcher,
+						EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
+							GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},
+						},
 					},
 					Substitution: f.sub,
 				},

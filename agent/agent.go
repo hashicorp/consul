@@ -48,7 +48,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
-	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
@@ -69,7 +68,6 @@ import (
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
-	libdns "github.com/hashicorp/consul/internal/dnsutil"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -221,14 +219,6 @@ type notifier interface {
 	Notify(string) error
 }
 
-// dnsServer abstracts the V1 and V2 implementations of the DNS server.
-type dnsServer interface {
-	GetAddr() string
-	ListenAndServe(string, string, func()) error
-	ReloadConfig(*config.RuntimeConfig) error
-	Shutdown()
-}
-
 // Agent is the long running process that is run on every machine.
 // It exposes an RPC interface that is used by the CLI to control the
 // agent. The agent runs the query interfaces like HTTP, DNS, and RPC.
@@ -351,11 +341,7 @@ type Agent struct {
 	endpointsLock sync.RWMutex
 
 	// dnsServer provides the DNS API
-	dnsServers []dnsServer
-
-	// catalogDataFetcher is used as an interface to the catalog for service discovery
-	// (aka DNS). Only applicable to the V2 DNS server (agent/dns).
-	catalogDataFetcher discovery.CatalogDataFetcher
+	dnsServers []*DNSServer
 
 	// apiServers listening for connections. If any of these server goroutines
 	// fail, the agent will be shutdown.
@@ -416,7 +402,7 @@ type Agent struct {
 	// they can update their internal state.
 	configReloaders []ConfigReloader
 
-	// TODO: pass directly to HTTPHandlers and dnsServer once those are passed
+	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
 	// into Agent, which will allow us to remove this field.
 	rpcClientHealth       *health.Client
 	rpcClientConfigEntry  *configentry.Client
@@ -750,10 +736,6 @@ func (a *Agent) Start(ctx context.Context) error {
 			}
 		}
 	} else {
-		if a.baseDeps.UseV2Resources() {
-			return fmt.Errorf("can't start agent: client agents are not supported with v2 resources")
-		}
-
 		a.externalGRPCServer = external.NewServer(
 			a.logger.Named("grpc.external"),
 			metrics.Default(),
@@ -861,15 +843,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// start DNS servers
-	if a.baseDeps.UseV2DNS() {
-		a.logger.Warn("DNS v2 is under construction")
-		if err := a.listenAndServeV2DNS(); err != nil {
-			return err
-		}
-	} else {
-		if err := a.listenAndServeV1DNS(); err != nil {
-			return err
-		}
+	if err := a.listenAndServeDNS(); err != nil {
+		return err
 	}
 
 	// Configure the http connection limiter.
@@ -926,6 +901,17 @@ func (a *Agent) Start(ctx context.Context) error {
 				}
 			}
 		}()
+	}
+
+	if a.scadaProvider != nil {
+		a.scadaProvider.UpdateMeta(map[string]string{
+			"consul_server_id": string(a.config.NodeID),
+		})
+
+		if err = a.scadaProvider.Start(); err != nil {
+			a.baseDeps.Logger.Error("scada provider failed to start, some HashiCorp Cloud Platform functionality has been disabled",
+				"error", err, "resource_id", a.config.Cloud.ResourceID)
+		}
 	}
 
 	return nil
@@ -1048,7 +1034,7 @@ func (a *Agent) listenAndServeGRPC(proxyTracker *proxytracker.ProxyTracker, serv
 	return nil
 }
 
-func (a *Agent) listenAndServeV1DNS() error {
+func (a *Agent) listenAndServeDNS() error {
 	notif := make(chan net.Addr, len(a.config.DNSAddrs))
 	errCh := make(chan error, len(a.config.DNSAddrs))
 	for _, addr := range a.config.DNSAddrs {
@@ -1075,83 +1061,6 @@ func (a *Agent) listenAndServeV1DNS() error {
 		Logger:      a.logger.Named("grpc-api.dns"),
 		DNSServeMux: s.mux,
 		LocalAddr:   grpcDNS.LocalAddr{IP: net.IPv4(127, 0, 0, 1), Port: a.config.GRPCPort},
-	}).Register(a.externalGRPCServer)
-
-	a.dnsServers = append(a.dnsServers, s)
-
-	// wait for servers to be up
-	timeout := time.After(time.Second)
-	var merr *multierror.Error
-	for range a.config.DNSAddrs {
-		select {
-		case addr := <-notif:
-			a.logger.Info("Started DNS server",
-				"address", addr.String(),
-				"network", addr.Network(),
-			)
-
-		case err := <-errCh:
-			merr = multierror.Append(merr, err)
-		case <-timeout:
-			merr = multierror.Append(merr, fmt.Errorf("agent: timeout starting DNS servers"))
-			return merr.ErrorOrNil()
-		}
-	}
-	return merr.ErrorOrNil()
-}
-
-func (a *Agent) listenAndServeV2DNS() error {
-
-	// Check the catalog version and decide which implementation of the data fetcher to implement
-	if a.baseDeps.UseV2Resources() {
-		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config)
-	} else {
-		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config, a.RPC, a.logger.Named("catalog-data-fetcher"))
-	}
-
-	// Generate a Query Processor with the appropriate data fetcher
-	processor := discovery.NewQueryProcessor(a.catalogDataFetcher)
-
-	notif := make(chan net.Addr, len(a.config.DNSAddrs))
-	errCh := make(chan error, len(a.config.DNSAddrs))
-
-	// create server
-	cfg := dns.Config{
-		AgentConfig: a.config,
-		EntMeta:     *a.AgentEnterpriseMeta(),
-		Logger:      a.logger,
-		Processor:   processor,
-		TokenFunc:   a.getTokenFunc(),
-	}
-
-	for _, addr := range a.config.DNSAddrs {
-		s, err := dns.NewServer(cfg)
-		if err != nil {
-			return err
-		}
-		a.dnsServers = append(a.dnsServers, s)
-
-		// start server
-		a.wgServers.Add(1)
-		go func(addr net.Addr) {
-			defer a.wgServers.Done()
-			err := s.ListenAndServe(addr.Network(), addr.String(), func() { notif <- addr })
-			if err != nil && !strings.Contains(err.Error(), "accept") {
-				errCh <- err
-			}
-		}(addr)
-	}
-
-	s, err := dns.NewServer(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create grpc dns server: %w", err)
-	}
-
-	// Create a v2 compatible grpc dns server
-	grpcDNS.NewServerV2(grpcDNS.ConfigV2{
-		Logger:    a.logger.Named("grpc-api.dns"),
-		DNSRouter: s.Router,
-		TokenFunc: a.getTokenFunc(),
 	}).Register(a.externalGRPCServer)
 
 	a.dnsServers = append(a.dnsServers, s)
@@ -1696,7 +1605,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
 	cfg.Locality = runtimeCfg.StructLocality()
 
-	cfg.Cloud = runtimeCfg.Cloud
+	cfg.Cloud.ManagementToken = runtimeCfg.Cloud.ManagementToken
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
@@ -1912,7 +1821,14 @@ func (a *Agent) ShutdownEndpoints() {
 	ctx := context.TODO()
 
 	for _, srv := range a.dnsServers {
-		srv.Shutdown()
+		if srv.Server != nil {
+			a.logger.Info("Stopping server",
+				"protocol", "DNS",
+				"address", srv.Server.Addr,
+				"network", srv.Server.Net,
+			)
+			srv.Shutdown()
+		}
 	}
 	a.dnsServers = nil
 
@@ -2747,13 +2663,13 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 	}
 
 	// Warn if the service name is incompatible with DNS
-	if libdns.InvalidNameRe.MatchString(service.Service) {
+	if dns.InvalidNameRe.MatchString(service.Service) {
 		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.",
 			"service", service.Service,
 		)
-	} else if len(service.Service) > libdns.MaxLabelLength {
+	} else if len(service.Service) > dns.MaxLabelLength {
 		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.",
@@ -2763,13 +2679,13 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
-		if libdns.InvalidNameRe.MatchString(tag) {
+		if dns.InvalidNameRe.MatchString(tag) {
 			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.",
 				"tag", tag,
 			)
-		} else if len(tag) > libdns.MaxLabelLength {
+		} else if len(tag) > dns.MaxLabelLength {
 			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to it being too long. Valid lengths are between "+
 				"1 and 63 bytes.",
@@ -4388,10 +4304,6 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 			return fmt.Errorf("Failed reloading dns config : %v", err)
 		}
 	}
-	// This field is only populated for the V2 DNS server
-	if a.catalogDataFetcher != nil {
-		a.catalogDataFetcher.LoadConfig(newCfg)
-	}
 
 	err := a.reloadEnterprise(newCfg)
 	if err != nil {
@@ -4867,14 +4779,4 @@ func defaultIfEmpty(val, defaultVal string) string {
 		return val
 	}
 	return defaultVal
-}
-
-func (a *Agent) getTokenFunc() func() string {
-	return func() string {
-		if a.tokens.DNSToken() != "" {
-			return a.tokens.DNSToken()
-		} else {
-			return a.tokens.UserToken()
-		}
-	}
 }

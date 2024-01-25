@@ -144,6 +144,7 @@ func TestConfig_Get(t *testing.T) {
 		ce.ModifyIndex = 13
 		ce.Hash = 0
 		ce.EnterpriseMeta = acl.EnterpriseMeta{}
+		ce.Hash = 0
 
 		out, err := a.srv.marshalJSON(req, obj)
 		require.NoError(t, err)
@@ -470,7 +471,9 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 				},
 			},
 			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			Hash:           got.GetHash(),
 		}
+
 		require.Equal(t, expect, got)
 	}
 }
@@ -515,6 +518,58 @@ func TestConfig_Apply_ProxyDefaultsMeshGateway(t *testing.T) {
 		entry := out.Entry.(*structs.ProxyConfigEntry)
 		require.Equal(t, structs.MeshGatewayModeLocal, entry.MeshGateway.Mode)
 	}
+}
+
+func TestConfig_Apply_ProxyDefaultsProtocol(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	writeConf := func(body string) {
+		req, _ := http.NewRequest("PUT", "/v1/config", bytes.NewBuffer([]byte(body)))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.ConfigApply(resp, req)
+		require.NoError(t, err)
+		require.Equal(t, 200, resp.Code, "non-200 Response Code: %s", resp.Body.String())
+	}
+
+	// Set the default protocol
+	writeConf(`{
+		"Kind": "proxy-defaults",
+		"Name": "global",
+		"Config": {
+			"Protocol": "http"
+		}
+	}`)
+
+	// Create a router that depends on the protocol
+	writeConf(`{
+		"Kind": "service-router",
+		"Name": "route1"
+	}`)
+
+	// Ensure we can rewrite the proxy-defaults without a protocol-mismatch error.
+	// This should be taken care of in the ProxyConfigEntry.Normalize() function.
+	writeConf(`{
+		"Kind": "proxy-defaults",
+		"Name": "global",
+		"Config": {
+			"Protocol": "http",
+			"some-field": "is_changed"
+		}
+	}`)
+
+	// Rewrite the router that depends on the protocol
+	writeConf(`{
+		"Kind": "service-router",
+		"Name": "route1"
+	}`)
 }
 
 func TestConfig_Apply_CAS(t *testing.T) {

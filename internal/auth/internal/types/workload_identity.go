@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type DecodedWorkloadIdentity = resource.DecodedResource[*pbauth.WorkloadIdentity]
-
 func RegisterWorkloadIdentity(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbauth.WorkloadIdentityType,
@@ -22,15 +20,8 @@ func RegisterWorkloadIdentity(r resource.Registry) {
 			Write: aclWriteHookWorkloadIdentity,
 			List:  resource.NoOpACLListHook,
 		},
-		Validate: ValidateWorkloadIdentity,
+		Validate: nil,
 	})
-}
-
-var ValidateWorkloadIdentity = resource.DecodeAndValidate(validateWorkloadIdentity)
-
-func validateWorkloadIdentity(res *DecodedWorkloadIdentity) error {
-	// currently the WorkloadIdentity type has no fields.
-	return nil
 }
 
 func aclReadHookWorkloadIdentity(

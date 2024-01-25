@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/consul/agent/dns"
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -252,7 +253,7 @@ type RuntimeConfig struct {
 	// client agents try the first server in the list every time.
 	//
 	// hcl: dns_config { recursor_strategy = "(random|sequential)" }
-	DNSRecursorStrategy structs.RecursorStrategy
+	DNSRecursorStrategy dns.RecursorStrategy
 
 	// DNSRecursorTimeout specifies the timeout in seconds
 	// for Consul's internal dns client used for recursion.

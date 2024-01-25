@@ -221,7 +221,7 @@ func doHTTPServiceEchoesWithClient(
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		r.Logf("making call to %s", url)
+		t.Logf("making call to %s", url)
 
 		reader := strings.NewReader(phrase)
 		req, err := http.NewRequest("POST", url, reader)
@@ -242,7 +242,7 @@ func doHTTPServiceEchoesWithClient(
 		defer res.Body.Close()
 
 		statusCode := res.StatusCode
-		r.Logf("...got response code %d", statusCode)
+		t.Logf("...got response code %d", statusCode)
 		require.Equal(r, 200, statusCode)
 
 		body, err := io.ReadAll(res.Body)
@@ -342,7 +342,7 @@ func WaitForFortioNameWithClient(t *testing.T, r retry.Retryer, urlbase string, 
 // It retries with timeout defaultHTTPTimeout and wait defaultHTTPWait.
 //
 // client must be a custom http.Client
-func FortioNameWithClient(t retry.TestingTB, urlbase string, name string, reqHost string, client *http.Client) (string, error) {
+func FortioNameWithClient(t retry.Failer, urlbase string, name string, reqHost string, client *http.Client) (string, error) {
 	t.Helper()
 	var fortioNameRE = regexp.MustCompile("\nFORTIO_NAME=(.+)\n")
 	var body []byte

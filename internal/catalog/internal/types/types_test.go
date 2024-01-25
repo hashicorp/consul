@@ -26,6 +26,7 @@ func TestTypeRegistration(t *testing.T) {
 		pbcatalog.HealthStatusKind,
 		// todo (ishustava): uncomment once we implement these
 		//pbcatalog.HealthChecksKind,
+		//pbcatalog.DNSPolicyKind,
 		//pbcatalog.VirtualIPsKind,
 	}
 

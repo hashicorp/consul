@@ -44,22 +44,21 @@ func (s testServer) Metadata() *metadata.Server {
 }
 
 func newSimpleTestServer(t *testing.T, name, dc string, tlsConf *tlsutil.Configurator) testServer {
-	return newTestServer(t, hclog.Default(), name, dc, tlsConf, func(server grpc.ServiceRegistrar) {
+	return newTestServer(t, hclog.Default(), name, dc, tlsConf, func(server *grpc.Server) {
 		testservice.RegisterSimpleServer(server, &testservice.Simple{Name: name, DC: dc})
 	})
 }
 
 // newPanicTestServer sets up a simple server with handlers that panic.
 func newPanicTestServer(t *testing.T, logger hclog.Logger, name, dc string, tlsConf *tlsutil.Configurator) testServer {
-	return newTestServer(t, logger, name, dc, tlsConf, func(server grpc.ServiceRegistrar) {
+	return newTestServer(t, logger, name, dc, tlsConf, func(server *grpc.Server) {
 		testservice.RegisterSimpleServer(server, &testservice.SimplePanic{Name: name, DC: dc})
 	})
 }
 
-func newTestServer(t *testing.T, logger hclog.Logger, name, dc string, tlsConf *tlsutil.Configurator, register func(server grpc.ServiceRegistrar)) testServer {
+func newTestServer(t *testing.T, logger hclog.Logger, name, dc string, tlsConf *tlsutil.Configurator, register func(server *grpc.Server)) testServer {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(logger, addr, nil, rate.NullRequestLimitsHandler())
-	register(handler)
+	handler := NewHandler(logger, addr, register, nil, rate.NullRequestLimitsHandler())
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)

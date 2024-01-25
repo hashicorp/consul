@@ -1,3 +1,0 @@
-```release-note:feature
-acl: add policy bindtype to binding rules.
-```

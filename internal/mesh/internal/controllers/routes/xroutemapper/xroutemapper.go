@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -15,8 +16,6 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
-
-type ResolveFailoverServiceDestinations func(context.Context, controller.Runtime, *pbresource.ID) ([]*pbresource.ID, error)
 
 // Mapper tracks the following relationships:
 //
@@ -40,14 +39,11 @@ type Mapper struct {
 	grpcRouteBackendMapper *bimapper.Mapper
 	tcpRouteBackendMapper  *bimapper.Mapper
 
-	resolveFailoverServiceDestinations ResolveFailoverServiceDestinations
+	failMapper catalog.FailoverPolicyMapper
 }
 
 // New creates a new Mapper.
-func New(resolver ResolveFailoverServiceDestinations) *Mapper {
-	if resolver == nil {
-		panic("must specify a ResolveFailoverServiceDestinations callback")
-	}
+func New() *Mapper {
 	return &Mapper{
 		boundRefMapper: bimapper.NewWithWildcardLinkType(pbmesh.ComputedRoutesType),
 
@@ -59,7 +55,7 @@ func New(resolver ResolveFailoverServiceDestinations) *Mapper {
 		grpcRouteBackendMapper: bimapper.New(pbmesh.GRPCRouteType, pbcatalog.ServiceType),
 		tcpRouteBackendMapper:  bimapper.New(pbmesh.TCPRouteType, pbcatalog.ServiceType),
 
-		resolveFailoverServiceDestinations: resolver,
+		failMapper: catalog.NewFailoverPolicyMapper(),
 	}
 }
 
@@ -211,11 +207,48 @@ func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *
 	return controller.MakeRequests(pbmesh.ComputedRoutesType, refs), nil
 }
 
-func (m *Mapper) MapServiceNameAligned(
+func (m *Mapper) MapFailoverPolicy(
 	_ context.Context,
 	_ controller.Runtime,
 	res *pbresource.Resource,
 ) ([]controller.Request, error) {
+	if !types.IsFailoverPolicyType(res.Id.Type) {
+		return nil, fmt.Errorf("type is not a failover policy type: %s", res.Id.Type)
+	}
+
+	dec, err := resource.Decode[*pbcatalog.FailoverPolicy](res)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling failover policy: %w", err)
+	}
+
+	m.failMapper.TrackFailover(dec)
+
+	// Since this is name-aligned, just switch the type and find routes that
+	// will route any traffic to this destination service.
+	svcID := resource.ReplaceType(pbcatalog.ServiceType, res.Id)
+
+	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
+}
+
+func (m *Mapper) TrackFailoverPolicy(failover *types.DecodedFailoverPolicy) {
+	if failover != nil {
+		m.failMapper.TrackFailover(failover)
+	}
+}
+
+func (m *Mapper) UntrackFailoverPolicy(failoverPolicyID *pbresource.ID) {
+	m.failMapper.UntrackFailover(failoverPolicyID)
+}
+
+func (m *Mapper) MapDestinationPolicy(
+	_ context.Context,
+	_ controller.Runtime,
+	res *pbresource.Resource,
+) ([]controller.Request, error) {
+	if !types.IsDestinationPolicyType(res.Id.Type) {
+		return nil, fmt.Errorf("type is not a destination policy type: %s", res.Id.Type)
+	}
+
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
 	svcID := resource.ReplaceType(pbcatalog.ServiceType, res.Id)
@@ -224,8 +257,8 @@ func (m *Mapper) MapServiceNameAligned(
 }
 
 func (m *Mapper) MapService(
-	ctx context.Context,
-	rt controller.Runtime,
+	_ context.Context,
+	_ controller.Runtime,
 	res *pbresource.Resource,
 ) ([]controller.Request, error) {
 	// Ultimately we want to wake up a ComputedRoutes if either of the
@@ -235,10 +268,8 @@ func (m *Mapper) MapService(
 	// 2. xRoute[parentRef=OUTPUT_EVENT; backendRef=SOMETHING], FailoverPolicy[name=SOMETHING, destRef=INPUT_EVENT]
 
 	// (case 2) First find all failover policies that have a reference to our input service.
-	effectiveServiceIDs, err := m.resolveFailoverServiceDestinations(ctx, rt, res.Id)
-	if err != nil {
-		return nil, err
-	}
+	failPolicyIDs := m.failMapper.FailoverIDsByService(res.Id)
+	effectiveServiceIDs := sliceReplaceType(failPolicyIDs, pbcatalog.ServiceType)
 
 	// (case 1) Do the direct mapping also.
 	effectiveServiceIDs = append(effectiveServiceIDs, res.Id)

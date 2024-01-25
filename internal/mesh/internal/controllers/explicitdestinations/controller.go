@@ -12,7 +12,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -23,14 +22,14 @@ import (
 
 const ControllerName = "consul.io/explicit-mapper-controller"
 
-func Controller(mapper *mapper.Mapper) *controller.Controller {
+func Controller(mapper *mapper.Mapper) controller.Controller {
 	if mapper == nil {
 		panic("mapper is required")
 	}
 
-	return controller.NewController(ControllerName, pbmesh.ComputedExplicitDestinationsType).
+	return controller.ForType(pbmesh.ComputedExplicitDestinationsType).
 		WithWatch(pbmesh.DestinationsType, mapper.MapDestinations).
-		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ComputedExplicitDestinationsType)).
+		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ComputedExplicitDestinationsType)).
 		WithWatch(pbcatalog.ServiceType, mapper.MapService).
 		WithWatch(pbmesh.ComputedRoutesType, mapper.MapComputedRoute).
 		WithReconciler(&reconciler{mapper: mapper})

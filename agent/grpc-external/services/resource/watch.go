@@ -16,7 +16,7 @@ import (
 )
 
 func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.ResourceService_WatchListServer) error {
-	reg, err := s.ensureWatchListRequestValid(req)
+	reg, err := s.validateWatchListRequest(req)
 	if err != nil {
 		return err
 	}
@@ -91,9 +91,17 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	}
 }
 
-func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (*resource.Registration, error) {
-	if req.Type == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "type is required")
+func (s *Server) validateWatchListRequest(req *pbresource.WatchListRequest) (*resource.Registration, error) {
+	var field string
+	switch {
+	case req.Type == nil:
+		field = "type"
+	case req.Tenancy == nil:
+		field = "tenancy"
+	}
+
+	if field != "" {
+		return nil, status.Errorf(codes.InvalidArgument, "%s is required", field)
 	}
 
 	// Check type exists.
@@ -102,46 +110,18 @@ func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (
 		return nil, err
 	}
 
-	// if no tenancy is passed defaults to wildcard
-	if req.Tenancy == nil {
-		req.Tenancy = wildcardTenancyFor(reg.Scope)
-	}
+	// Lowercase
+	resource.Normalize(req.Tenancy)
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Type); err != nil {
-		return nil, err
-	}
-
-	if err := validateWildcardTenancy(req.Tenancy, req.NamePrefix); err != nil {
-		return nil, err
-	}
-
-	// Check scope
-	if err = validateScopedTenancy(reg.Scope, req.Type, req.Tenancy, true); err != nil {
-		return nil, err
+	// Error when partition scoped and namespace not empty.
+	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped type %s cannot have a namespace. got: %s",
+			resource.ToGVK(req.Type),
+			req.Tenancy.Namespace,
+		)
 	}
 
 	return reg, nil
-}
-
-func wildcardTenancyFor(scope resource.Scope) *pbresource.Tenancy {
-	var defaultTenancy *pbresource.Tenancy
-
-	switch scope {
-	case resource.ScopeCluster:
-		defaultTenancy = &pbresource.Tenancy{
-			PeerName: storage.Wildcard,
-		}
-	case resource.ScopePartition:
-		defaultTenancy = &pbresource.Tenancy{
-			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
-		}
-	default:
-		defaultTenancy = &pbresource.Tenancy{
-			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
-			Namespace: storage.Wildcard,
-		}
-	}
-	return defaultTenancy
 }

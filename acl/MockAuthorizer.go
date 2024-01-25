@@ -225,7 +225,7 @@ func (m *MockAuthorizer) ServiceReadAll(ctx *AuthorizerContext) EnforcementDecis
 }
 
 func (m *MockAuthorizer) ServiceReadPrefix(prefix string, ctx *AuthorizerContext) EnforcementDecision {
-	ret := m.Called(prefix, ctx)
+	ret := m.Called(ctx)
 	return ret.Get(0).(EnforcementDecision)
 }
 

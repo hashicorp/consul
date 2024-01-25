@@ -12,10 +12,9 @@ import (
 
 func TestSetup(t *testing.T) {
 	cases := []struct {
-		name            string
-		cfg             Config
-		additionalRules [][]string
-		expectedRules   []string
+		name          string
+		cfg           Config
+		expectedRules []string
 	}{
 		{
 			"no proxy outbound port provided",
@@ -24,7 +23,6 @@ func TestSetup(t *testing.T) {
 				ProxyInboundPort: 20000,
 				IptablesProvider: &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -49,7 +47,6 @@ func TestSetup(t *testing.T) {
 				ConsulDNSIP:      "10.0.34.16",
 				IptablesProvider: &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -78,7 +75,6 @@ func TestSetup(t *testing.T) {
 				ConsulDNSPort:    8600,
 				IptablesProvider: &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -108,7 +104,6 @@ func TestSetup(t *testing.T) {
 				ConsulDNSPort:    8600,
 				IptablesProvider: &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -137,7 +132,6 @@ func TestSetup(t *testing.T) {
 				ProxyOutboundPort: 21000,
 				IptablesProvider:  &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -163,7 +157,6 @@ func TestSetup(t *testing.T) {
 				ExcludeInboundPorts: []string{"22000", "22500"},
 				IptablesProvider:    &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -191,7 +184,6 @@ func TestSetup(t *testing.T) {
 				ExcludeOutboundPorts: []string{"22000", "22500"},
 				IptablesProvider:     &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -219,7 +211,6 @@ func TestSetup(t *testing.T) {
 				ExcludeOutboundCIDRs: []string{"1.1.1.1", "2.2.2.2/24"},
 				IptablesProvider:     &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -247,7 +238,6 @@ func TestSetup(t *testing.T) {
 				ExcludeUIDs:       []string{"456", "789"},
 				IptablesProvider:  &fakeIptablesProvider{},
 			},
-			nil,
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
 				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
@@ -264,53 +254,12 @@ func TestSetup(t *testing.T) {
 				"iptables -t nat -A CONSUL_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
 				"iptables -t nat -A PREROUTING -p tcp -j CONSUL_PROXY_INBOUND",
 				"iptables -t nat -A CONSUL_PROXY_INBOUND -p tcp -j CONSUL_PROXY_IN_REDIRECT",
-			},
-		},
-		{
-			"additional rules are passed",
-			Config{
-				ProxyUserID:       "123",
-				ProxyInboundPort:  20000,
-				ProxyOutboundPort: 21000,
-				ExcludeUIDs:       []string{"456", "789"},
-				IptablesProvider:  &fakeIptablesProvider{},
-			},
-			[][]string{
-				{"iptables", "-t", "nat", "--policy", "POSTROUTING", "ACCEPT"},
-				{"iptables", "-t", "nat", "--policy", "PREROUTING", "ACCEPT"},
-			},
-			[]string{
-				"iptables -t nat -N CONSUL_PROXY_INBOUND",
-				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
-				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
-				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
-				"iptables -t nat -N CONSUL_DNS_REDIRECT",
-				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
-				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
-				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
-				"iptables -t nat -A CONSUL_PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
-				"iptables -t nat -A CONSUL_PROXY_OUTPUT -j CONSUL_PROXY_REDIRECT",
-				"iptables -t nat -I CONSUL_PROXY_OUTPUT -m owner --uid-owner 456 -j RETURN",
-				"iptables -t nat -I CONSUL_PROXY_OUTPUT -m owner --uid-owner 789 -j RETURN",
-				"iptables -t nat -A CONSUL_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
-				"iptables -t nat -A PREROUTING -p tcp -j CONSUL_PROXY_INBOUND",
-				"iptables -t nat -A CONSUL_PROXY_INBOUND -p tcp -j CONSUL_PROXY_IN_REDIRECT",
-				"iptables -t nat --policy POSTROUTING ACCEPT",
-				"iptables -t nat --policy PREROUTING ACCEPT",
 			},
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if c.additionalRules != nil {
-				c.cfg.AddAdditionalRulesFn = func(provider Provider) {
-					for _, rule := range c.additionalRules {
-						provider.AddRule(rule[0], rule[1:]...)
-					}
-				}
-			}
-
 			err := Setup(c.cfg)
 			require.NoError(t, err)
 			require.Equal(t, c.expectedRules, c.cfg.IptablesProvider.Rules())

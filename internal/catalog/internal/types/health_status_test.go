@@ -70,6 +70,13 @@ func TestValidateHealthStatus_Ok(t *testing.T) {
 				Name:    "foo-workload",
 			},
 		},
+		"node-owned": {
+			owner: &pbresource.ID{
+				Type:    pbcatalog.NodeType,
+				Tenancy: defaultHealthStatusOwnerTenancy,
+				Name:    "bar-node",
+			},
+		},
 	}
 
 	for name, tcase := range cases {
@@ -214,6 +221,7 @@ func TestHealthStatusACLs(t *testing.T) {
 	Register(registry)
 
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test").ID()
+	node := resourcetest.Resource(pbcatalog.NodeType, "test").ID()
 
 	healthStatusData := &pbcatalog.HealthStatus{
 		Type:   "tcp",
@@ -243,6 +251,42 @@ func TestHealthStatusACLs(t *testing.T) {
 			Rules:   `service "test" { policy = "write" }`,
 			Data:    healthStatusData,
 			Owner:   workload,
+			Typ:     pbcatalog.HealthStatusType,
+			ReadOK:  resourcetest.ALLOW,
+			WriteOK: resourcetest.ALLOW,
+			ListOK:  resourcetest.DEFAULT,
+		},
+		"service test read with node owner": {
+			Rules:   `service "test" { policy = "read" }`,
+			Data:    healthStatusData,
+			Owner:   node,
+			Typ:     pbcatalog.HealthStatusType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
+		},
+		"service test write with node owner": {
+			Rules:   `service "test" { policy = "write" }`,
+			Data:    healthStatusData,
+			Owner:   node,
+			Typ:     pbcatalog.HealthStatusType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
+		},
+		"node test read with node owner": {
+			Rules:   `node "test" { policy = "read" }`,
+			Data:    healthStatusData,
+			Owner:   node,
+			Typ:     pbcatalog.HealthStatusType,
+			ReadOK:  resourcetest.ALLOW,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
+		},
+		"node test write with node owner": {
+			Rules:   `node "test" { policy = "write" }`,
+			Data:    healthStatusData,
+			Owner:   node,
 			Typ:     pbcatalog.HealthStatusType,
 			ReadOK:  resourcetest.ALLOW,
 			WriteOK: resourcetest.ALLOW,

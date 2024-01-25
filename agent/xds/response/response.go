@@ -75,15 +75,9 @@ func MakeBoolValue(n bool) *wrapperspb.BoolValue {
 
 func MakeEnvoyRegexMatch(patt string) *envoy_matcher_v3.RegexMatcher {
 	return &envoy_matcher_v3.RegexMatcher{
-		Regex: patt,
-	}
-}
-
-func MakeEnvoyStringMatcher(patt string) *envoy_matcher_v3.StringMatcher {
-	return &envoy_matcher_v3.StringMatcher{
-		MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-			SafeRegex: MakeEnvoyRegexMatch(patt),
+		EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
+			GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},
 		},
-		IgnoreCase: true,
+		Regex: patt,
 	}
 }

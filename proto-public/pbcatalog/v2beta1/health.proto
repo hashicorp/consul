@@ -9,7 +9,7 @@ import "google/protobuf/duration.proto";
 import "pbcatalog/v2beta1/selector.proto";
 import "pbresource/annotations.proto";
 
-// This resource will belong to a workload and will have an ownership relationship.
+// This resource will belong to a workload or a node and will have an ownership relationship.
 message HealthStatus {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
@@ -23,8 +23,6 @@ message HealthStatus {
   string output = 4;
 }
 
-// +kubebuilder:validation:Enum=HEALTH_ANY;HEALTH_PASSING;HEALTH_WARNING;HEALTH_CRITICAL;HEALTH_MAINTENANCE
-// +kubebuilder:validation:Type=string
 enum Health {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   HEALTH_ANY = 0;
@@ -88,18 +86,4 @@ message CheckTLSConfig {
   string tls_server_name = 1;
   bool tls_skip_verify = 2;
   bool use_tls = 3;
-}
-
-// This resource will belong to a node and will have an ownership relationship.
-message NodeHealthStatus {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
-
-  // Type is the type of this health check, such as http, tcp, or kubernetes-readiness
-  string type = 1;
-  // Health is the status. This maps to existing health check statuses.
-  Health status = 2;
-  // Description is the description for this status.
-  string description = 3;
-  // Output is the output from running the check that resulted in this status
-  string output = 4;
 }

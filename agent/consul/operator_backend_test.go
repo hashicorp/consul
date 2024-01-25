@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/testhelpers"
 	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,9 +23,8 @@ import (
 )
 
 func TestOperatorBackend_TransferLeader(t *testing.T) {
+	t.Skip("flaky and need to be rewritten")
 	t.Parallel()
-
-	testhelpers.SkipFlake(t)
 
 	conf := testClusterConfig{
 		Datacenter: "dc1",

@@ -234,7 +234,7 @@
               "route": {
                 "name": "default/local/default/api-1:http:1.1.1.1:1234"
               },
-              "statPrefix": "upstream.http.api-1.default.default.dc1"
+              "statPrefix": "upstream."
             }
           }
         ]

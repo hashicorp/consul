@@ -507,6 +507,22 @@ func (e *ProxyConfigEntry) GetMeta() map[string]string {
 	return e.Meta
 }
 
+func (e *ProxyConfigEntry) ComputeProtocol() error {
+	// proxyConfig is a snippet from agent/xds/config.go:ProxyConfig
+	// We calculate this up-front so that the expensive mapstructure decode
+	// is not needed during discovery chain compile time.
+	type proxyConfig struct {
+		Protocol string `mapstructure:"protocol"`
+	}
+	var cfg proxyConfig
+	err := mapstructure.WeakDecode(e.Config, &cfg)
+	if err != nil {
+		return err
+	}
+	e.Protocol = cfg.Protocol
+	return nil
+}
+
 func (e *ProxyConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
@@ -523,6 +539,10 @@ func (e *ProxyConfigEntry) Normalize() error {
 	e.Name = ProxyConfigGlobal
 
 	e.EnterpriseMeta.Normalize()
+
+	if err := e.ComputeProtocol(); err != nil {
+		return err
+	}
 
 	h, err := HashConfigEntry(e)
 	if err != nil {

@@ -149,7 +149,7 @@ func TestResourceRead(t *testing.T) {
 			c := New(ui)
 			cliArgs := append(tc.args, defaultCmdArgs...)
 			code := c.Run(cliArgs)
-			require.Equal(t, tc.errMsg, ui.ErrorWriter.String())
+			require.Equal(t, ui.ErrorWriter.String(), tc.errMsg)
 			require.Equal(t, tc.expectedCode, code)
 		})
 	}

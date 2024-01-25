@@ -12,14 +12,16 @@
     "ModifyIndex": 0,
     "ProxyDestination": "",
     "Connect": {
-      "Proxy": {
-        "ExecMode": "daemon",
-        "Command": [
-          "/bin/consul",
-          "connect",
-          "proxy"
-        ],
-        "Config": null
+      "SidecarService": {
+        "Proxy": {
+          "ExecMode": "daemon",
+          "Command": [
+            "/bin/consul",
+            "connect",
+            "proxy"
+          ],
+          "Config": null
+        }
       }
     }
   },

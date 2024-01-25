@@ -60,7 +60,7 @@ type readRequest struct {
 	structs.DCSpecificRequest
 }
 
-func (s *Server) Register(grpcServer grpc.ServiceRegistrar) {
+func (s *Server) Register(grpcServer *grpc.Server) {
 	pbconfigentry.RegisterConfigEntryServiceServer(grpcServer, s)
 }
 

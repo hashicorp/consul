@@ -11,13 +11,6 @@ import (
 	"github.com/hashicorp/hcp-sdk-go/resource"
 )
 
-// CloudConfigurer abstracts the cloud config methods needed to connect to HCP
-// in an interface for easier testing.
-type CloudConfigurer interface {
-	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error)
-	Resource() (resource.Resource, error)
-}
-
 // CloudConfig defines configuration for connecting to HCP services
 type CloudConfig struct {
 	ResourceID   string
@@ -64,10 +57,4 @@ func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfi
 	}
 	opts = append(opts, hcpcfg.FromEnv(), hcpcfg.WithoutBrowserLogin())
 	return hcpcfg.NewHCPConfig(opts...)
-}
-
-// IsConfigured returns whether the cloud configuration has been set either
-// in the configuration file or via environment variables.
-func (c *CloudConfig) IsConfigured() bool {
-	return c.ResourceID != "" && c.ClientID != "" && c.ClientSecret != ""
 }

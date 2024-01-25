@@ -725,6 +725,13 @@ func (s *Converter) createOutboundMeshMTLS(cfgSnap *proxycfg.ConfigSnapshot, spi
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
+	cfg, err := config.ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
+	}
+
 	// Add all trust bundle peer names, including local.
 	trustBundlePeerNames := []string{"local"}
 	for _, tb := range cfgSnap.PeeringTrustBundles() {
@@ -754,6 +761,7 @@ func (s *Converter) createOutboundMeshMTLS(cfgSnap *proxycfg.ConfigSnapshot, spi
 		Key:  cfgSnap.Leaf().PrivateKeyPEM,
 	}
 	ts.TlsParameters = makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing())
+	ts.AlpnProtocols = getAlpnProtocols(cfg.Protocol)
 
 	return ts, nil
 }
@@ -856,7 +864,6 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 			failoverGroup = &pbproxystate.FailoverGroup{
 				Config: &pbproxystate.FailoverGroupConfig{
 					ConnectTimeout: durationpb.New(node.Resolver.ConnectTimeout),
-					UseAltStatName: true,
 				},
 			}
 		}
@@ -920,7 +927,6 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 					Group: &pbproxystate.EndpointGroup_Dynamic{
 						Dynamic: dynamic,
 					},
-					Name: groupedTarget.ClusterName,
 				}
 				endpointGroups = append(endpointGroups, eg)
 			} else {
@@ -934,7 +940,6 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 							},
 						},
 					},
-					Name: mappedTargets.baseClusterName,
 				}
 
 				out[mappedTargets.baseClusterName] = cluster

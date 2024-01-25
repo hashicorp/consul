@@ -33,7 +33,6 @@ type Client interface {
 	FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error)
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
-	GetCluster(ctx context.Context) (*Cluster, error)
 }
 
 type BootstrapConfig struct {
@@ -45,12 +44,6 @@ type BootstrapConfig struct {
 	TLSCAs          []string
 	ConsulConfig    string
 	ManagementToken string
-}
-
-type Cluster struct {
-	Name         string
-	HCPPortalURL string
-	AccessLevel  *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel
 }
 
 type hcpClient struct {
@@ -317,26 +310,4 @@ func (c *hcpClient) DiscoverServers(ctx context.Context) ([]string, error) {
 	}
 
 	return servers, nil
-}
-
-func (c *hcpClient) GetCluster(ctx context.Context) (*Cluster, error) {
-	params := hcpgnm.NewGetClusterParamsWithContext(ctx).
-		WithID(c.resource.ID).
-		WithLocationOrganizationID(c.resource.Organization).
-		WithLocationProjectID(c.resource.Project)
-
-	resp, err := c.gnm.GetCluster(params, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return clusterFromHCP(resp.Payload), nil
-}
-
-func clusterFromHCP(payload *gnmmod.HashicorpCloudGlobalNetworkManager20220215GetClusterResponse) *Cluster {
-	return &Cluster{
-		Name:         payload.Cluster.ID,
-		AccessLevel:  payload.Cluster.ConsulAccessLevel,
-		HCPPortalURL: payload.Cluster.HcpPortalURL,
-	}
 }

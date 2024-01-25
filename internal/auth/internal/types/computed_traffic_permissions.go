@@ -12,8 +12,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type DecodedComputedTrafficPermissions = resource.DecodedResource[*pbauth.ComputedTrafficPermissions]
-
 func RegisterComputedTrafficPermission(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbauth.ComputedTrafficPermissionsType,
@@ -28,12 +26,16 @@ func RegisterComputedTrafficPermission(r resource.Registry) {
 	})
 }
 
-var ValidateComputedTrafficPermissions = resource.DecodeAndValidate(validateComputedTrafficPermissions)
+func ValidateComputedTrafficPermissions(res *pbresource.Resource) error {
+	var ctp pbauth.ComputedTrafficPermissions
 
-func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) error {
+	if err := res.Data.UnmarshalTo(&ctp); err != nil {
+		return resource.NewErrDataParse(&ctp, err)
+	}
+
 	var merr error
 
-	for i, permission := range res.Data.AllowPermissions {
+	for i, permission := range ctp.AllowPermissions {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "allow_permissions",
@@ -41,12 +43,12 @@ func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) 
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
+		if err := validatePermission(permission, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
 
-	for i, permission := range res.Data.DenyPermissions {
+	for i, permission := range ctp.DenyPermissions {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "deny_permissions",
@@ -54,7 +56,7 @@ func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) 
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
+		if err := validatePermission(permission, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}

@@ -35,10 +35,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
                   }
                 }
@@ -86,10 +86,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
                   }
                 }
@@ -144,10 +144,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
                   }
                 }
@@ -195,10 +195,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
                   }
                 }
@@ -246,10 +246,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
                   }
                 }
@@ -297,10 +297,10 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchTypedSubjectAltNames": [
+              "matchTypedSubjectAltNames":  [
                 {
-                  "sanType": "URI",
-                  "matcher": {
+                  "sanType":  "URI",
+                  "matcher":  {
                     "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
                   }
                 }

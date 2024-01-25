@@ -354,7 +354,7 @@ func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Reso
 		Id: &pbresource.ID{
 			Type:    TypeV2Album,
 			Tenancy: clone(artistID.Tenancy),
-			Name:    fmt.Sprintf("%s-%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
+			Name:    fmt.Sprintf("%s/%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Owner: artistID,
 		Data:  data,

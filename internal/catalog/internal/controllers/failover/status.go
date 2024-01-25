@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ControllerID            = "consul.io/failover-policy"
+	StatusKey               = "consul.io/failover-policy"
 	StatusConditionAccepted = "accepted"
 
 	OKReason  = "Ok"
@@ -29,9 +29,6 @@ const (
 
 	UsingMeshDestinationPortReason        = "UsingMeshDestinationPort"
 	UsingMeshDestinationPortMessagePrefix = "port is a special unroutable mesh port on destination service: "
-
-	MissingSamenessGroupReason        = "MissingSamenessGroup"
-	MissingSamenessGroupMessagePrefix = "referenced sameness group does not exist: "
 )
 
 var (
@@ -83,14 +80,5 @@ func ConditionUsingMeshDestinationPort(ref *pbresource.Reference, port string) *
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  UnknownDestinationPortReason,
 		Message: UnknownDestinationPortMessagePrefix + port + " on " + resource.ReferenceToString(ref),
-	}
-}
-
-func ConditionMissingSamenessGroup(ref *pbresource.Reference) *pbresource.Condition {
-	return &pbresource.Condition{
-		Type:    StatusConditionAccepted,
-		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  MissingSamenessGroupReason,
-		Message: MissingSamenessGroupMessagePrefix + resource.ReferenceToString(ref),
 	}
 }

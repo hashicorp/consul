@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Run Backport Assistant for release branches
         run: |
-          backport-assistant backport -merge-method=squash
+          backport-assistant backport -merge-method=squash -gh-automerge
         env:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"

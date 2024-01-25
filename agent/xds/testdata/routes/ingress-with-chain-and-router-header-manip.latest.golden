@@ -14,13 +14,14 @@
           "name": "db",
           "requestHeadersToAdd": [
             {
+              "append": true,
               "header": {
                 "key": "foo",
                 "value": "bar"
               }
             },
             {
-              "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+              "append": false,
               "header": {
                 "key": "bar",
                 "value": "baz"
@@ -32,13 +33,14 @@
           ],
           "responseHeadersToAdd": [
             {
+              "append": true,
               "header": {
                 "key": "foo",
                 "value": "bar"
               }
             },
             {
-              "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+              "append": false,
               "header": {
                 "key": "bar",
                 "value": "baz"
@@ -68,6 +70,7 @@
             {
               "match": {
                 "safeRegex": {
+                  "googleRe2": {},
                   "regex": "/regex"
                 }
               },
@@ -159,6 +162,7 @@
                     "name": "x-debug",
                     "stringMatch": {
                       "safeRegex": {
+                        "googleRe2": {},
                         "regex": "regex"
                       }
                     }
@@ -175,10 +179,9 @@
                 "headers": [
                   {
                     "name": ":method",
-                    "stringMatch": {
-                      "safeRegex": {
-                        "regex": "GET|PUT"
-                      }
+                    "safeRegexMatch": {
+                      "googleRe2": {},
+                      "regex": "GET|PUT"
                     }
                   }
                 ],
@@ -199,10 +202,9 @@
                   },
                   {
                     "name": ":method",
-                    "stringMatch": {
-                      "safeRegex": {
-                        "regex": "GET|PUT"
-                      }
+                    "safeRegexMatch": {
+                      "googleRe2": {},
+                      "regex": "GET|PUT"
                     }
                   }
                 ],
@@ -236,6 +238,7 @@
                     "name": "secretparam2",
                     "stringMatch": {
                       "safeRegex": {
+                        "googleRe2": {},
                         "regex": "regex"
                       }
                     }
@@ -406,13 +409,14 @@
               },
               "requestHeadersToAdd": [
                 {
+                  "append": true,
                   "header": {
                     "key": "request",
                     "value": "bar"
                   }
                 },
                 {
-                  "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                  "append": false,
                   "header": {
                     "key": "bar",
                     "value": "baz"
@@ -424,13 +428,14 @@
               ],
               "responseHeadersToAdd": [
                 {
+                  "append": true,
                   "header": {
                     "key": "response",
                     "value": "bar"
                   }
                 },
                 {
-                  "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                  "append": false,
                   "header": {
                     "key": "bar",
                     "value": "baz"

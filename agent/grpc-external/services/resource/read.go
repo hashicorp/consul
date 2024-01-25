@@ -18,7 +18,7 @@ import (
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
 	// Light first pass validation based on what user passed in and not much more.
-	reg, err := s.ensureReadRequestValid(req)
+	reg, err := s.validateReadRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +59,8 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 		return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 	}
 
-	// Check tenancy exists for the V2 resource.
-	if err = tenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
+	// Check V1 tenancy exists for the V2 resource.
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +87,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	return &pbresource.ReadResponse{Resource: resource}, nil
 }
 
-func (s *Server) ensureReadRequestValid(req *pbresource.ReadRequest) (*resource.Registration, error) {
+func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Registration, error) {
 	if req.Id == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "id is required")
 	}
@@ -102,14 +102,32 @@ func (s *Server) ensureReadRequestValid(req *pbresource.ReadRequest) (*resource.
 		return nil, err
 	}
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
-		return nil, err
-	}
-
 	// Check scope
-	if err = validateScopedTenancy(reg.Scope, req.Id.Type, req.Id.Tenancy, false); err != nil {
-		return nil, err
+	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped resource %s cannot have a namespace. got: %s",
+			resource.ToGVK(req.Id.Type),
+			req.Id.Tenancy.Namespace,
+		)
 	}
-
+	if reg.Scope == resource.ScopeCluster {
+		if req.Id.Tenancy.Partition != "" {
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a partition: %s",
+				resource.ToGVK(req.Id.Type),
+				req.Id.Tenancy.Partition,
+			)
+		}
+		if req.Id.Tenancy.Namespace != "" {
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a namespace: %s",
+				resource.ToGVK(req.Id.Type),
+				req.Id.Tenancy.Namespace,
+			)
+		}
+	}
 	return reg, nil
 }

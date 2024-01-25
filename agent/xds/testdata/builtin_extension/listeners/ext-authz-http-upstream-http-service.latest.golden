@@ -121,11 +121,13 @@
                             "patterns": [
                               {
                                 "safeRegex": {
+                                  "googleRe2": {},
                                   "regex": "client-ok-header-1"
                                 }
                               },
                               {
                                 "safeRegex": {
+                                  "googleRe2": {},
                                   "regex": "client-ok-header-2"
                                 }
                               }
@@ -202,6 +204,7 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\1"
@@ -215,6 +218,7 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\2"
@@ -228,6 +232,7 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\3"
@@ -241,6 +246,7 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\4"
@@ -254,6 +260,7 @@
                             "metadataNamespace": "consul",
                             "regexValueRewrite": {
                               "pattern": {
+                                "googleRe2": {},
                                 "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution": "\\5"

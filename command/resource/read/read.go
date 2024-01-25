@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -87,14 +86,12 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 	} else {
-		var err error
-		var resourceType *pbresource.Type
-		resourceType, resourceName, err = resource.GetTypeAndResourceName(args)
-		gvk = &resource.GVK{
-			Group:   resourceType.GetGroup(),
-			Version: resourceType.GetGroupVersion(),
-			Kind:    resourceType.GetKind(),
+		if len(args) < 2 {
+			c.UI.Error("Incorrect argument format: Must specify two arguments: resource type and resource name")
+			return 1
 		}
+		var err error
+		gvk, resourceName, err = resource.GetTypeAndResourceName(args)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
 			return 1

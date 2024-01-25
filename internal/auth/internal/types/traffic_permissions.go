@@ -12,15 +12,13 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type DecodedTrafficPermissions = resource.DecodedResource[*pbauth.TrafficPermissions]
-
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbauth.TrafficPermissionsType,
 		Proto: &pbauth.TrafficPermissions{},
 		ACLs: &resource.ACLHooks{
-			Read:  resource.DecodeAndAuthorizeRead(aclReadHookTrafficPermissions),
-			Write: resource.DecodeAndAuthorizeWrite(aclWriteHookTrafficPermissions),
+			Read:  aclReadHookTrafficPermissions,
+			Write: aclWriteHookTrafficPermissions,
 			List:  resource.NoOpACLListHook,
 		},
 		Validate: ValidateTrafficPermissions,
@@ -29,12 +27,16 @@ func RegisterTrafficPermissions(r resource.Registry) {
 	})
 }
 
-var MutateTrafficPermissions = resource.DecodeAndMutate(mutateTrafficPermissions)
+func MutateTrafficPermissions(res *pbresource.Resource) error {
+	var tp pbauth.TrafficPermissions
 
-func mutateTrafficPermissions(res *DecodedTrafficPermissions) (bool, error) {
+	if err := res.Data.UnmarshalTo(&tp); err != nil {
+		return resource.NewErrDataParse(&tp, err)
+	}
+
 	var changed bool
 
-	for _, p := range res.Data.Permissions {
+	for _, p := range tp.Permissions {
 		for _, s := range p.Sources {
 			if updated := normalizedTenancyForSource(s, res.Id.Tenancy); updated {
 				changed = true
@@ -42,7 +44,11 @@ func mutateTrafficPermissions(res *DecodedTrafficPermissions) (bool, error) {
 		}
 	}
 
-	return changed, nil
+	if !changed {
+		return nil
+	}
+
+	return res.Data.MarshalFrom(&tp)
 }
 
 func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Tenancy) bool {
@@ -104,13 +110,17 @@ func firstNonEmptyString(a, b, c string) (string, bool) {
 	return c, true
 }
 
-var ValidateTrafficPermissions = resource.DecodeAndValidate(validateTrafficPermissions)
+func ValidateTrafficPermissions(res *pbresource.Resource) error {
+	var tp pbauth.TrafficPermissions
 
-func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
+	if err := res.Data.UnmarshalTo(&tp); err != nil {
+		return resource.NewErrDataParse(&tp, err)
+	}
+
 	var merr error
 
 	// enumcover:pbauth.Action
-	switch res.Data.Action {
+	switch tp.Action {
 	case pbauth.Action_ACTION_ALLOW:
 	case pbauth.Action_ACTION_DENY:
 	case pbauth.Action_ACTION_UNSPECIFIED:
@@ -122,14 +132,14 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 		})
 	}
 
-	if res.Data.Destination == nil || (len(res.Data.Destination.IdentityName) == 0) {
+	if tp.Destination == nil || (len(tp.Destination.IdentityName) == 0) {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "data.destination",
 			Wrapped: resource.ErrEmpty,
 		})
 	}
 	// Validate permissions
-	for i, permission := range res.Data.Permissions {
+	for i, permission := range tp.Permissions {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "permissions",
@@ -137,7 +147,7 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
+		if err := validatePermission(permission, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
@@ -145,7 +155,7 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 	return merr
 }
 
-func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(error) error) error {
+func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 	var merr error
 
 	if len(p.Sources) == 0 {
@@ -163,7 +173,7 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 				Wrapped: err,
 			})
 		}
-		if sourceHasIncompatibleTenancies(src, id) {
+		if sourceHasIncompatibleTenancies(src) {
 			merr = multierror.Append(merr, wrapSrcErr(resource.ErrInvalidListElement{
 				Name:    "source",
 				Wrapped: errSourcesTenancy,
@@ -194,7 +204,7 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 					Wrapped: err,
 				})
 			}
-			if sourceHasIncompatibleTenancies(d, id) {
+			if sourceHasIncompatibleTenancies(d) {
 				merr = multierror.Append(merr, wrapExclSrcErr(resource.ErrInvalidField{
 					Name:    "exclude_source",
 					Wrapped: errSourcesTenancy,
@@ -217,6 +227,13 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 				Wrapped: err,
 			})
 		}
+		// TODO: remove this when L7 traffic permissions are implemented
+		if len(dest.PathExact) > 0 || len(dest.PathPrefix) > 0 || len(dest.PathRegex) > 0 || len(dest.Methods) > 0 || dest.Header != nil {
+			merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
+				Name:    "destination_rule",
+				Wrapped: ErrL7NotSupported,
+			}))
+		}
 		if (len(dest.PathExact) > 0 && len(dest.PathPrefix) > 0) ||
 			(len(dest.PathRegex) > 0 && len(dest.PathExact) > 0) ||
 			(len(dest.PathRegex) > 0 && len(dest.PathPrefix) > 0) {
@@ -224,23 +241,6 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 				Name:    "destination_rule",
 				Wrapped: errInvalidPrefixValues,
 			}))
-		}
-		if len(dest.Headers) > 0 {
-			for h, hdr := range dest.Headers {
-				wrapHeaderErr := func(err error) error {
-					return wrapDestRuleErr(resource.ErrInvalidListElement{
-						Name:    "destination_header_rules",
-						Index:   h,
-						Wrapped: err,
-					})
-				}
-				if len(hdr.Name) == 0 {
-					merr = multierror.Append(merr, wrapHeaderErr(resource.ErrInvalidListElement{
-						Name:    "destination_header_rule",
-						Wrapped: errHeaderRulesInvalid,
-					}))
-				}
-			}
 		}
 		if len(dest.Exclude) > 0 {
 			for e, excl := range dest.Exclude {
@@ -250,6 +250,13 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 						Index:   e,
 						Wrapped: err,
 					})
+				}
+				// TODO: remove this when L7 traffic permissions are implemented
+				if len(excl.PathExact) > 0 || len(excl.PathPrefix) > 0 || len(excl.PathRegex) > 0 || len(excl.Methods) > 0 || excl.Header != nil {
+					merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
+						Name:    "exclude_permission_rules",
+						Wrapped: ErrL7NotSupported,
+					}))
 				}
 				if (len(excl.PathExact) > 0 && len(excl.PathPrefix) > 0) ||
 					(len(excl.PathRegex) > 0 && len(excl.PathExact) > 0) ||
@@ -266,12 +273,9 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 	return merr
 }
 
-func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe, id *pbresource.ID) bool {
-	if id.Tenancy == nil {
-		id.Tenancy = &pbresource.Tenancy{}
-	}
+func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe) bool {
 	peerSet := src.GetPeer() != resource.DefaultPeerName
-	apSet := src.GetPartition() != id.Tenancy.Partition
+	apSet := src.GetPartition() != resource.DefaultPartitionName
 	sgSet := src.GetSamenessGroup() != ""
 
 	return (apSet && peerSet) || (apSet && sgSet) || (peerSet && sgSet)
@@ -281,10 +285,30 @@ func isLocalPeer(p string) bool {
 	return p == "local" || p == ""
 }
 
-func aclReadHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *DecodedTrafficPermissions) error {
-	return authorizer.ToAllowAuthorizer().TrafficPermissionsReadAllowed(res.Data.Destination.IdentityName, authzContext)
+func aclReadHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedResource
+	}
+	return authorizeDestination(res, func(dest string) error {
+		return authorizer.ToAllowAuthorizer().TrafficPermissionsReadAllowed(dest, authzContext)
+	})
 }
 
-func aclWriteHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *DecodedTrafficPermissions) error {
-	return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(res.Data.Destination.IdentityName, authzContext)
+func aclWriteHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+	return authorizeDestination(res, func(dest string) error {
+		return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(dest, authzContext)
+	})
+}
+
+func authorizeDestination(res *pbresource.Resource, intentionAllowed func(string) error) error {
+	tp, err := resource.Decode[*pbauth.TrafficPermissions](res)
+	if err != nil {
+		return err
+	}
+	// Check intention:x permissions for identity
+	err = intentionAllowed(tp.Data.Destination.IdentityName)
+	if err != nil {
+		return err
+	}
+	return nil
 }

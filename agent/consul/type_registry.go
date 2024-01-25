@@ -6,9 +6,7 @@ package consul
 import (
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/hcp"
 	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/tenancy"
@@ -29,8 +27,6 @@ func NewTypeRegistry() resource.Registry {
 	catalog.RegisterTypes(registry)
 	auth.RegisterTypes(registry)
 	tenancy.RegisterTypes(registry)
-	multicluster.RegisterTypes(registry)
-	hcp.RegisterTypes(registry)
 
 	return registry
 }

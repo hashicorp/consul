@@ -11,18 +11,16 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # or the string @DEV to imply use what is currently installed locally.
 ###
 GOLANGCI_LINT_VERSION='v1.55.2'
-MOCKERY_VERSION='v2.37.1'
+MOCKERY_VERSION='v2.20.0'
 BUF_VERSION='v1.26.0'
 
-PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'
+PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.4.1'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
-PROTOC_GEN_GO_BINARY_VERSION='v0.1.0'
+PROTOC_GEN_GO_BINARY_VERSION="v0.1.0"
 DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
 COPYWRITE_TOOL_VERSION='v0.16.4'
-LINT_CONSUL_RETRY_VERSION='v1.4.0'
-# Go imports formatter
-GCI_VERSION='v0.11.2'
+LINT_CONSUL_RETRY_VERSION='v1.3.0'
 
 MOCKED_PB_DIRS= pbdns
 
@@ -71,7 +69,7 @@ CONSUL_IMAGE_VERSION?=latest
 # When changing the method of Go version detection, also update
 # version detection in CI workflows (reusable-get-go-version.yml).
 GOLANG_VERSION?=$(shell head -n 1 .go-version)
-ENVOY_VERSION?='1.28.0'
+ENVOY_VERSION?='1.25.4'
 CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi")
 DEPLOYER_CONSUL_DATAPLANE_IMAGE := $(or $(DEPLOYER_CONSUL_DATAPLANE_IMAGE), "docker.io/hashicorppreview/consul-dataplane:1.3-dev")
 
@@ -260,15 +258,6 @@ lint/%:
 	@cd $* && GOWORK=off lint-consul-retry
 	@echo "--> Running enumcover ($*)"
 	@cd $* && GOWORK=off enumcover ./...
-
-.PHONY: lint-consul-retry
-lint-consul-retry: $(foreach mod,$(GO_MODULES),lint-consul-retry/$(mod))
-
-.PHONY: lint-consul-retry/%
-lint-consul-retry/%: lint-tools
-	@echo "--> Running lint-consul-retry ($*)"
-	@cd $* && GOWORK=off lint-consul-retry
-
 
 # check that the test-container module only imports allowlisted packages
 # from the root consul module. Generally we don't want to allow these imports.
@@ -565,8 +554,11 @@ proto-gen: proto-tools ## Regenerates all Go files from protobuf definitions
 
 .PHONY: proto-mocks
 proto-mocks: ## Proto mocks
-	@rm -rf grpcmocks/*
-	@mockery --config .grpcmocks.yaml
+	for dir in $(MOCKED_PB_DIRS) ; do \
+		cd proto-public && \
+		rm -f $$dir/mock*.go && \
+		mockery --dir $$dir --inpackage --all --recursive --log-level trace ; \
+	done
 
 .PHONY: proto-format
 proto-format: proto-tools ## Proto format

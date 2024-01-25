@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Replace usage of deprecated Envoy field `envoy.config.core.v3.HeaderValueOption.append`.
-```

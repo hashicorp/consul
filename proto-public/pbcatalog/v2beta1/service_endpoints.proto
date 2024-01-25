@@ -35,7 +35,4 @@ message Endpoint {
 
   // identity is the name of the workload identity for this endpoint.
   string identity = 5;
-
-  // dns contains customizations like Weight that will be returned in DNS discovery requests.
-  DNSPolicy dns = 6;
 }
