@@ -7,10 +7,27 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"strings"
 
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
+	"github.com/ryanuber/columnize"
 )
+
+const (
+	PrettyFormat string = "pretty"
+	JSONFormat   string = "json"
+)
+
+func getSupportedFormats() []string {
+	return []string{PrettyFormat, JSONFormat}
+}
+
+func formatIsValid(f string) bool {
+	return f == PrettyFormat || f == JSONFormat
+}
 
 func New(ui cli.Ui) *cmd {
 	c := &cmd{UI: ui}
@@ -23,10 +40,20 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
+
+	format string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		PrettyFormat,
+		fmt.Sprintf("Output format {%s} (default: %s)", strings.Join(getSupportedFormats(), "|"), PrettyFormat),
+	)
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -36,6 +63,11 @@ func (c *cmd) init() {
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
+		return 1
+	}
+
+	if !formatIsValid(c.format) {
+		c.UI.Error(fmt.Sprintf("Invalid format, valid formats are {%s}", strings.Join(getSupportedFormats(), "|")))
 		return 1
 	}
 
@@ -51,14 +83,53 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	b, err := json.MarshalIndent(exportedServices, "", "    ")
-	if err != nil {
-		c.UI.Error("Failed to encode output data")
-		return 1
+	if len(exportedServices) == 0 {
+		c.UI.Info("No exported services found")
+		return 0
 	}
 
-	c.UI.Info(string(b))
+	if c.format == JSONFormat {
+		output, err := json.MarshalIndent(exportedServices, "", "    ")
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error marshalling JSON: %s", err))
+			return 1
+		}
+		c.UI.Output(string(output))
+		return 0
+	}
+
+	c.UI.Output(formatExportedServices(exportedServices))
+
 	return 0
+}
+
+func formatExportedServices(services []api.ResolvedExportedService) string {
+	result := make([]string, 0, len(services)+1)
+
+	if services[0].Partition != "" {
+		result = append(result, "Service\x1fPartition\x1fNamespace\x1fConsumer")
+	} else {
+		result = append(result, "Service\x1fConsumer")
+	}
+
+	for _, expService := range services {
+		service := ""
+		if expService.Partition != "" {
+			service = fmt.Sprintf("%s\x1f%s\x1f%s", expService.Service, expService.Partition, expService.Namespace)
+		} else {
+			service = expService.Service
+		}
+
+		for _, peer := range expService.Consumers.Peers {
+			result = append(result, fmt.Sprintf("%s\x1fPeer: %s", service, peer))
+		}
+		for _, partition := range expService.Consumers.Partitions {
+			result = append(result, fmt.Sprintf("%s\x1fPartition: %s", service, partition))
+		}
+
+	}
+
+	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})})
 }
 
 func (c *cmd) Synopsis() string {
@@ -74,7 +145,7 @@ const (
 	help     = `
 Usage: consul exported-services [options]
 
-  Lists all the exported services and their consumers. Wildcards and sameness groups are expanded.
+  Lists all the exported services and their consumers. Wildcards and sameness groups(Enterprise) are expanded.
 
   Example:
 
