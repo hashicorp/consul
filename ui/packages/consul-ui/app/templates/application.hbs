@@ -98,7 +98,6 @@
                 as |dc|
               >
                 {{#if dc.data}}
-                  <DataSource @src={{uri '/${partition}/*/${dc}/hcp-link' (hash dc=dc.Name partition=partition name=dc.Name) }} @open={{true}} as |hcpLink|>
                     <HashicorpConsul
                     id='wrapper'
                     @dcs={{dcs}}
@@ -128,7 +127,6 @@
                     {{/if}}
 
                   </HashicorpConsul>
-                  </DataSource>
                 {{/if}}
               </DataSource>
             {{/if}}
