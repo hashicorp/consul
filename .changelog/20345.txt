@@ -1,0 +1,3 @@
+```release-note:bug
+audit-logs: Fixes non ASCII characters in audit logs.
+```
