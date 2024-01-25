@@ -6,10 +6,37 @@
 {{#let @list (env "CONSUL_HCP_URL") as |SNL hcpUrl|}}
     {{#if this.shouldShowBackToHcpItem}}
         <SNL.BackLink
-            @text={{t "components.hashicorp-consul.side-nav.hcp"}}
-            @href={{hcpUrl}}
-            @isHrefExternal={{true}}
-            data-test-back-to-hcp
+                @text={{t "components.hashicorp-consul.side-nav.hcp"}}
+                @href={{hcpUrl}}
+                @isHrefExternal={{true}}
+                data-test-back-to-hcp
         />
+    {{else}}
+        {{#if this.shouldDisplayNavLinkItem}}
+            {{#if (not this.hcpLinkStatus.alreadyLinked)}}
+                <SNL.Link
+                        @text="HCP Consul Central"
+                        @href={{this.hcpLink}}
+                        @isHrefExternal={{true}}
+                        data-test-linked-cluster-hcp-link
+                />
+            {{else}}
+                <SNL.Link
+                        @text="HCP Consul Central"
+                        @href={{this.hcpLink}}
+                        @isHrefExternal={{true}}
+                        data-test-linked-cluster-hcp-link
+                />
+                <SNL.Item class="hcp-nav-item">
+                    <button class="hds-side-nav__list-item-link hcp-nav-item" {{on "click" this.onLinkToConsulCentral}}>
+                        {{#if this.shouldDisplayNewBadge}}
+                            <Hds::Badge @text="New" @color="highlight"/>
+                        {{/if}}
+                        <Hds::Text::Display @size='100'>Link to HCP Consul Central</Hds::Text::Display>
+                        <FlightIcon class='w-4 h-4' @size='24' @name='arrow-right'/>
+                    </button>
+                </SNL.Item>
+            {{/if}}
+        {{/if}}
     {{/if}}
 {{/let}}
