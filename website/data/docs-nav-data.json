@@ -2091,7 +2091,7 @@
       },
       {
         "title": "Create Terraform module",
-        "path": "cts/terraform-module"
+        "path": "cts/create-terraform-module"
       },
       {
         "title": "Network drivers",
