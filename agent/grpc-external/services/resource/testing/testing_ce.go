@@ -29,7 +29,8 @@ func FillAuthorizerContext(authzContext *acl.AuthorizerContext) {
 	// nothing to to in CE.
 }
 
-// initTenancy create the base tenancy objects (default/default)
+// initTenancy creates the builtin v2 namespace resource only. The builtin
+// v2 partition is not created because we're in CE.
 func initTenancy(ctx context.Context, b *inmem.Backend) error {
 	nsData, err := anypb.New(&pbtenancy.Namespace{Description: "default namespace in default partition"})
 	if err != nil {
