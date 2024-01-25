@@ -44,7 +44,7 @@ func LinkController(
 	hcpClientFn HCPClientFn,
 	cfg config.CloudConfig,
 	dataDir string,
-	hcpManager *hcp.Manager,
+	hcpManager hcp.Manager,
 ) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
 		// Placement is configured to each server so that the HCP manager is started
@@ -70,7 +70,7 @@ type linkReconciler struct {
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
 	dataDir                string
-	hcpManager             *hcp.Manager
+	hcpManager             hcp.Manager
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {

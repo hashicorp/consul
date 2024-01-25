@@ -457,7 +457,7 @@ type Server struct {
 	xdsCapacityController *xdscapacity.Controller
 
 	// hcpManager handles pushing server status updates to the HashiCorp Cloud Platform when enabled
-	hcpManager *hcp.Manager
+	hcpManager *hcp.HCPManager
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer

@@ -21,6 +21,8 @@ var (
 	defaultManagerMaxInterval = 75 * time.Minute
 )
 
+var _ Manager = (*HCPManager)(nil)
+
 type ManagerConfig struct {
 	Client            hcpclient.Client
 	CloudConfig       config.CloudConfig
@@ -60,7 +62,15 @@ func (cfg *ManagerConfig) nextHeartbeat() time.Duration {
 type StatusCallback func(context.Context) (hcpclient.ServerStatus, error)
 type ManagementTokenUpserter func(name, secretId string) error
 
-type Manager struct {
+//go:generate mockery --name Manager --with-expecter --inpackage
+type Manager interface {
+	Start(context.Context) error
+	Stop()
+	GetCloudConfig() config.CloudConfig
+	UpdateConfig(hcpclient.Client, config.CloudConfig)
+}
+
+type HCPManager struct {
 	logger hclog.Logger
 
 	running bool
@@ -77,8 +87,8 @@ type Manager struct {
 }
 
 // NewManager returns a Manager initialized with the given configuration.
-func NewManager(cfg ManagerConfig) *Manager {
-	return &Manager{
+func NewManager(cfg ManagerConfig) *HCPManager {
+	return &HCPManager{
 		logger: cfg.Logger,
 		cfg:    cfg,
 
@@ -88,7 +98,7 @@ func NewManager(cfg ManagerConfig) *Manager {
 
 // Start executes the logic for connecting to HCP and sending periodic server updates. If the
 // manager has been previously started, it will not start again.
-func (m *Manager) Start(ctx context.Context) error {
+func (m *HCPManager) Start(ctx context.Context) error {
 	// Check if the manager has already started
 	changed := m.setRunning(true)
 	if !changed {
@@ -177,7 +187,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	return err
 }
 
-func (m *Manager) startSCADAProvider() error {
+func (m *HCPManager) startSCADAProvider() error {
 	provider := m.cfg.SCADAProvider
 	if provider == nil {
 		return nil
@@ -204,7 +214,7 @@ func (m *Manager) startSCADAProvider() error {
 	return nil
 }
 
-func (m *Manager) startTelemetryProvider(ctx context.Context) error {
+func (m *HCPManager) startTelemetryProvider(ctx context.Context) error {
 	if m.cfg.TelemetryProvider == nil || reflect.ValueOf(m.cfg.TelemetryProvider).IsNil() {
 		return nil
 	}
@@ -217,14 +227,14 @@ func (m *Manager) startTelemetryProvider(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) GetCloudConfig() config.CloudConfig {
+func (m *HCPManager) GetCloudConfig() config.CloudConfig {
 	m.cfgMu.RLock()
 	defer m.cfgMu.RUnlock()
 
 	return m.cfg.CloudConfig
 }
 
-func (m *Manager) UpdateConfig(client hcpclient.Client, cloudCfg config.CloudConfig) {
+func (m *HCPManager) UpdateConfig(client hcpclient.Client, cloudCfg config.CloudConfig) {
 	m.cfgMu.Lock()
 	// Save original values
 	originalCfg := m.cfg.CloudConfig
@@ -241,7 +251,7 @@ func (m *Manager) UpdateConfig(client hcpclient.Client, cloudCfg config.CloudCon
 	}
 }
 
-func (m *Manager) SendUpdate() {
+func (m *HCPManager) SendUpdate() {
 	m.logger.Debug("HCP triggering status update")
 	select {
 	case m.updateCh <- struct{}{}:
@@ -259,7 +269,7 @@ func (m *Manager) SendUpdate() {
 // and a "isRetrying" state or something so that we attempt to send update, but
 // then fetch fresh info on each attempt to send so if we are already in a retry
 // backoff a new push is a no-op.
-func (m *Manager) sendUpdate() error {
+func (m *HCPManager) sendUpdate() error {
 	m.cfgMu.RLock()
 	cfg := m.cfg
 	m.cfgMu.RUnlock()
@@ -288,7 +298,7 @@ func (m *Manager) sendUpdate() error {
 	return cfg.Client.PushServerStatus(ctx, &s)
 }
 
-func (m *Manager) isRunning() bool {
+func (m *HCPManager) isRunning() bool {
 	m.runLock.RLock()
 	defer m.runLock.RUnlock()
 	return m.running
@@ -297,7 +307,7 @@ func (m *Manager) isRunning() bool {
 // setRunning sets the running status of the manager to the given value. If the
 // given value is the same as the current running status, it returns false. If
 // current status is updated to the given status, it returns true.
-func (m *Manager) setRunning(r bool) bool {
+func (m *HCPManager) setRunning(r bool) bool {
 	m.runLock.Lock()
 	defer m.runLock.Unlock()
 
@@ -320,7 +330,7 @@ func (m *Manager) setRunning(r bool) bool {
 
 // Stop stops the manager's main loop that sends updates
 // and stops the SCADA provider and telemetry provider.
-func (m *Manager) Stop() {
+func (m *HCPManager) Stop() {
 	changed := m.setRunning(false)
 	if !changed {
 		m.logger.Trace("HCP manager already stopped")
