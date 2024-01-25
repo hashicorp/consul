@@ -285,6 +285,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 					A:   []byte{0xAC, 0x15, 0x2D, 0x43}, // 172 , 21, 45, 67
 				},
 			}
+			require.NotNil(t, in)
 			require.Equal(t, wantAnswer, in.Answer)
 		})
 	}
@@ -323,6 +324,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 			in, _, err := client.Exchange(m, agent.DNSAddr())
 			require.NoError(t, err)
 			// Verify if we hit SERVFAIL from Consul
+			require.NotNil(t, in)
 			require.Equal(t, dns.RcodeServerFailure, in.Rcode)
 		})
 	}

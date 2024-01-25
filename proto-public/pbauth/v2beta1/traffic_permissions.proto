@@ -101,7 +101,7 @@ message DestinationRule {
   // Methods is the list of HTTP methods. If no methods are specified,
   // this rule will apply to all methods.
   repeated string methods = 4;
-  DestinationRuleHeader header = 5;
+  repeated DestinationRuleHeader headers = 5;
   repeated string port_names = 6;
   // Exclude contains a list of rules to exclude when evaluating rules for the incoming connection.
   repeated ExcludePermissionRule exclude = 7;
@@ -114,7 +114,7 @@ message ExcludePermissionRule {
   // Methods is the list of HTTP methods.
   repeated string methods = 4;
 
-  DestinationRuleHeader header = 5;
+  repeated DestinationRuleHeader headers = 5;
 
   // PortNames is a list of workload ports to apply this rule to. The ports specified here
   // must be the ports used in the connection.

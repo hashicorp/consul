@@ -21,11 +21,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/fullstorydev/grpchan/inprocgrpc"
-	"go.etcd.io/bbolt"
-	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -36,6 +31,11 @@ import (
 	walmetrics "github.com/hashicorp/raft-wal/metrics"
 	"github.com/hashicorp/raft-wal/verifier"
 	"github.com/hashicorp/serf/serf"
+	"go.etcd.io/bbolt"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
@@ -135,6 +135,19 @@ const (
 	V2TenancyExperimentName       = "v2tenancy"
 	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )
+
+// IsExperimentAllowedOnSecondaries returns true if an experiment is currently
+// disallowed for wan federated secondary datacenters.
+//
+// Likely these will all be short lived exclusions.
+func IsExperimentAllowedOnSecondaries(name string) bool {
+	switch name {
+	case CatalogResourceExperimentName, V2DNSExperimentName, V2TenancyExperimentName:
+		return false
+	default:
+		return true
+	}
+}
 
 const (
 	aclPolicyReplicationRoutineName       = "ACL policy replication"
@@ -588,6 +601,15 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		Logger:            logger.Named("hcp_manager"),
 		SCADAProvider:     flat.HCP.Provider,
 		TelemetryProvider: flat.HCP.TelemetryProvider,
+		ManagementTokenUpserterFn: func(name, secretId string) error {
+			if s.IsLeader() {
+				// Idea for improvement: Upsert a token with a well-known accessorId here instead
+				// of a randomly generated one. This would prevent any possible insertion collision between
+				// this and the insertion that happens during the ACL initialization process (initializeACLs function)
+				return s.upsertManagementToken(name, secretId)
+			}
+			return nil
+		},
 	})
 
 	var recorder *middleware.RequestRecorder
@@ -971,6 +993,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 	hcpctl.RegisterControllers(s.controllerManager, hcpctl.ControllerDependencies{
 		ResourceApisEnabled:    s.useV2Resources,
 		HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
+		CloudConfig:            deps.HCP.Config,
+		DataDir:                deps.HCP.DataDir,
 	})
 
 	// When not enabled, the v1 tenancy bridge is used by default.
@@ -982,8 +1006,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 	}
 
 	if s.useV2Resources {
-		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies())
+		catalog.RegisterControllers(s.controllerManager)
+		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err
@@ -1020,6 +1044,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
 	}
+
+	multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 
 	reaper.RegisterControllers(s.controllerManager)
 

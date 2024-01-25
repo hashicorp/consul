@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -197,7 +199,7 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 			"without address ports": suite.workloadWithOutAddressPorts,
 		} {
 			testutil.RunStep(suite.T(), name, func(t *testing.T) {
-				builder := NewProxyStateTemplateBuilder(workload, suite.exportedServicesPeerData, logger, f, dc, trustDomain)
+				builder := NewProxyStateTemplateBuilder(workload, suite.exportedServicesPeerData.Data.Services, logger, f, dc, trustDomain)
 				expectedProxyStateTemplate := &pbmesh.ProxyStateTemplate{
 					ProxyState: &pbmesh.ProxyState{
 						Identity: &pbresource.Reference{
@@ -223,7 +225,7 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 										L4: &pbproxystate.L4Destination{
 											Destination: &pbproxystate.L4Destination_Cluster{
 												Cluster: &pbproxystate.DestinationCluster{
-													Name: "",
+													Name: nullRouteClusterName,
 												},
 											},
 											StatPrefix: "prefix",
@@ -267,6 +269,21 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 							},
 						},
 						Clusters: map[string]*pbproxystate.Cluster{
+							nullRouteClusterName: {
+								Name: nullRouteClusterName,
+								Group: &pbproxystate.Cluster_EndpointGroup{
+									EndpointGroup: &pbproxystate.EndpointGroup{
+										Group: &pbproxystate.EndpointGroup_Static{
+											Static: &pbproxystate.StaticEndpointGroup{
+												Config: &pbproxystate.StaticEndpointGroupConfig{
+													ConnectTimeout: durationpb.New(10 * time.Second),
+												},
+											},
+										},
+									},
+								},
+								Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
+							},
 							fmt.Sprintf("mesh.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")): {
 								Name: fmt.Sprintf("mesh.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")),
 								Group: &pbproxystate.Cluster_EndpointGroup{

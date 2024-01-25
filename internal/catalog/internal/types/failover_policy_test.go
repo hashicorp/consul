@@ -241,7 +241,112 @@ func addFailoverConfigSamenessGroupCases(fpcases map[string]failoverTestcase) {
 	}
 }
 
-func getCommonTestCases() map[string]failoverTestcase {
+func getComputedFailoverCases() map[string]failoverTestcase {
+	configCases := getCommonConfigCases()
+	fpcases := getCommonFpCases()
+	for name, tc := range configCases {
+		fpcases["ported config: "+name] = failoverTestcase{
+			failover: &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
+				},
+			},
+			expectErr: maybeWrap(`invalid value of key "http" within port_configs: `, tc.expectErr),
+		}
+	}
+	return fpcases
+}
+func getFailoverCases() map[string]failoverTestcase {
+	configCases := getCommonConfigCases()
+	fpcases := getCommonFpCases()
+	fpcases["non-empty: some plain config but no port configs"] = failoverTestcase{
+		failover: &pbcatalog.FailoverPolicy{
+			Config: &pbcatalog.FailoverConfig{
+				Destinations: []*pbcatalog.FailoverDestination{
+					{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
+				},
+			},
+		},
+	}
+	// plain config
+	fpcases["plain config: bad dest: any port name"] = failoverTestcase{
+		failover: &pbcatalog.FailoverPolicy{
+			Config: &pbcatalog.FailoverConfig{
+				Destinations: []*pbcatalog.FailoverDestination{
+					{Ref: newRef(pbcatalog.ServiceType, "api-backup"), Port: "web"},
+				},
+			},
+		},
+		expectErr: `invalid "config" field: invalid element at index 0 of list "destinations": invalid "port" field: ports cannot be specified explicitly for the general failover section since it relies upon port alignment`,
+	}
+	// emptiness
+	fpcases["empty"] = failoverTestcase{
+		failover:  &pbcatalog.FailoverPolicy{},
+		expectErr: `invalid "config" field: at least one of config or port_configs must be set`,
+	}
+
+	for name, tc := range configCases {
+		fpcases["plain config: "+name] = failoverTestcase{
+			failover: &pbcatalog.FailoverPolicy{
+				Config: proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
+			},
+			expectErr: maybeWrap(`invalid "config" field: `, tc.expectErr),
+		}
+
+		fpcases["ported config: "+name] = failoverTestcase{
+			failover: &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
+				},
+			},
+			expectErr: maybeWrap(`invalid value of key "http" within port_configs: `, tc.expectErr),
+		}
+	}
+	addFailoverConfigSamenessGroupCases(fpcases)
+	return fpcases
+}
+func getCommonFpCases() map[string]failoverTestcase {
+	fpcases := map[string]failoverTestcase{
+		"non-empty: one port config but no plain config": {
+			failover: &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{
+							{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
+						},
+					},
+				},
+			},
+		},
+		// ported config
+		"ported config: bad dest: invalid port name": {
+			failover: &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{
+							{Ref: newRef(pbcatalog.ServiceType, "api-backup"), Port: "$bad$"},
+						},
+					},
+				},
+			},
+			expectErr: `invalid value of key "http" within port_configs: invalid element at index 0 of list "destinations": invalid "port" field: value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
+		},
+		"ported config: bad ported in map": {
+			failover: &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"$bad$": {
+						Destinations: []*pbcatalog.FailoverDestination{
+							{Ref: newRef(pbcatalog.ServiceType, "api-backup"), Port: "http"},
+						},
+					},
+				},
+			},
+			expectErr: `map port_configs contains an invalid key - "$bad$": value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
+		},
+	}
+	return fpcases
+}
+func getCommonConfigCases() map[string]configTestcase {
 	configCases := map[string]configTestcase{
 		"dest without sameness": {
 			config: &pbcatalog.FailoverConfig{
@@ -323,89 +428,7 @@ func getCommonTestCases() map[string]failoverTestcase {
 			},
 		},
 	}
-
-	fpcases := map[string]failoverTestcase{
-		// emptiness
-		"empty": {
-			failover:  &pbcatalog.FailoverPolicy{},
-			expectErr: `invalid "config" field: at least one of config or port_configs must be set`,
-		},
-		"non-empty: one port config but no plain config": {
-			failover: &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": {
-						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
-						},
-					},
-				},
-			},
-		},
-		"non-empty: some plain config but no port configs": {
-			failover: &pbcatalog.FailoverPolicy{
-				Config: &pbcatalog.FailoverConfig{
-					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
-					},
-				},
-			},
-		},
-		// plain config
-		"plain config: bad dest: any port name": {
-			failover: &pbcatalog.FailoverPolicy{
-				Config: &pbcatalog.FailoverConfig{
-					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: newRef(pbcatalog.ServiceType, "api-backup"), Port: "web"},
-					},
-				},
-			},
-			expectErr: `invalid "config" field: invalid element at index 0 of list "destinations": invalid "port" field: ports cannot be specified explicitly for the general failover section since it relies upon port alignment`,
-		},
-		// ported config
-		"ported config: bad dest: invalid port name": {
-			failover: &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": {
-						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(pbcatalog.ServiceType, "api-backup"), Port: "$bad$"},
-						},
-					},
-				},
-			},
-			expectErr: `invalid value of key "http" within port_configs: invalid element at index 0 of list "destinations": invalid "port" field: value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
-		},
-		"ported config: bad ported in map": {
-			failover: &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"$bad$": {
-						Destinations: []*pbcatalog.FailoverDestination{
-							{Ref: newRef(pbcatalog.ServiceType, "api-backup"), Port: "http"},
-						},
-					},
-				},
-			},
-			expectErr: `map port_configs contains an invalid key - "$bad$": value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
-		},
-	}
-
-	for name, tc := range configCases {
-		fpcases["plain config: "+name] = failoverTestcase{
-			failover: &pbcatalog.FailoverPolicy{
-				Config: proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
-			},
-			expectErr: maybeWrap(`invalid "config" field: `, tc.expectErr),
-		}
-
-		fpcases["ported config: "+name] = failoverTestcase{
-			failover: &pbcatalog.FailoverPolicy{
-				PortConfigs: map[string]*pbcatalog.FailoverConfig{
-					"http": proto.Clone(tc.config).(*pbcatalog.FailoverConfig),
-				},
-			},
-			expectErr: maybeWrap(`invalid value of key "http" within port_configs: `, tc.expectErr),
-		}
-	}
-	return fpcases
+	return configCases
 }
 
 func TestValidateFailoverPolicy(t *testing.T) {
@@ -434,8 +457,7 @@ func TestValidateFailoverPolicy(t *testing.T) {
 		}
 	}
 
-	cases := getCommonTestCases()
-	addFailoverConfigSamenessGroupCases(cases)
+	cases := getFailoverCases()
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

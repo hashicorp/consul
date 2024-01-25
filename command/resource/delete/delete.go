@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -85,7 +86,13 @@ func (c *cmd) Run(args []string) int {
 		}
 	} else {
 		var err error
-		gvk, resourceName, err = resource.GetTypeAndResourceName(args)
+		var resourceType *pbresource.Type
+		resourceType, resourceName, err = resource.GetTypeAndResourceName(args)
+		gvk = &resource.GVK{
+			Group:   resourceType.GetGroup(),
+			Version: resourceType.GetGroupVersion(),
+			Kind:    resourceType.GetKind(),
+		}
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
 			return 1
@@ -154,12 +161,12 @@ $ consul resource delete -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
-  Type = gvk("catalog.v2beta1.Service")
-  Name = "card-processor"
-  Tenancy {
-    Namespace = "payments"
-    Partition = "billing"
-    PeerName = "eu"
-  }
+	Type = gvk("catalog.v2beta1.Service")
+	Name = "card-processor"
+	Tenancy {
+		Namespace = "payments"
+		Partition = "billing"
+		PeerName = "eu"
+	}
 }
 `

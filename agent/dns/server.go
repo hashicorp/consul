@@ -5,20 +5,31 @@ package dns
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/logging"
 )
+
+// DNSRouter is a mock for Router that can be used for testing.
+//
+//go:generate mockery --name DNSRouter --inpackage
+type DNSRouter interface {
+	HandleRequest(req *dns.Msg, reqCtx discovery.Context, remoteAddress net.Addr) *dns.Msg
+	ServeDNS(w dns.ResponseWriter, req *dns.Msg)
+	ReloadConfig(newCfg *config.RuntimeConfig) error
+}
 
 // Server is used to expose service discovery queries using a DNS interface.
 // It implements the agent.dnsServer interface.
 type Server struct {
-	*dns.Server         // Used for setting up listeners
-	Router      *Router // Used to routes and parse DNS requests
+	*dns.Server           // Used for setting up listeners
+	Router      DNSRouter // Used to routes and parse DNS requests
 
 	logger hclog.Logger
 }

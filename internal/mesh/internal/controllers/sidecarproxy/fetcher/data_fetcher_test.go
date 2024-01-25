@@ -227,9 +227,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		c := cache.New()
 
-		var (
-			api1ServiceRef = resource.Reference(suite.api1Service.Id, "")
-		)
+		api1ServiceRef := resource.Reference(suite.api1Service.Id, "")
 
 		f := Fetcher{
 			cache:  c,
@@ -252,7 +250,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			c.TrackComputedDestinations(resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](t, compDest))
 
 			// We will try to fetch explicit destinations for a proxy that doesn't have one.
-			destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 			require.NoError(t, err)
 			require.Nil(t, destinations)
 
@@ -277,7 +275,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 			require.NoError(t, err)
 			require.Nil(t, destinations)
 			cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(notFoundServiceRef))
@@ -307,7 +305,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 			require.NoError(t, err)
 			require.Nil(t, destinations)
 			cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(api1ServiceRef))
@@ -337,7 +335,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 			require.NoError(t, err)
 			require.Nil(t, destinations)
 			cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(api1ServiceRef))
@@ -369,7 +367,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 			require.NoError(t, err)
 			require.Empty(t, destinations)
 
@@ -402,7 +400,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			require.NotNil(suite.T(), api1ComputedRoutes)
 
 			// This destination points to TCP, but the computed routes is stale and only knows about HTTP.
-			destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 			require.NoError(t, err)
 
 			// Check that we didn't return any destinations.
@@ -483,7 +481,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				},
 			}
 
-			actualDestinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			actualDestinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 			require.NoError(t, err)
 
 			// Check that we've computed expanded destinations correctly.

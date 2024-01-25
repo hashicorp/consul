@@ -21,7 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
-	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
+	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap/config-loader"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
@@ -182,6 +182,11 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 	}
+
+	// We unconditionally add an Access Control header to our config in order to allow the HCP UI to work.
+	// We do this unconditionally because the cluster can be linked to HCP at any time (not just at startup) and this
+	// is simpler than selectively reloading parts of config at runtime.
+	loader = hcpbootstrap.AddAclPolicyAccessControlHeader(loader)
 
 	bd, err := agent.NewBaseDeps(loader, logGate, nil)
 	if err != nil {
