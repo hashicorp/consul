@@ -2,12 +2,15 @@
 layout: docs
 page_title: API gateways overview
 description: API gateways provide an ingress point for service mesh traffic. Learn how API gateways add listeners for external traffic and route HTTP requests to services in the mesh.
-content_type: overview
 ---
 
 # API gateways overview
 
-This topic provides overview information about API gateways in Consul. API gateways enable external network clients to access applications and services running in a Consul datacenter. Consul API gateways can also forward requests from clients to specific destinations based on path or request protocol.
+This topic provides overview information about API gateways in Consul. 
+
+## Introduction
+
+API gateways enable external network clients to access applications and services running in a Consul datacenter. Consul API gateways can also forward requests from clients to specific destinations based on path or request protocol. Systems that access services in the mesh may be internal or external to your organizational network. _North-south traffic_ is a common term to describe this type of network traffic.
 
 ## API gateway use cases
 
@@ -58,7 +61,7 @@ Refer to the following resources for help setting up and using API gateways:
 
 ### Reference
 
-- [API gateway configuration reference for Kubernetes overview](/consul/docs/reference/api-gateway/)
+- [API gateway configuration reference for Kubernetes](/consul/docs/reference/k8s/api-gateway/)
 - [API gateway configuration entry reference](/consul/docs/reference/config-entry/api-gateway)
 - [HTTP route configuration entry reference](/consul/docs/reference/config-entry/http-route)
 - [TCP route configuration entry reference](/consul/docs/reference/config-entry/tcp-route)
