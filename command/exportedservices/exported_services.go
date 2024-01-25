@@ -26,7 +26,13 @@ func getSupportedFormats() []string {
 }
 
 func formatIsValid(f string) bool {
-	return f == PrettyFormat || f == JSONFormat
+	for _, format := range getSupportedFormats() {
+		if f == format {
+			return true
+		}
+	}
+	return false
+
 }
 
 func New(ui cli.Ui) *cmd {
