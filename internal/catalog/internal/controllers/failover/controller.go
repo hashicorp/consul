@@ -158,7 +158,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		return err
 	}
 
-	conds = computeNewConditions(nil, computedFailoverResource, newComputedFailoverPolicy, service, destServices, missingSamenessGroups)
+	conds = computeNewConditions(rawFailoverPolicy, computedFailoverResource, newComputedFailoverPolicy, service, destServices, missingSamenessGroups)
 	if err := writeStatus(ctx, rt, computedFailoverResource, conds); err != nil {
 		rt.Logger.Error("error encountered when attempting to update the resource's computed failover policy status", "error", err)
 		return err

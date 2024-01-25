@@ -133,8 +133,27 @@ func TestController(t *testing.T) {
 
 			t.Cleanup(func() { client.MustDelete(t, failover.Id) })
 
+			// Assert that the FailoverPolicy has the conflict condition.
+			client.WaitForStatusCondition(t, failover.Id, ControllerID, ConditionConflictDestinationPort(apiServiceRef, &pbcatalog.ServicePort{
+				VirtualPort: 8080,
+				TargetPort:  "http",
+			}))
+
+			// Assert that the ComputedFailoverPolicy has the conflict condition.
+			// The port normalization that occurs in the call to SimplifyFailoverPolicy results in the port being
+			// removed from the final FailoverPolicy and ComputedFailoverPolicy.
+			expFailoverData := &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{{
+							Ref:  apiServiceRef,
+							Port: "http",
+						}},
+					},
+				},
+			}
 			expectedComputedFP = &pbcatalog.ComputedFailoverPolicy{
-				PortConfigs:     failoverData.PortConfigs,
+				PortConfigs:     expFailoverData.PortConfigs,
 				BoundReferences: []*pbresource.Reference{apiServiceRef},
 			}
 			waitAndAssertComputedFailoverPolicy(t, client, failover.Id, expectedComputedFP, ConditionConflictDestinationPort(apiServiceRef, &pbcatalog.ServicePort{
@@ -167,8 +186,24 @@ func TestController(t *testing.T) {
 
 			t.Cleanup(func() { client.MustDelete(t, failover.Id) })
 
+			// Assert that the FailoverPolicy has the unknown condition.
+			client.WaitForStatusCondition(t, failover.Id, ControllerID, ConditionUnknownPort(apiServiceRef, "admin"))
+
+			// Assert that the ComputedFailoverPolicy has the unknown condition.
+			// The port normalization that occurs in the call to SimplifyFailoverPolicy results in the port being
+			// removed from the final FailoverPolicy and ComputedFailoverPolicy.
+			expFailoverData = &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{{
+							Ref:  apiServiceRef,
+							Port: "http",
+						}},
+					},
+				},
+			}
 			expectedComputedFP = &pbcatalog.ComputedFailoverPolicy{
-				PortConfigs:     failoverData.PortConfigs,
+				PortConfigs:     expFailoverData.PortConfigs,
 				BoundReferences: []*pbresource.Reference{apiServiceRef},
 			}
 			waitAndAssertComputedFailoverPolicy(t, client, failover.Id, expectedComputedFP, ConditionUnknownPort(apiServiceRef, "admin"))
@@ -189,6 +224,11 @@ func TestController(t *testing.T) {
 						Protocol:    pbcatalog.Protocol_PROTOCOL_MESH,
 					},
 				},
+			}
+			// update the expected ComputedFailoverPolicy to add back in the admin port as well
+			expectedComputedFP = &pbcatalog.ComputedFailoverPolicy{
+				PortConfigs:     failoverData.PortConfigs,
+				BoundReferences: []*pbresource.Reference{apiServiceRef},
 			}
 			svc = rtest.Resource(pbcatalog.ServiceType, "api").
 				WithData(t, apiServiceData).
