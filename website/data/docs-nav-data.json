@@ -1463,15 +1463,42 @@
       },
       {
         "title": "Admin partition",
-        "path": "segment/admin-partition"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/admin-partition"
+          },
+          {
+            "title": "Configure partitions on Kubernetes",
+            "path": "segment/admin-partition/k8s"
+          }
+        ]
       },
       {
         "title": "Namespace",
-        "path": "segment/namespace"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/namespace"
+          },
+          {
+            "title": "Configure namespaces on Kubernetes",
+            "path": "segment/namespace/k8s"
+          }
+        ]
       },
       {
         "title": "Network segment",
-        "path": "segment/network-segment"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/network-segment"
+          },
+          {
+            "title": "Create network segments (VM)",
+            "path": "segment/network-segment/vm"
+          }
+        ]
       },
       {
         "title": "Sameness group",
@@ -2492,6 +2519,10 @@
             "path": "reference/k8s/helm"
           }
         ]
+      },
+      {
+        "title": "Namespaces",
+        "path": "reference/namespace"
       },
       {
         "title": "Proxies",
