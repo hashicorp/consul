@@ -5,8 +5,6 @@ package apigateways
 
 import (
 	"context"
-	"errors"
-
 	"github.com/hashicorp/consul/internal/controller"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
@@ -32,5 +30,5 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	//TODO NET-7378
 
-	return errors.New("not implemented")
+	return nil
 }
