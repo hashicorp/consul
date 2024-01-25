@@ -44,7 +44,7 @@ func (client *GRPCClient) Apply(parsedResource *pbresource.Resource) (*pbresourc
 	}
 	ctx := context.Background()
 	if token != "" {
-		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
+		ctx = metadata.AppendToOutgoingContext(ctx, HeaderConsulToken, token)
 	}
 
 	defer client.Conn.Close()
@@ -66,7 +66,7 @@ func (client *GRPCClient) Read(resourceType *pbresource.Type, resourceTenancy *p
 		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
 	}
 	if token != "" {
-		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
+		ctx = metadata.AppendToOutgoingContext(ctx, HeaderConsulToken, token)
 	}
 
 	defer client.Conn.Close()
