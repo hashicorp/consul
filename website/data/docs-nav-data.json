@@ -1450,7 +1450,7 @@
     ]
   },
   {
-    "title": "Segment network",
+    "title": "Manage tenancy",
     "badge": {
       "text": "ENTERPRISE",
       "type": "outlined",
@@ -1462,7 +1462,7 @@
         "path": "segment"
       },
       {
-        "title": "Admin partition",
+        "title": "Admin partitions",
         "routes": [
           {
             "title": "Overview",
@@ -1475,7 +1475,7 @@
         ]
       },
       {
-        "title": "Namespace",
+        "title": "Namespaces",
         "routes": [
           {
             "title": "Overview",
@@ -1488,7 +1488,7 @@
         ]
       },
       {
-        "title": "Network segment",
+        "title": "Network segments",
         "routes": [
           {
             "title": "Overview",
@@ -1502,7 +1502,7 @@
       },
       {
         "title": "Sameness group",
-        "path": "segment/sameness-group"
+        "path": "segment/sameness-groups"
       }
     ]
   },
