@@ -135,60 +135,85 @@ func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.Destin
 		for _, p := range allPorts {
 			out[p] = nil
 		}
-
 		return out
 	}
 
 	for _, destinationRule := range destinationRules {
-		ports, dr := convertDestinationRule(allPorts, destinationRule)
-		for _, p := range ports {
-			if dr == nil {
+		portRules := convertDestinationRule(allPorts, destinationRule)
+		for p, pr := range portRules {
+			if pr.rule == nil {
 				out[p] = nil
 				continue
 			}
-			out[p] = append(out[p], dr)
+			out[p] = append(out[p], pr.rule)
 		}
 	}
 
 	return out
 }
 
-//nolint:unparam
-func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]string, *pbproxystate.DestinationRule) {
-	ports := make(map[string]struct{})
+type PortRule struct {
+	rule *pbproxystate.DestinationRule
+}
+
+func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) map[string]*PortRule { // was []string, dr
+	portRules := make(map[string]*PortRule)
+	targetPorts := allPorts
 	if len(dr.PortNames) > 0 {
-		for _, p := range dr.PortNames {
-			ports[p] = struct{}{}
+		targetPorts = dr.PortNames
+	}
+	for _, p := range targetPorts {
+		if dr.PortsOnly() {
+			portRules[p] = &PortRule{}
+			for _, exclude := range dr.Exclude {
+				for _, ep := range exclude.PortNames {
+					delete(portRules, ep)
+				}
+			}
+		} else {
+			portRules[p] = makePortRule(dr, p)
 		}
-	} else {
-		for _, p := range allPorts {
-			ports[p] = struct{}{}
-		}
 	}
+	return portRules
+}
 
-	for _, exclude := range dr.Exclude {
-		for _, p := range exclude.PortNames {
-			delete(ports, p)
-		}
-	}
-
-	var out []string
-	for p := range ports {
-		out = append(out, p)
-	}
-
-	if len(dr.String()) == 0 {
-		return out, nil
-	}
-
+func makePortRule(dr *pbauth.DestinationRule, p string) *PortRule {
 	psdr := &pbproxystate.DestinationRule{
 		PathExact:  dr.PathExact,
 		PathPrefix: dr.PathPrefix,
 		PathRegex:  dr.PathRegex,
 		Methods:    dr.Methods,
 	}
-	hrs := make([]*pbproxystate.DestinationRuleHeader, len(dr.Headers))
-	for i, hr := range dr.Headers {
+	psdr.DestinationRuleHeader = destinationRuleHeaders(dr.Headers)
+
+	var excls []*pbproxystate.ExcludePermissionRule
+	for _, ex := range dr.Exclude {
+		if len(ex.PortNames) == 0 || listContains(ex.PortNames, p) {
+			excls = append(excls, &pbproxystate.ExcludePermissionRule{
+				PathExact:  ex.PathExact,
+				PathPrefix: ex.PathPrefix,
+				PathRegex:  ex.PathRegex,
+				Methods:    ex.Methods,
+				Headers:    destinationRuleHeaders(ex.Headers),
+			})
+		}
+	}
+	psdr.Exclude = excls
+	return &PortRule{psdr}
+}
+
+func listContains(list []string, str string) bool {
+	for _, item := range list {
+		if item == str {
+			return true
+		}
+	}
+	return false
+}
+
+func destinationRuleHeaders(headers []*pbauth.DestinationRuleHeader) []*pbproxystate.DestinationRuleHeader {
+	hrs := make([]*pbproxystate.DestinationRuleHeader, len(headers))
+	for i, hr := range headers {
 		hrs[i] = &pbproxystate.DestinationRuleHeader{
 			Name:    hr.Name,
 			Present: hr.Present,
@@ -199,13 +224,7 @@ func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]st
 			Invert:  hr.Invert,
 		}
 	}
-	psdr.DestinationRuleHeader = hrs
-
-	if len(psdr.String()) > 0 {
-		return out, psdr
-	}
-
-	return out, nil
+	return hrs
 }
 
 func makePrincipals(trustDomain string, perm *pbauth.Permission) []*pbproxystate.Principal {

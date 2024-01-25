@@ -1,0 +1,77 @@
+{
+  "httpFilters": [
+    {
+      "name": "envoy.filters.http.rbac",
+      "typedConfig": {
+        "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+        "rules": {
+          "action": "DENY",
+          "policies": {
+            "consul-intentions-layer4": {
+              "permissions": [
+                {
+                  "any": true
+                }
+              ],
+              "principals": [
+                {
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "envoy.filters.http.rbac",
+      "typedConfig": {
+        "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+        "rules": {
+          "policies": {
+            "consul-intentions-layer7-0": {
+              "permissions": [
+                {
+                  "andRules": {
+                    "rules": [
+                      {
+                        "urlPath": {
+                          "path": {
+                            "prefix": "/v1"
+                          }
+                        }
+                      },
+                      {
+                        "header": {
+                          "name": "x-foo",
+                          "presentMatch": true
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "principals": [
+                {
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}
