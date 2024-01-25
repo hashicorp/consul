@@ -9,6 +9,7 @@ import { click, render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 import Service from '@ember/service';
 import sinon from 'sinon';
+import { EnvStub } from 'consul-ui/services/env';
 
 const userDismissedBannerStub = sinon.stub();
 const userHasLinkedStub = sinon.stub();
@@ -26,16 +27,16 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
     dismissHcpLinkBanner = dismissHcpLinkBannerStub;
   }
 
-  class EnvStub extends Service {
-    isEnterprise = false;
-    var(key) {
-      return key;
-    }
-  }
-
   hooks.beforeEach(function () {
     this.owner.register('service:hcp-link-status', HcpLinkStatusStub);
-    this.owner.register('service:env', EnvStub);
+    this.owner.register(
+      'service:env',
+      class Stub extends EnvStub {
+        stubEnv = {
+          isEnterprise: false,
+        };
+      }
+    );
   });
 
   test('it renders banner when hcp-link-status says it should', async function (assert) {
@@ -72,13 +73,14 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
   });
 
   test('it displays different banner text when consul is enterprise', async function (assert) {
-    class EnvStub extends Service {
-      isEnterprise = true;
-      var(key) {
-        return key;
+    this.owner.register(
+      'service:env',
+      class Stub extends EnvStub {
+        stubEnv = {
+          isEnterprise: true,
+        };
       }
-    }
-    this.owner.register('service:env', EnvStub);
+    );
     await render(hbs`<LinkToHcpBanner />`);
     assert
       .dom('[data-test-link-to-hcp-banner-description]')
