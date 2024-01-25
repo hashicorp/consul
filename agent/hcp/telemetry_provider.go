@@ -35,6 +35,7 @@ var (
 )
 
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
+var _ TelemetryProvider = &hcpProviderImpl{}
 var _ telemetry.ConfigProvider = &hcpProviderImpl{}
 var _ telemetry.EndpointProvider = &hcpProviderImpl{}
 var _ client.MetricsClientProvider = &hcpProviderImpl{}
@@ -97,6 +98,12 @@ type httpCfg struct {
 	client *retryablehttp.Client
 }
 
+//go:generate mockery --name TelemetryProvider --with-expecter --inpackage
+type TelemetryProvider interface {
+	Start(ctx context.Context, c *HCPProviderCfg) error
+	Stop()
+}
+
 type HCPProviderCfg struct {
 	HCPClient client.Client
 	HCPConfig config.CloudConfigurer
@@ -114,9 +121,9 @@ func NewHCPProvider(ctx context.Context) *hcpProviderImpl {
 	return h
 }
 
-// Run starts a process that continuously checks for updates to the telemetry configuration
+// Start starts a process that continuously checks for updates to the telemetry configuration
 // by making a request to HCP. It only starts running if it's not already running.
-func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
+func (h *hcpProviderImpl) Start(ctx context.Context, c *HCPProviderCfg) error {
 	changed := h.setRunning(true)
 	if !changed {
 		// Provider is already running.

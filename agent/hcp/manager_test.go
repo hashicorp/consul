@@ -31,7 +31,7 @@ func TestManager_Start(t *testing.T) {
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Once()
 
 	cloudCfg := config.CloudConfig{
-		ResourceID:      "organization/85702e73-8a3d-47dc-291c-379b783c5804/project/8c0547c0-10e8-1ea2-dffe-384bee8da634/hashicorp.consul.global-network-manager.cluster/test",
+		ResourceID:      "resource-id",
 		NodeID:          "node-1",
 		ManagementToken: "fake-token",
 	}
@@ -44,25 +44,18 @@ func TestManager_Start(t *testing.T) {
 	).Return().Once()
 	scadaM.EXPECT().Start().Return(nil)
 
-	telemetryProvider := &hcpProviderImpl{
-		httpCfg: &httpCfg{},
-		logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		cfg:     defaultDisabledCfg(),
-	}
-
-	mockTelemetryCfg, err := testTelemetryCfg(&testConfig{
-		refreshInterval: 1 * time.Second,
-	})
-	require.NoError(t, err)
-	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(
-		mockTelemetryCfg, nil).Maybe()
+	telemetryM := NewMockTelemetryProvider(t)
+	telemetryM.EXPECT().Start(mock.Anything, &HCPProviderCfg{
+		HCPClient: client,
+		HCPConfig: &cloudCfg,
+	}).Return(nil).Once()
 
 	mgr := NewManager(ManagerConfig{
 		Logger:                    hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		StatusFn:                  statusF,
 		ManagementTokenUpserterFn: upsertManagementTokenF,
 		SCADAProvider:             scadaM,
-		TelemetryProvider:         telemetryProvider,
+		TelemetryProvider:         telemetryM,
 	})
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -85,9 +78,6 @@ func TestManager_Start(t *testing.T) {
 	// Make sure after manager has stopped no more statuses are pushed.
 	cancel()
 	client.AssertExpectations(t)
-	require.Equal(t, client, telemetryProvider.hcpClient)
-	require.NotNil(t, telemetryProvider.GetHeader())
-	require.NotNil(t, telemetryProvider.GetHTTPClient())
 }
 
 func TestManager_StartMultipleTimes(t *testing.T) {

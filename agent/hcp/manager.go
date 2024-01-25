@@ -5,6 +5,7 @@ package hcp
 
 import (
 	"context"
+	"reflect"
 	"sync"
 	"time"
 
@@ -24,7 +25,7 @@ type ManagerConfig struct {
 	Client            hcpclient.Client
 	CloudConfig       config.CloudConfig
 	SCADAProvider     scada.Provider
-	TelemetryProvider *hcpProviderImpl
+	TelemetryProvider TelemetryProvider
 
 	StatusFn StatusCallback
 	// Idempotent function to upsert the HCP management token. This will be called periodically in
@@ -198,11 +199,11 @@ func (m *Manager) startSCADAProvider() error {
 }
 
 func (m *Manager) startTelemetryProvider(ctx context.Context) error {
-	if m.cfg.TelemetryProvider == nil {
+	if m.cfg.TelemetryProvider == nil || reflect.ValueOf(m.cfg.TelemetryProvider).IsNil() {
 		return nil
 	}
 
-	m.cfg.TelemetryProvider.Run(ctx, &HCPProviderCfg{
+	m.cfg.TelemetryProvider.Start(ctx, &HCPProviderCfg{
 		HCPClient: m.cfg.Client,
 		HCPConfig: &m.cfg.CloudConfig,
 	})

@@ -286,7 +286,7 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 	}
 }
 
-func TestTelemetryConfigProvider_Run(t *testing.T) {
+func TestTelemetryConfigProvider_Start(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -311,7 +311,7 @@ func TestTelemetryConfigProvider_Run(t *testing.T) {
 	mockHCPCfg := &config.MockCloudCfg{}
 
 	// Run provider
-	go provider.Run(context.Background(), &HCPProviderCfg{
+	go provider.Start(context.Background(), &HCPProviderCfg{
 		HCPClient: mockClient,
 		HCPConfig: mockHCPCfg,
 	})
@@ -352,11 +352,11 @@ func TestTelemetryConfigProvider_MultipleRun(t *testing.T) {
 	mockHCPCfg := &config.MockCloudCfg{}
 
 	// Run provider twice in parallel
-	go provider.Run(context.Background(), &HCPProviderCfg{
+	go provider.Start(context.Background(), &HCPProviderCfg{
 		HCPClient: mockClient,
 		HCPConfig: mockHCPCfg,
 	})
-	go provider.Run(context.Background(), &HCPProviderCfg{
+	go provider.Start(context.Background(), &HCPProviderCfg{
 		HCPClient: mockClient,
 		HCPConfig: mockHCPCfg,
 	})
@@ -375,7 +375,7 @@ func TestTelemetryConfigProvider_MultipleRun(t *testing.T) {
 	}
 
 	// Try calling run again, should not update again
-	provider.Run(context.Background(), &HCPProviderCfg{
+	provider.Start(context.Background(), &HCPProviderCfg{
 		HCPClient: mockClient,
 		HCPConfig: mockHCPCfg,
 	})
@@ -461,7 +461,7 @@ func TestTelemetryConfigProvider_Stop(t *testing.T) {
 	mockHCPCfg := &config.MockCloudCfg{}
 
 	// Run provider
-	provider.Run(context.Background(), &HCPProviderCfg{
+	provider.Start(context.Background(), &HCPProviderCfg{
 		HCPClient: mockClient,
 		HCPConfig: mockHCPCfg,
 	})
@@ -561,7 +561,7 @@ func TestTelemetryConfigProvider_Race(t *testing.T) {
 
 	// Start the provider goroutine, which fetches client TelemetryConfig every RefreshInterval.
 	provider := NewHCPProvider(ctx)
-	err = provider.Run(context.Background(), &HCPProviderCfg{m, config.MockCloudCfg{}})
+	err = provider.Start(context.Background(), &HCPProviderCfg{m, config.MockCloudCfg{}})
 	require.NoError(t, err)
 
 	for count := 0; count < testRaceWriteSampleCount; count++ {
