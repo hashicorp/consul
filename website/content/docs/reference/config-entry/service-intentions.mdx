@@ -358,7 +358,7 @@ You can also specify a wildcard character (`*`) to match all services without in
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Services in the namespace are the traffic destinations that the intentions allow or deny traffic to.
+Specifies the [namespace](/consul/docs/segment/namespace) that the configuration entry applies to. Services in the namespace are the traffic destinations that the intentions allow or deny traffic to.
 
 #### Values
 
@@ -369,7 +369,7 @@ You can also specify a wildcard character (`*`) to match all namespaces. Intenti
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry. Services in the specified partition are the traffic destinations that the intentions allow or deny traffic to.
+Specifies the [admin partition](/consul/docs/segment/admin-partition) to apply the configuration entry. Services in the specified partition are the traffic destinations that the intentions allow or deny traffic to.
 
 #### Values
 
@@ -499,7 +499,7 @@ Specifies the traffic source namespace that the intention allows or denies traff
 
 ### `Sources[].Partition` <EnterpriseAlert inline />
 
-Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions.
+Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/segment/admin-partition) for additional information about partitions.
 
 The `Peer` and `Partition` fields are mutually exclusive.
 
@@ -510,7 +510,7 @@ The `Peer` and `Partition` fields are mutually exclusive.
 
 ### `Sources[].SamenessGroup` <EnterpriseAlert inline />
 
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for additional information.
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/link/sameness-group) for additional information.
 
 #### Values
 
@@ -697,7 +697,7 @@ Specifies an arbitrary name for the configuration entry. Note that in other conf
 
 ### `metadata.namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
+Specifies the [namespace](/consul/docs/segment/namespace) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
 
 #### Values
 
@@ -839,7 +839,7 @@ Specifies the traffic source namespace that the intention allows or denies traff
 
 ### `spec.sources[].partition` <EnterpriseAlert inline />
 
-Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions. The `peer` and `partition` fields are mutually exclusive.
+Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/segment/admin-partition) for additional information about partitions. The `peer` and `partition` fields are mutually exclusive.
 
 #### Values
 
@@ -848,7 +848,7 @@ Specifies the name of an admin partition that the intention allows or denies tra
 
 ### `spec.sources[].samenessGroup` <EnterpriseAlert inline />
 
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for additional information.
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/link/sameness-group) for additional information.
 
 #### Values
 

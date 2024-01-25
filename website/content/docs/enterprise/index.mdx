@@ -18,8 +18,8 @@ The following features are [available in several forms of Consul Enterprise](#co
 
 ### Multi-Tenancy
 
-- [Admin Partitions](/consul/docs/enterprise/admin-partitions): Define administrative boundaries between tenants within a single Consul datacenter
-- [Namespaces](/consul/docs/enterprise/namespaces): Define resource boundaries within a single admin partition for further organizational flexibility
+- [Admin Partitions](/consul/docs/segment/admin-partition): Define administrative boundaries between tenants within a single Consul datacenter
+- [Namespaces](/consul/docs/segment/namespace): Define resource boundaries within a single admin partition for further organizational flexibility
 - [Sameness Groups](/consul/docs/connect/config-entries/sameness-group): Define partitions and cluster peers as members of a group with identical services
 
 ### Resiliency
@@ -92,7 +92,7 @@ Available Enterprise features per Consul form and license include:
 | Feature                                                  | [HashiCorp Cloud Platform (HCP) Consul] | [Consul Enterprise] | Legacy Consul Enterprise (module-based)           |
 | -------------------------------------------------------- | --------------------------------------- | ------------------- | ------------------------------------------------- |
 | Consul servers as a managed service                      | Yes                                     | No (self-managed)   | No (self-managed)                                 |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)    | All tiers                               | Yes                 | With Governance and Policy module                 |
+| [Admin Partitions](/consul/docs/segment/admin-partition)    | All tiers                               | Yes                 | With Governance and Policy module                 |
 | [Audit Logging](/consul/docs/enterprise/audit-logging)          | Standard tier and above                 | Yes                 | With Governance and Policy module                 |
 | [Automated Server Backups](/consul/docs/enterprise/backups)     | All tiers                               | Yes                 | Yes                                               |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)   | All tiers                               | Yes                 | Yes                                               |
@@ -101,7 +101,7 @@ Available Enterprise features per Consul form and license include:
 | [FIPS 140-2 Compliance](/consul/docs/enterprise/fips) | No                                      | Yes                 | No |
 | [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms)   |  Yes          |  Yes   | Yes |
 | [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                    |  Yes                |  Yes   | Yes |
-| [Namespaces](/consul/docs/enterprise/namespaces)                | All tiers                               | Yes                 | With Governance and Policy module                 |
+| [Namespaces](/consul/docs/segment/namespace)                | All tiers                               | Yes                 | With Governance and Policy module                 |
 | [Network Areas](/consul/docs/enterprise/federation)             | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)    | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc) | No                                      | Yes                 | Yes                                               |
@@ -124,7 +124,7 @@ Consul Enterprise feature availability can change depending on your server and c
 
 | Enterprise Feature                                                                                       | VM Client | K8s Client | ECS Client |
 |----------------------------------------------------------------------------------------------------------|:---------:|:----------:| :--------: |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)                                             |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Admin Partitions](/consul/docs/segment/admin-partition)                                             |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Audit Logging](/consul/docs/enterprise/audit-logging)                                                   |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Automated Server Backups](/consul/docs/enterprise/backups)                                              |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                            |  &#9989;  |  &#9989;   |   &#9989;  |
@@ -132,7 +132,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                    |  &#9989;  |  &#9989;   |   &#9989;  |
 | [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) |  &#9989;  |  &#9989;   |   &#10060;  |
 | [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                   |  &#9989;  |  &#9989;   | &#9989; |
-| [Namespaces](/consul/docs/enterprise/namespaces)                                                         |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Namespaces](/consul/docs/segment/namespace)                                                         |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                                                      |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)                   |  &#9989;  |  &#9989;   |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)                                          |  &#9989;  |  &#9989;   |   &#9989;  |
@@ -147,7 +147,7 @@ Consul Enterprise feature availability can change depending on your server and c
 
 | Enterprise Feature                                                                                            | VM Client | K8s Client | ECS Client |
 |---------------------------------------------------------------------------------------------------------------| :-------: | :--------: | :--------: |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)                                                  |  &#9989;  |  &#9989;   |  &#9989;  |
+| [Admin Partitions](/consul/docs/segment/admin-partition)                                                  |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Audit Logging](/consul/docs/enterprise/audit-logging)                                                        |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Automated Server Backups](/consul/docs/enterprise/backups)                                                   |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 |  &#10060; |  &#10060;  |  &#10060;  |
@@ -155,7 +155,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         |  &#9989;  |  &#9989;   |   &#9989;  |
 | [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) |  &#9989;  |  &#9989;   |   &#10060;  |
 | [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        |  &#9989;  |  &#9989;   | &#9989; |
-| [Namespaces](/consul/docs/enterprise/namespaces)                                                              |  &#9989;  |  &#9989;   |  &#9989;  |
+| [Namespaces](/consul/docs/segment/namespace)                                                              |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                                                           |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)                        |  &#9989;  |  &#9989;   |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)                                               |  &#9989;  |  &#9989;   |  &#9989;  |
@@ -169,7 +169,7 @@ Consul Enterprise feature availability can change depending on your server and c
 
 | Enterprise Feature                                                      | VM Client | K8s Client | ECS Client |
 | ----------------------------------------------------------------------- | :-------: | :--------: | :--------: |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)            |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Admin Partitions](/consul/docs/segment/admin-partition)            |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Audit Logging](/consul/docs/enterprise/audit-logging)                  |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Automated Server Backups](/consul/docs/enterprise/backups)             |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)           |  &#9989;  |  &#9989;   |   &#9989;  |
@@ -177,7 +177,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                   |  &#10060; |  &#10060;  |  &#10060;  |
 | [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) |  &#9989;  |  &#9989;   |   &#10060;  |
 | [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                   |  &#9989;  |  &#9989;   | &#9989; |
-| [Namespaces](/consul/docs/enterprise/namespaces)                        |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Namespaces](/consul/docs/segment/namespace)                        |  &#9989;  |  &#9989;   |   &#9989;  |
 | [Network Areas](/consul/docs/enterprise/federation)                     |  &#10060; |  &#10060;  |  &#10060;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#10060; |  &#10060;  |  &#10060;  |
 | [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)         |  &#10060; |  &#10060;  |  &#10060;  |
