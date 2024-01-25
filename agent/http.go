@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -198,6 +199,8 @@ func (s *HTTPHandlers) handler() http.Handler {
 		minSize := gziphandler.DefaultMinSize
 		if pattern == "/v1/agent/monitor" || pattern == "/v1/agent/metrics/stream" {
 			minSize = 0
+		} else if pattern == "/v1/operator/autopilot/health" {
+			minSize = math.MaxInt32
 		}
 		gzipWrapper, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(minSize))
 		if err == nil {
