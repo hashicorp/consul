@@ -249,7 +249,7 @@ export default function (config = {}, win = window, doc = document) {
               prev['CONSUL_HTTP_TOKEN'] = value;
               break;
             case 'CONSUL_V2_CATALOG_ENABLE':
-              prev['CONSUL_V2_CATALOG_ENALBED'] = JSON.parse(value);
+              prev['CONSUL_V2_CATALOG_ENABLED'] = JSON.parse(value);
               break;
             default:
               prev[key] = value;
