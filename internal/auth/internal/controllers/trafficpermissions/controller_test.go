@@ -114,7 +114,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).
 			WithTenancy(tenancy).
@@ -154,7 +154,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 
 		// Ensure that the CTP was created
 		ctp := suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctp, []*pbauth.Permission{p2}, []*pbauth.Permission{p1})
+		suite.requireCTP(ctp, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{})
 		rtest.RequireOwner(suite.T(), ctp, wi.Id, true)
 	})
 }
@@ -174,7 +174,7 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).
 			WithTenancy(tenancy).
@@ -270,7 +270,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).Write(suite.T(), suite.client)
 		suite.requireTrafficPermissionsTracking(tp1, id)
@@ -298,7 +298,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 
 		// Ensure that the CTP was updated
 		ctpResource = suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctpResource, []*pbauth.Permission{p2}, []*pbauth.Permission{p1})
+		suite.requireCTP(ctpResource, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{})
 		rtest.RequireOwner(suite.T(), ctpResource, wi.Id, true)
 		assertCTPDefaultStatus(suite.T(), ctpResource, false)
 
@@ -316,7 +316,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p3},
 		}).Write(suite.T(), suite.client)
 		suite.requireTrafficPermissionsTracking(tp3, id)
@@ -326,7 +326,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 
 		// Ensure that the CTP was updated
 		ctpResource = suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctpResource, []*pbauth.Permission{p2}, []*pbauth.Permission{p1, p3})
+		suite.requireCTP(ctpResource, []*pbauth.Permission{p1, p2, p3}, []*pbauth.Permission{})
 		rtest.RequireOwner(suite.T(), ctpResource, wi.Id, true)
 		assertCTPDefaultStatus(suite.T(), ctpResource, false)
 
@@ -368,7 +368,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).
 			WithTenancy(tenancy).
@@ -398,7 +398,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		require.NoError(suite.T(), err)
 
 		ctp := suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctp, []*pbauth.Permission{p2}, []*pbauth.Permission{p1})
+		suite.requireCTP(ctp, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{})
 		rtest.RequireOwner(suite.T(), ctp, wi.Id, true)
 
 		// Delete TP2
@@ -409,7 +409,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 
 		// Ensure that the CTP was updated
 		ctp = suite.client.RequireResourceExists(suite.T(), id)
-		suite.requireCTP(ctp, []*pbauth.Permission{}, []*pbauth.Permission{p1})
+		suite.requireCTP(ctp, []*pbauth.Permission{p1}, []*pbauth.Permission{})
 
 		// Ensure TP2 is untracked
 		newTps := suite.mapper.GetTrafficPermissionsForCTP(ctp.Id)
@@ -434,7 +434,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 			Destination: &pbauth.Destination{
 				IdentityName: "wi1",
 			},
-			Action:      pbauth.Action_ACTION_DENY,
+			Action:      pbauth.Action_ACTION_ALLOW,
 			Permissions: []*pbauth.Permission{p1},
 		}).
 			WithTenancy(tenancy).

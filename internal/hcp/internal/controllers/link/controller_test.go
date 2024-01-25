@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/hashicorp/go-uuid"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -19,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -33,7 +33,6 @@ type controllerSuite struct {
 	client *rtest.Client
 	rt     controller.Runtime
 
-	ctl       linkReconciler
 	tenancies []*pbresource.Tenancy
 }
 
@@ -49,7 +48,7 @@ func mockHcpClientFn(t *testing.T) (*hcpclient.MockClient, HCPClientFn) {
 
 func (suite *controllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	suite.tenancies = resourcetest.TestTenancies()
+	suite.tenancies = rtest.TestTenancies()
 	client := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(types.Register).
 		WithTenancies(suite.tenancies...).
@@ -76,19 +75,35 @@ func (suite *controllerSuite) TestController_Ok() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	mockClient, mockClientFn := mockHcpClientFn(suite.T())
-	readOnly := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY
+	readWrite := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
 		HCPPortalURL: "http://test.com",
-		AccessLevel:  &readOnly,
+		AccessLevel:  &readWrite,
 	}, nil)
-	mgr.Register(LinkController(false, false, mockClientFn, config.CloudConfig{}))
+
+	token, err := uuid.GenerateUUID()
+	require.NoError(suite.T(), err)
+	mockClient.EXPECT().FetchBootstrap(mock.Anything).
+		Return(&hcpclient.BootstrapConfig{
+			ManagementToken: token,
+			ConsulConfig:    "{}",
+		}, nil).Once()
+
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+	mgr.Register(LinkController(
+		false,
+		false,
+		mockClientFn,
+		config.CloudConfig{},
+		dataDir,
+	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 
 	link := rtest.Resource(pbhcp.LinkType, "global").
@@ -102,7 +117,7 @@ func (suite *controllerSuite) TestController_Ok() {
 	updatedLinkResource := suite.client.WaitForNewVersion(suite.T(), link.Id, link.Version)
 	require.NoError(suite.T(), updatedLinkResource.Data.UnmarshalTo(&updatedLink))
 	require.Equal(suite.T(), "http://test.com", updatedLink.HcpClusterUrl)
-	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY, updatedLink.AccessLevel)
+	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE, updatedLink.AccessLevel)
 }
 
 func (suite *controllerSuite) TestController_Initialize() {
@@ -110,19 +125,27 @@ func (suite *controllerSuite) TestController_Initialize() {
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 
 	mockClient, mockClientFn := mockHcpClientFn(suite.T())
-	readWrite := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE
+	readOnly := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADONLY
 	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
 		HCPPortalURL: "http://test.com",
-		AccessLevel:  &readWrite,
+		AccessLevel:  &readOnly,
 	}, nil)
 
 	cloudCfg := config.CloudConfig{
 		ClientID:     "client-id-abc",
 		ClientSecret: "client-secret-abc",
-		ResourceID:   "resource-id-abc",
+		ResourceID:   types.GenerateTestResourceID(suite.T()),
 	}
 
-	mgr.Register(LinkController(false, false, mockClientFn, cloudCfg))
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+
+	mgr.Register(LinkController(
+		false,
+		false,
+		mockClientFn,
+		cloudCfg,
+		dataDir,
+	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -152,14 +175,21 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	_, mockClientFunc := mockHcpClientFn(suite.T())
-	mgr.Register(LinkController(true, false, mockClientFunc, config.CloudConfig{}))
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+	mgr.Register(LinkController(
+		true,
+		false,
+		mockClientFunc,
+		config.CloudConfig{},
+		dataDir,
+	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
@@ -178,14 +208,31 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 		HCPPortalURL: "http://test.com",
 	}, nil)
 
-	mgr.Register(LinkController(true, true, mockClientFunc, config.CloudConfig{}))
+	token, err := uuid.GenerateUUID()
+	require.NoError(suite.T(), err)
+	mockClient.EXPECT().FetchBootstrap(mock.Anything).
+		Return(&hcpclient.BootstrapConfig{
+			ManagementToken: token,
+			ConsulConfig:    "{}",
+		}, nil).Once()
+
+	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+
+	mgr.Register(LinkController(
+		true,
+		true,
+		mockClientFunc,
+		config.CloudConfig{},
+		dataDir,
+	))
+
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 	link := rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
@@ -197,27 +244,58 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 }
 
 func (suite *controllerSuite) TestController_GetClusterError() {
-	// Run the controller manager
-	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mockClient, mockClientFunc := mockHcpClientFn(suite.T())
-	mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, fmt.Errorf("error"))
-
-	mgr.Register(LinkController(true, true, mockClientFunc, config.CloudConfig{}))
-	mgr.SetRaftLeader(true)
-	go mgr.Run(suite.ctx)
-
-	linkData := &pbhcp.Link{
-		ClientId:     "abc",
-		ClientSecret: "abc",
-		ResourceId:   "abc",
+	type testCase struct {
+		expectErr       error
+		expectCondition *pbresource.Condition
 	}
-	link := rtest.Resource(pbhcp.LinkType, "global").
-		WithData(suite.T(), linkData).
-		Write(suite.T(), suite.client)
+	tt := map[string]testCase{
+		"unexpected": {
+			expectErr:       fmt.Errorf("error"),
+			expectCondition: ConditionFailed,
+		},
+		"unauthorized": {
+			expectErr:       hcpclient.ErrUnauthorized,
+			expectCondition: ConditionUnauthorized,
+		},
+		"forbidden": {
+			expectErr:       hcpclient.ErrForbidden,
+			expectCondition: ConditionForbidden,
+		},
+	}
 
-	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
+	for name, tc := range tt {
+		suite.T().Run(name, func(t *testing.T) {
+			// Run the controller manager
+			mgr := controller.NewManager(suite.client, suite.rt.Logger)
+			mockClient, mockClientFunc := mockHcpClientFn(suite.T())
+			mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, tc.expectErr)
 
-	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionFailed)
+			dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+			mgr.Register(LinkController(
+				true,
+				true,
+				mockClientFunc,
+				config.CloudConfig{},
+				dataDir,
+			))
+
+			mgr.SetRaftLeader(true)
+			go mgr.Run(suite.ctx)
+
+			linkData := &pbhcp.Link{
+				ClientId:     "abc",
+				ClientSecret: "abc",
+				ResourceId:   types.GenerateTestResourceID(suite.T()),
+			}
+			link := rtest.Resource(pbhcp.LinkType, "global").
+				WithData(suite.T(), linkData).
+				Write(suite.T(), suite.client)
+
+			suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
+
+			suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, tc.expectCondition)
+		})
+	}
 }
 
 func Test_hcpAccessModeToConsul(t *testing.T) {

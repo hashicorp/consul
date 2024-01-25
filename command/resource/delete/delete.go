@@ -161,12 +161,12 @@ $ consul resource delete -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
-  Type = gvk("catalog.v2beta1.Service")
-  Name = "card-processor"
-  Tenancy {
-    Namespace = "payments"
-    Partition = "billing"
-    PeerName = "eu"
-  }
+	Type = gvk("catalog.v2beta1.Service")
+	Name = "card-processor"
+	Tenancy {
+		Namespace = "payments"
+		Partition = "billing"
+		PeerName = "eu"
+	}
 }
 `

@@ -392,9 +392,7 @@ func (pr *ProxyResources) makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envo
 func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	var httpConnMgr *envoy_http_v3.HttpConnectionManager
-
 	if l7 != nil {
-		// TODO: Intentions will be added in the future.
 		if l7.MaxInboundConnections > 0 {
 			connLimitFilter, err := makeEnvoyConnectionLimitFilter(l7.MaxInboundConnections)
 			if err != nil {
