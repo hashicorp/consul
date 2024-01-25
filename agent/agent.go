@@ -24,12 +24,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/rboyer/safeio"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
-
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -37,6 +31,11 @@ import (
 	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"github.com/rboyer/safeio"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -718,6 +717,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				Time:    a.config.GRPCKeepaliveInterval,
 				Timeout: a.config.GRPCKeepaliveTimeout,
 			},
+			nil,
 		)
 
 		if a.baseDeps.UseV2Resources() {
@@ -754,6 +754,11 @@ func (a *Agent) Start(ctx context.Context) error {
 			return fmt.Errorf("can't start agent: client agents are not supported with v2 resources")
 		}
 
+		// the conn is used to connect to the consul server agent
+		conn, err := a.baseDeps.GRPCConnPool.ClientConn(a.baseDeps.RuntimeConfig.Datacenter)
+		if err != nil {
+			return err
+		}
 		a.externalGRPCServer = external.NewServer(
 			a.logger.Named("grpc.external"),
 			metrics.Default(),
@@ -763,6 +768,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				Time:    a.config.GRPCKeepaliveInterval,
 				Timeout: a.config.GRPCKeepaliveTimeout,
 			},
+			conn,
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)

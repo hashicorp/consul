@@ -352,7 +352,7 @@ func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, err
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{})
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{}, nil)
 	proxyUpdater := proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{})
 	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, proxyUpdater)
 	if err != nil {

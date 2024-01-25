@@ -1835,7 +1835,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.ACLResolverSettings.EnterpriseMeta = *conf.AgentEnterpriseMeta()
 
 	deps := newDefaultDeps(t, conf)
-	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator, rate.NullRequestLimitsHandler(), keepalive.ServerParameters{})
+	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator, rate.NullRequestLimitsHandler(), keepalive.ServerParameters{}, nil)
 
 	server, err := consul.NewServer(conf, deps, externalGRPCServer, nil, deps.Logger, nil)
 	require.NoError(t, err)
