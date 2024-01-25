@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/command/resource/read"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -124,10 +125,9 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 		code := c.Run(args)
 		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
-		// Todo: make up the read result check after finishing the read command
-		//expected := readResource(t, a, []string{"demo.v2.Artist", "korn"})
 		require.Contains(t, ui.OutputWriter.String(), "demo.v2.Artist 'korn' created.")
-		//require.Contains(t, ui.OutputWriter.String(), expected)
+		readUI := readResource(t, []string{"demo.v2.Artist", "korn"}, availablePort)
+		require.Contains(t, ui.OutputWriter.String(), readUI.OutputWriter.String())
 	})
 
 	t.Run("json", func(t *testing.T) {
@@ -175,10 +175,9 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 		code := c.Run(args)
 		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
-		// Todo: make up the read result check after finishing the read command
-		//expected := readResource(t, a, []string{"demo.v2.Artist", "korn"})
 		require.Contains(t, ui.OutputWriter.String(), "demo.v2.Artist 'korn' created.")
-		//require.Contains(t, ui.OutputWriter.String(), expected)
+		readUI := readResource(t, []string{"demo.v2.Artist", "korn"}, availablePort)
+		require.Contains(t, ui.OutputWriter.String(), readUI.OutputWriter.String())
 	})
 }
 
@@ -225,4 +224,22 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 			require.Contains(t, ui.ErrorWriter.String(), tc.expectedErr.Error())
 		})
 	}
+}
+
+func readResource(t *testing.T, args []string, port int) *cli.MockUi {
+	readUi := cli.NewMockUi()
+	readCmd := read.New(readUi)
+
+	flags := []string{
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", port),
+		"-token=root",
+	}
+
+	args = append(args, flags...)
+
+	code := readCmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Empty(t, readUi.ErrorWriter.String())
+
+	return readUi
 }
