@@ -111,7 +111,7 @@ func (suite *controllerSuite) TestController_Ok() {
 	hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
 	hcpMgr.EXPECT().UpdateConfig(mock.Anything, mock.Anything)
 	hcpMgr.EXPECT().Start(mock.Anything).Return(nil)
-	hcpMgr.EXPECT().Stop().Once()
+	hcpMgr.EXPECT().Stop()
 
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
 	suite.dataDir = dataDir
@@ -172,7 +172,7 @@ func (suite *controllerSuite) TestController_Initialize() {
 	hcpMgr.EXPECT().GetCloudConfig().Return(cloudCfg)
 	hcpMgr.EXPECT().UpdateConfig(mock.Anything, mock.Anything)
 	hcpMgr.EXPECT().Start(mock.Anything).Return(nil)
-	hcpMgr.EXPECT().Stop().Once()
+	hcpMgr.EXPECT().Stop()
 
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
 	suite.dataDir = dataDir
@@ -218,7 +218,7 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	suite.dataDir = dataDir
 
 	hcpMgr := hcp.NewMockManager(suite.T())
-	hcpMgr.EXPECT().Stop().Once()
+	hcpMgr.EXPECT().Stop()
 	mgr.Register(LinkController(
 		true,
 		false,
@@ -266,7 +266,7 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 	hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
 	hcpMgr.EXPECT().UpdateConfig(mock.Anything, mock.Anything)
 	hcpMgr.EXPECT().Start(mock.Anything).Return(nil)
-	hcpMgr.EXPECT().Stop().Once()
+	hcpMgr.EXPECT().Stop()
 
 	mgr.Register(LinkController(
 		true,
@@ -326,7 +326,7 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 
 			hcpMgr := hcp.NewMockManager(t)
 			hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
-			hcpMgr.EXPECT().Stop().Once()
+			hcpMgr.EXPECT().Stop()
 
 			mgr.Register(LinkController(
 				true,

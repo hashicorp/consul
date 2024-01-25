@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func cleanup(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, hcpManager hcp.Manager, dataDir string) error {
+func cleanup(rt controller.Runtime, hcpManager hcp.Manager, dataDir string) error {
 	rt.Logger.Trace("cleaning up link resource")
 
 	rt.Logger.Debug("stopping HCP manager")
@@ -26,13 +26,9 @@ func cleanup(ctx context.Context, rt controller.Runtime, res *pbresource.Resourc
 		rt.Logger.Debug("deleting hcp-config dir", "dir", hcpConfigDir)
 		err := os.RemoveAll(hcpConfigDir)
 		if err != nil {
+			rt.Logger.Error("failed to delete hcp-config dir", "dir", hcpConfigDir, "err", err)
 			return err
 		}
-	}
-
-	err := ensureDeleted(ctx, rt, res)
-	if err != nil {
-		return err
 	}
 
 	return nil
