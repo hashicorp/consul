@@ -1375,10 +1375,6 @@
             "title": "Reference",
             "routes": [
               {
-                "title": "Overview",
-                "href": "reference/k8s/api-gateway"
-              },
-              {
                 "title": "Gateway",
                 "href": "reference/k8s/api-gateway/gateway"
               },
@@ -2445,10 +2441,6 @@
           {
             "title": "API gateway resources",
             "routes": [
-              {
-                "title": "Overview",
-                "path": "reference/k8s/api-gateway"
-              },
               {
                 "title": "Gateway",
                 "path": "reference/k8s/api-gateway/gateway"

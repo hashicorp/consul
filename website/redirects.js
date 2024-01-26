@@ -336,20 +336,20 @@ module.exports = [
   {
     source:
       '/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services',
-    destination: '/consul/docs/access/api-gateway/route/peer',
+    destination: '/consul/docs/access/api-gateway/define-route/peer',
     permanent: true,
   },
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/access/api-gateway/route/peer/:slug*',
     destination:
-      '/consul/docs/:version/connect/gateways/api-gateway/define-routes/route-to-peered-services/:slug',
+      '/consul/docs/:version/connect/gateways/api-gateway/define-route/route-to-peered-services/:slug',
     permanent: true,
   },
   {
     source:
       '/consul/docs/connect/gateways/api-gateway/secure-traffic/encrypt-vms',
-    destination: '/consul/docs/access/api-gateway/secure/encrypt',
+    destination: '/consul/docs/access/api-gateway/secure-traffic/encrypt',
     permanent: true,
   },
   {
@@ -362,7 +362,7 @@ module.exports = [
   {
     source:
       '/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms',
-    destination: '/consul/docs/access/api-gateway/secure/jwt-vm',
+    destination: '/consul/docs/access/api-gateway/secure-traffic/jwt-vm',
     permanent: true,
   },
   {
@@ -375,7 +375,7 @@ module.exports = [
   {
     source:
       '/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s',
-    destination: '/consul/docs/access/api-gateway/secure/jwt-k8s',
+    destination: '/consul/docs/access/api-gateway/secure-traffic/jwt-k8s',
     permanent: true,
   },
   {
@@ -410,7 +410,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/gateways/ingress-gateway/usage',
-    destination: '/consul/docs/access/ingress-gateway/create/vms',
+    destination: '/consul/docs/access/ingress-gateway/create-vm',
     permanent: true,
   },
   {
@@ -422,7 +422,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/gateways/ingress-gateway/usage',
-    destination: '/consul/docs/access/ingress-gateway/create/vms',
+    destination: '/consul/docs/access/ingress-gateway/create-vm',
     permanent: true,
   },
   {
