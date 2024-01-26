@@ -200,7 +200,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		BuildLocalApp(workloadDataWithInheritedPorts, ctp)
 
 	// Get all destinationsData.
-	destinationsData, err := dataFetcher.FetchComputedExplicitDestinationsData(ctx, req.ID)
+	destinationsData, err := dataFetcher.FetchComputedExplicitDestinationsData(ctx, req.ID, proxyCfg.GetData())
 	if err != nil {
 		rt.Logger.Error("error fetching explicit destinations for this proxy", "error", err)
 		return err
