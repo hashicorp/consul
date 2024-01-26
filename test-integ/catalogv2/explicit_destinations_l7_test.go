@@ -124,6 +124,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) NewConfig(t *testing.
 		Enterprise: utils.IsEnterprise(),
 		Name:       clusterName,
 		Nodes:      servers,
+		Services:   make(map[topology.ID]*pbcatalog.Service),
 	}
 
 	lastNode := 0
@@ -334,24 +335,22 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 
 	// Explicitly define backend services s.t. they are not inferred from workload,
 	// which would assign random virtual ports.
-	cluster.Services = map[topology.ID]*pbcatalog.Service{
-		newID("static-client", tenancy): {
-			Ports: []*pbcatalog.ServicePort{
-				{
-					TargetPort: "mesh",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
-				},
+	cluster.Services[newID("static-client", tenancy)] = &pbcatalog.Service{
+		Ports: []*pbcatalog.ServicePort{
+			{
+				TargetPort: "mesh",
+				Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
 			},
 		},
-		newID("static-server", tenancy): {
-			Ports: parentServicePorts,
-		},
-		newID("static-server-v1", tenancy): {
-			Ports: backendServicePorts,
-		},
-		newID("static-server-v2", tenancy): {
-			Ports: backendServicePorts,
-		},
+	}
+	cluster.Services[newID("static-server", tenancy)] = &pbcatalog.Service{
+		Ports: parentServicePorts,
+	}
+	cluster.Services[newID("static-server-v1", tenancy)] = &pbcatalog.Service{
+		Ports: backendServicePorts,
+	}
+	cluster.Services[newID("static-server-v2", tenancy)] = &pbcatalog.Service{
+		Ports: backendServicePorts,
 	}
 
 	httpServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
