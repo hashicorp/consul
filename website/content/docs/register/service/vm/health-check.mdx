@@ -560,7 +560,7 @@ Alias checks continuously report the health state of another registered node or 
 For aliased services on the same agent, the check monitors the local state without consuming additional network resources. For services and nodes on different agents, the check maintains a blocking query over the agent's connection with a current server and allows stale requests. 
 
 ### ACLs
-For the blocking query, the alias check presents the ACL token set on the actual service or the token configured in the check definition. If neither are available, the alias check falls back to the default ACL token set for the agent. Refer to [`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default) for additional information about the default ACL token.
+For the blocking query, the alias check presents the ACL token set on the actual service or the token configured in the check definition. If neither are available, the alias check falls back to the default ACL token set for the agent. Refer to [`acl.tokens.default`](/consul/docs/reference/agent#acl_tokens_default) for additional information about the default ACL token.
 
 ### Alias checks configuration
 Add an `alias_service` field to the `check` block in your service definition file and specify the name of the service or node to alias. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations.

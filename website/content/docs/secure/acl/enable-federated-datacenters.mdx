@@ -21,7 +21,7 @@ In a [federated Consul deployment](/consul/docs/link/wan-federation), one of the
 The `acl` configuration block should be added to the primary datacenter server's configuration file
 as shown in the following example.
 
-See the [ACL Config Stanza](/consul/docs/agent/config/config-files#acl) for more detailed descriptions of each option.
+See the [ACL Config Stanza](/consul/docs/reference/agent#acl) for more detailed descriptions of each option.
 
 -> **Versions before 1.11.0:** The `initial_management` token was called the `master` token in versions
 prior to 1.11.0
@@ -67,7 +67,7 @@ acl = {
 
 ~> **Warning:** Note that most enterprise deployments have security requirements that prevent specifying tokens in configuration files.
 The `enable_token_persistence` flag is also set in the configuration example so that the token is stored to disk in the agent's
-[data directory](/consul/docs/agent/config/config-files#_data_dir). Any future changes to the token that are made through the [API](/consul/api-docs/agent#update-acl-tokens) will
+[data directory](/consul/docs/reference/agent#_data_dir). Any future changes to the token that are made through the [API](/consul/api-docs/agent#update-acl-tokens) will
 be persisted to the same location, and the value in the config file will be ignored.
 
 The ACL agent token can also be set using the [`consul acl set-agent-token`](/consul/commands/acl/set-agent-token) CLI as shown below.

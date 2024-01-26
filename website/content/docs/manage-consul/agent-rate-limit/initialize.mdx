@@ -14,7 +14,7 @@ Because each network has different needs and application, you need to find out w
     - Number of servers and the projected load
     - Existing metrics expressing requests per second
 
-1. Set the [`limits.request_limits.mode`](/consul/docs/agent/config/config-files#mode-1) parameter in the agent configuration to `permissive`. In the following example, the configuration allows up to 1000 reads and 500 writes per second for each Consul agent:
+1. Set the [`limits.request_limits.mode`](/consul/docs/reference/agent#mode-1) parameter in the agent configuration to `permissive`. In the following example, the configuration allows up to 1000 reads and 500 writes per second for each Consul agent:
 
     ```hcl
     request_limits { 
