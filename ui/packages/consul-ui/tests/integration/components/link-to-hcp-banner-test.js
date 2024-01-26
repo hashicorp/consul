@@ -11,7 +11,6 @@ import Service from '@ember/service';
 import sinon from 'sinon';
 
 const userDismissedBannerStub = sinon.stub();
-const userHasLinkedStub = sinon.stub();
 const dismissHcpLinkBannerStub = sinon.stub();
 const bannerSelector = '[data-test-link-to-hcp-banner]';
 module('Integration | Component | link-to-hcp-banner', function (hooks) {
@@ -22,7 +21,6 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
       return true;
     }
     userDismissedBanner = userDismissedBannerStub;
-    userHasLinked = userHasLinkedStub;
     dismissHcpLinkBanner = dismissHcpLinkBannerStub;
   }
 
@@ -39,7 +37,8 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
   });
 
   test('it renders banner when hcp-link-status says it should', async function (assert) {
-    await render(hbs`<LinkToHcpBanner />`);
+    this.linkData = { isLinked: false };
+    await render(hbs`<LinkToHcpBanner @linkData={{this.linkData}} />`);
 
     assert.dom(bannerSelector).exists({ count: 1 });
     await click(`${bannerSelector} button[aria-label="Dismiss"]`);
@@ -62,12 +61,37 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
       get shouldDisplayBanner() {
         return false;
       }
-      userDismissedBanner = sinon.stub();
-      userHasLinked = sinon.stub();
       dismissHcpLinkBanner = sinon.stub();
     }
     this.owner.register('service:hcp-link-status', HcpLinkStatusStub);
-    await render(hbs`<LinkToHcpBanner />`);
+    this.linkData = { isLinked: false };
+    await render(hbs`<LinkToHcpBanner @linkData={{this.linkData}} />`);
+    assert.dom(bannerSelector).doesNotExist();
+  });
+
+  test('banner does not render when cluster is already linked', async function (assert) {
+    class HcpLinkStatusStub extends Service {
+      get shouldDisplayBanner() {
+        return true;
+      }
+      dismissHcpLinkBanner = sinon.stub();
+    }
+    this.owner.register('service:hcp-link-status', HcpLinkStatusStub);
+    this.linkData = { isLinked: true };
+    await render(hbs`<LinkToHcpBanner @linkData={{this.linkData}} />`);
+    assert.dom(bannerSelector).doesNotExist();
+  });
+
+  test('banner does not render when we have no cluster link status info', async function (assert) {
+    class HcpLinkStatusStub extends Service {
+      get shouldDisplayBanner() {
+        return true;
+      }
+      dismissHcpLinkBanner = sinon.stub();
+    }
+    this.owner.register('service:hcp-link-status', HcpLinkStatusStub);
+    this.linkData = undefined;
+    await render(hbs`<LinkToHcpBanner @linkData={{this.linkData}} />`);
     assert.dom(bannerSelector).doesNotExist();
   });
 
@@ -79,7 +103,8 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
       }
     }
     this.owner.register('service:env', EnvStub);
-    await render(hbs`<LinkToHcpBanner />`);
+    this.linkData = { isLinked: false };
+    await render(hbs`<LinkToHcpBanner @linkData={{this.linkData}} />`);
     assert
       .dom('[data-test-link-to-hcp-banner-description]')
       .hasText(
