@@ -600,7 +600,6 @@ func TestValidateReferenceTenancy(t *testing.T) {
 	allowedTenancy := &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "default",
-		PeerName:  "local",
 	}
 
 	type testCase struct {
@@ -617,23 +616,13 @@ func TestValidateReferenceTenancy(t *testing.T) {
 			check: &pbresource.Tenancy{
 				Partition: "food",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			err: true,
 		},
-		"group-version-mismatch": {
+		"namespace-mismatch": {
 			check: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "v2",
-				PeerName:  "local",
-			},
-			err: true,
-		},
-		"kind-mismatch": {
-			check: &pbresource.Tenancy{
-				Partition: "default",
-				Namespace: "default",
-				PeerName:  "Baz",
 			},
 			err: true,
 		},
@@ -655,7 +644,6 @@ func TestValidateReference(t *testing.T) {
 	allowedTenancy := &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "default",
-		PeerName:  "local",
 	}
 
 	allowedType := pbcatalog.WorkloadType
@@ -687,7 +675,6 @@ func TestValidateReference(t *testing.T) {
 				Tenancy: &pbresource.Tenancy{
 					Partition: "foo",
 					Namespace: "bar",
-					PeerName:  "baz",
 				},
 				Name: "foo",
 			},

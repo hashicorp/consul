@@ -36,11 +36,8 @@ func mutateDestinations(res *DecodedDestinations) (bool, error) {
 		if dest.DestinationRef == nil {
 			continue // skip; let the validation hook error out instead
 		}
-		if dest.DestinationRef.Tenancy != nil && !isLocalPeer(dest.DestinationRef.Tenancy.PeerName) {
-			// TODO(peering/v2): remove this bypass when we know what to do with
-			// non-local peer references.
-			continue
-		}
+
+		// TODO(peering/v2): handle non-local peer references here somehow
 		orig := proto.Clone(dest.DestinationRef).(*pbresource.Reference)
 		resource.DefaultReferenceTenancy(
 			dest.DestinationRef,
@@ -57,7 +54,7 @@ func mutateDestinations(res *DecodedDestinations) (bool, error) {
 }
 
 func isLocalPeer(p string) bool {
-	return p == "local" || p == ""
+	return p == resource.DefaultPeerName || p == ""
 }
 
 var ValidateDestinations = resource.DecodeAndValidate(validateDestinations)

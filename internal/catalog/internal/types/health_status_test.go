@@ -20,7 +20,6 @@ var (
 	defaultHealthStatusOwnerTenancy = &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "default",
-		PeerName:  "local",
 	}
 
 	defaultHealthStatusOwner = &pbresource.ID{
@@ -37,7 +36,6 @@ func createHealthStatusResource(t *testing.T, data protoreflect.ProtoMessage, ow
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			Name: "test-status",
 		},

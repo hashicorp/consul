@@ -215,7 +215,6 @@ func computeNewConditions(
 			Type: pbmulticluster.SamenessGroupType,
 			Tenancy: &pbresource.Tenancy{
 				Partition: fpRes.GetId().GetTenancy().GetPartition(),
-				PeerName:  resource.DefaultPeerName,
 			},
 			Name: sg,
 		}

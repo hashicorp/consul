@@ -23,7 +23,6 @@ func TestProxyState_Authorize(t *testing.T) {
 		Tenancy: &pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
-			PeerName:  "local",
 		},
 		Name: "test-identity",
 	}

@@ -173,7 +173,7 @@ func (suite *controllerTestSuite) setupSuiteWithTenancy(tenancy *pbresource.Tena
 							IdentityName: "foo",
 							Namespace:    "default",
 							Partition:    "default",
-							Peer:         "local",
+							Peer:         resource.DefaultPeerName,
 						},
 					},
 				},

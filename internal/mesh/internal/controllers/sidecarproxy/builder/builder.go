@@ -66,9 +66,11 @@ func (b *Builder) Build() *pbmesh.ProxyStateTemplate {
 		Partition: b.id.Tenancy.Partition,
 	}
 
-	b.proxyStateTemplate.RequiredTrustBundles[b.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
-		Peer: b.id.Tenancy.PeerName,
+	b.proxyStateTemplate.RequiredTrustBundles[resource.DefaultPeerName] = &pbproxystate.TrustBundleRef{
+		Peer: resource.DefaultPeerName,
 	}
+
+	// TODO(peering/v2) add trust bundle refs for all peered upstreams
 
 	finalCleanupOfProxyStateTemplate(b.proxyStateTemplate)
 

@@ -68,21 +68,14 @@ func mutateFailoverPolicy(res *DecodedFailoverPolicy) (bool, error) {
 }
 
 func mutateFailoverConfig(policyTenancy *pbresource.Tenancy, config *pbcatalog.FailoverConfig) (changed bool) {
-	if policyTenancy != nil && !isLocalPeer(policyTenancy.PeerName) {
-		// TODO(peering/v2): remove this bypass when we know what to do with
-		// non-local peer references.
-		return false
-	}
+	// TODO(peering/v2): Add something here when we know what to do with non-local peer references
 
 	for _, dest := range config.Destinations {
 		if dest.Ref == nil {
 			continue
 		}
-		if dest.Ref.Tenancy != nil && !isLocalPeer(dest.Ref.Tenancy.PeerName) {
-			// TODO(peering/v2): remove this bypass when we know what to do with
-			// non-local peer references.
-			continue
-		}
+
+		// TODO(peering/v2): Add something here to handle non-local peer references
 
 		orig := proto.Clone(dest.Ref).(*pbresource.Reference)
 		resource.DefaultReferenceTenancy(
@@ -100,7 +93,7 @@ func mutateFailoverConfig(policyTenancy *pbresource.Tenancy, config *pbcatalog.F
 }
 
 func isLocalPeer(p string) bool {
-	return p == "local" || p == ""
+	return p == resource.DefaultPeerName || p == ""
 }
 
 var ValidateFailoverPolicy = resource.DecodeAndValidate(validateFailoverPolicy)
@@ -246,18 +239,6 @@ func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, port
 				Wrapped: fmt.Errorf("ports cannot be specified explicitly for the general failover section since it relies upon port alignment"),
 			}))
 		}
-	}
-
-	hasPeer := false
-	if dest.Ref != nil {
-		hasPeer = dest.Ref.Tenancy.PeerName != "" && dest.Ref.Tenancy.PeerName != "local"
-	}
-
-	if hasPeer && dest.Datacenter != "" {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "datacenter",
-			Wrapped: fmt.Errorf("ref.tenancy.peer_name and datacenter are mutually exclusive fields"),
-		}))
 	}
 
 	return merr

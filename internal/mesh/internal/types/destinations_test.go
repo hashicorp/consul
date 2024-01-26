@@ -202,20 +202,7 @@ func TestValidateDestinations(t *testing.T) {
 			},
 			expectErr: `invalid element at index 0 of list "destinations": invalid "destination_ref" field: invalid "tenancy" field: invalid "namespace" field: cannot be empty`,
 		},
-		"dest/bad dest tenancy/peer_name": {
-			skipMutate: true,
-			data: &pbmesh.Destinations{
-				Workloads: &pbcatalog.WorkloadSelector{
-					Names: []string{"blah"},
-				},
-				Destinations: []*pbmesh.Destination{
-					{DestinationRef: resourcetest.Resource(pbcatalog.ServiceType, "api").
-						WithTenancy(&pbresource.Tenancy{Partition: "foo", Namespace: "bar"}).
-						Reference("")},
-				},
-			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "destination_ref" field: invalid "tenancy" field: invalid "peer_name" field: must be set to "local"`,
-		},
+		// TODO(peering/v2) add test for invalid peer in destination ref
 		"unsupported pq_destinations": {
 			skipMutate: true,
 			data: &pbmesh.Destinations{

@@ -232,6 +232,6 @@ func newTestTenancy(s string) *pbresource.Tenancy {
 		v.Namespace = parts[1]
 		return v
 	default:
-		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD", PeerName: "BAD"}
+		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD"}
 	}
 }
