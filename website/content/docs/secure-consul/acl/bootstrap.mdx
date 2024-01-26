@@ -1,13 +1,13 @@
 ---
 layout: docs
-page_title: Bootstrap ACL system
+page_title: Bootstrap Access Control List (ACL) system
 description: >-
-  TODO
+  A Consul datacenter's ACL system requires a bootstrap procedure before use. Learn how to enable the ACL system for a server agent and create the initial bootstrap token.
 ---
 
-# Bootstrap ACL system
+# Bootstrap Access Control List (ACL) system
 
-This page details the process to bootstrap the ACL system and create tokens with minimum privileges for the Consul server agents, client agents, and services. Refer to [ACL overview](/secure-consul/acl) for more information about how the ACL system secures access to Consul operations, and service and agent communications.
+This page details the process to bootstrap the ACL system and create tokens with minimum privileges for the Consul server agents, client agents, and services. Refer to [ACL overview](/secure-consul/acl) for more information about how the ACL system secures access to Consul operations, as well as service and agent communications.
 
 ## Overview
 
@@ -16,17 +16,17 @@ Complete the following steps to bootstrap the ACL system:
 1. Enable ACLs on the agent.
 1. Create the initial bootstrap token.
 
-Then, you will create and add ACL tokens to server agents, client agents, and services. This will let your agents and services interact with each other.
+After creating the bootstrap token, you can create and add ACL tokens for server agents, client agents, and services. Then, you can authorize or deny specific agent and service interactions by associating rules, policies, and roles with ACL tokens.
 
 ## Requirements
 
-For best results, we recommend bootstrapping your ACL system after you have deployed your initial Consul cluster (register your agents and services), but before you use Consul for service discovery or mesh.
+For best results, we recommend bootstrapping your ACL system after deploying your initial Consul cluster and registering services.
 
 ## Enable ACLs on the agents
 
-Add the following [ACL parameters](/consul/docs/reference/agent#acl) to the agent's configuration file and restart the Consul service. In order for Consul to correctly enable ACL configuration, you need to apply the same parameters to every server and client in your Consul datacenter. You should update the configuration files on all the servers first and then initiate a rolling restart.
+Add [parameters for the ACL system](/consul/docs/reference/agent#acl) to the agent's configuration file and then restart the Consul service. You must apply the same parameters to every server and client in your Consul datacenter for Consul to correctly enable the ACL configuration. You should update the configuration files on all of your servers first, and then initiate a rolling restart.
 
-The following example enables ACL and sets the default policy to `deny`. This means only explicitly named resources are allowed to access Consul. It also enables token persistence, which will persist the token to disk and reload it when an agent restarts.
+The following example enables Consul's ACLs and sets the default policy to `deny`. This setting means that only explicitly named resources are allowed to access Consul. The configuration also enables token persistence, which persists the token to disk and reloads it when an agent restarts.
 
 <CodeBlockConfig filename="agent.hcl">
 
@@ -40,22 +40,22 @@ acl = {
 
 </CodeBlockConfig>
 
-The following table describes common agent configuration fields where ACLs are applicable and whether the configurations apply to servers, clients, or both. Refer to the [Agent](/consul/docs/reference/agent#acl) reference docs for a full list of configuratable fields.
+The following table describes common agent configuration fields where ACLs are applicable and whether the configurations apply to servers, clients, or both. Refer to the [Agent reference docs](/consul/docs/reference/agent#acl) for a full list of configurable fields.
 
 | Configuration option | Servers    | Clients    | Description |
 | -------------------- | ---------- | ---------- | ----------- |
 | [`acl.enabled`](/consul/docs/reference/agent#acl_enabled) | `required` | `required` | Controls whether ACLs are enabled |
 | [`acl.default_policy`](/consul/docs/reference/agent#acl_default_policy) | `optional` | `N/A` | Determines `allowlist` or `denylist` mode |
 | [`acl.down_policy`](/consul/docs/reference/agent#acl_down_policy) | `optional` | `optional` | Determines what to do when the remote token or policy resolution fails |
-| [`acl.role_ttl`](/consul/docs/reference/agent#acl_role_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL Roles |
-| [`acl.policy_ttl`](/consul/docs/reference/agent#acl_policy_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL Policies |
-| [`acl.token_ttl`](/consul/docs/reference/agent#acl_token_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL Tokens |
+| [`acl.role_ttl`](/consul/docs/reference/agent#acl_role_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL roles |
+| [`acl.policy_ttl`](/consul/docs/reference/agent#acl_policy_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL policies |
+| [`acl.token_ttl`](/consul/docs/reference/agent#acl_token_ttl) | `optional` | `optional` | Determines time-to-live for cached ACL tokens |
 
-If you want to reduce Consul client restarts, you can enable the ACLs on them when [you apply the token](#apply-individual-tokens-to-agents).
+If you want to reduce Consul client restarts, you can enable the ACLs on them when [you apply the token to agents](#apply-individual-tokens-to-agents).
 
 <Tip title="Bootstrap ACLs on existing datacenter">
 
-If you bootstrap ACLs on an existing datacenter, enable the ACLs on the agents first with `default_policy = "allow"` to reduce downtime. This will enable ACLs but will allow all operations, letting Consul function normally while you create the tokens and apply them.
+If you bootstrap ACLs on an existing datacenter, enable the ACLs on the agents first with `default_policy = "allow"` to reduce downtime. This approach enables ACLs but still allows all operations, letting Consul function normally while you create the tokens and apply them during the bootstrap process.
 
 </Tip>
 
@@ -79,7 +79,7 @@ $ export CONSUL_HTTP_TOKEN=<token>
 
 ## Apply individual tokens to agents
 
-Adding tokens to agents is a two step process. You need to do this for each server and client agent in your Consul datacenter.
+Every server and client agent requires an ACL token. Complete the following steps for each server and client agent in your Consul datacenter.
 
 1. [Create the agent token](#create-the-agent-token)
 1. [Add token to agents](#add-token-to-agents)
@@ -101,12 +101,18 @@ Repeat this process for each agent. It is the ACL administrator's responsibility
 
 Apply the agent token to your Consul servers and ensure they are working correctly before applying the agent token to your Consul clients.
 
-You can add the token to the Consul agent in three ways: the agent configuration file, CLI, or API. We recommend using the agent configuration file. If your agent restarts, it will reload the token from the agent configuration file.
+You can add the token to the Consul agent with any of the following methods: 
+
+- Add the token to the agent configuration file
+- Use the Consul CLI
+- Use the Consul HTTP API 
+
+We recommend using the agent configuration file. That way if your agent restarts, it reloads the token from the agent configuration file.
 
 <Tabs>
 <Tab heading="Configuration file">
 
-Set the token in the [agent](/consul/docs/reference/agent#acl_tokens_agent) configuration file by adding the following snippet to your existing Consul configuration or create a new file in the Consul configuration directory.
+To set the token in the [agent configuration file](/consul/docs/reference/agent#acl_tokens_agent), add the following snippet to your existing Consul configuration or create a new file in the Consul configuration directory.
 
 ```hcl
 acl {
@@ -122,7 +128,7 @@ Set `CONSUL_HTTP_TOKEN` to the same token on the agent environment to reload Con
 $ export CONSUL_HTTP_TOKEN="<agent_token_secret_id>"
 ```
 
-Reload Consul configuration.
+Reload the agent's configuration.
 
 ```shell-session
 $ consul reload
@@ -139,7 +145,7 @@ Set `CONSUL_HTTP_TOKEN` to a token with `acl:write` permission. You can use the 
 $ export CONSUL_HTTP_TOKEN="<bootstrap_token>"
 ```
 
-Then, apply token to agent.
+Then, apply the token to the agent.
 
 ```shell-session
 $ consul acl set-agent-token agent "<agent_token_secret_id>"
@@ -177,7 +183,7 @@ $ curl \
 </Tab>
 </Tabs>
 
-You will need to complete this process on every agent. 
+You must to complete this process for every agent. 
 
 Once complete, every agent should have a token that has read and write permissions to Consul, but only for node-related actions. Actions for individual services are not yet allowed.
 
