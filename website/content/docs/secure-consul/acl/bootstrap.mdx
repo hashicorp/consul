@@ -97,8 +97,6 @@ This command returns the token information, including the description and node i
 
 Repeat this process for each agent. It is the ACL administrator's responsibility to save tokens in a secure location. We recommend using Vault to save these tokens.
 
-<!-- TODO: add link out to specific tutorial or usage docs for this -->
-
 ### Add token to agents
 
 Apply the agent token to your Consul servers and ensure they are working correctly before applying the agent token to your Consul clients.
@@ -277,8 +275,7 @@ service {
 </CodeBlockConfig>
 </CodeTabs>
 
-<!-- TODO: Update link -->
-If the service in [Consul service mesh](), its sidecar proxy requires the service token. You must provide the token directly to the sidecar proxy; Consul cannot retrieved the token from the service definition.
+If the service in [Consul service mesh](/consul/docs/connect), its sidecar proxy requires the service token. You must provide the token directly to the sidecar proxy; Consul cannot retrieved the token from the service definition.
 
 Provide the service token when launching the Envoy sidecar proxy instance with [`consul connect envoy`](/consul/commands/connect/envoy) through either environment variables or CLI flags.
 
