@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
@@ -95,7 +96,7 @@ func Test_FetchVirtualIP(t *testing.T) {
 						*reply = tc.expectedResult.Address
 					}
 				})
-			df := NewV1DataFetcher(rc, mockRPC.RPC, logger)
+			df := NewV1DataFetcher(rc, acl.DefaultEnterpriseMeta(), mockRPC.RPC, logger)
 
 			result, err := df.FetchVirtualIP(tc.context, tc.queryPayload)
 			require.Equal(t, tc.expectedErr, err)
