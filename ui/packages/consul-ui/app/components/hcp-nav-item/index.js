@@ -11,7 +11,7 @@ export default class HcpLinkItemComponent extends Component {
   @service('hcp-link-status') hcpLinkStatus;
 
   get alreadyLinked() {
-    return this.args.linkData?.isLinked === false;
+    return this.args.linkData?.isLinked;
   }
 
   get shouldDisplayNavLinkItem() {
