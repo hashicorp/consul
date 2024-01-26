@@ -33,6 +33,7 @@ type ManagerConfig struct {
 	// Idempotent function to upsert the HCP management token. This will be called periodically in
 	// the manager's main loop.
 	ManagementTokenUpserterFn ManagementTokenUpserter
+	ManagementTokenDeleterFn  ManagementTokenDeleter
 	MinInterval               time.Duration
 	MaxInterval               time.Duration
 
@@ -61,6 +62,7 @@ func (cfg *ManagerConfig) nextHeartbeat() time.Duration {
 
 type StatusCallback func(context.Context) (hcpclient.ServerStatus, error)
 type ManagementTokenUpserter func(name, secretId string) error
+type ManagementTokenDeleter func(secretId string) error
 
 //go:generate mockery --name Manager --with-expecter --inpackage
 type Manager interface {

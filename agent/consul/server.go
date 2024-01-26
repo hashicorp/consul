@@ -611,6 +611,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 			}
 			return nil
 		},
+		ManagementTokenDeleterFn: func(secretId string) error {
+			// Check the state of the server before attempting to delete the token.Otherwise,
+			// the delete will fail and log errors that do not require action from the user.
+			if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
+				return s.deleteManagementToken(secretId)
+			}
+			return nil
+		},
 	})
 
 	var recorder *middleware.RequestRecorder

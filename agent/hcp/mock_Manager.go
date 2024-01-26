@@ -116,8 +116,21 @@ func (_c *MockManager_Start_Call) RunAndReturn(run func(context.Context) error) 
 }
 
 // Stop provides a mock function with given fields:
-func (_m *MockManager) Stop() {
-	_m.Called()
+func (_m *MockManager) Stop() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Stop")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // MockManager_Stop_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Stop'
@@ -137,12 +150,12 @@ func (_c *MockManager_Stop_Call) Run(run func()) *MockManager_Stop_Call {
 	return _c
 }
 
-func (_c *MockManager_Stop_Call) Return() *MockManager_Stop_Call {
-	_c.Call.Return()
+func (_c *MockManager_Stop_Call) Return(_a0 error) *MockManager_Stop_Call {
+	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockManager_Stop_Call) RunAndReturn(run func()) *MockManager_Stop_Call {
+func (_c *MockManager_Stop_Call) RunAndReturn(run func() error) *MockManager_Stop_Call {
 	_c.Call.Return(run)
 	return _c
 }

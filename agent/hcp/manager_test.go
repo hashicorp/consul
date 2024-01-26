@@ -295,6 +295,7 @@ func TestManager_Stop(t *testing.T) {
 		StatusFn:                  statusF,
 		Client:                    client,
 		ManagementTokenUpserterFn: upsertManagementTokenF,
+		ManagementTokenDeleterFn:  deleteManagementTokenF,
 		SCADAProvider:             scadaM,
 		TelemetryProvider:         telemetryM,
 		CloudConfig:               config.CloudConfig{},
@@ -320,7 +321,8 @@ func TestManager_Stop(t *testing.T) {
 	}
 
 	// Stop the manager
-	mgr.Stop()
+	err = mgr.Stop()
+	require.NoError(t, err)
 
 	// Send an update, expect no update since manager is stopped
 	mgr.SendUpdate()
