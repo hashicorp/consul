@@ -5,7 +5,20 @@ description: >-
   Improve network automation resiliency by enabling high availability for Consul-Terraform-Sync. HA enables persistent task and event data so that CTS functions as expected during a failover event.
 ---
 
-# Run Consul-Terraform-Sync with high availability
+# Run Consul-Terraform-Sync
+
+This topic describes how to run Consul-Terraform-Sync (CTS). The CTS daemon monitors your service mesh for changes and applies a Terraform configuration when it detects a change. Refer to [Network infrastructure automation](/consul/docs/cts) for additional information.
+
+
+## Overview
+
+You can operate CTS in regular or high-availability (HA) mode. HA mode is an enterprise feature and requires an enterprise license. 
+
+## Requirements
+
+Refer to [Requirements](/consul/docs/cts/requirements) for information about 
+
+## Run Consul-Terraform-Sync with high availability
 
 <EnterpriseAlert>
   An enterprise license is only required for enterprise distributions of Consul-Terraform-Sync (CTS).
@@ -22,7 +35,7 @@ description: >-
 ---
 ```
 
-# Run Consul-Terraform-Sync
+## Run Consul-Terraform-Sync
 
 This topic describes the basic procedure for running Consul-Terraform-Sync (CTS). Verify that you have met the [basic requirements](/consul/docs/nia/usage/requirements) before attempting to run CTS.
 
