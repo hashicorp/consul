@@ -3,7 +3,8 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#let @list (env "CONSUL_HCP_URL") as |SNL hcpUrl|}}
+<!-- from the GET request we'll get the resourceId-->
+{{#let @list (env "CONSUL_HCP_URL") "organization/b4432207-bb9c-438e-a160-b98923efa979/project/4b09958c-fa91-43ab-8029-eb28d8cee9d4/hashicorp.consul.global-network-manager.cluster/test-from-api" as |SNL hcpUrl resourceId|}}
     {{#if this.shouldShowBackToHcpItem}}
         <SNL.BackLink
                 @text={{t "components.hashicorp-consul.side-nav.hcp"}}

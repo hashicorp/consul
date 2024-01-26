@@ -10,11 +10,6 @@ export default class HcpLinkItemComponent extends Component {
   @service env;
   @service('hcp-link-status') hcpLinkStatus;
 
-  get hcpLink() {
-    // TODO: How do I figure this out? From the linking API?
-    return 'https://corn.com';
-  }
-
   get shouldDisplayNavLinkItem() {
     return this.hcpLinkStatus.hasPermissionToLink;
   }
