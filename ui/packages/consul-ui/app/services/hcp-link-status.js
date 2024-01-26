@@ -10,12 +10,10 @@ const LOCAL_STORAGE_KEY = 'consul:hideHcpLinkBanner';
 
 export default class HcpLinkStatus extends Service {
   @tracked
-  alreadyLinked = false;
-  @tracked
   userDismissedBanner = false;
 
   get shouldDisplayBanner() {
-    return !this.alreadyLinked && !this.userDismissedBanner;
+    return !this.userDismissedBanner;
   }
 
   constructor() {

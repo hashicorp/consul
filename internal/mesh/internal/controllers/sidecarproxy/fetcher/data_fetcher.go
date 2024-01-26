@@ -107,6 +107,7 @@ func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*
 func (f *Fetcher) FetchComputedExplicitDestinationsData(
 	ctx context.Context,
 	proxyID *pbresource.ID,
+	proxyCfg *pbmesh.ComputedProxyConfiguration,
 ) ([]*intermediateTypes.Destination, error) {
 	var destinations []*intermediateTypes.Destination
 
@@ -187,7 +188,38 @@ func (f *Fetcher) FetchComputedExplicitDestinationsData(
 			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
 			// Fetch ServiceEndpoints.
-			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID))
+			serviceEndpointsID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
+
+			// If the target service is in a different partition and the mesh gateway mode is
+			// "local" or "remote", use the ServiceEndpoints for the corresponding MeshGateway
+			// instead of the ServiceEndpoints for the target service.
+			//
+			// TODO(nathancoleman) Consider cross-datacenter case as well
+			if routeTarget.BackendRef.Ref.Tenancy.Partition != proxyID.Tenancy.Partition {
+				mode := pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_NONE
+				if proxyCfg != nil && proxyCfg.DynamicConfig != nil {
+					mode = proxyCfg.GetDynamicConfig().GetMeshGatewayMode()
+				}
+
+				switch mode {
+				case pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_LOCAL:
+					// Use ServiceEndpoints for the MeshGateway in the source service's partition
+					serviceEndpointsID = &pbresource.ID{
+						Type:    pbcatalog.ServiceEndpointsType,
+						Name:    "mesh-gateway",
+						Tenancy: proxyID.Tenancy,
+					}
+				case pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_REMOTE:
+					// Use ServiceEndpoints for the MeshGateway in the target service's partition
+					serviceEndpointsID = &pbresource.ID{
+						Type:    pbcatalog.ServiceEndpointsType,
+						Name:    "mesh-gateway",
+						Tenancy: targetServiceID.Tenancy,
+					}
+				}
+			}
+
+			se, err := f.FetchServiceEndpoints(ctx, serviceEndpointsID)
 			if err != nil {
 				return nil, err
 			}

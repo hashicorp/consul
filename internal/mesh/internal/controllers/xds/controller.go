@@ -178,7 +178,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 			}
 
 			// Step 2: Translate it into pbproxystate.Endpoints.
-			psEndpoints, err = generateProxyStateEndpoints(serviceEndpoints, endpointRef.Port)
+			psEndpoints, err = generateProxyStateEndpoints(serviceEndpoints, endpointRef.RoutePort, endpointRef.MeshPort)
 			if err != nil {
 				rt.Logger.Error("error translating service endpoints to proxy state endpoints", "endpoint", endpointRef.Id, "error", err)
 

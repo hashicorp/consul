@@ -100,13 +100,6 @@ func validateDynamicProxyConfiguration(cfg *pbmesh.DynamicConfig) error {
 		})
 	}
 
-	if cfg.GetMeshGatewayMode() != pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_UNSPECIFIED {
-		err = multierror.Append(err, resource.ErrInvalidField{
-			Name:    "mesh_gateway_mode",
-			Wrapped: resource.ErrUnsupported,
-		})
-	}
-
 	if cfg.GetAccessLogs() != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "access_logs",

@@ -397,7 +397,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "http"
     },
     "http.api-app2.default.dc1.internal.foo.consul": {
       "id": {
@@ -413,7 +414,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "http"
     },
     "tcp.api-app.default.dc1.internal.foo.consul": {
       "id": {
@@ -429,7 +431,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp.api-app2.default.dc1.internal.foo.consul": {
       "id": {
@@ -445,7 +448,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp2.api-app.default.dc1.internal.foo.consul": {
       "id": {
@@ -461,7 +465,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp2"
     },
     "tcp2.api-app2.default.dc1.internal.foo.consul": {
       "id": {
@@ -477,7 +482,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp2"
     }
   },
   "requiredLeafCertificates": {

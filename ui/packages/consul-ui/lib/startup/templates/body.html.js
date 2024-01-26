@@ -111,7 +111,7 @@ ${
     'CONSUL_HCP_ENABLE': {
       name: 'consul-hcp',
       default: ${config.operatorConfig.HCPEnabled}
-    }
+    },
   }
 );
 </script>
