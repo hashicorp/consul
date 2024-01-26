@@ -151,7 +151,7 @@ Determines whether the sameness group should be used to establish connections to
 
 When this field is set to `true`, upstream requests automatically fail over to services in the sameness group according to the order of the members in the `Members` list. It impacts all services on the partition.
 
-When this field is set to `false`, you can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+When this field is set to `false`, you can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver).
 
 #### Values
 
@@ -262,7 +262,7 @@ Map that contains the details about the `SamenessGroup` configuration entry. The
 
 Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, upstream requests automatically failover to services in the sameness group according to the order of the members in the `spec.members` list. This setting affects all services on the partition.
 
-When this field is set to `false`, you can use a sameness group for failover by configuring the `spec.failover` block of a [service resolver CRD](/consul/docs/connect/config-entries/service-resolver).
+When this field is set to `false`, you can use a sameness group for failover by configuring the `spec.failover` block of a [service resolver CRD](/consul/docs/reference/config-entry/service-resolver).
 
 #### Values
 

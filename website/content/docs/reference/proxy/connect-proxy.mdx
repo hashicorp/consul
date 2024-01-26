@@ -89,7 +89,7 @@ Specify the following parameters in the `proxy` code block to configure a sideca
 * `local_service_port`: Integer value that specifies the port that the proxy should use to connect to the _local_ service instance. Refer to the [proxy parameters reference](#local-service-port) for details.
 * `local_service_address`: String value that specifies the IP address or hostname that the proxy should use to connect to the _local_ service. Refer to the [proxy parameters reference](#local-service-address) for details.
 
-Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information about configuring service mesh proxies as sidecars.
+Refer to [Deploy sidecar services](/consul/docs/reference/proxy/sidecar) for additional information about configuring service mesh proxies as sidecars.
 
 ### Complete configuration example
 
@@ -173,7 +173,7 @@ You can configure the service mesh proxy to create listeners for upstream servic
 | `local_bind_socket_mode` | String value that specifies a Unix octal that configures file permissions for the socket. | Optional | None |
 | `destination_type` | String value that specifies the type of discovery query the proxy should use for finding service mesh instances. The following values are supported: <li>`service`: Queries for upstream `service` types. </li><li> `prepared_query`: Queries for upstream prepared queries.</li> | Optional | `service` |
 | `datacenter` | String value that specifies the datacenter to issue the discovery query to. | Optional | Defaults to the local datacenter. |
-| `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/consul/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/consul/docs/connect/proxies/envoy#proxy-upstream-config-options) | Optional | None |
+| `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/consul/docs/reference/proxy/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/consul/docs/reference/proxy/envoy#proxy-upstream-config-options) | Optional | None |
 | `mesh_gateway` | Object that defines the mesh gateway configuration for the proxy. Refer to the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for configuration details. | Optional | None |
 
 ### Upstream configuration examples

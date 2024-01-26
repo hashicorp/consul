@@ -127,7 +127,7 @@ The dataplane container runs Envoy proxy for Consul service mesh. Specify the fi
 | Field name |  Description | Type |
 | --- | --- | --- |
 | `name` |  Specifies the name of the container. This must be `consul-dataplane`. | string |
-| `image` | Specifies the Envoy image. This must be a [supported version of Envoy](/consul/docs/connect/proxies/envoy#supported-versions). | string |
+| `image` | Specifies the Envoy image. This must be a [supported version of Envoy](/consul/docs/reference/proxy/envoy#supported-versions). | string |
 | `dependsOn` | Specifies container dependencies that ensure the dataplane container starts after the control-pane container has written the Envoy bootstrap configuration file. Refer to [Dataplane container dependency configuration](#dataplane-container-dependency-configuration) for details. | list |
 | `healthCheck` | Must be set as shown above to monitor the health of Envoy's primary listener port, which ties into container dependencies and startup ordering. | map |
 | `mountPoints` |  Specifies a shared volume so that the dataplane container can access and consume the Envoy configuration file that the control-plane container generates. The keys and values in this configuration must be defined as described in [Dataplane container dependency configuration](#dataplane-container-dependency-configuration). | list |

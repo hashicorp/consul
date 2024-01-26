@@ -633,7 +633,7 @@ These actions may required an ACL token to complete. Use the following methods t
 
 ### Reading Imported Nodes
 
-Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/connect/config-entries/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/link/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
+Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/reference/config-entry/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/link/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
 Read access to all imported nodes is granted when either of the following rule sets are attached to a token:
 - `service:write` is granted to any service.
 - `node:read` is granted to all nodes.
@@ -643,7 +643,7 @@ For Consul Enterprise, either set of rules must be scoped to the requesting serv
 You may need similarly scoped [Service Rules](#reading-imported-services) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
 These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).
 
-Refer to [Reading Services](/consul/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
+Refer to [Reading Services](/consul/docs/reference/config-entry/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
 
 ## Operator Rules
 
@@ -872,7 +872,7 @@ set to `true` in order to enable script checks.
 
 ### Reading Imported Services
 
-Service rules affect read access to services exported by [`exported-services` configuration entries](/consul/docs/connect/config-entries/exported-services#reading-services), including services exported between [cluster peerings](/consul/docs/link/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
+Service rules affect read access to services exported by [`exported-services` configuration entries](/consul/docs/reference/config-entry/exported-services#reading-services), including services exported between [cluster peerings](/consul/docs/link/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
 Read access to all imported services is granted when either of the following rule sets are attached to a token:
 - `service:write` is granted to any service.
 - `service:read` is granted to all services.
@@ -882,7 +882,7 @@ For Consul Enterprise, either set of rules must be scoped to the requesting serv
 You may need similarly scoped [Node Rules](#reading-imported-nodes) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
 These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).
 
-Refer to [Reading Services](/consul/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
+Refer to [Reading Services](/consul/docs/reference/config-entry/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
 
 ### Intentions
 

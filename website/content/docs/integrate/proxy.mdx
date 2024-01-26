@@ -14,7 +14,7 @@ description: >-
  will still operate as designed, we do not recommend leveraging this feature because it is deprecated and will be removed when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
 
  The Native App Integration does not support many of the Consul's service mesh features, and is not under active development.
- The [Envoy proxy](/consul/docs/connect/proxies/envoy) should be used for most production environments. 
+ The [Envoy proxy](/consul/docs/reference/proxy/envoy) should be used for most production environments. 
 
 </Note>
 
@@ -28,7 +28,7 @@ The proxy you integrate must be able to accept inbound connections and/or establ
 
 Sidecar proxies may support L4 or L7 network functionality. L4 integration is simpler and adequate for securing all traffic. L4 treats all traffic as TCP, however, so advanced routing or metrics features are not supported.
 
-Full L7 support is built on top of L4 support. An L7 proxy integration supports most or all of the L7 traffic routing features in Consul service mesh by dynamically configuring routing, retries, and other L7 features. The built-in proxy only supports L4, while [Envoy](/consul/docs/connect/proxies/envoy) supports the full L7 feature set.
+Full L7 support is built on top of L4 support. An L7 proxy integration supports most or all of the L7 traffic routing features in Consul service mesh by dynamically configuring routing, retries, and other L7 features. The built-in proxy only supports L4, while [Envoy](/consul/docs/reference/proxy/envoy) supports the full L7 feature set.
 
 Areas where the integration approach differs between L4 and L7 are identified in this topic.
 
@@ -111,7 +111,7 @@ For outbound connections, the proxy should communicate with a mesh-capable endpo
 
 The [`/v1/agent/service/:service_id`](/consul/api-docs/agent/service#get-service-configuration) API endpoint enables any proxy to discover proxy configurations registered with a local service. This endpoint supports hash-based blocking, which enables long-polling for changes to the registration/configuration. Any changes to the registration/config will result in the new config being returned immediately.
 
-Refer to the [built-in proxy](/consul/docs/connect/proxies/built-in) for an example implementation. Using the Go SDK, the proxy calls the HTTP "pull" API via the `watch` package: [`consul/connect/proxy/config.go`].
+Refer to the [built-in proxy](/consul/docs/reference/proxy/built-in) for an example implementation. Using the Go SDK, the proxy calls the HTTP "pull" API via the `watch` package: [`consul/connect/proxy/config.go`].
 
 The [discovery chain] for each upstream service should be fetched from the [`/v1/discovery-chain/:service_id`](/consul/api-docs/discovery-chain#read-compiled-discovery-chain) API endpoint. This will return a compiled graph of configurations a sidecar needs for a particular upstream service.
 
@@ -129,7 +129,7 @@ Proxies can decide whether to perform just-in-time queries to the API when a new
 
 Upstreams may be defined with the Prepared Query target type. These upstreams should use Consul's [prepared query](/consul/api-docs/query) API to determine a list of upstream endpoints for the service. Note that the `PreparedQuery` API does not support blocking, so proxies choosing to populate endpoints in memory will need to poll the endpoint at a suitable and, ideally, configurable frequency.
 
--> **Long-term support for [`service-resolver`](/consul/docs/connect/config-entries/service-resolver) configuration entries**. The `service-resolver` configuration will completely replace prepared queries in future versions of Consul. In some instances, however, prepared queries are still used.
+-> **Long-term support for [`service-resolver`](/consul/docs/reference/config-entry/service-resolver) configuration entries**. The `service-resolver` configuration will completely replace prepared queries in future versions of Consul. In some instances, however, prepared queries are still used.
 
 ## Sidecar Instantiation
 
@@ -176,4 +176,4 @@ Alternatively, you can start the service using the `-sidecar-for=<service>` opti
 [`consul/connect/tls.go`]: https://github.com/hashicorp/consul/blob/v1.8.3/connect/tls.go#L232-L237
 [discovery chain]: /consul/docs/connect/manage-traffic/discovery-chain
 [`usecache`]: https://github.com/hashicorp/consul/blob/v1.8.3/api/api.go#L99-L102
-[protocol]: /consul/docs/connect/config-entries/service-defaults#protocol
+[protocol]: /consul/docs/reference/config-entry/service-default#protocol

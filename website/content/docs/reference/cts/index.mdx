@@ -57,7 +57,7 @@ tls {
   - `verify_incoming` - (bool: false) Enable mutual TLS. Requires all incoming connections to the CTS API to use a TLS connection and provide a certificate signed by a Certificate Authority specified by the `ca_cert` or `ca_path`.
   - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true. Takes precedence over `ca_path` if both are configured.
   - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true.
-- `license_path` <EnterpriseAlert inline /> - (string) **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/consul/docs/nia/configuration#license) instead.**  Configures the path to the file that contains the license. You must specify a license in order to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. For more information, refer to [Setting the License](/consul/docs/nia/enterprise/license#setting-the-license).
+- `license_path` <EnterpriseAlert inline /> - (string) **Deprecated in CTS 0.6.0 and will be removed in a future release. Use [license block](/consul/docs/reference/cts/configuration#license) instead.**  Configures the path to the file that contains the license. You must specify a license in order to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. For more information, refer to [Setting the License](/consul/docs/nia/enterprise/license#setting-the-license).
 
 ## License <EnterpriseAlert inline />
 
@@ -79,7 +79,7 @@ license {
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
 | `path` |  Optional | string | Configures the path to the file containing a license. If a path to a license is configured, this license is used until you enable automatic license retrieval. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. To learn more, review [Setting the License](/consul/docs/nia/enterprise/license#setting-the-license). | none |
-| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. To learn more, review [Auto-Retrieval](/consul/docs/nia/configuration#auto-retrieval) for details | Review [Auto-Retrieval](/consul/docs/nia/configuration#auto-retrieval) for defaults. |
+| `auto_retrieval` |  Optional | object | Configures the license auto-retrieval used by CTS. To learn more, review [Auto-Retrieval](/consul/docs/reference/cts/configuration#auto-retrieval) for details | Review [Auto-Retrieval](/consul/docs/reference/cts/configuration#auto-retrieval) for defaults. |
 
 
 ### Auto-retrieval
@@ -121,11 +121,11 @@ consul {
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
 | `address` | Optional | string | The address of the Consul agent. It may be an IP or FQDN. | `localhost:8500` |
-| `token` | Optional | string | The ACL token to use for client communication with the local Consul agent. See [ACL Requirements](/consul/docs/nia/configuration#acl-requirements) for required privileges. <br/><br/> The token can also be provided through the `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN` environment variables. | none |
-| `auth` | Optional | [auth](/consul/docs/nia/configuration#auth) | HTTP basic authentication for communicating with Consul ||
-| `tls` | Optional | [tls](/consul/docs/nia/configuration#tls-1)  | Secure client connection with Consul ||
-| `transport` | Optional | [transport](/consul/docs/nia/configuration#transport) | Low-level network connection details ||
-| `service_registration` | Optional| [service_registration](/consul/docs/nia/configuration#service-registration) | Options for how CTS will register itself as a service with a health check to Consul. ||
+| `token` | Optional | string | The ACL token to use for client communication with the local Consul agent. See [ACL Requirements](/consul/docs/reference/cts/configuration#acl-requirements) for required privileges. <br/><br/> The token can also be provided through the `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN` environment variables. | none |
+| `auth` | Optional | [auth](/consul/docs/reference/cts/configuration#auth) | HTTP basic authentication for communicating with Consul ||
+| `tls` | Optional | [tls](/consul/docs/reference/cts/configuration#tls-1)  | Secure client connection with Consul ||
+| `transport` | Optional | [transport](/consul/docs/reference/cts/configuration#transport) | Low-level network connection details ||
+| `service_registration` | Optional| [service_registration](/consul/docs/reference/cts/configuration#service-registration) | Options for how CTS will register itself as a service with a health check to Consul. ||
 
 ### ACL requirements
 The following table describes the ACL policies required by CTS. For more information, refer to the [Secure Consul-Terraform-Sync for Production](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure?utm_source=docs#configure-acl-privileges-for-consul-terraform-sync) tutorial.
@@ -136,8 +136,8 @@ The following table describes the ACL policies required by CTS. For more informa
 | `node:read` | Any nodes hosting services monitored by tasks |
 | `keys:read` | Any Consul KV pairs monitored by tasks |
 | `namespace:read` | <EnterpriseAlert inline />  Any namespaces for resources monitored by tasks |
-| `service:write` | The CTS service when [service registration](/consul/docs/nia/configuration#service-registration) is enabled |
-| `keys:write` | `consul-terraform-sync/` Only required when using Consul as the [Terraform backend](/consul/docs/nia/configuration#backend). |
+| `service:write` | The CTS service when [service registration](/consul/docs/reference/cts/configuration#service-registration) is enabled |
+| `keys:write` | `consul-terraform-sync/` Only required when using Consul as the [Terraform backend](/consul/docs/reference/cts/configuration#backend). |
 
 
 ### Auth
@@ -184,9 +184,9 @@ If `max_idle_conns_per_host` and the number of services in automation is greater
 
 
 ### Service registration
-CTS automatically registers itself with Consul as a service with a health check, using the [`id`](/consul/docs/nia/configuration#id) configuration as the service ID. CTS deregisters itself with Consul when CTS stops gracefully. If CTS is unable to register with Consul, then it will log the error and continue without exiting.
+CTS automatically registers itself with Consul as a service with a health check, using the [`id`](/consul/docs/reference/cts/configuration#id) configuration as the service ID. CTS deregisters itself with Consul when CTS stops gracefully. If CTS is unable to register with Consul, then it will log the error and continue without exiting.
 
-Service registration requires that the [Consul token](/consul/docs/nia/configuration#consul) has an ACL policy of `service:write` for the CTS service.
+Service registration requires that the [Consul token](/consul/docs/reference/cts/configuration#consul) has an ACL policy of `service:write` for the CTS service.
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
@@ -195,9 +195,9 @@ Service registration requires that the [Consul token](/consul/docs/nia/configura
 | `address` | Optional | string | The IP address or hostname for CTS. | IP address of the Consul agent node |
 | `namespace` | Optional | string |  <EnterpriseAlert inline /> The namespace to register CTS in. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `default_check.enabled` | Optional | boolean | Enables CTS to create the default health check. | `true` |
-| `default_check.address` | Optional | string | The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port, if applicable. | `http://localhost:<port>` or `https://localhost:<port>`. Determined from the [port configuration](/consul/docs/nia/configuration#port) and whether [TLS is enabled](/consul/docs/nia/configuration#enabled-2) on the CTS API. |
+| `default_check.address` | Optional | string | The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port, if applicable. | `http://localhost:<port>` or `https://localhost:<port>`. Determined from the [port configuration](/consul/docs/reference/cts/configuration#port) and whether [TLS is enabled](/consul/docs/reference/cts/configuration#enabled-2) on the CTS API. |
 
-The default health check is an [HTTP check](/consul/docs/services/usage/checks#http-checks) that calls the [Health API](/consul/docs/nia/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/consul/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
+The default health check is an [HTTP check](/consul/docs/services/usage/checks#http-checks) that calls the [Health API](/consul/docs/reference/cts/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/consul/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
 
 | Parameter | Value |
 | --------- | ----- |
@@ -206,7 +206,7 @@ The default health check is an [HTTP check](/consul/docs/services/usage/checks#h
 | Namespace | `service_registration.namespace` |
 | Notes | `Check created by Consul-Terraform-Sync`|
 | DeregisterCriticalServiceAfter | `30m` |
-| ServiceID | [`id`](/consul/docs/nia/configuration#id) |
+| ServiceID | [`id`](/consul/docs/reference/cts/configuration#id) |
 | Status | `critical` |
 | HTTP | `<default_check.address>/v1/health` |
 | Method | `GET` |
@@ -245,7 +245,7 @@ The `instance` parameter is an object that contains configurations unique to the
 
 ## Service
 
-~> **Note:** Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/consul/docs/nia/configuration#services-condition) and [Services Module Input](/consul/docs/nia/configuration#services-module-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Module Input. Refer to [0.5.0 release notes](/consul/docs/release-notes/consul-terraform-sync/v0_5_x#deprecate-service-block) for examples.
+~> **Note:** Deprecated in CTS 0.5.0 and will be removed in a future major release. `service` blocks are used to define the `task` block's `services` fields, which were also deprecated and replaced with [Services Condition](/consul/docs/reference/cts/configuration#services-condition) and [Services Module Input](/consul/docs/reference/cts/configuration#services-module-input). `service` block configuration can be replaced by configuring the equivalent fields of the corresponding Services Condition and Services Module Input. Refer to [0.5.0 release notes](/consul/docs/release-notes/consul-terraform-sync/v0_5_x#deprecate-service-block) for examples.
 
 A `service` block is an optional block to explicitly define the services configured in the `task` block's `services` field (deprecated). `service` blocks do not define services configured in the `task` block's `condition "services"` or `module_input "services` blocks.
 
@@ -267,11 +267,11 @@ service {
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string |<EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/consul/api-docs/health#filtering-2) and section about [how to write filter expressions](/consul/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/nia/terraform-modules#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/reference/cts/terraform-module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. <br/><br/> If multiple tasks depend on the same service but require different metadata, you can declare different sets of metadata for the same service. Define multiple service blocks for the service with unique IDs (and identical names) for those blocks. The metadata can then be separated per task based on the service IDs. | none|
 
 ## Task
 
-A `task` block configures which task to execute in automation. Use  the `condition` block to specify when the task executes. You can specify the `task` block multiple times to configure multiple tasks, or you can omit it entirely. If task blocks are not specified in your initial configuration, you can add them to a running CTS instance by using the [`/tasks` API endpoint](/consul/docs/nia/api/tasks#tasks) or the [CLI's `task` command](/consul/docs/nia/cli/task#task).
+A `task` block configures which task to execute in automation. Use  the `condition` block to specify when the task executes. You can specify the `task` block multiple times to configure multiple tasks, or you can omit it entirely. If task blocks are not specified in your initial configuration, you can add them to a running CTS instance by using the [`/tasks` API endpoint](/consul/docs/reference/cts/api/tasks#tasks) or the [CLI's `task` command](/consul/docs/reference/cts/cli/task#task).
 
 ```hcl
 task {
@@ -292,7 +292,7 @@ task {
 - `name` - (string: required) Name is the unique name of the task (required). A task name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
 - `enabled` - (bool: true) Enable or disable a task from running and managing resources.
 - `providers` - (list[string]) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
-- `services` - (list[string]) **Deprecated in CTS 0.5.0 and will be removed in a future major release. Use [Services Condition](/consul/docs/nia/configuration#services-condition) or [Services Module Input](/consul/docs/nia/configuration#services-module-input) instead. See [0.5.0 release notes](/consul/docs/release-notes/consul-terraform-sync/v0_5_x#deprecate-services-field) for examples.** Specifies an optional list of logical service names or service IDs that the task monitors for changes in the Consul catalog. The `services` can act in different ways depending on the configuration of the task's `condition` block:
+- `services` - (list[string]) **Deprecated in CTS 0.5.0 and will be removed in a future major release. Use [Services Condition](/consul/docs/reference/cts/configuration#services-condition) or [Services Module Input](/consul/docs/reference/cts/configuration#services-module-input) instead. See [0.5.0 release notes](/consul/docs/release-notes/consul-terraform-sync/v0_5_x#deprecate-services-field) for examples.** Specifies an optional list of logical service names or service IDs that the task monitors for changes in the Consul catalog. The `services` can act in different ways depending on the configuration of the task's `condition` block:
   - no `condition` block configured: `services` will act as the task's condition and provide the services information as module input
   - the `condition` block configured for type `services`: `services` is incompatible with this type of `condition` because both configure the services module input. CTS will return an error.
   - the `condition` block configured for all other types: `services` will act only to provide services module input.
@@ -360,7 +360,7 @@ When a `condition "services"` block is configured for a task, then the following
 
 These restrictions are due to the fact that the monitored services information for a task can only be set through one configuration option. Any services module input that the task needs should be configured solely through the `condition` block.
 
-See [Task Execution: Services Condition](/consul/docs/nia/tasks#services-condition) for more details on how tasks are triggered with a services condition.
+See [Task Execution: Services Condition](/consul/docs/reference/cts/task#services-condition) for more details on how tasks are triggered with a services condition.
 
 ```hcl
 task {
@@ -406,16 +406,16 @@ task {
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/consul/api-docs/health#filtering-2) and section about [how to write filter expressions](/consul/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/nia/terraform-modules#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/reference/cts/terraform-module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
 | `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `use_as_module_input` field instead.** | true |
-| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`services` variable](/consul/docs/nia/terraform-modules#services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`services` variable](/consul/docs/reference/cts/terraform-module#services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 
 #### Catalog-Services Condition
 
 A catalog-services condition block configures a task to only execute on service registration and deregistration, more specifically on first service instance registration and last service instance deregistration respectively. The catalog-services condition has additional configuration options to specify the services that can trigger the task on registration and deregistration.
 
-See [Task Execution: Catalog Services Condition](/consul/docs/nia/tasks#catalog-services-condition) for more information on how tasks are triggered with a catalog-services condition.
+See [Task Execution: Catalog Services Condition](/consul/docs/reference/cts/task#catalog-services-condition) for more information on how tasks are triggered with a catalog-services condition.
 
 ```hcl
 task {
@@ -443,7 +443,7 @@ task {
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `node_meta`  | Optional | map[string] | Node metadata key/value pairs to use to filter services. Only services registered at a node with the specified key/value pairs are used by the task.  | none |
 | `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `use_as_module_input` field instead.** | true |
-| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`catalog_services` variable](/consul/docs/nia/terraform-modules#catalog-services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`catalog_services` variable](/consul/docs/reference/cts/terraform-module#catalog-services-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 #### Consul KV Condition
 
@@ -452,7 +452,7 @@ A `condition "consul-kv"` block configures a task to only execute on changes to 
 When a `condition "consul-kv"` block is configured for a task, the task cannot be configured with a `module_input "consul-kv"` or `source_input "consul-kv"` (deprecated) block. The monitored consul-kv information for a task can only be set through one configuration option. Any consul-kv module input that the task needs should be configured solely through the `condition` block.
 
 
-See [Task Execution: Consul KV Condition](/consul/docs/nia/tasks#consul-kv-condition) for more information on how tasks are triggered with a consul-kv condition.
+See [Task Execution: Consul KV Condition](/consul/docs/reference/cts/task#consul-kv-condition) for more information on how tasks are triggered with a consul-kv condition.
 
 ```hcl
 task {
@@ -478,7 +478,7 @@ task {
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace`  | Optional | string | <EnterpriseAlert inline /> <br/> Namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `source_includes_var` | Optional | boolean | **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `use_as_module_input` field instead.** | true |
-| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`consul_kv` variable](/consul/docs/nia/terraform-modules#consul-kv-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
+| `use_as_module_input` | Optional | boolean | Whether or not the values of the condition object should also be used as input for the [`consul_kv` variable](/consul/docs/reference/cts/terraform-module#consul-kv-variable) for the Terraform module<br/><br/> Please refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS will error and exit. | true |
 
 
 #### Schedule Condition
@@ -487,9 +487,9 @@ A scheduled task has a schedule condition block, which defines the schedule for 
 
 Schedule tasks also rely on additional task configuration, separate from the condition block to determine the module input information to provide to the task module. See [`module_input`](#module_input) block configuration for details on how to configure module input.
 
-See [Task Execution: Schedule Condition](/consul/docs/nia/tasks#schedule-condition) for more information on how tasks are triggered with schedule conditions.
+See [Task Execution: Schedule Condition](/consul/docs/reference/cts/task#schedule-condition) for more information on how tasks are triggered with schedule conditions.
 
-See [Terraform Module: Module Input](/consul/docs/nia/terraform-modules#module-input) for more information on module input options for a scheduled task.
+See [Terraform Module: Module Input](/consul/docs/reference/cts/terraform-module#module-input) for more information on module input options for a scheduled task.
 
 ```hcl
 task {
@@ -535,13 +535,13 @@ task {
 }
 ```
 
-~> The type of the `module_input` block that can be configured depends on the `condition` block type and the `services` field (deprecated). See [Task Module Input Restrictions](/consul/docs/nia/configuration#task-module-input-restrictions) for more details.
+~> The type of the `module_input` block that can be configured depends on the `condition` block type and the `services` field (deprecated). See [Task Module Input Restrictions](/consul/docs/reference/cts/configuration#task-module-input-restrictions) for more details.
 
 The following sections describe the module input types that CTS supports.
 
 #### Services Module Input ((#services-source-input))
 
-This `services` module input object defines services registered to Consul whose metadata will be used as [services module input to the Terraform Module](/consul/docs/nia/terraform-modules/#services-module-input). The following parameters are supported:
+This `services` module input object defines services registered to Consul whose metadata will be used as [services module input to the Terraform Module](/consul/docs/reference/cts/terraform-module/#services-module-input). The following parameters are supported:
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
@@ -550,7 +550,7 @@ This `services` module input object defines services registered to Consul whose 
 | `datacenter` |  Optional | string | Name of a datacenter to query for the task. | Datacenter of the agent that CTS queries. |
 | `namespace` | Optional | string |<EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the CTS ACL token <br/> 2. The `default` namespace. |
 | `filter` |  Optional | string | Expression used to additionally filter the services to monitor. <br/><br/> Refer to the [services filtering documentation](/consul/api-docs/health#filtering-2) and section about [how to write filter expressions](/consul/api-docs/features/filtering#creating-expressions) for additional information. | none |
-| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/nia/terraform-modules#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
+| `cts_user_defined_meta` | Optional | map[string] | User-defined metadata that is appended to the [service input variable](/consul/docs/reference/cts/terraform-module#services-module-input) for compatible Terraform modules. <br/><br/> Some modules do not use the configured metadata. Refer to the module configured for the task for information about metadata usage and expected keys and format. | none|
 
 In the following example, the scheduled task queries all Consul services with `web` as the suffix. The metadata of matching services are provided to the Terraform module.
 
@@ -578,7 +578,7 @@ task {
 
 #### Consul KV Module Input ((#consul-kv-source-input))
 
-A Consul KV module input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV module input to the Terraform Module](/consul/docs/nia/terraform-modules/#consul-kv-module-input). The module input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
+A Consul KV module input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV module input to the Terraform Module](/consul/docs/reference/cts/terraform-module/#consul-kv-module-input). The module input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
@@ -727,7 +727,7 @@ driver "terraform-cloud" {
       }
       ```
 
-CTS generates local artifacts to prepare configuration versions used for workspace runs. The location of the files created can be set with the [`working_dir`](/consul/docs/nia/configuration#working_dir) option or configured per task. When a task is configured with a local module and is run with the Terraform Cloud driver, the local module is copied and uploaded as a part of the configuration version.
+CTS generates local artifacts to prepare configuration versions used for workspace runs. The location of the files created can be set with the [`working_dir`](/consul/docs/reference/cts/configuration#working_dir) option or configured per task. When a task is configured with a local module and is run with the Terraform Cloud driver, the local module is copied and uploaded as a part of the configuration version.
 
 The version of Terraform to use for each workspace can also be set within the [task](#task) configuration.
 
