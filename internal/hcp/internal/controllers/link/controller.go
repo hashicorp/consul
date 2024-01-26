@@ -47,6 +47,11 @@ func LinkController(
 	hcpManager *hcp.Manager,
 ) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
+		// Placement is configured to each server so that the HCP manager is started
+		// on each server. We plan to implement an alternative strategy to starting
+		// the HCP manager so that the controller placement will eventually only be
+		// on the leader.
+		// https://hashicorp.atlassian.net/browse/CC-7364
 		WithPlacement(controller.PlacementEachServer).
 		WithInitializer(&linkInitializer{
 			cloudConfig: cfg,
