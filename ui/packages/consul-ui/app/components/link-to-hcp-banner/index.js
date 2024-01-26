@@ -11,6 +11,10 @@ export default class LinkToHcpBannerComponent extends Component {
   @service('hcp-link-status') hcpLinkStatus;
   @service('env') env;
 
+  get notLinked() {
+    return this.args.linkData?.isLinked === false;
+  }
+
   @action
   onDismiss() {
     this.hcpLinkStatus.dismissHcpLinkBanner();
