@@ -15,9 +15,27 @@ export default class HcpLinkItemComponent extends Component {
   }
 
   get shouldDisplayNavLinkItem() {
-    const havePermissionToLink = this.hcpLinkStatus.hasPermissionToLink;
-    const haveLinkStatus = this.args.linkData?.isLinked !== undefined;
-    return havePermissionToLink && haveLinkStatus;
+    const alreadyLinked = this.alreadyLinked;
+    const undefinedResourceId = !this.args.linkData?.resourceId;
+    const unauthorizedToLink = !this.hcpLinkStatus.hasPermissionToLink;
+    const undefinedLinkStatus = this.args.linkData?.isLinked === undefined;
+
+    // We need permission to link to display the link nav item
+    if (unauthorizedToLink) {
+      return false;
+    }
+
+    // If the link status is undefined, we don't want to display the link nav item
+    if (undefinedLinkStatus) {
+      return false;
+    }
+
+    // If the user has already linked, but we don't have the resourceId to link them to HCP, we don't want to display the link nav item
+    if (alreadyLinked && undefinedResourceId) {
+      return false;
+    }
+
+    return true;
   }
 
   get shouldShowBackToHcpItem() {
