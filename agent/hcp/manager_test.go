@@ -4,6 +4,7 @@
 package hcp
 
 import (
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -265,17 +266,31 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 func TestManager_Stop(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
 
-	// Configure status function and upsert called in sendUpdate
+	// Configure status functions called in sendUpdate
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
+	updateCh := make(chan struct{}, 1)
+	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
+
+	// Configure management token creation and cleanup
+	token := "test-token"
 	upsertManagementTokenCalled := make(chan struct{}, 1)
 	upsertManagementTokenF := func(name, secretID string) error {
 		upsertManagementTokenCalled <- struct{}{}
+		if secretID != token {
+			return fmt.Errorf("expected token %q, got %q", token, secretID)
+		}
 		return nil
 	}
-	updateCh := make(chan struct{}, 1)
-	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
+	deleteManagementTokenCalled := make(chan struct{}, 1)
+	deleteManagementTokenF := func(secretID string) error {
+		deleteManagementTokenCalled <- struct{}{}
+		if secretID != token {
+			return fmt.Errorf("expected token %q, got %q", token, secretID)
+		}
+		return nil
+	}
 
 	// Configure the SCADA provider
 	scadaM := scada.NewMockProvider(t)
@@ -298,7 +313,9 @@ func TestManager_Stop(t *testing.T) {
 		ManagementTokenDeleterFn:  deleteManagementTokenF,
 		SCADAProvider:             scadaM,
 		TelemetryProvider:         telemetryM,
-		CloudConfig:               config.CloudConfig{},
+		CloudConfig: config.CloudConfig{
+			ManagementToken: token,
+		},
 	})
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -312,6 +329,12 @@ func TestManager_Stop(t *testing.T) {
 	case <-time.After(time.Second):
 		require.Fail(t, "manager did not send update in expected time")
 	}
+	select {
+	case <-upsertManagementTokenCalled:
+	case <-time.After(time.Second):
+		require.Fail(t, "manager did not create token in expected time")
+	}
+
 	// Send an update to ensure the manager is running in its main loop
 	mgr.SendUpdate()
 	select {
@@ -323,6 +346,13 @@ func TestManager_Stop(t *testing.T) {
 	// Stop the manager
 	err = mgr.Stop()
 	require.NoError(t, err)
+
+	// Validate that the management token delete function is called
+	select {
+	case <-deleteManagementTokenCalled:
+	case <-time.After(time.Millisecond * 100):
+		require.Fail(t, "manager did not create token in expected time")
+	}
 
 	// Send an update, expect no update since manager is stopped
 	mgr.SendUpdate()

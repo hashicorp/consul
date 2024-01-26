@@ -67,7 +67,7 @@ type ManagementTokenDeleter func(secretId string) error
 //go:generate mockery --name Manager --with-expecter --inpackage
 type Manager interface {
 	Start(context.Context) error
-	Stop()
+	Stop() error
 	GetCloudConfig() config.CloudConfig
 	UpdateConfig(hcpclient.Client, config.CloudConfig)
 }
@@ -332,11 +332,11 @@ func (m *HCPManager) setRunning(r bool) bool {
 
 // Stop stops the manager's main loop that sends updates
 // and stops the SCADA provider and telemetry provider.
-func (m *HCPManager) Stop() {
+func (m *HCPManager) Stop() error {
 	changed := m.setRunning(false)
 	if !changed {
 		m.logger.Trace("HCP manager already stopped")
-		return
+		return nil
 	}
 	m.logger.Info("HCP manager stopping")
 
@@ -347,9 +347,17 @@ func (m *HCPManager) Stop() {
 		m.cfg.SCADAProvider.Stop()
 	}
 
-	if m.cfg.TelemetryProvider != nil && reflect.ValueOf(m.cfg.TelemetryProvider).IsValid() {
+	if m.cfg.TelemetryProvider != nil && !reflect.ValueOf(m.cfg.TelemetryProvider).IsNil() {
 		m.cfg.TelemetryProvider.Stop()
 	}
 
+	if m.cfg.ManagementTokenDeleterFn != nil && m.cfg.CloudConfig.ManagementToken != "" {
+		err := m.cfg.ManagementTokenDeleterFn(m.cfg.CloudConfig.ManagementToken)
+		if err != nil {
+			return err
+		}
+	}
+
 	m.logger.Info("HCP manager stopped")
+	return nil
 }
