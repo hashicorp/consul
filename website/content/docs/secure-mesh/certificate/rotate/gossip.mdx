@@ -13,7 +13,7 @@ In this tutorial, you interact with the Consul keyring and change the gossip enc
 
 ## Prerequisites
 
-In order to complete the steps listed in this tutorial, you need a running Consul datacenter with gossip encryption enabled. You can follow [Gossip Encryption](/consul/tutorials/security/gossip-encryption-secure) tutorial to configure gossip encryption on a new datacenter.
+In order to complete the steps listed in this tutorial, you need a running Consul datacenter with gossip encryption enabled. Refer to [Enable gossip communication](/consul/docs/secure-consul/encryption/gossip/enable) to configure gossip encryption on a new datacenter.
 
 ## Required steps
 
@@ -193,7 +193,7 @@ To learn how to automate gossip key rotation using HashiCorp Vault and consul-te
 
 ## Rotate gossip encryption keys for Consul on Kubernetes
 
-The following instructions provides a step-by-step manual process for rotating [gossip encryption](/consul/docs/security/encryption#gossip-encryption) keys on Consul clusters that are deployed onto a Kubernetes cluster with Consul on Kubernetes.
+The following instructions provides a step-by-step manual process for rotating [gossip encryption](/consul/docs/secure-consul/encryption/gossip/existing) keys on Consul clusters that are deployed onto a Kubernetes cluster with Consul on Kubernetes.
 
 The following steps need only be performed once in any single datacenter if your Consul clusters are [federated](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes). Rotating the gossip encryption key in one datacenter will automatically rotate the gossip encryption key for all the other datacenters.
 

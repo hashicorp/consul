@@ -16,13 +16,13 @@ You can create single intentions or create them in batches using the Consul API,
 ## Requirements
 
 - At least two services must be registered in the datacenter.
-- TLS must be enabled to enforce L4 intentions. Refer to [Encryption](/consul/docs/security/encryption) for additional information.
+- TLS must be enabled to enforce L4 intentions. Refer to [Encryption](/consul/docs/secure-consul/encryption) for additional information.
 
 ### ACL requirements
 
 Consul grants permissions for creating and managing intentions based on the destination, not the source. When ACLs are enabled, services and operators must present a token linked to a policy that grants read and write permissions to the destination service.
 
-Consul implicitly grants `intentions:read` permissions to destination services when they are configured with `service:read` or `service:write` permissions. This is so that the services can allow or deny inbound connections when they attempt to join the service mesh. Refer to [Service rules](/consul/docs/security/acl/acl-rules#service-rules) for additional information about configuring ACLs for intentions.
+Consul implicitly grants `intentions:read` permissions to destination services when they are configured with `service:read` or `service:write` permissions. This is so that the services can allow or deny inbound connections when they attempt to join the service mesh. Refer to [Service rules](/consul/docs/secure-consul/acl/rules#service-rules) for additional information about configuring ACLs for intentions.
 
 The default ACL policy configuration determines the default behavior for intentions. If the policy is set to `deny`, then all connections or requests are denied and you must enable them explicitly. Refer to [`default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) for details.
 

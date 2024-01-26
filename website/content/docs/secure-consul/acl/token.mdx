@@ -13,7 +13,7 @@ This topic describes access control list (ACL) tokens, which are the core method
 
 Tokens are artifacts in the ACL system used to authenticate users, services, and Consul agents. When ACLs are enabled, entities requesting access to a resource must include a token that has been linked with a policy, service identity, or node identity that grants permission to the resource. The ACL system checks the token and grants or denies access to resource based on the associated permissions.
 
-Refer to the [ACL workflow overview](/consul/docs/security/acl#workflow-overview) for information about tokens' role in the ACL system.
+Refer to the [ACL workflow overview](/consul/docs/secure-consul/acl#workflow-overview) for information about tokens' role in the ACL system.
 
 ## Create tokens
 
@@ -36,7 +36,7 @@ $ curl --request PUT --data @payload.json http://127.0.0.1:8500/v1/acl/token
 </Tab>
 </Tabs>
 
-Refer to the [ACL API](/consul/api-docs/acl/tokenscl) and [ACL CLI](/consul/commands/acl/token/create) documentation for more details on how to create and link tokens. Tokens can also be created dynamically from trusted external system using an [auth method](/consul/docs/security/acl/auth-methods).
+Refer to the [ACL API](/consul/api-docs/acl/tokenscl) and [ACL CLI](/consul/commands/acl/token/create) documentation for more details on how to create and link tokens. Tokens can also be created dynamically from trusted external system using an [auth method](/consul/docs/secure-consul/acl/auth-methods).
 
 ## Pass tokens
 

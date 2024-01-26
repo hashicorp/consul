@@ -60,7 +60,7 @@ resource "aws_ssm_parameter" "ca-cert" {
 
 ### Optional: Store the ACL token in Parameter Store
 
-If [Consul access control lists (ACLs)](/consul/docs/security/acl) are enabled, Lambda registrator must present an ACL token stored in Parameter Store to access resources. You can use the Consul CLI, API, or the Terraform provider to facilitate the ACL workflow. The following procedure describes how to create and store a token from the command line:
+If [Consul access control lists (ACLs)](/consul/docs/secure-consul/acl) are enabled, Lambda registrator must present an ACL token stored in Parameter Store to access resources. You can use the Consul CLI, API, or the Terraform provider to facilitate the ACL workflow. The following procedure describes how to create and store a token from the command line:
 
 1. Create an ACL policy that includes the following rule:
 

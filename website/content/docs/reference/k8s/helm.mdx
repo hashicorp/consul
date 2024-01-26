@@ -298,7 +298,7 @@ Use these links to navigate to a particular top-level stanza.
     Refer to [`-recursor`](/consul/docs/agent/config/cli-flags#_recursor) for more details.
     If this is an empty array (the default), then Consul DNS will only resolve queries for the Consul top level domain (by default `.consul`).
 
-  - `tls` ((#v-global-tls)) - Enables [TLS](/consul/tutorials/security/tls-encryption-secure)
+  - `tls` ((#v-global-tls)) - Enables [TLS](/consul/docs/secure-consul/encryption/tls/builtin)
     across the cluster to verify authenticity of the Consul servers and clients.
     Requires Consul v1.4.1+.
 
@@ -523,7 +523,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure-consul/acl/auth-methods/kubernetes).
 
       If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
       `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -1171,7 +1171,7 @@ Use these links to navigate to a particular top-level stanza.
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
-    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure-consul/acl/auth-methods/kubernetes).
 
     If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
     `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -2112,8 +2112,8 @@ Use these links to navigate to a particular top-level stanza.
     If set to an empty string all service accounts can log in.
     This only has effect if ACLs are enabled.
 
-    Refer to Auth methods [Binding rules](/consul/docs/security/acl/auth-methods#binding-rules)
-    and [Trusted identiy attributes](/consul/docs/security/acl/auth-methods/kubernetes#trusted-identity-attributes)
+    Refer to Auth methods [Binding rules](/consul/docs/secure-consul/acl/auth-methods#binding-rules)
+    and [Trusted identiy attributes](/consul/docs/secure-consul/acl/auth-methods/kubernetes#trusted-identity-attributes)
     for more details.
     Requires Consul >= v1.5.
 
