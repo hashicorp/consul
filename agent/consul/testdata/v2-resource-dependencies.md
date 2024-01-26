@@ -2,8 +2,9 @@
 flowchart TD
   auth/v2beta1/computedtrafficpermissions --> auth/v2beta1/trafficpermissions
   auth/v2beta1/computedtrafficpermissions --> auth/v2beta1/workloadidentity
-  catalog/v2beta1/computedfailoverpolicy
-  catalog/v2beta1/failoverpolicy --> catalog/v2beta1/service
+  catalog/v2beta1/computedfailoverpolicy --> catalog/v2beta1/failoverpolicy
+  catalog/v2beta1/computedfailoverpolicy --> catalog/v2beta1/service
+  catalog/v2beta1/failoverpolicy
   catalog/v2beta1/healthstatus
   catalog/v2beta1/node --> catalog/v2beta1/nodehealthstatus
   catalog/v2beta1/nodehealthstatus
@@ -21,6 +22,7 @@ flowchart TD
   demo/v2/artist
   hcp/v2/link
   internal/v1/tombstone
+  mesh/v2beta1/apigateway
   mesh/v2beta1/computedexplicitdestinations --> catalog/v2beta1/service
   mesh/v2beta1/computedexplicitdestinations --> catalog/v2beta1/workload
   mesh/v2beta1/computedexplicitdestinations --> mesh/v2beta1/computedroutes

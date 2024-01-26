@@ -6,8 +6,9 @@ package builder
 import (
 	"fmt"
 
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -90,35 +91,45 @@ func buildTrafficPermissions(globalDefaultAllow bool, trustDomain string, worklo
 	for _, p := range computed.DenyPermissions {
 		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
 		principals := makePrincipals(trustDomain, p)
-		for port := range drsByPort {
-			out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
-				Principals: principals,
-			})
+		for port, rules := range drsByPort {
+			if len(rules) > 0 {
+				out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
+					Principals:       principals,
+					DestinationRules: rules,
+				})
+			} else {
+				out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
+					Principals: principals,
+				})
+			}
 		}
 	}
 
 	for _, p := range computed.AllowPermissions {
 		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
 		principals := makePrincipals(trustDomain, p)
-		for port := range drsByPort {
+		for port, rules := range drsByPort {
 			if _, ok := out[port]; !ok {
 				continue
 			}
-
-			out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
-				Principals: principals,
-			})
+			if len(rules) > 0 {
+				out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
+					Principals:       principals,
+					DestinationRules: rules,
+				})
+			} else {
+				out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
+					Principals: principals,
+				})
+			}
 		}
 	}
 
 	return out
 }
 
-// TODO this is a placeholder until we add them to the IR.
-type DestinationRule struct{}
-
-func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.DestinationRule) map[string][]DestinationRule {
-	out := make(map[string][]DestinationRule)
+func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.DestinationRule) map[string][]*pbproxystate.DestinationRule {
+	out := make(map[string][]*pbproxystate.DestinationRule)
 
 	if len(destinationRules) == 0 {
 		for _, p := range allPorts {
@@ -131,6 +142,10 @@ func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.Destin
 	for _, destinationRule := range destinationRules {
 		ports, dr := convertDestinationRule(allPorts, destinationRule)
 		for _, p := range ports {
+			if dr == nil {
+				out[p] = nil
+				continue
+			}
 			out[p] = append(out[p], dr)
 		}
 	}
@@ -139,7 +154,7 @@ func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.Destin
 }
 
 //nolint:unparam
-func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]string, DestinationRule) {
+func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]string, *pbproxystate.DestinationRule) {
 	ports := make(map[string]struct{})
 	if len(dr.PortNames) > 0 {
 		for _, p := range dr.PortNames {
@@ -162,7 +177,35 @@ func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]st
 		out = append(out, p)
 	}
 
-	return out, DestinationRule{}
+	if len(dr.String()) == 0 {
+		return out, nil
+	}
+
+	psdr := &pbproxystate.DestinationRule{
+		PathExact:  dr.PathExact,
+		PathPrefix: dr.PathPrefix,
+		PathRegex:  dr.PathRegex,
+		Methods:    dr.Methods,
+	}
+	hrs := make([]*pbproxystate.DestinationRuleHeader, len(dr.Headers))
+	for i, hr := range dr.Headers {
+		hrs[i] = &pbproxystate.DestinationRuleHeader{
+			Name:    hr.Name,
+			Present: hr.Present,
+			Exact:   hr.Exact,
+			Prefix:  hr.Prefix,
+			Suffix:  hr.Suffix,
+			Regex:   hr.Regex,
+			Invert:  hr.Invert,
+		}
+	}
+	psdr.DestinationRuleHeader = hrs
+
+	if len(psdr.String()) > 0 {
+		return out, psdr
+	}
+
+	return out, nil
 }
 
 func makePrincipals(trustDomain string, perm *pbauth.Permission) []*pbproxystate.Principal {

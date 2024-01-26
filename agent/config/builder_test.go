@@ -576,6 +576,77 @@ func TestBuidler_hostMetricsWithCloud(t *testing.T) {
 	require.True(t, cfg.Telemetry.EnableHostMetrics)
 }
 
+func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
+
+	type testcase struct {
+		hcl       string
+		expectErr bool
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		// using dev mode skips the need for a data dir
+		devMode := true
+		builderOpts := LoadOpts{
+			DevMode: &devMode,
+			Overrides: []Source{
+				FileSource{
+					Name:   "overrides",
+					Format: "hcl",
+					Data:   tc.hcl,
+				},
+			},
+		}
+		_, err := Load(builderOpts)
+		if tc.expectErr {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "`experiments` cannot include")
+		} else {
+			require.NoError(t, err)
+		}
+	}
+
+	const (
+		primary   = `server = true primary_datacenter = "dc1" datacenter = "dc1" `
+		secondary = `server = true primary_datacenter = "dc1" datacenter = "dc2" `
+	)
+
+	cases := map[string]testcase{
+		"primary server no experiments": {
+			hcl: primary + `experiments = []`,
+		},
+		"primary server v2catalog": {
+			hcl: primary + `experiments = ["resource-apis"]`,
+		},
+		"primary server v2dns": {
+			hcl: primary + `experiments = ["v2dns"]`,
+		},
+		"primary server v2tenancy": {
+			hcl: primary + `experiments = ["v2tenancy"]`,
+		},
+		"secondary server no experiments": {
+			hcl: secondary + `experiments = []`,
+		},
+		"secondary server v2catalog": {
+			hcl:       secondary + `experiments = ["resource-apis"]`,
+			expectErr: true,
+		},
+		"secondary server v2dns": {
+			hcl:       secondary + `experiments = ["v2dns"]`,
+			expectErr: true,
+		},
+		"secondary server v2tenancy": {
+			hcl:       secondary + `experiments = ["v2tenancy"]`,
+			expectErr: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestBuilder_WarnCloudConfigWithResourceApis(t *testing.T) {
 	tests := []struct {
 		name      string

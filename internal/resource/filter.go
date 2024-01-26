@@ -11,6 +11,10 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type MetadataFilterableResources interface {
+	GetMetadata() map[string]string
+}
+
 // FilterResourcesByMetadata will use the provided go-bexpr based filter to
 // retain matching items from the provided slice.
 //
@@ -18,7 +22,7 @@ import (
 // by "metadata."
 //
 // If no filter is provided, then this does nothing and returns the input.
-func FilterResourcesByMetadata(resources []*pbresource.Resource, filter string) ([]*pbresource.Resource, error) {
+func FilterResourcesByMetadata[T MetadataFilterableResources](resources []T, filter string) ([]T, error) {
 	if filter == "" || len(resources) == 0 {
 		return resources, nil
 	}
@@ -28,10 +32,10 @@ func FilterResourcesByMetadata(resources []*pbresource.Resource, filter string) 
 		return nil, err
 	}
 
-	filtered := make([]*pbresource.Resource, 0, len(resources))
+	filtered := make([]T, 0, len(resources))
 	for _, res := range resources {
 		vars := &metadataFilterFieldDetails{
-			Meta: res.Metadata,
+			Meta: res.GetMetadata(),
 		}
 		match, err := eval.Evaluate(vars)
 		if err != nil {

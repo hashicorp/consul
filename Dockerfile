@@ -233,7 +233,7 @@ COPY LICENSE /licenses/mozilla.txt
 
 # Set up certificates and base tools.
 # dumb-init is downloaded directly from GitHub because there's no RPM package.
-# Its shasum is hardcoded. If you upgrade the dumb-init verion you'll need to
+# Its shasum is hardcoded. If you upgrade the dumb-init version you'll need to
 # also update the shasum.
 RUN set -eux && \
     microdnf install -y ca-certificates shadow-utils gnupg libcap openssl iputils jq iptables wget unzip tar && \

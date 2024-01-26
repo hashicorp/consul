@@ -9,12 +9,20 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/go-multierror"
+	hcpresource "github.com/hashicorp/hcp-sdk-go/resource"
 )
 
 type DecodedLink = resource.DecodedResource[*pbhcp.Link]
 
+const (
+	LinkName             = "global"
+	MetadataSourceKey    = "source"
+	MetadataSourceConfig = "config"
+)
+
 var (
-	linkConfigurationNameError = errors.New("only a single Link resource is allowed and it must be named global")
+	errLinkConfigurationName = errors.New("only a single Link resource is allowed and it must be named global")
+	errInvalidHCPResourceID  = errors.New("could not parse, invalid format")
 )
 
 func RegisterLink(r resource.Registry) {
@@ -31,10 +39,10 @@ var ValidateLink = resource.DecodeAndValidate(validateLink)
 func validateLink(res *DecodedLink) error {
 	var err error
 
-	if res.Id.Name != "global" {
+	if res.Id.Name != LinkName {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "name",
-			Wrapped: linkConfigurationNameError,
+			Wrapped: errLinkConfigurationName,
 		})
 	}
 
@@ -57,6 +65,14 @@ func validateLink(res *DecodedLink) error {
 			Name:    "resource_id",
 			Wrapped: resource.ErrMissing,
 		})
+	} else {
+		_, parseErr := hcpresource.FromString(res.Data.ResourceId)
+		if parseErr != nil {
+			err = multierror.Append(err, resource.ErrInvalidField{
+				Name:    "resource_id",
+				Wrapped: errInvalidHCPResourceID,
+			})
+		}
 	}
 
 	return err

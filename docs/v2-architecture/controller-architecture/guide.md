@@ -425,6 +425,59 @@ func barController() controller.Controller {
 
 [`controller.PlacementEachServer`]: https://pkg.go.dev/github.com/hashicorp/consul/internal/controller#PlacementEachServer
 
+### Initializer
+
+If your controller needs to execute setup steps when the controller
+first starts and before any resources are reconciled, you can add an
+Initializer.
+
+If the controller has an Initializer, it will not start unless the
+Initialize method is successful. The controller does not have retry
+logic for the initialize method specifically, but the controller
+is restarted on error. When restarted, the controller will attempt
+to execute the initialization again.
+
+The example below has the controller creating a default resource as
+part of initialization.
+
+```Go
+package foo
+
+import (
+ "context"
+
+ "github.com/hashicorp/consul/internal/controller"
+ pbv1alpha1 "github.com/hashicorp/consul/proto-public/pbfoo/v1alpha1"
+ "github.com/hashicorp/consul/proto-public/pbresource"
+)
+
+func barController() controller.Controller {
+ return controller.ForType(pbv1alpha1.BarType).
+  WithReconciler(barReconciler{}).
+  WithInitializer(barInitializer{})
+}
+
+type barInitializer struct{}
+
+func (barInitializer) Initialize(ctx context.Context, rt controller.Runtime) error {
+  _, err := rt.Client.Write(ctx,
+    &pbresource.WriteRequest{
+    Resource: &pbresource.Resource{
+     Id: &pbresource.ID{
+      Name: "default",
+      Type: pbv1alpha1.BarType,
+     },
+    },
+   },
+  )
+  if err != nil {
+   return err
+  }
+
+  return nil
+}
+```
+
 ## Ownership & Cascading Deletion
 
 The resource service implements a lightweight `1:N` ownership model where, on

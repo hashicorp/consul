@@ -30,26 +30,49 @@ func RegisterComputedFailoverPolicy(r resource.Registry) {
 var ValidateComputedFailoverPolicy = resource.DecodeAndValidate(validateComputedFailoverPolicy)
 
 func validateComputedFailoverPolicy(res *DecodedComputedFailoverPolicy) error {
-	if res.Data.Config != nil && res.Data.Config.SamenessGroup != "" {
-		return fmt.Errorf(`invalid "config" field: computed failover policy cannot have a sameness_group`)
+	if res.Data.Config != nil {
+		return fmt.Errorf(`invalid "config" field: computed failover policy cannot have a config`)
 	}
 	for _, fc := range res.Data.PortConfigs {
 		if fc.GetSamenessGroup() != "" {
 			return fmt.Errorf(`invalid "config" field: computed failover policy cannot have a sameness_group`)
 		}
 	}
-	dfp := convertToDecodedFailoverPolicy(res)
-	return validateFailoverPolicy(dfp)
+	return validateCommonFailoverConfigs(&pbcatalog.FailoverPolicy{
+		Config:      res.Data.Config,
+		PortConfigs: res.Data.PortConfigs,
+	})
 }
 
 func aclWriteHookComputedFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *DecodedComputedFailoverPolicy) error {
-	dfp := convertToDecodedFailoverPolicy(res)
-	return aclWriteHookFailoverPolicy(authorizer, authzContext, dfp)
-}
+	// FailoverPolicy is name-aligned with Service
+	serviceName := res.Id.Name
 
-func convertToDecodedFailoverPolicy(res *DecodedComputedFailoverPolicy) *DecodedFailoverPolicy {
-	dfp := &DecodedFailoverPolicy{}
-	dfp.Data = (*pbcatalog.FailoverPolicy)(res.GetData())
-	dfp.Resource = res.GetResource()
-	return dfp
+	// Check service:write permissions on the service this is controlling.
+	if err := authorizer.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, authzContext); err != nil {
+		return err
+	}
+
+	// Ensure you have service:read on any destination that may be affected by
+	// traffic FROM this config change.
+	if res.Data.Config != nil {
+		for _, dest := range res.Data.Config.Destinations {
+			destAuthzContext := resource.AuthorizerContext(dest.Ref.GetTenancy())
+			destServiceName := dest.Ref.GetName()
+			if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(destServiceName, destAuthzContext); err != nil {
+				return err
+			}
+		}
+	}
+	for _, pc := range res.Data.PortConfigs {
+		for _, dest := range pc.Destinations {
+			destAuthzContext := resource.AuthorizerContext(dest.Ref.GetTenancy())
+			destServiceName := dest.Ref.GetName()
+			if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(destServiceName, destAuthzContext); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

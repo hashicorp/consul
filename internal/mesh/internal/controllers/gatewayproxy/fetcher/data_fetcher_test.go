@@ -124,6 +124,15 @@ func (suite *dataFetcherSuite) TestFetcher_FetchMeshGateway() {
 			require.NoError(t, err)
 			require.NotNil(t, gtw)
 		})
+
+		testutil.RunStep(suite.T(), "incorrect type is passed", func(t *testing.T) {
+			incorrectID := resourcetest.Resource(pbcatalog.ServiceType, "api-1").ID()
+			defer func() {
+				err := recover()
+				require.NotNil(t, err)
+			}()
+			f.FetchMeshGateway(suite.ctx, incorrectID)
+		})
 	})
 }
 
@@ -147,6 +156,15 @@ func (suite *dataFetcherSuite) TestFetcher_FetchProxyStateTemplate() {
 			tmpl, err := f.FetchProxyStateTemplate(suite.ctx, suite.proxyStateTemplate.Id)
 			require.NoError(t, err)
 			require.NotNil(t, tmpl)
+		})
+
+		testutil.RunStep(suite.T(), "incorrect type is passed", func(t *testing.T) {
+			incorrectID := resourcetest.Resource(pbcatalog.ServiceType, "api-1").ID()
+			defer func() {
+				err := recover()
+				require.NotNil(t, err)
+			}()
+			f.FetchProxyStateTemplate(suite.ctx, incorrectID)
 		})
 	})
 }
@@ -186,13 +204,13 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExportedServices() {
 
 		testutil.RunStep(suite.T(), "exported services do not exist", func(t *testing.T) {
 			nonExistantID := resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "not-found").ID()
-			svcs, err := f.FetchExportedServices(suite.ctx, nonExistantID)
+			svcs, err := f.FetchComputedExportedServices(suite.ctx, nonExistantID)
 			require.NoError(t, err)
 			require.Nil(t, svcs)
 		})
 
 		testutil.RunStep(suite.T(), "workload exists", func(t *testing.T) {
-			svcs, err := f.FetchExportedServices(suite.ctx, suite.exportedServices.Id)
+			svcs, err := f.FetchComputedExportedServices(suite.ctx, suite.exportedServices.Id)
 			require.NoError(t, err)
 			require.NotNil(t, svcs)
 		})
@@ -219,6 +237,15 @@ func (suite *dataFetcherSuite) TestFetcher_FetchService() {
 			svc, err := f.FetchService(suite.ctx, suite.apiService.Id)
 			require.NoError(t, err)
 			require.NotNil(t, svc)
+		})
+
+		testutil.RunStep(suite.T(), "incorrect type is passed", func(t *testing.T) {
+			incorrectID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-1").ID()
+			defer func() {
+				err := recover()
+				require.NotNil(t, err)
+			}()
+			f.FetchService(suite.ctx, incorrectID)
 		})
 	})
 }

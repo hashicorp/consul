@@ -94,8 +94,8 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 			Type = gvk("demo.v2.Artist")
 			Name = "korn"
 			Tenancy {
-			  Namespace = "default"
 			  Partition = "default"
+			  Namespace = "default"
 			  PeerName = "local"
 			}
 		  }
@@ -145,8 +145,8 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 			"id": {
 				"name": "korn",
 				"tenancy": {
-					"namespace": "default",
 					"partition": "default",
+					"namespace": "default",
 					"peerName": "local"
 				},
 				"type": {

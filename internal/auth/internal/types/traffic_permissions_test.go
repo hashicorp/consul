@@ -33,6 +33,7 @@ func TestValidateTrafficPermissions_ParseError(t *testing.T) {
 func TestValidateTrafficPermissions(t *testing.T) {
 	cases := map[string]struct {
 		tp        *pbauth.TrafficPermissions
+		id        *pbresource.ID
 		expectErr string
 	}{
 		"ok-minimal": {
@@ -51,7 +52,7 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action_ACTION_UNSPECIFIED,
 				Permissions: nil,
 			},
-			expectErr: `invalid "data.action" field: action must be either allow or deny`,
+			expectErr: `invalid "data.action" field`,
 		},
 		"invalid-action": {
 			tp: &pbauth.TrafficPermissions{
@@ -61,7 +62,7 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action(50),
 				Permissions: nil,
 			},
-			expectErr: `invalid "data.action" field: action must be either allow or deny`,
+			expectErr: `invalid "data.action" field`,
 		},
 		"no-destination": {
 			tp: &pbauth.TrafficPermissions{
@@ -91,8 +92,12 @@ func TestValidateTrafficPermissions(t *testing.T) {
 			},
 			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
 		},
-		// TODO: remove when L7 traffic permissions are implemented
-		"l7-fields-path": {
+		"source-has-same-tenancy-as-tp": {
+			id: &pbresource.ID{
+				Tenancy: &pbresource.Tenancy{
+					Partition: resource.DefaultPartitionName,
+				},
+			},
 			tp: &pbauth.TrafficPermissions{
 				Destination: &pbauth.Destination{
 					IdentityName: "w1",
@@ -102,20 +107,21 @@ func TestValidateTrafficPermissions(t *testing.T) {
 					{
 						Sources: []*pbauth.Source{
 							{
-								Partition: "ap1",
-							},
-						},
-						DestinationRules: []*pbauth.DestinationRule{
-							{
-								PathExact: "wi2",
+								Partition:     resource.DefaultPartitionName,
+								Peer:          resource.DefaultPeerName,
+								SamenessGroup: "",
 							},
 						},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "destination_rule": traffic permissions with L7 rules are not yet supported`,
 		},
-		"l7-fields-methods": {
+		"source-has-partition-set": {
+			id: &pbresource.ID{
+				Tenancy: &pbresource.Tenancy{
+					Partition: resource.DefaultPartitionName,
+				},
+			},
 			tp: &pbauth.TrafficPermissions{
 				Destination: &pbauth.Destination{
 					IdentityName: "w1",
@@ -125,20 +131,21 @@ func TestValidateTrafficPermissions(t *testing.T) {
 					{
 						Sources: []*pbauth.Source{
 							{
-								Partition: "ap1",
-							},
-						},
-						DestinationRules: []*pbauth.DestinationRule{
-							{
-								Methods: []string{"PUT"},
+								Partition:     "part",
+								Peer:          resource.DefaultPeerName,
+								SamenessGroup: "",
 							},
 						},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "destination_rule": traffic permissions with L7 rules are not yet supported`,
 		},
-		"l7-fields-header": {
+		"source-has-peer-set": {
+			id: &pbresource.ID{
+				Tenancy: &pbresource.Tenancy{
+					Partition: resource.DefaultPartitionName,
+				},
+			},
 			tp: &pbauth.TrafficPermissions{
 				Destination: &pbauth.Destination{
 					IdentityName: "w1",
@@ -148,26 +155,124 @@ func TestValidateTrafficPermissions(t *testing.T) {
 					{
 						Sources: []*pbauth.Source{
 							{
-								Partition: "ap1",
-							},
-						},
-						DestinationRules: []*pbauth.DestinationRule{
-							{
-								Header: &pbauth.DestinationRuleHeader{Name: "foo"},
+								Partition:     resource.DefaultNamespaceName,
+								Peer:          "peer",
+								SamenessGroup: "",
 							},
 						},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "destination_rule": traffic permissions with L7 rules are not yet supported`,
+		},
+		"source-has-sameness-group-set": {
+			id: &pbresource.ID{
+				Tenancy: &pbresource.Tenancy{
+					Partition: resource.DefaultPartitionName,
+				},
+			},
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "w1",
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition:     resource.DefaultNamespaceName,
+								Peer:          resource.DefaultPeerName,
+								SamenessGroup: "sg1",
+							},
+						},
+					},
+				},
+			},
+		},
+		"source-has-peer-and-partition-set": {
+			id: &pbresource.ID{
+				Tenancy: &pbresource.Tenancy{
+					Partition: resource.DefaultPartitionName,
+				},
+			},
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "w1",
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition:     "part",
+								Peer:          "peer",
+								SamenessGroup: "",
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
+		},
+		"source-has-sameness-group-and-partition-set": {
+			id: &pbresource.ID{
+				Tenancy: &pbresource.Tenancy{
+					Partition: resource.DefaultPartitionName,
+				},
+			},
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "w1",
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition:     "part",
+								Peer:          resource.DefaultPeerName,
+								SamenessGroup: "sg1",
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
+		},
+		"source-has-sameness-group-and-partition-peer-set": {
+			id: &pbresource.ID{
+				Tenancy: &pbresource.Tenancy{
+					Partition: resource.DefaultPartitionName,
+				},
+			},
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "w1",
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition:     "part",
+								Peer:          "peer",
+								SamenessGroup: "sg1",
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
 		},
 	}
 
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
-			res := resourcetest.Resource(pbauth.TrafficPermissionsType, "tp").
-				WithData(t, tc.tp).
-				Build()
+			resBuilder := resourcetest.Resource(pbauth.TrafficPermissionsType, "tp").
+				WithData(t, tc.tp)
+			if tc.id != nil {
+				resBuilder = resBuilder.WithTenancy(tc.id.Tenancy)
+			}
+			res := resBuilder.Build()
 
 			err := ValidateTrafficPermissions(res)
 			if tc.expectErr == "" {

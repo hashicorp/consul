@@ -39,6 +39,9 @@ message Workload {
   // deprecated: connect_native indicates whether this workload is connect native which will allow it to be
   // part of MeshEndpoints without having the corresponding Proxy resource.
   bool connect_native = 8 [deprecated = true];
+
+  // dns contains any workload customization that will be returned in DNS discovery requests.
+  DNSPolicy dns = 9;
 }
 
 message WorkloadAddress {
@@ -66,4 +69,13 @@ message Locality {
 
   // Zone is the zone the entity is running in.
   string zone = 2;
+}
+
+message DNSPolicy {
+  Weights weights = 1;
+}
+
+message Weights {
+  uint32 passing = 1;
+  uint32 warning = 2;
 }

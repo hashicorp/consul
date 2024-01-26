@@ -43,18 +43,18 @@
 
   {{#if (not-eq route.currentName 'oauth-provider-debug')}}
 
-    {{! redirect if we aren't on a URL with dc information }}
+  {{! redirect if we aren't on a URL with dc information }}
     {{#if (eq route.currentName 'index')}}
-      {{! until we get to the dc route we don't know any permissions }}
-      {{! as we don't know the dc, any inital permission based }}
-      {{! redirects are in the dc.show route}}
+    {{! until we get to the dc route we don't know any permissions }}
+    {{! as we don't know the dc, any inital permission based }}
+    {{! redirects are in the dc.show route}}
 
-      {{! 2022-04-15: Temporarily reverting the services page to the default }}
+    {{! 2022-04-15: Temporarily reverting the services page to the default }}
       {{did-insert
         (route-action 'replaceWith' 'dc.services.index' (hash dc=(env 'CONSUL_DATACENTER_LOCAL')))
       }}
     {{else}}
-      {{! If we are notfound, guess the params we need }}
+    {{! If we are notfound, guess the params we need }}
       {{#if (eq route.currentName 'notfound')}}
         <DataSource
           @src={{uri '/*/*/*/notfound/${path}' (hash path=route.params.notfound)}}
@@ -70,11 +70,11 @@
           ''
         )
         (if (can 'use nspaces') (or route.params.nspace notfound.nspace token.Namespace '') '')
-        as |partition nspace|
+      as |partition nspace|
       }}
 
-        {{! Make sure we have enough to show the app chrome}}
-        {{! Don't show anything until we have a list of DCs }}
+      {{! Make sure we have enough to show the app chrome}}
+      {{! Don't show anything until we have a list of DCs }}
         <DataSource @src={{uri '/*/*/*/datacenters'}} as |dcs|>
           {{! Once we have a list of DCs make sure the DC we are asking for exists }}
           {{! If not use the DC that the UI is running in }}
@@ -85,20 +85,20 @@
               (hash Name=(env 'CONSUL_DATACENTER_LOCAL'))
             )
             dcs.data
-            as |dc dcs|
+          as |dc dcs|
           }}
             {{#if (and (gt dc.Name.length 0) dcs)}}
 
-              {{! figure out our current DC and convert it to a model }}
+            {{! figure out our current DC and convert it to a model }}
               <DataSource
                 @src={{uri
-                  '/${partition}/*/${dc}/datacenter-cache/${name}'
-                  (hash dc=dc.Name partition=partition name=dc.Name)
-                }}
+                '/${partition}/*/${dc}/datacenter-cache/${name}'
+                (hash dc=dc.Name partition=partition name=dc.Name)
+              }}
                 as |dc|
               >
                 {{#if dc.data}}
-                  <HashicorpConsul
+                    <HashicorpConsul
                     id='wrapper'
                     @dcs={{dcs}}
                     @dc={{dc.data}}
@@ -110,10 +110,10 @@
                   >
 
                     {{#if error}}
-                      {{! If we got an error from anything, show an error page }}
+                    {{! If we got an error from anything, show an error page }}
                       <AppError @error={{error}} @login={{consul.login.open}} />
                     {{else}}
-                      {{! Otherwise show the rest of the app}}
+                    {{! Otherwise show the rest of the app}}
                       <Outlet
                         @name='application'
                         @model={{hash app=consul user=(hash token=token) dc=dc.data dcs=dcs}}
@@ -135,7 +135,7 @@
       {{/let}}
     {{/if}}
   {{else}}
-    {{! Routes with no main navigation }}
+  {{! Routes with no main navigation }}
     <Outlet @name='application' @model={{hash user=(hash token=token)}} as |o|>
       {{outlet}}
     </Outlet>

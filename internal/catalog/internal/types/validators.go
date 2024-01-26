@@ -6,6 +6,7 @@ package types
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"regexp"
 	"strings"
@@ -201,6 +202,34 @@ func validateWorkloadAddress(addr *pbcatalog.WorkloadAddress, ports map[string]*
 			})
 		}
 	}
+	return err
+}
+
+func validateDNSPolicy(policy *pbcatalog.DNSPolicy) error {
+	// an empty policy is valid
+	if policy == nil || policy.Weights == nil {
+		return nil
+	}
+
+	var err error
+
+	// Validate the weights
+	if policy.Weights.Passing < 1 || policy.Weights.Passing > math.MaxUint16 {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "passing",
+			Wrapped: errDNSPassingWeightOutOfRange,
+		})
+	}
+
+	// Each weight is an unsigned integer, so we don't need to
+	// check for negative weights.
+	if policy.Weights.Warning > math.MaxUint16 {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "warning",
+			Wrapped: errDNSWarningWeightOutOfRange,
+		})
+	}
+
 	return err
 }
 
