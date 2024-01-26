@@ -2269,14 +2269,6 @@
             "path": "reference/acl/token"
           },
           {
-            "title": "Roles",
-            "path": "reference/acl/role"
-          },
-          {
-            "title": "Policies",
-            "path": "reference/acl/policy"
-          },
-          {
             "title": "Rules",
             "path": "reference/acl/rule"
           }

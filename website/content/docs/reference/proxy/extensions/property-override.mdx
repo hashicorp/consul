@@ -240,7 +240,11 @@ EnvoyExtensions = [
 
 The use of `/seconds` in these examples corresponds to the same field in the [google.protobuf.Duration](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/duration.proto) proto definition, since the extension does not support JSON serialized string forms of common protobuf types (e.g. `120s`).
 
--> **Note:** Using separate patches per field preserves any existing configuration of other fields in `outlier_detection` that may be directly set by Consul, such as [`enforcing_consecutive_5xx`](https://developer.hashicorp.com/consul/docs/reference/proxy/envoy#enforcing_consecutive_5xx).
+<Note> 
+  
+Using separate patches per field preserves any existing configuration of other fields in `outlier_detection` that may be directly set by Consul, such as [`enforcing_consecutive_5xx`](https://developer.hashicorp.com/consul/docs/reference/proxy/envoy#enforcing_consecutive_5xx).
+
+</Note>
 
 ### Replace a message field
 

@@ -102,7 +102,7 @@ PluginConfig = {
    CapabilityRestrictionConfiguration = {
       AllowedCapabilities = {
          "fd_read"        = {}
-         "fd_seek"        = {}
+         "fd_refer to k"        = {}
          "environ_get"    = {}
          "clock_get_time" = {}
       }
@@ -405,7 +405,11 @@ Specifies a configuration for restricting the proxy-Wasm capabilities that are a
 
 The `CapabilityRestrictionConfiguration` field is a map that contains a `AllowedCapabilities` parameter. The `AllowedCapabilities` parameter takes a map of string values that correspond to Envoy capability names. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/wasm/v3/wasm.proto#extensions-wasm-v3-capabilityrestrictionconfig) for additional information.
 
-!> **Security warning**: Consul ignores the value that each capability maps to. You can leave the `AllowedCapabilities` empty to allow all capabilities, but doing so gives the configured plugin full unrestricted access to the runtime API provided by the Wasm VM. You must set this to a non-empty map if you want to restrict access to specific capabilities provided by the Wasm runtime API.
+<Warning title="Security warning">
+
+Consul ignores the value that each capability maps to. You can leave the `AllowedCapabilities` empty to allow all capabilities, but doing so gives the configured plugin full unrestricted access to the runtime API provided by the Wasm VM. You must set this to a non-empty map if you want to restrict access to specific capabilities provided by the Wasm runtime API.
+
+</Warning>
 
 #### Values
 
