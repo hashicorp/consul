@@ -160,7 +160,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp.api-2.bar.dc1.internal.foo.consul": {
       "id": {
@@ -176,7 +177,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     }
   },
   "requiredLeafCertificates": {

@@ -107,6 +107,13 @@ type ResourceServiceClient interface {
 	//
 	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error)
+	// MutateAndValidate a resource.
+	//
+	// Applies a resource type's registered mutation and validation hooks to
+	// a resource. This is useful for filling in defaults and validating inputs before
+	// doing a Write. It's not a pre-requisite since the Write endpoint will also apply
+	// the hooks.
+	MutateAndValidate(ctx context.Context, in *MutateAndValidateRequest, opts ...grpc.CallOption) (*MutateAndValidateResponse, error)
 }
 
 type resourceServiceClient struct {
@@ -203,6 +210,15 @@ func (x *resourceServiceWatchListClient) Recv() (*WatchEvent, error) {
 	return m, nil
 }
 
+func (c *resourceServiceClient) MutateAndValidate(ctx context.Context, in *MutateAndValidateRequest, opts ...grpc.CallOption) (*MutateAndValidateResponse, error) {
+	out := new(MutateAndValidateResponse)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/MutateAndValidate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ResourceServiceServer is the server API for ResourceService service.
 // All implementations should embed UnimplementedResourceServiceServer
 // for forward compatibility
@@ -292,6 +308,13 @@ type ResourceServiceServer interface {
 	//
 	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	WatchList(*WatchListRequest, ResourceService_WatchListServer) error
+	// MutateAndValidate a resource.
+	//
+	// Applies a resource type's registered mutation and validation hooks to
+	// a resource. This is useful for filling in defaults and validating inputs before
+	// doing a Write. It's not a pre-requisite since the Write endpoint will also apply
+	// the hooks.
+	MutateAndValidate(context.Context, *MutateAndValidateRequest) (*MutateAndValidateResponse, error)
 }
 
 // UnimplementedResourceServiceServer should be embedded to have forward compatible implementations.
@@ -318,6 +341,9 @@ func (UnimplementedResourceServiceServer) Delete(context.Context, *DeleteRequest
 }
 func (UnimplementedResourceServiceServer) WatchList(*WatchListRequest, ResourceService_WatchListServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchList not implemented")
+}
+func (UnimplementedResourceServiceServer) MutateAndValidate(context.Context, *MutateAndValidateRequest) (*MutateAndValidateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MutateAndValidate not implemented")
 }
 
 // UnsafeResourceServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -460,6 +486,24 @@ func (x *resourceServiceWatchListServer) Send(m *WatchEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ResourceService_MutateAndValidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MutateAndValidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ResourceServiceServer).MutateAndValidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hashicorp.consul.resource.ResourceService/MutateAndValidate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ResourceServiceServer).MutateAndValidate(ctx, req.(*MutateAndValidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ResourceService_ServiceDesc is the grpc.ServiceDesc for ResourceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -490,6 +534,10 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _ResourceService_Delete_Handler,
+		},
+		{
+			MethodName: "MutateAndValidate",
+			Handler:    _ResourceService_MutateAndValidate_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
