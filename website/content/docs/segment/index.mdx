@@ -35,6 +35,8 @@ The two main elements in Consul's multi-tenancy support are _admin partitions_ a
 
 ## Tutorials
 
+To get started with the features described on this page, refer to the following tutorials:
+
 - [Multi-Tenancy with Administrative Partitions](/consul/tutorials/enterprise/consul-admin-partitions?utm_source=docs)
 - [Multi Cluster Applications with Consul Enterprise Admin Partitions](/consul/tutorials/kubernetes/kubernetes-admin-partitions?utm_source=docs)
 - [Setup secure namespaces](/consul/tutorials/namespaces/namespaces-secure-shared-access)
@@ -42,7 +44,7 @@ The two main elements in Consul's multi-tenancy support are _admin partitions_ a
 
 ## Runtime-specific usage documentation
 
-Grouping links into lists that align with the order of the workflows on this page and the order of pages in the nav bar.
+For runtime-specific guidance, refer to the following pages:
 
 - [Configure partitions on Kubernetes](/consul/segment/admin-partition/k8s)
 - [Use Consul and Kubernetes namespaces](/consul/segment/namespace/k8s)
@@ -50,14 +52,11 @@ Grouping links into lists that align with the order of the workflows on this pag
 
 ## Reference documentation
 
-The most experienced users want to quickly find the reference information for specific parts of the component they are using. List all relevant reference pages for the topic.
+For reference material related to Consul's multi-tenancy capabilities, refer to the following pages:
 
 - [Namespace reference](/consul/docs/reference/namespace)
 - [Sameness group configuration entry](/reference/config-entry/sameness-group)
 
 ## Constraints, limitations, and troubleshooting
 
-If you experience errors when implementing multi-tenancy on Consul deployments, refer to the following list of technical constraints.
-
-- WAN-federated Consul deployments support the `default` admin partition only.
-- Samneness groups must be configured on each partition that is a member of the group.
+@include 'limitations/segment.mdx'

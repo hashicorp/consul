@@ -1784,16 +1784,21 @@
         "path": "observe/access-log"
       },
       {
-        "title": "UI visualization",
-        "path": "observe/ui-visualization"
-      },
-      {
         "title": "Distributed tracing",
         "path": "observe/distributed-tracing"
       },
       {
-        "title": "Kubernetes metrics",
-        "path": "observe/metrics"
+        "title": "Service Mesh Telemetry",
+        "routes": [
+          {
+            "title": "Virtual Machines (VM)",
+            "path": "observe/telemetry/vm"
+          },
+          {
+            "title": "Kubernetes",
+            "path": "observe/telemetry/k8s"
+          }
+        ]
       }
     ]
   },

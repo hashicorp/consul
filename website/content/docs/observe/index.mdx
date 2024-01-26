@@ -1,15 +1,15 @@
 ---
 layout: docs
-page_title: Observe service mesh telemetry
+page_title: Observe your service mesh
 description: >-
   Consul documentation provides reference material for all features and options available in Consul.
 ---
 
-# Observe service mesh telemetry
+# Observe your service mesh
 
-This sample page template provides an outline for how to create an overview page. The first paragraph describes the page's content.
+This topic provides an overview of Consul's observability features. Consul can be configured with Prometheus to provide visualizations about agent operations and service traffic between proxies in your service mesh.
 
-To disambiguate content and provide alternate options for user journeys, use a second paragraph with a hyperlink to [direct users to an appropriate alternative](https://developer.hashicorp.com).
+Additional observability features such as service topologies and operations dashboards are available through [HCP Consul Central](/hcp/docs/consul/concepts/consul-central#global-cluster-views).
 
 ## Introduction
 
@@ -23,80 +23,47 @@ If you use a diagram in an overview page, include it in the introduction.
 
 Never end a section with an image. Always include at least one sentence that describes the contents of the diagram.
 
-## Workflows
+## Access logs
 
-Use this section to summarize the main usage steps associated with the topic area. The topic area you are introducing may have a simple workflow, a complex set of workflows, or multiple related but separate workflows.
+@include 'feature/access-log.mdx'
 
-When developing new documentation content, the main workflow is generally the intial configuration, deployment, or instantiation of the topic. Workflows can use either ordered or unordered lists, depending on whether the workflow requires completing steps in a specific order.
- 
-### Primary workflow
+## Distributed tracing
 
-The overall process for {end goal of workflow} consists of the following steps.
+@include 'feature/distributed-tracing.mdx'
 
-1. First action users take complete this workflow. When using multiple sentences, keep the first sentence short and action-oriented, then elaborate in the second sentence.
-1. Second action for completing this workflow. Try to keep workflow steps symmetrical, so if you use two sentences for one step, use two sentences for the other steps.
-1. Final action common to the workflow. After this action, users will take actions specific to their organization or operational needs.
+## Service mesh telemetry with Prometheus
 
-If a dedicated usage page exists, follow the workflow with a [link to refer the reader to the usage page](https://developer.hashicorp.com).
+@include 'feature/telemetry.mdx'
 
-### Alternative or secondary workflow
+## Tutorials
 
-To {achieve a secondary goal}, complete the following steps:
+To get started with the features described on this page, refer to the tutorials in the [Observability tutorial collection](/consul/tutorials/service-mesh-observability):
 
-- Describe the first action users would need to undertake to complete this workflow.     
-- Second action for completing this workflow.
-- Final action.
-
-## General subtopic
-
-You may need to describe additional characteristics about topic area. 
-
-### Nested subtopic
-
-Group information into logical sections. 
-
-### Nested subtopic 
-
-- Use a bulleted list when describing three or more components.
-- Use diagrams, video, and other media as necessary.       
-- Use subheadings to segment and organize information.
-
-## Guidance
-
-Some users land on an overview page and do not know where to go next. Use this section to link to topics that help get started.
-
-### Tutorials
-
-- To learn how to {do what the tutorial describes}, complete the [Name of tutorial](https://link-to-tutorial).
-- To learn how to {do what the tutorial describes}, complete the [Name of tutorial](https://link-to-tutorial).
-
-### Usage documentation
-
-Grouping links into lists that align with the order of the workflows on this page and the order of pages in the nav bar.
-
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
+- [Monitor application health and performance with Consul proxy metrics](/consul/tutorials/service-mesh-observability/proxy-metrics)
+- [Debug service mesh events and errors with Consul proxy access logs](/consul/tutorials/service-mesh-observability/proxy-access-logs)
+- [Monitor Consul server health and performance with metrics and logs](/consul/tutorials/service-mesh-observability/server-metrics-and-logs#enable-consul-server-metrics-and-logging)
+- [Visualize Service Mesh Communication in the Consul UI](/consul/tutorials/service-mesh-observability/service-mesh-visualization)
+- [Observe Consul service mesh traffic with Prometheus](/consul/tutorials/service-mesh-observability/service-mesh-observability)
+- [Layer 7 observability with Prometheus, Grafana, and Kubernetes](/consul/tutorials/service-mesh-observability/kubernetes-layer7-observability)
+- HashiConf 2023 Learn Lab: [Deep observability insights at any scale with Consul](/consul/tutorials/service-mesh-observability/hashiconf-2023)
 
 ### Runtime specific usage documentation
 
-You can also separate usage docs according to environment, runtime, or other logical segments:
+For runtime-specific guidance, refer to the following pages:
 
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
+- [Observe service mesh telemetry on virtual machines (VMs)](/consul/docs/observe/telemetry/vm)
+- [Observe service mesh telemetry on Kubernetes](/consul/docs/observe/telemetry/k8s)
 
-### Reference
+### Reference documentation
 
-The most experienced users want to quickly find the reference information for specific parts of the component they are using. List all relevant reference pages for the topic.
+For reference material related to Consul's observability functions, refer to the following pages:
 
-- [Reference page title](https://developer.hashicorp.com)
-- [Reference page title](https://developer.hashicorp.com)
-- [Reference page title](https://developer.hashicorp.com)
+- [Telemetry parameters in Consul agent configuration reference](/consul/docs/reference/agent#telemetry-parameters)
+- [`global.metrics` parameters in Kubernetes Helm chart reference](/consul/docs/reference/k8s/helm#v-global-metrics)
+- [Proxy defaults configuration reference](/consul/docs/reference/config-entry/proxy-defaults)
+- [Envoy proxy configuration reference](/consul/docs/reference/proxy/envoy)
+- [OpenTelemetry Access Logging extension configuration reference](/consul/docs/reference/proxy/extensions/otel)
 
 ### Constraints, limitations, and troubleshooting
 
-List limitations that inhibit functionality. When creating new content, we typically refer to this section as "constraints and limitations" and update its contents as new features are added. When a release goes GA and all runtimes/environments are supported, you can refer to this section as "Basic troubleshooting".
-
-- List limitations such as constraints on names or operating features simultaneously.
-- List alternate approaches for completing usage tasks (example: Two admin partitions in the same datacenter cannot be peered. Use the `exported-services` configuration entry instead.)
+@include 'limitations/observe.mdx'
