@@ -7,7 +7,7 @@ description: >-
 
 # Cluster peering technical specifications
 
-This reference topic describes the technical specifications associated with using cluster peering in your deployments. These specifications include required Consul components and their configurations. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
+This reference topic describes the technical specifications associated with using cluster peering in your deployments. These specifications include required Consul components and their configurations. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/link/cluster-peering).
 
 For cluster peering requirements in Kubernetes deployments, refer to [cluster peering on Kubernetes technical specifications](/consul/docs/k8s/connect/cluster-peering/tech-specs).
 
@@ -53,12 +53,12 @@ When cluster peering through mesh gateways, consider the following deployment re
 
 ### Mesh gateway modes
 
-By default, cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote). Be aware of these additional requirements when changing a mesh gateway's mode.
+By default, cluster peering connections use mesh gateways in [remote mode](/consul/docs/link/mesh-gateway/federation#remote). Be aware of these additional requirements when changing a mesh gateway's mode.
 
 - For mesh gateways that connect peered clusters, you can set the `mode` as either `remote` or `local`.
 - The `none` mode is invalid for mesh gateways with cluster peering connections.
 
-Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) for more information.
+Refer to [mesh gateway modes](/consul/docs/link/mesh-gateway/#modes) for more information.
 
 ## Sidecar proxy specifications
 
@@ -71,7 +71,7 @@ The Envoy proxies that function as sidecars in your service mesh require configu
 
 ## Exported service specifications
 
-The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections. Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#export-services-between-clusters).
+The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections. Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/link/cluster-peering/establish-connection/vm#export-services-between-clusters).
 
 Refer to the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) reference for more information.
 

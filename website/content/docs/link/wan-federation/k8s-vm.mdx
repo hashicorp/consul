@@ -9,19 +9,19 @@ description: >-
 
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
 
-~> This topic requires familiarity with [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) and [WAN Federation Via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+~> This topic requires familiarity with [Mesh Gateways](/consul/docs/link/mesh-gateway/federation) and [WAN Federation Via Mesh Gateways](/consul/docs/link/mesh-gateway/enable).
 
-This page describes how to federate Consul clusters separately deployed in VM and Kubernetes runtimes. Refer to [Multi-Cluster Overview](/consul/docs/k8s/deployment-configurations/multi-cluster)
-for more information, including [Kubernetes networking requirements](/consul/docs/k8s/deployment-configurations/multi-cluster#network-requirements).
+This page describes how to federate Consul clusters separately deployed in VM and Kubernetes runtimes. Refer to [Multi-Cluster Overview](/consul/docs/link/wan-federation)
+for more information, including [Kubernetes networking requirements](/consul/docs/link/wan-federation#network-requirements).
 
 Consul datacenters running on non-kubernetes platforms like VMs or bare metal can
 be federated with Kubernetes datacenters. 
 
 ## Kubernetes as the Primary
 
-One Consul datacenter must be the [primary](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter). If your primary datacenter is running on Kubernetes, use the Helm config from the [Primary Datacenter](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
+One Consul datacenter must be the [primary](/consul/docs/link/wan-federation/k8s#primary-datacenter). If your primary datacenter is running on Kubernetes, use the Helm config from the [Primary Datacenter](/consul/docs/link/wan-federation/k8s#primary-datacenter) section to install Consul.
 
-Once installed on Kubernetes, and with the `ProxyDefaults` [resource created](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#proxydefaults),
+Once installed on Kubernetes, and with the `ProxyDefaults` [resource created](/consul/docs/link/wan-federation/k8s#proxydefaults),
 you'll need to export the following information from the primary Kubernetes cluster:
 
 - Certificate authority cert and key (in order to create SSL certs for VMs)
@@ -64,7 +64,7 @@ The following sections detail how to export this data.
    ==> Saved vm-dc-server-consul-0-key.pem
    ```
 
-   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](/consul/docs/agent#running-an-agent). This is a [requirement](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
+   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](/consul/docs/agent#running-an-agent). This is a [requirement](/consul/docs/link/mesh-gateway/enable#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
    Not satisfying this requirement would result in the following error in the Consul Server logs:
    `[ERROR] agent.server.rpc: TLS handshake failed: conn=from= error="remote error: tls: bad certificate"`
 
@@ -210,11 +210,11 @@ ports {
 ## Kubernetes as the Secondary
 
 If you're running your primary datacenter on VMs then you'll need to manually
-construct the [Federation Secret](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#federation-secret) in order to federate
+construct the [Federation Secret](/consul/docs/link/wan-federation/k8s#federation-secret) in order to federate
 Kubernetes clusters as secondaries. In addition, primary clusters must be able to make requests to the Kubernetes API URLs of secondary clusters when ACLs are enabled.
 
 -> Your VM cluster must be running mesh gateways, and have mesh gateway WAN
-federation enabled. See [WAN Federation via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+federation enabled. See [WAN Federation via Mesh Gateways](/consul/docs/link/mesh-gateway/enable).
 
 You'll need:
 
@@ -395,10 +395,10 @@ With your config file ready to go, follow our [Installation Guide](/consul/docs/
 to install Consul on your secondary cluster(s).
 
 After installation, if you're using consul-helm 0.30.0+, [create the
-`ProxyDefaults` resource](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#proxydefaults)
+`ProxyDefaults` resource](/consul/docs/link/wan-federation/k8s#proxydefaults)
 to allow traffic between datacenters.
 
 ## Next Steps
 
-In both cases (Kubernetes as primary or secondary), after installation, follow the [Verifying Federation](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#verifying-federation)
+In both cases (Kubernetes as primary or secondary), after installation, follow the [Verifying Federation](/consul/docs/link/wan-federation/k8s#verifying-federation)
 section to verify that federation is working as expected.

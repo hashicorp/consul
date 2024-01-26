@@ -305,7 +305,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-tls-enabled)) (`boolean: false`) - If true, the Helm chart will enable TLS for Consul
       servers and clients and all consul-k8s-control-plane components, as well as generate certificate
       authority (optional) and server and client certificates.
-      This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
+      This setting is required for [Cluster Peering](/consul/docs/link/cluster-peering/k8s).
 
     - `logLevel` ((#v-global-tls-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
@@ -2207,11 +2207,11 @@ Use these links to navigate to a particular top-level stanza.
 
 ### meshGateway ((#h-meshgateway))
 
-- `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway) enable Consul Connect to work across Consul datacenters.
+- `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](/consul/docs/link/mesh-gateway/) enable Consul Connect to work across Consul datacenters.
 
-  - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
+  - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](/consul/docs/link/mesh-gateway/) are enabled, a Deployment will be created that runs
     gateways and Consul service mesh will be configured to use gateways.
-    This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
+    This setting is required for [Cluster Peering](/consul/docs/link/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
   - `logLevel` ((#v-meshgateway-loglevel)) (`string: ""`) - Override global log verbosity level for mesh-gateway-deployment pods. One of "trace", "debug", "info", "warn", or "error".
