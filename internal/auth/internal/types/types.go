@@ -24,4 +24,5 @@ func Register(r resource.Registry) {
 	RegisterTrafficPermissions(r)
 	RegisterComputedTrafficPermission(r)
 	RegisterNamespaceTrafficPermissions(r)
+	RegisterPartitionTrafficPermissions(r)
 }
