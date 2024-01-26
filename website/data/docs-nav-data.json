@@ -2063,7 +2063,7 @@
       },
       {
         "title": "Compatibility",
-        "path": "cts/compatibility"
+        "href": "consul/docs/reference/cts/compatibility"
       },
       {
         "title": "Security model",
@@ -2365,6 +2365,10 @@
           {
             "title": "Configuration reference",
             "path": "reference/cts"
+          },
+          {
+            "title": "Compatibility",
+            "path": "reference/cts/compatibility"
           },
           {
             "title": "API",
