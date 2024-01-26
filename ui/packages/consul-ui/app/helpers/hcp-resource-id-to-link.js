@@ -20,7 +20,7 @@ export default class hcpResourceIdToLink extends Helper {
   compute([resourceId], hash) {
     let url = HCP_PREFIX;
     // Array looks like: ["organization", organizationId, "project", projectId, "hashicorp.consul.global-network-manager.cluster", "Cluster Id"]
-    const [, , organizationId, , projectId, , clusterName] = resourceId.split('/');
+    const [, organizationId, , projectId, , clusterName] = resourceId.split('/');
     console.log(
       `organizationId: ${organizationId} projectId: ${projectId} clusterName: ${clusterName}`
     );

@@ -4,7 +4,7 @@
 }}
 
 <!-- from the GET request we'll get the resourceId-->
-{{#let @list (env "CONSUL_HCP_URL") "organization/b4432207-bb9c-438e-a160-b98923efa979/project/4b09958c-fa91-43ab-8029-eb28d8cee9d4/hashicorp.consul.global-network-manager.cluster/test-from-api" as |SNL hcpUrl resourceId|}}
+{{#let @list (env "CONSUL_HCP_URL") "organization/b4432207-bb9c-438e-a160-b98923efa979/project/11eb5071-85f5-1eb2-992c-0242ac110003/hashicorp.consul.global-network-manager.cluster/test2" as |SNL hcpUrl resourceId|}}
     {{#if this.shouldShowBackToHcpItem}}
         <SNL.BackLink
                 @text={{t "components.hashicorp-consul.side-nav.hcp"}}
@@ -17,7 +17,7 @@
             {{#if this.alreadyLinked}}
                 <SNL.Link
                         @text="HCP Consul Central"
-                        @href={{this.hcpLink}}
+                        @href={{hcp-resource-id-to-link resourceId}}
                         @isHrefExternal={{true}}
                         data-test-linked-cluster-hcp-link
                 />

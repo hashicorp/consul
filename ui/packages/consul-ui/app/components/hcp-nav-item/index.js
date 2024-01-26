@@ -10,8 +10,14 @@ export default class HcpLinkItemComponent extends Component {
   @service env;
   @service('hcp-link-status') hcpLinkStatus;
 
+  get alreadyLinked() {
+    return this.args.linkData?.isLinked === false;
+  }
+
   get shouldDisplayNavLinkItem() {
-    return this.hcpLinkStatus.hasPermissionToLink;
+    const havePermissionToLink = this.hcpLinkStatus.hasPermissionToLink;
+    const haveLinkStatus = this.args.linkData?.isLinked !== undefined;
+    return havePermissionToLink && haveLinkStatus;
   }
 
   get shouldShowBackToHcpItem() {
