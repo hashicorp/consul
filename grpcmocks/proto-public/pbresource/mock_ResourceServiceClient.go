@@ -235,6 +235,76 @@ func (_c *ResourceServiceClient_ListByOwner_Call) RunAndReturn(run func(context.
 	return _c
 }
 
+// MutateAndValidate provides a mock function with given fields: ctx, in, opts
+func (_m *ResourceServiceClient) MutateAndValidate(ctx context.Context, in *pbresource.MutateAndValidateRequest, opts ...grpc.CallOption) (*pbresource.MutateAndValidateResponse, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *pbresource.MutateAndValidateResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.MutateAndValidateRequest, ...grpc.CallOption) (*pbresource.MutateAndValidateResponse, error)); ok {
+		return rf(ctx, in, opts...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.MutateAndValidateRequest, ...grpc.CallOption) *pbresource.MutateAndValidateResponse); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*pbresource.MutateAndValidateResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *pbresource.MutateAndValidateRequest, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ResourceServiceClient_MutateAndValidate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MutateAndValidate'
+type ResourceServiceClient_MutateAndValidate_Call struct {
+	*mock.Call
+}
+
+// MutateAndValidate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *pbresource.MutateAndValidateRequest
+//   - opts ...grpc.CallOption
+func (_e *ResourceServiceClient_Expecter) MutateAndValidate(ctx interface{}, in interface{}, opts ...interface{}) *ResourceServiceClient_MutateAndValidate_Call {
+	return &ResourceServiceClient_MutateAndValidate_Call{Call: _e.mock.On("MutateAndValidate",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *ResourceServiceClient_MutateAndValidate_Call) Run(run func(ctx context.Context, in *pbresource.MutateAndValidateRequest, opts ...grpc.CallOption)) *ResourceServiceClient_MutateAndValidate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*pbresource.MutateAndValidateRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ResourceServiceClient_MutateAndValidate_Call) Return(_a0 *pbresource.MutateAndValidateResponse, _a1 error) *ResourceServiceClient_MutateAndValidate_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ResourceServiceClient_MutateAndValidate_Call) RunAndReturn(run func(context.Context, *pbresource.MutateAndValidateRequest, ...grpc.CallOption) (*pbresource.MutateAndValidateResponse, error)) *ResourceServiceClient_MutateAndValidate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Read provides a mock function with given fields: ctx, in, opts
 func (_m *ResourceServiceClient) Read(ctx context.Context, in *pbresource.ReadRequest, opts ...grpc.CallOption) (*pbresource.ReadResponse, error) {
 	_va := make([]interface{}, len(opts))
