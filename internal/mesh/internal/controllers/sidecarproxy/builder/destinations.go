@@ -299,7 +299,7 @@ func (b *Builder) buildDestination(
 
 		// Original target is the first (or only) target.
 		endpointGroups = append(endpointGroups, egBase)
-		b.addEndpointsRef(clusterName, details.ServiceEndpointsId, details.MeshPort)
+		b.addEndpointsRef(clusterName, details.ServiceEndpointsId, details.MeshPort, details.BackendRef.Port)
 
 		if details.FailoverConfig != nil {
 			failover := details.FailoverConfig
@@ -333,7 +333,7 @@ func (b *Builder) buildDestination(
 				egDest := b.newClusterEndpointGroup(destClusterName, destSNI, destPortName, destDetails.IdentityRefs, destConnectTimeout, destLoadBalancer)
 
 				endpointGroups = append(endpointGroups, egDest)
-				b.addEndpointsRef(destClusterName, destDetails.ServiceEndpointsId, destDetails.MeshPort)
+				b.addEndpointsRef(destClusterName, destDetails.ServiceEndpointsId, destDetails.MeshPort, destDetails.BackendRef.Port)
 			}
 		}
 
@@ -700,10 +700,11 @@ func (b *Builder) addRoute(listenerName string, route *pbproxystate.Route) {
 // addEndpointsRef creates and add an endpointRef for each serviceEndpoint for a destination and
 // adds it to the proxyStateTemplate so it will be processed later during reconciliation by
 // the XDS controller.
-func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) {
+func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, meshPort string, destinationPort string) {
 	b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
-		Id:   serviceEndpointsID,
-		Port: destinationPort,
+		Id:        serviceEndpointsID,
+		MeshPort:  meshPort,
+		RoutePort: destinationPort,
 	}
 }
 

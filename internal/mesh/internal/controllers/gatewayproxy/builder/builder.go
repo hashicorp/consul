@@ -247,8 +247,12 @@ func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate
 			for _, consumer := range exportedService.Consumers {
 				clusterName := b.clusterName(exportedService.TargetRef, consumer, port.TargetPort)
 				requiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
-					Id:   resource.ReplaceType(pbcatalog.ServiceEndpointsType, serviceID),
-					Port: port.TargetPort,
+					Id: resource.ReplaceType(pbcatalog.ServiceEndpointsType, serviceID),
+					// In the case of a mesh gateway, the route port and mesh port are the same, since you are always
+					// routing to same port that you add in the endpoint. This is different from a sidecar proxy, where
+					// the receiving proxy listens on the mesh port and forwards to a different workload port.
+					RoutePort: port.TargetPort,
+					MeshPort:  port.TargetPort,
 				}
 			}
 		}

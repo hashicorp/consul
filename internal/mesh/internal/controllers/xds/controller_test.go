@@ -200,8 +200,9 @@ func (suite *xdsControllerTestSuite) TestReconcile_MissingEndpoint() {
 		fooEndpointsId := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").WithTenancy(tenancy).ID()
 		fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 		fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
-			Id:   fooEndpointsId,
-			Port: "mesh",
+			Id:        fooEndpointsId,
+			MeshPort:  "mesh",
+			RoutePort: "http",
 		}
 
 		fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
@@ -243,8 +244,9 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 		}
 		fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 		fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
-			Id:   badID,
-			Port: "mesh",
+			Id:        badID,
+			MeshPort:  "mesh",
+			RoutePort: "http",
 		}
 
 		fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
@@ -416,15 +418,19 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 							Port:     20000,
 							Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 						},
+						"http": {
+							Port:     8080,
+							Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+						},
 					},
 					Addresses: []*pbcatalog.WorkloadAddress{
 						{
 							Host:  "10.1.1.1",
-							Ports: []string{"mesh"},
+							Ports: []string{"mesh", "http"},
 						},
 						{
 							Host:  "10.2.2.2",
-							Ports: []string{"mesh"},
+							Ports: []string{"mesh", "http"},
 						},
 					},
 					HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
@@ -470,15 +476,19 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 							Port:     20000,
 							Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 						},
+						"http": {
+							Port:     8080,
+							Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+						},
 					},
 					Addresses: []*pbcatalog.WorkloadAddress{
 						{
 							Host:  "10.5.5.5",
-							Ports: []string{"mesh"},
+							Ports: []string{"mesh", "http"},
 						},
 						{
 							Host:  "10.6.6.6",
-							Ports: []string{"mesh"},
+							Ports: []string{"mesh", "http"},
 						},
 					},
 				},
@@ -491,8 +501,9 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 
 		// Update the endpoint references on the fooProxyStateTemplate.
 		suite.fooEndpointRefs["test-cluster-2"] = &pbproxystate.EndpointRef{
-			Id:   secondEndpoints.Id,
-			Port: "mesh",
+			Id:        secondEndpoints.Id,
+			MeshPort:  "mesh",
+			RoutePort: "http",
 		}
 
 		oldVersion := suite.fooProxyStateTemplate.Version
@@ -737,15 +748,19 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 						Port:     20000,
 						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 					},
+					"http": {
+						Port:     8080,
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
 				},
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
 						Host:  "10.1.1.1",
-						Ports: []string{"mesh"},
+						Ports: []string{"mesh", "http"},
 					},
 					{
 						Host:  "10.2.2.2",
-						Ports: []string{"mesh"},
+						Ports: []string{"mesh", "http"},
 					},
 				},
 			},
@@ -758,8 +773,9 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
-		Id:   fooEndpoints.Id,
-		Port: "mesh",
+		Id:        fooEndpoints.Id,
+		MeshPort:  "mesh",
+		RoutePort: "http",
 	}
 
 	fooRequiredLeafs := make(map[string]*pbproxystate.LeafCertificateRef)
@@ -854,15 +870,19 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 						Port:     20000,
 						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 					},
+					"http": {
+						Port:     8080,
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
 				},
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
 						Host:  "10.1.1.1",
-						Ports: []string{"mesh"},
+						Ports: []string{"mesh", "http"},
 					},
 					{
 						Host:  "10.2.2.2",
-						Ports: []string{"mesh"},
+						Ports: []string{"mesh", "http"},
 					},
 				},
 			},
@@ -888,15 +908,19 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 						Port:     20000,
 						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 					},
+					"http": {
+						Port:     8080,
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
 				},
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
 						Host:  "10.3.3.3",
-						Ports: []string{"mesh"},
+						Ports: []string{"mesh", "http"},
 					},
 					{
 						Host:  "10.4.4.4",
-						Ports: []string{"mesh"},
+						Ports: []string{"mesh", "http"},
 					},
 				},
 			},
@@ -909,19 +933,21 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
-		Id:   fooEndpoints.Id,
-		Port: "mesh",
+		Id:        fooEndpoints.Id,
+		MeshPort:  "mesh",
+		RoutePort: "http",
 	}
 	fooRequiredEndpoints["test-cluster-2"] = &pbproxystate.EndpointRef{
-		Id:   fooBarEndpoints.Id,
-		Port: "mesh",
+		Id:        fooBarEndpoints.Id,
+		MeshPort:  "mesh",
+		RoutePort: "http",
 	}
 
 	barRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	barRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
-		Id: fooBarEndpoints.Id,
-		// Sidecar proxy controller will usually set mesh port here.
-		Port: "mesh",
+		Id:        fooBarEndpoints.Id,
+		MeshPort:  "mesh",
+		RoutePort: "http",
 	}
 
 	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
@@ -1154,7 +1180,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 			suite.Run(name, func() {
 				// Create ProxyStateTemplate from the golden file.
 				pst := JSONToProxyTemplate(suite.T(),
-					golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s.golden", path, name)))
+					golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s-%s-%s.golden", path, name, tenancy.Partition, tenancy.Namespace)))
 
 				// Destinations will need endpoint refs set up.
 				if strings.Split(name, "/")[0] == "destination" && len(pst.ProxyState.Endpoints) == 0 {
@@ -1199,7 +1225,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 
 				// Compare actual vs expected.
 				actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
-				expected := golden.Get(suite.T(), actual, name+".golden")
+				expected := golden.Get(suite.T(), actual, name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden")
 				require.JSONEq(suite.T(), expected, actual)
 			})
 		}
@@ -1248,11 +1274,15 @@ func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.Pro
 							Port:     20000,
 							Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 						},
+						"http": {
+							Port:     8080,
+							Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+						},
 					},
 					Addresses: []*pbcatalog.WorkloadAddress{
 						{
 							Host:  "10.1.1.1",
-							Ports: []string{"mesh"},
+							Ports: []string{"mesh", "http"},
 						},
 					},
 				},
@@ -1265,8 +1295,9 @@ func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.Pro
 
 		// add to working list of required endpoints.
 		requiredEps[clusterName] = &pbproxystate.EndpointRef{
-			Id:   eps.Id,
-			Port: "mesh",
+			Id:        eps.Id,
+			MeshPort:  "mesh",
+			RoutePort: "http",
 		}
 	}
 
