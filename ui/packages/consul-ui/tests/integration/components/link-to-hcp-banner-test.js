@@ -107,6 +107,7 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
     );
     this.owner.register('service:env', EnvStub);
     this.linkData = { isLinked: false };
+
     await render(hbs`<LinkToHcpBanner @linkData={{this.linkData}} />`);
     assert
       .dom('[data-test-link-to-hcp-banner-description]')
