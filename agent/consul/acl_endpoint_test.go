@@ -4558,6 +4558,11 @@ func TestACLEndpoint_Login(t *testing.T) {
 	)
 	testauth.InstallSessionToken(
 		testSessionID,
+		"fake-UPPER", // 1 rule (service)
+		"default", "UPPER", "def457",
+	)
+	testauth.InstallSessionToken(
+		testSessionID,
 		"fake-vault", // 1 rule (role)
 		"default", "vault", "jkl012",
 	)
@@ -4584,6 +4589,15 @@ func TestACLEndpoint_Login(t *testing.T) {
 	ruleDB, err := upsertTestBindingRule(
 		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
 		"serviceaccount.namespace==default and serviceaccount.name==db",
+		structs.BindingRuleBindTypeService,
+		"method-${serviceaccount.name}",
+	)
+	require.NoError(t, err)
+
+	// 'fake-UPPER' rules
+	_, err = upsertTestBindingRule(
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
+		"serviceaccount.namespace==default and serviceaccount.name==UPPER",
 		structs.BindingRuleBindTypeService,
 		"method-${serviceaccount.name}",
 	)
@@ -4830,6 +4844,29 @@ func TestACLEndpoint_Login(t *testing.T) {
 		svcid := resp.ServiceIdentities[0]
 		require.Len(t, svcid.Datacenters, 0)
 		require.Equal(t, "method-db", svcid.ServiceName)
+	})
+
+	t.Run("valid bearer token 1 service binding - uppercase", func(t *testing.T) {
+		req := structs.ACLLoginRequest{
+			Auth: &structs.ACLLoginParams{
+				AuthMethod:  method.Name,
+				BearerToken: "fake-UPPER",
+				Meta:        map[string]string{"pod": "pod1"},
+			},
+			Datacenter: "dc1",
+		}
+		resp := structs.ACLToken{}
+
+		require.NoError(t, aclEp.Login(&req, &resp))
+
+		require.Equal(t, method.Name, resp.AuthMethod)
+		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
+		require.True(t, resp.Local)
+		require.Len(t, resp.Roles, 0)
+		require.Len(t, resp.ServiceIdentities, 1)
+		svcid := resp.ServiceIdentities[0]
+		require.Len(t, svcid.Datacenters, 0)
+		require.Equal(t, "method-UPPER", svcid.ServiceName)
 	})
 
 	t.Run("valid bearer token 1 node binding", func(t *testing.T) {
