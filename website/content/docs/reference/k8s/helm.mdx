@@ -136,7 +136,7 @@ Use these links to navigate to a particular top-level stanza.
 
       - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace` 
         agent annotation and [Vault Connect CA namespace](/consul/docs/connect/ca/vault#namespace).
-        To override one of these values individually, see `agentAnnotations` and `connectCA.additionalConfig`.
+        To override one of these values individually, refer to  `agentAnnotations` and `connectCA.additionalConfig`.
 
       - `enabled` ((#v-global-secretsbackend-vault-enabled)) (`boolean: false`) - Enabling the Vault secrets backend will replace Kubernetes secrets with referenced Vault secrets.
 
@@ -755,9 +755,11 @@ Use these links to navigate to a particular top-level stanza.
     section of the Server Performance Requirements documentation for considerations
     around choosing a performant storage class.
 
-    ~> **Note:** The [Reference Architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers)
-    contains best practices and recommendations for selecting suitable
-    hardware sizes for your Consul servers.
+    <Note>
+    
+    The [Reference Architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers) contains best practices and recommendations for selecting suitable hardware sizes for your Consul servers.
+
+    </Note>
 
   - `persistentVolumeClaimRetentionPolicy` ((#v-server-persistentvolumeclaimretentionpolicy)) (`map`) - The [Persistent Volume Claim (PVC) retention policy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention)
     controls if and how PVCs are deleted during the lifecycle of a StatefulSet.
@@ -1124,14 +1126,14 @@ Use these links to navigate to a particular top-level stanza.
         queries are allowed to happen. In any large enough time interval, rate
         limiter limits the rate to RequestLimitsReadRate tokens per second.
 
-        See https://en.wikipedia.org/wiki/Token_bucket for more about token
+        Refer to  https://en.wikipedia.org/wiki/Token_bucket for more about token
         buckets.
 
       - `writeRate` ((#v-server-limits-requestlimits-writerate)) (`integer: -1`) - Setting that controls how frequently RPC, gRPC, and HTTP
         writes are allowed to happen. In any large enough time interval, rate
         limiter limits the rate to RequestLimitsWriteRate tokens per second.
 
-        See https://en.wikipedia.org/wiki/Token_bucket for more about token
+        Refer to  https://en.wikipedia.org/wiki/Token_bucket for more about token
         buckets.
 
 ### externalServers ((#h-externalservers))
@@ -2625,7 +2627,11 @@ Use these links to navigate to a particular top-level stanza.
 
   - `image` ((#v-apigateway-image)) (`string: null`) - Image to use for the api-gateway-controller pods and gateway instances
 
-    ~> **Note:** Using API Gateway <= 0.4 with external servers requires setting `client.enabled: true`.
+    <Note>
+    
+    Using API Gateway <= 0.4 with external servers requires setting `client.enabled: true`.
+
+    </Note>
 
   - `imageEnvoy` ((#v-apigateway-imageenvoy)) (`string: envoyproxy/envoy:<latest supported version>`) - The name (and tag) of the Envoy Docker image used for the
     apiGateway. For other Consul compoenents, imageEnvoy has been replaced with Consul Dataplane.

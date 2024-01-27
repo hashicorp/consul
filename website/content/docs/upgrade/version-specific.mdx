@@ -20,8 +20,8 @@ Prior to Consul 1.17.0, audit logs contained timestamps on both the original log
 After Consul 1.17.0, only timestamps will be included in rotated log file names.
 
 #### Service-defaults upstream config (Enterprise)
-Prior to Consul v1.17.0, [Kubernetes annotations for upstream services](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
-that did not explicitly specify a namespace or partition incorrectly used service-defaults configurations, such as [default protocol](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-defaults#set-the-default-protocol), from the default partition and namespace instead of the local partition and namespace.
+Prior to Consul v1.17.0, [Kubernetes annotations for upstream services](/consul/docs/reference/k8s/annotation-label#consul-hashicorp-com-connect-service-upstreams)
+that did not explicitly specify a namespace or partition incorrectly used service-defaults configurations, such as [default protocol](https://developer.hashicorp.com/consul/docs/reference/config-entry/service-default#set-the-default-protocol), from the default partition and namespace instead of the local partition and namespace.
 
 This bug is fixed starting in Consul v1.17.0. Now service-defaults configurations from the local partition and namespace are fetched when not specified in annotations.
 If you are using non-default partitions and namespaces with Consul-k8s, we recommend explicitly defining these fields for all upstreams in addition to ensuring that accurate
@@ -58,8 +58,8 @@ Before upgrading, ensure that all of your applications can handle this new API b
 
 #### Remove deprecated service-defaults peer upstream override behavior
 
-When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides)
-does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
+When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/reference/config-entry/service-default#upstreamconfig-overrides)
+does not apply to peer upstreams unless the [`Peer`](/consul/docs/reference/config-entry/service-default#upstreamconfig-overrides-peer) field is explicitly provided.
 This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
 
 ## Consul 1.15.x
@@ -158,8 +158,8 @@ In Consul v1.15 and higher:
 
 #### `service-defaults` Overrides for Upstream Peered Services
 
-In Consul 1.14.x, `service-defaults` upstream [`overrides`](/consul/docs/connect/config-entries/service-defaults#overrides) apply to both local and peered services as long as the `name` field matches.
-Consul 1.15.0 is backward compatible with 1.14 if the [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) is not set in any override.
+In Consul 1.14.x, `service-defaults` upstream [`overrides`](/consul/docs/reference/config-entry/service-default#overrides) apply to both local and peered services as long as the `name` field matches.
+Consul 1.15.0 is backward compatible with 1.14 if the [`peer`](/consul/docs/reference/config-entry/service-default#peer) is not set in any override.
 We recommend converting any upstream peer service overrides as a 1.15.x post-upgrade step.
 
 Before Consul v1.15:
@@ -411,7 +411,7 @@ for updated example Vault policies for use with Vault-managed or Consul-managed 
 
 You are using the Vault CA provider if either of the following configurations exists:
 - The Consul server agent configuration option [`connect.ca_provider`](/consul/docs/agent/config/config-files#connect_ca_provider) is set to `vault`, or
-- The Consul on Kubernetes Helm Chart [`global.secretsBackend.vault.connectCA`](/consul/docs/k8s/helm#v-global-secretsbackend-vault-connectca) value is configured.
+- The Consul on Kubernetes Helm Chart [`global.secretsBackend.vault.connectCA`](/consul/docs/reference/k8s/helm#v-global-secretsbackend-vault-connectca) value is configured.
 
 Though this guidance is listed in the 1.13.x section, it applies to several release series.
 Affected Consul versions contain a
@@ -632,7 +632,7 @@ In [Consul 1.11](#consul-1-11-0) the v2 State of the World protocol support will
 
 #### Escape Hatches
 
-Any [escape hatches](/consul/docs/connect/proxies/envoy#advanced-configuration) that
+Any [escape hatches](/consul/docs/reference/proxy/envoy#advanced-configuration) that
 are defined will likely need to be switched from using xDS v2 to xDS v3
 structures. Mostly this involves migrating off of deprecated (and now removed)
 fields and switching untyped config to [typed config](https://www.envoyproxy.io/docs/envoy/v1.17.2/configuration/overview/extension)
@@ -650,10 +650,10 @@ and [after](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c
 #### Stairstep Upgrade Path
 
 1. Upgrade Envoy sidecars to the latest version of Envoy that is
-   [supported](/consul/docs/connect/proxies/envoy#supported-versions) by the currently
+   [supported](/consul/docs/reference/proxy/envoy#supported-versions) by the currently
    running version of Consul as well as Consul 1.10.0.
 
-1. Determine if you are using the [escape hatch](/consul/docs/connect/proxies/envoy#advanced-configuration)
+1. Determine if you are using the [escape hatch](/consul/docs/reference/proxy/envoy#advanced-configuration)
    feature. If so, rewrite the escape hatch to use the xDS v3 syntax and update
    the service registration to reflect the updated escape hatch configuration
    by re-registering. This should purge v2 elements from any configs.
@@ -716,7 +716,7 @@ namespace with a query parameter of `?ns=*`.
 
 Upgrading to Consul 1.9.0 will trigger a one-time background migration of
 [intentions](/consul/docs/connect/intentions) into an equivalent set of
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/reference/config-entry/service-intention) config
 entries. This process will wait until all of the Consul servers in the primary
 datacenter are running Consul 1.9.0+.
 
@@ -744,22 +744,22 @@ re-created via the old endpoints. Fields that are being removed or changing
 behavior:
 
 - `Intention.ID` after migration is stored in the
-  [`LegacyID`](/consul/docs/connect/config-entries/service-intentions#legacyid) field.
+  [`LegacyID`](/consul/docs/reference/config-entry/service-intention#legacyid) field.
   After transitioning this field is cleared.
 
 - `Intention.CreatedAt` after migration is stored in the
-  [`LegacyCreateTime`](/consul/docs/connect/config-entries/service-intentions#legacycreatetime)
+  [`LegacyCreateTime`](/consul/docs/reference/config-entry/service-intention#legacycreatetime)
   field. After transitioning this field is cleared.
 
 - `Intention.UpdatedAt` after migration is stored in the
-  [`LegacyUpdateTime`](/consul/docs/connect/config-entries/service-intentions#legacyupdatetime)
+  [`LegacyUpdateTime`](/consul/docs/reference/config-entry/service-intention#legacyupdatetime)
   field. After transitioning this field is cleared.
 
 - `Intention.Meta` after migration is stored in the
-  [`LegacyMeta`](/consul/docs/connect/config-entries/service-intentions#legacymeta)
+  [`LegacyMeta`](/consul/docs/reference/config-entry/service-intention#legacymeta)
   field. To complete the transition, this field **must be cleared manually**
   and the metadata moved up to the enclosing config entry's
-  [`Meta`](/consul/docs/connect/config-entries/service-intentions#meta) field. This is
+  [`Meta`](/consul/docs/reference/config-entry/service-intention#meta) field. This is
   not done automatically since it is potentially a lossy operation.
 
 ## Consul 1.8.0
@@ -828,7 +828,7 @@ Starting with Consul 1.7.1 this is the new default.
 Managed proxies, which are deprecated since Consul v1.3.0, have now been
 [removed](/consul/docs/connect/proxies). Before upgrading, you must
 migrate any managed proxy usage to [sidecar service
-registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
+registrations](/consul/docs/reference/proxy/sidecar).
 
 ## Consul 1.4.0
 

@@ -124,7 +124,7 @@ Repeat the following steps for each datacenter in the cluster:
   1. Enable Vault as the Secrets Backend in the Consul datacenter
 
 ### Configure Vault Secrets engines
-1. Enable [Vault KV secrets engine - Version 2](/vault/docs/secrets/kv/kv-v2) in order to store the [Gossip Encryption Key](/consul/docs/k8s/helm#v-global-acls-replicationtoken) and the ACL Replication token ([`global.acls.replicationToken`](/consul/docs/k8s/helm#v-global-acls-replicationtoken)).
+1. Enable [Vault KV secrets engine - Version 2](/vault/docs/secrets/kv/kv-v2) in order to store the [Gossip Encryption Key](/consul/docs/reference/k8s/helm#v-global-acls-replicationtoken) and the ACL Replication token ([`global.acls.replicationToken`](/consul/docs/reference/k8s/helm#v-global-acls-replicationtoken)).
 
     ```shell-session
     $ vault secrets enable -path=consul kv-v2

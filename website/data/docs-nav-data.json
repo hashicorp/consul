@@ -2265,20 +2265,12 @@
             ]
           },
           {
-            "title": "Policies",
-            "path": "reference/acl/policy"
-          },
-          {
-            "title": "Roles",
-            "path": "reference/acl/role"
+            "title": "Tokens",
+            "path": "reference/acl/token"
           },
           {
             "title": "Rules",
             "path": "reference/acl/rule"
-          },
-          {
-            "title": "Tokens",
-            "path": "reference/acl/token"
           }
         ]
       },

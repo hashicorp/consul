@@ -41,7 +41,7 @@ The cache does not evict entries due to memory pressure. If memory capacity is r
 
 ## Connections across datacenters
 
-A sidecar proxy's [upstream configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) may specify an alternative datacenter or a prepared query that can address services in multiple datacenters (such as the [geo failover](/consul/tutorials/developer-discovery/automate-geo-failover) pattern).
+A sidecar proxy's [upstream configuration](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference) may specify an alternative datacenter or a prepared query that can address services in multiple datacenters (such as the [geo failover](/consul/tutorials/developer-discovery/automate-geo-failover) pattern).
 
 [Intentions](/consul/docs/connect/intentions) verify connections between services by source and destination name seamlessly across datacenters.
 

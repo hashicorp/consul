@@ -209,7 +209,7 @@ Specifies the workloads that the proxy configuration applies to. You can select 
 
 ### `spec.bootstrapConfig`
 
-Specifies initial bootstrap settings for the Envoy proxy, as well as proxy configuration settings that require the proxy to restart when applied. For more information, refer to [Envoy proxy bootstrap configuration](/consul/docs/connect/proxies/envoy#bootstrap-configuration).
+Specifies initial bootstrap settings for the Envoy proxy, as well as proxy configuration settings that require the proxy to restart when applied. For more information, refer to [Envoy proxy bootstrap configuration](/consul/docs/reference/proxy/envoy#bootstrap-configuration).
 
 #### Values
 
@@ -239,7 +239,7 @@ This field offers complete control of the proxy's bootstrap. Be aware that major
 
 Specifies a template in Go template syntax to use in place of [the default template](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L129) when generating the bootstrap configuration using the [`consul connect envoy` command](/consul/commands/connect/envoy). For information about the variables Consul can interpolate in the template, refer to the [documentation in `bootstrap_tpl.go`](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L5).
 
-Refer to [Envoy proxy escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) for more information.
+Refer to [Envoy proxy escape-hatch overrides](/consul/docs/reference/proxy/envoy#escape-hatch-overrides) for more information.
 
 #### Values
 
@@ -272,7 +272,7 @@ Specifies one or more [Envoy clusters](https://www.envoyproxy.io/docs/envoy/v1.1
 
 This field enables you to add custom clusters, such as tracing sinks, to the bootstrap configuration. In order to configure a single cluster, specify a single JSON object with the cluster details.
 
-Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/reference/proxy/envoy#advanced-bootstrap-options) for more information and examples.
 
 #### Values
 
@@ -285,7 +285,7 @@ Specifies one or more [Envoy listeners](https://www.envoyproxy.io/docs/envoy/v1.
 
 You can use this field to set up limited access that bypasses the service mesh's mTLS or authorization for health checks or metrics.
 
-Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/reference/proxy/envoy#advanced-bootstrap-options) for more information and examples.
 
 #### Values
 
@@ -307,7 +307,7 @@ Specifies a complete [stats config](https://www.envoyproxy.io/docs/envoy/v1.17.2
 
 When provided, this field overrides [`spec.bootstrapConfig.statsTags`](#spec-bootstrapconfig-statstags) and enables full control over dynamic tag replacements.
 
-Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/reference/proxy/envoy#advanced-bootstrap-options) for more information and examples.
 
 #### Values
 
@@ -327,7 +327,7 @@ Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/e
 
 Specifies one or more [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-sinks) to append to sinks defined using [`spec.bootstrapConfig.statsdUrl`](#spec-bootstrapconfig-statsdurl) or [`spec.bootstrapConfig.dogstatsdUrl`](#spec-bootstrapconfig-dogstatsdurl).
 
-Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/reference/proxy/envoy#advanced-bootstrap-options) for more information and examples.
 
 #### Values
 
@@ -371,7 +371,7 @@ The socket is not configured by default.
 
 Specifies a configuration for an external tracing provider as described in [the Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-tracing). Most tracing providers also require adding static clusters to define the endpoints to send tracing data to.
 
-Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/reference/proxy/envoy#advanced-bootstrap-options) for more information and examples.
 
 #### Values
 
@@ -380,7 +380,7 @@ Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/e
 
 ### `spec.dynamicConfig`
 
-Specifies configuration settings for the Envoy proxy that are applied without restarting the proxy. For more information, refer to [Envoy proxy dynamic configuration](/consul/docs/connect/proxies/envoy#dynamic-configuration).
+Specifies configuration settings for the Envoy proxy that are applied without restarting the proxy. For more information, refer to [Envoy proxy dynamic configuration](/consul/docs/reference/proxy/envoy#dynamic-configuration).
 
 #### Values
 
@@ -458,7 +458,7 @@ Specifies the output type for the access logs.
 
 Specifies configurations for exposing the proxy.
 
-Refer to [expose paths configuration reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for more information.
+Refer to [expose paths configuration reference](/consul/docs/reference/proxy/connect-proxy#expose-paths-configuration-reference) for more information.
 
 #### Values
 
@@ -469,7 +469,7 @@ Refer to [expose paths configuration reference](/consul/docs/connect/proxies/pro
 
 Specifies a configuration for exposing an HTTP path through the proxy.
 
-Refer to [expose paths configuration reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for more information.
+Refer to [expose paths configuration reference](/consul/docs/reference/proxy/connect-proxy#expose-paths-configuration-reference) for more information.
 
 #### Values
 
@@ -602,7 +602,7 @@ This field accepts a string indicating the number of seconds. For example, indic
 
 ### `spec.dynamicConfig.meshGatewayMode`
 
-Specifies the proxy's mode of operation for resolving upstreams in remote datacenter destinations. Refer to [Mesh gateway configuration reference](/consul/docs/connect/proxies/proxy-config-reference#mesh-gateway-configuration-reference) for more information.
+Specifies the proxy's mode of operation for resolving upstreams in remote datacenter destinations. Refer to [Mesh gateway configuration reference](/consul/docs/reference/proxy/connect-proxy#mesh-gateway-configuration-reference) for more information.
 
 #### Values
 
@@ -616,7 +616,7 @@ Specifies the proxy's mode of operation for resolving upstreams in remote datace
 
 ### `spec.dynamicConfig.mode`
 
-Configures the proxy to operate in transparent, direct, or default mode. Refer to [proxy modes](/consul/docs/connect/proxies/proxy-config-reference#proxy-modes) for more information.
+Configures the proxy to operate in transparent, direct, or default mode. Refer to [proxy modes](/consul/docs/reference/proxy/connect-proxy#proxy-modes) for more information.
 
 #### Values
 
@@ -629,7 +629,7 @@ Configures the proxy to operate in transparent, direct, or default mode. Refer t
 
 ### `spec.dynamicConfig.publicListenerJson`
 
-Specifies a complete Envoy listener for Consul to deliver in place of the main public listener that the proxy uses to accept inbound connections. Refer to [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) for more information
+Specifies a complete Envoy listener for Consul to deliver in place of the main public listener that the proxy uses to accept inbound connections. Refer to [escape-hatch overrides](/consul/docs/reference/proxy/envoy#escape-hatch-overrides) for more information
 
 #### Values
 
@@ -638,7 +638,7 @@ Specifies a complete Envoy listener for Consul to deliver in place of the main p
 
 ### `spec.dynamicConfig.transparentProxy`
 
-Specifies additional configurations for operating proxies in transparent proxy mode.  Refer to [transparent proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference#transparent-proxy-configuration-reference) for more information.
+Specifies additional configurations for operating proxies in transparent proxy mode.  Refer to [transparent proxy configuration reference](/consul/docs/reference/proxy/connect-proxy#transparent-proxy-configuration-reference) for more information.
 
 #### Values
 

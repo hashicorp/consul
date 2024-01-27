@@ -34,12 +34,12 @@ Consul redirects service traffic through sidecar proxies if you use Consul servi
 
 ### Virtual machines
 
-You must define upstream services in the service definition. Consul uses the upstream configuration to bind the service with its upstreams. After registering the service, you must start a sidecar proxy on the VM to enable mesh connectivity. Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information.
+You must define upstream services in the service definition. Consul uses the upstream configuration to bind the service with its upstreams. After registering the service, you must start a sidecar proxy on the VM to enable mesh connectivity. Refer to [Deploy sidecar services](/consul/docs/reference/proxy/sidecar) for additional information.
 
 ### Kubernetes
 
 If you use Consul on Kubernetes, enable the service mesh injector in your Consul Helm chart and Consul automatically adds a sidecar to each of your pods using the Kubernetes `Service` definition as a reference. You can specify upstream annotations in the `Deployment` definition to bind upstream services to the pods.
-Refer to [`connectInject`](/consul/docs/k8s/connect#installation-and-configuration) and [the upstreams annotation documentation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) for additional information.
+Refer to [`connectInject`](/consul/docs/k8s/connect#installation-and-configuration) and [the upstreams annotation documentation](/consul/docs/reference/k8s/annotation-label#consul-hashicorp-com-connect-service-upstreams) for additional information.
 
 ### Multiple services
 

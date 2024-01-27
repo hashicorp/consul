@@ -35,11 +35,11 @@ CTS is available as an open source and enterprise distribution. Follow the [Auto
 
 - `Network Infrastructure Automation (NIA)` - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
-- `Scheduled Tasks` - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/consul/docs/nia/configuration#schedule-condition).
+- `Scheduled Tasks` - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/consul/docs/reference/cts/configuration#schedule-condition).
 
 - `Services` - A service in CTS represents a service that is registered with Consul for service discovery. Services are grouped by their service names. There may be more than one instance of a particular service, each with its own unique ID. CTS monitors services based on service names and can provide service instance details to a Terraform module for network automation.
 
-- `Module Input` - A module input defines objects that provide values or metadata to the Terraform module. See [module input](/consul/docs/nia/terraform-modules#module-input) for the supported metadata and values. For example, a user can configure a Consul KV module input to provide KV pairs as variables to their respective Terraform Module.
+- `Module Input` - A module input defines objects that provide values or metadata to the Terraform module. See [module input](/consul/docs/reference/cts/terraform-module#module-input) for the supported metadata and values. For example, a user can configure a Consul KV module input to provide KV pairs as variables to their respective Terraform Module.
 
   The module input can be configured in a couple of ways:
   - Setting the `condition` block's `use_as_module_input` field to true
@@ -73,4 +73,4 @@ module.
 - [Contribute](https://github.com/hashicorp/consul-terraform-sync) to the open source project
 - [Report](https://github.com/hashicorp/consul-terraform-sync/issues) bugs or request enhancements
 - [Discuss](https://discuss.hashicorp.com/tags/c/consul/29/consul-terraform-sync) with the community or ask questions
-- [Build integrations](/consul/docs/nia/terraform-modules) for CTS
+- [Build integrations](/consul/docs/reference/cts/terraform-module) for CTS

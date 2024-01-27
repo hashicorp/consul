@@ -249,8 +249,12 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     service mesh because it is vital for `auto_config`, more specifically the service mesh CA
     and certificates infrastructure.
 
-    ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
+    <Warning>
+    
+    Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
     Only one option may be specified.
+
+    </Warning>
 
   - `intro_token` (Defaults to `""`) This specifies the JWT to use for the initial
     `auto_config` RPC to the Consul servers. This can be overridden with the
@@ -440,7 +444,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     the Consul server gains leadership. This option is only applicable to server
     nodes. Each bootstrap entry will be created only if it does not exist. When reloading,
     any new entries that have been added to the configuration will be processed.
-    See the [configuration entry docs](/consul/docs/agent/config-entries) for more
+    Refer to the [configuration entry docs](/consul/docs/agent/config-entries) for more
     details about the contents of each entry.
 
 - `datacenter` Equivalent to the [`-datacenter` command-line flag](/consul/docs/agent/config/cli-flags#_datacenter).
@@ -448,7 +452,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `data_dir` Equivalent to the [`-data-dir` command-line flag](/consul/docs/agent/config/cli-flags#_data_dir).
 
 - `disable_anonymous_signature` Disables providing an anonymous
-  signature for de-duplication with the update check. See [`disable_update_check`](#disable_update_check).
+  signature for de-duplication with the update check. Refer to  [`disable_update_check`](#disable_update_check).
 
 - `disable_http_unprintable_char_filter` Defaults to false. Consul 1.0.3 fixed a potential security vulnerability where malicious users could craft KV keys with unprintable chars that would confuse operators using the CLI or UI into taking wrong actions. Users who had data written in older versions of Consul that did not have this restriction will be unable to delete those values by default in 1.0.3 or later. This setting enables those users to **temporarily** disable the filter such that delete operations can work on those keys again to get back to a healthy state. It is strongly recommended that this filter is not disabled permanently as it exposes the original security vulnerability.
 
@@ -476,10 +480,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](/consul/docs/agent/config/cli-flags#_enable_script_checks).
 
-  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/consul/docs/security/acl/acl-rules#registering-and-querying-node-information) for related information.
+  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. Refer to  [Registering and Querying Node Information](/consul/docs/security/acl/acl-rules#registering-and-querying-node-information) for related information.
 
-  ~> **Security Warning:** Enabling script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead. Refer to the following article for additional guidance: [_Protecting Consul from RCE Risk in Specific Configurations_](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+  <Warning title="Security Warning">
+  
+  Enabling script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead. Refer to the following article for additional guidance: [_Protecting Consul from RCE Risk in Specific Configurations_](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
   for more details.
+
+  </Warning>
 
 - `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](/consul/docs/agent/config/cli-flags#_enable_local_script_checks).
 
@@ -540,7 +548,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
-- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/consul/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
+- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. Refer to  the [licensing documentation](/consul/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
 
 - `limits`: This block specifies various types of limits that the Consul server agent enforces.
 
@@ -557,7 +565,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `rpc_client_timeout` - Configures the limit for how long a client is allowed to read from an RPC connection. This is used to set an upper bound for calls to eventually terminate so that RPC connections are not held indefinitely. Blocking queries can override this timeout. Default is `60s`.
   - `rpc_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single source IP address is allowed to open to a single server. It affects both clients connections and other server connections. In general Consul clients multiplex many RPC calls over a single TCP connection so this can typically be kept low. It needs to be more than one though since servers open at least one additional connection for raft RPC, possibly more for WAN federation when using network areas, and snapshot requests from clients run over a separate TCP conn. A reasonably low limit significantly reduces the ability of an unauthenticated attacker to consume unbounded resources by holding open many connections. You may need to increase this if WAN federated servers connect via proxies or NAT gateways or similar causing many legitimate connections from a single source IP. Default value is `100` which is designed to be extremely conservative to limit issues with certain deployment patterns. Most deployments can probably reduce this safely. 100 connections on modern server hardware should not cause a significant impact on resource usage from an unauthenticated attacker though.
   - `rpc_rate` - Configures the RPC rate limiter on Consul _clients_ by setting the maximum request rate that this agent is allowed to make for RPC requests to Consul servers, in requests per second. Defaults to infinite, which disables rate limiting.
-  - `rpc_max_burst` - The size of the token bucket used to recharge the RPC rate limiter on Consul _clients_. Defaults to 1000 tokens, and each token is good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket for more details about how token bucket rate limiters operate.
+  - `rpc_max_burst` - The size of the token bucket used to recharge the RPC rate limiter on Consul _clients_. Defaults to 1000 tokens, and each token is good for a single RPC call to a Consul server. Refer to  https://en.wikipedia.org/wiki/Token_bucket for more details about how token bucket rate limiters operate.
   - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/consul/api-docs/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
   - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/consul/api-docs/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
@@ -581,10 +589,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   details. By default, this is an empty string, which is the `default` admin
   partition. This cannot be set on a server agent.
 
-  ~> **Warning:** The `partition` option cannot be used either the
+  <Warning>
+  
+  The `partition` option cannot be used either the
   [`segment`](#segment-2) option or [`-segment`](/consul/docs/agent/config/cli-flags#_segment) flag.
 
-- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. See the [Server Performance](/consul/docs/install/performance) documentation for more details. The following parameters are available:
+  </Warning>
+
+- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. Refer to  the [Server Performance](/consul/docs/install/performance) documentation for more details. The following parameters are available:
 
   - `leave_drain_time` - A duration that a server will dwell during a graceful leave in order to allow requests to be retried against other Consul servers. Under normal circumstances, this can prevent clients from experiencing "no leader" errors when performing a rolling update of the Consul servers. This was added in Consul 1.0. Must be a duration value such as 10s. Defaults to 5s.
 
@@ -597,7 +609,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     configure Raft to its highest-performance mode, equivalent to the default timing of Consul
     prior to 0.7, and is recommended for [production Consul servers](/consul/docs/install/performance#production).
 
-    See the note on [last contact](/consul/docs/install/performance#production-server-requirements) timing for more
+    Refer to  the note on [last contact](/consul/docs/install/performance#production-server-requirements) timing for more
     details on tuning this parameter. The maximum allowed value is 10.
 
   - `rpc_hold_timeout` - A duration that a client
@@ -640,16 +652,16 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `server` ((#server_rpc_port)) - Server RPC address. Default 8300. TCP
     only.
   - `sidecar_min_port` ((#sidecar_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/reference/proxy/sidecar).
     Default 21000. Set to `0` to disable automatic port assignment.
   - `sidecar_max_port` ((#sidecar_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/reference/proxy/sidecar).
     Default 21255. Set to `0` to disable automatic port assignment.
   - `expose_min_port` ((#expose_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
+    to use for automatically assigned [exposed check listeners](/consul/docs/reference/proxy/connect-proxy#expose-paths-configuration-reference).
     Default 21500. Set to `0` to disable automatic port assignment.
   - `expose_max_port` ((#expose_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
+    to use for automatically assigned [exposed check listeners](/consul/docs/reference/proxy/connect-proxy#expose-paths-configuration-reference).
     Default 21755. Set to `0` to disable automatic port assignment.
 
 - `primary_datacenter` - This designates the datacenter
@@ -680,7 +692,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   is running as PID 1. If this is set to true or false, then it controls reaping
   regardless of Consul's PID (forces reaping on or off, respectively). This option
   was removed in Consul 0.7.1. For later versions of Consul, you will need to reap
-  processes using a wrapper, please see the [Consul Docker image entry point script](https://github.com/hashicorp/docker-consul/blob/master/0.X/docker-entrypoint.sh)
+  processes using a wrapper, please refer to  the [Consul Docker image entry point script](https://github.com/hashicorp/docker-consul/blob/master/0.X/docker-entrypoint.sh)
   for an example. If you are using Docker 1.13.0 or later, you can use the new `--init`
   option of the `docker run` command and docker will enable an init process with
   PID 1 that reaps child processes for the container. More info on [Docker docs](https://docs.docker.com/engine/reference/commandline/run/#options).
@@ -720,7 +732,11 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/docs/agent/config/cli-flags#_segment).
 
-  ~> **Warning:** The `segment` option cannot be used with the [`partition`](#partition-1) option.
+  <Warning>
+  
+  The `segment` option cannot be used with the [`partition`](#partition-1) option.
+
+  </Warning>
 
 - `segments` <EnterpriseAlert inline /> - (Server agents only) This is a list of nested objects
   that specifies user-defined network segments, not including the `<default>` segment, which is
@@ -747,9 +763,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   If the server has not ran during this period, it will refuse to start up again until an operator intervenes by manually deleting the `server_metadata.json`
   file located in the data dir.
   This is to protect clusters from instability caused by decommissioned servers accidentally being started again.
-  Note: the default value is 168h (equal to 7d) and the minimum value is 6h.
+  The default value is 168h (equal to 7d) and the minimum value is 6h.
 
-- `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
+- `non_voting_server` - **This field is deprecated in Consul 1.9.1. Refer to  the [`read_replica`](#read_replica) field instead.**
 
 - `read_replica` - Equivalent to the [`-read-replica` command-line flag](/consul/docs/agent/config/cli-flags#_read_replica).
 
@@ -815,7 +831,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `watches` - Watches is a list of watch specifications which
   allow an external process to be automatically invoked when a particular data view
-  is updated. See the [watch documentation](/consul/docs/dynamic-app-config/watches) for more detail.
+  is updated. Refer to  the [watch documentation](/consul/docs/dynamic-app-config/watches) for more detail.
   Watches can be modified when the configuration is reloaded.
 
 ## ACL Parameters
@@ -878,10 +894,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     allow for the creation of both [local tokens](/consul/api-docs/acl/tokens#local) and
     [auth methods](/consul/docs/security/acl/auth-methods) in connected secondary datacenters.
 
-    ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
+    <Warning>
+    
+    When enabling ACL token replication on the secondary datacenter,
     global tokens already present in the secondary datacenter will be lost. For
     production environments, consider configuring ACL replication in your initial
     datacenter bootstrapping process.
+
+    </Warning>
 
   - `enable_token_persistence` ((#acl_enable_token_persistence)) - Either
     `true` or `false`. When `true` tokens set using the API will be persisted to
@@ -967,10 +987,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       authorize secondary datacenters with the primary datacenter for replication
       operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables service mesh data replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
 
-      ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
+      <Warning>
+      
+      When enabling ACL token replication on the secondary datacenter,
       policies and roles already present in the secondary datacenter will be lost. For
       production environments, consider configuring ACL replication in your initial
       datacenter bootstrapping process.
+
+      </Warning>
 
     - `managed_service_provider` ((#acl_tokens_managed_service_provider)) <EnterpriseAlert inline /> - An
       array of ACL tokens used by Consul managed service providers for cluster operations.
@@ -995,13 +1019,13 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
       </CodeTabs>
 
-- `acl_datacenter` - **This field is deprecated in Consul 1.4.0. See the [`primary_datacenter`](#primary_datacenter) field instead.**
+- `acl_datacenter` - **This field is deprecated in Consul 1.4.0. Refer to  the [`primary_datacenter`](#primary_datacenter) field instead.**
 
   This designates the datacenter which is authoritative for ACL information. It must be provided to enable ACLs. All servers and datacenters must agree on the ACL datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients,
   it must be set on them too. In Consul 0.8 and later, this also enables agent-level enforcement
   of ACLs. Please review the [ACL tutorial](/consul/tutorials/security/access-control-setup-production) for more details.
 
-- `acl_default_policy` ((#acl_default_policy_legacy)) - **Deprecated in Consul 1.4.0. See the [`acl.default_policy`](#acl_default_policy) field instead.**
+- `acl_default_policy` ((#acl_default_policy_legacy)) - **Deprecated in Consul 1.4.0. Refer to  the [`acl.default_policy`](#acl_default_policy) field instead.**
   Either "allow" or "deny"; defaults to "allow". The default policy controls the
   behavior of a token when there is no matching rule. In "allow" mode, ACLs are a
   denylist: any operation not specifically prohibited is allowed. In "deny" mode,
@@ -1009,7 +1033,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   this will not take effect until you've set `primary_datacenter` to enable ACL support.
 
 - `acl_down_policy` ((#acl_down_policy_legacy)) - **Deprecated in Consul
-  1.4.0. See the [`acl.down_policy`](#acl_down_policy) field instead.** Either "allow",
+  1.4.0. Refer to  the [`acl.down_policy`](#acl_down_policy) field instead.** Either "allow",
   "deny", "extend-cache" or "async-cache"; "extend-cache" is the default. In the
   case that the policy for a token cannot be read from the [`primary_datacenter`](#primary_datacenter)
   or leader node, the down policy is applied. In "allow" mode, all actions are permitted,
@@ -1021,7 +1045,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   not impacted.
 
 - `acl_agent_master_token` ((#acl_agent_master_token_legacy)) - **Deprecated
-  in Consul 1.4.0. See the [`acl.tokens.agent_master`](#acl_tokens_agent_master)
+  in Consul 1.4.0. Refer to  the [`acl.tokens.agent_master`](#acl_tokens_agent_master)
   field instead.** Used to access [agent endpoints](/consul/api-docs/agent) that
   require agent read or write privileges, or node read privileges, even if Consul
   servers aren't present to validate any tokens. This should only be used by operators
@@ -1029,7 +1053,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   was added in Consul 0.7.2 and is only used when [`acl_enforce_version_8`](#acl_enforce_version_8) is set to true.
 
 - `acl_agent_token` ((#acl_agent_token_legacy)) - **Deprecated in Consul
-  1.4.0. See the [`acl.tokens.agent`](#acl_tokens_agent) field instead.** Used for
+  1.4.0. Refer to  the [`acl.tokens.agent`](#acl_tokens_agent) field instead.** Used for
   clients and servers to perform internal operations. If this isn't specified, then
   the [`acl_token`](#acl_token) will be used. This was added in Consul 0.7.2.
 
@@ -1044,10 +1068,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   by allowing policies to be in place before enforcement begins.
 
 - `acl_master_token` ((#acl_master_token_legacy)) - **Deprecated in Consul
-  1.4.0. See the [`acl.tokens.master`](#acl_tokens_master) field instead.**
+  1.4.0. Refer to  the [`acl.tokens.master`](#acl_tokens_master) field instead.**
 
 - `acl_replication_token` ((#acl_replication_token_legacy)) - **Deprecated
-  in Consul 1.4.0. See the [`acl.tokens.replication`](#acl_tokens_replication) field
+  in Consul 1.4.0. Refer to  the [`acl.tokens.replication`](#acl_tokens_replication) field
   instead.** Only used for servers outside the [`primary_datacenter`](#primary_datacenter)
   running Consul 0.7 or later. When provided, this will enable [ACL replication](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
   using this ACL replication using this token to retrieve and replicate the ACLs
@@ -1061,10 +1085,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   [`acl_down_policy`](/consul/docs/agent/config/config-files#acl_down_policy) is set to "extend-cache", tokens not
   in the cache can be resolved during the outage using the replicated set of ACLs.
 
-- `acl_token` ((#acl_token_legacy)) - **Deprecated in Consul 1.4.0. See
+- `acl_token` ((#acl_token_legacy)) - **Deprecated in Consul 1.4.0. Refer to 
   the [`acl.tokens.default`](#acl_tokens_default) field instead.**
 
-- `acl_ttl` ((#acl_ttl_legacy)) - **Deprecated in Consul 1.4.0. See the
+- `acl_ttl` ((#acl_ttl_legacy)) - **Deprecated in Consul 1.4.0. Refer to  the
   [`acl.token_ttl`](#acl_token_ttl) field instead.**Used to control Time-To-Live
   caching of ACLs. By default, this is 30 seconds. This setting has a major performance
   impact: reducing it will cause more frequent refreshes while increasing it reduces
@@ -1075,12 +1099,16 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   When set on a Consul server, enables ACL replication without having to set
   the replication token via [`acl_replication_token`](#acl_replication_token). Instead, enable ACL replication
   and then introduce the token using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server.
-  See [`acl_replication_token`](#acl_replication_token) for more details.
+  Refer to  [`acl_replication_token`](#acl_replication_token) for more details.
 
-  ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
+  <Warning>
+  
+  When enabling ACL token replication on the secondary datacenter,
   policies and roles already present in the secondary datacenter will be lost. For
   production environments, consider configuring ACL replication in your initial
   datacenter bootstrapping process.
+
+  </Warning>
 
 ## Advertise Address Parameters
 
@@ -1186,7 +1214,7 @@ subsystem that provides Consul's service mesh capabilities.
 
     - `auth_method` ((#vault_ca_auth_method))
       Vault auth method to use for logging in to Vault.
-      Please see [Vault Auth Methods](/vault/docs/auth) for more information
+      Please refer to  [Vault Auth Methods](/vault/docs/auth) for more information
       on how to configure individual auth methods. If auth method is provided, Consul will obtain a
       new token from Vault when the token can no longer be renewed.
 
@@ -1196,7 +1224,7 @@ subsystem that provides Consul's service mesh capabilities.
       If not provided the auth method type will be used as the mount path.
 
        - `params` The parameters to configure the auth method.
-      Please see [Vault Auth Methods](/vault/docs/auth) for information on how
+      Please refer to  [Vault Auth Methods](/vault/docs/auth) for information on how
       to configure the auth method you wish to use. If using the Kubernetes auth method, Consul will
       read the service account token from the default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token`
       if the `jwt` parameter is not provided.
@@ -1349,7 +1377,7 @@ subsystem that provides Consul's service mesh capabilities.
     `sequential`.
 
   - `recursor_timeout` - Timeout used by Consul when
-    recursively querying an upstream DNS server. See [`recursors`](#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
+    recursively querying an upstream DNS server. Refer to  [`recursors`](#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
 
   - `disable_compression` - If set to true, DNS
     responses will not be compressed. Compression was added and enabled by default
@@ -1404,7 +1432,7 @@ subsystem that provides Consul's service mesh capabilities.
 
   - `cache_max_age` ((#dns_cache_max_age)) - When [use_cache](#dns_use_cache)
     is enabled, the agent will attempt to re-fetch the result from the servers if
-    the cached value is older than this duration. See: [agent caching](/consul/api-docs/features/caching).
+    the cached value is older than this duration. Refer to : [agent caching](/consul/api-docs/features/caching).
 
     **Note** that unlike the `max-age` HTTP header, a value of 0 for this field is
     equivalent to "no max age". To get a fresh value from the cache use a very small value
@@ -1449,8 +1477,12 @@ subsystem that provides Consul's service mesh capabilities.
     only with a CA, or finally without a CA and without ACL enabled. In any case,
     the communication to the `auto_encrypt` endpoint is always TLS encrypted.
 
-    ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](#auto_config) feature.
+    <Warning>
+    
+    Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](#auto_config) feature.
     Only one option may be specified.
+
+    </Warning>
 
   - `dns_san` (Defaults to `[]`) When this option is being
     used, the certificates requested by `auto_encrypt` from the server have these
@@ -1465,13 +1497,13 @@ subsystem that provides Consul's service mesh capabilities.
 - `encrypt_verify_incoming` - This is an optional
   parameter that can be used to disable enforcing encryption for incoming gossip
   in order to upshift from unencrypted to encrypted gossip on a running cluster.
-  See [this section](/consul/docs/security/encryption#configuring-gossip-encryption-on-an-existing-cluster)
+  Refer to  [this section](/consul/docs/security/encryption#configuring-gossip-encryption-on-an-existing-cluster)
   for more information. Defaults to true.
 
 - `encrypt_verify_outgoing` - This is an optional
   parameter that can be used to disable enforcing encryption for outgoing gossip
   in order to upshift from unencrypted to encrypted gossip on a running cluster.
-  See [this section](/consul/docs/security/encryption#configuring-gossip-encryption-on-an-existing-cluster)
+  Refer to  [this section](/consul/docs/security/encryption#configuring-gossip-encryption-on-an-existing-cluster)
   for more information. Defaults to true.
 
 ## Gossip Parameters
@@ -1606,7 +1638,7 @@ subsystem that provides Consul's service mesh capabilities.
 
 - `node_name` Equivalent to the [`-node` command-line flag](/consul/docs/agent/config/cli-flags#_node).
 
-- `node_meta` Available in Consul 0.7.3 and later, This object allows associating arbitrary metadata key/value pairs with the local node, which can then be used for filtering results from certain catalog endpoints. See the [`-node-meta` command-line flag](/consul/docs/agent/config/cli-flags#_node_meta) for more information.
+- `node_meta` Available in Consul 0.7.3 and later, This object allows associating arbitrary metadata key/value pairs with the local node, which can then be used for filtering results from certain catalog endpoints. Refer to  the [`-node-meta` command-line flag](/consul/docs/agent/config/cli-flags#_node_meta) for more information.
 
   <CodeTabs heading="Example node_meta configuration">
 
@@ -1930,7 +1962,7 @@ subsystem that provides Consul's service mesh capabilities.
 
 ## UI Parameters
 
-- `ui` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.enabled`](#ui_config_enabled) field instead.**
+- `ui` - **This field is deprecated in Consul 1.9.0. Refer to  the [`ui_config.enabled`](#ui_config_enabled) field instead.**
   Equivalent to the [`-ui`](/consul/docs/agent/config/cli-flags#_ui) command-line flag.
 
 - `ui_config` - This object allows a number of sub-keys to be set which controls
@@ -1966,10 +1998,14 @@ subsystem that provides Consul's service mesh capabilities.
     implementations and registration enabling UI metric queries to be customized
     or implemented for an alternative time-series backend.
 
-    ~> **Security Note:** These javascript files are included in the UI with no
+    <Note title="Security Note">
+    
+    These javascript files are included in the UI with no
     further validation or sand-boxing. By configuring them here the operator is
     fully trusting anyone able to write to them as well as the original authors
     not to include malicious code in the UI being served.
+
+    </Note>
 
   - `metrics_provider_options_json` ((#ui_config_metrics_provider_options_json)) -
     This is an optional raw JSON object as a string which is passed to the
@@ -1984,14 +2020,18 @@ subsystem that provides Consul's service mesh capabilities.
     serving graphs to UI users without them needing individual access tokens for
     the metrics backend.
 
-    ~> **Security Note:** Exposing your metrics backend via Consul in this way
+    <Note title="Security Note">
+    
+    Exposing your metrics backend via Consul in this way
     should be carefully considered in production. As Consul doesn't understand
     the requests, it can't limit access to only specific resources. For example
     **this might make it possible for a malicious user on the network to query
     for arbitrary metrics about any server or workload in your infrastructure,
-    or overload the metrics infrastructure with queries**. See [Metrics Proxy
+    or overload the metrics infrastructure with queries**. Refer to  [Metrics Proxy
     Security](/consul/docs/connect/observability/ui-visualization#metrics-proxy-security)
     for more details.
+
+    </Note>
 
     The following sub-keys are available:
 
@@ -2011,7 +2051,7 @@ subsystem that provides Consul's service mesh capabilities.
       a [custom
       provider](/consul/docs/connect/observability/ui-visualization#custom-metrics-providers)
       is used that requires the metrics proxy, the correct allowlist must be
-      specified to enable proxying to necessary endpoints. See [Path
+      specified to enable proxying to necessary endpoints. Refer to  [Path
       Allowlist](/consul/docs/connect/observability/ui-visualization#path-allowlist)
       for more information.
 
@@ -2037,7 +2077,7 @@ subsystem that provides Consul's service mesh capabilities.
     correct values in content when rendered in the UI. The placeholders
     available are listed for each template.
 
-    For more information and examples see [UI
+    For more information and examples refer to  [UI
     Visualization](/consul/docs/connect/observability/ui-visualization#configuring-dashboard-urls)
 
     The following named templates are defined:
@@ -2055,7 +2095,7 @@ subsystem that provides Consul's service mesh capabilities.
         partition or empty if admin partitions are not enabled.
       - `{{Datacenter}}` - Replaced with the current service's datacenter.
 
-- `ui_dir` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.dir`](#ui_config_dir) field instead.**
+- `ui_dir` - **This field is deprecated in Consul 1.9.0. Refer to  the [`ui_config.dir`](#ui_config_dir) field instead.**
   Equivalent to the [`-ui-dir`](/consul/docs/agent/config/cli-flags#_ui_dir) command-line
   flag. This configuration key is not required as of Consul version 0.7.0 and later.
   Specifying this configuration key will enable the web UI. There is no need to specify
@@ -2067,13 +2107,17 @@ This section documents all of the configuration settings that apply to Agent TLS
 TLS is used by the HTTP API, internal RPC, and gRPC/xDS interfaces. Some of these settings
 may also be applied automatically by [auto_config](#auto_config) or [auto_encrypt](#auto_encrypt).
 
-~> **Security Note:** The Certificate Authority (CA) configured on the internal RPC interface
+<Note title="Security Note">
+  
+The Certificate Authority (CA) configured on the internal RPC interface
 (either explicitly by `tls.internal_rpc` or implicitly by `tls.defaults`) should be a private
 CA, not a public one. We recommend using a dedicated CA which should not be used with any other
 systems. Any certificate signed by the CA will be allowed to communicate with the cluster and a
 specially crafted certificate signed by the CA can be used to gain full access to Consul.
 
-- `tls` Added in Consul 1.12, for previous versions see
+</Note>
+
+- `tls` Added in Consul 1.12, for previous versions refer to 
   [Deprecated Options](#tls_deprecated_options).
 
   - `defaults` ((#tls_defaults)) Provides default settings that will be applied
@@ -2134,9 +2178,13 @@ specially crafted certificate signed by the CA can be used to gain full access t
       to TLS 1.2 and below only. The list of all ciphersuites supported by Consul is
       available in [the TLS configuration source code](https://github.com/hashicorp/consul/search?q=%22var+goTLSCipherSuites%22).
 
-      ~> **Note:** The ordering of cipher suites will not be guaranteed from
-      Consul 1.11 onwards. See this [post](https://go.dev/blog/tls-cipher-suites)
+      <Note title="Security Note">
+      
+      The ordering of cipher suites will not be guaranteed from
+      Consul 1.11 onwards. Refer to this [post](https://go.dev/blog/tls-cipher-suites)
       for details.
+
+      </Note>
 
     - `verify_incoming` - ((#tls_defaults_verify_incoming)) If set to true,
       Consul requires that all incoming connections make use of TLS and that
@@ -2210,17 +2258,25 @@ specially crafted certificate signed by the CA can be used to gain full access t
 
     - `verify_incoming` - ((#tls_internal_rpc_verify_incoming)) Overrides [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
 
-      ~> **Security Note:** `verify_incoming` *must* be set to true to prevent
+      <Note title="Security Note">
+      
+      `verify_incoming` *must* be set to true to prevent
       anyone with access to the internal RPC port from gaining full access to
       the Consul cluster.
 
+      </Note>
+
     - `verify_outgoing` ((#tls_internal_rpc_verify_outgoing)) Overrides [`tls.defaults.verify_outgoing`](#tls_defaults_verify_outgoing).
 
-      ~> **Security Note:** Servers that specify `verify_outgoing = true` will
+      <Note title="Security Note">
+      
+      Servers that specify `verify_outgoing = true` will
       always talk to other servers over TLS, but they still _accept_ non-TLS
       connections to allow for a transition of all clients to TLS. Currently the
       only way to enforce that no client can communicate with a server unencrypted
       is to also enable `verify_incoming` which requires client certificates too.
+
+      </Note>
 
     - `verify_server_hostname` Overrides [tls.defaults.verify_server_hostname](#tls_defaults_verify_server_hostname). When
       set to true, Consul verifies the TLS certificate presented by the servers
@@ -2228,9 +2284,13 @@ specially crafted certificate signed by the CA can be used to gain full access t
       and Consul does not verify the hostname of the certificate, only that it
       is signed by a trusted CA.
 
-      ~> **Security Note:** `verify_server_hostname` *must* be set to true to prevent a
+      <Note title="Security Note">
+      
+      `verify_server_hostname` *must* be set to true to prevent a
       compromised client from gaining full read and write access to all cluster
       data *including all ACL tokens and service mesh CA root keys*.
+
+      </Note>
 
 - `server_name` When provided, this overrides the [`node_name`](#_node)
   for the TLS certificate. It can be used to ensure that the certificate name matches
@@ -2241,36 +2301,38 @@ specially crafted certificate signed by the CA can be used to gain full access t
 The following options were deprecated in Consul 1.12, please use the
 [`tls`](#tls-1) stanza instead.
 
-- `ca_file` See: [`tls.defaults.ca_file`](#tls_defaults_ca_file).
+- `ca_file` Refer to : [`tls.defaults.ca_file`](#tls_defaults_ca_file).
 
-- `ca_path` See: [`tls.defaults.ca_path`](#tls_defaults_ca_path).
+- `ca_path` Refer to : [`tls.defaults.ca_path`](#tls_defaults_ca_path).
 
-- `cert_file` See: [`tls.defaults.cert_file`](#tls_defaults_cert_file).
+- `cert_file` Refer to : [`tls.defaults.cert_file`](#tls_defaults_cert_file).
 
-- `key_file` See: [`tls.defaults.key_file`](#tls_defaults_key_file).
+- `key_file` Refer to : [`tls.defaults.key_file`](#tls_defaults_key_file).
 
 - `tls_min_version` Added in Consul 0.7.4.
-  See: [`tls.defaults.tls_min_version`](#tls_defaults_tls_min_version).
+  Refer to : [`tls.defaults.tls_min_version`](#tls_defaults_tls_min_version).
 
 - `tls_cipher_suites` Added in Consul 0.8.2.
-  See: [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
+  Refer to : [`tls.defaults.tls_cipher_suites`](#tls_defaults_tls_cipher_suites).
 
 - `tls_prefer_server_cipher_suites` Added in Consul 0.8.2. This setting will
-  be ignored (see [this post](https://go.dev/blog/tls-cipher-suites) for details).
+  be ignored (refer to  [this post](https://go.dev/blog/tls-cipher-suites) for details).
 
-- `verify_incoming` See: [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
+- `verify_incoming` Refer to : [`tls.defaults.verify_incoming`](#tls_defaults_verify_incoming).
 
-- `verify_incoming_rpc` See: [`tls.internal_rpc.verify_incoming`](#tls_internal_rpc_verify_incoming).
+- `verify_incoming_rpc` Refer to : [`tls.internal_rpc.verify_incoming`](#tls_internal_rpc_verify_incoming).
 
-- `verify_incoming_https` See: [`tls.https.verify_incoming`](#tls_https_verify_incoming).
+- `verify_incoming_https` Refer to : [`tls.https.verify_incoming`](#tls_https_verify_incoming).
 
-- `verify_outgoing` See: [`tls.defaults.verify_outgoing`](#tls_defaults_verify_outgoing).
+- `verify_outgoing` Refer to : [`tls.defaults.verify_outgoing`](#tls_defaults_verify_outgoing).
 
-- `verify_server_hostname` See: [`tls.internal_rpc.verify_server_hostname`](#tls_internal_rpc_verify_server_hostname).
+- `verify_server_hostname` Refer to : [`tls.internal_rpc.verify_server_hostname`](#tls_internal_rpc_verify_server_hostname).
 
 ### Example Configuration File, with TLS
 
-~> **Security Note:** all three verify options should be set as `true` to enable
+<Note title="Security Note">
+  
+All three verify options should be set as `true` to enable
 secure mTLS communication, enabling both encryption and authentication. Failing
 to set [`verify_incoming`](#tls_defaults_verify_incoming) or
 [`verify_outgoing`](#tls_defaults_verify_outgoing) either in the
@@ -2279,7 +2341,9 @@ interface-specific stanza (e.g. `tls.internal_rpc`, `tls.https`) or in
 a [`ca_file`](#tls_defaults_ca_file), [`cert_file`](#tls_defaults_cert_file),
 and [`key_file`](#tls_defaults_key_file).
 
-See, especially, the use of the `ports` setting highlighted below.
+</Note>
+
+Refer to , especially, the use of the `ports` setting highlighted below.
 
 <CodeTabs heading="Example configuration with TLS">
 

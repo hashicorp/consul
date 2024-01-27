@@ -26,7 +26,7 @@ The following minimum versions are required:
 
 To install or update the `consul-k8s CLI`, refer to [install the latest version](/consul/docs/k8s/installation/install-cli#install-the-latest-version) or [upgrade the CLI](/consul/docs/k8s/upgrade/upgrade-cli#upgrade-the-cli). 
 
-The required version of Consul dataplanes deploy automatically when using the latest version of `consul-k8s`. Dataplane version is configured manually when you [modify `imageConsulDataplane`](/consul/docs/k8s/helm#v-global-imageconsuldataplane) in the Helm chart.
+The required version of Consul dataplanes deploy automatically when using the latest version of `consul-k8s`. Dataplane version is configured manually when you [modify `imageConsulDataplane`](/consul/docs/reference/k8s/helm#v-global-imageconsuldataplane) in the Helm chart.
 
 For more information about upgrading Helm charts, refer to [Upgrade Helm chart version](/consul/docs/k8s/upgrade#upgrade-helm-chart-version).
 
@@ -465,6 +465,6 @@ After applying traffic permissions and validating service-to-service communicati
 Refer to the following pages for more information:
 
 - [Split traffic between services](/consul/docs/k8s/multiport/traffic-split)
-- [gRPC route example: route traffic by matching header](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header)
-- [HTTP route example: route traffic by matching header](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header)
-- [HTTP route example: route traffic by matching header and query parameter](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header-and-query-parameter)
+- [gRPC route example: route traffic by matching header](/consul/docs/reference/resource/httproute#route-traffic-by-matching-header)
+- [HTTP route example: route traffic by matching header](/consul/docs/reference/resource/httproute#route-traffic-by-matching-header)
+- [HTTP route example: route traffic by matching header and query parameter](/consul/docs/reference/resource/httproute#route-traffic-by-matching-header-and-query-parameter)

@@ -32,7 +32,7 @@ This topic describes the basic procedure for running Consul-Terraform-Sync (CTS)
   $ mv ~/Downloads/consul-terraform-sync /usr/local/bin/consul-terraform-sync
   ```
 
-2. Create the config.hcl file and configure the options for your use case. Refer to the [configuration reference](/consul/docs/nia/configuration) for details about all CTS configurations.
+2. Create the config.hcl file and configure the options for your use case. Refer to the [configuration reference](/consul/docs/reference/cts/configuration) for details about all CTS configurations.
 
 3. Run Consul-Terraform-Sync (CTS).
 
@@ -40,7 +40,7 @@ This topic describes the basic procedure for running Consul-Terraform-Sync (CTS)
   $ consul-terraform-sync start -config-file <config.hcl>
   ```
 
-4. Check status of tasks. Replace port number if configured in Step 2. Refer to [Consul-Terraform-Sync API](/consul/docs/nia/api) for additional information.
+4. Check status of tasks. Replace port number if configured in Step 2. Refer to [Consul-Terraform-Sync API](/consul/docs/reference/cts/api) for additional information.
 
   ```shell-session
   $ curl localhost:8558/status/tasks
@@ -50,7 +50,7 @@ This topic describes the basic procedure for running Consul-Terraform-Sync (CTS)
 
 You can [configure CTS for high availability](/consul/docs/nia/usage/run-ha), which is an enterprise capability that ensures that all changes to Consul that occur during a failover transition are processed and that CTS continues to operate as expected.
 
-You can start CTS in [inspect mode](/consul/docs/nia/cli/start#modes) to review and test your configuration before applying any changes. Inspect mode allows you to verify that the changes work as expected before running them in an unsupervised daemon mode.
+You can start CTS in [inspect mode](/consul/docs/reference/cts/cli/start#modes) to review and test your configuration before applying any changes. Inspect mode allows you to verify that the changes work as expected before running them in an unsupervised daemon mode.
 
 For hands-on instructions on using inspect mode, refer to the [Consul-Terraform-Sync Run Modes and Status Inspection](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-run-and-inspect?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
  
@@ -82,7 +82,7 @@ The following diagram shows the CTS cluster state after the leader stops. CTS In
 - The time it takes for a new leader to be elected is determined by the `high_availability.cluster.storage.session_ttl` configuration. The minimum failover time is equal to the `session_ttl` value. The maximum failover time is double the `session_ttl` value.
 - If failover occurs during task execution, a new leader is elected. The new leader will attempt to run all tasks once before continuing to monitor for changes.
 - If using the [Terraform Cloud (TFC) driver](/consul/docs/nia/network-drivers/terraform-cloud), the task finishes and CTS starts a new leader that attempts to queue a run for each task in TFC in once-mode.
-- If using [Terraform driver](/consul/docs/nia/network-drivers/terraform), the task may complete depending on the cause of the failover. The new leader starts and attempts to run each task in [once-mode](/consul/docs/nia/cli/start#modes). Depending on the module and provider, the task may require manual intervention to fix any inconsistencies between the infrastructure and Terraform state.
+- If using [Terraform driver](/consul/docs/nia/network-drivers/terraform), the task may complete depending on the cause of the failover. The new leader starts and attempts to run each task in [once-mode](/consul/docs/reference/cts/cli/start#modes). Depending on the module and provider, the task may require manual intervention to fix any inconsistencies between the infrastructure and Terraform state.
 - If failover occurs when no task is executing, CTS elects a new leader that attempts to run all tasks in once-mode.
 
 Note that driver behavior is consistent whether or not CTS is running in high availability mode.
@@ -101,7 +101,7 @@ We recommend specifying the [TFC driver](/consul/docs/nia/network-drivers/terraf
 
 ## Configuration
 
-Add the `high_availability` block in your CTS configuration and configure the required settings to enable high availability. Refer to the [Configuration reference](/consul/docs/nia/configuration#high-availability) for details about the configuration fields for the `high_availability` block.
+Add the `high_availability` block in your CTS configuration and configure the required settings to enable high availability. Refer to the [Configuration reference](/consul/docs/reference/cts/configuration#high-availability) for details about the configuration fields for the `high_availability` block.
 
 The following example configures high availability functionality for a cluster named `cts-cluster`:
 
@@ -135,12 +135,12 @@ If the `high_availability.cluster.storage.namespace` field is configured, then y
 
 We recommend deploying a cluster that includes three CTS instances. This is so that the cluster has one leader and two followers.
 
-1. Create an HCL configuration file that includes the settings you want to include, including the `high_availability` block. Refer to [Configuration Options for Consul-Terraform-Sync](/consul/docs/nia/configuration) for all configuration options.
-1. Issue the startup command and pass the configuration file. Refer to the [`start` command reference](/consul/docs/nia/cli/start#modes) for additional information about CTS startup modes.
+1. Create an HCL configuration file that includes the settings you want to include, including the `high_availability` block. Refer to [Configuration Options for Consul-Terraform-Sync](/consul/docs/reference/cts/configuration) for all configuration options.
+1. Issue the startup command and pass the configuration file. Refer to the [`start` command reference](/consul/docs/reference/cts/cli/start#modes) for additional information about CTS startup modes.
   ```shell-session
   $ consul-terraform-sync start -config-file ha-config.hcl
   ```
-1. You can call the `/status` API endpoint to verify the status of tasks CTS is configured to monitor. Only the leader of the cluster will return a successful response. Refer to the [`/status` API reference documentation](/consul/docs/nia/api/status) for information about usage and responses.
+1. You can call the `/status` API endpoint to verify the status of tasks CTS is configured to monitor. Only the leader of the cluster will return a successful response. Refer to the [`/status` API reference documentation](/consul/docs/reference/cts/api/status) for information about usage and responses.
 
   ```shell-session
   $ curl localhost:<port>/status/tasks
@@ -152,7 +152,7 @@ Repeat the procedure to start the remaining instances for your cluster. We recom
 
 You can implement a rolling update to update a non-task configuration for a CTS instance, such as the Consul connection settings. If you need to update a task in the instance configuration, refer to [Modify tasks](#modify-tasks).
 
-1. Identify the leader CTS instance by either making a call to the [`status/cluster` API endpoint](/consul/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
+1. Identify the leader CTS instance by either making a call to the [`status/cluster` API endpoint](/consul/docs/reference/cts/api/status#cluster-status) or by checking the logs for the following entry:
   ```shell-session
   [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
   ```
@@ -172,18 +172,18 @@ You can use the following methods for modifying tasks when high availability is 
 
 We recommend deleting and recreating a task if you need to make a modification. Use the CTS API to identify the CTS leader instance and replace a task.
 
-1. Identify the leader CTS instance by either making a call to the [`status/cluster` API endpoint](/consul/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
+1. Identify the leader CTS instance by either making a call to the [`status/cluster` API endpoint](/consul/docs/reference/cts/api/status#cluster-status) or by checking the logs for the following entry:
 
   ```shell-session
   [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
   ```
-1. Send a `DELETE` call to the  [`/task/<task-name>` endpoint](/consul/docs/nia/api/tasks#delete-task) to delete the task. In the following example, the leader instance is at `localhost:8558`:
+1. Send a `DELETE` call to the  [`/task/<task-name>` endpoint](/consul/docs/reference/cts/api/tasks#delete-task) to delete the task. In the following example, the leader instance is at `localhost:8558`:
 
   ```shell-session
   $ curl --request DELETE  localhost:8558/v1/tasks/task_a
   ```
 
- You can also use the [`task delete` command](/consul/docs/nia/cli/task#task-delete) to complete this step.
+ You can also use the [`task delete` command](/consul/docs/reference/cts/cli/task#task-delete) to complete this step.
 
 1. Send a `POST` call to the `/task/<task-name>` endpoint and include the updated task in your payload.
   ```shell-session
@@ -193,11 +193,11 @@ We recommend deleting and recreating a task if you need to make a modification. 
   localhost:8558/v1/tasks
   ```
 
-  You can also use the [`task-create` command](/consul/docs/nia/cli/task#task-create) to complete this step.
+  You can also use the [`task-create` command](/consul/docs/reference/cts/cli/task#task-create) to complete this step.
 
 ### Discard data with the `-reset-storage` flag
 
-You can restart the CTS cluster using the [`-reset-storage` flag](/consul/docs/nia/cli/start#options) to discard persisted data if you need to update a task.
+You can restart the CTS cluster using the [`-reset-storage` flag](/consul/docs/reference/cts/cli/start#options) to discard persisted data if you need to update a task.
 
 1. Stop a follower instance.
 1. Update the instance’s task configuration.
@@ -210,7 +210,7 @@ You can restart the CTS cluster using the [`-reset-storage` flag](/consul/docs/n
 
 Use the following troubleshooting procedure if a previous leader had been running a task successfully but the new leader logs an error after a failover:
 
-1. Check the logs printed to the console for errors. Refer to the [`syslog` configuration](/consul/docs/nia/configuration#syslog) for information on how to locate the logs. In the following example output, CTS reported a `401: Bad credentials` error:
+1. Check the logs printed to the console for errors. Refer to the [`syslog` configuration](/consul/docs/reference/cts/configuration#syslog) for information on how to locate the logs. In the following example output, CTS reported a `401: Bad credentials` error:
   ```shell-session
   2022-08-23T09:25:09.501-0700 [ERROR] tasksmanager: error applying task: task_name=config-task
   error=

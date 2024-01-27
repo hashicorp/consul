@@ -7,7 +7,7 @@ description: >-
 
 # Manage traffic for peered clusters on VMs
 
-This usage topic describes how to configure and apply the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) to set up redirects and failovers between services that have an existing cluster peering connection.
+This usage topic describes how to configure and apply the [`service-resolver` configuration entry](/consul/docs/reference/config-entry/service-resolver) to set up redirects and failovers between services that have an existing cluster peering connection.
 
 For Kubernetes-specific guidance for managing L7 traffic with cluster peering, refer to [Manage L7 traffic with cluster peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/l7-traffic).
 
@@ -25,7 +25,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
 1. Define the peer cluster as a failover target in the service resolver configuration.
 
-  The following examples update the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
+  The following examples update the [`service-resolver` configuration entry](/consul/docs/reference/config-entry/service-resolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
   <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 

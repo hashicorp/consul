@@ -55,7 +55,7 @@ The following table describes resources in the v2 catalog, how they generally co
 | Health status | A resource for reporting the health status of a workload. | Service instance health status | [PodStatus](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodStatus) | Created by Kubernetes |
 | Health check | A resource for defining the health checks for a workload. | [Service instance health check](/consul/docs/services/usage/checks) | [Liveness, Readiness, and Startup Probes](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes) | Created by Kubernetes |
 | Proxy configuration | Represents a configuration for a sidecar or gateway proxy. | `Proxy` field in service definition | None | Created by Kubernetes or user CRD |
-| Destinations | Represents explicit service upstreams. When using the v1 catalog, these upstreams are configured in Helm chart as [Upstream Service annotations](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) | [Proxy Configuration](/consul/docs/connect/proxies/envoy#envoy-proxy-configuration-for-service-mesh) | None | Created by Kubernetes |
+| Destinations | Represents explicit service upstreams. When using the v1 catalog, these upstreams are configured in Helm chart as [Upstream Service annotations](/consul/docs/reference/k8s/annotation-label#consul-hashicorp-com-connect-service-upstreams) | [Proxy Configuration](/consul/docs/reference/proxy/envoy#envoy-proxy-configuration-for-service-mesh) | None | Created by Kubernetes |
 | Traffic permissions| Enables L4 traffic authorization according to workload identity instead of service identity. | [Service intentions](/consul/docs/connect/intentions) | None | Created by user CRD |
 
 ## Resource groups
@@ -68,7 +68,7 @@ Each resource is part of a _resource group_. These resource groups structure Con
 
 For example, traffic permissions are part of the `auth` group. Permissions allow or deny traffic according to the other v2 catalog resource in the `auth` group, the workload identity. Meanwhile, when Consul routes service mesh traffic it applies rules to workloads based on the Service, which is a resource in the `catalog` group.
 
-One practical impact of resource groups is that the [HTTPRoute](/consul/docs/k8s/multiport/reference/httproute), [GRPCRoute](/consul/docs/k8s/multiport/reference/grpcroute), and [TCPRoute](/consul/docs/k8s/multiport/reference/tcproute) CRDs require you to specify a `name` and `type` in configuration blocks. The `catalog.v2beta1.Service` type indicates that the rules defined in these CRDs apply to all workloads registered in the Consul catalog under the given name.
+One practical impact of resource groups is that the [HTTPRoute](/consul/docs/reference/resource/httproute), [GRPCRoute](/consul/docs/reference/resource/grpcroute), and [TCPRoute](/consul/docs/reference/resource/tcproute) CRDs require you to specify a `name` and `type` in configuration blocks. The `catalog.v2beta1.Service` type indicates that the rules defined in these CRDs apply to all workloads registered in the Consul catalog under the given name.
 
 You can also use the `consul resource` command to return information about Consul resources in each group using a `group.groupVersion.kind` syntax. Refer to [`consul resource`](/consul/docs/k8s/multiport/reference/resource-command) for more information.
 
@@ -96,19 +96,19 @@ The change in data models introduced by the v2 Catalog API impacts several aspec
 
 The most significant change to Consul’s architecture and operations when using the v2 catalog structure is the introduction of the traffic permissions resource. This resource replaces the service intentions configuration entry, and enables authorized service-to-service communication for both L4 and L7 applications.
 
-For more information about this resource, including example configurations, refer to [Traffic permissions configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions).
+For more information about this resource, including example configurations, refer to [Traffic permissions configuration reference](/consul/docs/reference/resource/trafficpermissions).
 
 ### HTTPRoute, GRPCRoute, and TCPRoute resources for traffic management
 
-You can configure traffic management behavior such as service splitting in an `HTTPRoute`, `GRPCRoute`, or `TCPRoute` resource. In the v1 catalog, this behavior is defined in dedicated configuration entries. For examples, refer to [service splitter configuration entry reference](/consul/docs/connect/config-entries/service-splitter#examples).
+You can configure traffic management behavior such as service splitting in an `HTTPRoute`, `GRPCRoute`, or `TCPRoute` resource. In the v1 catalog, this behavior is defined in dedicated configuration entries. For examples, refer to [service splitter configuration entry reference](/consul/docs/reference/config-entry/service-splitter#examples).
 
-For more information about these resource, including specifications and example configurations, refer to [HTTPRoute resource configuration reference](/consul/docs/k8s/multiport/reference/httproute), [GRPCRoute resource configuration reference](/consul/docs/k8s/multiport/reference/grpcroute), and [TCPRoute resource configuration reference](/consul/docs/k8s/multiport/reference/tcproute).
+For more information about these resource, including specifications and example configurations, refer to [HTTPRoute resource configuration reference](/consul/docs/reference/resource/httproute), [GRPCRoute resource configuration reference](/consul/docs/reference/resource/grpcroute), and [TCPRoute resource configuration reference](/consul/docs/reference/resource/tcproute).
 
 ### New proxy configuration resource
 
-In the v1 catalog, a service’s sidecar proxy and its behavior is [defined in the `Proxy` field of the service definition](/consul/docs/services/usage/define-services). You can also separately [define a service mesh proxy](/consul/docs/connect/proxies/deploy-service-mesh-proxies) and [configure proxy defaults](/consul/docs/connect/config-entries/proxy-defaults).
+In the v1 catalog, a service’s sidecar proxy and its behavior is [defined in the `Proxy` field of the service definition](/consul/docs/services/usage/define-services). You can also separately [define a service mesh proxy](/consul/docs/connect/proxies/deploy-service-mesh-proxies) and [configure proxy defaults](/consul/docs/reference/config-entry/proxy-defaults).
 
-In the v2 catalog, the `ProxyConfiguration` resource configures a workload's sidecar proxy behavior according to Consul workload identity. Refer to [ProxyConfiguration resource configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration) for more information.
+In the v2 catalog, the `ProxyConfiguration` resource configures a workload's sidecar proxy behavior according to Consul workload identity. Refer to [ProxyConfiguration resource configuration reference](/consul/docs/reference/resource/proxyconfiguration) for more information.
 
 ## Constraints and limitations
 
@@ -132,8 +132,8 @@ The following resources are available to help you use the v2 catalog API:
 ### Reference documentation
 
 - [`consul resource` CLI command](/consul/docs/k8s/multiport/reference/resource-command)
-- [GRPCRoute configuration reference](/consul/docs/k8s/multiport/reference/grpcroute)
-- [HTTPRoute configuration reference](/consul/docs/k8s/multiport/reference/httproute)
-- [ProxyConfiguration configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration)
-- [TCPRoute configuration reference](/consul/docs/k8s/multiport/reference/tcproute)
-- [TrafficPermissions configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions)
+- [GRPCRoute configuration reference](/consul/docs/reference/resource/grpcroute)
+- [HTTPRoute configuration reference](/consul/docs/reference/resource/httproute)
+- [ProxyConfiguration configuration reference](/consul/docs/reference/resource/proxyconfiguration)
+- [TCPRoute configuration reference](/consul/docs/reference/resource/tcproute)
+- [TrafficPermissions configuration reference](/consul/docs/reference/resource/trafficpermissions)
