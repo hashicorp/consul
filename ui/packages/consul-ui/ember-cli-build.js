@@ -39,7 +39,6 @@ module.exports = function (defaults, $ = process.env) {
     'consul-peerings',
     'consul-partitions',
     'consul-nspaces',
-    'consul-hcp',
   ].map((item) => {
     return {
       name: item,
