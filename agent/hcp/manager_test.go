@@ -9,15 +9,39 @@ import (
 	"testing"
 	"time"
 
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/consul/agent/hcp/config"
-	"github.com/hashicorp/consul/agent/hcp/scada"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+
+	"github.com/hashicorp/go-hclog"
+
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/config"
+	"github.com/hashicorp/consul/agent/hcp/scada"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
+
+func TestManager_MonitorHCPLink(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	linkWatchCh := make(chan *pbresource.WatchEvent)
+	mgr := NewManager(ManagerConfig{
+		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+	})
+
+	require.False(t, mgr.isRunning())
+	go MonitorHCPLink(ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), linkWatchCh, mgr)
+
+	linkWatchCh <- &pbresource.WatchEvent{Operation: pbresource.WatchEvent_OPERATION_UPSERT}
+
+	// Validate that the HCP manager is started
+	retry.Run(t, func(r *retry.R) {
+		require.True(r, mgr.isRunning())
+	})
+}
 
 func TestManager_Start(t *testing.T) {
 	client := hcpclient.NewMockClient(t)

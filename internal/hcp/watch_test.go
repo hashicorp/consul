@@ -5,12 +5,13 @@ package hcp
 
 import (
 	"context"
-	"github.com/hashicorp/go-hclog"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/hashicorp/go-hclog"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/controller"
@@ -87,6 +88,7 @@ func (suite *controllerSuite) TestLinkWatch_Ok() {
 	}
 
 	_, err = suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: link.Id})
+	require.NoError(suite.T(), err)
 
 	select {
 	case watchEvent := <-linkWatchCh:
