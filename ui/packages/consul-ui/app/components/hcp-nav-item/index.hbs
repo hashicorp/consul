@@ -3,7 +3,6 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<!-- from the GET request we'll get the resourceId-->
 {{#let @list (env "CONSUL_HCP_URL") as |SNL hcpUrl|}}
     {{#if this.shouldShowBackToHcpItem}}
         <SNL.BackLink
@@ -23,7 +22,7 @@
                 />
             {{else}}
                 <SNL.Item class="hcp-nav-item" data-test-link-to-hcp>
-                    <button class="hds-side-nav__list-item-link hcp-nav-item" {{on "click" this.onLinkToConsulCentral}}>
+                    <button type="button" class="hds-side-nav__list-item-link hcp-nav-item" {{on "click" this.onLinkToConsulCentral}}>
                         {{#if this.shouldDisplayNewBadge}}
                             <Hds::Badge @text="New" @color="highlight" data-test-link-to-hcp-new-badge/>
                         {{/if}}
