@@ -6,19 +6,19 @@
 {{#let @list (env "CONSUL_HCP_URL") as |SNL hcpUrl|}}
     {{#if this.shouldShowBackToHcpItem}}
         <SNL.BackLink
-                @text={{t "components.hashicorp-consul.side-nav.hcp"}}
-                @href={{hcpUrl}}
-                @isHrefExternal={{true}}
-                data-test-back-to-hcp
+            @text={{t "components.hashicorp-consul.side-nav.hcp"}}
+            @href={{hcpUrl}}
+            @isHrefExternal={{true}}
+            data-test-back-to-hcp
         />
     {{else}}
         {{#if this.shouldDisplayNavLinkItem}}
             {{#if this.alreadyLinked}}
                 <SNL.Link
-                        @text="HCP Consul Central"
-                        @href={{hcp-resource-id-to-link @linkData.resourceId}}
-                        @isHrefExternal={{true}}
-                        data-test-linked-cluster-hcp-link
+                    @text="HCP Consul Central"
+                    @href={{hcp-resource-id-to-link @linkData.resourceId}}
+                    @isHrefExternal={{true}}
+                    data-test-linked-cluster-hcp-link
                 />
             {{else}}
                 <SNL.Item class="hcp-nav-item" data-test-link-to-hcp>
