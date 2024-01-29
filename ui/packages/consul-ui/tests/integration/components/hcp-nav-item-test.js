@@ -192,7 +192,7 @@ module('Integration | Component | hcp nav item', function (hooks) {
         'service:hcp-link-status',
         class Stub extends Service {
           hasPermissionToLink = true;
-          shouldDisplayBanner = true;
+          shouldDisplayHcpLinkPrompt = true;
         }
       );
       this.linkData = {
@@ -216,7 +216,7 @@ module('Integration | Component | hcp nav item', function (hooks) {
         'service:hcp-link-status',
         class Stub extends Service {
           hasPermissionToLink = true;
-          shouldDisplayBanner = false;
+          shouldDisplayHcpLinkPrompt = false;
         }
       );
       this.linkData = {

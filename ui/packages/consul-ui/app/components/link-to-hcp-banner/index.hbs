@@ -2,7 +2,7 @@
   Copyright (c) HashiCorp, Inc.
   SPDX-License-Identifier: BUSL-1.1
 }}
-{{#if (and this.hcpLinkStatus.shouldDisplayBanner this.notLinked)}}
+{{#if (and this.hcpLinkStatus.shouldDisplayHcpLinkPrompt this.notLinked)}}
     <Hds::Alert @type="page" @color="highlight" @onDismiss={{this.onDismiss}} class="link-to-hcp-banner"
                 data-test-link-to-hcp-banner as |A|>
         <A.Title data-test-link-to-hcp-banner-title>{{t "components.link-to-hcp-banner.title"}}</A.Title>

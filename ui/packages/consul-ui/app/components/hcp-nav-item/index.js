@@ -50,8 +50,7 @@ export default class HcpLinkItemComponent extends Component {
   }
 
   get shouldDisplayNewBadge() {
-    // TODO: Need a better name for this property
-    return this.hcpLinkStatus.shouldDisplayBanner;
+    return this.hcpLinkStatus.shouldDisplayHcpLinkPrompt;
   }
 
   @action

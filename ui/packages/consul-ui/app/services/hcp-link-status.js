@@ -13,7 +13,7 @@ export default class HcpLinkStatus extends Service {
   @tracked
   userDismissedBanner = false;
 
-  get shouldDisplayBanner() {
+  get shouldDisplayHcpLinkPrompt() {
     return !this.userDismissedBanner && this.hasPermissionToLink;
   }
 
