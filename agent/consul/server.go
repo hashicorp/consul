@@ -595,14 +595,15 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
-		CloudConfig:       s.config.Cloud,
-		Client:            flat.HCP.Client,
+		CloudConfig:       flat.HCP.Config,
 		StatusFn:          s.hcpServerStatus(flat),
 		Logger:            logger.Named("hcp_manager"),
 		SCADAProvider:     flat.HCP.Provider,
 		TelemetryProvider: flat.HCP.TelemetryProvider,
 		ManagementTokenUpserterFn: func(name, secretId string) error {
-			if s.IsLeader() {
+			// Check the state of the server before attempting to upsert the token. Otherwise,
+			// the upsert will fail and log errors that do not require action from the user.
+			if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
 				// Idea for improvement: Upsert a token with a well-known accessorId here instead
 				// of a randomly generated one. This would prevent any possible insertion collision between
 				// this and the insertion that happens during the ACL initialization process (initializeACLs function)
@@ -953,15 +954,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// Start the metrics handlers.
 	go s.updateMetrics()
 
-	// Now we are setup, configure the HCP manager
-	go func() {
-		err := s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
-		if err != nil {
-			logger.Error("error starting HCP manager, some HashiCorp Cloud Platform functionality has been disabled",
-				"error", err)
-		}
-	}()
-
 	err = s.runEnterpriseRateLimiterConfigEntryController()
 	if err != nil {
 		return nil, err
@@ -995,6 +987,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
 		CloudConfig:            deps.HCP.Config,
 		DataDir:                deps.HCP.DataDir,
+		HCPManager:             s.hcpManager,
 	})
 
 	// When not enabled, the v1 tenancy bridge is used by default.

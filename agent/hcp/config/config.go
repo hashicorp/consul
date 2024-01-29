@@ -71,3 +71,50 @@ func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfi
 func (c *CloudConfig) IsConfigured() bool {
 	return c.ResourceID != "" && c.ClientID != "" && c.ClientSecret != ""
 }
+
+// Merge returns a cloud configuration that is the combined the values of
+// two configurations.
+func Merge(o CloudConfig, n CloudConfig) CloudConfig {
+	c := o
+	if n.ResourceID != "" {
+		c.ResourceID = n.ResourceID
+	}
+
+	if n.ClientID != "" {
+		c.ClientID = n.ClientID
+	}
+
+	if n.ClientSecret != "" {
+		c.ClientSecret = n.ClientSecret
+	}
+
+	if n.Hostname != "" {
+		c.Hostname = n.Hostname
+	}
+
+	if n.AuthURL != "" {
+		c.AuthURL = n.AuthURL
+	}
+
+	if n.ScadaAddress != "" {
+		c.ScadaAddress = n.ScadaAddress
+	}
+
+	if n.ManagementToken != "" {
+		c.ManagementToken = n.ManagementToken
+	}
+
+	if n.TLSConfig != nil {
+		c.TLSConfig = n.TLSConfig
+	}
+
+	if n.NodeID != "" {
+		c.NodeID = n.NodeID
+	}
+
+	if n.NodeName != "" {
+		c.NodeName = n.NodeName
+	}
+
+	return c
+}
