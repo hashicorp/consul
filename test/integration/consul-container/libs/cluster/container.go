@@ -608,7 +608,7 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 	})
 }
 
-const pauseImage = "hashiderek/pause"
+const pauseImage = "docker.mirror.hashicorp.services/hashiderek/pause"
 
 type containerOpts struct {
 	configFile        string
