@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/discovery"
 )
 
+// canonicalNameForResult returns the canonical name for a discovery result.
 func canonicalNameForResult(result *discovery.Result, domain string) string {
 	switch result.Type {
 	case discovery.ResultTypeService:

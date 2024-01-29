@@ -58,8 +58,13 @@ func TestAPI_AgentMetrics(t *testing.T) {
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
+		hostname, err := os.Hostname()
+		if err != nil {
+			r.Fatalf("error determining hostname: %v", err)
+		}
+		metricName := fmt.Sprintf("consul.%s.runtime.alloc_bytes", hostname)
 		for _, g := range metrics.Gauges {
-			if g.Name == "consul.runtime.alloc_bytes" {
+			if g.Name == metricName {
 				return
 			}
 		}

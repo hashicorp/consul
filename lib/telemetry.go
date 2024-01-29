@@ -360,13 +360,9 @@ func configureSinks(cfg TelemetryConfig, memSink metrics.MetricSink, extraSinks 
 		}
 	}
 
-	if len(sinks) > 0 {
-		sinks = append(sinks, memSink)
-		metrics.NewGlobal(metricsConf, sinks)
-	} else {
-		metricsConf.EnableHostname = false
-		metrics.NewGlobal(metricsConf, memSink)
-	}
+	sinks = append(sinks, memSink)
+	metrics.NewGlobal(metricsConf, sinks)
+
 	return sinks, errors
 }
 
