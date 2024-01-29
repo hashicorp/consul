@@ -171,7 +171,7 @@
                   "matcher": {
                     "exact": "api.test.com"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {

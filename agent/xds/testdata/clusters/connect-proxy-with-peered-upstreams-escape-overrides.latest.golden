@@ -71,7 +71,7 @@
                   "matcher": {
                     "exact": "spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/payments"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -122,7 +122,7 @@
                   "matcher": {
                     "exact": "spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/refunds"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {

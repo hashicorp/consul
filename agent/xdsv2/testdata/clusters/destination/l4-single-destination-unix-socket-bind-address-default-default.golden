@@ -37,7 +37,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
                   }

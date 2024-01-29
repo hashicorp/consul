@@ -57,7 +57,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/db"
                   }
@@ -108,7 +108,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/fail"
                   }
@@ -155,13 +155,13 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/geo-cache-target"
                   }
                 },
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc2/svc/geo-cache-target"
                   }

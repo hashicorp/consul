@@ -39,7 +39,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/backend"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -90,7 +90,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/frontend"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {

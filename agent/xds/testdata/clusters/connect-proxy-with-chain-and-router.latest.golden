@@ -39,7 +39,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/big-side"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -90,7 +90,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/db"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -141,7 +141,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/empty-match-1"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -192,7 +192,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/empty-match-2"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -243,7 +243,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/exact"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -290,13 +290,13 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/geo-cache-target"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 },
                 {
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc2/svc/geo-cache-target"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -347,7 +347,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/goldilocks-side"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -398,7 +398,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/hdr-exact-with-method"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -449,7 +449,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/hdr-exact"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -500,7 +500,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/hdr-not-present"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -551,7 +551,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/hdr-prefix"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -602,7 +602,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/hdr-present"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -653,7 +653,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/hdr-regex"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -704,7 +704,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/hdr-suffix"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -755,7 +755,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/header-manip"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -806,7 +806,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/idle-timeout"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -857,7 +857,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/just-methods"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -908,7 +908,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/lil-bit-side"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -984,7 +984,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/nil-match"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1035,7 +1035,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/prefix-rewrite-1"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1086,7 +1086,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/prefix-rewrite-2"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1137,7 +1137,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/prefix"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1188,7 +1188,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/prm-exact"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1239,7 +1239,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/prm-present"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1290,7 +1290,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/prm-regex"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1341,7 +1341,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/regex"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1392,7 +1392,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/req-timeout"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1443,7 +1443,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/retry-all"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1494,7 +1494,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/retry-codes"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1545,7 +1545,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/retry-connect"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -1596,7 +1596,7 @@
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/retry-reset"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {

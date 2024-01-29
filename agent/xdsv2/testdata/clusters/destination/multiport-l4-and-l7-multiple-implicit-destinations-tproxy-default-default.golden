@@ -37,7 +37,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
                   }
@@ -88,7 +88,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
                   }
@@ -146,7 +146,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
                   }
@@ -197,7 +197,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
                   }
@@ -248,7 +248,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
                   }
@@ -299,7 +299,7 @@
               },
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
+                  "sanType": "DNS",
                   "matcher": {
                     "exact": "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
                   }

@@ -51,7 +51,7 @@
                   "matcher": {
                     "exact": "bar.com"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {
@@ -147,7 +147,7 @@
                   "matcher": {
                     "exact": "foo.com"
                   },
-                  "sanType": "URI"
+                  "sanType": "DNS"
                 }
               ],
               "trustedCa": {

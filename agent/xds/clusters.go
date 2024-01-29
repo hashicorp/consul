@@ -1623,7 +1623,7 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 	var matchers []*envoy_tls_v3.SubjectAltNameMatcher
 	for _, m := range matchStrings {
 		matchers = append(matchers, &envoy_tls_v3.SubjectAltNameMatcher{
-			SanType: envoy_tls_v3.SubjectAltNameMatcher_URI,
+			SanType: envoy_tls_v3.SubjectAltNameMatcher_DNS,
 			Matcher: &envoy_matcher_v3.StringMatcher{
 				MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
 					Exact: m,
