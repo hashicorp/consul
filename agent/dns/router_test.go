@@ -706,7 +706,7 @@ func Test_HandleRequest(t *testing.T) {
 				},
 				Question: []dns.Question{
 					{
-						Name:   "c000020a.virtual.consul", // "intentionally missing the trailing dot"
+						Name:   "c000020a.virtual.dc1.consul", // "intentionally missing the trailing dot"
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
@@ -728,7 +728,7 @@ func Test_HandleRequest(t *testing.T) {
 				Compress: true,
 				Question: []dns.Question{
 					{
-						Name:   "c000020a.virtual.consul.",
+						Name:   "c000020a.virtual.dc1.consul.",
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
@@ -736,7 +736,7 @@ func Test_HandleRequest(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "c000020a.virtual.consul.",
+							Name:   "c000020a.virtual.dc1.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1345,6 +1345,58 @@ func Test_HandleRequest(t *testing.T) {
 
 }
 
+func TestRouterDynamicConfig_GetTTLForService(t *testing.T) {
+	type testCase struct {
+		name             string
+		inputKey         string
+		shouldMatch      bool
+		expectedDuration time.Duration
+	}
+
+	testCases := []testCase{
+		{
+			name:             "strict match",
+			inputKey:         "foo",
+			shouldMatch:      true,
+			expectedDuration: 1 * time.Second,
+		},
+		{
+			name:             "wildcard match",
+			inputKey:         "bar",
+			shouldMatch:      true,
+			expectedDuration: 2 * time.Second,
+		},
+		{
+			name:             "wildcard match 2",
+			inputKey:         "bart",
+			shouldMatch:      true,
+			expectedDuration: 2 * time.Second,
+		},
+		{
+			name:             "no match",
+			inputKey:         "homer",
+			shouldMatch:      false,
+			expectedDuration: 0 * time.Second,
+		},
+	}
+
+	rtCfg := &config.RuntimeConfig{
+		DNSServiceTTL: map[string]time.Duration{
+			"foo":  1 * time.Second,
+			"bar*": 2 * time.Second,
+		},
+	}
+	cfg, err := getDynamicRouterConfig(rtCfg)
+	require.NoError(t, err)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, ok := cfg.GetTTLForService(tc.inputKey)
+			require.Equal(t, tc.shouldMatch, ok)
+			require.Equal(t, tc.expectedDuration, actual)
+		})
+	}
+}
 func buildDNSConfig(agentConfig *config.RuntimeConfig, cdf discovery.CatalogDataFetcher, _ error) Config {
 	cfg := Config{
 		AgentConfig: &config.RuntimeConfig{
