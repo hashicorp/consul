@@ -651,7 +651,7 @@ func (s *Server) deleteManagementToken(secretId string) error {
 
 	accessorID := token.AccessorID
 	if len(token.Policies) != 1 && token.Policies[0].ID != structs.ACLPolicyGlobalManagementID {
-		return fmt.Errorf("failed to delete %s: not a management token", token.Description)
+		return fmt.Errorf("failed to delete management token: not a management token")
 	}
 
 	// Delete the token
@@ -659,7 +659,7 @@ func (s *Server) deleteManagementToken(secretId string) error {
 		TokenIDs: []string{accessorID},
 	}
 	if _, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req); err != nil {
-		return fmt.Errorf("failed to delete %s: %v", token.Description, err)
+		return fmt.Errorf("failed to delete management token: %v", err)
 	}
 
 	s.logger.Info("deleted ACL token", "description", token.Description)

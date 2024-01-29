@@ -364,7 +364,9 @@ func (h *hcpProviderImpl) Stop() {
 		return
 	}
 
+	h.rw.Lock()
 	h.cfg = defaultDisabledCfg()
+	h.rw.Unlock()
 
 	h.logger.Debug("telemetry config provider stopped")
 }
