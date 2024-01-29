@@ -100,12 +100,10 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
     this.owner.register(
       'service:env',
       class Stub extends EnvStub {
-        stubEnv = {
-          isEnterprise: true,
-        };
+        isEnterprise = true;
+        stubEnv = {};
       }
     );
-    this.owner.register('service:env', EnvStub);
     this.linkData = { isLinked: false };
 
     await render(hbs`<LinkToHcpBanner @linkData={{this.linkData}} />`);
