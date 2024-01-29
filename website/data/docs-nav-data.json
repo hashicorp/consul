@@ -1788,7 +1788,7 @@
         "path": "observe/distributed-tracing"
       },
       {
-        "title": "Service Mesh Telemetry",
+        "title": "Mesh telemetry metrics",
         "routes": [
           {
             "title": "Virtual Machines (VM)",
