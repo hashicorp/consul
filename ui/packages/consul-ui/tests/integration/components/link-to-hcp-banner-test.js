@@ -31,7 +31,7 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
       'service:env',
       class Stub extends EnvStub {
         stubEnv = {
-          isEnterprise: false,
+          CONSUL_HCP_LINK_ENABLED: true,
         };
       }
     );
