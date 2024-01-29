@@ -107,11 +107,11 @@ const (
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Address  string     // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
-	Weight   uint32     // SRV queries
-	Port     uint32     // SRV queries
-	Metadata []string   // Used to collect metadata into TXT Records
-	Type     ResultType // Used to reconstruct the fqdn name of the resource
+	Address  string            // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
+	Weight   uint32            // SRV queries
+	Port     uint32            // SRV queries
+	Metadata map[string]string // Used to collect metadata into TXT Records
+	Type     ResultType        // Used to reconstruct the fqdn name of the resource
 
 	// Used in SRV & PTR queries to point at an A/AAAA Record.
 	Target string
@@ -176,6 +176,7 @@ func NewQueryProcessor(dataFetcher CatalogDataFetcher) *QueryProcessor {
 	}
 }
 
+// QueryByName is used to look up a service, node, workload, or prepared query.
 func (p *QueryProcessor) QueryByName(query *Query, ctx Context) ([]*Result, error) {
 	switch query.QueryType {
 	case QueryTypeNode:
