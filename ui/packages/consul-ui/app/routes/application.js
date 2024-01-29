@@ -24,7 +24,7 @@ export default class ApplicationRoute extends Route.extend(WithBlockingActions) 
   }
 
   async model() {
-    if (this.env.var('CONSUL_ACLS_ENABLED') && !this.env.var('CONSUL_V2_CATALOG_ENABLED')) {
+    if (this.env.var('CONSUL_ACLS_ENABLED')) {
       await this.hcp.updateTokenIfNecessary(this.env.var('CONSUL_HTTP_TOKEN'));
     }
 
