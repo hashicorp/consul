@@ -132,10 +132,10 @@ _envoy_versions_default=($ENVOY_VERSIONS_DEFAULT_BRANCH)
 ## Validate supported envoy versions available - should be 4
 echo
 echo "Validating supported envoy versions available on branches: $current_branch and $GITHUB_DEFAULT_BRANCH"
-if [ "${#_envoy_versions_default[@]}" != 4 ] || [ "${#_envoy_versions[@]}" != 4 ]; then
+if [ "${#_envoy_versions_default[@]}" != 7 ] || [ "${#_envoy_versions[@]}" != 7 ]; then
   echo "Branch $GITHUB_DEFAULT_BRANCH =>Consul version: ${CONSUL_VERSION_DEFAULT_BRANCH}; Envoy versions: $ENVOY_VERSIONS_DEFAULT_BRANCH"
   echo "Branch $current_branch =>Consul version: ${CONSUL_VERSION}; Envoy versions: $_envoy_versions"
-  echo "ERROR! Envoy should have 4 compatible versions."
+  echo "ERROR! Envoy should have 7 compatible versions."
   exit 1
 fi 
 
