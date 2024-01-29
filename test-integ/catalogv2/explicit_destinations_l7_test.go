@@ -168,7 +168,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 	tenancy := &pbresource.Tenancy{
 		Partition: currentTenancy.Partition,
 		Namespace: currentTenancy.Namespace,
-		PeerName:  "local",
 	}
 
 	v1ServerNode := &topology.Node{

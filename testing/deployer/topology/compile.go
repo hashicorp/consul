@@ -179,13 +179,11 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			if res.Id.Tenancy == nil {
 				res.Id.Tenancy = &pbresource.Tenancy{}
 			}
-			switch res.Id.Tenancy.PeerName {
-			case "", "local":
-			default:
-				return nil, fmt.Errorf("resources cannot target non-local peers")
-			}
+			// TODO(peering/v2) prevent non-local peer resources
 			res.Id.Tenancy.Partition = PartitionOrDefault(res.Id.Tenancy.Partition)
-			res.Id.Tenancy.Namespace = NamespaceOrDefault(res.Id.Tenancy.Namespace)
+			if !util.IsTypePartitionScoped(res.Id.Type) {
+				res.Id.Tenancy.Namespace = NamespaceOrDefault(res.Id.Tenancy.Namespace)
+			}
 
 			switch {
 			case util.EqualType(pbauth.ComputedTrafficPermissionsType, res.Id.GetType()),

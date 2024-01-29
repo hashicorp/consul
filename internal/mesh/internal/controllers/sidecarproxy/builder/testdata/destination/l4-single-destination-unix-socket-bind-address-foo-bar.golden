@@ -34,8 +34,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "bar",
-        "partition": "foo",
-        "peerName": "local"
+        "partition": "foo"
       },
       "type": {
         "group": "auth",
@@ -46,7 +45,7 @@
     "listeners": [
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "foo/local/bar/api-2:tcp:/path/to/socket",
+        "name": "foo/bar/api-2:tcp:/path/to/socket",
         "routers": [
           {
             "l4": {
@@ -70,8 +69,7 @@
         "name": "api-2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",

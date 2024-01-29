@@ -18,7 +18,6 @@ import (
 var (
 	defaultNodeHealthStatusOwnerTenancy = &pbresource.Tenancy{
 		Partition: "default",
-		PeerName:  "local",
 	}
 
 	defaultNodeHealthStatusOwner = &pbresource.ID{
@@ -34,7 +33,6 @@ func createNodeHealthStatusResource(t *testing.T, data protoreflect.ProtoMessage
 			Type: pbcatalog.NodeHealthStatusType,
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				PeerName:  "local",
 			},
 			Name: "test-status",
 		},

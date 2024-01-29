@@ -16,10 +16,10 @@ type SourceToSpiffe interface {
 var _ SourceToSpiffe = (*Source)(nil)
 var _ SourceToSpiffe = (*ExcludeSource)(nil)
 
+// TODO(peering/v2) handle peer tenancies which probably requires outputting a second object
 func SourceToTenancy(s SourceToSpiffe) *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: s.GetPartition(),
 		Namespace: s.GetNamespace(),
-		PeerName:  s.GetPeer(),
 	}
 }

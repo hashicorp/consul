@@ -31,9 +31,10 @@ func EqualTenancy(a, b *pbresource.Tenancy) bool {
 	}
 
 	return a.Partition == b.Partition &&
-		a.PeerName == b.PeerName &&
 		a.Namespace == b.Namespace
 }
+
+// TODO(peering/v2) add equality method peer tenancy
 
 // EqualID compares two resource IDs for equality without reflection.
 func EqualID(a, b *pbresource.ID) bool {

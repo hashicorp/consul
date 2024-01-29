@@ -50,7 +50,9 @@ func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Te
 
 	if t, c := defaultedSourceTenancy(src, parentTenancy); c {
 		src.Partition = t.Partition
-		src.Peer = t.PeerName
+		// TODO(peering/v2) revisit default peer source
+		// src.Peer = t.PeerName
+		src.Peer = resource.DefaultPeerName
 		src.Namespace = t.Namespace
 		changed = true
 	}
@@ -58,7 +60,9 @@ func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Te
 	for _, e := range src.Exclude {
 		if t, c := defaultedSourceTenancy(e, parentTenancy); c {
 			e.Partition = t.Partition
-			e.Peer = t.PeerName
+			// TODO(peering/v2) revisit default peer source
+			// e.Peer = t.PeerName
+			e.Peer = resource.DefaultPeerName
 			e.Namespace = t.Namespace
 			changed = true
 		}
@@ -74,8 +78,9 @@ func defaultedSourceTenancy(s pbauth.SourceToSpiffe, parentTenancy *pbresource.T
 
 	tenancy := pbauth.SourceToTenancy(s)
 
-	var peerChanged bool
-	tenancy.PeerName, peerChanged = firstNonEmptyString(tenancy.PeerName, parentTenancy.PeerName, resource.DefaultPeerName)
+	// TODO(peering/v2) default peer name somehow
+	// var peerChanged bool
+	// tenancy.PeerName, peerChanged = firstNonEmptyString(tenancy.PeerName, parentTenancy.PeerName, resource.DefaultPeerName)
 
 	var partitionChanged bool
 	tenancy.Partition, partitionChanged = firstNonEmptyString(tenancy.Partition, parentTenancy.Partition, resource.DefaultPartitionName)
@@ -89,7 +94,8 @@ func defaultedSourceTenancy(s pbauth.SourceToSpiffe, parentTenancy *pbresource.T
 		}
 	}
 
-	return tenancy, peerChanged || partitionChanged || namespaceChanged
+	// TODO(peering/v2) take peer being changed into account
+	return tenancy, partitionChanged || namespaceChanged // || peerChange
 }
 
 func firstNonEmptyString(a, b, c string) (string, bool) {
@@ -268,7 +274,7 @@ func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe, id *pbresource.ID
 	if id.Tenancy == nil {
 		id.Tenancy = &pbresource.Tenancy{}
 	}
-	peerSet := src.GetPeer() != resource.DefaultPeerName
+	peerSet := !isLocalPeer(src.GetPeer())
 	apSet := src.GetPartition() != id.Tenancy.Partition
 	sgSet := src.GetSamenessGroup() != ""
 

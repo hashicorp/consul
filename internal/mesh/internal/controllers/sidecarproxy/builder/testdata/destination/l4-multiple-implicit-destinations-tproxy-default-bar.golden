@@ -73,8 +73,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "bar",
-        "partition": "default",
-        "peerName": "local"
+        "partition": "default"
       },
       "type": {
         "group": "auth",
@@ -150,8 +149,7 @@
         "name": "api-1",
         "tenancy": {
           "namespace": "bar",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -167,8 +165,7 @@
         "name": "api-2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",

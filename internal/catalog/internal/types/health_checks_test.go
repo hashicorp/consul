@@ -25,7 +25,6 @@ func createHealthChecksResource(t *testing.T, data protoreflect.ProtoMessage) *p
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			Name: "test-checks",
 		},

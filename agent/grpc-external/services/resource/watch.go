@@ -128,18 +128,14 @@ func wildcardTenancyFor(scope resource.Scope) *pbresource.Tenancy {
 
 	switch scope {
 	case resource.ScopeCluster:
-		defaultTenancy = &pbresource.Tenancy{
-			PeerName: storage.Wildcard,
-		}
+		defaultTenancy = &pbresource.Tenancy{}
 	case resource.ScopePartition:
 		defaultTenancy = &pbresource.Tenancy{
 			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
 		}
 	default:
 		defaultTenancy = &pbresource.Tenancy{
 			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
 			Namespace: storage.Wildcard,
 		}
 	}

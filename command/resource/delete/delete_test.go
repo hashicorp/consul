@@ -129,13 +129,13 @@ func TestResourceDelete(t *testing.T) {
 		},
 		{
 			name:           "delete resource in command line format",
-			args:           []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
+			args:           []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"},
 			expectedCode:   0,
 			createResource: true,
 		},
 		{
 			name:           "delete resource that doesn't exist in command line format",
-			args:           []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
+			args:           []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"},
 			expectedCode:   0,
 			createResource: false,
 		},
