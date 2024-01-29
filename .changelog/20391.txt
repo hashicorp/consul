@@ -1,0 +1,3 @@
+```release-note:bug
+mesh: terminating gateway broken by xds changes with remediation of envoy deprecated field. [GH-20360](https://github.com/hashicorp/consul/issues/20360)
+```
