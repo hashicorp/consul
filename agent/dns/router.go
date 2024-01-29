@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -20,13 +19,15 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/logging"
 )
 
 const (
 	addrLabel = "addr"
 
-	arpaDomain = "in-addr.arpa."
+	arpaDomain = "arpa."
+	arpaLabel  = "arpa"
 
 	suffixFailover   = "failover."
 	suffixNoFailover = "no-failover."
@@ -214,9 +215,12 @@ func (r *Router) getQueryResults(req *dns.Msg, reqCtx discovery.Context, reqType
 		}
 		return r.processor.QueryByName(query, reqCtx)
 	case requestTypeIP:
-		// TODO (v2-dns): implement requestTypeIP
-		// This will call discovery.QueryByIP
-		return nil, errors.New("requestTypeIP not implemented")
+		ip := dnsutil.IPFromARPA(req.Question[0].Name)
+		if ip == nil {
+			r.logger.Error("error building IP from DNS request", "name", req.Question[0].Name)
+			return nil, errNameNotFound
+		}
+		return r.processor.QueryByIP(ip, reqCtx)
 	case requestTypeAddress:
 		return buildAddressResults(req)
 	}
@@ -377,11 +381,12 @@ func isPTRSubdomain(domain string) bool {
 	labels := dns.SplitDomainName(domain)
 	labelCount := len(labels)
 
-	if labelCount < 3 {
+	// We keep this check brief so we can have more specific error handling later.
+	if labelCount < 1 {
 		return false
 	}
 
-	return fmt.Sprintf("%s.%s.", labels[labelCount-2], labels[labelCount-1]) == arpaDomain
+	return labels[labelCount-1] == arpaLabel
 }
 
 // getDynamicRouterConfig takes agent config and creates/resets the config used by DNS Router
@@ -567,25 +572,34 @@ func appendResultToDNSResponse(result *discovery.Result, req *dns.Msg, resp *dns
 	// TODO (v2-dns): skip records that refer to a workload/node that don't have a valid DNS name.
 
 	// Special case responses
-	switch qType {
-	case dns.TypeSOA:
-		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
-		// to be returned in the result.
-		fqdn := fmt.Sprintf("%s.%s.%s", result.Target, strings.ToLower(string(result.Type)), domain)
-		extraRecord, _ := makeRecord(fqdn, ip, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
-
-		resp.Ns = append(resp.Ns, makeNSRecord(domain, fqdn, ttl))
-		resp.Extra = append(resp.Extra, extraRecord)
+	switch {
+	// PTR requests are first since they are a special case of domain overriding question type
+	case parseRequestType(req) == requestTypeIP:
+		ptr := &dns.PTR{
+			Hdr: dns.RR_Header{Name: qName, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
+			Ptr: canonicalNameForResult(result, domain),
+		}
+		resp.Answer = append(resp.Answer, ptr)
 		return
-	case dns.TypeNS:
+	case qType == dns.TypeNS:
 		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
-		fqdn := fmt.Sprintf("%s.%s.%s.", result.Target, strings.ToLower(string(result.Type)), domain)
+		fqdn := canonicalNameForResult(result, domain)
 		extraRecord, _ := makeRecord(fqdn, ip, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
 
 		resp.Answer = append(resp.Ns, makeNSRecord(domain, fqdn, ttl))
 		resp.Extra = append(resp.Extra, extraRecord)
 		return
-	case dns.TypeSRV:
+
+	case qType == dns.TypeSOA:
+		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
+		// to be returned in the result.
+		fqdn := canonicalNameForResult(result, domain)
+		extraRecord, _ := makeRecord(fqdn, ip, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
+
+		resp.Ns = append(resp.Ns, makeNSRecord(domain, fqdn, ttl))
+		resp.Extra = append(resp.Extra, extraRecord)
+		return
+	case qType == dns.TypeSRV:
 		// We put A/AAAA/CNAME records in the additional section for SRV requests
 		resp.Extra = append(resp.Extra, record)
 

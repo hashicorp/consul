@@ -26,7 +26,7 @@ func TestDNS_ServiceReverseLookup(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -82,7 +82,7 @@ func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -138,7 +138,7 @@ func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "custom"
@@ -196,7 +196,7 @@ func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()

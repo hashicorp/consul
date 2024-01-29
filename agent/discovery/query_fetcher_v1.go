@@ -5,12 +5,14 @@ package discovery
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -23,6 +25,10 @@ const (
 
 // v1DataFetcherDynamicConfig is used to store the dynamic configuration of the V1 data fetcher.
 type v1DataFetcherDynamicConfig struct {
+	// Default request tenancy
+	datacenter string
+
+	// Catalog configuration
 	allowStale  bool
 	maxStale    time.Duration
 	useCache    bool
@@ -32,19 +38,22 @@ type v1DataFetcherDynamicConfig struct {
 
 // V1DataFetcher is used to fetch data from the V1 catalog.
 type V1DataFetcher struct {
-	dynamicConfig atomic.Value
-	logger        hclog.Logger
+	defaultEnterpriseMeta acl.EnterpriseMeta
+	dynamicConfig         atomic.Value
+	logger                hclog.Logger
 
 	rpcFunc func(ctx context.Context, method string, args interface{}, reply interface{}) error
 }
 
 // NewV1DataFetcher creates a new V1 data fetcher.
 func NewV1DataFetcher(config *config.RuntimeConfig,
+	entMeta *acl.EnterpriseMeta,
 	rpcFunc func(ctx context.Context, method string, args interface{}, reply interface{}) error,
 	logger hclog.Logger) *V1DataFetcher {
 	f := &V1DataFetcher{
-		rpcFunc: rpcFunc,
-		logger:  logger,
+		defaultEnterpriseMeta: *entMeta,
+		rpcFunc:               rpcFunc,
+		logger:                logger,
 	}
 	f.LoadConfig(config)
 	return f
@@ -53,6 +62,7 @@ func NewV1DataFetcher(config *config.RuntimeConfig,
 // LoadConfig loads the configuration for the V1 data fetcher.
 func (f *V1DataFetcher) LoadConfig(config *config.RuntimeConfig) {
 	dynamicConfig := &v1DataFetcherDynamicConfig{
+		datacenter:  config.Datacenter,
 		allowStale:  config.DNSAllowStale,
 		maxStale:    config.DNSMaxStale,
 		useCache:    config.DNSUseCache,
@@ -101,14 +111,81 @@ func (f *V1DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result,
 }
 
 // FetchRecordsByIp is used for PTR requests to look up a service/node from an IP.
-func (f *V1DataFetcher) FetchRecordsByIp(ctx Context, ip net.IP) ([]*Result, error) {
-	return nil, nil
+// The search is performed in the agent's partition and over all namespaces (or those allowed by the ACL token).
+func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, error) {
+	configCtx := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
+	targetIP := ip.String()
+
+	var results []*Result
+
+	args := structs.DCSpecificRequest{
+		Datacenter: configCtx.datacenter,
+		QueryOptions: structs.QueryOptions{
+			Token:      reqCtx.Token,
+			AllowStale: configCtx.allowStale,
+		},
+	}
+	var out structs.IndexedNodes
+
+	// TODO: Replace ListNodes with an internal RPC that can do the filter
+	// server side to avoid transferring the entire node list.
+	if err := f.rpcFunc(context.Background(), "Catalog.ListNodes", &args, &out); err == nil {
+		for _, n := range out.Nodes {
+			if targetIP == n.Address {
+				results = append(results, &Result{
+					Address: n.Address,
+					Type:    ResultTypeNode,
+					Target:  n.Node,
+					Tenancy: ResultTenancy{
+						EnterpriseMeta: f.defaultEnterpriseMeta,
+						Datacenter:     configCtx.datacenter,
+					},
+				})
+				return results, nil
+			}
+		}
+	}
+
+	// only look into the services if we didn't find a node
+	sargs := structs.ServiceSpecificRequest{
+		Datacenter: configCtx.datacenter,
+		QueryOptions: structs.QueryOptions{
+			Token:      reqCtx.Token,
+			AllowStale: configCtx.allowStale,
+		},
+		ServiceAddress: targetIP,
+		EnterpriseMeta: *f.defaultEnterpriseMeta.WithWildcardNamespace(),
+	}
+
+	var sout structs.IndexedServiceNodes
+	if err := f.rpcFunc(context.Background(), "Catalog.ServiceNodes", &sargs, &sout); err == nil {
+		for _, n := range sout.ServiceNodes {
+			if n.ServiceAddress == targetIP {
+				results = append(results, &Result{
+					Address: n.ServiceAddress,
+					Type:    ResultTypeService,
+					Target:  n.ServiceName,
+					Tenancy: ResultTenancy{
+						EnterpriseMeta: f.defaultEnterpriseMeta,
+						Datacenter:     configCtx.datacenter,
+					},
+				})
+				return results, nil
+			}
+		}
+	}
+
+	// nothing found locally, recurse
+	// TODO: (v2-dns) implement recursion
+	//d.handleRecurse(resp, req)
+
+	return nil, fmt.Errorf("unhandled error in FetchRecordsByIp")
 }
 
 // FetchWorkload fetches a single Result associated with
 // V2 Workload. V2-only.
 func (f *V1DataFetcher) FetchWorkload(ctx Context, req *QueryPayload) (*Result, error) {
-	return nil, nil
+	return nil, ErrNotSupported
 }
 
 // FetchPreparedQuery evaluates the results of a prepared query.
