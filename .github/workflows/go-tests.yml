@@ -577,7 +577,7 @@ jobs:
         # FAILED_TESTS must also be checked to avoid running this step on cancellation due to the summary check above
         if: ${{ failure() && env.FAILED_TESTS == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }}
         id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        uses: slackapi/slack-github-action@6c661ce58804a1a20f6dc5fbee7f0381b469e001 # v1.25.0
         with:
           # Escape entire message string to ensure valid JSON. If invalid, the notification will fail silently in CI.
           payload: |
