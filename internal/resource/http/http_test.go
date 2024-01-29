@@ -139,7 +139,7 @@ func TestResourceWriteHandler(t *testing.T) {
 		WithACLResolver(aclResolver).
 		WithRegisterFns(demo.RegisterTypes)
 	client := builder.Run(t)
-	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
+	handler := NewHandler("/api", client, builder.Registry(), parseToken, hclog.NewNullLogger())
 
 	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
@@ -369,7 +369,7 @@ func TestResourceReadHandler(t *testing.T) {
 		WithRegisterFns(demo.RegisterTypes).
 		WithACLResolver(aclResolver)
 	client := builder.Run(t)
-	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
+	handler := NewHandler("/api", client, builder.Registry(), parseToken, hclog.NewNullLogger())
 
 	createdResource := createResource(t, handler, nil)
 
@@ -422,7 +422,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 		WithRegisterFns(demo.RegisterTypes).
 		WithACLResolver(aclResolver)
 	client := builder.Run(t)
-	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
+	handler := NewHandler("/api", client, builder.Registry(), parseToken, hclog.NewNullLogger())
 
 	t.Run("should surface PermissionDenied error from resource service", func(t *testing.T) {
 		createResource(t, handler, nil)
@@ -498,7 +498,7 @@ func TestResourceListHandler(t *testing.T) {
 		WithRegisterFns(demo.RegisterTypes).
 		WithACLResolver(aclResolver)
 	client := builder.Run(t)
-	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
+	handler := NewHandler("/api", client, builder.Registry(), parseToken, hclog.NewNullLogger())
 
 	t.Run("should return MethodNotAllowed", func(t *testing.T) {
 		rsp := httptest.NewRecorder()

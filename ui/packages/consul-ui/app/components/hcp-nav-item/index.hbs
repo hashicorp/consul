@@ -1,0 +1,15 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{#let @list (env "CONSUL_HCP_URL") as |SNL hcpUrl|}}
+    {{#if this.shouldShowBackToHcpItem}}
+        <SNL.BackLink
+            @text={{t "components.hashicorp-consul.side-nav.hcp"}}
+            @href={{hcpUrl}}
+            @isHrefExternal={{true}}
+            data-test-back-to-hcp
+        />
+    {{/if}}
+{{/let}}
