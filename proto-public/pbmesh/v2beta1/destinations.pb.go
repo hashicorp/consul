@@ -100,8 +100,9 @@ type Destination struct {
 
 	// DestinationRef is the reference to an destination service. This has to be pbcatalog.Service type.
 	DestinationRef *pbresource.Reference `protobuf:"bytes,1,opt,name=destination_ref,json=destinationRef,proto3" json:"destination_ref,omitempty"`
-	// DestinationPort is the port name of the destination service. This should be the name
-	// of the service's target port.
+	// DestinationPort is the port of the destination service.
+	//
+	// For more details on potential values of this field, see documentation for Service.ServicePort.
 	DestinationPort string `protobuf:"bytes,2,opt,name=destination_port,json=destinationPort,proto3" json:"destination_port,omitempty"`
 	// Datacenter is the datacenter for where this destination service lives.
 	Datacenter string `protobuf:"bytes,3,opt,name=datacenter,proto3" json:"datacenter,omitempty"`

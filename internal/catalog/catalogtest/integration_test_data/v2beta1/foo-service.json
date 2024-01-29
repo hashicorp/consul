@@ -16,7 +16,7 @@
       "@type": "hashicorp.consul.catalog.v2beta1.Service",
       "ports": [
          {
-            "target_port": "external-service-port",
+            "target_port": "ext-svc-port",
             "protocol": "PROTOCOL_HTTP2"
          }
       ]

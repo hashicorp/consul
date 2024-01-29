@@ -529,7 +529,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 
 		if c.EnableV2 {
-			// Populate the VirtualPort field on all implied destinations.
+			// Populate the VirtualPort field on all destinations.
 			for _, n := range c.Nodes {
 				for _, wrk := range n.Workloads {
 					for _, dest := range wrk.ImpliedDestinations {
@@ -539,7 +539,20 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 								if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 									continue
 								}
-								if sp.TargetPort == dest.PortName {
+								if sp.MatchesPortId(dest.PortName) {
+									dest.VirtualPort = sp.VirtualPort
+								}
+							}
+						}
+					}
+					for _, dest := range wrk.Destinations {
+						res, ok := c.Services[dest.ID]
+						if ok {
+							for _, sp := range res.Ports {
+								if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+									continue
+								}
+								if sp.MatchesPortId(dest.PortName) {
 									dest.VirtualPort = sp.VirtualPort
 								}
 							}

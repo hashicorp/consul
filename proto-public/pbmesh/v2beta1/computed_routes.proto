@@ -21,6 +21,12 @@ import "pbresource/resource.proto";
 message ComputedRoutes {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
+  // PortedConfigs is the map of service ports to the ComputedPortRoutes for
+  // those ports.
+  //
+  // The port identifier key here is always normalized to the target (workload)
+  // port name regardless of whether a virtual or target port identifier was
+  // provided in input config.
   map<string, ComputedPortRoutes> ported_configs = 1;
 
   // BoundReferences is a slice of mixed type references of resources that were

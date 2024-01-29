@@ -48,6 +48,10 @@ func TestIsValidDNSLabel(t *testing.T) {
 			name:  "1abc",
 			valid: true,
 		},
+		"fully-numeric": {
+			name:  "1234",
+			valid: true,
+		},
 		"underscore-start-not-allowed": {
 			name:  "_abc",
 			valid: false,
@@ -147,6 +151,56 @@ func TestIsValidIPAddress(t *testing.T) {
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
 			require.Equal(t, tcase.valid, isValidIPAddress(tcase.name))
+		})
+	}
+}
+
+// TestIsValidPort tests both physical and virtual port validation using
+// the same cases to ensure same coverage.
+func TestIsValidPort(t *testing.T) {
+	type testCase struct {
+		port          int
+		validVirtual  bool
+		validPhysical bool
+	}
+
+	cases := map[string]testCase{
+		"negative": {
+			port:          -1,
+			validPhysical: false,
+			validVirtual:  false,
+		},
+		"zero": {
+			port:          0,
+			validPhysical: false,
+			validVirtual:  true,
+		},
+		"min": {
+			port:          1,
+			validPhysical: true,
+			validVirtual:  true,
+		},
+		"8080": {
+			port:          8080,
+			validPhysical: true,
+			validVirtual:  true,
+		},
+		"max": {
+			port:          65535,
+			validPhysical: true,
+			validVirtual:  true,
+		},
+		"above-max": {
+			port:          65536,
+			validPhysical: false,
+			validVirtual:  false,
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tcase.validPhysical, isValidPhysicalPortNumber(tcase.port))
+			require.Equal(t, tcase.validVirtual, ValidateVirtualPort(tcase.port) == nil)
 		})
 	}
 }
@@ -354,22 +408,117 @@ func TestValidateIPAddress(t *testing.T) {
 }
 
 func TestValidatePortName(t *testing.T) {
+	type testCase struct {
+		name  string
+		valid bool
+	}
+
+	cases := map[string]testCase{
+		"min-length": {
+			name:  "a",
+			valid: true,
+		},
+		"max-length": {
+			name:  "a1b2c3d4e5f6g7h",
+			valid: true,
+		},
+		"underscore-not-allowed": {
+			name:  "has_underscores",
+			valid: false,
+		},
+		"hyphenated": {
+			name:  "has-hyphen3",
+			valid: true,
+		},
+		"uppercase-allowed": {
+			name:  "UPPERCASE",
+			valid: true,
+		},
+		"numeric-start": {
+			name:  "1abc",
+			valid: true,
+		},
+		"numeric-start-with-hypen": {
+			name:  "1-abc",
+			valid: true,
+		},
+		"at-least-one-alpha-required": {
+			name:  "1234",
+			valid: false,
+		},
+		"hyphen-start-not-allowed": {
+			name:  "-abc",
+			valid: false,
+		},
+		"hyphen-end-not-allowed": {
+			name:  "abc-",
+			valid: false,
+		},
+		"unicode-not allowed": {
+			name:  "abc∑",
+			valid: false,
+		},
+		"too-long": {
+			name:  strings.Repeat("a", 16),
+			valid: false,
+		},
+		"missing-name": {
+			name:  "",
+			valid: false,
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := ValidatePortName(tcase.name)
+			if tcase.valid {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				if tcase.name == "" {
+					require.Equal(t, resource.ErrEmpty, err)
+				} else {
+					require.Equal(t, errNotPortName, err)
+				}
+			}
+		})
+	}
+}
+
+func TestValidatePortID(t *testing.T) {
 	// this test does not perform extensive validation of what constitutes
-	// a valid port name. In general the criteria is that it must not
-	// be empty and must be a valid DNS label. Therefore extensive testing
-	// of what it means to be a valid DNS label is performed within the
-	// test for the isValidDNSLabel function.
+	// a valid port ID because it is a combination of ValidatePortName and
+	// ValidateVirtualPort. In general the criteria is that it must not
+	// be empty and must be either a valid DNS label or stringified port
+	// number between 1 and 65535. Extensive testing is performed within the
+	// tests for those functions.
 
 	t.Run("empty", func(t *testing.T) {
-		require.Equal(t, resource.ErrEmpty, ValidatePortName(""))
+		require.Equal(t, resource.ErrEmpty, ValidateServicePortID(""))
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		require.Equal(t, errNotDNSLabel, ValidatePortName("foo.com"))
+		require.Equal(t, errInvalidPortID, ValidateServicePortID("foo.com"))
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		require.Equal(t, errInvalidPortID, ValidateServicePortID("-1"))
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		require.Equal(t, errInvalidPortID, ValidateServicePortID("0"))
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		require.Equal(t, errInvalidPortID, ValidateServicePortID("65536"))
 	})
 
 	t.Run("ok", func(t *testing.T) {
-		require.NoError(t, ValidatePortName("http"))
+		require.NoError(t, ValidateServicePortID("http"))
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		require.NoError(t, ValidateServicePortID("8080"))
 	})
 }
 

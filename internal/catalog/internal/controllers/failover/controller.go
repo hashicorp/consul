@@ -6,6 +6,9 @@ package failover
 import (
 	"context"
 
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/failover/expander"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
@@ -16,8 +19,6 @@ import (
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -89,6 +90,8 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 
 		return nil
 	}
+	// Capture original raw config for pre-normalization status conditions.
+	rawFailoverPolicy := failoverPolicy.Data
 
 	// FailoverPolicy is name-aligned with the Service it controls.
 	serviceID := &pbresource.ID{
@@ -149,13 +152,13 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		}
 	}
 
-	conds := computeNewConditions(failoverPolicy.Resource, newComputedFailoverPolicy, service, destServices, missingSamenessGroups)
+	conds := computeNewConditions(rawFailoverPolicy, failoverPolicy.Resource, newComputedFailoverPolicy, service, destServices, missingSamenessGroups)
 	if err := writeStatus(ctx, rt, failoverPolicy.Resource, conds); err != nil {
 		rt.Logger.Error("error encountered when attempting to update the resource's failover policy status", "error", err)
 		return err
 	}
 
-	conds = computeNewConditions(computedFailoverResource, newComputedFailoverPolicy, service, destServices, missingSamenessGroups)
+	conds = computeNewConditions(rawFailoverPolicy, computedFailoverResource, newComputedFailoverPolicy, service, destServices, missingSamenessGroups)
 	if err := writeStatus(ctx, rt, computedFailoverResource, conds); err != nil {
 		rt.Logger.Error("error encountered when attempting to update the resource's computed failover policy status", "error", err)
 		return err
@@ -165,6 +168,7 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 }
 
 func computeNewConditions(
+	rawFailoverPolicy *pbcatalog.FailoverPolicy,
 	fpRes *pbresource.Resource,
 	fp *pbcatalog.ComputedFailoverPolicy,
 	service *resource.DecodedResource[*pbcatalog.Service],
@@ -182,11 +186,27 @@ func computeNewConditions(
 
 	var conditions []*pbresource.Condition
 
-	for port, pc := range fp.GetPortConfigs() {
-		if _, ok := allowedPortProtocols[port]; !ok {
-			conditions = append(conditions, ConditionUnknownPort(port))
-		}
+	if rawFailoverPolicy != nil {
+		// We need to validate port mappings on the raw input config due to the
+		// possibility of duplicate mappings, which will be normalized into one
+		// mapping by target port key.
+		usedTargetPorts := make(map[string]any)
+		for port := range rawFailoverPolicy.PortConfigs {
+			svcPort := service.Data.FindPortByID(port)
+			targetPort := svcPort.GetTargetPort() // svcPort could be nil
 
+			serviceRef := resource.NewReferenceKey(service.Id).ToReference()
+			if svcPort == nil {
+				conditions = append(conditions, ConditionUnknownPort(serviceRef, port))
+			} else if _, ok := usedTargetPorts[targetPort]; ok {
+				conditions = append(conditions, ConditionConflictDestinationPort(serviceRef, svcPort))
+			} else {
+				usedTargetPorts[targetPort] = struct{}{}
+			}
+		}
+	}
+
+	for _, pc := range fp.GetPortConfigs() {
 		for _, dest := range pc.Destinations {
 			// We know from validation that a Ref must be set, and the type it
 			// points to is a Service.

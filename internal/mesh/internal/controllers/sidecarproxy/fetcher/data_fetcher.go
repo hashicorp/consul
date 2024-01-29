@@ -151,13 +151,13 @@ func (f *Fetcher) FetchComputedExplicitDestinationsData(
 		}
 
 		// Check if the desired port exists on the service and skip it doesn't.
-		if svc.GetData().FindServicePort(dest.DestinationPort) == nil {
+		if svc.GetData().FindPortByID(dest.DestinationPort) == nil {
 			continue
 		}
 
 		// No destination port should point to a port with "mesh" protocol,
 		// so check if destination port has the mesh protocol and skip it if it does.
-		if svc.GetData().FindServicePort(dest.DestinationPort).GetProtocol() == pbcatalog.Protocol_PROTOCOL_MESH {
+		if svc.GetData().FindPortByID(dest.DestinationPort).GetProtocol() == pbcatalog.Protocol_PROTOCOL_MESH {
 			continue
 		}
 

@@ -15,8 +15,11 @@ message FailoverPolicy {
   // Config defines failover for any named port not present in PortConfigs.
   FailoverConfig config = 1;
 
-  // PortConfigs defines failover for a specific port on this service and takes
+  // PortConfigs defines failover for a specific port on a service and takes
   // precedence over Config.
+  //
+  // For more details on potential values of the service port identifier key,
+  // see documentation for Service.ServicePort.
   map<string, FailoverConfig> port_configs = 2;
 }
 
@@ -38,6 +41,11 @@ message FailoverConfig {
 message FailoverDestination {
   // This must be a Service.
   hashicorp.consul.resource.Reference ref = 1;
+
+  // Port is the port of the destination service.
+  //
+  // For more details on potential values of the service port identifier key,
+  // see documentation for Service.ServicePort.
   // TODO: what should an empty port mean?
   string port = 2;
   string datacenter = 3;
