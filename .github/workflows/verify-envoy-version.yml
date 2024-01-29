@@ -12,7 +12,8 @@ on:
   push:
     branches:
       - main
-      - release/**
+      # Disabled due to 1.15 having a much longer list of Envoy versions it supports with its LTS lifecycle.
+      #- release/**
 
 jobs:
   verify-envoy-version:
