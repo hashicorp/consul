@@ -49,10 +49,6 @@ export default class HcpLinkItemComponent extends Component {
     return isConsulHcpEnabled && isConsulHcpUrlDefined;
   }
 
-  get shouldDisplayNewBadge() {
-    return this.hcpLinkStatus.shouldDisplayHcpLinkPrompt;
-  }
-
   @action
   onLinkToConsulCentral() {
     // TODO: https://hashicorp.atlassian.net/browse/CC-7147 open the modal

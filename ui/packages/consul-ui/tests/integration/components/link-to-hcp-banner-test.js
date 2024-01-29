@@ -18,7 +18,7 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
   setupRenderingTest(hooks);
 
   class HcpLinkStatusStub extends Service {
-    get shouldDisplayHcpLinkPrompt() {
+    get shouldDisplayBanner() {
       return true;
     }
     userDismissedBanner = userDismissedBannerStub;
@@ -59,7 +59,7 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
 
   test('banner does not render when hcp-link-status says it should NOT', async function (assert) {
     class HcpLinkStatusStub extends Service {
-      get shouldDisplayHcpLinkPrompt() {
+      get shouldDisplayBanner() {
         return false;
       }
       dismissHcpLinkBanner = sinon.stub();
@@ -72,7 +72,7 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
 
   test('banner does not render when cluster is already linked', async function (assert) {
     class HcpLinkStatusStub extends Service {
-      get shouldDisplayHcpLinkPrompt() {
+      get shouldDisplayBanner() {
         return true;
       }
       dismissHcpLinkBanner = sinon.stub();
@@ -85,7 +85,7 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
 
   test('banner does not render when we have no cluster link status info', async function (assert) {
     class HcpLinkStatusStub extends Service {
-      get shouldDisplayHcpLinkPrompt() {
+      get shouldDisplayBanner() {
         return true;
       }
       dismissHcpLinkBanner = sinon.stub();

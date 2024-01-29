@@ -4,9 +4,6 @@
  */
 
 .hcp-nav-item {
-  // While we're okay with just copying the hds-side-nav__list-item-link style for now, we need to reduce the horizontal padding
-  // to make room for the notification badge.
-  padding: 4px 0;
   display: flex;
   justify-content: space-between;
 }

@@ -13,7 +13,6 @@ import Service from '@ember/service';
 const backToHcpSelector = '[data-test-back-to-hcp]';
 const hcpConsulCentralItemSelector = '[data-test-linked-cluster-hcp-link]';
 const linkToHcpSelector = '[data-test-link-to-hcp]';
-const linkToHcpNewBadgeSelector = '[data-test-link-to-hcp-new-badge]';
 const resourceId =
   'organization/b4432207-bb9c-438e-a160-b98923efa979/project/4b09958c-fa91-43ab-8029-eb28d8cee9d4/hashicorp.consul.global-network-manager.cluster/test-from-api';
 module('Integration | Component | hcp nav item', function (hooks) {
@@ -192,7 +191,7 @@ module('Integration | Component | hcp nav item', function (hooks) {
         'service:hcp-link-status',
         class Stub extends Service {
           hasPermissionToLink = true;
-          shouldDisplayHcpLinkPrompt = true;
+          shouldDisplayBanner = true;
         }
       );
       this.linkData = {
@@ -208,7 +207,6 @@ module('Integration | Component | hcp nav item', function (hooks) {
         .dom(hcpConsulCentralItemSelector)
         .doesNotExist('hcp consul central item should not be visible');
       assert.dom(linkToHcpSelector).isVisible('link to hcp should be visible');
-      assert.dom(linkToHcpNewBadgeSelector).isVisible('badge should be visible');
     });
 
     test('when not already linked with dismissed banner it displays the link to hcp item', async function (assert) {
@@ -216,7 +214,7 @@ module('Integration | Component | hcp nav item', function (hooks) {
         'service:hcp-link-status',
         class Stub extends Service {
           hasPermissionToLink = true;
-          shouldDisplayHcpLinkPrompt = false;
+          shouldDisplayBanner = false;
         }
       );
       this.linkData = {
@@ -232,7 +230,6 @@ module('Integration | Component | hcp nav item', function (hooks) {
         .dom(hcpConsulCentralItemSelector)
         .doesNotExist('hcp consul central item should not be visible');
       assert.dom(linkToHcpSelector).isVisible('link to hcp should be visible');
-      assert.dom(linkToHcpNewBadgeSelector).doesNotExist('badge should be visible');
     });
   });
 });
