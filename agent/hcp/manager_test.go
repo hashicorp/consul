@@ -5,6 +5,7 @@ package hcp
 
 import (
 	"fmt"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	"io"
 	"testing"
 	"time"
@@ -12,12 +13,14 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/go-hclog"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
+	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -28,19 +31,59 @@ func TestManager_MonitorHCPLink(t *testing.T) {
 	t.Cleanup(cancel)
 
 	linkWatchCh := make(chan *pbresource.WatchEvent)
-	mgr := NewManager(ManagerConfig{
-		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-	})
+	mgr := NewManager(
+		ManagerConfig{
+			Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		},
+	)
+	mockHCPClient := hcpclient.NewMockClient(t)
+	mockHcpClientFn := func(_ config.CloudConfig) (hcpclient.Client, error) {
+		return mockHCPClient, nil
+	}
+	loadMgmtTokenFn := func(ctx context.Context, logger hclog.Logger, hcpClient hcpclient.Client, dataDir string) (string, error) {
+		return "test-mgmt-token", nil
+	}
 
 	require.False(t, mgr.isRunning())
-	go MonitorHCPLink(ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), linkWatchCh, mgr)
+	go MonitorHCPLink(
+		ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, mockHcpClientFn, loadMgmtTokenFn,
+		"",
+	)
 
-	linkWatchCh <- &pbresource.WatchEvent{Operation: pbresource.WatchEvent_OPERATION_UPSERT}
+	// Set up a link
+	link := pbhcp.Link{
+		ResourceId:   "abc",
+		ClientId:     "def",
+		ClientSecret: "ghi",
+		AccessLevel:  pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE,
+	}
+	linkResource, err := anypb.New(&link)
+	require.NoError(t, err)
+	linkWatchCh <- &pbresource.WatchEvent{
+		Event: &pbresource.WatchEvent_Upsert_{
+			Upsert: &pbresource.WatchEvent_Upsert{
+				Resource: &pbresource.Resource{
+					Id: &pbresource.ID{
+						Name: "global",
+						Type: pbhcp.LinkType,
+					},
+					Status: map[string]*pbresource.Status{
+						hcpctl.StatusKey: {
+							Conditions: []*pbresource.Condition{hcpctl.ConditionValidatedSuccess},
+						},
+					},
+					Data: linkResource,
+				},
+			},
+		},
+	}
 
 	// Validate that the HCP manager is started
-	retry.Run(t, func(r *retry.R) {
-		require.True(r, mgr.isRunning())
-	})
+	retry.Run(
+		t, func(r *retry.R) {
+			require.True(r, mgr.isRunning())
+		},
+	)
 }
 
 func TestManager_Start(t *testing.T) {
@@ -71,18 +114,22 @@ func TestManager_Start(t *testing.T) {
 	scadaM.EXPECT().Start().Return(nil)
 
 	telemetryM := NewMockTelemetryProvider(t)
-	telemetryM.EXPECT().Start(mock.Anything, &HCPProviderCfg{
-		HCPClient: client,
-		HCPConfig: &cloudCfg,
-	}).Return(nil).Once()
+	telemetryM.EXPECT().Start(
+		mock.Anything, &HCPProviderCfg{
+			HCPClient: client,
+			HCPConfig: &cloudCfg,
+		},
+	).Return(nil).Once()
 
-	mgr := NewManager(ManagerConfig{
-		Logger:                    hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn:                  statusF,
-		ManagementTokenUpserterFn: upsertManagementTokenF,
-		SCADAProvider:             scadaM,
-		TelemetryProvider:         telemetryM,
-	})
+	mgr := NewManager(
+		ManagerConfig{
+			Logger:                    hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+			StatusFn:                  statusF,
+			ManagementTokenUpserterFn: upsertManagementTokenF,
+			SCADAProvider:             scadaM,
+			TelemetryProvider:         telemetryM,
+		},
+	)
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -121,10 +168,12 @@ func TestManager_StartMultipleTimes(t *testing.T) {
 		ManagementToken: "fake-token",
 	}
 
-	mgr := NewManager(ManagerConfig{
-		Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn: statusF,
-	})
+	mgr := NewManager(
+		ManagerConfig{
+			Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+			StatusFn: statusF,
+		},
+	)
 
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -168,12 +217,14 @@ func TestManager_UpdateConfig(t *testing.T) {
 		NodeID:     "node-1",
 	}
 
-	mgr := NewManager(ManagerConfig{
-		Logger:      hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn:    statusF,
-		CloudConfig: cloudCfg,
-		Client:      client,
-	})
+	mgr := NewManager(
+		ManagerConfig{
+			Logger:      hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+			StatusFn:    statusF,
+			CloudConfig: cloudCfg,
+			Client:      client,
+		},
+	)
 
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -227,11 +278,13 @@ func TestManager_SendUpdate(t *testing.T) {
 
 	// Expect two calls, once during run startup and again when SendUpdate is called
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
-	mgr := NewManager(ManagerConfig{
-		Client:   client,
-		Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn: statusF,
-	})
+	mgr := NewManager(
+		ManagerConfig{
+			Client:   client,
+			Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+			StatusFn: statusF,
+		},
+	)
 	mgr.testUpdateSent = updateCh
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -261,13 +314,15 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 
 	// Expect two calls, once during run startup and again when SendUpdate is called
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
-	mgr := NewManager(ManagerConfig{
-		Client:      client,
-		Logger:      hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn:    statusF,
-		MaxInterval: time.Second,
-		MinInterval: 100 * time.Millisecond,
-	})
+	mgr := NewManager(
+		ManagerConfig{
+			Client:      client,
+			Logger:      hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+			StatusFn:    statusF,
+			MaxInterval: time.Second,
+			MinInterval: 100 * time.Millisecond,
+		},
+	)
 	mgr.testUpdateSent = updateCh
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -329,18 +384,20 @@ func TestManager_Stop(t *testing.T) {
 	telemetryM.EXPECT().Stop().Return().Once()
 
 	// Configure manager with all its dependencies
-	mgr := NewManager(ManagerConfig{
-		Logger:                    testutil.Logger(t),
-		StatusFn:                  statusF,
-		Client:                    client,
-		ManagementTokenUpserterFn: upsertManagementTokenF,
-		ManagementTokenDeleterFn:  deleteManagementTokenF,
-		SCADAProvider:             scadaM,
-		TelemetryProvider:         telemetryM,
-		CloudConfig: config.CloudConfig{
-			ManagementToken: token,
+	mgr := NewManager(
+		ManagerConfig{
+			Logger:                    testutil.Logger(t),
+			StatusFn:                  statusF,
+			Client:                    client,
+			ManagementTokenUpserterFn: upsertManagementTokenF,
+			ManagementTokenDeleterFn:  deleteManagementTokenF,
+			SCADAProvider:             scadaM,
+			TelemetryProvider:         telemetryM,
+			CloudConfig: config.CloudConfig{
+				ManagementToken: token,
+			},
 		},
-	})
+	)
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
