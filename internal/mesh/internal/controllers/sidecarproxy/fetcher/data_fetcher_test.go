@@ -23,6 +23,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -445,7 +446,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 						switch {
 						case resource.ReferenceOrIDMatch(suite.api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
 							se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-							details.ServiceEndpointsId = se.Resource.Id
+							details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+								Id:        se.Resource.Id,
+								MeshPort:  details.MeshPort,
+								RoutePort: details.BackendRef.Port,
+							}
 							details.ServiceEndpoints = se.Data
 							details.IdentityRefs = []*pbresource.Reference{{
 								Name:    "api-1-identity",
@@ -461,7 +466,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 						switch {
 						case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp1":
 							se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-							details.ServiceEndpointsId = se.Resource.Id
+							details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+								Id:        se.Resource.Id,
+								MeshPort:  details.MeshPort,
+								RoutePort: details.BackendRef.Port,
+							}
 							details.ServiceEndpoints = se.Data
 							details.IdentityRefs = []*pbresource.Reference{{
 								Name:    "api-2-identity",
@@ -477,7 +486,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 						switch {
 						case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
 							se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-							details.ServiceEndpointsId = se.Resource.Id
+							details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+								Id:        se.Resource.Id,
+								MeshPort:  details.MeshPort,
+								RoutePort: details.BackendRef.Port,
+							}
 							details.ServiceEndpoints = se.Data
 							details.IdentityRefs = []*pbresource.Reference{{
 								Name:    "api-2-identity",
@@ -560,7 +573,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					switch {
 					case resource.ReferenceOrIDMatch(suite.api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
 						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+							Id:        se.Resource.Id,
+							MeshPort:  details.MeshPort,
+							RoutePort: details.BackendRef.Port,
+						}
 						details.ServiceEndpoints = se.Data
 						details.IdentityRefs = []*pbresource.Reference{{
 							Name:    "api-1-identity",
@@ -576,7 +593,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					switch {
 					case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp1":
 						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+							Id:        se.Resource.Id,
+							MeshPort:  details.MeshPort,
+							RoutePort: details.BackendRef.Port,
+						}
 						details.ServiceEndpoints = se.Data
 						details.IdentityRefs = []*pbresource.Reference{{
 							Name:    "api-2-identity",
@@ -592,7 +613,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					switch {
 					case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
 						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+							Id:        se.Resource.Id,
+							MeshPort:  details.MeshPort,
+							RoutePort: details.BackendRef.Port,
+						}
 						details.ServiceEndpoints = se.Data
 						details.IdentityRefs = []*pbresource.Reference{{
 							Name:    "api-2-identity",
@@ -608,7 +633,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					switch {
 					case resource.ReferenceOrIDMatch(api3Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
 						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), api3ServiceEndpoints)
-						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+							Id:        se.Resource.Id,
+							MeshPort:  details.MeshPort,
+							RoutePort: details.BackendRef.Port,
+						}
 						details.ServiceEndpoints = se.Data
 						details.IdentityRefs = []*pbresource.Reference{{
 							Name:    "api-3-identity",
