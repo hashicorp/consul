@@ -1106,7 +1106,14 @@ func (a *Agent) listenAndServeV2DNS() error {
 	if a.baseDeps.UseV2Resources() {
 		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config)
 	} else {
-		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config, a.AgentEnterpriseMeta(), a.RPC, a.logger.Named("catalog-data-fetcher"))
+		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config,
+			a.AgentEnterpriseMeta(),
+			a.cache.Get,
+			a.RPC,
+			a.rpcClientHealth.ServiceNodes,
+			a.rpcClientConfigEntry.GetSamenessGroup,
+			a.TranslateServicePort,
+			a.logger.Named("catalog-data-fetcher"))
 	}
 
 	// Generate a Query Processor with the appropriate data fetcher
@@ -1295,7 +1302,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 	}
 
 	httpAddrs := a.config.HTTPAddrs
-	if a.config.IsCloudEnabled() {
+	if a.scadaProvider != nil {
 		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
 	}
 

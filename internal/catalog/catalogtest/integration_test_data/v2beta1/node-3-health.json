@@ -6,8 +6,7 @@
          "kind": "NodeHealthStatus"
       },
       "tenancy": {
-         "partition": "default",
-         "peer_name": "local"
+         "partition": "default"
       },
       "name": "node-3-health"
    },
@@ -18,8 +17,7 @@
          "kind": "Node"
       },
       "tenancy": {
-         "partition": "default",
-         "peer_name": "local"
+         "partition": "default"
       },
       "name": "node-3"
    },

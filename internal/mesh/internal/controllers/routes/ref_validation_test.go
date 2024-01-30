@@ -24,12 +24,18 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 	types.Register(registry)
 	catalog.RegisterTypes(registry)
 
-	newService := func(name string, ports map[string]pbcatalog.Protocol) *types.DecodedService {
+	type protocolAndVirtualPort struct {
+		protocol    pbcatalog.Protocol
+		virtualPort uint32
+	}
+
+	newService := func(name string, ports map[string]protocolAndVirtualPort) *types.DecodedService {
 		var portSlice []*pbcatalog.ServicePort
-		for name, proto := range ports {
+		for targetPort, pv := range ports {
 			portSlice = append(portSlice, &pbcatalog.ServicePort{
-				TargetPort: name,
-				Protocol:   proto,
+				TargetPort:  targetPort,
+				VirtualPort: pv.virtualPort,
+				Protocol:    pv.protocol,
 			})
 		}
 		svc := rtest.Resource(pbcatalog.ServiceType, name).
@@ -61,8 +67,8 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		})
 
 		t.Run("with service but no mesh port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
 				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), ""),
@@ -74,9 +80,9 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		})
 
 		t.Run("with service but using mesh port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
-				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
 				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "mesh"),
@@ -89,9 +95,9 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		})
 
 		t.Run("with service and using missing port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
-				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
 				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "web"),
@@ -103,10 +109,26 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 			))
 		})
 
+		t.Run("with service and using duplicate port", func(t *testing.T) {
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
+			}))
+			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
+				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "8080"),
+			}, nil)
+			require.Len(t, got, 1)
+			prototest.AssertContainsElement(t, got, ConditionConflictParentRefPort(
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
+				"http",
+			))
+		})
+
 		t.Run("with service and using empty port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
-				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
 				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), ""),
@@ -115,9 +137,9 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		})
 
 		t.Run("with service and using correct port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
-				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
 				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "http"),
@@ -139,8 +161,8 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		})
 
 		t.Run("with service but no mesh port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
 				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "", ""),
@@ -152,9 +174,9 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		})
 
 		t.Run("with service but using mesh port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
-				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
 				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "mesh", ""),
@@ -167,9 +189,9 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		})
 
 		t.Run("with service and using missing port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
-				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
 				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "web", ""),
@@ -181,10 +203,26 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 			))
 		})
 
+		t.Run("with service and using duplicate port", func(t *testing.T) {
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
+			}))
+			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
+				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "http", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "8080", ""),
+			})
+			require.Len(t, got, 1)
+			prototest.AssertContainsElement(t, got, ConditionConflictBackendRefPort(
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
+				"http",
+			))
+		})
+
 		t.Run("with service and using empty port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
-				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
 				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "", ""),
@@ -193,9 +231,9 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		})
 
 		t.Run("with service and using correct port", func(t *testing.T) {
-			sg := newTestServiceGetter(newService("api", map[string]pbcatalog.Protocol{
-				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
-				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
+			sg := newTestServiceGetter(newService("api", map[string]protocolAndVirtualPort{
+				"http": {pbcatalog.Protocol_PROTOCOL_HTTP, 8080},
+				"mesh": {pbcatalog.Protocol_PROTOCOL_MESH, 20000},
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
 				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "http", ""),

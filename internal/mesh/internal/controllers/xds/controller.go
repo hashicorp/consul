@@ -138,7 +138,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 		proxyStateTemplate.Template.ProxyState.TrustBundles = make(map[string]*pbproxystate.TrustBundle)
 	}
 	// TODO: Figure out the correct key for the default trust bundle.
-	proxyStateTemplate.Template.ProxyState.TrustBundles["local"] = trustBundle
+	proxyStateTemplate.Template.ProxyState.TrustBundles[resource.DefaultPeerName] = trustBundle
 
 	if proxyStateTemplate.Template.ProxyState.Endpoints == nil {
 		proxyStateTemplate.Template.ProxyState.Endpoints = make(map[string]*pbproxystate.Endpoints)

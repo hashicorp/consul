@@ -182,15 +182,15 @@ func TestLinkACLs(t *testing.T) {
 			WriteOK: rtest.DENY,
 			ListOK:  rtest.DENY,
 		},
-		"link test read": {
-			Rules:   `operator = "read"`,
+		"link test read and list": {
+			Rules:   `{"operator": "read"}`,
 			Res:     link,
 			ReadOK:  rtest.ALLOW,
 			WriteOK: rtest.DENY,
 			ListOK:  rtest.ALLOW,
 		},
 		"link test write": {
-			Rules:   `operator = "write"`,
+			Rules:   `{"operator": "write", "acl": "write"}`,
 			Res:     link,
 			ReadOK:  rtest.ALLOW,
 			WriteOK: rtest.ALLOW,

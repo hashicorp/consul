@@ -85,7 +85,6 @@ func TestEqualTenancy(t *testing.T) {
 	t.Run("same pointer", func(t *testing.T) {
 		ten := &pbresource.Tenancy{
 			Partition: "foo",
-			PeerName:  "bar",
 			Namespace: "baz",
 		}
 		require.True(t, resource.EqualTenancy(ten, ten))
@@ -94,7 +93,6 @@ func TestEqualTenancy(t *testing.T) {
 	t.Run("equal", func(t *testing.T) {
 		a := &pbresource.Tenancy{
 			Partition: "foo",
-			PeerName:  "bar",
 			Namespace: "baz",
 		}
 		b := clone(a)
@@ -104,7 +102,6 @@ func TestEqualTenancy(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
 		a := &pbresource.Tenancy{
 			Partition: "foo",
-			PeerName:  "bar",
 			Namespace: "baz",
 		}
 		require.False(t, resource.EqualTenancy(a, nil))
@@ -114,7 +111,6 @@ func TestEqualTenancy(t *testing.T) {
 	t.Run("different Partition", func(t *testing.T) {
 		a := &pbresource.Tenancy{
 			Partition: "foo",
-			PeerName:  "bar",
 			Namespace: "baz",
 		}
 		b := clone(a)
@@ -122,21 +118,9 @@ func TestEqualTenancy(t *testing.T) {
 		require.False(t, resource.EqualTenancy(a, b))
 	})
 
-	t.Run("different PeerName", func(t *testing.T) {
-		a := &pbresource.Tenancy{
-			Partition: "foo",
-			PeerName:  "bar",
-			Namespace: "baz",
-		}
-		b := clone(a)
-		b.PeerName = "qux"
-		require.False(t, resource.EqualTenancy(a, b))
-	})
-
 	t.Run("different Namespace", func(t *testing.T) {
 		a := &pbresource.Tenancy{
 			Partition: "foo",
-			PeerName:  "bar",
 			Namespace: "baz",
 		}
 		b := clone(a)
@@ -155,7 +139,6 @@ func TestEqualID(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -173,7 +156,6 @@ func TestEqualID(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -192,7 +174,6 @@ func TestEqualID(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -211,7 +192,6 @@ func TestEqualID(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -231,7 +211,6 @@ func TestEqualID(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -251,7 +230,6 @@ func TestEqualID(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -271,7 +249,6 @@ func TestEqualID(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -281,6 +258,8 @@ func TestEqualID(t *testing.T) {
 		b.Uid = ulid.Make().String()
 		require.False(t, resource.EqualID(a, b))
 	})
+
+	// TODO(peering/v2) Add test for when the peer tenancy of an object differs
 }
 
 func TestEqualReference(t *testing.T) {
@@ -293,7 +272,6 @@ func TestEqualReference(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -311,7 +289,6 @@ func TestEqualReference(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -330,7 +307,6 @@ func TestEqualReference(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -349,7 +325,6 @@ func TestEqualReference(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -369,7 +344,6 @@ func TestEqualReference(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -389,7 +363,6 @@ func TestEqualReference(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -409,7 +382,6 @@ func TestEqualReference(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -419,6 +391,8 @@ func TestEqualReference(t *testing.T) {
 		b.Section = "not-blah"
 		require.False(t, resource.EqualReference(a, b))
 	})
+
+	// TODO(peering/v2) add test for peer tenancies differing
 }
 
 func TestReferenceOrIDMatch(t *testing.T) {
@@ -431,7 +405,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -445,7 +418,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -463,7 +435,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -477,7 +448,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -496,7 +466,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -510,7 +479,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -529,7 +497,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -543,7 +510,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -562,7 +528,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name:    "qux",
@@ -576,7 +541,6 @@ func TestReferenceOrIDMatch(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "foo",
-				PeerName:  "bar",
 				Namespace: "baz",
 			},
 			Name: "qux",
@@ -585,6 +549,8 @@ func TestReferenceOrIDMatch(t *testing.T) {
 		b.Name = "boom"
 		require.False(t, resource.ReferenceOrIDMatch(a, b))
 	})
+
+	// TODO(peering/v2) Add tests for peer tenancy matching
 }
 
 func TestEqualStatus(t *testing.T) {
@@ -604,7 +570,6 @@ func TestEqualStatus(t *testing.T) {
 					},
 					Tenancy: &pbresource.Tenancy{
 						Partition: "foo-partition",
-						PeerName:  "foo-peer-name",
 						Namespace: "foo-namespace",
 					},
 					Name:    "foo-name",
@@ -666,6 +631,8 @@ func TestEqualStatus(t *testing.T) {
 		"different Condition.Resource.Section": func(s *pbresource.Status) {
 			s.Conditions[0].Resource.Section = "bar-section"
 		},
+
+		// TODO(peering/v2) Add tests for non-local peers in the resource ref
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
@@ -842,12 +809,10 @@ func BenchmarkEqualTenancy(b *testing.B) {
 	// BenchmarkEqualTenancy/reflection-16              2283500               550.3 ns/op           128 B/op          7 allocs/op
 	tenA := &pbresource.Tenancy{
 		Partition: "foo",
-		PeerName:  "bar",
 		Namespace: "baz",
 	}
 	tenB := &pbresource.Tenancy{
 		Partition: "foo",
-		PeerName:  "bar",
 		Namespace: "qux",
 	}
 	b.ResetTimer()
@@ -877,7 +842,6 @@ func BenchmarkEqualID(b *testing.B) {
 		},
 		Tenancy: &pbresource.Tenancy{
 			Partition: "foo",
-			PeerName:  "bar",
 			Namespace: "baz",
 		},
 		Name: "qux",
@@ -920,7 +884,6 @@ func BenchmarkEqualStatus(b *testing.B) {
 					},
 					Tenancy: &pbresource.Tenancy{
 						Partition: "foo-partition",
-						PeerName:  "foo-peer-name",
 						Namespace: "foo-namespace",
 					},
 					Name:    "foo-name",

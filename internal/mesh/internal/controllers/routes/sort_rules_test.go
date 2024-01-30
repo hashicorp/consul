@@ -484,7 +484,6 @@ func nsTenancy(ns string) *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: ns,
-		PeerName:  "local",
 	}
 }
 

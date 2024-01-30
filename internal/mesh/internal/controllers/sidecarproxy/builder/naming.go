@@ -40,7 +40,10 @@ func DestinationListenerName(destinationRef *pbresource.Reference, portName stri
 // DestinationResourceID returns a string representation that uniquely identifies the
 // upstream in a canonical but human readable way.
 func DestinationResourceID(destinationRef *pbresource.Reference, port string) string {
-	tenancyPrefix := fmt.Sprintf("%s/%s/%s", destinationRef.Tenancy.Partition,
-		destinationRef.Tenancy.PeerName, destinationRef.Tenancy.Namespace)
-	return fmt.Sprintf("%s/%s:%s", tenancyPrefix, destinationRef.Name, port)
+	return fmt.Sprintf("%s/%s/%s:%s",
+		destinationRef.Tenancy.Partition,
+		destinationRef.Tenancy.Namespace,
+		destinationRef.Name,
+		port,
+	)
 }

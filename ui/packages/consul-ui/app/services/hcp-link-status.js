@@ -9,12 +9,14 @@ import { tracked } from '@glimmer/tracking';
 const LOCAL_STORAGE_KEY = 'consul:hideHcpLinkBanner';
 
 export default class HcpLinkStatus extends Service {
+  @service('env') env;
   @service abilities;
   @tracked
   userDismissedBanner = false;
 
   get shouldDisplayBanner() {
-    return !this.userDismissedBanner && this.hasPermissionToLink;
+    const hcpLinkEnabled = this.env.var('CONSUL_HCP_LINK_ENABLED');
+    return !this.userDismissedBanner && this.hasPermissionToLink && hcpLinkEnabled;
   }
 
   get hasPermissionToLink() {

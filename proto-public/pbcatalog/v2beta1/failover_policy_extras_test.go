@@ -158,7 +158,6 @@ func newFailoverRef(name string) *pbresource.Reference {
 		Tenancy: &pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
-			PeerName:  "local",
 		},
 		Name: name,
 	}

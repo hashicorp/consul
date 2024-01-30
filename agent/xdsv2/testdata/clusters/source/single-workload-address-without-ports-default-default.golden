@@ -1,21 +1,21 @@
 {
-  "versionInfo":  "00000001",
-  "resources":  [
+  "versionInfo": "00000001",
+  "resources": [
     {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "local_app:grpc",
-      "type":  "STATIC",
-      "loadAssignment":  {
-        "clusterName":  "local_app:grpc",
-        "endpoints":  [
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "local_app:grpc",
+      "type": "STATIC",
+      "loadAssignment": {
+        "clusterName": "local_app:grpc",
+        "endpoints": [
           {
-            "lbEndpoints":  [
+            "lbEndpoints": [
               {
-                "endpoint":  {
-                  "address":  {
-                    "socketAddress":  {
-                      "address":  "127.0.0.1",
-                      "portValue":  8083
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8083
                     }
                   }
                 }
@@ -24,30 +24,30 @@
           }
         ]
       },
-      "typedExtensionProtocolOptions":  {
-        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions":  {
-          "@type":  "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-          "explicitHttpConfig":  {
-            "http2ProtocolOptions":  {}
+      "typedExtensionProtocolOptions": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+          "explicitHttpConfig": {
+            "http2ProtocolOptions": {}
           }
         }
       }
     },
     {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "local_app:http",
-      "type":  "STATIC",
-      "loadAssignment":  {
-        "clusterName":  "local_app:http",
-        "endpoints":  [
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "local_app:http",
+      "type": "STATIC",
+      "loadAssignment": {
+        "clusterName": "local_app:http",
+        "endpoints": [
           {
-            "lbEndpoints":  [
+            "lbEndpoints": [
               {
-                "endpoint":  {
-                  "address":  {
-                    "socketAddress":  {
-                      "address":  "127.0.0.1",
-                      "portValue":  8081
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8081
                     }
                   }
                 }
@@ -58,20 +58,20 @@
       }
     },
     {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "local_app:http2",
-      "type":  "STATIC",
-      "loadAssignment":  {
-        "clusterName":  "local_app:http2",
-        "endpoints":  [
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "local_app:http2",
+      "type": "STATIC",
+      "loadAssignment": {
+        "clusterName": "local_app:http2",
+        "endpoints": [
           {
-            "lbEndpoints":  [
+            "lbEndpoints": [
               {
-                "endpoint":  {
-                  "address":  {
-                    "socketAddress":  {
-                      "address":  "127.0.0.1",
-                      "portValue":  8082
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8082
                     }
                   }
                 }
@@ -80,30 +80,30 @@
           }
         ]
       },
-      "typedExtensionProtocolOptions":  {
-        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions":  {
-          "@type":  "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-          "explicitHttpConfig":  {
-            "http2ProtocolOptions":  {}
+      "typedExtensionProtocolOptions": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+          "explicitHttpConfig": {
+            "http2ProtocolOptions": {}
           }
         }
       }
     },
     {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "local_app:tcp",
-      "type":  "STATIC",
-      "loadAssignment":  {
-        "clusterName":  "local_app:tcp",
-        "endpoints":  [
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "local_app:tcp",
+      "type": "STATIC",
+      "loadAssignment": {
+        "clusterName": "local_app:tcp",
+        "endpoints": [
           {
-            "lbEndpoints":  [
+            "lbEndpoints": [
               {
-                "endpoint":  {
-                  "address":  {
-                    "socketAddress":  {
-                      "address":  "127.0.0.1",
-                      "portValue":  8080
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8080
                     }
                   }
                 }
@@ -114,6 +114,6 @@
       }
     }
   ],
-  "typeUrl":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "nonce":  "00000001"
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+  "nonce": "00000001"
 }

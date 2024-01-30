@@ -96,7 +96,6 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 			Tenancy {
 			  Partition = "default"
 			  Namespace = "default"
-			  PeerName = "local"
 			}
 		  }
 		  
@@ -146,8 +145,7 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 				"name": "korn",
 				"tenancy": {
 					"partition": "default",
-					"namespace": "default",
-					"peerName": "local"
+					"namespace": "default"
 				},
 				"type": {
 					"group": "demo",

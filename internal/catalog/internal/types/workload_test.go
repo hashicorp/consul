@@ -23,7 +23,6 @@ func createWorkloadResource(t *testing.T, data protoreflect.ProtoMessage) *pbres
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			Name: "api-1234",
 		},

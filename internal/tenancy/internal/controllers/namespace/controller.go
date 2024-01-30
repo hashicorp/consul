@@ -78,7 +78,6 @@ func ensureDeleted(ctx context.Context, rt controller.Runtime, registry resource
 	tenancy := &pbresource.Tenancy{
 		Partition: res.Id.Tenancy.Partition,
 		Namespace: res.Id.Name,
-		PeerName:  resource.DefaultPeerName,
 	}
 	// Delete namespace scoped tenants
 	if err := common.EnsureTenantsDeleted(ctx, rt, registry, res, resource.ScopeNamespace, tenancy); err != nil {

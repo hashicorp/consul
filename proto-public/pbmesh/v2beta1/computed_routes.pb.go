@@ -87,6 +87,12 @@ type ComputedRoutes struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// PortedConfigs is the map of service ports to the ComputedPortRoutes for
+	// those ports.
+	//
+	// The port identifier key here is always normalized to the target (workload)
+	// port name regardless of whether a virtual or target port identifier was
+	// provided in input config.
 	PortedConfigs map[string]*ComputedPortRoutes `protobuf:"bytes,1,rep,name=ported_configs,json=portedConfigs,proto3" json:"ported_configs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// BoundReferences is a slice of mixed type references of resources that were
 	// involved in the formulation of this resource.

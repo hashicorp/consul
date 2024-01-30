@@ -149,7 +149,7 @@ func expectedFooServiceEndpoints() *pbcatalog.ServiceEndpoints {
 					{Host: "198.18.0.1"},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
-					"external-service-port": {
+					"ext-svc-port": {
 						Port:     9876,
 						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2,
 					},

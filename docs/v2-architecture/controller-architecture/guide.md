@@ -109,7 +109,6 @@ $ grpcurl -d @ \
         },
         "tenancy": {
           "partition": "default",
-          "peer_name": "local",
           "namespace": "default"
         }
       },

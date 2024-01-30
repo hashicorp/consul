@@ -29,8 +29,9 @@ message Destination {
   // DestinationRef is the reference to an destination service. This has to be pbcatalog.Service type.
   hashicorp.consul.resource.Reference destination_ref = 1;
 
-  // DestinationPort is the port name of the destination service. This should be the name
-  // of the service's target port.
+  // DestinationPort is the port of the destination service.
+  //
+  // For more details on potential values of this field, see documentation for Service.ServicePort.
   string destination_port = 2;
 
   // Datacenter is the datacenter for where this destination service lives.

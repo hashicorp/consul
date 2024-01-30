@@ -234,8 +234,8 @@ func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, 
 	// relevant resources only, which is far more efficient.
 	var sub stream.Subject
 	if ten.Partition == storage.Wildcard ||
-		ten.PeerName == storage.Wildcard ||
 		ten.Namespace == storage.Wildcard {
+		// TODO(peering/v2) update conditional to handle peer tenancy wildcards
 		sub = wildcardSubject{typ}
 	} else {
 		sub = tenancySubject{typ, ten}

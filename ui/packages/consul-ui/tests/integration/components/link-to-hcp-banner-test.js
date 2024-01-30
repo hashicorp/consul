@@ -31,7 +31,7 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
       'service:env',
       class Stub extends EnvStub {
         stubEnv = {
-          isEnterprise: false,
+          CONSUL_HCP_LINK_ENABLED: true,
         };
       }
     );
@@ -100,8 +100,8 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
     this.owner.register(
       'service:env',
       class Stub extends EnvStub {
-        isEnterprise = true;
         stubEnv = {};
+        isEnterprise = true;
       }
     );
     this.linkData = { isLinked: false };

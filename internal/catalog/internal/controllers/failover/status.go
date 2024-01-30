@@ -5,6 +5,7 @@ package failover
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -32,6 +33,9 @@ const (
 
 	MissingSamenessGroupReason        = "MissingSamenessGroup"
 	MissingSamenessGroupMessagePrefix = "referenced sameness group does not exist: "
+
+	ConflictDestinationPortReason        = "ConflictDestinationPort"
+	ConflictDestinationPortMessagePrefix = "multiple configs found for port on destination service: "
 )
 
 var (
@@ -50,12 +54,12 @@ var (
 	}
 )
 
-func ConditionUnknownPort(port string) *pbresource.Condition {
+func ConditionUnknownPort(ref *pbresource.Reference, port string) *pbresource.Condition {
 	return &pbresource.Condition{
 		Type:    StatusConditionAccepted,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  UnknownPortReason,
-		Message: UnknownPortMessagePrefix + port,
+		Message: UnknownPortMessagePrefix + port + " on " + resource.ReferenceToString(ref),
 	}
 }
 
@@ -92,5 +96,14 @@ func ConditionMissingSamenessGroup(ref *pbresource.Reference) *pbresource.Condit
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  MissingSamenessGroupReason,
 		Message: MissingSamenessGroupMessagePrefix + resource.ReferenceToString(ref),
+	}
+}
+
+func ConditionConflictDestinationPort(ref *pbresource.Reference, port *pbcatalog.ServicePort) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionAccepted,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  ConflictDestinationPortReason,
+		Message: ConflictDestinationPortMessagePrefix + port.ToPrintableString() + " on " + resource.ReferenceToString(ref),
 	}
 }

@@ -39,22 +39,14 @@ var (
 		"bar ns, default partition, local peer": {
 			Partition: "default",
 			Namespace: "bar",
-			PeerName:  "local",
 		},
 		"default ns, baz partition, local peer": {
 			Partition: "baz",
 			Namespace: "default",
-			PeerName:  "local",
 		},
 		"bar ns, baz partition, local peer": {
 			Partition: "baz",
 			Namespace: "bar",
-			PeerName:  "local",
-		},
-		"bar ns, baz partition, non-local peer": {
-			Partition: "baz",
-			Namespace: "bar",
-			PeerName:  "non-local",
 		},
 	}
 )

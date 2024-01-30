@@ -31,21 +31,9 @@ func TestAuthorizerContext_CE(t *testing.T) {
 			AuthorizerContext(&pbresource.Tenancy{
 				Partition: "foo",
 				Namespace: "bar",
-				PeerName:  "local",
 			}),
 		)
 	})
 
-	t.Run("with non-local peer", func(t *testing.T) {
-		require.Equal(t,
-			&acl.AuthorizerContext{
-				Peer: "remote",
-			},
-			AuthorizerContext(&pbresource.Tenancy{
-				Partition: "foo",
-				Namespace: "bar",
-				PeerName:  "remote",
-			}),
-		)
-	})
+	// TODO(peering/v2): add a test here for non-local peers
 }
