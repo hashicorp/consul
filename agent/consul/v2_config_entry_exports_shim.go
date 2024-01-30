@@ -9,10 +9,17 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/controller"
 )
 
 type V1ServiceExportsShim struct {
-	s *Server
+	s             *Server
+	configEventCh chan controller.Event
+}
+
+// EventChannel returns an event channel that sends controller events when a config update is made.
+func (s *V1ServiceExportsShim) EventChannel() chan controller.Event {
+	return s.configEventCh
 }
 
 func (s *V1ServiceExportsShim) GetExportedServicesConfigEntry(_ context.Context, name string, entMeta *acl.EnterpriseMeta) (*structs.ExportedServicesConfigEntry, error) {
@@ -48,6 +55,9 @@ func (s *V1ServiceExportsShim) WriteExportedServicesConfigEntry(_ context.Contex
 	}
 
 	_, err := s.s.raftApply(structs.ConfigEntryRequestType, req)
+
+	s.configEventCh <- controller.Event{Obj: &structs.ExportedServicesConfigEntryUpdate{Partition: cfg.PartitionOrDefault()}}
+
 	return err
 }
 
@@ -59,6 +69,8 @@ func (s *V1ServiceExportsShim) DeleteExportedServicesConfigEntry(_ context.Conte
 			EnterpriseMeta: *entMeta,
 		},
 	}
+
+	s.configEventCh <- controller.Event{Obj: &structs.ExportedServicesConfigEntryUpdate{Partition: entMeta.PartitionOrDefault()}}
 
 	if err := req.Entry.Normalize(); err != nil {
 		return err

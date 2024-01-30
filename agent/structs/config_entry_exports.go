@@ -33,6 +33,15 @@ func (e *ExportedServicesConfigEntry) GetHash() uint64 {
 	return e.Hash
 }
 
+// This is used for a custom watch in the v1compat controller
+type ExportedServicesConfigEntryUpdate struct {
+	Partition string
+}
+
+func (c ExportedServicesConfigEntryUpdate) Key() string {
+	return c.Partition
+}
+
 // ExportedService manages the exporting of a service in the local partition to
 // other partitions.
 type ExportedService struct {
