@@ -1823,6 +1823,10 @@
         ]
       },
       {
+        "title": "Consul template",
+        "path": "dynamic-app/consul-template"
+      },
+      {
         "title": "Session",
         "path": "dynamic-app/session"
       },
