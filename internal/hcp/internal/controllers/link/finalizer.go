@@ -18,9 +18,6 @@ import (
 func cleanup(rt controller.Runtime, hcpManager hcp.Manager, dataDir string) error {
 	rt.Logger.Trace("cleaning up link resource")
 
-	rt.Logger.Debug("stopping HCP manager")
-	hcpManager.Stop()
-
 	if dataDir != "" {
 		hcpConfigDir := filepath.Join(dataDir, bootstrap.SubDir)
 		rt.Logger.Debug("deleting hcp-config dir", "dir", hcpConfigDir)

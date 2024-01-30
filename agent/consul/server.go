@@ -21,6 +21,11 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/fullstorydev/grpchan/inprocgrpc"
+	"go.etcd.io/bbolt"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -31,11 +36,6 @@ import (
 	walmetrics "github.com/hashicorp/raft-wal/metrics"
 	"github.com/hashicorp/raft-wal/verifier"
 	"github.com/hashicorp/serf/serf"
-	"go.etcd.io/bbolt"
-	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
@@ -53,6 +53,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -888,6 +889,33 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// Note: some "external" gRPC services are also exposed on the internal gRPC server
 	// to enable RPC forwarding.
 	s.grpcLeaderForwarder = flat.LeaderForwarder
+
+	// Start watching HCP Link resource. This creates a channel that we can use to
+	// start and stop HCP manager when appropriate. This needs to be created after
+	// the GRPC services are set up in order for the resource service client to
+	// function. This uses the insecure grpc channel so that it doesn't need to
+	// present a valid ACL token.
+	//
+	// If this fails, HCP linking will not work, but to avoid crashing Consul, we log
+	// the error and continue on.
+	hcpLinkWatchCh, err := hcpctl.NewLinkWatch(
+		&lib.StopChannelContext{StopCh: shutdownCh},
+		logger.Named("hcp-link-watcher"),
+		pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
+	)
+	if err != nil {
+		s.logger.Error("HCP Link watcher failed to start. HCP Link functionality is disabled", "error", err)
+	} else {
+		go hcp.MonitorHCPLink(
+			&lib.StopChannelContext{StopCh: shutdownCh},
+			logger.Named("hcp-link-watcher"),
+			s.hcpManager,
+			hcpLinkWatchCh,
+			hcpclient.NewClient,
+			bootstrap.LoadManagementToken,
+			flat.HCP.DataDir,
+		)
+	}
 
 	s.controllerManager = controller.NewManager(
 		// Usage of the insecure + unsafe grpc chan is required for the controller
