@@ -1524,6 +1524,9 @@ func TestAgent_Self(t *testing.T) {
 			a := StartTestAgent(t, TestAgent{
 				HCL:        tc.hcl,
 				UseGRPCTLS: tc.grpcTLS,
+				OverrideDeps: func(deps *BaseDeps) {
+					deps.HCP.Provider = nil
+				},
 			})
 			defer a.Shutdown()
 
