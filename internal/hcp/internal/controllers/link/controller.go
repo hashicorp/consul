@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -44,16 +43,9 @@ func LinkController(
 	hcpAllowV2ResourceApis bool,
 	hcpClientFn HCPClientFn,
 	cfg config.CloudConfig,
-	dataDir string,
 	hcpManager hcp.Manager,
 ) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
-		// Placement is configured to each server so that the HCP manager is started
-		// on each server. We plan to implement an alternative strategy to starting
-		// the HCP manager so that the controller placement will eventually only be
-		// on the leader.
-		// https://hashicorp.atlassian.net/browse/CC-7364
-		WithPlacement(controller.PlacementEachServer).
 		WithInitializer(
 			&linkInitializer{
 				cloudConfig: cfg,
@@ -64,7 +56,6 @@ func LinkController(
 				resourceApisEnabled:    resourceApisEnabled,
 				hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
 				hcpClientFn:            hcpClientFn,
-				dataDir:                dataDir,
 				hcpManager:             hcpManager,
 			},
 		)
@@ -74,7 +65,6 @@ type linkReconciler struct {
 	resourceApisEnabled    bool
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
-	dataDir                string
 	hcpManager             hcp.Manager
 }
 
@@ -106,7 +96,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	switch {
 	case status.Code(err) == codes.NotFound:
 		rt.Logger.Trace("link has been deleted")
-		return cleanup(rt, r.hcpManager, r.dataDir)
+		return nil
 	case err != nil:
 		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
 		return err
@@ -117,26 +107,6 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	if err := res.Data.UnmarshalTo(&link); err != nil {
 		rt.Logger.Error("error unmarshalling link data", "error", err)
 		return err
-	}
-
-	if err = addFinalizer(ctx, rt, res); err != nil {
-		rt.Logger.Error("error adding finalizer to link resource", "error", err)
-		return err
-	}
-
-	if resource.IsMarkedForDeletion(res) {
-		if err = cleanup(rt, r.hcpManager, r.dataDir); err != nil {
-			rt.Logger.Error("error cleaning up link resource", "error", err)
-			return err
-		}
-
-		err := ensureDeleted(ctx, rt, res)
-		if err != nil {
-			rt.Logger.Error("error deleting link resource", "error", err)
-
-			return err
-		}
-		return nil
 	}
 
 	// Validation - Ensure V2 Resource APIs are not enabled unless hcpAllowV2ResourceApis flag is set

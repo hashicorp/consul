@@ -6,6 +6,8 @@ package hcp
 import (
 	"context"
 	"io"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -15,10 +17,12 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/agent/hcp/bootstrap/constants"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestMonitorHCPLink_Ok(t *testing.T) {
@@ -37,6 +41,9 @@ func TestMonitorHCPLink_Ok(t *testing.T) {
 		return "test-mgmt-token", nil
 	}
 
+	dataDir := testutil.TempDir(t, "test-link-controller")
+	os.Mkdir(filepath.Join(dataDir, constants.SubDir), os.ModeDir)
+
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -44,8 +51,7 @@ func TestMonitorHCPLink_Ok(t *testing.T) {
 		defer wg.Done()
 		MonitorHCPLink(
 			ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, mockHcpClientFn,
-			loadMgmtTokenFn,
-			"",
+			loadMgmtTokenFn, dataDir,
 		)
 	}()
 
@@ -98,6 +104,12 @@ func TestMonitorHCPLink_Ok(t *testing.T) {
 	// Wait for MonitorHCPLink to return before assertions run
 	close(linkWatchCh)
 	wg.Wait()
+
+	// Ensure hcp-config directory is removed
+	file := filepath.Join(dataDir, constants.SubDir)
+	if _, err := os.Stat(file); err == nil || !os.IsNotExist(err) {
+		require.Fail(t, "should have removed hcp-config directory")
+	}
 }
 
 func TestMonitorHCPLink_Ok_ReadOnly(t *testing.T) {
