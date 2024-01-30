@@ -1,5 +1,6 @@
 ```mermaid
 flowchart TD
+  auth/v2beta1/computedtrafficpermissions --> auth/v2beta1/namespacetrafficpermissions
   auth/v2beta1/computedtrafficpermissions --> auth/v2beta1/trafficpermissions
   auth/v2beta1/computedtrafficpermissions --> auth/v2beta1/workloadidentity
   catalog/v2beta1/computedfailoverpolicy --> catalog/v2beta1/failoverpolicy

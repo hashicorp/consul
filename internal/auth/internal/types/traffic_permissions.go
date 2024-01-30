@@ -115,13 +115,13 @@ var ValidateTrafficPermissions = resource.DecodeAndValidate(validateTrafficPermi
 // validator takes a traffic permission and ensures that it conforms to the actions allowed in
 // either CE or Enterprise versions of Consul
 type validator interface {
-	ValidateAction(res *DecodedTrafficPermissions) error
+	ValidateAction(data interface{ GetAction() pbauth.Action }) error
 }
 
 func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 	var merr error
 
-	err := v.ValidateAction(res)
+	err := v.ValidateAction(res.Data)
 	if err != nil {
 		merr = multierror.Append(merr, err)
 	}
@@ -133,7 +133,16 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 		})
 	}
 	// Validate permissions
-	for i, permission := range res.Data.Permissions {
+	if err := validatePermissions(res.Id, res.Data); err != nil {
+		merr = multierror.Append(merr, err)
+	}
+
+	return merr
+}
+
+func validatePermissions(id *pbresource.ID, data interface{ GetPermissions() []*pbauth.Permission }) error {
+	var merr error
+	for i, permission := range data.GetPermissions() {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "permissions",
@@ -141,11 +150,10 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
+		if err := validatePermission(permission, id, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
-
 	return merr
 }
 
