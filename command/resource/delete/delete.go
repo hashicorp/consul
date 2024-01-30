@@ -10,7 +10,6 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
@@ -24,75 +23,64 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
+	UI            cli.Ui
+	flags         *flag.FlagSet
+	grpcFlags     *client.GRPCFlags
+	resourceFlags *client.ResourceFlags
+	help          string
 
 	filePath string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.http = &flags.HTTPFlags{}
-	c.flags.StringVar(&c.filePath, "f", "", "File path with resource definition")
-	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.MultiTenancyFlags())
-	// TODO(peering/v2) add back ability to query peers
-	// flags.Merge(c.flags, c.http.AddPeerName())
-	c.help = flags.Usage(help, c.flags)
+	c.flags.StringVar(&c.filePath, "f", "",
+		"File path with resource definition")
+
+	c.grpcFlags = &client.GRPCFlags{}
+	c.resourceFlags = &client.ResourceFlags{}
+	client.MergeFlags(c.flags, c.grpcFlags.ClientFlags())
+	client.MergeFlags(c.flags, c.resourceFlags.ResourceFlags())
+	c.help = client.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
-	var gvk *resource.GVK
+	var resourceType *pbresource.Type
+	var resourceTenancy *pbresource.Tenancy
 	var resourceName string
-	var opts *client.QueryOptions
 
 	if err := c.flags.Parse(args); err != nil {
 		if !errors.Is(err, flag.ErrHelp) {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 			return 1
 		}
+		c.UI.Error(fmt.Sprintf("Failed to run delete command: %v", err))
+		return 1
 	}
 
+	// collect resource type, name and tenancy
 	if c.flags.Lookup("f").Value.String() != "" {
-		if c.filePath != "" {
-			parsedResource, err := resource.ParseResourceFromFile(c.filePath)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
-				return 1
-			}
-
-			if parsedResource == nil {
-				c.UI.Error("Unable to parse the file argument")
-				return 1
-			}
-
-			gvk = &resource.GVK{
-				Group:   parsedResource.Id.Type.GetGroup(),
-				Version: parsedResource.Id.Type.GetGroupVersion(),
-				Kind:    parsedResource.Id.Type.GetKind(),
-			}
-			resourceName = parsedResource.Id.GetName()
-			opts = &client.QueryOptions{
-				Namespace: parsedResource.Id.Tenancy.GetNamespace(),
-				Partition: parsedResource.Id.Tenancy.GetPartition(),
-				Token:     c.http.Token(),
-			}
-		} else {
+		if c.filePath == "" {
 			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
 			return 1
 		}
+		parsedResource, err := resource.ParseResourceFromFile(c.filePath)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
+			return 1
+		}
+
+		if parsedResource == nil {
+			c.UI.Error("Unable to parse the file argument")
+			return 1
+		}
+
+		resourceType = parsedResource.Id.Type
+		resourceTenancy = parsedResource.Id.Tenancy
+		resourceName = parsedResource.Id.Name
 	} else {
 		var err error
-		var resourceType *pbresource.Type
 		resourceType, resourceName, err = resource.GetTypeAndResourceName(args)
-		gvk = &resource.GVK{
-			Group:   resourceType.GetGroup(),
-			Version: resourceType.GetGroupVersion(),
-			Kind:    resourceType.GetKind(),
-		}
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
 			return 1
@@ -108,30 +96,34 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error("Incorrect argument format: File argument is not needed when resource information is provided with the command")
 			return 1
 		}
-		opts = &client.QueryOptions{
-			Namespace: c.http.Namespace(),
-			Partition: c.http.Partition(),
-			Token:     c.http.Token(),
+		resourceTenancy = &pbresource.Tenancy{
+			Partition: c.resourceFlags.Partition(),
+			Namespace: c.resourceFlags.Namespace(),
 		}
 	}
 
-	config := api.DefaultConfig()
-
-	c.http.MergeOntoConfig(config)
-	resourceClient, err := client.NewClient(config)
+	// initialize client
+	config, err := client.LoadGRPCConfig(nil)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error loading config: %s", err))
+		return 1
+	}
+	c.grpcFlags.MergeFlagsIntoGRPCConfig(config)
+	resourceClient, err := client.NewGRPCClient(config)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
 		return 1
 	}
 
-	res := resource.Resource{C: resourceClient}
-
-	if err := res.Delete(gvk, resourceName, opts); err != nil {
-		c.UI.Error(fmt.Sprintf("Error deleting resource %s.%s.%s/%s: %v", gvk.Group, gvk.Version, gvk.Kind, resourceName, err))
+	// delete resource
+	res := resource.ResourceGRPC{C: resourceClient}
+	err = res.Delete(resourceType, resourceTenancy, resourceName)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error deleting resource %s/%s: %v", resourceType, resourceName, err))
 		return 1
 	}
 
-	c.UI.Info(fmt.Sprintf("%s.%s.%s/%s deleted", gvk.Group, gvk.Version, gvk.Kind, resourceName))
+	c.UI.Info(fmt.Sprintf("%s.%s.%s/%s deleted", resourceType.Group, resourceType.GroupVersion, resourceType.Kind, resourceName))
 	return 0
 }
 
@@ -146,7 +138,7 @@ func (c *cmd) Help() string {
 const synopsis = "Delete resource information"
 const help = `
 Usage: You have two options to delete the resource specified by the given
-type, name, partition, namespace and peer and outputs its JSON representation.
+type, name, partition, namespace and outputs its JSON representation.
 
 consul resource delete [type] [name] -partition=<default> -namespace=<default>
 consul resource delete -f [resource_file_path]
@@ -160,11 +152,11 @@ $ consul resource delete -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
-  Type = gvk("catalog.v2beta1.Service")
-  Name = "card-processor"
-  Tenancy {
-    Namespace = "payments"
-    Partition = "billing"
-  }
+	Type = gvk("catalog.v2beta1.Service")
+	Name = "card-processor"
+	Tenancy {
+		Partition = "billing"
+		Namespace = "payments"
+	}
 }
 `
