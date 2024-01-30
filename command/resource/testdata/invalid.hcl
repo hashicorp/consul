@@ -7,7 +7,6 @@ ID {
   Tenancy {
     Partition = "default"
     Namespace = "default"
-    PeerName = "local"
   }
 }
 

@@ -38,8 +38,9 @@ type OuterResource struct {
 type Tenancy struct {
 	Partition string `json:"partition"`
 	Namespace string `json:"namespace"`
-	PeerName  string `json:"peerName"`
 }
+
+// TODO(peering/v2) handle v2 peering in the resource cli
 
 type Type struct {
 	Group        string `json:"group"`

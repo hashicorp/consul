@@ -14,42 +14,75 @@ import (
 )
 
 // buildQueryFromDNSMessage returns a discovery.Query from a DNS message.
-func buildQueryFromDNSMessage(req *dns.Msg, domain, altDomain string, cfgCtx *RouterDynamicConfig, defaultEntMeta acl.EnterpriseMeta) (*discovery.Query, error) {
+func buildQueryFromDNSMessage(req *dns.Msg, domain, altDomain string,
+	cfg *RouterDynamicConfig, defaultEntMeta acl.EnterpriseMeta, defaultDatacenter string) (*discovery.Query, error) {
 	queryType, queryParts, querySuffixes := getQueryTypePartsAndSuffixesFromDNSMessage(req, domain, altDomain)
 
-	locality, ok := ParseLocality(querySuffixes, defaultEntMeta, cfgCtx.enterpriseDNSConfig)
-	if !ok {
-		return nil, errors.New("invalid locality")
+	queryTenancy, err := getQueryTenancy(queryType, querySuffixes, defaultEntMeta, cfg, defaultDatacenter)
+	if err != nil {
+		return nil, err
 	}
 
-	// TODO(v2-dns): This needs to be deprecated.
-	peerName := locality.peer
-	if peerName == "" {
-		// If the peer name was not explicitly defined, fall back to the ambiguously-parsed version.
-		peerName = locality.peerOrDatacenter
-	}
+	name, tag := getQueryNameAndTagFromParts(queryType, queryParts)
 
 	return &discovery.Query{
 		QueryType: queryType,
 		QueryPayload: discovery.QueryPayload{
-			Name: queryParts[len(queryParts)-1],
-			Tenancy: discovery.QueryTenancy{
-				EnterpriseMeta: locality.EnterpriseMeta,
-				// v2-dns: revisit if we need this after the rest of this works.
-				//	SamenessGroup: "",
-				// The datacenter of the request is not specified because cross-datacenter virtual IP
-				// queries are not supported. This guard rail is in place because virtual IPs are allocated
-				// within a DC, therefore their uniqueness is not guaranteed globally.
-				Peer:       peerName,
-				Datacenter: locality.datacenter,
-			},
-			// TODO(v2-dns): what should these be?
+			Name:    name,
+			Tenancy: queryTenancy,
+			Tag:     tag,
+			// TODO (v2-dns): what should these be?
 			//PortName:   "",
-			//Tag:        "",
 			//RemoteAddr: nil,
 			//DisableFailover: false,
 		},
 	}, nil
+}
+
+// getQueryNameAndTagFromParts returns the query name and tag from the query parts that are taken from the original dns question.
+func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []string) (string, string) {
+	switch queryType {
+	case discovery.QueryTypeService:
+		n := len(queryParts)
+		// Support RFC 2782 style syntax
+		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
+			// Grab the tag since we make nuke it if it's tcp
+			tag := queryParts[1][1:]
+
+			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
+			if tag == "tcp" {
+				tag = ""
+			}
+
+			name := queryParts[0][1:]
+			// _name._tag.service.consul
+			return name, tag
+		}
+		return queryParts[len(queryParts)-1], ""
+	}
+	return queryParts[len(queryParts)-1], ""
+}
+
+// getQueryTenancy returns a discovery.QueryTenancy from a DNS message.
+func getQueryTenancy(queryType discovery.QueryType, querySuffixes []string,
+	defaultEntMeta acl.EnterpriseMeta, cfg *RouterDynamicConfig, defaultDatacenter string) (discovery.QueryTenancy, error) {
+	if queryType == discovery.QueryTypeService {
+		return getQueryTenancyForService(querySuffixes, defaultEntMeta, cfg, defaultDatacenter)
+	}
+
+	locality, ok := discovery.ParseLocality(querySuffixes, defaultEntMeta, cfg.EnterpriseDNSConfig)
+	if !ok {
+		return discovery.QueryTenancy{}, errors.New("invalid locality")
+	}
+
+	if queryType == discovery.QueryTypeVirtual {
+		if locality.Peer == "" {
+			// If the peer name was not explicitly defined, fall back to the ambiguously-parsed version.
+			locality.Peer = locality.PeerOrDatacenter
+		}
+	}
+
+	return discovery.GetQueryTenancyBasedOnLocality(locality, defaultDatacenter)
 }
 
 // getQueryTypePartsAndSuffixesFromDNSMessage returns the query type, the parts, and suffixes of the query name.
@@ -64,18 +97,19 @@ func getQueryTypePartsAndSuffixesFromDNSMessage(req *dns.Msg, domain, altDomain 
 	for i := len(labels) - 1; i >= 0 && !done; i-- {
 		queryType = getQueryTypeFromLabels(labels[i])
 		switch queryType {
-		case discovery.QueryTypeInvalid:
-			// If we don't recognize the query type, we keep going until we find one we do.
 		case discovery.QueryTypeService,
 			discovery.QueryTypeConnect, discovery.QueryTypeVirtual, discovery.QueryTypeIngress,
 			discovery.QueryTypeNode, discovery.QueryTypePreparedQuery:
 			parts = labels[:i]
 			suffixes = labels[i+1:]
 			done = true
+		case discovery.QueryTypeInvalid:
+			fallthrough
 		default:
 			// If this is a SRV query the "service" label is optional, we add it back to use the
 			// existing code-path.
 			if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[i], "_") {
+				queryType = discovery.QueryTypeService
 				parts = labels[:i+1]
 				suffixes = labels[i+1:]
 				done = true

@@ -73,8 +73,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "bar",
-        "partition": "default",
-        "peerName": "local"
+        "partition": "default"
       },
       "type": {
         "group": "auth",
@@ -89,7 +88,7 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "default/local/bar/api-1:tcp:1.1.1.1:1234",
+        "name": "default/bar/api-1:tcp:1.1.1.1:1234",
         "routers": [
           {
             "l4": {
@@ -122,8 +121,7 @@
         "name": "api-1",
         "tenancy": {
           "namespace": "bar",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -139,8 +137,7 @@
         "name": "api-2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",

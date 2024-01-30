@@ -116,7 +116,6 @@ func (c *cmd) Run(args []string) int {
 	opts := &client.QueryOptions{
 		Namespace: parsedResource.Id.Tenancy.GetNamespace(),
 		Partition: parsedResource.Id.Tenancy.GetPartition(),
-		Peer:      parsedResource.Id.Tenancy.GetPeerName(),
 		Token:     c.http.Token(),
 	}
 
@@ -187,7 +186,6 @@ Usage: consul resource apply [options] <resource>
 		Tenancy {
 		Namespace = "default"
 		Partition = "default"
-		PeerName = "local"
 		}
 	}
 

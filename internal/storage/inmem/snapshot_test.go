@@ -28,7 +28,6 @@ func TestSnapshotRestore(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				PeerName:  "local",
 				Namespace: "default",
 			},
 			Name: "billing",
@@ -51,7 +50,6 @@ func TestSnapshotRestore(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				PeerName:  "local",
 				Namespace: "default",
 			},
 			Name: "api",

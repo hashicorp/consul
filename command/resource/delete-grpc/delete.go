@@ -99,7 +99,6 @@ func (c *cmd) Run(args []string) int {
 		resourceTenancy = &pbresource.Tenancy{
 			Partition: c.resourceFlags.Partition(),
 			Namespace: c.resourceFlags.Namespace(),
-			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
 

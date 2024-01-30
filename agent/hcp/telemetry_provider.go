@@ -114,13 +114,11 @@ func NewHCPProvider(ctx context.Context) *hcpProviderImpl {
 // Run starts a process that continuously checks for updates to the telemetry configuration
 // by making a request to HCP. It only starts running if it's not already running.
 func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
-	if h.isRunning() {
+	changed := h.setRunning(true)
+	if !changed {
+		// Provider is already running.
 		return nil
 	}
-
-	h.rw.Lock()
-	h.running = true
-	h.rw.Unlock()
 
 	// Update the provider with the HCP configurations
 	h.hcpClient = c.HCPClient
@@ -313,10 +311,18 @@ func (h *hcpProviderImpl) GetHTTPClient() *retryablehttp.Client {
 	return h.httpCfg.client
 }
 
-// isRunning acquires a read lock to return whether the provider is running.
-func (h *hcpProviderImpl) isRunning() bool {
-	h.rw.RLock()
-	defer h.rw.RUnlock()
+// setRunning acquires a write lock to set whether the provider is running.
+// If the given value is the same as the current running status, it returns
+// false. If current status is updated to the given status, it returns true.
+func (h *hcpProviderImpl) setRunning(r bool) bool {
+	h.rw.Lock()
+	defer h.rw.Unlock()
 
-	return h.running
+	if h.running == r {
+		return false
+	}
+
+	h.running = r
+
+	return true
 }

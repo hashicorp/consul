@@ -3,17 +3,19 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-import Service from '@ember/service';
+import Service, { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
 const LOCAL_STORAGE_KEY = 'consul:hideHcpLinkBanner';
 
 export default class HcpLinkStatus extends Service {
+  @service('env') env;
   @tracked
   userDismissedBanner = false;
 
   get shouldDisplayBanner() {
-    return !this.userDismissedBanner;
+    const hcpLinkEnabled = this.env.var('CONSUL_HCP_LINK_ENABLED');
+    return !this.userDismissedBanner && hcpLinkEnabled;
   }
 
   constructor() {

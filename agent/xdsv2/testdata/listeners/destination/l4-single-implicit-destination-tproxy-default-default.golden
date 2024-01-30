@@ -1,61 +1,61 @@
 {
-  "versionInfo":  "00000001",
-  "resources":  [
+  "versionInfo": "00000001",
+  "resources": [
     {
-      "@type":  "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name":  "outbound_listener",
-      "address":  {
-        "socketAddress":  {
-          "address":  "127.0.0.1",
-          "portValue":  15001
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "outbound_listener",
+      "address": {
+        "socketAddress": {
+          "address": "127.0.0.1",
+          "portValue": 15001
         }
       },
-      "filterChains":  [
+      "filterChains": [
         {
-          "filterChainMatch":  {
-            "destinationPort":  7070,
-            "prefixRanges":  [
+          "filterChainMatch": {
+            "destinationPort": 7070,
+            "prefixRanges": [
               {
-                "addressPrefix":  "1.1.1.1",
-                "prefixLen":  32
+                "addressPrefix": "1.1.1.1",
+                "prefixLen": 32
               }
             ]
           },
-          "filters":  [
+          "filters": [
             {
-              "name":  "envoy.filters.network.tcp_proxy",
-              "typedConfig":  {
-                "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix":  "upstream.tcp.api-1.default.default.dc1",
-                "cluster":  "tcp.api-1.default.dc1.internal.foo.consul"
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.tcp.api-1.default.default.dc1",
+                "cluster": "tcp.api-1.default.dc1.internal.foo.consul"
               }
             }
           ]
         }
       ],
-      "defaultFilterChain":  {
-        "filters":  [
+      "defaultFilterChain": {
+        "filters": [
           {
-            "name":  "envoy.filters.network.tcp_proxy",
-            "typedConfig":  {
-              "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-              "statPrefix":  "upstream.original-destination",
-              "cluster":  "original-destination"
+            "name": "envoy.filters.network.tcp_proxy",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+              "statPrefix": "upstream.original-destination",
+              "cluster": "original-destination"
             }
           }
         ]
       },
-      "listenerFilters":  [
+      "listenerFilters": [
         {
-          "name":  "envoy.filters.listener.original_dst",
-          "typedConfig":  {
-            "@type":  "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
+          "name": "envoy.filters.listener.original_dst",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
           }
         }
       ],
-      "trafficDirection":  "OUTBOUND"
+      "trafficDirection": "OUTBOUND"
     }
   ],
-  "typeUrl":  "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce":  "00000001"
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "nonce": "00000001"
 }

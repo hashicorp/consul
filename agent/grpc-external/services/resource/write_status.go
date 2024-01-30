@@ -173,8 +173,6 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 		req.Id.Tenancy = &pbresource.Tenancy{
 			Partition: "",
 			Namespace: "",
-			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-			PeerName: "local",
 		}
 	}
 

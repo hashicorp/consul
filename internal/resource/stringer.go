@@ -49,7 +49,7 @@ func ReferenceToString(ref *pbresource.Reference) string {
 // should not be relied upon nor parsed and is provided just for debugging and
 // logging reasons.
 func TenancyToString(tenancy *pbresource.Tenancy) string {
-	return fmt.Sprintf("%s.%s.%s", tenancy.Partition, tenancy.PeerName, tenancy.Namespace)
+	return fmt.Sprintf("%s.%s", tenancy.Partition, tenancy.Namespace)
 }
 
 // TypeToString returns a string representation of pbresource.Type. This should

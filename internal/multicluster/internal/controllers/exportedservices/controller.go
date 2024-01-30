@@ -60,7 +60,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: req.ID.Tenancy.Partition,
-			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.ExportedServicesType,
 	})
@@ -72,7 +71,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: req.ID.Tenancy.Partition,
-			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.NamespaceExportedServicesType,
 	})
@@ -83,7 +81,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	partitionedExportedServices, err := resource.ListDecodedResource[*pbmulticluster.PartitionExportedServices](ctx, rt.Client, &pbresource.ListRequest{
 		Tenancy: &pbresource.Tenancy{
 			Partition: req.ID.Tenancy.Partition,
-			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.PartitionExportedServicesType,
 	})
@@ -110,7 +107,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Tenancy: &pbresource.Tenancy{
 			Namespace: namespace,
 			Partition: req.ID.Tenancy.Partition,
-			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbcatalog.ServiceType,
 	})
