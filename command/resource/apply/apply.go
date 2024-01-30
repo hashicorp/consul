@@ -12,7 +12,6 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
 )
 
@@ -59,7 +58,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("Required '-f' flag was not provided to specify where to load the resource content from")
 		return 1
 	}
-	parsedResource, err := resource.ParseResourceInput(input, c.testStdin)
+	parsedResource, err := client.ParseResourceInput(input, c.testStdin)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
 		return 1
@@ -83,15 +82,14 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// write resource
-	res := resource.ResourceGRPC{C: resourceClient}
-	entry, err := res.Apply(parsedResource)
+	entry, err := resourceClient.Apply(parsedResource)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing resource %s/%s: %v", parsedResource.Id.Type, parsedResource.Id.GetName(), err))
 		return 1
 	}
 
 	// display response
-	b, err := json.MarshalIndent(entry, "", resource.JSON_INDENT)
+	b, err := json.MarshalIndent(entry, "", client.JSON_INDENT)
 	if err != nil {
 		c.UI.Error("Failed to encode output data")
 		return 1
