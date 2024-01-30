@@ -56,14 +56,14 @@ func (r *telemetryStateReconciler) Reconcile(ctx context.Context, rt controller.
 		return err
 	}
 	if res == nil {
-		return r.ensureStateDeleted(ctx, rt)
+		return ensureTelemetryStateDeleted(ctx, rt)
 	}
 
 	// Check that the link resource indicates the cluster is linked
 	// If the cluster is not linked, the telemetry-state resource should not exist
 	if linked, reason := link.IsLinked(res.GetResource()); !linked {
 		rt.Logger.Trace("cluster is not linked", "reason", reason)
-		return r.ensureStateDeleted(ctx, rt)
+		return ensureTelemetryStateDeleted(ctx, rt)
 	}
 
 	hcpClient, err := r.hcpClientFn(link.CloudConfigFromLink(res.GetData()))
@@ -85,7 +85,7 @@ func (r *telemetryStateReconciler) Reconcile(ctx context.Context, rt controller.
 	}
 
 	// TODO allow hcp client config override from hcp TelemetryConfig
-	hcpCfg := res.GetData().HcpConfig
+	hcpCfg := res.GetData().GetHcpConfig()
 
 	// TODO implement proxy options from hcp
 	proxyCfg := &pbhcp.ProxyConfig{}
@@ -130,7 +130,7 @@ func (r *telemetryStateReconciler) Reconcile(ctx context.Context, rt controller.
 	return nil
 }
 
-func (r *telemetryStateReconciler) ensureStateDeleted(ctx context.Context, rt controller.Runtime) error {
+func ensureTelemetryStateDeleted(ctx context.Context, rt controller.Runtime) error {
 	resp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: &pbresource.ID{Name: "global", Type: pbhcp.TelemetryStateType}})
 	switch {
 	case status.Code(err) == codes.NotFound:

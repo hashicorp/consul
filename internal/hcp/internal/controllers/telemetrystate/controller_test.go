@@ -127,11 +127,10 @@ func (suite *controllerSuite) TestController_LinkingDisabled() {
 		ResourceId:   "abc",
 	}
 
-	linkRes := rtest.Resource(pbhcp.LinkType, "global").
+	rtest.Resource(pbhcp.LinkType, "global").
 		WithData(suite.T(), linkData).
 		WithStatus(link.StatusKey, &pbresource.Status{Conditions: []*pbresource.Condition{link.ConditionDisabled}}).
 		Write(suite.T(), suite.client)
 
-	suite.client.WaitForReconciliation(suite.T(), linkRes.Id, link.StatusKey)
-	suite.client.RequireResourceNotFound(suite.T(), &pbresource.ID{Name: "global", Type: pbhcp.TelemetryStateType})
+	suite.client.WaitForDeletion(suite.T(), &pbresource.ID{Name: "global", Type: pbhcp.TelemetryStateType})
 }
