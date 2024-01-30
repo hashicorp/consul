@@ -313,6 +313,9 @@ func (s *Sprawl) initConsulServers() error {
 
 func (s *Sprawl) createFirstTime() error {
 	if err := s.initConsulServers(); err != nil {
+		if err := s.CaptureLogs(context.Background()); err != nil {
+			s.logger.Warn("container logs capture encountered failures", "error", err)
+		}
 		return fmt.Errorf("initConsulServers: %w", err)
 	}
 

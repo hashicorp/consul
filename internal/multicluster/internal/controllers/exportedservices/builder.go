@@ -6,6 +6,7 @@ package exportedservices
 import (
 	"sort"
 
+	expanderTypes "github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander/types"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
@@ -22,6 +23,7 @@ type exportedServicesBuilder struct {
 	data                          map[resource.ReferenceKey]*serviceExports
 	samenessGroupsExpander        ExportedServicesSamenessGroupExpander
 	samenessGroupsNameToMemberMap map[string][]*pbmulticluster.SamenessGroupMember
+	missingSamenessGroups         map[resource.ReferenceKey][]string
 }
 
 func newExportedServicesBuilder(samenessGroupsExpander ExportedServicesSamenessGroupExpander, samenessGroups []*types.DecodedSamenessGroup) *exportedServicesBuilder {
@@ -40,10 +42,28 @@ func newExportedServicesBuilder(samenessGroupsExpander ExportedServicesSamenessG
 		data:                          make(map[resource.ReferenceKey]*serviceExports),
 		samenessGroupsExpander:        samenessGroupsExpander,
 		samenessGroupsNameToMemberMap: samenessGroupsNameToMemberMap,
+		missingSamenessGroups:         make(map[resource.ReferenceKey][]string),
 	}
 }
 
-func (b *exportedServicesBuilder) track(svcID *pbresource.ID, consumers []*pbmulticluster.ExportedServicesConsumer) error {
+// expandConsumers expands the consumers for a given ExportedServices resource
+// and keeps track of the unresolved sameness groups
+func (b *exportedServicesBuilder) expandConsumers(exportedSvcResourceRef resource.ReferenceKey, consumers []*pbmulticluster.ExportedServicesConsumer) (*expanderTypes.ExpandedConsumers, error) {
+	expandedConsumers, err := b.samenessGroupsExpander.Expand(consumers, b.samenessGroupsNameToMemberMap)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(expandedConsumers.MissingSamenessGroups) > 0 {
+		b.missingSamenessGroups[exportedSvcResourceRef] = append(b.missingSamenessGroups[exportedSvcResourceRef], expandedConsumers.MissingSamenessGroups...)
+	}
+
+	return expandedConsumers, nil
+}
+
+// track associates a service resource with the corresponding partitions
+// and peers declared by the various ExportedService resources.
+func (b *exportedServicesBuilder) track(svcID *pbresource.ID, expandedConsumers *expanderTypes.ExpandedConsumers) {
 	key := resource.NewReferenceKey(svcID)
 	exports, ok := b.data[key]
 
@@ -56,11 +76,6 @@ func (b *exportedServicesBuilder) track(svcID *pbresource.ID, consumers []*pbmul
 		b.data[key] = exports
 	}
 
-	expandedConsumers, err := b.samenessGroupsExpander.Expand(consumers, b.samenessGroupsNameToMemberMap)
-	if err != nil {
-		return err
-	}
-
 	for _, p := range expandedConsumers.Partitions {
 		exports.partitions[p] = struct{}{}
 	}
@@ -68,10 +83,6 @@ func (b *exportedServicesBuilder) track(svcID *pbresource.ID, consumers []*pbmul
 	for _, p := range expandedConsumers.Peers {
 		exports.peers[p] = struct{}{}
 	}
-
-	// TODO: Handle status for missing sameness groups
-
-	return nil
 }
 
 func (b *exportedServicesBuilder) build() *pbmulticluster.ComputedExportedServices {
@@ -117,6 +128,20 @@ func (b *exportedServicesBuilder) build() *pbmulticluster.ComputedExportedServic
 	}
 
 	return ces
+}
+
+// getMissingSamenessGroupsForComputedExportedService returns back the sorted
+// list of unique SamenessGroup names that couldn't be resolved by the builder
+// for the ComputedExportedService resource.
+func (b *exportedServicesBuilder) getMissingSamenessGroupsForComputedExportedService() []string {
+	samenessGroupMap := make(map[string]struct{})
+	for _, val := range b.missingSamenessGroups {
+		for _, v := range val {
+			samenessGroupMap[v] = struct{}{}
+		}
+	}
+
+	return sortKeys(samenessGroupMap)
 }
 
 func sortKeys(m map[string]struct{}) []string {
