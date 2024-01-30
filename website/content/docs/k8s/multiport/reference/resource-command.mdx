@@ -11,7 +11,7 @@ Command: `consul resource`
 
 Use the `resource` command to apply, list, read, and delete resources when interacting with Consul's v2 catalog through the command line. For more information, refer to [v2 catalog API](/consul/docs/concept/catalog/v2).
 
-The `consul resource` command has usage limitations in Consul v1.17.0. The CLI does not accept partition, namespace, and peer arguments, but the v2 catalog outputs this information when you add the `read` or `list` subcommand. In addition, do not use the `apply` and `delete` commands with Consul on Kubernetes in this release. Use the `kubectl` command to apply or delete resources instead. Refer to [configure multi-port services](/consul/docs/k8s/multiport/configure) for an example of the workflow to apply resources.
+The `consul resource` command has usage limitations in Consul v1.17.0. The CLI does not accept the partition and namespace arguments, but the v2 catalog outputs this information when you add the `read` or `list` subcommand. In addition, do not use the `apply` and `delete` commands with Consul on Kubernetes in this release. Use the `kubectl` command to apply or delete resources instead. Refer to [configure multi-port services](/consul/docs/k8s/multiport/configure) for an example of the workflow to apply resources.
 
 ## Usage
 
@@ -98,7 +98,6 @@ The following flags enable you to filter results.
 
 - `-partition=<string>` - The partition where the resources apply.
 - `-namespace=<string>` - The namespace where the resources apply.
-- `-peer=<string>` - The clusters with established cluster peering connections where the resources apply.
 
 #### Example usage
 
@@ -137,7 +136,6 @@ $ consul resource list catalog.v2beta1.Service
                 "tenancy": {
                     "namespace": "default",
                     "partition": "default",
-                    "peerName": "local"
                 },
                 "type": {
                     "group": "catalog",
@@ -200,7 +198,6 @@ $ consul resource list catalog.v2beta1.Service
                 "tenancy": {
                     "namespace": "default",
                     "partition": "default",
-                    "peerName": "local"
                 },
                 "type": {
                     "group": "catalog",
@@ -263,7 +260,6 @@ $ consul resource list catalog.v2beta1.Service
                 "tenancy": {
                     "namespace": "default",
                     "partition": "default",
-                    "peerName": "local"
                 },
                 "type": {
                     "group": "catalog",
@@ -318,7 +314,6 @@ The following table shows the required [ACL permissions](/consul/api-docs/api-st
 
 - `-partition=<string>` - The partition where the resource applies.
 - `-namespace=<string>` - The namespace where the resource applies.
-- `-peer=<string>` - The clusters with established cluster peering connections where the resource applies.
 - `-stale` - Permits any Consul server to respond to the request. This flag enables for lower latency and higher throughput, but may result in stale data. This option has no effect on non-read operations.
 - `-token` - A Consul ACL token to include with the request.
 
@@ -357,7 +352,6 @@ $ consul resource read catalog.v2beta1.Service web
         "tenancy": {
             "namespace": "default",
             "partition": "default",
-            "peerName": "local"
         },
         "type": {
             "group": "catalog",

@@ -54,18 +54,13 @@ func (s Scope) String() string {
 
 // DefaultClusteredTenancy returns the default tenancy for a cluster scoped resource.
 func DefaultClusteredTenancy() *pbresource.Tenancy {
-	return &pbresource.Tenancy{
-		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-		PeerName: DefaultPeerName,
-	}
+	return &pbresource.Tenancy{}
 }
 
 // DefaultPartitionedTenancy returns the default tenancy for a partition scoped resource.
 func DefaultPartitionedTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: DefaultPartitionName,
-		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-		PeerName: DefaultPeerName,
 	}
 }
 
@@ -74,8 +69,6 @@ func DefaultNamespacedTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: DefaultPartitionName,
 		Namespace: DefaultNamespaceName,
-		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-		PeerName: DefaultPeerName,
 	}
 }
 
@@ -129,10 +122,6 @@ func defaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy
 		panic("scope tenancy is required")
 	}
 
-	if itemTenancy.PeerName == "" {
-		itemTenancy.PeerName = DefaultPeerName
-	}
-
 	if parentTenancy != nil {
 		// Recursively normalize this tenancy as well.
 		defaultTenancy(parentTenancy, nil, scopeTenancy)
@@ -141,16 +130,6 @@ func defaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy
 	// use scope defaults for parent
 	if parentTenancy == nil {
 		parentTenancy = scopeTenancy
-	}
-
-	if !equalOrEmpty(itemTenancy.PeerName, DefaultPeerName) {
-		panic("peering is not supported yet for resource tenancies")
-	}
-	if !equalOrEmpty(parentTenancy.PeerName, DefaultPeerName) {
-		panic("peering is not supported yet for parent tenancies")
-	}
-	if !equalOrEmpty(scopeTenancy.PeerName, DefaultPeerName) {
-		panic("peering is not supported yet for scopes")
 	}
 
 	// Only retain the parts of the parent that apply to this resource.

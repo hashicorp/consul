@@ -179,13 +179,11 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			if res.Id.Tenancy == nil {
 				res.Id.Tenancy = &pbresource.Tenancy{}
 			}
-			switch res.Id.Tenancy.PeerName {
-			case "", "local":
-			default:
-				return nil, fmt.Errorf("resources cannot target non-local peers")
-			}
+			// TODO(peering/v2) prevent non-local peer resources
 			res.Id.Tenancy.Partition = PartitionOrDefault(res.Id.Tenancy.Partition)
-			res.Id.Tenancy.Namespace = NamespaceOrDefault(res.Id.Tenancy.Namespace)
+			if !util.IsTypePartitionScoped(res.Id.Type) {
+				res.Id.Tenancy.Namespace = NamespaceOrDefault(res.Id.Tenancy.Namespace)
+			}
 
 			switch {
 			case util.EqualType(pbauth.ComputedTrafficPermissionsType, res.Id.GetType()),
@@ -529,7 +527,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 
 		if c.EnableV2 {
-			// Populate the VirtualPort field on all implied destinations.
+			// Populate the VirtualPort field on all destinations.
 			for _, n := range c.Nodes {
 				for _, wrk := range n.Workloads {
 					for _, dest := range wrk.ImpliedDestinations {
@@ -539,7 +537,20 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 								if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 									continue
 								}
-								if sp.TargetPort == dest.PortName {
+								if sp.MatchesPortId(dest.PortName) {
+									dest.VirtualPort = sp.VirtualPort
+								}
+							}
+						}
+					}
+					for _, dest := range wrk.Destinations {
+						res, ok := c.Services[dest.ID]
+						if ok {
+							for _, sp := range res.Ports {
+								if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+									continue
+								}
+								if sp.MatchesPortId(dest.PortName) {
 									dest.VirtualPort = sp.VirtualPort
 								}
 							}

@@ -251,7 +251,7 @@ func (g *Generator) Generate(step Step) error {
 		addVolume(c.TLSVolumeName)
 	}
 
-	addImage("pause", "hashiderek/pause")
+	addImage("pause", "docker.mirror.hashicorp.services/hashiderek/pause")
 
 	if step.StartServers() {
 		for _, c := range g.topology.SortedClusters() {

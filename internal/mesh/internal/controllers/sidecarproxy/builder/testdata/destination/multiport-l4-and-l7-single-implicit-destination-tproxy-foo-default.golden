@@ -101,8 +101,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "default",
-        "partition": "foo",
-        "peerName": "local"
+        "partition": "foo"
       },
       "type": {
         "group": "auth",
@@ -150,7 +149,7 @@
           {
             "l7": {
               "route": {
-                "name": "foo/local/default/api-app:http"
+                "name": "foo/default/api-app:http"
               },
               "statPrefix": "upstream.http.api-app.default.foo.dc1"
             },
@@ -185,13 +184,13 @@
       }
     ],
     "routes": {
-      "foo/local/default/api-app:http": {
+      "foo/default/api-app:http": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "foo/local/default/api-app:http",
+            "name": "foo/default/api-app:http",
             "routeRules": [
               {
                 "destination": {
@@ -217,8 +216,7 @@
         "name": "api-app",
         "tenancy": {
           "namespace": "default",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -234,8 +232,7 @@
         "name": "api-app",
         "tenancy": {
           "namespace": "default",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -251,8 +248,7 @@
         "name": "api-app",
         "tenancy": {
           "namespace": "default",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",

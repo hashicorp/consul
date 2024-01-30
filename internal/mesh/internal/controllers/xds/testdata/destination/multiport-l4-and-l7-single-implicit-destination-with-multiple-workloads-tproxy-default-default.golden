@@ -135,8 +135,7 @@
     "name": "test-identity",
     "tenancy": {
       "namespace": "default",
-      "partition": "default",
-      "peerName": "local"
+      "partition": "default"
     },
     "type": {
       "group": "auth",
@@ -190,7 +189,7 @@
         {
           "l7": {
             "route": {
-              "name": "default/local/default/api-app:http"
+              "name": "default/default/api-app:http"
             },
             "statPrefix": "upstream.http.api-app.default.default.dc1"
           },
@@ -225,13 +224,13 @@
     }
   ],
   "routes": {
-    "default/local/default/api-app:http": {
+    "default/default/api-app:http": {
       "virtualHosts": [
         {
           "domains": [
             "*"
           ],
-          "name": "default/local/default/api-app:http",
+          "name": "default/default/api-app:http",
           "routeRules": [
             {
               "destination": {

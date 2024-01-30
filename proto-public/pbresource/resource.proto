@@ -41,13 +41,6 @@ message Tenancy {
   // When using the List and WatchList endpoints, provide the wildcard value "*"
   // to list resources across all namespaces.
   string namespace = 2;
-
-  // PeerName identifies which peer the resource is imported from.
-  // https://developer.hashicorp.com/consul/docs/connect/cluster-peering
-  //
-  // When using the List and WatchList endpoints, provide the wildcard value "*"
-  // to list resources across all peers.
-  string peer_name = 3;
 }
 
 // ID uniquely identifies a resource.

@@ -4,12 +4,13 @@
 package routes
 
 import (
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"fmt"
 
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -43,6 +44,7 @@ func computeNewRouteRefConditions(
 
 	// TODO(rb): handle port numbers here too if we are allowing those instead of the name?
 
+	usedParentTargetPorts := make(map[string]any)
 	for _, parentRef := range parentRefs {
 		if parentRef.Ref == nil || !resource.EqualType(parentRef.Ref.Type, pbcatalog.ServiceType) {
 			continue // not possible due to xRoute validation
@@ -58,10 +60,16 @@ func computeNewRouteRefConditions(
 				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 					hasMesh = true
 				}
-				if port.TargetPort == parentRef.Port {
+				if port.MatchesPortId(parentRef.Port) {
 					found = true
+					portRef := fmt.Sprintf("%s:%s", resource.ReferenceToString(parentRef.Ref), port.TargetPort)
 					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 						usingMesh = true
+					}
+					if _, ok := usedParentTargetPorts[portRef]; ok {
+						conditions = append(conditions, ConditionConflictParentRefPort(parentRef.Ref, port.TargetPort))
+					} else {
+						usedParentTargetPorts[portRef] = struct{}{}
 					}
 				}
 			}
@@ -80,6 +88,7 @@ func computeNewRouteRefConditions(
 		}
 	}
 
+	usedBackendTargetPorts := make(map[string]any)
 	for _, backendRef := range backendRefs {
 		if backendRef.Ref == nil || !resource.EqualType(backendRef.Ref.Type, pbcatalog.ServiceType) {
 			continue // not possible due to xRoute validation
@@ -95,10 +104,16 @@ func computeNewRouteRefConditions(
 				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 					hasMesh = true
 				}
-				if port.TargetPort == backendRef.Port {
+				if port.MatchesPortId(backendRef.Port) {
 					found = true
+					portRef := fmt.Sprintf("%s:%s", resource.ReferenceToString(backendRef.Ref), port.TargetPort)
 					if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 						usingMesh = true
+					}
+					if _, ok := usedBackendTargetPorts[portRef]; ok {
+						conditions = append(conditions, ConditionConflictBackendRefPort(backendRef.Ref, port.TargetPort))
+					} else {
+						usedBackendTargetPorts[portRef] = struct{}{}
 					}
 				}
 			}

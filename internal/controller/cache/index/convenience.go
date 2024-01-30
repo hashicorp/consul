@@ -132,7 +132,7 @@ func SingleValueFromOneOrTwoArgs[T1 any, T2 any](indexer func(value T1, optional
 		case 1:
 			val, ok := args[0].(T1)
 			if !ok {
-				return nil, fmt.Errorf("expected first argument type of %T, got: %T", value, args[1])
+				return nil, fmt.Errorf("expected first argument type of %T, got: %T", value, args[0])
 			}
 			value = val
 		default:

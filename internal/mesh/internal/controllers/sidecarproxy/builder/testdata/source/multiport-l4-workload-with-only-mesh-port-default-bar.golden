@@ -13,8 +13,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "bar",
-        "partition": "default",
-        "peerName": "local"
+        "partition": "default"
       },
       "type": {
         "group": "auth",

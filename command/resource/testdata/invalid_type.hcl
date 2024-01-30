@@ -6,6 +6,5 @@ D {
   Tenancy {
     Partition = "default"
     Namespace = "default"
-    PeerName = "local"
   }
 }

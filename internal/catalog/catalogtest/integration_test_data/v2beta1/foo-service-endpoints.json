@@ -7,8 +7,7 @@
       },
       "tenancy": {
          "partition": "default",
-         "namespace": "default",
-         "peer_name": "local"
+         "namespace": "default"
       },
       "name": "foo"
    },
@@ -20,8 +19,7 @@
       },
       "tenancy": {
          "partition": "default",
-         "namespace": "default",
-         "peer_name": "local"
+         "namespace": "default"
       },
       "name": "foo"
    },
@@ -35,7 +33,7 @@
                }
             ],
             "ports": {
-               "external-service-port": {
+               "ext-svc-port": {
                   "port": 9876,
                   "protocol": "PROTOCOL_HTTP2"
                }

@@ -52,10 +52,6 @@ func compareTenancy(a, b *pbresource.Tenancy) int {
 	if diff != 0 {
 		return diff
 	}
-	diff = compareString(a.PeerName, b.PeerName)
-	if diff != 0 {
-		return diff
-	}
 	return compareString(a.Namespace, b.Namespace)
 }
 

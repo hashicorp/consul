@@ -146,7 +146,7 @@ export default function (config = {}, win = window, doc = document) {
       case 'CONSUL_API_PREFIX':
         // we want API prefix to look like an env var for if we ever change
         // operator config to be an API request, we need this variable before we
-        // make and API request so this specific variable should never be be
+        // make and API request so this specific variable should never be
         // retrived via an API request
         return operatorConfig.APIPrefix;
       case 'CONSUL_HCP_URL':
