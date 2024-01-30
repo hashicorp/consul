@@ -8,12 +8,12 @@ import (
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
@@ -525,7 +525,7 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 			InboundMesh: &pbproxystate.InboundMeshMTLS{
 				IdentityKey: workloadIdentity,
 				ValidationContext: &pbproxystate.MeshInboundValidationContext{
-					TrustBundlePeerNameKeys: []string{l.builder.id.Tenancy.PeerName},
+					TrustBundlePeerNameKeys: []string{resource.DefaultPeerName},
 				},
 			},
 		},

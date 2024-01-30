@@ -24,7 +24,6 @@ func createServiceResource(t *testing.T, data protoreflect.ProtoMessage) *pbreso
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			Name: "test-policy",
 		},

@@ -39,6 +39,7 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -2097,6 +2098,8 @@ func TestServer_Peering_LeadershipCheck(t *testing.T) {
 
 func TestServer_hcpManager(t *testing.T) {
 	_, conf1 := testServerConfig(t)
+
+	// Configure the server for the StatusFn
 	conf1.BootstrapExpect = 1
 	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
 	hcp1 := hcpclient.NewMockClient(t)
@@ -2106,8 +2109,10 @@ func TestServer_hcpManager(t *testing.T) {
 		require.Equal(t, status.LanAddress, "127.0.0.2")
 	}).Call.Return(nil)
 
+	// Configure the server for the ManagementTokenUpserterFn
+	conf1.ACLsEnabled = true
+
 	deps1 := newDefaultDeps(t, conf1)
-	deps1.HCP.Client = hcp1
 	s1, err := newServerWithDeps(t, conf1, deps1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -2115,8 +2120,36 @@ func TestServer_hcpManager(t *testing.T) {
 	defer s1.Shutdown()
 	require.NotNil(t, s1.hcpManager)
 	waitForLeaderEstablishment(t, s1)
+
+	// Update the HCP manager and start it
+	token, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+	s1.hcpManager.UpdateConfig(hcp1, hcpconfig.CloudConfig{
+		ManagementToken: token,
+	})
+	err = s1.hcpManager.Start(context.Background())
+	require.NoError(t, err)
+
+	// Validate that the server status pushed as expected
 	hcp1.AssertExpectations(t)
 
+	// Validate that the HCP token has been created as expected
+	retry.Run(t, func(r *retry.R) {
+		_, createdToken, err := s1.fsm.State().ACLTokenGetBySecret(nil, token, nil)
+		require.NoError(r, err)
+		require.NotNil(r, createdToken)
+	})
+
+	// Stop the HCP manager
+	err = s1.hcpManager.Stop()
+	require.NoError(t, err)
+
+	// Validate that the HCP token has been deleted as expected
+	retry.Run(t, func(r *retry.R) {
+		_, createdToken, err := s1.fsm.State().ACLTokenGetBySecret(nil, token, nil)
+		require.NoError(r, err)
+		require.Nil(r, createdToken)
+	})
 }
 
 func TestServer_addServerTLSInfo(t *testing.T) {

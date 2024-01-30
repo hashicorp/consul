@@ -97,7 +97,6 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 			Tenancy {
 			  Partition = "default"
 			  Namespace = "default"
-			  PeerName = "local"
 			}
 		  }
 		  
@@ -123,7 +122,7 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 		}
 
 		code := c.Run(args)
-		require.Equal(t, 0, code)
+		require.Equal(t, 0, code, ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Contains(t, ui.OutputWriter.String(), "demo.v2.Artist 'korn' created.")
 		readUI := readResource(t, []string{"demo.v2.Artist", "korn"}, availablePort)
@@ -147,7 +146,6 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 				"tenancy": {
 					"partition": "default",
 					"namespace": "default",
-					"peerName": "local"
 				},
 				"type": {
 					"group": "demo",
@@ -173,7 +171,7 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 		}
 
 		code := c.Run(args)
-		require.Equal(t, 0, code)
+		require.Equal(t, 0, code, ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Contains(t, ui.OutputWriter.String(), "demo.v2.Artist 'korn' created.")
 		readUI := readResource(t, []string{"demo.v2.Artist", "korn"}, availablePort)

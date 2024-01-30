@@ -136,13 +136,13 @@ func TestResourceRead(t *testing.T) {
 		},
 		{
 			name:         "read resource in command line format",
-			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
+			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"},
 			expectedCode: 0,
 			errMsg:       "",
 		},
 		{
 			name:         "read resource that doesn't exist",
-			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
+			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default"},
 			expectedCode: 1,
 			errMsg:       "error reading resource: rpc error: code = NotFound desc = resource not found\n",
 		},

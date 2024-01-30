@@ -8,9 +8,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -212,6 +214,48 @@ func validateDestinationPolicy(res *DecodedDestinationPolicy) error {
 	}
 
 	return merr
+}
+
+// SimplifyDestinationPolicy normalizes port references in the DestinationPolicy
+// using the provided Service.
+func SimplifyDestinationPolicy(svc *pbcatalog.Service, policy *pbmesh.DestinationPolicy) *pbmesh.DestinationPolicy {
+	if policy == nil {
+		panic("destination policy is required")
+	}
+	if svc == nil {
+		panic("service is required")
+	}
+
+	// Copy so we can edit it.
+	dup := proto.Clone(policy)
+	policy = dup.(*pbmesh.DestinationPolicy)
+
+	if policy.PortConfigs == nil {
+		policy.PortConfigs = make(map[string]*pbmesh.DestinationConfig)
+	}
+
+	// Normalize all port configs to use the target port of the corresponding service port.
+	normalizedPortConfigs := make(map[string]*pbmesh.DestinationConfig)
+	for port, pc := range policy.PortConfigs {
+		svcPort := svc.FindPortByID(port)
+
+		if svcPort != nil {
+			if _, ok := normalizedPortConfigs[svcPort.TargetPort]; ok {
+				// This is a duplicate virtual and target port mapping that will be reported as a status condition.
+				// Only update if this is the "canonical" mapping; otherwise, it's virtual, and we should ignore.
+				if port != svcPort.TargetPort {
+					continue
+				}
+			}
+			normalizedPortConfigs[svcPort.TargetPort] = pc
+		}
+		// Else this is an invalid reference that will be reported as a status condition.
+		// Drop for safety and simpler output.
+	}
+
+	policy.PortConfigs = normalizedPortConfigs
+
+	return policy
 }
 
 func aclReadHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {

@@ -199,11 +199,11 @@ func removeIDFromTreeAtPaths(t *radix.Tree[[]*pbresource.ID], id *pbresource.ID,
 
 // treePathFromNameOrPrefix computes radix tree key from the resource tenancy and a selector name or prefix.
 // The keys will be computed in the following form:
-// <partition>/<peer>/<namespace>/<name or prefix>.
+// <partition>/<namespace>/<name or prefix>.
 func treePathFromNameOrPrefix(tenancy *pbresource.Tenancy, nameOrPrefix string) string {
-	return fmt.Sprintf("%s/%s/%s/%s",
+	// TODO(peering/v2) update paths for peer tenancy
+	return fmt.Sprintf("%s/%s/%s",
 		tenancy.GetPartition(),
-		tenancy.GetPeerName(),
 		tenancy.GetNamespace(),
 		nameOrPrefix)
 }

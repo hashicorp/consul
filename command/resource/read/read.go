@@ -99,7 +99,6 @@ func (c *cmd) Run(args []string) int {
 		resourceTenancy = &pbresource.Tenancy{
 			Partition: c.resourceFlags.Partition(),
 			Namespace: c.resourceFlags.Namespace(),
-			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
 
@@ -145,26 +144,26 @@ func (c *cmd) Help() string {
 const synopsis = "Read resource information"
 const help = `
 Usage: You have two options to read the resource specified by the given
-type, name, partition, namespace and peer and outputs its JSON representation.
+type, name, partition, namespace and outputs its JSON representation.
 
-consul resource read [type] [name] -partition=<default> -namespace=<default> -peer=<local>
+consul resource read [type] [name] -partition=<default> -namespace=<default>
 consul resource read -f [resource_file_path]
 
 But you could only use one of the approaches.
 
 Example:
 
-$ consul resource read catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource read catalog.v2beta1.Service card-processor -partition=billing -namespace=payments
 $ consul resource read -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
+<<<<<<< HEAD
 	Type = gvk("catalog.v2beta1.Service")
 	Name = "card-processor"
 	Tenancy {
 		Partition = "billing"
 		Namespace = "payments"
-		PeerName = "eu"
 	}
 }
 `

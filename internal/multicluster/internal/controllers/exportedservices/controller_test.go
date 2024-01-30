@@ -488,7 +488,7 @@ func (suite *controllerSuite) TestController() {
 		computedCES = suite.getComputedExportedSvc(res.Id)
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -519,14 +519,14 @@ func (suite *controllerSuite) TestController() {
 		computedCES = suite.getComputedExportedSvc(res.Id)
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 			constructComputedExportedService(
-				constructSvcReference("svc4", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc4", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -557,7 +557,7 @@ func (suite *controllerSuite) TestController() {
 		computedCES = suite.getComputedExportedSvc(res.Id)
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -589,7 +589,7 @@ func (suite *controllerSuite) TestController() {
 		computedCES = suite.getComputedExportedSvc(res.Id)
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -672,7 +672,7 @@ func (suite *controllerSuite) TestController() {
 		computedCES = suite.getComputedExportedSvc(res.Id)
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
@@ -685,7 +685,7 @@ func (suite *controllerSuite) TestController() {
 		computedCES = suite.getComputedExportedSvc(res.Id)
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},

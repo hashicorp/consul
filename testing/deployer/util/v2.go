@@ -6,6 +6,7 @@ package util
 import (
 	"fmt"
 
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -51,7 +52,7 @@ func ReferenceToString(ref *pbresource.Reference) string {
 // should not be relied upon nor parsed and is provided just for debugging and
 // logging reasons.
 func TenancyToString(tenancy *pbresource.Tenancy) string {
-	return fmt.Sprintf("%s.%s.%s", tenancy.Partition, tenancy.PeerName, tenancy.Namespace)
+	return fmt.Sprintf("%s.%s", tenancy.Partition, tenancy.Namespace)
 }
 
 // TypeToString returns a string representation of pbresource.Type. This should
@@ -78,4 +79,14 @@ func EqualType(a, b *pbresource.Type) bool {
 	return a.Group == b.Group &&
 		a.GroupVersion == b.GroupVersion &&
 		a.Kind == b.Kind
+}
+
+func IsTypePartitionScoped(typ *pbresource.Type) bool {
+
+	switch typ.Kind {
+	case pbmulticluster.SamenessGroupType.Kind:
+		return true
+	}
+
+	return false
 }

@@ -6,8 +6,10 @@ package types
 import (
 	"errors"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
 	hcpresource "github.com/hashicorp/hcp-sdk-go/resource"
 )
@@ -31,7 +33,42 @@ func RegisterLink(r resource.Registry) {
 		Proto:    &pbhcp.Link{},
 		Scope:    resource.ScopeCluster,
 		Validate: ValidateLink,
+		ACLs: &resource.ACLHooks{
+			Read:  aclReadHookLink,
+			Write: aclWriteHookLink,
+			List:  aclListHookLink,
+		},
 	})
+}
+
+func aclReadHookLink(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, _ *pbresource.Resource) error {
+	err := authorizer.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func aclWriteHookLink(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.Resource) error {
+	err := authorizer.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
+	if err != nil {
+		return err
+	}
+
+	err = authorizer.ToAllowAuthorizer().ACLWriteAllowed(authzContext)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func aclListHookLink(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	err := authorizer.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 var ValidateLink = resource.DecodeAndValidate(validateLink)

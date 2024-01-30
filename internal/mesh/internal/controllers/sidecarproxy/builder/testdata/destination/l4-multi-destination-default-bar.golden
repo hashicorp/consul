@@ -129,8 +129,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "bar",
-        "partition": "default",
-        "peerName": "local"
+        "partition": "default"
       },
       "type": {
         "group": "auth",
@@ -145,7 +144,7 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "default/local/bar/api-1:tcp:1.1.1.1:1234",
+        "name": "default/bar/api-1:tcp:1.1.1.1:1234",
         "routers": [
           {
             "l4": {
@@ -172,7 +171,7 @@
       },
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "default/local/bar/api-2:tcp:/path/to/socket",
+        "name": "default/bar/api-2:tcp:/path/to/socket",
         "routers": [
           {
             "l4": {
@@ -194,7 +193,7 @@
           "host": "1.1.1.1",
           "port": 2345
         },
-        "name": "default/local/bar/api-1:tcp2:1.1.1.1:2345",
+        "name": "default/bar/api-1:tcp2:1.1.1.1:2345",
         "routers": [
           {
             "l4": {
@@ -221,7 +220,7 @@
       },
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "default/local/bar/api-2:tcp2:/path/to/socket",
+        "name": "default/bar/api-2:tcp2:/path/to/socket",
         "routers": [
           {
             "l4": {
@@ -245,8 +244,7 @@
         "name": "api-1",
         "tenancy": {
           "namespace": "bar",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -254,15 +252,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp.api-2.bar.dc1.internal.foo.consul": {
       "id": {
         "name": "api-2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -270,15 +268,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp2.api-1.bar.dc1.internal.foo.consul": {
       "id": {
         "name": "api-1",
         "tenancy": {
           "namespace": "bar",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -286,15 +284,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp2"
     },
     "tcp2.api-2.bar.dc1.internal.foo.consul": {
       "id": {
         "name": "api-2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -302,7 +300,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp2"
     }
   },
   "requiredLeafCertificates": {

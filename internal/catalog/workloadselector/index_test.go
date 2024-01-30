@@ -36,7 +36,6 @@ func TestServiceWorkloadIndexer(t *testing.T) {
 		WithTenancy(&pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
-			PeerName:  "local",
 		}).
 		Build()
 
@@ -56,7 +55,6 @@ func TestServiceWorkloadIndexer(t *testing.T) {
 		WithTenancy(&pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
-			PeerName:  "local",
 		}).
 		Build()
 
@@ -66,7 +64,6 @@ func TestServiceWorkloadIndexer(t *testing.T) {
 		WithTenancy(&pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
-			PeerName:  "local",
 		}).
 		Reference("")
 
@@ -74,7 +71,6 @@ func TestServiceWorkloadIndexer(t *testing.T) {
 		WithTenancy(&pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
-			PeerName:  "local",
 		}).
 		Reference("")
 
