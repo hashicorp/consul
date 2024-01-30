@@ -214,7 +214,7 @@ func (c *exportConsumers) configEntryConsumers() []structs.ServiceConsumer {
 	sort.Strings(peers)
 	for _, consumer := range peers {
 		consumers = append(consumers, structs.ServiceConsumer{
-			Partition: consumer,
+			Peer: consumer,
 		})
 	}
 
@@ -222,7 +222,7 @@ func (c *exportConsumers) configEntryConsumers() []structs.ServiceConsumer {
 	sort.Strings(samenessGroups)
 	for _, consumer := range samenessGroups {
 		consumers = append(consumers, structs.ServiceConsumer{
-			Partition: consumer,
+			SamenessGroup: consumer,
 		})
 	}
 
