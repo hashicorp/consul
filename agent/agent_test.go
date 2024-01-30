@@ -6333,11 +6333,15 @@ func TestAgent_scadaProvider(t *testing.T) {
 	pvd := scada.NewMockProvider(t)
 
 	// this listener is used when mocking out the scada provider
-	l, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
+	httpL, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
 	require.NoError(t, err)
-	defer require.NoError(t, l.Close())
+	defer require.NoError(t, httpL.Close())
+	grpcL, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", freeport.GetOne(t)))
+	require.NoError(t, err)
+	defer require.NoError(t, grpcL.Close())
 
-	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
+	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(httpL, nil).Once()
+	pvd.EXPECT().Listen(scada.CAPCoreGRPC.Capability()).Return(grpcL, nil).Once()
 	pvd.EXPECT().Stop().Return(nil).Once()
 	a := TestAgent{
 		OverrideDeps: func(deps *BaseDeps) {
@@ -6353,7 +6357,7 @@ cloud {
 	defer a.Shutdown()
 	require.NoError(t, a.Start(t))
 
-	_, err = api.NewClient(&api.Config{Address: l.Addr().String()})
+	_, err = api.NewClient(&api.Config{Address: httpL.Addr().String()})
 	require.NoError(t, err)
 }
 
