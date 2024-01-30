@@ -107,7 +107,6 @@ func (c *cmd) Run(args []string) int {
 		resourceTenancy = &pbresource.Tenancy{
 			Partition: c.resourceFlags.Partition(),
 			Namespace: c.resourceFlags.Namespace(),
-			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
 
@@ -165,16 +164,16 @@ func (c *cmd) Help() string {
 
 const synopsis = "Lists all resources by name prefix"
 const help = `
-Usage: consul resource list [type] -partition=<default> -namespace=<default> -peer=<local>
+Usage: consul resource list [type] -partition=<default> -namespace=<default>
 or
 consul resource list -f [path/to/file.hcl]
 
-Lists all the resources specified by the type under the given partition, namespace and peer
+Lists all the resources specified by the type under the given partition, namespace
 and outputs in JSON format.
 
 Example:
 
-$ consul resource list catalog.v2beta1.Service -p=card -partition=billing -namespace=payments -peer=eu
+$ consul resource list catalog.v2beta1.Service -p=card -partition=billing -namespace=payments
 
 $ consul resource list -f=demo.hcl -p=card
 
@@ -185,7 +184,6 @@ ID {
 	Tenancy {
 		Partition = "default"
 		Namespace = "default"
-		PeerName = "local"
 	}
   }
 `

@@ -23,7 +23,6 @@ func createNodeResource(t *testing.T, data protoreflect.ProtoMessage) *pbresourc
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			Name: "test-node",
 		},

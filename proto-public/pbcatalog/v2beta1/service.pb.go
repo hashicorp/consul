@@ -92,6 +92,13 @@ func (x *Service) GetVirtualIps() []string {
 	return nil
 }
 
+// ServicePort declares a port exposed by the service that can be used in config and xRoute
+// references.
+//
+// For outside references to a service port by string identifier (e.g. in xRoutes and xPolicies),
+// there are two forms supported:
+// - A numeric value exclusively indicates a ServicePort.VirtualPort
+// - A non-numeric value exclusively indicates a ServicePort.TargetPort
 type ServicePort struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

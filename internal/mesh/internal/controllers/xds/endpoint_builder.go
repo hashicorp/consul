@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
-func generateProxyStateEndpoints(serviceEndpoints *ServiceEndpointsData, portName string) (*pbproxystate.Endpoints, error) {
+func generateProxyStateEndpoints(serviceEndpoints *ServiceEndpointsData, routePort string, meshPort string) (*pbproxystate.Endpoints, error) {
 	var psEndpoints []*pbproxystate.Endpoint
 
 	if serviceEndpoints.Endpoints == nil || serviceEndpoints.Resource == nil {
@@ -23,14 +23,17 @@ func generateProxyStateEndpoints(serviceEndpoints *ServiceEndpointsData, portNam
 
 	for _, ep := range eps {
 		for _, addr := range ep.Addresses {
-			// Check if the address is using the portName name this proxy state endpoints is for. If it does, create the
-			// endpoint.
-			if slices.Contains(addr.Ports, portName) {
-				// Lookup the portName number from the portName name.
-				wlPort, ok := ep.Ports[portName]
+			// Each address on the endpoint has all of the ports that the address exposes. To route to an endpoint with
+			// an address + port, that address will need to contain the port you are routing to and the mesh port. Only
+			// if both are present, should the endpoint be added to the ProxyState endpoints. If the address contains
+			// both ports, then it should be added to ProxyState endpoints with the mesh port. The route port will be
+			// added by the Envoy cluster configuration in the alpn.
+			if slices.Contains(addr.Ports, routePort) && slices.Contains(addr.Ports, meshPort) {
+				// Lookup the mesh port number from the mesh port name.
+				wlPort, ok := ep.Ports[meshPort]
 				if !ok {
 					// This should never happen, as it should be validated by the ServiceEndpoints controller.
-					return nil, fmt.Errorf("could not find portName %q in endpoint %s", portName, serviceEndpoints.Resource.Id)
+					return nil, fmt.Errorf("could not find meshPort %q in endpoint %s", meshPort, serviceEndpoints.Resource.Id)
 				}
 				portNum := wlPort.Port
 

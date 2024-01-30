@@ -1539,7 +1539,6 @@ func TestFSM_Resources(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				PeerName:  "local",
 				Namespace: "default",
 			},
 			Name: "bar",

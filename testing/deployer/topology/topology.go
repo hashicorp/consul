@@ -1061,7 +1061,10 @@ type Destination struct {
 	LocalPort    int
 	Peer         string `json:",omitempty"`
 
-	// PortName is the named port of this Destination to route traffic to.
+	// PortName is the port of this Destination to route traffic to.
+	//
+	// For more details on potential values of this field, see documentation
+	// for Service.ServicePort.
 	//
 	// This only applies for multi-port (v2).
 	PortName string `json:",omitempty"`

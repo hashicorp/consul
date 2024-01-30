@@ -98,7 +98,6 @@ func (c *cmd) Run(args []string) int {
 		resourceTenancy = &pbresource.Tenancy{
 			Partition: c.resourceFlags.Partition(),
 			Namespace: c.resourceFlags.Namespace(),
-			PeerName:  c.resourceFlags.Peername(),
 		}
 	}
 
@@ -137,16 +136,16 @@ func (c *cmd) Help() string {
 const synopsis = "Delete resource information"
 const help = `
 Usage: You have two options to delete the resource specified by the given
-type, name, partition, namespace and peer and outputs its JSON representation.
+type, name, partition, namespace and outputs its JSON representation.
 
-consul resource delete [type] [name] -partition=<default> -namespace=<default> -peer=<local>
+consul resource delete [type] [name] -partition=<default> -namespace=<default>
 consul resource delete -f [resource_file_path]
 
 But you could only use one of the approaches.
 
 Example:
 
-$ consul resource delete catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource delete catalog.v2beta1.Service card-processor -partition=billing -namespace=payments
 $ consul resource delete -f resource.hcl
 
 In resource.hcl, it could be:
@@ -156,7 +155,6 @@ ID {
 	Tenancy {
 		Partition = "billing"
 		Namespace = "payments"
-		PeerName = "eu"
 	}
 }
 `

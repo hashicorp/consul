@@ -260,9 +260,11 @@ func (s *HTTPHandlers) handler() http.Handler {
 	handlePProf("/debug/pprof/symbol", pprof.Symbol)
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
-	mux.Handle("/api/",
-		http.StripPrefix("/api",
+	resourceAPIPrefix := "/api"
+	mux.Handle(resourceAPIPrefix+"/",
+		http.StripPrefix(resourceAPIPrefix,
 			resourcehttp.NewHandler(
+				resourceAPIPrefix,
 				s.agent.delegate.ResourceServiceClient(),
 				s.agent.baseDeps.Registry,
 				s.parseToken,
