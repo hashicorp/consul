@@ -127,6 +127,10 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 		Type:     ResultTypeNode,
 		Metadata: node.Meta,
 		Target:   node.Node,
+		Tenancy: ResultTenancy{
+			EnterpriseMeta: cfg.defaultEntMeta,
+			Datacenter:     cfg.datacenter,
+		},
 	})
 
 	return results, nil
@@ -358,19 +362,10 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 	out.Nodes.Shuffle()
 	results := make([]*Result, 0, len(out.Nodes))
 	for _, node := range out.Nodes {
-		target := node.Service.Address
-		resultType := ResultTypeService
-		// TODO (v2-dns): IMPORTANT!!!!:  this needs to be revisited in how dns v1 utilizes
-		// the nodeaddress when the service address is an empty string.  Need to figure out
-		// if this can be removed and dns recursion and process can work with only the
-		// address set to the node.address and the target set to the service.address.
-		// We may have to look at modifying the discovery result if more metadata is needed to send along.
-		if target == "" {
-			target = node.Node.Node
-			resultType = ResultTypeNode
-		}
+		address, target, resultType := getAddressTargetAndResultType(node)
+
 		results = append(results, &Result{
-			Address:  node.Node.Address,
+			Address:  address,
 			Type:     resultType,
 			Target:   target,
 			Weight:   uint32(findWeight(node)),
@@ -384,6 +379,37 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 	}
 
 	return results, nil
+}
+
+// getAddressTargetAndResultType returns the address, target and result type for a check service node.
+func getAddressTargetAndResultType(node structs.CheckServiceNode) (string, string, ResultType) {
+	// Set address and target
+	// if service address is present, set target and address based on service.
+	// otherwise get it from the node.
+	address := node.Service.Address
+	target := node.Service.Service
+	resultType := ResultTypeService
+
+	addressIP := net.ParseIP(address)
+	if addressIP == nil {
+		resultType = ResultTypeNode
+		if node.Service.Address != "" {
+			// cases where service address is foo or foo.node.consul
+			// For usage in DNS, these discovery results necessitate a CNAME record.
+			// These cases can be inferred from the discovery result when Type is Node and
+			// target is not an IP.
+			target = node.Service.Address
+		} else {
+			// cases where service address is empty and the service is bound to
+			// node with an address.  These do not require a CNAME record in.
+			// For usage in DNS, these discovery results do not require a CNAME record.
+			// These cases can be inferred from the discovery result when Type is Node and
+			// target is not an IP.
+			target = node.Node.Node
+		}
+		address = node.Node.Address
+	}
+	return address, target, resultType
 }
 
 // findWeight returns the weight of a service node.

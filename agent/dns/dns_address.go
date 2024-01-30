@@ -83,5 +83,5 @@ func (a *dnsAddress) IsInternalFQDNOrIP(domain string) bool {
 
 // IsExternalFQDN returns true if the address is a FQDN and is external to the domain.
 func (a *dnsAddress) IsExternalFQDN(domain string) bool {
-	return !a.IsIP() && a.IsFQDN() && !strings.HasSuffix(a.FQDN(), domain)
+	return !a.IsIP() && a.IsFQDN() && strings.Count(a.FQDN(), ".") > 1 && !strings.HasSuffix(a.FQDN(), domain)
 }

@@ -96,6 +96,20 @@ func Test_dnsAddress(t *testing.T) {
 			},
 		},
 		{
+			name:  "server name",
+			input: "web.",
+			expectedResults: expectedResults{
+				isIp:               false,
+				stringResult:       "web.",
+				fqdn:               "web.",
+				isFQDN:             true,
+				isEmptyString:      false,
+				isExternalFQDN:     false,
+				isInternalFQDN:     false,
+				isInternalFQDNOrIP: false,
+			},
+		},
+		{
 			name:  "external FQDN without trailing period",
 			input: "web.service.vault",
 			expectedResults: expectedResults{
