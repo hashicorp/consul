@@ -44,7 +44,7 @@ func LinkController(
 	hcpClientFn HCPClientFn,
 	cfg config.CloudConfig,
 	dataDir string,
-	hcpManager *hcp.Manager,
+	hcpManager hcp.Manager,
 ) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
 		// Placement is configured to each server so that the HCP manager is started
@@ -70,7 +70,7 @@ type linkReconciler struct {
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
 	dataDir                string
-	hcpManager             *hcp.Manager
+	hcpManager             hcp.Manager
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
@@ -101,7 +101,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	switch {
 	case status.Code(err) == codes.NotFound:
 		rt.Logger.Trace("link has been deleted")
-		return nil
+		return cleanup(rt, r.hcpManager, r.dataDir)
 	case err != nil:
 		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
 		return err
@@ -120,8 +120,15 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	}
 
 	if resource.IsMarkedForDeletion(res) {
-		if err = cleanup(ctx, rt, res, r.dataDir); err != nil {
+		if err = cleanup(rt, r.hcpManager, r.dataDir); err != nil {
 			rt.Logger.Error("error cleaning up link resource", "error", err)
+			return err
+		}
+
+		err := ensureDeleted(ctx, rt, res)
+		if err != nil {
+			rt.Logger.Error("error deleting link resource", "error", err)
+
 			return err
 		}
 		return nil

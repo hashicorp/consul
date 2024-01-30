@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/stretchr/testify/mock"
@@ -108,15 +107,11 @@ func (suite *controllerSuite) TestController_Ok() {
 			ConsulConfig:    "{}",
 		}, nil).Once()
 
-	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
-		return hcpclient.ServerStatus{ID: suite.T().Name()}, nil
-	}
-	mockClient.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: suite.T().Name()}).
-		Return(nil).Once()
-	hcpMgr := hcp.NewManager(hcp.ManagerConfig{
-		Logger:   hclog.NewNullLogger(),
-		StatusFn: statusF,
-	})
+	hcpMgr := hcp.NewMockManager(suite.T())
+	hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
+	hcpMgr.EXPECT().UpdateConfig(mock.Anything, mock.Anything)
+	hcpMgr.EXPECT().Start(mock.Anything).Return(nil)
+	hcpMgr.EXPECT().Stop().Return(nil)
 
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
 	suite.dataDir = dataDir
@@ -173,15 +168,11 @@ func (suite *controllerSuite) TestController_Initialize() {
 		ResourceID:   types.GenerateTestResourceID(suite.T()),
 	}
 
-	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
-		return hcpclient.ServerStatus{ID: suite.T().Name()}, nil
-	}
-	mockClient.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: suite.T().Name()}).
-		Return(nil).Once()
-	hcpMgr := hcp.NewManager(hcp.ManagerConfig{
-		Logger:   hclog.NewNullLogger(),
-		StatusFn: statusF,
-	})
+	hcpMgr := hcp.NewMockManager(suite.T())
+	hcpMgr.EXPECT().GetCloudConfig().Return(cloudCfg)
+	hcpMgr.EXPECT().UpdateConfig(mock.Anything, mock.Anything)
+	hcpMgr.EXPECT().Start(mock.Anything).Return(nil)
+	hcpMgr.EXPECT().Stop().Return(nil)
 
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
 	suite.dataDir = dataDir
@@ -225,13 +216,16 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	_, mockClientFunc := mockHcpClientFn(suite.T())
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
 	suite.dataDir = dataDir
+
+	hcpMgr := hcp.NewMockManager(suite.T())
+	hcpMgr.EXPECT().Stop().Return(nil)
 	mgr.Register(LinkController(
 		true,
 		false,
 		mockClientFunc,
 		config.CloudConfig{},
 		dataDir,
-		hcp.NewManager(hcp.ManagerConfig{}),
+		hcpMgr,
 	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
@@ -268,9 +262,11 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 
 	dataDir := testutil.TempDir(suite.T(), "test-link-controller")
 	suite.dataDir = dataDir
-	hcpMgr := hcp.NewManager(hcp.ManagerConfig{
-		Logger: hclog.NewNullLogger(),
-	})
+	hcpMgr := hcp.NewMockManager(suite.T())
+	hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
+	hcpMgr.EXPECT().UpdateConfig(mock.Anything, mock.Anything)
+	hcpMgr.EXPECT().Start(mock.Anything).Return(nil)
+	hcpMgr.EXPECT().Stop().Return(nil)
 
 	mgr.Register(LinkController(
 		true,
@@ -322,35 +318,42 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 		suite.T().Run(name, func(t *testing.T) {
 			// Run the controller manager
 			mgr := controller.NewManager(suite.client, suite.rt.Logger)
-			mockClient, mockClientFunc := mockHcpClientFn(suite.T())
+			mockClient, mockClientFunc := mockHcpClientFn(t)
 			mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, tc.expectErr)
 
-			dataDir := testutil.TempDir(suite.T(), "test-link-controller")
+			dataDir := testutil.TempDir(t, "test-link-controller")
 			suite.dataDir = dataDir
+
+			hcpMgr := hcp.NewMockManager(t)
+			hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
+			hcpMgr.EXPECT().Stop().Return(nil)
+
 			mgr.Register(LinkController(
 				true,
 				true,
 				mockClientFunc,
 				config.CloudConfig{},
 				dataDir,
-				hcp.NewManager(hcp.ManagerConfig{}),
+				hcpMgr,
 			))
 
 			mgr.SetRaftLeader(true)
-			go mgr.Run(suite.ctx)
+			ctx, cancel := context.WithCancel(suite.ctx)
+			t.Cleanup(cancel)
+			go mgr.Run(ctx)
 
 			linkData := &pbhcp.Link{
 				ClientId:     "abc",
 				ClientSecret: "abc",
-				ResourceId:   types.GenerateTestResourceID(suite.T()),
+				ResourceId:   types.GenerateTestResourceID(t),
 			}
 			link := rtest.Resource(pbhcp.LinkType, "global").
-				WithData(suite.T(), linkData).
-				Write(suite.T(), suite.client)
+				WithData(t, linkData).
+				Write(t, suite.client)
 
-			suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
+			t.Cleanup(suite.deleteResourceFunc(link.Id))
 
-			suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, tc.expectCondition)
+			suite.client.WaitForStatusCondition(t, link.Id, StatusKey, tc.expectCondition)
 		})
 	}
 }
