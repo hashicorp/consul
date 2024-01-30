@@ -1,14 +1,13 @@
 ---
 layout: docs
-page_title: Dynamically configure applications
+page_title: Dynamically configure applications with Consul's KV store
 description: >-
   Consul documentation provides reference material for all features and options available in Consul.
 ---
 
-# Dynamically configure applications
+# Dynamically configure applications with Consul's keey/value KV store
 
-
-This sample page template provides an outline for how to create an overview page. The first paragraph describes the page's content.
+This topic provides an overview for dynamically configuring application deployments for Consul using data from its built-in KV store.
 
 To disambiguate content and provide alternate options for user journeys, use a second paragraph with a hyperlink to [direct users to an appropriate alternative](https://developer.hashicorp.com).
 
@@ -24,62 +23,32 @@ If you use a diagram in an overview page, include it in the introduction.
 
 Never end a section with an image. Always include at least one sentence that describes the contents of the diagram.
 
-## Workflows
+## Introduction
 
-Use this section to summarize the main usage steps associated with the topic area. The topic area you are introducing may have a simple workflow, a complex set of workflows, or multiple related but separate workflows.
 
-When developing new documentation content, the main workflow is generally the intial configuration, deployment, or instantiation of the topic. Workflows can use either ordered or unordered lists, depending on whether the workflow requires completing steps in a specific order.
- 
-### Primary workflow
 
-The overall process for {end goal of workflow} consists of the following steps.
+## Key/value store
 
-1. First action users take complete this workflow. When using multiple sentences, keep the first sentence short and action-oriented, then elaborate in the second sentence.
-1. Second action for completing this workflow. Try to keep workflow steps symmetrical, so if you use two sentences for one step, use two sentences for the other steps.
-1. Final action common to the workflow. After this action, users will take actions specific to their organization or operational needs.
+@include 'feature/kv/store.mdx'
 
-If a dedicated usage page exists, follow the workflow with a [link to refer the reader to the usage page](https://developer.hashicorp.com).
+## Sessions
 
-### Alternative or secondary workflow
+@include 'feature/kv/session.mdx'
 
-To {achieve a secondary goal}, complete the following steps:
+## Watches
 
-- Describe the first action users would need to undertake to complete this workflow.     
-- Second action for completing this workflow.
-- Final action.
+@include 'feature/kv/watch.mdx'
 
-## General subtopic
+## Consul template
 
-You may need to describe additional characteristics about topic area. 
+@include 'feature/consul-template.mdx'
 
-### Nested subtopic
-
-Group information into logical sections. 
-
-### Nested subtopic 
-
-- Use a bulleted list when describing three or more components.
-- Use diagrams, video, and other media as necessary.       
-- Use subheadings to segment and organize information.
-
-## Guidance
-
-Some users land on an overview page and do not know where to go next. Use this section to link to topics that help get started.
-
-### Tutorials
+## Tutorials
 
 - To learn how to {do what the tutorial describes}, complete the [Name of tutorial](https://link-to-tutorial).
 - To learn how to {do what the tutorial describes}, complete the [Name of tutorial](https://link-to-tutorial).
 
-### Usage documentation
-
-Grouping links into lists that align with the order of the workflows on this page and the order of pages in the nav bar.
-
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
-
-### Runtime specific usage documentation
+## Runtime specific usage documentation
 
 You can also separate usage docs according to environment, runtime, or other logical segments:
 
@@ -87,7 +56,7 @@ You can also separate usage docs according to environment, runtime, or other log
 - [Usage page title](https://developer.hashicorp.com)
 - [Usage page title](https://developer.hashicorp.com)
 
-### Reference
+## Reference documentation
 
 The most experienced users want to quickly find the reference information for specific parts of the component they are using. List all relevant reference pages for the topic.
 
@@ -97,7 +66,4 @@ The most experienced users want to quickly find the reference information for sp
 
 ### Constraints, limitations, and troubleshooting
 
-List limitations that inhibit functionality. When creating new content, we typically refer to this section as "constraints and limitations" and update its contents as new features are added. When a release goes GA and all runtimes/environments are supported, you can refer to this section as "Basic troubleshooting".
-
-- List limitations such as constraints on names or operating features simultaneously.
-- List alternate approaches for completing usage tasks (example: Two admin partitions in the same datacenter cannot be peered. Use the `exported-services` configuration entry instead.)
+@include 'limitations/kv.mdx'

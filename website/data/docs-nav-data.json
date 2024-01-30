@@ -1810,8 +1810,17 @@
         "path": "dynamic-app"
       },
       {
-        "title": "Consul KV",
-        "path": "dynamic-app/kv"
+        "title": "Key/Value store",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "dynamic-app/kv"
+          },
+          {
+            "title": "KV store interactions",
+            "path": "dynamic-app/kv/store"
+          }
+        ]
       },
       {
         "title": "Session",
