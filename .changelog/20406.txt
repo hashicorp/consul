@@ -1,0 +1,3 @@
+```release-note:bug
+mesh: Fix bug where envoy extensions could not be configured with "permissive" mTLS mode. Note that envoy extensions currently do not apply to non-mTLS traffic in permissive mode.
+```
