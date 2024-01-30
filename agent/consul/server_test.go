@@ -2139,6 +2139,17 @@ func TestServer_hcpManager(t *testing.T) {
 		require.NoError(r, err)
 		require.NotNil(r, createdToken)
 	})
+
+	// Stop the HCP manager
+	err = s1.hcpManager.Stop()
+	require.NoError(t, err)
+
+	// Validate that the HCP token has been deleted as expected
+	retry.Run(t, func(r *retry.R) {
+		_, createdToken, err := s1.fsm.State().ACLTokenGetBySecret(nil, token, nil)
+		require.NoError(r, err)
+		require.Nil(r, createdToken)
+	})
 }
 
 func TestServer_addServerTLSInfo(t *testing.T) {
