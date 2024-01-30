@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/multicluster"
@@ -74,12 +75,12 @@ func (suite *proxyStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbresourc
 				// we want to test that the first address is used
 				{
 					Host:     "testhostname",
-					Ports:    []string{"wan"},
+					Ports:    []string{meshgateways.WANPortName},
 					External: false,
 				},
 			},
 			Ports: map[string]*pbcatalog.WorkloadPort{
-				"wan": {
+				meshgateways.WANPortName: {
 					Port:     443,
 					Protocol: 0,
 				},
@@ -105,7 +106,7 @@ func (suite *proxyStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbresourc
 				},
 			},
 			Ports: map[string]*pbcatalog.WorkloadPort{
-				"wan": {
+				meshgateways.WANPortName: {
 					Port:     443,
 					Protocol: 0,
 				},

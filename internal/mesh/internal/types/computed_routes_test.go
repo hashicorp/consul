@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -129,7 +130,7 @@ func TestValidateComputedRoutes(t *testing.T) {
 			},
 			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "failover_config" field: failover_config not supported for type = INDIRECT`,
 		},
-		"target/should not have service endpoints id": {
+		"target/should not have service endpoint ref": {
 			routes: &pbmesh.ComputedRoutes{
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
@@ -138,15 +139,15 @@ func TestValidateComputedRoutes(t *testing.T) {
 						},
 						Targets: map[string]*pbmesh.BackendTargetDetails{
 							"foo": {
-								Type:               pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
-								MeshPort:           "mesh",
-								ServiceEndpointsId: &pbresource.ID{},
+								Type:                pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+								MeshPort:            "mesh",
+								ServiceEndpointsRef: &pbproxystate.EndpointRef{},
 							},
 						},
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "service_endpoints_id" field: field should be empty`,
+			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "service_endpoint_ref" field: field should be empty`,
 		},
 		"target/should not have service endpoints": {
 			routes: &pbmesh.ComputedRoutes{
