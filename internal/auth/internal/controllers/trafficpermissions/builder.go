@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/consul/internal/auth/internal/controllers/trafficpermissions/expander"
+	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
@@ -38,23 +39,23 @@ func newTrafficPermissionsBuilder(expander expander.SamenessGroupExpander, sgMap
 	}
 }
 
-// track will use all associated Traffic Permissions to create new ComputedTrafficPermissions samenessGroupsForTrafficPermission
-func (tpb *trafficPermissionsBuilder) track(dec *resource.DecodedResource[*pbauth.TrafficPermissions]) {
-	missingSamenessGroups := tpb.sgExpander.Expand(dec.Data, tpb.sgMap)
+// track will use all associated XTrafficPermissions to create new ComputedTrafficPermissions samenessGroupsForTrafficPermission
+func track[S types.XTrafficPermissions](tpb *trafficPermissionsBuilder, xtp *resource.DecodedResource[S]) {
+	missingSamenessGroups := tpb.sgExpander.Expand(xtp.Data, tpb.sgMap)
 
 	if len(missingSamenessGroups) > 0 {
-		tpb.missing[resource.NewReferenceKey(dec.Id)] = missingSamenessGroupReferences{
-			resource:       dec.Resource,
+		tpb.missing[resource.NewReferenceKey(xtp.Id)] = missingSamenessGroupReferences{
+			resource:       xtp.Resource,
 			samenessGroups: missingSamenessGroups,
 		}
 	}
 
 	tpb.isDefault = false
 
-	if dec.Data.Action == pbauth.Action_ACTION_ALLOW {
-		tpb.allowedPermissions = append(tpb.allowedPermissions, dec.Data.Permissions...)
+	if xtp.Data.GetAction() == pbauth.Action_ACTION_ALLOW {
+		tpb.allowedPermissions = append(tpb.allowedPermissions, xtp.Data.GetPermissions()...)
 	} else {
-		tpb.denyPermissions = append(tpb.denyPermissions, dec.Data.Permissions...)
+		tpb.denyPermissions = append(tpb.denyPermissions, xtp.Data.GetPermissions()...)
 	}
 }
 

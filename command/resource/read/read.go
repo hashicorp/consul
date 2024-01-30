@@ -158,7 +158,6 @@ $ consul resource read -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
-<<<<<<< HEAD
 	Type = gvk("catalog.v2beta1.Service")
 	Name = "card-processor"
 	Tenancy {

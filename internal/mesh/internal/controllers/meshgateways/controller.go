@@ -17,10 +17,11 @@ import (
 
 const (
 	ControllerName = "consul.io/mesh-gateway"
-
-	meshPortName = "mesh"
-	wanPort      = 8443
-	wanPortName  = "wan"
+	GatewayKind    = "mesh-gateway"
+	GatewayName    = "mesh-gateway"
+	LANPortName    = "mesh"
+	wanPort        = 8443
+	WANPortName    = "wan"
 )
 
 func Controller() *controller.Controller {
@@ -47,12 +48,12 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Ports: []*pbcatalog.ServicePort{
 			{
 				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
-				TargetPort:  wanPortName,
+				TargetPort:  WANPortName,
 				VirtualPort: wanPort,
 			},
 			{
 				Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
-				TargetPort: meshPortName,
+				TargetPort: LANPortName,
 			},
 		},
 	}
@@ -66,7 +67,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Resource: &pbresource.Resource{
 			Data:     serviceData,
 			Id:       resource.ReplaceType(pbcatalog.ServiceType, req.ID),
-			Metadata: map[string]string{"gateway-kind": "mesh-gateway"},
+			Metadata: map[string]string{"gateway-kind": GatewayKind},
 			Owner:    req.ID,
 		},
 	})
