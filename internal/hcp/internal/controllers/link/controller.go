@@ -8,13 +8,13 @@ import (
 	"crypto/tls"
 	"strings"
 
-	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
+
 	"github.com/hashicorp/consul/agent/hcp"
-	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
@@ -54,16 +54,20 @@ func LinkController(
 		// on the leader.
 		// https://hashicorp.atlassian.net/browse/CC-7364
 		WithPlacement(controller.PlacementEachServer).
-		WithInitializer(&linkInitializer{
-			cloudConfig: cfg,
-		}).
-		WithReconciler(&linkReconciler{
-			resourceApisEnabled:    resourceApisEnabled,
-			hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
-			hcpClientFn:            hcpClientFn,
-			dataDir:                dataDir,
-			hcpManager:             hcpManager,
-		})
+		WithInitializer(
+			&linkInitializer{
+				cloudConfig: cfg,
+			},
+		).
+		WithReconciler(
+			&linkReconciler{
+				resourceApisEnabled:    resourceApisEnabled,
+				hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
+				hcpClientFn:            hcpClientFn,
+				dataDir:                dataDir,
+				hcpManager:             hcpManager,
+			},
+		)
 }
 
 type linkReconciler struct {
@@ -178,41 +182,20 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 			rt.Logger.Error("error marshalling link data", "error", err)
 			return err
 		}
-		_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{Resource: &pbresource.Resource{
-			Id: &pbresource.ID{
-				Name: types.LinkName,
-				Type: pbhcp.LinkType,
-			},
-			Metadata: res.Metadata,
-			Data:     updatedData,
-		}})
+		_, err = rt.Client.Write(
+			ctx, &pbresource.WriteRequest{Resource: &pbresource.Resource{
+				Id: &pbresource.ID{
+					Name: types.LinkName,
+					Type: pbhcp.LinkType,
+				},
+				Metadata: res.Metadata,
+				Data:     updatedData,
+			}},
+		)
 		if err != nil {
 			rt.Logger.Error("error updating link", "error", err)
 			return err
 		}
-	}
-
-	// Load the management token if access is not set to read-only. Read-only clusters
-	// will not have a management token provided by HCP.
-	var token string
-	if accessLevel != pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_ONLY {
-		token, err = bootstrap.LoadManagementToken(ctx, rt.Logger, hcpClient, r.dataDir)
-		if err != nil {
-			linkingFailed(ctx, rt, res, err)
-			return err
-		}
-	}
-
-	// Update the HCP manager configuration with the link values
-	cfg.ManagementToken = token
-	r.hcpManager.UpdateConfig(hcpClient, cfg)
-
-	// Start the manager
-	err = r.hcpManager.Start(ctx)
-	if err != nil {
-		rt.Logger.Error("error starting HCP manager", "error", err)
-		linkingFailed(ctx, rt, res, err)
-		return err
 	}
 
 	newStatus = &pbresource.Status{
@@ -233,17 +216,20 @@ func (i *linkInitializer) Initialize(ctx context.Context, rt controller.Runtime)
 	}
 
 	// Construct a link resource to reflect the configuration
-	data, err := anypb.New(&pbhcp.Link{
-		ResourceId:   i.cloudConfig.ResourceID,
-		ClientId:     i.cloudConfig.ClientID,
-		ClientSecret: i.cloudConfig.ClientSecret,
-	})
+	data, err := anypb.New(
+		&pbhcp.Link{
+			ResourceId:   i.cloudConfig.ResourceID,
+			ClientId:     i.cloudConfig.ClientID,
+			ClientSecret: i.cloudConfig.ClientSecret,
+		},
+	)
 	if err != nil {
 		return err
 	}
 
 	// Create the link resource for a configuration-based link
-	_, err = rt.Client.Write(ctx,
+	_, err = rt.Client.Write(
+		ctx,
 		&pbresource.WriteRequest{
 			Resource: &pbresource.Resource{
 				Id: &pbresource.ID{
