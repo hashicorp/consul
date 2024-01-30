@@ -5,9 +5,12 @@ package hcp
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/agent/hcp/bootstrap/constants"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
@@ -31,6 +34,16 @@ func MonitorHCPLink(
 	for watchEvent := range hcpLinkEventCh {
 		if watchEvent.GetDelete() != nil {
 			logger.Debug("HCP Link deleted, stopping HCP manager")
+
+			if dataDir != "" {
+				hcpConfigDir := filepath.Join(dataDir, constants.SubDir)
+				logger.Debug("deleting hcp-config dir", "dir", hcpConfigDir)
+				err := os.RemoveAll(hcpConfigDir)
+				if err != nil {
+					logger.Error("failed to delete hcp-config dir", "dir", hcpConfigDir, "err", err)
+				}
+			}
+
 			err := m.Stop()
 			if err != nil {
 				logger.Error("error stopping HCP manager", "error", err)

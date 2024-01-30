@@ -15,7 +15,6 @@ type Dependencies struct {
 	CloudConfig            config.CloudConfig
 	ResourceApisEnabled    bool
 	HCPAllowV2ResourceApis bool
-	DataDir                string
 	HCPManager             *hcp.HCPManager
 }
 
@@ -25,7 +24,6 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 		deps.HCPAllowV2ResourceApis,
 		link.DefaultHCPClientFn,
 		deps.CloudConfig,
-		deps.DataDir,
 		deps.HCPManager,
 	))
 
