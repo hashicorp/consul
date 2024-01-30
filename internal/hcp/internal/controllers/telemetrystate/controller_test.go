@@ -6,6 +6,7 @@ package telemetrystate
 import (
 	"context"
 	"net/url"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -14,6 +15,7 @@ import (
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/controllers/link"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
@@ -38,7 +40,7 @@ type controllerSuite struct {
 func mockHcpClientFn(t *testing.T) (*hcpclient.MockClient, link.HCPClientFn) {
 	mockClient := hcpclient.NewMockClient(t)
 
-	mockClientFunc := func(link *pbhcp.Link) (hcpclient.Client, error) {
+	mockClientFunc := func(link config.CloudConfig) (hcpclient.Client, error) {
 		return mockClient, nil
 	}
 
@@ -81,6 +83,8 @@ func (suite *controllerSuite) TestController_Ok() {
 				Host:   "localhost",
 				Path:   "/test",
 			},
+			Labels:  map[string]string{"foo": "bar"},
+			Filters: regexp.MustCompile(".*"),
 		},
 		RefreshConfig: &hcpclient.RefreshConfig{},
 	}, nil)
@@ -92,7 +96,7 @@ func (suite *controllerSuite) TestController_Ok() {
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 
 	link := rtest.Resource(pbhcp.LinkType, "global").
@@ -124,7 +128,7 @@ func (suite *controllerSuite) TestController_LinkingDisabled() {
 	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
-		ResourceId:   "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
 	}
 
 	rtest.Resource(pbhcp.LinkType, "global").
