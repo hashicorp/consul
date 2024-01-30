@@ -145,7 +145,7 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 				"name": "korn",
 				"tenancy": {
 					"partition": "default",
-					"namespace": "default",
+					"namespace": "default"
 				},
 				"type": {
 					"group": "demo",
