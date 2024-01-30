@@ -142,7 +142,6 @@ func indexFromType(t storage.UnversionedType) []byte {
 func indexFromTenancy(t *pbresource.Tenancy) []byte {
 	var b indexBuilder
 	b.String(t.Partition)
-	b.String(t.PeerName)
 	b.String(t.Namespace)
 	return b.Bytes()
 }
@@ -151,6 +150,7 @@ func indexFromID(id *pbresource.ID, includeUid bool) []byte {
 	var b indexBuilder
 	b.Raw(indexFromType(storage.UnversionedTypeFrom(id.Type)))
 	b.Raw(indexFromTenancy(id.Tenancy))
+	// TODO(peering/v2) handle peer tenancy for indexing
 	b.String(id.Name)
 	if includeUid {
 		b.String(id.Uid)
@@ -184,14 +184,14 @@ type query struct {
 //
 // Our radix tree keys are structured like so:
 //
-//	<type><partition><peer><namespace><name>
+//	<type><partition><namespace><name>
 //
 // Where each segment is followed by a NULL terminator.
 //
 // In order to handle wildcard queries, we return a prefix up to the wildcarded
 // field. For example:
 //
-//	 Query: type={mesh,v1,service}, partition=default, peer=*, namespace=default
+//	 Query: type={mesh,v1,service}, partition=default, namespace=default
 //	Prefix: mesh[NULL]v1[NULL]service[NULL]default[NULL]
 //
 // Which means that we must manually apply filters after the wildcard (i.e.
@@ -206,17 +206,13 @@ func (q query) indexPrefix() []byte {
 		b.String(v)
 	}
 
-	if v := q.tenancy.PeerName; v == storage.Wildcard {
-		return b.Bytes()
-	} else {
-		b.String(v)
-	}
-
 	if v := q.tenancy.Namespace; v == storage.Wildcard {
 		return b.Bytes()
 	} else {
 		b.String(v)
 	}
+
+	// TODO(peering/v2) handle peer tenancies
 
 	if q.namePrefix != "" {
 		b.Raw([]byte(q.namePrefix))
@@ -234,13 +230,11 @@ func (q query) matches(res *pbresource.Resource) bool {
 		return false
 	}
 
-	if q.tenancy.PeerName != storage.Wildcard && res.Id.Tenancy.PeerName != q.tenancy.PeerName {
-		return false
-	}
-
 	if q.tenancy.Namespace != storage.Wildcard && res.Id.Tenancy.Namespace != q.tenancy.Namespace {
 		return false
 	}
+
+	// TODO(peering/v2) handle peer tenancies
 
 	if len(q.namePrefix) != 0 && !strings.HasPrefix(res.Id.Name, q.namePrefix) {
 		return false

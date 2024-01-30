@@ -35,6 +35,7 @@ var (
 )
 
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
+var _ TelemetryProvider = &hcpProviderImpl{}
 var _ telemetry.ConfigProvider = &hcpProviderImpl{}
 var _ telemetry.EndpointProvider = &hcpProviderImpl{}
 var _ client.MetricsClientProvider = &hcpProviderImpl{}
@@ -55,6 +56,9 @@ type hcpProviderImpl struct {
 
 	// running indicates if the HCP telemetry config provider has been started
 	running bool
+
+	// stopCh is used to signal that the telemetry config provider should stop running.
+	stopCh chan struct{}
 
 	// hcpClient is an authenticated client used to make HTTP requests to HCP.
 	hcpClient client.Client
@@ -94,6 +98,12 @@ type httpCfg struct {
 	client *retryablehttp.Client
 }
 
+//go:generate mockery --name TelemetryProvider --with-expecter --inpackage
+type TelemetryProvider interface {
+	Start(ctx context.Context, c *HCPProviderCfg) error
+	Stop()
+}
+
 type HCPProviderCfg struct {
 	HCPClient client.Client
 	HCPConfig config.CloudConfigurer
@@ -111,16 +121,14 @@ func NewHCPProvider(ctx context.Context) *hcpProviderImpl {
 	return h
 }
 
-// Run starts a process that continuously checks for updates to the telemetry configuration
+// Start starts a process that continuously checks for updates to the telemetry configuration
 // by making a request to HCP. It only starts running if it's not already running.
-func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
-	if h.isRunning() {
+func (h *hcpProviderImpl) Start(ctx context.Context, c *HCPProviderCfg) error {
+	changed := h.setRunning(true)
+	if !changed {
+		// Provider is already running.
 		return nil
 	}
-
-	h.rw.Lock()
-	h.running = true
-	h.rw.Unlock()
 
 	// Update the provider with the HCP configurations
 	h.hcpClient = c.HCPClient
@@ -141,7 +149,7 @@ func (h *hcpProviderImpl) run(ctx context.Context) error {
 	// Try to initialize config once before starting periodic fetch.
 	h.updateConfig(ctx)
 
-	ticker := time.NewTicker(h.cfg.refreshInterval)
+	ticker := time.NewTicker(h.getRefreshInterval())
 	defer ticker.Stop()
 	for {
 		select {
@@ -150,6 +158,8 @@ func (h *hcpProviderImpl) run(ctx context.Context) error {
 				ticker.Reset(newRefreshInterval)
 			}
 		case <-ctx.Done():
+			return nil
+		case <-h.stopCh:
 			return nil
 		}
 	}
@@ -224,6 +234,13 @@ func (h *hcpProviderImpl) modifyDynamicCfg(newCfg *dynamicConfig) {
 	h.rw.Unlock()
 
 	metrics.IncrCounter(internalMetricRefreshSuccess, 1)
+}
+
+func (h *hcpProviderImpl) getRefreshInterval() time.Duration {
+	h.rw.RLock()
+	defer h.rw.RUnlock()
+
+	return h.cfg.refreshInterval
 }
 
 // GetEndpoint acquires a read lock to return endpoint configuration for consumers.
@@ -313,10 +330,43 @@ func (h *hcpProviderImpl) GetHTTPClient() *retryablehttp.Client {
 	return h.httpCfg.client
 }
 
-// isRunning acquires a read lock to return whether the provider is running.
-func (h *hcpProviderImpl) isRunning() bool {
-	h.rw.RLock()
-	defer h.rw.RUnlock()
+// setRunning acquires a write lock to set whether the provider is running.
+// If the given value is the same as the current running status, it returns
+// false. If current status is updated to the given status, it returns true.
+func (h *hcpProviderImpl) setRunning(r bool) bool {
+	h.rw.Lock()
+	defer h.rw.Unlock()
 
-	return h.running
+	if h.running == r {
+		return false
+	}
+
+	// Initialize or close the stop channel depending what running status
+	// we're transitioning to. Channel must be initialized on start since
+	// a provider can be stopped and started multiple times.
+	if r {
+		h.stopCh = make(chan struct{})
+	} else {
+		close(h.stopCh)
+	}
+
+	h.running = r
+
+	return true
+}
+
+// Stop acquires a write lock to mark the provider as not running and sends a stop signal to the
+// main run loop. It also updates the provider with a disabled configuration.
+func (h *hcpProviderImpl) Stop() {
+	changed := h.setRunning(false)
+	if !changed {
+		h.logger.Trace("telemetry config provider already stopped")
+		return
+	}
+
+	h.rw.Lock()
+	h.cfg = defaultDisabledCfg()
+	h.rw.Unlock()
+
+	h.logger.Debug("telemetry config provider stopped")
 }

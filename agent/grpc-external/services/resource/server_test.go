@@ -152,7 +152,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: resource.DefaultNamespaceName,
-				PeerName:  "local",
 			},
 		},
 		"namespaced type with empty namespace": {
@@ -160,16 +159,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: resource.DefaultPartitionName,
 				Namespace: "",
-				PeerName:  "local",
-			},
-		},
-		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-		"namespaced type with empty peername": {
-			typ: demo.TypeV2Artist,
-			tenancy: &pbresource.Tenancy{
-				Partition: resource.DefaultPartitionName,
-				Namespace: resource.DefaultNamespaceName,
-				PeerName:  "",
 			},
 		},
 		"namespaced type with empty partition and namespace": {
@@ -177,7 +166,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
-				PeerName:  "local",
 			},
 		},
 		"namespaced type with wildcard partition and empty namespace": {
@@ -185,7 +173,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
 				Namespace: "",
-				PeerName:  "local",
 			},
 		},
 		"namespaced type with empty partition and wildcard namespace": {
@@ -193,7 +180,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "*",
-				PeerName:  "local",
 			},
 		},
 		"partitioned type with empty partition": {
@@ -201,14 +187,12 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
-				PeerName:  "local",
 			},
 		},
 		"partitioned type with wildcard partition": {
 			typ: demo.TypeV1RecordLabel,
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
-				PeerName:  "local",
 			},
 		},
 		"partitioned type with wildcard partition and namespace": {
@@ -216,7 +200,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
 				Namespace: "*",
-				PeerName:  "local",
 			},
 		},
 		"cluster type with empty partition and namespace": {
@@ -224,7 +207,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
-				PeerName:  "local",
 			},
 		},
 
@@ -233,7 +215,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
 				Namespace: "*",
-				PeerName:  "local",
 			},
 		},
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/internal/resource"
+	catalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -28,10 +29,16 @@ const (
 	ParentRefUsingMeshPortReason  = "ParentRefUsingMeshPort"
 	BackendRefUsingMeshPortReason = "BackendRefUsingMeshPort"
 
-	UnknownParentRefPortReason  = "UnknownParentRefPort"
-	UnknownBackendRefPortReason = "UnknownBackendRefPort"
+	UnknownParentRefPortReason    = "UnknownParentRefPort"
+	UnknownBackendRefPortReason   = "UnknownBackendRefPort"
+	UnknownDestinationPortReason  = "UnknownDestinationPort"
+	ConflictParentRefPortReason   = "ConflictParentRefPort"
+	ConflictBackendRefPortReason  = "ConflictBackendRefPort"
+	ConflictDestinationPortReason = "ConflictDestinationPort"
 
 	ConflictNotBoundToParentRefReason = "ConflictNotBoundToParentRef"
+
+	DestinationServiceNotFoundReason = "DestinationServiceNotFound"
 )
 
 var (
@@ -153,16 +160,79 @@ func conditionUnknownRefPort(ref *pbresource.Reference, port string, forBackend 
 	}
 }
 
+func ConditionConflictParentRefPort(ref *pbresource.Reference, port string) *pbresource.Condition {
+	return conditionConflictRefPort(ref, port, false)
+}
+
+func ConditionConflictBackendRefPort(ref *pbresource.Reference, port string) *pbresource.Condition {
+	return conditionConflictRefPort(ref, port, true)
+}
+
+func conditionConflictRefPort(ref *pbresource.Reference, port string, forBackend bool) *pbresource.Condition {
+	reason := ConflictParentRefPortReason
+	short := "parent"
+	if forBackend {
+		reason = ConflictBackendRefPortReason
+		short = "backend"
+	}
+	return &pbresource.Condition{
+		Type:   StatusConditionAccepted,
+		State:  pbresource.Condition_STATE_FALSE,
+		Reason: reason,
+		Message: fmt.Sprintf(
+			"multiple %s refs found for service %q on target port %q",
+			short,
+			resource.ReferenceToString(ref),
+			port,
+		),
+	}
+}
+
 func ConditionConflictNotBoundToParentRef(ref *pbresource.Reference, port string, realType *pbresource.Type) *pbresource.Condition {
 	return &pbresource.Condition{
 		Type:   StatusConditionAccepted,
 		State:  pbresource.Condition_STATE_FALSE,
 		Reason: ConflictNotBoundToParentRefReason,
 		Message: fmt.Sprintf(
-			"Existing routes of type %q are bound to parent ref %q on port %q preventing this from binding",
+			"existing routes of type %q are bound to parent ref %q on port %q preventing this from binding",
 			resource.TypeToString(realType),
 			resource.ReferenceToString(ref),
 			port,
+		),
+	}
+}
+
+func ConditionDestinationServiceNotFound(serviceRef *pbresource.Reference) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionAccepted,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  DestinationServiceNotFoundReason,
+		Message: fmt.Sprintf("service %q does not exist.", resource.ReferenceToString(serviceRef)),
+	}
+}
+
+func ConditionUnknownDestinationPort(serviceRef *pbresource.Reference, port string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:   StatusConditionAccepted,
+		State:  pbresource.Condition_STATE_FALSE,
+		Reason: UnknownDestinationPortReason,
+		Message: fmt.Sprintf(
+			"port is not defined on service: %s on %s",
+			port,
+			resource.ReferenceToString(serviceRef),
+		),
+	}
+}
+
+func ConditionConflictDestinationPort(serviceRef *pbresource.Reference, port *catalog.ServicePort) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:   StatusConditionAccepted,
+		State:  pbresource.Condition_STATE_FALSE,
+		Reason: ConflictDestinationPortReason,
+		Message: fmt.Sprintf(
+			"multiple configs found for port on destination service: %s on %s",
+			port.ToPrintableString(),
+			resource.ReferenceToString(serviceRef),
 		),
 	}
 }

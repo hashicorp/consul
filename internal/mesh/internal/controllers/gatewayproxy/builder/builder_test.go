@@ -313,7 +313,8 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 								Type:    pbcatalog.ServiceEndpointsType,
 								Tenancy: tenancy,
 							},
-							Port: "mesh",
+							RoutePort: "mesh",
+							MeshPort:  "mesh",
 						},
 						fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")): {
 							Id: &pbresource.ID{
@@ -321,7 +322,8 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 								Type:    pbcatalog.ServiceEndpointsType,
 								Tenancy: tenancy,
 							},
-							Port: "tcp",
+							RoutePort: "tcp",
+							MeshPort:  "tcp",
 						},
 					},
 					RequiredLeafCertificates: make(map[string]*pbproxystate.LeafCertificateRef),

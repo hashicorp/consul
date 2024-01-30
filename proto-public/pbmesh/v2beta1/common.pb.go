@@ -36,6 +36,9 @@ type ParentReference struct {
 	// For east/west this is the name of the Consul Service port to direct traffic to
 	// or empty to imply all.
 	// For north/south this is TBD.
+	//
+	// For more details on potential values of this field, see documentation for
+	// Service.ServicePort.
 	Port string `protobuf:"bytes,2,opt,name=port,proto3" json:"port,omitempty"`
 }
 
@@ -94,8 +97,10 @@ type BackendReference struct {
 	Ref *pbresource.Reference `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
 	// For east/west this is the name of the Consul Service port to direct traffic to
 	// or empty to imply using the same value as the parent ref.
-	//
 	// For north/south this is TBD.
+	//
+	// For more details on potential values of this field, see documentation for
+	// Service.ServicePort.
 	Port       string `protobuf:"bytes,2,opt,name=port,proto3" json:"port,omitempty"`
 	Datacenter string `protobuf:"bytes,3,opt,name=datacenter,proto3" json:"datacenter,omitempty"`
 }

@@ -314,7 +314,6 @@ func testListWatch(t *testing.T, opts TestOptions) {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 			namePrefix: "",
@@ -324,14 +323,12 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				seedData[2],
 				seedData[3],
 				seedData[5],
-				seedData[6],
 			},
 		},
-		"fixed partition, wildcard peer, wildcard namespace": {
+		"fixed partition, wildcard namespace": {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 			namePrefix: "",
@@ -340,30 +337,12 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				seedData[1],
 				seedData[2],
 				seedData[5],
-				seedData[6],
 			},
 		},
-		"wildcard partition, fixed peer, wildcard namespace": {
+		"wildcard partition, fixed namespace": {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  "local",
-				Namespace: storage.Wildcard,
-			},
-			namePrefix: "",
-			results: []*pbresource.Resource{
-				seedData[0],
-				seedData[1],
-				seedData[2],
-				seedData[3],
-				seedData[5],
-			},
-		},
-		"wildcard partition, wildcard peer, fixed namespace": {
-			resourceType: storage.UnversionedTypeFrom(typeAv1),
-			tenancy: &pbresource.Tenancy{
-				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: "default",
 			},
 			namePrefix: "",
@@ -371,29 +350,12 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				seedData[0],
 				seedData[1],
 				seedData[2],
-				seedData[6],
-			},
-		},
-		"fixed partition, fixed peer, wildcard namespace": {
-			resourceType: storage.UnversionedTypeFrom(typeAv1),
-			tenancy: &pbresource.Tenancy{
-				Partition: "default",
-				PeerName:  "local",
-				Namespace: storage.Wildcard,
-			},
-			namePrefix: "",
-			results: []*pbresource.Resource{
-				seedData[0],
-				seedData[1],
-				seedData[2],
-				seedData[5],
 			},
 		},
 		"wildcard tenancy, name prefix": {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 			namePrefix: "a",
@@ -402,9 +364,9 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				seedData[1],
 				seedData[3],
 				seedData[5],
-				seedData[6],
 			},
 		},
+		// TODO(peering/v2) add tests for peer tenancy
 	}
 
 	t.Run("List", func(t *testing.T) {
@@ -610,23 +572,15 @@ var (
 	}
 	tenancyDefault = &pbresource.Tenancy{
 		Partition: "default",
-		PeerName:  "local",
 		Namespace: "default",
 	}
 
 	tenancyDefaultOtherNamespace = &pbresource.Tenancy{
 		Partition: "default",
-		PeerName:  "local",
 		Namespace: "other",
-	}
-	tenancyDefaultOtherPeer = &pbresource.Tenancy{
-		Partition: "default",
-		PeerName:  "remote",
-		Namespace: "default",
 	}
 	tenancyOther = &pbresource.Tenancy{
 		Partition: "billing",
-		PeerName:  "local",
 		Namespace: "payments",
 	}
 
@@ -637,7 +591,6 @@ var (
 		resource(typeAv1, tenancyOther, "api"),                        // 3
 		resource(typeB, tenancyDefault, "admin"),                      // 4
 		resource(typeAv1, tenancyDefaultOtherNamespace, "autoscaler"), // 5
-		resource(typeAv1, tenancyDefaultOtherPeer, "amplifier"),       // 6
 	}
 
 	ignoreVersion = protocmp.IgnoreFields(&pbresource.Resource{}, "version")

@@ -566,7 +566,6 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				PeerName:  "local",
 				Namespace: "default",
 			},
 			Name: "bar",

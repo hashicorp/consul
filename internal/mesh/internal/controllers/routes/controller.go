@@ -83,6 +83,7 @@ func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 	pending := make(PendingStatuses)
 
 	ValidateXRouteReferences(related, pending)
+	ValidateDestinationPolicyPorts(related, pending)
 
 	generatedResults := GenerateComputedRoutes(related, pending)
 

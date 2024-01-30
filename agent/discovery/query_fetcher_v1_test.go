@@ -4,13 +4,17 @@
 package discovery
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/cache"
+
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
@@ -95,7 +99,19 @@ func Test_FetchVirtualIP(t *testing.T) {
 						*reply = tc.expectedResult.Address
 					}
 				})
-			df := NewV1DataFetcher(rc, mockRPC.RPC, logger)
+			// TODO (v2-dns): mock these properly
+			translateServicePortFunc := func(dc string, port int, taggedAddresses map[string]structs.ServiceAddress) int { return 0 }
+			rpcFuncForServiceNodes := func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
+				return structs.IndexedCheckServiceNodes{}, cache.ResultMeta{}, nil
+			}
+			rpcFuncForSamenessGroup := func(ctx context.Context, req *structs.ConfigEntryQuery) (structs.SamenessGroupConfigEntry, cache.ResultMeta, error) {
+				return structs.SamenessGroupConfigEntry{}, cache.ResultMeta{}, nil
+			}
+			getFromCacheFunc := func(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error) {
+				return nil, cache.ResultMeta{}, nil
+			}
+
+			df := NewV1DataFetcher(rc, acl.DefaultEnterpriseMeta(), getFromCacheFunc, mockRPC.RPC, rpcFuncForServiceNodes, rpcFuncForSamenessGroup, translateServicePortFunc, logger)
 
 			result, err := df.FetchVirtualIP(tc.context, tc.queryPayload)
 			require.Equal(t, tc.expectedErr, err)

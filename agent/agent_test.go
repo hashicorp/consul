@@ -37,7 +37,6 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
@@ -6338,12 +6337,8 @@ func TestAgent_scadaProvider(t *testing.T) {
 	require.NoError(t, err)
 	defer require.NoError(t, l.Close())
 
-	pvd.EXPECT().UpdateMeta(mock.Anything).Once()
-	pvd.EXPECT().Start().Return(nil).Once()
 	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
 	pvd.EXPECT().Stop().Return(nil).Once()
-	pvd.EXPECT().SessionStatus().Return("test")
-	pvd.EXPECT().UpdateHCPConfig(mock.Anything).Return(nil).Once()
 	a := TestAgent{
 		OverrideDeps: func(deps *BaseDeps) {
 			deps.HCP.Provider = pvd
