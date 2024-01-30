@@ -12,7 +12,6 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -65,7 +64,7 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
 			return 1
 		}
-		parsedResource, err := resource.ParseResourceFromFile(c.filePath)
+		parsedResource, err := client.ParseResourceFromFile(c.filePath)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
 			return 1
@@ -81,14 +80,14 @@ func (c *cmd) Run(args []string) int {
 		resourceName = parsedResource.Id.Name
 	} else {
 		var err error
-		resourceType, resourceName, err = resource.GetTypeAndResourceName(args)
+		resourceType, resourceName, err = client.GetTypeAndResourceName(args)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
 			return 1
 		}
 
 		inputArgs := args[2:]
-		err = resource.ParseInputParams(inputArgs, c.flags)
+		err = client.ParseInputParams(inputArgs, c.flags)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error parsing input arguments: %v", err))
 			return 1
@@ -117,15 +116,14 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// read resource
-	res := resource.ResourceGRPC{C: resourceClient}
-	entry, err := res.Read(resourceType, resourceTenancy, resourceName, c.resourceFlags.Stale())
+	entry, err := resourceClient.Read(resourceType, resourceTenancy, resourceName, c.resourceFlags.Stale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading resource %s/%s: %v", resourceType, resourceName, err))
 		return 1
 	}
 
 	// display response
-	b, err := json.MarshalIndent(entry, "", resource.JSON_INDENT)
+	b, err := json.MarshalIndent(entry, "", client.JSON_INDENT)
 	if err != nil {
 		c.UI.Error("Failed to encode output data")
 		return 1
@@ -160,7 +158,6 @@ $ consul resource read -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
-<<<<<<< HEAD
 	Type = gvk("catalog.v2beta1.Service")
 	Name = "card-processor"
 	Tenancy {
