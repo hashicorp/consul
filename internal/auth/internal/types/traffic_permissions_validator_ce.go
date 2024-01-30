@@ -16,9 +16,9 @@ var v validator = &actionValidator{}
 
 type actionValidator struct{}
 
-func (v *actionValidator) ValidateAction(res *DecodedTrafficPermissions) error {
+func (v *actionValidator) ValidateAction(data interface{ GetAction() pbauth.Action }) error {
 	// enumcover:pbauth.Action
-	switch res.Data.Action {
+	switch data.GetAction() {
 	case pbauth.Action_ACTION_ALLOW:
 	case pbauth.Action_ACTION_UNSPECIFIED:
 		fallthrough
