@@ -52,6 +52,26 @@ func Controller(mapper TrafficPermissionsMapper, sgExpander expander.SamenessGro
 
 	samenessGroupIndex := GetSamenessGroupIndex()
 
+	// Maps incoming PartitionTrafficPermissions to ComputedTrafficPermissions requests by prefix searching
+	// the CTP's tenancy.
+	ptpToCtpMapper := func(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+		iter, err := rt.Cache.ListIterator(pbauth.ComputedTrafficPermissionsType, "id", &pbresource.Reference{
+			Type: pbauth.ComputedTrafficPermissionsType,
+			Tenancy: &pbresource.Tenancy{
+				Partition: res.Id.Tenancy.GetPartition(),
+			},
+		}, index.IndexQueryOptions{Prefix: true})
+		if err != nil {
+			return nil, err
+		}
+
+		var reqs []controller.Request
+		for res := iter.Next(); res != nil; res = iter.Next() {
+			reqs = append(reqs, controller.Request{ID: res.Id})
+		}
+
+		return reqs, nil
+	}
 	// Maps incoming NamespaceTrafficPermissions to ComputedTrafficPermissions requests by prefix searching
 	// the CTP's tenancy.
 	ntpToCtpMapper := func(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
@@ -74,6 +94,16 @@ func Controller(mapper TrafficPermissionsMapper, sgExpander expander.SamenessGro
 	ctrl := controller.NewController(StatusKey, pbauth.ComputedTrafficPermissionsType).
 		WithWatch(pbauth.WorkloadIdentityType, dependency.ReplaceType(pbauth.ComputedTrafficPermissionsType)).
 		WithWatch(pbauth.TrafficPermissionsType, mapper.MapTrafficPermissions, samenessGroupIndex).
+		WithWatch(pbauth.PartitionTrafficPermissionsType, ptpToCtpMapper,
+			indexers.DecodedSingleIndexer(
+				TenancyIndexName,
+				index.SingleValueFromArgs(func(t *pbresource.Tenancy) ([]byte, error) {
+					return index.IndexFromTenancy(t), nil
+				}),
+				func(r *types.DecodedPartitionTrafficPermissions) (bool, []byte, error) {
+					return true, index.IndexFromTenancy(r.Id.Tenancy), nil
+				},
+			)).
 		WithWatch(pbauth.NamespaceTrafficPermissionsType, ntpToCtpMapper,
 			indexers.DecodedSingleIndexer(
 				TenancyIndexName,
@@ -172,6 +202,23 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		}
 		track(trafficPermissionBuilder, rsp)
 		tpResources = append(tpResources, rsp.Resource)
+	}
+
+	// Fetch partition traffic permissions for ctp(workload identity)'s tenancy
+	ptps, err := cache.ListDecoded[*pbauth.PartitionTrafficPermissions](
+		rt.Cache,
+		pbauth.PartitionTrafficPermissionsType,
+		TenancyIndexName,
+		&pbresource.Tenancy{Partition: ctpID.Tenancy.GetPartition()},
+	)
+	if err != nil {
+		rt.Logger.Error("error reading partitioned traffic permissions resource for computation", "error", err)
+		writeFailedStatus(ctx, rt, oldResource, nil, err.Error())
+		return err
+	}
+	for _, ptp := range ptps {
+		track(trafficPermissionBuilder, ptp)
+		tpResources = append(tpResources, ptp.Resource)
 	}
 
 	// Fetch namespace traffic permissions for ctp(workload identity)'s tenancy
