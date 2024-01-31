@@ -499,10 +499,13 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		}
 	}
 
-	// nothing found locally, recurse
+	// nothing found locally. recurse if we have a recursor, NXDOMAIN otherwise
 	if len(m.Answer) == 0 {
-		d.handleRecurse(resp, req)
-		return
+		if req.RecursionDesired && len(cfg.Recursors) > 0 {
+			d.handleRecurse(resp, req)
+			return
+		}
+		m.SetRcode(req, dns.RcodeNameError)
 	}
 
 	// ptr record responses are globally valid
