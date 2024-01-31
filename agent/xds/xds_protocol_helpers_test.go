@@ -38,7 +38,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -295,7 +295,7 @@ func xdsNewTransportSocket(
 		},
 	}
 	if len(spiffeID) > 0 {
-		require.NoError(t, injectSANMatcher(commonTLSContext, spiffeID...))
+		require.NoError(t, injectSANMatcher(commonTLSContext, false, spiffeID...))
 	}
 
 	var tlsContext proto.Message
