@@ -47,6 +47,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 		unversionedType,
 		req.Tenancy,
 		req.NamePrefix,
+		req.SendSnapshotOperations,
 	)
 	if err != nil {
 		return err
@@ -60,6 +61,17 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			return status.Error(codes.Aborted, "watch closed by the storage backend (possibly due to snapshot restoration)")
 		case err != nil:
 			return status.Errorf(codes.Internal, "failed next: %v", err)
+		}
+
+		if event.Operation.IsFramingEvent() {
+			if !req.SendSnapshotOperations {
+				continue // errant reply; drop it
+			}
+			// skip the rest and send the event.
+			if err = stream.Send(event); err != nil {
+				return err
+			}
+			continue
 		}
 
 		// drop group versions that don't match

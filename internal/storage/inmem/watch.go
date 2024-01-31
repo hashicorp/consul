@@ -36,6 +36,14 @@ func (w *Watch) Next(ctx context.Context) (*pbresource.WatchEvent, error) {
 		}
 
 		event := e.Payload.(eventPayload).event
+		if event.Operation.IsFramingEvent() {
+			if w.query.includeSnapshotOperations {
+				return event, nil
+			} else {
+				continue
+			}
+		}
+
 		if w.query.matches(event.Resource) {
 			return event, nil
 		}
@@ -108,7 +116,8 @@ type eventPayload struct {
 func (p eventPayload) Subject() stream.Subject { return p.subject }
 
 // These methods are required by the stream.Payload interface, but we don't use them.
-func (eventPayload) HasReadPermission(acl.Authorizer) bool         { return false }
+func (eventPayload) HasReadPermission(acl.Authorizer) bool { return false }
+
 func (eventPayload) ToSubscriptionEvent(uint64) *pbsubscribe.Event { return nil }
 
 type wildcardSubject struct {
@@ -200,20 +209,30 @@ func (s *Store) watchSnapshot(req stream.SubscribeRequest, snap stream.SnapshotA
 		return 0, nil
 	}
 
-	events := make([]stream.Event, len(results))
-	for i, r := range results {
-		events[i] = stream.Event{
+	events := make([]stream.Event, 0, len(results)+2)
+	addEvent := func(event *pbresource.WatchEvent) {
+		events = append(events, stream.Event{
 			Topic: eventTopic,
 			Index: idx,
 			Payload: eventPayload{
 				subject: req.Subject,
-				event: &pbresource.WatchEvent{
-					Operation: pbresource.WatchEvent_OPERATION_UPSERT,
-					Resource:  r,
-				},
+				event:   event,
 			},
-		}
+		})
 	}
+
+	addEvent(&pbresource.WatchEvent{
+		Operation: pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT,
+	})
+	for _, r := range results {
+		addEvent(&pbresource.WatchEvent{
+			Operation: pbresource.WatchEvent_OPERATION_UPSERT,
+			Resource:  r,
+		})
+	}
+	addEvent(&pbresource.WatchEvent{
+		Operation: pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT,
+	})
 	snap.Append(events)
 
 	return idx, nil

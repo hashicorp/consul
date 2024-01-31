@@ -63,15 +63,26 @@ func TestSnapshotRestore(t *testing.T) {
 	require.NoError(t, err)
 
 	// Start a watch on the new store to make sure it gets closed.
-	watch, err := newStore.WatchList(storage.UnversionedTypeFrom(b.Id.Type), b.Id.Tenancy, "")
+	watch, err := newStore.WatchList(storage.UnversionedTypeFrom(b.Id.Type), b.Id.Tenancy, "", true)
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	// Expect the initial state on the watch.
-	_, err = watch.Next(ctx)
+	// expect to get snapshot start op
+	got, err := watch.Next(ctx)
 	require.NoError(t, err)
+	require.Equal(t, pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT, got.Operation)
+
+	// Expect the initial state on the watch.
+	got, err = watch.Next(ctx)
+	require.NoError(t, err)
+	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, got.Operation)
+
+	// expect to get snapshot end op
+	got, err = watch.Next(ctx)
+	require.NoError(t, err)
+	require.Equal(t, pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT, got.Operation)
 
 	restore, err := newStore.Restore()
 	require.NoError(t, err)

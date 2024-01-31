@@ -129,6 +129,17 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
 
+	t.Run("standard", func(t *testing.T) {
+		t.Parallel()
+		testWatchList_GroupVersionMatches(t, false)
+	})
+	t.Run("send-snapshot-operations", func(t *testing.T) {
+		t.Parallel()
+		testWatchList_GroupVersionMatches(t, true)
+	})
+}
+
+func testWatchList_GroupVersionMatches(t *testing.T, sendSnapshotOperations bool) {
 	server := testServer(t)
 	client := testClient(t, server)
 	demo.RegisterTypes(server.Registry)
@@ -136,12 +147,23 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 
 	// create a watch
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type:       demo.TypeV2Artist,
-		Tenancy:    resource.DefaultNamespacedTenancy(),
-		NamePrefix: "",
+		Type:                   demo.TypeV2Artist,
+		Tenancy:                resource.DefaultNamespacedTenancy(),
+		NamePrefix:             "",
+		SendSnapshotOperations: sendSnapshotOperations,
 	})
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)
+
+	if sendSnapshotOperations {
+		rsp := mustGetResource(t, rspCh)
+		require.Equal(t, pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT, rsp.Operation)
+		require.Nil(t, rsp.Resource)
+
+		rsp = mustGetResource(t, rspCh)
+		require.Equal(t, pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT, rsp.Operation)
+		require.Nil(t, rsp.Resource)
+	}
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)

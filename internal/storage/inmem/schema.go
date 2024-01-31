@@ -174,9 +174,10 @@ func (i *indexBuilder) Bytes() []byte {
 }
 
 type query struct {
-	resourceType storage.UnversionedType
-	tenancy      *pbresource.Tenancy
-	namePrefix   string
+	resourceType              storage.UnversionedType
+	tenancy                   *pbresource.Tenancy
+	namePrefix                string
+	includeSnapshotOperations bool
 }
 
 // indexPrefix is called by idIndexer.PrefixFromArgs to construct a radix tree

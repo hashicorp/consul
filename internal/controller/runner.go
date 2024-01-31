@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/internal/controller/cache"
@@ -93,6 +94,32 @@ func (c *controllerRunner) run(ctx context.Context) error {
 		defer c.ctrl.stopCb(ctx, c.runtime(c.logger))
 	}
 
+	// Before we launch the reconciler or the dependency mappers, ensure the
+	// cache is properly primed to avoid errant reconciles.
+	//
+	// Without doing this the cache is unsafe for general use without causing
+	// reconcile regressions in certain cases.
+	{
+		c.logger.Info("priming caches")
+		primeGroup, primeGroupCtx := errgroup.WithContext(ctx)
+		// Managed Type Events
+		primeGroup.Go(func() error {
+			return c.primeCache(primeGroupCtx, c.ctrl.managedTypeWatch.watchedType)
+		})
+		for _, w := range c.ctrl.watches {
+			watcher := w
+			// Watched Type Events
+			primeGroup.Go(func() error {
+				return c.primeCache(primeGroupCtx, watcher.watchedType)
+			})
+		}
+
+		if err := primeGroup.Wait(); err != nil {
+			return err
+		}
+		c.logger.Info("priming caches complete")
+	}
+
 	group, groupCtx := errgroup.WithContext(ctx)
 	recQueue := runQueue[Request](groupCtx, c.ctrl)
 
@@ -151,6 +178,44 @@ func (c *controllerRunner) run(ctx context.Context) error {
 func runQueue[T queue.ItemType](ctx context.Context, ctrl *Controller) queue.WorkQueue[T] {
 	base, max := ctrl.backoff()
 	return queue.RunWorkQueue[T](ctx, base, max)
+}
+
+func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type) error {
+	wl, err := c.watchClient.WatchList(ctx, &pbresource.WatchListRequest{
+		Type: typ,
+		Tenancy: &pbresource.Tenancy{
+			Partition: storage.Wildcard,
+			Namespace: storage.Wildcard,
+		},
+		SendSnapshotOperations: true,
+	})
+	if err != nil {
+		c.logger.Error("failed to create cache priming watch", "error", err)
+		return err
+	}
+
+	for {
+		event, err := wl.Recv()
+		if err != nil {
+			c.logger.Warn("error received from cache priming watch", "error", err)
+			return err
+		}
+
+		// Keep the cache up to date. There main reason to do this here is
+		// to ensure that any mapper/reconciliation queue deduping wont
+		// hide events from being observed and updating the cache state.
+		// Therefore we should do this before any queueing.
+		switch event.Operation {
+		case pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT:
+			// ignored
+		case pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT:
+			return nil // we're done
+		case pbresource.WatchEvent_OPERATION_UPSERT:
+			c.cache.Insert(event.Resource)
+		case pbresource.WatchEvent_OPERATION_DELETE:
+			c.cache.Delete(event.Resource)
+		}
+	}
 }
 
 func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {

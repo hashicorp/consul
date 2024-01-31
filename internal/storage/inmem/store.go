@@ -201,7 +201,7 @@ func (s *Store) List(typ storage.UnversionedType, ten *pbresource.Tenancy, nameP
 	tx := s.txn(false)
 	defer tx.Abort()
 
-	return listTxn(tx, query{typ, ten, namePrefix})
+	return listTxn(tx, query{typ, ten, namePrefix, false})
 }
 
 func listTxn(tx *memdb.Txn, q query) ([]*pbresource.Resource, error) {
@@ -225,7 +225,7 @@ func listTxn(tx *memdb.Txn, q query) ([]*pbresource.Resource, error) {
 // matching the given name prefix.
 //
 // For more information, see the storage.Backend documentation.
-func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, namePrefix string) (*Watch, error) {
+func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, namePrefix string, includeSnapshotOperations bool) (*Watch, error) {
 	// If the user specifies a wildcard, we subscribe to events for resources in
 	// all partitions, peers, and namespaces, and manually filter out irrelevant
 	// stuff (in Watch.Next).
@@ -252,9 +252,10 @@ func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, 
 	return &Watch{
 		sub: ss,
 		query: query{
-			resourceType: typ,
-			tenancy:      ten,
-			namePrefix:   namePrefix,
+			resourceType:              typ,
+			tenancy:                   ten,
+			namePrefix:                namePrefix,
+			includeSnapshotOperations: includeSnapshotOperations,
 		},
 	}, nil
 }

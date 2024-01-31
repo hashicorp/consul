@@ -9,15 +9,13 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	pbstorage "github.com/hashicorp/consul/proto/private/pbstorage"
 )
 
@@ -216,8 +214,8 @@ func (b *Backend) leaderList(ctx context.Context, resType storage.UnversionedTyp
 }
 
 // WatchList implements the storage.Backend interface.
-func (b *Backend) WatchList(_ context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (storage.Watch, error) {
-	return b.store.WatchList(resType, tenancy, namePrefix)
+func (b *Backend) WatchList(_ context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string, includeSnapshotOperations bool) (storage.Watch, error) {
+	return b.store.WatchList(resType, tenancy, namePrefix, includeSnapshotOperations)
 }
 
 // ListByOwner implements the storage.Backend interface.

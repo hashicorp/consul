@@ -29,6 +29,17 @@ type TestOptions struct {
 	// SupportsStronglyConsistentList indicates whether the given storage backend
 	// supports strongly consistent list operations.
 	SupportsStronglyConsistentList bool
+
+	// IgnoreWatchListSnapshotOperations indicates whether a given storage
+	// backend is expected to be consistent enough with reads to emit
+	// WatchEvent_OPERATION_START_OF_SNAPSHOT and
+	// WatchEvent_OPERATION_END_OF_SNAPSHOT around a deterministic set of
+	// events.
+	//
+	// For instance, a replicated copy of the state store will have stale data
+	// and may return an initial snapshot of nothing, and follow it up by an
+	// upsert.
+	IgnoreWatchListSnapshotOperations bool
 }
 
 // Test runs a suite of tests against a storage.Backend implementation to check
@@ -277,12 +288,14 @@ func testCASDelete(t *testing.T, opts TestOptions) {
 }
 
 func testListWatch(t *testing.T, opts TestOptions) {
-	testCases := map[string]struct {
-		resourceType storage.UnversionedType
-		tenancy      *pbresource.Tenancy
-		namePrefix   string
-		results      []*pbresource.Resource
-	}{
+	type testcase struct {
+		resourceType    storage.UnversionedType
+		tenancy         *pbresource.Tenancy
+		namePrefix      string
+		results         []*pbresource.Resource
+		withSnapshotOps bool // don't set this manually
+	}
+	testCases := map[string]testcase{
 		"simple #1": {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy:      tenancyDefault,
@@ -369,6 +382,15 @@ func testListWatch(t *testing.T, opts TestOptions) {
 		// TODO(peering/v2) add tests for peer tenancy
 	}
 
+	// Run all tests both ways (with and without including snapshot operations in WatchList)
+	for name, tc := range testCases {
+		if tc.withSnapshotOps {
+			continue
+		}
+		tc.withSnapshotOps = true // this is already a copy
+		testCases[name+", with snapshot operations"] = tc
+	}
+
 	t.Run("List", func(t *testing.T) {
 		ctx := testContext(t)
 
@@ -412,18 +434,45 @@ func testListWatch(t *testing.T, opts TestOptions) {
 					require.NoError(t, err)
 				}
 
-				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
+				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix, tc.withSnapshotOps)
 				require.NoError(t, err)
 				t.Cleanup(watch.Close)
 
-				for i := 0; i < len(tc.results); i++ {
+				expectNum := len(tc.results)
+				if tc.withSnapshotOps {
+					expectNum += 2
+				}
+				for i := 0; i < expectNum; i++ {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 					t.Cleanup(cancel)
 
 					event, err := watch.Next(ctx)
 					require.NoError(t, err)
 
-					require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, event.Operation)
+					if !tc.withSnapshotOps && event.Operation.IsFramingEvent() {
+						t.Fatalf("did not expect to receive any framing events in this test")
+					}
+
+					if tc.withSnapshotOps {
+						if opts.IgnoreWatchListSnapshotOperations {
+							if event.Operation.IsFramingEvent() {
+								require.Nil(t, event.Resource)
+								continue
+							}
+						} else {
+							if i == 0 {
+								require.Equal(t, pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT, event.Operation)
+								require.Nil(t, event.Resource)
+								continue
+							} else if i == expectNum-1 {
+								require.Equal(t, pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT, event.Operation)
+								require.Nil(t, event.Resource)
+								continue
+							}
+						}
+					}
+
+					require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, event.Operation, "index = %d", i)
 					prototest.AssertContainsElement(t, tc.results, event.Resource, ignoreVersion)
 				}
 			})
@@ -432,9 +481,30 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				backend := opts.NewBackend(t)
 				ctx := testContext(t)
 
-				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
+				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix, tc.withSnapshotOps)
 				require.NoError(t, err)
 				t.Cleanup(watch.Close)
+
+				if tc.withSnapshotOps {
+					{ // read snapshot start
+						ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+						t.Cleanup(cancel)
+						event, err := watch.Next(ctx)
+						require.NoError(t, err)
+
+						require.Equal(t, pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT, event.Operation)
+						require.Nil(t, event.Resource)
+					}
+					{ // read snapshot end
+						ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+						t.Cleanup(cancel)
+						event, err := watch.Next(ctx)
+						require.NoError(t, err)
+
+						require.Equal(t, pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT, event.Operation)
+						require.Nil(t, event.Resource)
+					}
+				}
 
 				// Write the seed data after the watch has been established.
 				for _, r := range seedData {
