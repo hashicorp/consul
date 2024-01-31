@@ -22,7 +22,7 @@
                     data-test-linked-cluster-hcp-link
                 />
             {{else}}
-                <SNL.Item class="hcp-nav-item" data-test-link-to-hcp>
+                <SNL.Item data-test-link-to-hcp>
                     <button type="button" class="hds-side-nav__list-item-link hcp-nav-item" {{on "click" this.onLinkToConsulCentral}}>
                         <Hds::Text::Body @size='200'>Link to HCP Consul Central</Hds::Text::Body>
                         <FlightIcon class='w-4 h-4' @size='24' @name='arrow-right'/>
