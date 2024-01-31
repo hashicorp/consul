@@ -108,7 +108,7 @@ func makeDirector(serverConn *grpc.ClientConn, logger hclog.Logger) func(ctx con
 		}
 		outCtx := metadata.NewOutgoingContext(ctx, mdCopy)
 
-		logger.Info("forwarding the request to the consul server", "method", fullMethodName)
+		logger.Debug("forwarding the request to the consul server", "method", fullMethodName)
 		// throw unimplemented error if the method is not meant to be forwarded
 		if !strings.HasPrefix(fullMethodName, FORWARD_SERVICE_NAME_PREFIX) {
 			return outCtx, nil, status.Errorf(codes.Unimplemented, fmt.Sprintf("Unknown method %s", fullMethodName))
