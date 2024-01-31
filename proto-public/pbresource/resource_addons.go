@@ -3,8 +3,6 @@
 
 package pbresource
 
-// IsFramingEvent returns true if this is a framing event (e.g. EndOfSnapshot
-// or NewSnapshotToFollow).
 func (o WatchEvent_Operation) IsFramingEvent() bool {
 	return o == WatchEvent_OPERATION_START_OF_SNAPSHOT ||
 		o == WatchEvent_OPERATION_END_OF_SNAPSHOT
