@@ -4,6 +4,7 @@
 package hcp
 
 import (
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -31,7 +33,7 @@ func TestManager_Start(t *testing.T) {
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Once()
 
 	cloudCfg := config.CloudConfig{
-		ResourceID:      "organization/85702e73-8a3d-47dc-291c-379b783c5804/project/8c0547c0-10e8-1ea2-dffe-384bee8da634/hashicorp.consul.global-network-manager.cluster/test",
+		ResourceID:      "resource-id",
 		NodeID:          "node-1",
 		ManagementToken: "fake-token",
 	}
@@ -44,25 +46,18 @@ func TestManager_Start(t *testing.T) {
 	).Return().Once()
 	scadaM.EXPECT().Start().Return(nil)
 
-	telemetryProvider := &hcpProviderImpl{
-		httpCfg: &httpCfg{},
-		logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		cfg:     defaultDisabledCfg(),
-	}
-
-	mockTelemetryCfg, err := testTelemetryCfg(&testConfig{
-		refreshInterval: 1 * time.Second,
-	})
-	require.NoError(t, err)
-	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(
-		mockTelemetryCfg, nil).Maybe()
+	telemetryM := NewMockTelemetryProvider(t)
+	telemetryM.EXPECT().Start(mock.Anything, &HCPProviderCfg{
+		HCPClient: client,
+		HCPConfig: &cloudCfg,
+	}).Return(nil).Once()
 
 	mgr := NewManager(ManagerConfig{
 		Logger:                    hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		StatusFn:                  statusF,
 		ManagementTokenUpserterFn: upsertManagementTokenF,
 		SCADAProvider:             scadaM,
-		TelemetryProvider:         telemetryProvider,
+		TelemetryProvider:         telemetryM,
 	})
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -85,9 +80,6 @@ func TestManager_Start(t *testing.T) {
 	// Make sure after manager has stopped no more statuses are pushed.
 	cancel()
 	client.AssertExpectations(t)
-	require.Equal(t, client, telemetryProvider.hcpClient)
-	require.NotNil(t, telemetryProvider.GetHeader())
-	require.NotNil(t, telemetryProvider.GetHTTPClient())
 }
 
 func TestManager_StartMultipleTimes(t *testing.T) {
@@ -269,4 +261,104 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 		require.Fail(t, "manager did not send update in expected time")
 	}
 	client.AssertExpectations(t)
+}
+
+func TestManager_Stop(t *testing.T) {
+	client := hcpclient.NewMockClient(t)
+
+	// Configure status functions called in sendUpdate
+	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
+		return hcpclient.ServerStatus{ID: t.Name()}, nil
+	}
+	updateCh := make(chan struct{}, 1)
+	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
+
+	// Configure management token creation and cleanup
+	token := "test-token"
+	upsertManagementTokenCalled := make(chan struct{}, 1)
+	upsertManagementTokenF := func(name, secretID string) error {
+		upsertManagementTokenCalled <- struct{}{}
+		if secretID != token {
+			return fmt.Errorf("expected token %q, got %q", token, secretID)
+		}
+		return nil
+	}
+	deleteManagementTokenCalled := make(chan struct{}, 1)
+	deleteManagementTokenF := func(secretID string) error {
+		deleteManagementTokenCalled <- struct{}{}
+		if secretID != token {
+			return fmt.Errorf("expected token %q, got %q", token, secretID)
+		}
+		return nil
+	}
+
+	// Configure the SCADA provider
+	scadaM := scada.NewMockProvider(t)
+	scadaM.EXPECT().UpdateHCPConfig(mock.Anything).Return(nil).Once()
+	scadaM.EXPECT().UpdateMeta(mock.Anything).Return().Once()
+	scadaM.EXPECT().Start().Return(nil).Once()
+	scadaM.EXPECT().Stop().Return(nil).Once()
+
+	// Configure the telemetry provider
+	telemetryM := NewMockTelemetryProvider(t)
+	telemetryM.EXPECT().Start(mock.Anything, mock.Anything).Return(nil).Once()
+	telemetryM.EXPECT().Stop().Return().Once()
+
+	// Configure manager with all its dependencies
+	mgr := NewManager(ManagerConfig{
+		Logger:                    testutil.Logger(t),
+		StatusFn:                  statusF,
+		Client:                    client,
+		ManagementTokenUpserterFn: upsertManagementTokenF,
+		ManagementTokenDeleterFn:  deleteManagementTokenF,
+		SCADAProvider:             scadaM,
+		TelemetryProvider:         telemetryM,
+		CloudConfig: config.CloudConfig{
+			ManagementToken: token,
+		},
+	})
+	mgr.testUpdateSent = updateCh
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	// Start the manager
+	err := mgr.Start(ctx)
+	require.NoError(t, err)
+	select {
+	case <-updateCh:
+	case <-time.After(time.Second):
+		require.Fail(t, "manager did not send update in expected time")
+	}
+	select {
+	case <-upsertManagementTokenCalled:
+	case <-time.After(time.Second):
+		require.Fail(t, "manager did not create token in expected time")
+	}
+
+	// Send an update to ensure the manager is running in its main loop
+	mgr.SendUpdate()
+	select {
+	case <-updateCh:
+	case <-time.After(time.Second):
+		require.Fail(t, "manager did not send update in expected time")
+	}
+
+	// Stop the manager
+	err = mgr.Stop()
+	require.NoError(t, err)
+
+	// Validate that the management token delete function is called
+	select {
+	case <-deleteManagementTokenCalled:
+	case <-time.After(time.Millisecond * 100):
+		require.Fail(t, "manager did not create token in expected time")
+	}
+
+	// Send an update, expect no update since manager is stopped
+	mgr.SendUpdate()
+	select {
+	case <-updateCh:
+		require.Fail(t, "manager sent update after stopped")
+	case <-time.After(time.Second):
+	}
 }

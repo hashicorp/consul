@@ -195,17 +195,25 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx discovery.Context
 		return resp
 	}
 
+	// Need to pass the question name to properly support recursion and the
+	// trimming of the domain suffixes.
+	qName := dns.CanonicalName(req.Question[0].Name)
+	if maxRecursionLevel < maxRecursionLevelDefault {
+		// Get the QName without the domain suffix
+		qName = r.trimDomain(qName)
+	}
+
 	reqType := parseRequestType(req)
-	results, query, err := r.getQueryResults(req, reqCtx, reqType, configCtx)
+	results, query, err := r.getQueryResults(req, reqCtx, reqType, configCtx, qName)
 	switch {
 	case errors.Is(err, errNameNotFound):
-		r.logger.Error("name not found", "name", req.Question[0].Name)
+		r.logger.Error("name not found", "name", qName)
 
 		ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
 		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, ecsGlobal)
 	// TODO (v2-dns): there is another case here where the discovery service returns "name not found"
 	case errors.Is(err, discovery.ErrNoData):
-		r.logger.Debug("no data available", "name", req.Question[0].Name)
+		r.logger.Debug("no data available", "name", qName)
 
 		ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
 		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeSuccess, ecsGlobal)
@@ -222,6 +230,21 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx discovery.Context
 		return createServerFailureResponse(req, configCtx, false)
 	}
 	return resp
+}
+
+// trimDomain trims the domain from the question name.
+func (r *Router) trimDomain(questionName string) string {
+	longer := r.domain
+	shorter := r.altDomain
+
+	if len(shorter) > len(longer) {
+		longer, shorter = shorter, longer
+	}
+
+	if strings.HasSuffix(questionName, "."+strings.TrimLeft(longer, ".")) {
+		return strings.TrimSuffix(questionName, longer)
+	}
+	return strings.TrimSuffix(questionName, shorter)
 }
 
 // getTTLForResult returns the TTL for a given result.
@@ -243,7 +266,8 @@ func getTTLForResult(name string, query *discovery.Query, cfg *RouterDynamicConf
 }
 
 // getQueryResults returns a discovery.Result from a DNS message.
-func (r *Router) getQueryResults(req *dns.Msg, reqCtx discovery.Context, reqType requestType, cfg *RouterDynamicConfig) ([]*discovery.Result, *discovery.Query, error) {
+func (r *Router) getQueryResults(req *dns.Msg, reqCtx discovery.Context,
+	reqType requestType, cfg *RouterDynamicConfig, qName string) ([]*discovery.Result, *discovery.Query, error) {
 	var query *discovery.Query
 	switch reqType {
 	case requestTypeConsul:
@@ -272,9 +296,9 @@ func (r *Router) getQueryResults(req *dns.Msg, reqCtx discovery.Context, reqType
 		}
 		return results, query, nil
 	case requestTypeIP:
-		ip := dnsutil.IPFromARPA(req.Question[0].Name)
+		ip := dnsutil.IPFromARPA(qName)
 		if ip == nil {
-			r.logger.Error("error building IP from DNS request", "name", req.Question[0].Name)
+			r.logger.Error("error building IP from DNS request", "name", qName)
 			return nil, nil, errNameNotFound
 		}
 		results, err := r.processor.QueryByIP(ip, reqCtx)
@@ -742,8 +766,10 @@ func buildAddressResults(req *dns.Msg) ([]*discovery.Result, error) {
 
 // getAnswerAndExtra creates the dns answer and extra from discovery results.
 func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, reqCtx discovery.Context,
-	query *discovery.Query, cfg *RouterDynamicConfig, domain string, remoteAddress net.Addr, maxRecursionLevel int) (answer []dns.RR, extra []dns.RR, ns []dns.RR) {
-	address, target := getAddressAndTargetFromDiscoveryResult(result, r.domain)
+	query *discovery.Query, cfg *RouterDynamicConfig, domain string, remoteAddress net.Addr,
+	maxRecursionLevel int) (answer []dns.RR, extra []dns.RR, ns []dns.RR) {
+	target := newDNSAddress(result.Target)
+	address := newDNSAddress(result.Address)
 	qName := req.Question[0].Name
 	ttlLookupName := qName
 	if query != nil {
@@ -781,17 +807,20 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 	case qType == dns.TypeSRV:
 		// We put A/AAAA/CNAME records in the additional section for SRV requests
 		a, e := r.getAnswerExtrasForAddressAndTarget(address, target, req, reqCtx,
-			result, ttl, remoteAddress, maxRecursionLevel)
+			result, ttl, remoteAddress, cfg, maxRecursionLevel)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
-		cfg := r.dynamicConfig.Load().(*RouterDynamicConfig)
 		if cfg.NodeMetaTXT {
-			extra = append(extra, makeTXTRecord(target.FQDN(), result, ttl)...)
+			name := target.FQDN()
+			if !target.IsInternalFQDN(r.domain) && !target.IsExternalFQDN(r.domain) {
+				name = canonicalNameForResult(result, r.domain)
+			}
+			extra = append(extra, makeTXTRecord(name, result, ttl)...)
 		}
 	default:
 		a, e := r.getAnswerExtrasForAddressAndTarget(address, target, req, reqCtx,
-			result, ttl, remoteAddress, maxRecursionLevel)
+			result, ttl, remoteAddress, cfg, maxRecursionLevel)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 	}
@@ -801,64 +830,73 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 // getAnswerExtrasForAddressAndTarget creates the dns answer and extra from address and target dnsAddress pairs.
 func (r *Router) getAnswerExtrasForAddressAndTarget(address *dnsAddress, target *dnsAddress, req *dns.Msg,
 	reqCtx discovery.Context, result *discovery.Result, ttl uint32, remoteAddress net.Addr,
-	maxRecursionLevel int) (answer []dns.RR, extra []dns.RR) {
+	cfg *RouterDynamicConfig, maxRecursionLevel int) (answer []dns.RR, extra []dns.RR) {
 	qName := req.Question[0].Name
 	reqType := parseRequestType(req)
 
-	cfg := r.dynamicConfig.Load().(*RouterDynamicConfig)
 	switch {
+	// Virtual IPs and Address requests
+	// both return IPs with empty targets
+	case (reqType == requestTypeAddress || result.Type == discovery.ResultTypeVirtual) &&
+		target.IsEmptyString() && address.IsIP():
+		a, e := getAnswerExtrasForIP(qName, address, req.Question[0], reqType,
+			result, ttl)
+		answer = append(a, answer...)
+		extra = append(e, extra...)
 
-	// There is no target and the address is a FQDN (external service)
+	// Address is a FQDN and requires a CNAME lookup.
 	case address.IsFQDN():
 		a, e := r.makeRecordFromFQDN(address.FQDN(), result, req, reqCtx,
 			cfg, ttl, remoteAddress, maxRecursionLevel)
 		answer = append(a, answer...)
 		extra = append(e, extra...)
 
-	// The target is a FQDN (internal or external service name)
-	case result.Type != discovery.ResultTypeNode && target.IsFQDN():
-		a, e := r.makeRecordFromFQDN(target.FQDN(), result, req, reqCtx,
-			cfg, ttl, remoteAddress, maxRecursionLevel)
-		answer = append(answer, a...)
-		extra = append(extra, e...)
-
-	// There is no target and the address is an IP
-	case address.IsIP():
-		// TODO (v2-dns): Do not CNAME node address in case of WAN address.
-		ipRecordName := target.FQDN()
-		if maxRecursionLevel < maxRecursionLevelDefault || ipRecordName == "" {
-			ipRecordName = qName
+	// Target is FQDN that point to IP
+	case target.IsFQDN() && address.IsIP():
+		var a, e []dns.RR
+		if result.Type == discovery.ResultTypeNode {
+			// if it is a node record it means the service address pointed to a node
+			// and the node address was used.  So we create an A record for the node address,
+			// as well as a CNAME for the service to node mapping.
+			name := target.FQDN()
+			if !target.IsInternalFQDN(r.domain) && !target.IsExternalFQDN(r.domain) {
+				name = canonicalNameForResult(result, r.domain)
+			} else if target.IsInternalFQDN(r.domain) {
+				answer = append(answer, makeCNAMERecord(qName, canonicalNameForResult(result, r.domain), ttl))
+			}
+			a, e = getAnswerExtrasForIP(name, address, req.Question[0], reqType,
+				result, ttl)
+		} else {
+			// if it is a service record, it means that the service address had the IP directly
+			// and there was not a need for an intermediate CNAME.
+			a, e = getAnswerExtrasForIP(qName, address, req.Question[0], reqType,
+				result, ttl)
 		}
-		a, e := getAnswerExtrasForIP(ipRecordName, address, req.Question[0], reqType, result, ttl)
-		answer = append(answer, a...)
-		extra = append(extra, e...)
-
-	// The target is an IP
-	case target.IsIP():
-		a, e := getAnswerExtrasForIP(qName, target, req.Question[0], reqType, result, ttl)
-		answer = append(answer, a...)
-		extra = append(extra, e...)
-
-	// The target is a CNAME for the service we are looking
-	// for. So we use the address.
-	case target.FQDN() == req.Question[0].Name && address.IsIP():
-		a, e := getAnswerExtrasForIP(qName, address, req.Question[0], reqType, result, ttl)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
 	// The target is a FQDN (internal or external service name)
 	default:
-		a, e := r.makeRecordFromFQDN(target.FQDN(), result, req, reqCtx, cfg, ttl, remoteAddress, maxRecursionLevel)
+		a, e := r.makeRecordFromFQDN(target.FQDN(), result, req, reqCtx, cfg,
+			ttl, remoteAddress, maxRecursionLevel)
 		answer = append(a, answer...)
 		extra = append(e, extra...)
 	}
 	return
 }
 
-// getAddressAndTargetFromDiscoveryResult returns the address and target from a discovery result.
-func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question, reqType requestType, result *discovery.Result, ttl uint32) (answer []dns.RR, extra []dns.RR) {
-	record := makeIPBasedRecord(name, addr, ttl)
+// getAnswerExtrasForIP creates the dns answer and extra from IP dnsAddress pairs.
+func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
+	reqType requestType, result *discovery.Result, ttl uint32) (answer []dns.RR, extra []dns.RR) {
 	qType := question.Qtype
+
+	// Have to pass original question name here even if the system has recursed
+	// and stripped off the domain suffix.
+	recHdrName := question.Name
+	if qType == dns.TypeSRV {
+		recHdrName = name
+	}
+	record := makeIPBasedRecord(recHdrName, addr, ttl)
 
 	isARecordWhenNotExplicitlyQueried := record.Header().Rrtype == dns.TypeA && qType != dns.TypeA && qType != dns.TypeANY
 	isAAAARecordWhenNotExplicitlyQueried := record.Header().Rrtype == dns.TypeAAAA && qType != dns.TypeAAAA && qType != dns.TypeANY
@@ -970,7 +1008,7 @@ MORE_REC:
 	}
 
 	answers := []dns.RR{
-		makeCNAMERecord(result, q.Name, ttl),
+		makeCNAMERecord(q.Name, result.Target, ttl),
 	}
 	answers = append(answers, additional...)
 
@@ -978,15 +1016,15 @@ MORE_REC:
 }
 
 // makeCNAMERecord returns a CNAME record for the given name and target.
-func makeCNAMERecord(result *discovery.Result, qName string, ttl uint32) *dns.CNAME {
+func makeCNAMERecord(name string, target string, ttl uint32) *dns.CNAME {
 	return &dns.CNAME{
 		Hdr: dns.RR_Header{
-			Name:   qName,
+			Name:   name,
 			Rrtype: dns.TypeCNAME,
 			Class:  dns.ClassINET,
 			Ttl:    ttl,
 		},
-		Target: dns.Fqdn(result.Target),
+		Target: dns.Fqdn(target),
 	}
 }
 
@@ -1046,14 +1084,4 @@ func makeTXTRecord(name string, result *discovery.Result, ttl uint32) []dns.RR {
 		})
 	}
 	return extra
-}
-
-// getAddressAndTargetFromCheckServiceNode returns the address and target for a given discovery.Result
-func getAddressAndTargetFromDiscoveryResult(result *discovery.Result, domain string) (*dnsAddress, *dnsAddress) {
-	target := newDNSAddress(result.Target)
-	if !target.IsEmptyString() && !target.IsInternalFQDNOrIP(domain) {
-		target.SetAddress(canonicalNameForResult(result, domain))
-	}
-	address := newDNSAddress(result.Address)
-	return address, target
 }

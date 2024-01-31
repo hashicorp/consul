@@ -5,6 +5,7 @@ package apply
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/command/resource/read"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -22,9 +24,13 @@ func TestResourceApplyCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
+	availablePort := freeport.GetOne(t)
+	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	t.Cleanup(func() {
+		a.Shutdown()
+	})
 
 	cases := []struct {
 		name   string
@@ -41,11 +47,6 @@ func TestResourceApplyCommand(t *testing.T) {
 			args:   []string{"-f=../testdata/nested_data.hcl"},
 			output: "mesh.v2beta1.Destinations 'api' created.",
 		},
-		{
-			name:   "file path with no flag",
-			args:   []string{"../testdata/nested_data.hcl"},
-			output: "mesh.v2beta1.Destinations 'api' created.",
-		},
 	}
 
 	for _, tc := range cases {
@@ -54,7 +55,7 @@ func TestResourceApplyCommand(t *testing.T) {
 			c := New(ui)
 
 			args := []string{
-				"-http-addr=" + a.HTTPAddr(),
+				fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 				"-token=root",
 			}
 
@@ -68,23 +69,6 @@ func TestResourceApplyCommand(t *testing.T) {
 	}
 }
 
-func readResource(t *testing.T, a *agent.TestAgent, extraArgs []string) string {
-	readUi := cli.NewMockUi()
-	readCmd := read.New(readUi)
-
-	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
-		"-token=root",
-	}
-
-	args = append(extraArgs, args...)
-
-	code := readCmd.Run(args)
-	require.Equal(t, 0, code)
-	require.Empty(t, readUi.ErrorWriter.String())
-	return readUi.OutputWriter.String()
-}
-
 func TestResourceApplyCommand_StdIn(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -92,9 +76,13 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
+	availablePort := freeport.GetOne(t)
+	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	t.Cleanup(func() {
+		a.Shutdown()
+	})
 
 	t.Run("hcl", func(t *testing.T) {
 		stdinR, stdinW := io.Pipe()
@@ -107,8 +95,8 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 			Type = gvk("demo.v2.Artist")
 			Name = "korn"
 			Tenancy {
-			  Namespace = "default"
 			  Partition = "default"
+			  Namespace = "default"
 			}
 		  }
 		  
@@ -127,17 +115,18 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 		}()
 
 		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
+			fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 			"-token=root",
+			"-f",
 			"-",
 		}
 
 		code := c.Run(args)
 		require.Equal(t, 0, code, ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
-		expected := readResource(t, a, []string{"demo.v2.Artist", "korn"})
 		require.Contains(t, ui.OutputWriter.String(), "demo.v2.Artist 'korn' created.")
-		require.Contains(t, ui.OutputWriter.String(), expected)
+		readUI := readResource(t, []string{"demo.v2.Artist", "korn"}, availablePort)
+		require.Contains(t, ui.OutputWriter.String(), readUI.OutputWriter.String())
 	})
 
 	t.Run("json", func(t *testing.T) {
@@ -155,8 +144,8 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 			"id": {
 				"name": "korn",
 				"tenancy": {
-					"namespace": "default",
-					"partition": "default"
+					"partition": "default",
+					"namespace": "default"
 				},
 				"type": {
 					"group": "demo",
@@ -175,17 +164,18 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 		}()
 
 		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-token=root",
+			"-f",
 			"-",
+			fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
+			"-token=root",
 		}
 
 		code := c.Run(args)
 		require.Equal(t, 0, code, ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
-		expected := readResource(t, a, []string{"demo.v2.Artist", "korn"})
 		require.Contains(t, ui.OutputWriter.String(), "demo.v2.Artist 'korn' created.")
-		require.Contains(t, ui.OutputWriter.String(), expected)
+		readUI := readResource(t, []string{"demo.v2.Artist", "korn"}, availablePort)
+		require.Contains(t, ui.OutputWriter.String(), readUI.OutputWriter.String())
 	})
 }
 
@@ -207,7 +197,7 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 		"missing required flag": {
 			args:         []string{},
 			expectedCode: 1,
-			expectedErr:  errors.New("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write"),
+			expectedErr:  errors.New("Required '-f' flag was not provided to specify where to load the resource content from"),
 		},
 		"file parsing failure": {
 			args:         []string{"-f=../testdata/invalid.hcl"},
@@ -232,4 +222,22 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 			require.Contains(t, ui.ErrorWriter.String(), tc.expectedErr.Error())
 		})
 	}
+}
+
+func readResource(t *testing.T, args []string, port int) *cli.MockUi {
+	readUi := cli.NewMockUi()
+	readCmd := read.New(readUi)
+
+	flags := []string{
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", port),
+		"-token=root",
+	}
+
+	args = append(args, flags...)
+
+	code := readCmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Empty(t, readUi.ErrorWriter.String())
+
+	return readUi
 }

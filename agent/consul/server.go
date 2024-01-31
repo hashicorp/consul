@@ -457,7 +457,7 @@ type Server struct {
 	xdsCapacityController *xdscapacity.Controller
 
 	// hcpManager handles pushing server status updates to the HashiCorp Cloud Platform when enabled
-	hcpManager *hcp.Manager
+	hcpManager *hcp.HCPManager
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
@@ -608,6 +608,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 				// of a randomly generated one. This would prevent any possible insertion collision between
 				// this and the insertion that happens during the ACL initialization process (initializeACLs function)
 				return s.upsertManagementToken(name, secretId)
+			}
+			return nil
+		},
+		ManagementTokenDeleterFn: func(secretId string) error {
+			// Check the state of the server before attempting to delete the token.Otherwise,
+			// the delete will fail and log errors that do not require action from the user.
+			if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
+				return s.deleteManagementToken(secretId)
 			}
 			return nil
 		},

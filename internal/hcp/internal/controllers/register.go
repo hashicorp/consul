@@ -15,7 +15,7 @@ type Dependencies struct {
 	ResourceApisEnabled    bool
 	HCPAllowV2ResourceApis bool
 	DataDir                string
-	HCPManager             *hcp.Manager
+	HCPManager             *hcp.HCPManager
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
