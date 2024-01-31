@@ -132,6 +132,38 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "loadAssignment": {
+        "clusterName": "local_ext_authz",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 9191
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "name": "local_ext_authz",
+      "type": "STATIC",
+      "typedExtensionProtocolOptions": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+          "explicitHttpConfig": {
+            "http2ProtocolOptions": {}
+          }
+        }
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "connectTimeout": "5s",
       "lbPolicy": "CLUSTER_PROVIDED",
       "name": "original-destination",
