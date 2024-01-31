@@ -979,6 +979,23 @@ func agentHealthService(serviceID structs.ServiceID, s *HTTPHandlers) (int, stri
 			ServiceID:   c.ServiceID,
 			ServiceName: c.ServiceName,
 			ServiceTags: c.ServiceTags,
+			Definition: api.HealthCheckDefinition{
+				HTTP:                                   c.Definition.HTTP,
+				Header:                                 c.Definition.Header,
+				Method:                                 c.Definition.Method,
+				Body:                                   c.Definition.Body,
+				TLSServerName:                          c.Definition.TLSServerName,
+				TLSSkipVerify:                          c.Definition.TLSSkipVerify,
+				TCP:                                    c.Definition.TCP,
+				TCPUseTLS:                              c.Definition.TCPUseTLS,
+				UDP:                                    c.Definition.UDP,
+				GRPC:                                   c.Definition.GRPC,
+				OSService:                              c.Definition.OSService,
+				GRPCUseTLS:                             c.Definition.GRPCUseTLS,
+				IntervalDuration:                       c.Definition.Interval,
+				TimeoutDuration:                        c.Definition.Timeout,
+				DeregisterCriticalServiceAfterDuration: c.Definition.DeregisterCriticalServiceAfter,
+			},
 		}
 		fillHealthCheckEnterpriseMeta(healthCheck, &c.EnterpriseMeta)
 		serviceChecks = append(serviceChecks, healthCheck)
