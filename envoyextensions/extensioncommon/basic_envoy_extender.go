@@ -296,6 +296,27 @@ func (b *BasicEnvoyExtender) patchSupportedListenerFilterChains(config *RuntimeC
 func (b *BasicEnvoyExtender) patchListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
 	var resultErr error
 
+	// Special case for Permissive mTLS, which adds a filter chain
+	// containing a TCP Proxy only. We don't care about errors
+	// applying filters as long as the main filter chain is
+	// patched successfully.
+	if IsInboundPublicListener(l) && len(l.FilterChains) > 1 {
+		var isPatched bool
+		for idx, filterChain := range l.FilterChains {
+			patchedFilterChain, err := b.patchFilterChain(config, filterChain, l)
+			if err != nil {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter chain %q: %w", nameOrSNI, err))
+				continue
+			}
+			l.FilterChains[idx] = patchedFilterChain
+			isPatched = true
+		}
+		if isPatched {
+			return l, nil
+		}
+		return l, resultErr
+	}
+
 	for idx, filterChain := range l.FilterChains {
 		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, l); err == nil {
 			l.FilterChains[idx] = patchedFilterChain
