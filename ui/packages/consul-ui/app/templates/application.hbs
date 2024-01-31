@@ -102,6 +102,11 @@
               }}
                 as |dc|
               >
+                {{#if this.hcpLinkModal.isModalVisible}}
+                    <DataSource @src={{uri '/${partition}/${nspace}/${dc}/policy/00000000-0000-0000-0000-000000000002' (hash dc=dc.Name partition=partition nspace=nspace) }} as |globalReadonlyPolicy|>
+                       <LinkToHcpModal @policy={{globalReadonlyPolicy}} @dc={{dc.Name}} @nspace={{nspace}} @partition={{partition}}/>
+                    </DataSource>
+                {{/if}}
                 {{#if dc.data}}
                     <HashicorpConsul
                     id='wrapper'
