@@ -2624,6 +2624,11 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 			ServiceTags:    service.Tags,
 			Type:           chkType.Type(),
 			EnterpriseMeta: service.EnterpriseMeta,
+			Definition: structs.HealthCheckDefinition{
+				DeregisterCriticalServiceAfter: chkType.DeregisterCriticalServiceAfter,
+				Interval:                       chkType.Interval,
+				Timeout:                        chkType.Timeout,
+			},
 		}
 		if chkType.Status != "" {
 			check.Status = chkType.Status
