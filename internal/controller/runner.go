@@ -201,15 +201,12 @@ func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type)
 			return err
 		}
 
-		// Keep the cache up to date. There main reason to do this here is
-		// to ensure that any mapper/reconciliation queue deduping wont
-		// hide events from being observed and updating the cache state.
-		// Therefore we should do this before any queueing.
 		switch event.Operation {
 		case pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT:
 			// ignored
 		case pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT:
-			return nil // we're done
+			// This concludes the initial snapshot. The cache is primed.
+			return nil
 		case pbresource.WatchEvent_OPERATION_UPSERT:
 			c.cache.Insert(event.Resource)
 		case pbresource.WatchEvent_OPERATION_DELETE:
