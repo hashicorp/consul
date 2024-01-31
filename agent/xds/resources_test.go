@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
-	"github.com/hashicorp/consul/agent/xdsv2"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -20,19 +19,19 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/types"
-
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
 	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/consul/agent/xdsv2"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 var testTypeUrlToPrettyName = map[string]string{
@@ -3138,6 +3137,23 @@ func getTLSGoldenTestCases() []goldenTestCase {
 					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
 					ns.Proxy.Mode = structs.ProxyModeTransparent
 					ns.Proxy.TransparentProxy.OutboundListenerPort = 1234
+				},
+					nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tproxy-and-permissive-mtls-and-envoy-extension",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
+					ns.Proxy.Mode = structs.ProxyModeTransparent
+					ns.Proxy.TransparentProxy.OutboundListenerPort = 1234
+					// Arbitrarily chose ext-authz since it's available in CE
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
+						"https",
+						"dest=local",
+					)
 				},
 					nil)
 			},
