@@ -290,7 +290,7 @@ func xdsNewTransportSocket(
 		},
 	}
 	if len(spiffeID) > 0 {
-		require.NoError(t, injectSANMatcher(commonTLSContext, spiffeID...))
+		require.NoError(t, injectSANMatcher(commonTLSContext, false, spiffeID...))
 	}
 
 	var tlsContext proto.Message
