@@ -1,7 +1,8 @@
 import Service from '@ember/service';
+import { tracked } from '@glimmer/tracking';
 
-export default class HcpLinkModal extends Service {
-  isModalVisible = false;
+export default class HcpLinkModalService extends Service {
+  @tracked isModalVisible = false;
 
   show() {
     this.isModalVisible = true;
