@@ -11,6 +11,7 @@ import { inject as service } from '@ember/service';
 export default class LinkToHcpModalComponent extends Component {
   @service('repository/token') tokenRepo;
   @service('repository/policy') policyRepo;
+  @service('hcp-link-modal') hcpLinkModal;
   @tracked
   token = '';
   @tracked
@@ -27,12 +28,12 @@ export default class LinkToHcpModalComponent extends Component {
   }
 
   deactivateModal() {
-    // TODO: call input function onCancel
+    this.hcpLinkModal.hide();
   }
 
   @action
   onCancel() {
-    // TODO: add on cancel modal
+    this.deactivateModal();
   }
   @action
   onGenerateTokenClicked(event) {
