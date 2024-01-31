@@ -36,12 +36,12 @@ type BasicExtension interface {
 	CanApply(*RuntimeConfig) bool
 
 	// PatchRoute patches a route to include the custom Envoy configuration
-	// required to integrate with the built-in extension template.
+	// required to integrate with the built in extension template.
 	// See also PatchRoutes.
 	PatchRoute(RoutePayload) (*envoy_route_v3.RouteConfiguration, bool, error)
 
 	// PatchRoutes patches routes to include the custom Envoy configuration
-	// required to integrate with the built-in extension template.
+	// required to integrate with the built in extension template.
 	// This allows extensions to operate on a collection of routes.
 	// For extensions that implement both PatchRoute and PatchRoutes,
 	// PatchRoutes is always called first with the entire collection of routes.
@@ -49,12 +49,12 @@ type BasicExtension interface {
 	PatchRoutes(*RuntimeConfig, RouteMap) (RouteMap, error)
 
 	// PatchCluster patches a cluster to include the custom Envoy configuration
-	// required to integrate with the built-in extension template.
+	// required to integrate with the built in extension template.
 	// See also PatchClusters.
 	PatchCluster(ClusterPayload) (*envoy_cluster_v3.Cluster, bool, error)
 
 	// PatchClusters patches clusters to include the custom Envoy configuration
-	// required to integrate with the built-in extension template.
+	// required to integrate with the built in extension template.
 	// This allows extensions to operate on a collection of clusters.
 	// For extensions that implement both PatchCluster and PatchClusters,
 	// PatchClusters is always called first with the entire collection of clusters.
@@ -62,16 +62,16 @@ type BasicExtension interface {
 	PatchClusters(*RuntimeConfig, ClusterMap) (ClusterMap, error)
 
 	// PatchClusterLoadAssignment patches a cluster load assignment to include the custom Envoy configuration
-	// required to integrate with the built-in extension template.
+	// required to integrate with the built in extension template.
 	PatchClusterLoadAssignment(ClusterLoadAssignmentPayload) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error)
 
 	// PatchListener patches a listener to include the custom Envoy configuration
-	// required to integrate with the built-in extension template.
+	// required to integrate with the built in extension template.
 	// See also PatchListeners.
 	PatchListener(ListenerPayload) (*envoy_listener_v3.Listener, bool, error)
 
 	// PatchListeners patches listeners to include the custom Envoy configuration
-	// required to integrate with the built-in extension template.
+	// required to integrate with the built in extension template.
 	// This allows extensions to operate on a collection of listeners.
 	// For extensions that implement both PatchListener and PatchListeners,
 	// PatchListeners is always called first with the entire collection of listeners.
@@ -79,12 +79,12 @@ type BasicExtension interface {
 	PatchListeners(*RuntimeConfig, ListenerMap) (ListenerMap, error)
 
 	// PatchFilter patches an Envoy filter to include the custom Envoy
-	// configuration required to integrate with the built-in extension template.
+	// configuration required to integrate with the built in extension template.
 	// See also PatchFilters.
 	PatchFilter(FilterPayload) (*envoy_listener_v3.Filter, bool, error)
 
 	// PatchFilters patches Envoy filters to include the custom Envoy
-	// configuration required to integrate with the built-in extension template.
+	// configuration required to integrate with the built in extension template.
 	// This allows extensions to operate on a collection of filters.
 	// For extensions that implement both PatchFilter and PatchFilters,
 	// PatchFilters is always called first with the entire collection of filters.
@@ -293,17 +293,10 @@ func (b *BasicEnvoyExtender) patchSupportedListenerFilterChains(config *RuntimeC
 	return l, nil
 }
 
-const PermissiveFilterChain = "permissive_filter_chain"
-
 func (b *BasicEnvoyExtender) patchListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
 	var resultErr error
 
 	for idx, filterChain := range l.FilterChains {
-		// TODO: determine how to support the filter chain created by permissive mTLS.
-		// We skip processing the permissive filter chain to avoid errors for now.
-		if filterChain.Name == PermissiveFilterChain {
-			continue
-		}
 		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, l); err == nil {
 			l.FilterChains[idx] = patchedFilterChain
 		} else {
