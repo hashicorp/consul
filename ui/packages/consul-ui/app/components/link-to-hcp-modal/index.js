@@ -27,9 +27,9 @@ export default class LinkToHcpModalComponent extends Component {
     return this.token && this.token.length > 0;
   }
 
-  deactivateModal() {
+  deactivateModal = () => {
     this.hcpLinkModal.hide();
-  }
+  };
 
   @action
   onCancel() {
