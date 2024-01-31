@@ -65,6 +65,9 @@ as |sort filters items partition nspace|}}
 {{#let route.params.dc as |dc|}}
     <DataSource @src={{uri '/${partition}/*/${dc}/hcp-link' (hash dc=dc partition=partition name=dc) }} as |hcpLink|>
         <LinkToHcpBanner @linkData={{hcpLink.data}}/>
+      <DataSource @src={{uri '/${partition}/${nspace}/${dc}/policy/00000000-0000-0000-0000-000000000002' (hash dc=dc partition=partition nspace=nspace name=dc) }} as |globalReadonlyPolicy|>
+        <LinkToHcpModal @policy={{globalReadonlyPolicy}} @dc={{dc}} @nspace={{nspace}} @partition={{partition}}/>
+      </DataSource>
     </DataSource>
 {{/let}}
   <AppView>
