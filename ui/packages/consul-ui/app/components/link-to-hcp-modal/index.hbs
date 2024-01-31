@@ -1,0 +1,59 @@
+<Hds::Modal id="link-to-hcp-modal" @onClose={{fn this.deactivateModal}} as |M|>
+  <M.Header>
+    Link to HCP Consul Central
+  </M.Header>
+  <M.Body>
+    <Hds::Form::Radio::Group @layout="vertical" @name="accessMode" as |G|>
+      <G.Legend>Select cluster access mode before linking</G.Legend>
+      <G.HelperText>Control the level of access that HCP Consul Central has to your linked cluster. <Hds::Link::Inline @href="https://developer.hashicorp.com/consul/docs/security/acl" @isHrefExternal={{true}} @color="secondary">Learn more</Hds::Link::Inline></G.HelperText>
+      <G.Radio::Field @id="accessMode-management" checked @value="READ_WRITE" {{on "change" this.onAccessModeChanged}} as |F|>
+        <F.Label>Read/write</F.Label>
+        <F.HelperText>HCP Consul Central can perform write operations on your cluster (i.e. cluster peering).</F.HelperText>
+      </G.Radio::Field>
+      <G.Radio::Field @id="accessMode-readonly" @value="READONLY" {{on "change" this.onAccessModeChanged}} as |F|>
+        <F.Label>Read-only</F.Label>
+        <F.HelperText>HCP Consul Central can only read information from your cluster. Read-only requires an ACL token with the “builtin/global-read-only” policy in the next step.</F.HelperText>
+      </G.Radio::Field>
+    </Hds::Form::Radio::Group>
+    {{#if (and this.isReadOnlyAccessLevelSelected (can "create tokens"))}}
+      <div class="link-to-hcp-model__generate-token">
+        <p class="hds-typography-display-100 hds-font-weight-medium font-family-sans-display">
+          Generate a read-only ACL token now(preferred) or copy an existing token’s secret ID
+        </p>
+        {{#if this.isTokenGenerated}}
+          <Hds::Card::Container class="link-to-hcp-model__generate-token__copy-card" @level="mid" @hasBorder={{true}}>
+            <div>
+              <p class="hds-font-weight-semibold">Token secret ID</p>
+              <p class="hds-typography-code-200" id="tokenSecretId">
+                {{this.token}}
+              </p>
+            </div>
+            <Hds::Copy::Button @text="Copy" @isIconOnly={{true}} @targetToCopy="#tokenSecretId" />
+
+          </Hds::Card::Container>
+        {{else}}
+          <Hds::Button
+            @color="tertiary"
+            @text={{if this.isGeneratingToken "Generating token" "Generate a read-only ACL token"}}
+            @icon={{if this.isGeneratingToken "loading" "token"}}
+            @disabled={{this.isGeneratingToken}}
+            {{on "click" this.onGenerateTokenClicked}}
+          />
+        {{/if}}
+      </div>
+    {{/if}}
+  </M.Body>
+  <M.Footer as |F|>
+    <Hds::ButtonSet>
+      <Hds::Button type="button"
+                   @text="Next: Authenticate into HCP"
+                   @icon="external-link"
+                   @iconPosition="trailing"
+        {{on "click" (fn this.deactivateModal)}}
+      />
+      <Hds::Button type="button" @text="Cancel" @color="secondary"
+        {{on "click" F.close}}
+      />
+    </Hds::ButtonSet>
+  </M.Footer>
+</Hds::Modal>
