@@ -5,6 +5,7 @@ package link
 
 import (
 	"context"
+	"crypto/tls"
 	"strings"
 
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
@@ -149,11 +150,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	// 1. The HCP configuration (i.e., how to connect to HCP) is preserved
 	// 2. The Consul agent's node ID and node name are preserved
 	existingCfg := r.hcpManager.GetCloudConfig()
-	newCfg := config.CloudConfig{
-		ResourceID:   link.ResourceId,
-		ClientID:     link.ClientId,
-		ClientSecret: link.ClientSecret,
-	}
+	newCfg := CloudConfigFromLink(&link)
 	cfg := config.Merge(existingCfg, newCfg)
 	hcpClient, err := r.hcpClientFn(cfg)
 	if err != nil {
@@ -273,4 +270,23 @@ func (i *linkInitializer) Initialize(ctx context.Context, rt controller.Runtime)
 	}
 
 	return nil
+}
+
+func CloudConfigFromLink(link *pbhcp.Link) config.CloudConfig {
+	var cfg config.CloudConfig
+	if link == nil {
+		return cfg
+	}
+	cfg = config.CloudConfig{
+		ResourceID:   link.GetResourceId(),
+		ClientID:     link.GetClientId(),
+		ClientSecret: link.GetClientSecret(),
+	}
+	if link.GetHcpConfig() != nil {
+		cfg.AuthURL = link.GetHcpConfig().GetAuthUrl()
+		cfg.ScadaAddress = link.GetHcpConfig().GetScadaAddress()
+		cfg.Hostname = link.GetHcpConfig().GetApiAddress()
+		cfg.TLSConfig = &tls.Config{InsecureSkipVerify: link.GetHcpConfig().GetTlsInsecureSkipVerify()}
+	}
+	return cfg
 }
