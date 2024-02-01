@@ -160,7 +160,7 @@ func dial(c *GRPCConfig) (*grpc.ClientConn, error) {
 func checkCertificates(c *GRPCConfig) error {
 	if c.GRPCTLS {
 		certFileEmpty := c.CertFile == ""
-		keyFileEmpty := c.CertFile == ""
+		keyFileEmpty := c.KeyFile == ""
 
 		// both files need to be empty or both files need to be provided
 		if certFileEmpty != keyFileEmpty {
