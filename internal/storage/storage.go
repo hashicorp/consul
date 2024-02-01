@@ -250,7 +250,7 @@ type Backend interface {
 	// See List docs for details about Tenancy Wildcard and GroupVersion.
 	//
 	// [monotonic reads]: https://jepsen.io/consistency/models/monotonic-reads
-	WatchList(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string, includeSnapshotOperations bool) (Watch, error)
+	WatchList(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (Watch, error)
 
 	// ListByOwner returns resources owned by the resource with the given ID. It
 	// is typically used to implement cascading deletion.

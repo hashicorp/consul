@@ -187,7 +187,6 @@ func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type)
 			Partition: storage.Wildcard,
 			Namespace: storage.Wildcard,
 		},
-		SendSnapshotOperations: true,
 	})
 	if err != nil {
 		c.logger.Error("failed to create cache priming watch", "error", err)
@@ -201,16 +200,17 @@ func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type)
 			return err
 		}
 
-		switch event.Operation {
-		case pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT:
-			// ignored
-		case pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT:
+		switch {
+		case event.GetUpsert() != nil:
+			c.cache.Insert(event.GetUpsert().Resource)
+		case event.GetDelete() != nil:
+			c.cache.Delete(event.GetDelete().Resource)
+		case event.GetEndOfSnapshot() != nil:
 			// This concludes the initial snapshot. The cache is primed.
 			return nil
-		case pbresource.WatchEvent_OPERATION_UPSERT:
-			c.cache.Insert(event.Resource)
-		case pbresource.WatchEvent_OPERATION_DELETE:
-			c.cache.Delete(event.Resource)
+		default:
+			c.logger.Warn("skipping unexpected event type", "type", hclog.Fmt("%T", event.GetEvent()))
+			continue
 		}
 	}
 }
@@ -239,11 +239,19 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 		// to ensure that any mapper/reconciliation queue deduping wont
 		// hide events from being observed and updating the cache state.
 		// Therefore we should do this before any queueing.
-		switch event.Operation {
-		case pbresource.WatchEvent_OPERATION_UPSERT:
-			c.cache.Insert(event.Resource)
-		case pbresource.WatchEvent_OPERATION_DELETE:
-			c.cache.Delete(event.Resource)
+		var resource *pbresource.Resource
+		switch {
+		case event.GetUpsert() != nil:
+			resource = event.GetUpsert().GetResource()
+			c.cache.Insert(resource)
+		case event.GetDelete() != nil:
+			resource = event.GetDelete().GetResource()
+			c.cache.Delete(resource)
+		case event.GetEndOfSnapshot() != nil:
+			continue // ignore
+		default:
+			c.logger.Warn("skipping unexpected event type", "type", hclog.Fmt("%T", event.GetEvent()))
+			continue
 		}
 
 		// Before adding the resource into the queue we must clone it.
@@ -254,7 +262,7 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 		// mutation of data held by the cache (and presumably by the resource
 		// service assuming that the regular client we were given is the inmem
 		// variant)
-		add(protoutil.Clone(event.Resource))
+		add(protoutil.Clone(resource))
 	}
 }
 

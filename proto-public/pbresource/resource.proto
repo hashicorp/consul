@@ -469,44 +469,31 @@ message WatchListRequest {
   // NamePrefix filters the results to those with a name beginning with the
   // given prefix.
   string name_prefix = 3;
-
-  // SendSnapshotOperations opts into receiving the pair of
-  // OPERATION_START_OF_SNAPSHOT and OPERATION_END_OF_SNAPSHOT.
-  bool send_snapshot_operations = 4;
 }
 
 // WatchEvent is emitted on the WatchList stream when a resource changes.
 message WatchEvent {
-  // Operation describes the type of event.
-  enum Operation {
-    // OPERATION_UNSPECIFIED is the default/zero value. You should not see it
-    // in practice.
-    OPERATION_UNSPECIFIED = 0;
-
-    // OPERATION_UPSERT indicates that the resource was written (i.e. created or
-    // updated). All events from the initial state-of-the-world will be upsert
-    // events.
-    OPERATION_UPSERT = 1;
-
-    // OPERATION_DELETED indicates that the resource was deleted.
-    OPERATION_DELETE = 2;
-
-    // OPERATION_START_OF_SNAPSHOT is sent upon initial connection to indicate
-    // that a self consistent initial snapshot of all data follows up until
-    // OPERATION_END_OF_SNAPSHOT is received. Then the connection will send
-    // mutations of that initial state via other operations.
-    OPERATION_START_OF_SNAPSHOT = 3;
-
-    // OPERATION_END_OF_SNAPSHOT is sent to indicate that the initial snapshot
-    // events have been sent and future events will modify that set.
-    OPERATION_END_OF_SNAPSHOT = 4;
+  // Upsert indicates that the resource was written (i.e. created or
+  // updated). All events from the initial state-of-the-world will be upsert
+  // events.
+  message Upsert {
+    Resource resource = 1;
   }
 
-  // Operation describes the type of event.
-  Operation operation = 1;
+  // Delete indicates that the resource was deleted.
+  message Delete {
+    Resource resource = 1;
+  }
 
-  // Resource the event relates to.
-  Resource resource = 2;
+  // EndOfSnapshot is sent to indicate that the initial snapshot events have
+  // been sent and future events will modify that set.
+  message EndOfSnapshot {}
+
+  oneof event {
+    Upsert upsert = 1;
+    Delete delete = 2;
+    EndOfSnapshot end_of_snapshot = 3;
+  }
 }
 
 // MutateAndValidateRequest contains the parameters to the MutateAndValidate endpoint.

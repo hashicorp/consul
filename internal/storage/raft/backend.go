@@ -9,9 +9,10 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
@@ -214,8 +215,8 @@ func (b *Backend) leaderList(ctx context.Context, resType storage.UnversionedTyp
 }
 
 // WatchList implements the storage.Backend interface.
-func (b *Backend) WatchList(_ context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string, includeSnapshotOperations bool) (storage.Watch, error) {
-	return b.store.WatchList(resType, tenancy, namePrefix, includeSnapshotOperations)
+func (b *Backend) WatchList(_ context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (storage.Watch, error) {
+	return b.store.WatchList(resType, tenancy, namePrefix)
 }
 
 // ListByOwner implements the storage.Backend interface.

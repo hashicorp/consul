@@ -32,9 +32,7 @@ type TestOptions struct {
 
 	// IgnoreWatchListSnapshotOperations indicates whether a given storage
 	// backend is expected to be consistent enough with reads to emit
-	// WatchEvent_OPERATION_START_OF_SNAPSHOT and
-	// WatchEvent_OPERATION_END_OF_SNAPSHOT around a deterministic set of
-	// events.
+	// WatchEvent_Upsert after the initial sync.
 	//
 	// For instance, a replicated copy of the state store will have stale data
 	// and may return an initial snapshot of nothing, and follow it up by an
@@ -288,14 +286,12 @@ func testCASDelete(t *testing.T, opts TestOptions) {
 }
 
 func testListWatch(t *testing.T, opts TestOptions) {
-	type testcase struct {
-		resourceType    storage.UnversionedType
-		tenancy         *pbresource.Tenancy
-		namePrefix      string
-		results         []*pbresource.Resource
-		withSnapshotOps bool // don't set this manually
-	}
-	testCases := map[string]testcase{
+	testCases := map[string]struct {
+		resourceType storage.UnversionedType
+		tenancy      *pbresource.Tenancy
+		namePrefix   string
+		results      []*pbresource.Resource
+	}{
 		"simple #1": {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy:      tenancyDefault,
@@ -382,15 +378,6 @@ func testListWatch(t *testing.T, opts TestOptions) {
 		// TODO(peering/v2) add tests for peer tenancy
 	}
 
-	// Run all tests both ways (with and without including snapshot operations in WatchList)
-	for name, tc := range testCases {
-		if tc.withSnapshotOps {
-			continue
-		}
-		tc.withSnapshotOps = true // this is already a copy
-		testCases[name+", with snapshot operations"] = tc
-	}
-
 	t.Run("List", func(t *testing.T) {
 		ctx := testContext(t)
 
@@ -434,14 +421,11 @@ func testListWatch(t *testing.T, opts TestOptions) {
 					require.NoError(t, err)
 				}
 
-				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix, tc.withSnapshotOps)
+				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
 				require.NoError(t, err)
 				t.Cleanup(watch.Close)
 
-				expectNum := len(tc.results)
-				if tc.withSnapshotOps {
-					expectNum += 2
-				}
+				expectNum := len(tc.results) + 1
 				for i := 0; i < expectNum; i++ {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 					t.Cleanup(cancel)
@@ -449,31 +433,21 @@ func testListWatch(t *testing.T, opts TestOptions) {
 					event, err := watch.Next(ctx)
 					require.NoError(t, err)
 
-					if !tc.withSnapshotOps && event.Operation.IsFramingEvent() {
-						t.Fatalf("did not expect to receive any framing events in this test")
-					}
-
-					if tc.withSnapshotOps {
+					switch {
+					case event.GetUpsert() != nil:
+					case event.GetDelete() != nil:
+					case event.GetEndOfSnapshot() != nil:
 						if opts.IgnoreWatchListSnapshotOperations {
-							if event.Operation.IsFramingEvent() {
-								require.Nil(t, event.Resource)
-								continue
-							}
-						} else {
-							if i == 0 {
-								require.Equal(t, pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT, event.Operation)
-								require.Nil(t, event.Resource)
-								continue
-							} else if i == expectNum-1 {
-								require.Equal(t, pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT, event.Operation)
-								require.Nil(t, event.Resource)
-								continue
-							}
+							continue
+						} else if i == expectNum-1 {
+							continue
 						}
+					default:
+						t.Fatalf("unexpected event type %T", event.GetEvent())
 					}
 
-					require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, event.Operation, "index = %d", i)
-					prototest.AssertContainsElement(t, tc.results, event.Resource, ignoreVersion)
+					require.NotNil(t, event.GetUpsert(), "index=%d", i)
+					prototest.AssertContainsElement(t, tc.results, event.GetUpsert().Resource, ignoreVersion)
 				}
 			})
 
@@ -481,29 +455,17 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				backend := opts.NewBackend(t)
 				ctx := testContext(t)
 
-				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix, tc.withSnapshotOps)
+				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
 				require.NoError(t, err)
 				t.Cleanup(watch.Close)
 
-				if tc.withSnapshotOps {
-					{ // read snapshot start
-						ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-						t.Cleanup(cancel)
-						event, err := watch.Next(ctx)
-						require.NoError(t, err)
+				{ // read snapshot end
+					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+					t.Cleanup(cancel)
+					event, err := watch.Next(ctx)
+					require.NoError(t, err)
 
-						require.Equal(t, pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT, event.Operation)
-						require.Nil(t, event.Resource)
-					}
-					{ // read snapshot end
-						ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-						t.Cleanup(cancel)
-						event, err := watch.Next(ctx)
-						require.NoError(t, err)
-
-						require.Equal(t, pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT, event.Operation)
-						require.Nil(t, event.Resource)
-					}
+					require.NotNil(t, event.GetEndOfSnapshot())
 				}
 
 				// Write the seed data after the watch has been established.
@@ -519,13 +481,13 @@ func testListWatch(t *testing.T, opts TestOptions) {
 					event, err := watch.Next(ctx)
 					require.NoError(t, err)
 
-					require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, event.Operation)
-					prototest.AssertContainsElement(t, tc.results, event.Resource, ignoreVersion)
+					require.NotNil(t, event.GetUpsert())
+					prototest.AssertContainsElement(t, tc.results, event.GetUpsert().Resource, ignoreVersion)
 
 					// Check that Read implements "monotonic reads" with Watch.
-					readRes, err := backend.Read(ctx, storage.EventualConsistency, event.Resource.Id)
+					readRes, err := backend.Read(ctx, storage.EventualConsistency, event.GetUpsert().Resource.Id)
 					require.NoError(t, err)
-					prototest.AssertDeepEqual(t, event.Resource, readRes)
+					prototest.AssertDeepEqual(t, event.GetUpsert().Resource, readRes)
 				}
 
 				// Delete a random resource to check we get an event.
@@ -539,8 +501,8 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				event, err := watch.Next(ctx)
 				require.NoError(t, err)
 
-				require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, event.Operation)
-				prototest.AssertDeepEqual(t, del, event.Resource)
+				require.NotNil(t, event.GetDelete())
+				prototest.AssertDeepEqual(t, del, event.GetDelete().Resource)
 
 				// Check that Read implements "monotonic reads" with Watch.
 				_, err = backend.Read(ctx, storage.EventualConsistency, del.Id)

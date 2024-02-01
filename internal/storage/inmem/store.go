@@ -141,7 +141,13 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 	}
 	tx.Commit()
 
-	s.publishEvent(idx, pbresource.WatchEvent_OPERATION_UPSERT, res)
+	s.publishEvent(idx, &pbresource.WatchEvent{
+		Event: &pbresource.WatchEvent_Upsert_{
+			Upsert: &pbresource.WatchEvent_Upsert{
+				Resource: res,
+			},
+		},
+	})
 
 	return nil
 }
@@ -188,7 +194,13 @@ func (s *Store) DeleteCAS(id *pbresource.ID, vsn string) error {
 	}
 	tx.Commit()
 
-	s.publishEvent(idx, pbresource.WatchEvent_OPERATION_DELETE, res)
+	s.publishEvent(idx, &pbresource.WatchEvent{
+		Event: &pbresource.WatchEvent_Delete_{
+			Delete: &pbresource.WatchEvent_Delete{
+				Resource: res,
+			},
+		},
+	})
 
 	return nil
 }
@@ -201,7 +213,7 @@ func (s *Store) List(typ storage.UnversionedType, ten *pbresource.Tenancy, nameP
 	tx := s.txn(false)
 	defer tx.Abort()
 
-	return listTxn(tx, query{typ, ten, namePrefix, false})
+	return listTxn(tx, query{typ, ten, namePrefix})
 }
 
 func listTxn(tx *memdb.Txn, q query) ([]*pbresource.Resource, error) {
@@ -225,7 +237,7 @@ func listTxn(tx *memdb.Txn, q query) ([]*pbresource.Resource, error) {
 // matching the given name prefix.
 //
 // For more information, see the storage.Backend documentation.
-func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, namePrefix string, includeSnapshotOperations bool) (*Watch, error) {
+func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, namePrefix string) (*Watch, error) {
 	// If the user specifies a wildcard, we subscribe to events for resources in
 	// all partitions, peers, and namespaces, and manually filter out irrelevant
 	// stuff (in Watch.Next).
@@ -252,10 +264,9 @@ func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, 
 	return &Watch{
 		sub: ss,
 		query: query{
-			resourceType:              typ,
-			tenancy:                   ten,
-			namePrefix:                namePrefix,
-			includeSnapshotOperations: includeSnapshotOperations,
+			resourceType: typ,
+			tenancy:      ten,
+			namePrefix:   namePrefix,
 		},
 	}, nil
 }

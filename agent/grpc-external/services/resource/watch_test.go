@@ -129,17 +129,6 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
 
-	t.Run("standard", func(t *testing.T) {
-		t.Parallel()
-		testWatchList_GroupVersionMatches(t, false)
-	})
-	t.Run("send-snapshot-operations", func(t *testing.T) {
-		t.Parallel()
-		testWatchList_GroupVersionMatches(t, true)
-	})
-}
-
-func testWatchList_GroupVersionMatches(t *testing.T, sendSnapshotOperations bool) {
 	server := testServer(t)
 	client := testClient(t, server)
 	demo.RegisterTypes(server.Registry)
@@ -147,23 +136,15 @@ func testWatchList_GroupVersionMatches(t *testing.T, sendSnapshotOperations bool
 
 	// create a watch
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type:                   demo.TypeV2Artist,
-		Tenancy:                resource.DefaultNamespacedTenancy(),
-		NamePrefix:             "",
-		SendSnapshotOperations: sendSnapshotOperations,
+		Type:       demo.TypeV2Artist,
+		Tenancy:    resource.DefaultNamespacedTenancy(),
+		NamePrefix: "",
 	})
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)
 
-	if sendSnapshotOperations {
-		rsp := mustGetResource(t, rspCh)
-		require.Equal(t, pbresource.WatchEvent_OPERATION_START_OF_SNAPSHOT, rsp.Operation)
-		require.Nil(t, rsp.Resource)
-
-		rsp = mustGetResource(t, rspCh)
-		require.Equal(t, pbresource.WatchEvent_OPERATION_END_OF_SNAPSHOT, rsp.Operation)
-		require.Nil(t, rsp.Resource)
-	}
+	rsp := mustGetResource(t, rspCh)
+	require.NotNil(t, rsp.GetEndOfSnapshot())
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -171,23 +152,24 @@ func testWatchList_GroupVersionMatches(t *testing.T, sendSnapshotOperations bool
 	// insert and verify upsert event received
 	r1, err := server.Backend.WriteCAS(ctx, artist)
 	require.NoError(t, err)
-	rsp := mustGetResource(t, rspCh)
-	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
-	prototest.AssertDeepEqual(t, r1, rsp.Resource)
+	rsp = mustGetResource(t, rspCh)
+	require.NotNil(t, rsp.GetUpsert())
+	prototest.AssertDeepEqual(t, r1, rsp.GetUpsert().Resource)
 
 	// update and verify upsert event received
 	r2 := modifyArtist(t, r1)
 	r2, err = server.Backend.WriteCAS(ctx, r2)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
-	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
-	prototest.AssertDeepEqual(t, r2, rsp.Resource)
+	require.NotNil(t, rsp.GetUpsert())
+	prototest.AssertDeepEqual(t, r2, rsp.GetUpsert().Resource)
 
 	// delete and verify delete event received
 	err = server.Backend.DeleteCAS(ctx, r2.Id, r2.Version)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
-	require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, rsp.Operation)
+	require.NotNil(t, rsp.GetDelete())
+	prototest.AssertDeepEqual(t, r2.Id, rsp.GetDelete().Resource.Id)
 }
 
 func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
@@ -237,8 +219,8 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			}
 
 			rsp := mustGetResource(t, rspCh)
-			require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
-			prototest.AssertDeepEqual(t, expected, rsp.Resource)
+			require.NotNil(t, rsp.GetUpsert())
+			prototest.AssertDeepEqual(t, expected, rsp.GetUpsert().Resource)
 		})
 	}
 }
@@ -446,6 +428,6 @@ func TestWatchList_NoTenancy(t *testing.T) {
 
 	rsp2 := mustGetResource(t, rspCh)
 
-	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp2.Operation)
-	prototest.AssertDeepEqual(t, rsp1.Resource, rsp2.Resource)
+	require.NotNil(t, rsp2.GetUpsert())
+	prototest.AssertDeepEqual(t, rsp1.Resource, rsp2.GetUpsert().Resource)
 }
