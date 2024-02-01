@@ -122,6 +122,7 @@ func (s wildcardSubject) String() string {
 }
 
 type tenancySubject struct {
+	// TODO(peering/v2) update tenancy subject to account for peer tenancies
 	resourceType storage.UnversionedType
 	tenancy      *pbresource.Tenancy
 }
@@ -130,7 +131,7 @@ func (s tenancySubject) String() string {
 	return s.resourceType.Group + indexSeparator +
 		s.resourceType.Kind + indexSeparator +
 		s.tenancy.Partition + indexSeparator +
-		s.tenancy.PeerName + indexSeparator +
+
 		s.tenancy.Namespace
 }
 
@@ -179,9 +180,9 @@ func (s *Store) watchSnapshot(req stream.SubscribeRequest, snap stream.SnapshotA
 		q.resourceType = t.resourceType
 		q.tenancy = &pbresource.Tenancy{
 			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
 			Namespace: storage.Wildcard,
 		}
+		// TODO(peering/v2) maybe handle wildcards in peer tenancy
 	default:
 		return 0, fmt.Errorf("unhandled subject type: %T", req.Subject)
 	}

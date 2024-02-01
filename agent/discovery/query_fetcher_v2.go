@@ -66,5 +66,5 @@ func (f *V2DataFetcher) FetchWorkload(ctx Context, req *QueryPayload) (*Result, 
 // FetchPreparedQuery is used to fetch a prepared query from the V2 catalog.
 // Deprecated in V2.
 func (f *V2DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error) {
-	return nil, nil
+	return nil, ErrNotSupported
 }

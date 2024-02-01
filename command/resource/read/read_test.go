@@ -4,6 +4,7 @@ package read
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/mitchellh/cli"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/command/resource/apply"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -84,12 +86,12 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 	}
 }
 
-func createResource(t *testing.T, a *agent.TestAgent) {
+func createResource(t *testing.T, port int) {
 	applyUi := cli.NewMockUi()
 	applyCmd := apply.New(applyUi)
 
 	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", port),
 		"-token=root",
 	}
 
@@ -107,16 +109,19 @@ func TestResourceRead(t *testing.T) {
 
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
+	availablePort := freeport.GetOne(t)
+	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	t.Cleanup(func() {
+		a.Shutdown()
+	})
 
 	defaultCmdArgs := []string{
-		"-http-addr=" + a.HTTPAddr(),
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 		"-token=root",
 	}
 
-	createResource(t, a)
+	createResource(t, availablePort)
 	cases := []struct {
 		name         string
 		args         []string
@@ -131,15 +136,15 @@ func TestResourceRead(t *testing.T) {
 		},
 		{
 			name:         "read resource in command line format",
-			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
+			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"},
 			expectedCode: 0,
 			errMsg:       "",
 		},
 		{
 			name:         "read resource that doesn't exist",
-			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
+			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default"},
 			expectedCode: 1,
-			errMsg:       "Error reading resource demo.v2.Artist/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
+			errMsg:       "error reading resource: rpc error: code = NotFound desc = resource not found\n",
 		},
 	}
 
@@ -149,7 +154,7 @@ func TestResourceRead(t *testing.T) {
 			c := New(ui)
 			cliArgs := append(tc.args, defaultCmdArgs...)
 			code := c.Run(cliArgs)
-			require.Equal(t, tc.errMsg, ui.ErrorWriter.String())
+			require.Contains(t, ui.ErrorWriter.String(), tc.errMsg)
 			require.Equal(t, tc.expectedCode, code)
 		})
 	}

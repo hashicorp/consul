@@ -23,6 +23,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -44,6 +45,7 @@ type dataFetcherSuite struct {
 	api1ServiceEndpointsData    *pbcatalog.ServiceEndpoints
 	api2ServiceEndpoints        *pbresource.Resource
 	api2ServiceEndpointsData    *pbcatalog.ServiceEndpoints
+	proxyCfg                    *pbmesh.ComputedProxyConfiguration
 	webComputedDestinationsData *pbmesh.ComputedExplicitDestinations
 	webProxy                    *pbresource.Resource
 	webWorkload                 *pbresource.Resource
@@ -122,6 +124,12 @@ func (suite *dataFetcherSuite) setupWithTenancy(tenancy *pbresource.Tenancy) {
 		WithTenancy(tenancy).
 		WithData(suite.T(), suite.api2ServiceEndpointsData).
 		Write(suite.T(), suite.client)
+
+	suite.proxyCfg = &pbmesh.ComputedProxyConfiguration{
+		DynamicConfig: &pbmesh.DynamicConfig{
+			MeshGatewayMode: pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_NONE,
+		},
+	}
 
 	suite.webComputedDestinationsData = &pbmesh.ComputedExplicitDestinations{
 		Destinations: []*pbmesh.Destination{
@@ -250,7 +258,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			c.TrackComputedDestinations(resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](t, compDest))
 
 			// We will try to fetch explicit destinations for a proxy that doesn't have one.
-			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id, suite.proxyCfg)
 			require.NoError(t, err)
 			require.Nil(t, destinations)
 
@@ -275,7 +283,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id, suite.proxyCfg)
 			require.NoError(t, err)
 			require.Nil(t, destinations)
 			cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(notFoundServiceRef))
@@ -305,7 +313,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id, suite.proxyCfg)
 			require.NoError(t, err)
 			require.Nil(t, destinations)
 			cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(api1ServiceRef))
@@ -335,7 +343,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id, suite.proxyCfg)
 			require.NoError(t, err)
 			require.Nil(t, destinations)
 			cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(api1ServiceRef))
@@ -367,7 +375,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id, suite.proxyCfg)
 			require.NoError(t, err)
 			require.Empty(t, destinations)
 
@@ -400,7 +408,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			require.NotNil(suite.T(), api1ComputedRoutes)
 
 			// This destination points to TCP, but the computed routes is stale and only knows about HTTP.
-			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			destinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id, suite.proxyCfg)
 			require.NoError(t, err)
 
 			// Check that we didn't return any destinations.
@@ -438,7 +446,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 						switch {
 						case resource.ReferenceOrIDMatch(suite.api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
 							se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-							details.ServiceEndpointsId = se.Resource.Id
+							details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+								Id:        se.Resource.Id,
+								MeshPort:  details.MeshPort,
+								RoutePort: details.BackendRef.Port,
+							}
 							details.ServiceEndpoints = se.Data
 							details.IdentityRefs = []*pbresource.Reference{{
 								Name:    "api-1-identity",
@@ -454,7 +466,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 						switch {
 						case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp1":
 							se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-							details.ServiceEndpointsId = se.Resource.Id
+							details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+								Id:        se.Resource.Id,
+								MeshPort:  details.MeshPort,
+								RoutePort: details.BackendRef.Port,
+							}
 							details.ServiceEndpoints = se.Data
 							details.IdentityRefs = []*pbresource.Reference{{
 								Name:    "api-2-identity",
@@ -470,7 +486,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 						switch {
 						case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
 							se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-							details.ServiceEndpointsId = se.Resource.Id
+							details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+								Id:        se.Resource.Id,
+								MeshPort:  details.MeshPort,
+								RoutePort: details.BackendRef.Port,
+							}
 							details.ServiceEndpoints = se.Data
 							details.IdentityRefs = []*pbresource.Reference{{
 								Name:    "api-2-identity",
@@ -481,7 +501,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				},
 			}
 
-			actualDestinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+			actualDestinations, err := f.FetchComputedExplicitDestinationsData(suite.ctx, suite.webProxy.Id, suite.proxyCfg)
 			require.NoError(t, err)
 
 			// Check that we've computed expanded destinations correctly.
@@ -553,7 +573,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					switch {
 					case resource.ReferenceOrIDMatch(suite.api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
 						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+							Id:        se.Resource.Id,
+							MeshPort:  details.MeshPort,
+							RoutePort: details.BackendRef.Port,
+						}
 						details.ServiceEndpoints = se.Data
 						details.IdentityRefs = []*pbresource.Reference{{
 							Name:    "api-1-identity",
@@ -569,7 +593,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					switch {
 					case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp1":
 						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+							Id:        se.Resource.Id,
+							MeshPort:  details.MeshPort,
+							RoutePort: details.BackendRef.Port,
+						}
 						details.ServiceEndpoints = se.Data
 						details.IdentityRefs = []*pbresource.Reference{{
 							Name:    "api-2-identity",
@@ -585,7 +613,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					switch {
 					case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
 						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+							Id:        se.Resource.Id,
+							MeshPort:  details.MeshPort,
+							RoutePort: details.BackendRef.Port,
+						}
 						details.ServiceEndpoints = se.Data
 						details.IdentityRefs = []*pbresource.Reference{{
 							Name:    "api-2-identity",
@@ -601,7 +633,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					switch {
 					case resource.ReferenceOrIDMatch(api3Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
 						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), api3ServiceEndpoints)
-						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+							Id:        se.Resource.Id,
+							MeshPort:  details.MeshPort,
+							RoutePort: details.BackendRef.Port,
+						}
 						details.ServiceEndpoints = se.Data
 						details.IdentityRefs = []*pbresource.Reference{{
 							Name:    "api-3-identity",

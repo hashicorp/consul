@@ -7,8 +7,7 @@
       },
       "tenancy": {
          "partition": "default",
-         "namespace": "default",
-         "peer_name": "local"
+         "namespace": "default"
       },
       "name": "api-6-health"
    },
@@ -20,8 +19,7 @@
       },
       "tenancy": {
          "partition": "default",
-         "namespace": "default",
-         "peer_name": "local"
+         "namespace": "default"
       },
       "name": "api-6"
    },

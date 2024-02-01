@@ -7,4 +7,5 @@ import "github.com/hashicorp/consul/internal/resource"
 
 func Register(r resource.Registry) {
 	RegisterLink(r)
+	RegisterTelemetryState(r)
 }

@@ -200,7 +200,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		BuildLocalApp(workloadDataWithInheritedPorts, ctp)
 
 	// Get all destinationsData.
-	destinationsData, err := dataFetcher.FetchComputedExplicitDestinationsData(ctx, req.ID)
+	destinationsData, err := dataFetcher.FetchComputedExplicitDestinationsData(ctx, req.ID, proxyCfg.GetData())
 	if err != nil {
 		rt.Logger.Error("error fetching explicit destinations for this proxy", "error", err)
 		return err
@@ -299,7 +299,7 @@ func (r *reconciler) workloadPortProtocolsFromService(
 		inheritedProtocol := pbcatalog.Protocol_PROTOCOL_UNSPECIFIED
 		for _, svc := range services {
 			// Find workload's port as the target port.
-			svcPort := svc.GetData().FindServicePort(portName)
+			svcPort := svc.GetData().FindTargetPort(portName)
 
 			// If this service doesn't select this port, go to the next service.
 			if svcPort == nil {

@@ -329,7 +329,7 @@ func getCommonFpCases() map[string]failoverTestcase {
 					},
 				},
 			},
-			expectErr: `invalid value of key "http" within port_configs: invalid element at index 0 of list "destinations": invalid "port" field: value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
+			expectErr: `invalid value of key "http" within port_configs: invalid element at index 0 of list "destinations": invalid "port" field: value must be in the range 1 to 65535 or be 1-15 characters, contain at least 1 alpha, and match regex: ^[a-zA-Z0-9]+(?:-?[a-zA-Z0-9]+)*$`,
 		},
 		"ported config: bad ported in map": {
 			failover: &pbcatalog.FailoverPolicy{
@@ -341,7 +341,7 @@ func getCommonFpCases() map[string]failoverTestcase {
 					},
 				},
 			},
-			expectErr: `map port_configs contains an invalid key - "$bad$": value must match regex: ^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`,
+			expectErr: `map port_configs contains an invalid key - "$bad$": value must be in the range 1 to 65535 or be 1-15 characters, contain at least 1 alpha, and match regex: ^[a-zA-Z0-9]+(?:-?[a-zA-Z0-9]+)*$`,
 		},
 	}
 	return fpcases

@@ -1,0 +1,16 @@
+{
+    "status": {
+        "consul.io/hcp/link": {
+          "conditions": [
+            {
+              "message": "Successfully linked to cluster 'organization/f53e5646-6529-4698-ae29-d74f8bd22a01/project/6994bb7a-5561-4d5c-8bb0-cf40177e5b77/hashicorp.consul.global-network-manager.cluster/mkam-vm'",
+              "reason": "SUCCESS",
+              "state": "STATE_FALSE",
+              "type": "linked"
+            }
+          ],
+          "observedGeneration":"01HMA2VPHVKNF6QR8TD07KDN5K",
+          "updatedAt":"2024-01-16T21:29:25.923140Z"
+        }
+      }
+}

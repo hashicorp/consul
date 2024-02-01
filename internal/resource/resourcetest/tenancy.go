@@ -20,6 +20,7 @@ func TestTenancies() []*pbresource.Tenancy {
 
 	tenancies := []*pbresource.Tenancy{Tenancy("default.default")}
 	if isEnterprise {
+		// TODO(namespaces/v2) move the default partition + non-default namespace test to run even for CE.
 		tenancies = append(tenancies, Tenancy("default.bar"), Tenancy("foo.default"), Tenancy("foo.bar"))
 	}
 
@@ -29,10 +30,10 @@ func TestTenancies() []*pbresource.Tenancy {
 // Tenancy constructs a pbresource.Tenancy from a concise string representation
 // suitable for use in unit tests.
 //
-// - ""        : partition=""    namespace=""    peerName="local"
-// - "foo"     : partition="foo" namespace=""    peerName="local"
-// - "foo.bar" : partition="foo" namespace="bar" peerName="local"
-// - <others>  : partition="BAD" namespace="BAD" peerName="BAD"
+// - ""        : partition=""    namespace=""
+// - "foo"     : partition="foo" namespace=""
+// - "foo.bar" : partition="foo" namespace="bar"
+// - <others>  : partition="BAD" namespace="BAD"
 func Tenancy(s string) *pbresource.Tenancy {
 	parts := strings.Split(s, ".")
 	switch len(parts) {
@@ -48,7 +49,7 @@ func Tenancy(s string) *pbresource.Tenancy {
 		v.Namespace = parts[1]
 		return v
 	default:
-		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD", PeerName: "BAD"}
+		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD"}
 	}
 }
 

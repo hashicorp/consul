@@ -23,7 +23,6 @@ func createVirtualIPsResource(t *testing.T, data protoreflect.ProtoMessage) *pbr
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			Name: "test-vip",
 		},

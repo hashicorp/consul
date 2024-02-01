@@ -18,13 +18,11 @@ var (
 	defaultEndpointTenancy = &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "default",
-		PeerName:  "local",
 	}
 
 	badEndpointTenancy = &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "bad",
-		PeerName:  "local",
 	}
 )
 

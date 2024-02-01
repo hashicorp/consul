@@ -69,9 +69,14 @@ func (suite *dataFetcherSuite) setupWithTenancy(tenancy *pbresource.Tenancy) {
 		).
 		Write(suite.T(), suite.client)
 
-	suite.meshGateway = resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway-1").
+	suite.meshGateway = resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway").
 		WithData(suite.T(), &pbmesh.MeshGateway{
 			GatewayClassName: "gateway-class-1",
+			Listeners: []*pbmesh.MeshGatewayListener{
+				{
+					Name: "wan",
+				},
+			},
 		}).
 		Write(suite.T(), suite.client)
 

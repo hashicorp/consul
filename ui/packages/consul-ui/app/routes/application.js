@@ -13,13 +13,21 @@ export default class ApplicationRoute extends Route.extend(WithBlockingActions) 
   @service('client/http') client;
   @service('env') env;
   @service() hcp;
+  @service() router;
 
   data;
+
+  beforeModel() {
+    if (this.env.var('CONSUL_V2_CATALOG_ENABLED')) {
+      this.router.replaceWith('unavailable');
+    }
+  }
 
   async model() {
     if (this.env.var('CONSUL_ACLS_ENABLED')) {
       await this.hcp.updateTokenIfNecessary(this.env.var('CONSUL_HTTP_TOKEN'));
     }
+
     return {};
   }
 

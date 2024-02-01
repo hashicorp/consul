@@ -73,8 +73,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "bar",
-        "partition": "foo",
-        "peerName": "local"
+        "partition": "foo"
       },
       "type": {
         "group": "auth",
@@ -150,8 +149,7 @@
         "name": "api-1",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -159,15 +157,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp.api-2.bar.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -175,7 +173,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     }
   },
   "requiredLeafCertificates": {
