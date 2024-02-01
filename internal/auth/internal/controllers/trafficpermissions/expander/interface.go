@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 )
 
 // SamenessGroupExpander is used to expand sameness group for a ComputedTrafficPermission resource
