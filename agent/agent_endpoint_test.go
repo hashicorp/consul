@@ -1072,6 +1072,74 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 	})
 }
 
+// This function tests only the HealthCheck Definition in the response of
+// api endpoint - agent/health/service/id/{id}
+func TestAgent_HealthServiceByID_ForCheckDef(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	service := &structs.NodeService{
+		ID:      "mysql",
+		Service: "mysql",
+	}
+
+	// Register or Add a Service having a Check Type Definition
+	// This same Check Definition should reflect in GET response on endpoint - agent/health/service/id/{id}
+	interval, _ := time.ParseDuration("10s")
+	deregisterCriticalServiceAfter, _ := time.ParseDuration("15m")
+	serviceReq := AddServiceRequest{
+		Service: service,
+		chkTypes: []*structs.CheckType{
+			{
+				TCP:                            "10.0.0.10:80",
+				Interval:                       interval,
+				DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
+			},
+		},
+		persist: false,
+		token:   "",
+		Source:  ConfigSourceLocal,
+	}
+	if err := a.AddService(serviceReq); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	eval := func(t *testing.T, url string, expected api.HealthCheckDefinition) {
+		t.Helper()
+
+		t.Run("format=json", func(t *testing.T) {
+			req, _ := http.NewRequest("GET", url, nil)
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			dec := json.NewDecoder(resp.Body)
+			data := &api.AgentServiceChecksInfo{}
+			if err := dec.Decode(data); err != nil {
+				t.Fatalf("Cannot convert result from JSON: %v", err)
+			}
+			require.Equal(t, expected, data.Checks[0].Definition)
+		})
+	}
+
+	// Expeced HealthCheckDefinition in response
+	expected := api.HealthCheckDefinition{
+		TCP:                                    "10.0.0.10:80",
+		Interval:                               api.ReadableDuration(interval),
+		IntervalDuration:                       interval,
+		DeregisterCriticalServiceAfter:         api.ReadableDuration(deregisterCriticalServiceAfter),
+		DeregisterCriticalServiceAfterDuration: deregisterCriticalServiceAfter,
+	}
+
+	t.Run("health check definition", func(t *testing.T) {
+		eval(t, "/v1/agent/health/service/id/mysql", expected)
+	})
+}
+
 func TestAgent_HealthServiceByName(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
