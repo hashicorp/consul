@@ -1424,6 +1424,9 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceName:    "redis",
 		Type:           "ttl",
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		Definition: structs.HealthCheckDefinition{
+			TTL: time.Minute,
+		},
 	}
 	hchk2 := &structs.HealthCheck{Node: "node1",
 		CheckID:        "chk2",
@@ -1433,6 +1436,9 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceName:    "redis",
 		Type:           "ttl",
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		Definition: structs.HealthCheckDefinition{
+			TTL: 2 * time.Minute,
+		},
 	}
 
 	// register service with chk1
