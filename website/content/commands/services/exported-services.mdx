@@ -24,6 +24,14 @@ The table below shows this command's [required ACLs](/consul/api-docs/api-struct
 
 Usage: `consul services exported-services [options]`
 
+#### Command Options
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+- `-consumerPeer=<string>` - If provided, output is filtered to only services which have the consumer peer.
+
+- `-consumerPartition` <EnterpriseAlert inline /> - If provided, output is filtered to only services which have the consumer partition
+
 #### Enterprise Options
 
 @include 'http_api_partition_options.mdx'
