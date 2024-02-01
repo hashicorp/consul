@@ -1,4 +1,9 @@
 ## 1.17.2 (January 23, 2024)
+
+KNOWN ISSUES:
+
+* connect: Consul versions 1.17.2 and 1.16.5 perform excessively strict TLS SAN verification on terminating gateways, which prevents connections outside of the mesh to upstream services. Terminating gateway users are advised to avoid deploying these Consul versions. A fix will be present in a future release of Consul 1.17.3 and 1.16.6. [[GH-20360](https://github.com/hashicorp/consul/issues/20360)]
+
 SECURITY:
 
 * Upgrade OpenShift container images to use `ubi9-minimal:9.3` as the base image. [[GH-20014](https://github.com/hashicorp/consul/issues/20014)]
