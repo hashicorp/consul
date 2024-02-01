@@ -52,6 +52,24 @@
                     "exact": "bar.com"
                   },
                   "sanType": "URI"
+                },
+                {
+                  "matcher": {
+                    "exact": "bar.com"
+                  },
+                  "sanType": "DNS"
+                },
+                {
+                  "matcher": {
+                    "exact": "bar.com"
+                  },
+                  "sanType": "EMAIL"
+                },
+                {
+                  "matcher": {
+                    "exact": "bar.com"
+                  },
+                  "sanType": "IP_ADDRESS"
                 }
               ],
               "trustedCa": {
@@ -148,6 +166,24 @@
                     "exact": "foo.com"
                   },
                   "sanType": "URI"
+                },
+                {
+                  "matcher": {
+                    "exact": "foo.com"
+                  },
+                  "sanType": "DNS"
+                },
+                {
+                  "matcher": {
+                    "exact": "foo.com"
+                  },
+                  "sanType": "EMAIL"
+                },
+                {
+                  "matcher": {
+                    "exact": "foo.com"
+                  },
+                  "sanType": "IP_ADDRESS"
                 }
               ],
               "trustedCa": {

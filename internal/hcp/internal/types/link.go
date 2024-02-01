@@ -6,12 +6,13 @@ package types
 import (
 	"errors"
 
+	"github.com/hashicorp/go-multierror"
+	hcpresource "github.com/hashicorp/hcp-sdk-go/resource"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-multierror"
-	hcpresource "github.com/hashicorp/hcp-sdk-go/resource"
 )
 
 type DecodedLink = resource.DecodedResource[*pbhcp.Link]
