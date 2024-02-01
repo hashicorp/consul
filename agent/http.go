@@ -189,7 +189,8 @@ func (s *HTTPHandlers) handler() http.Handler {
 		// Register the wrapper.
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-			handler(resp, req)
+
+			s.enterpriseRequest(resp, req, handler)
 
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
@@ -316,7 +317,6 @@ func (s *HTTPHandlers) handler() http.Handler {
 		h = mux
 	}
 
-	h = s.enterpriseHandler(h)
 	h = withRemoteAddrHandler(h)
 	s.h = &wrappedMux{
 		mux:     mux,
