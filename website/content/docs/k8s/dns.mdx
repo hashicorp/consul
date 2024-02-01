@@ -134,6 +134,70 @@ in full cluster rebuilds.
 
 -> **Note:** If using a different zone than `.consul`, change the key accordingly.
 
+## OpenShift DNS Operator
+
+-> **Note:** OpenShift CLI `oc` is utilized below complete the following steps. You can find more details on how to install OpenShift CLI from [Getting started with OpenShift CLI](https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html).
+
+You can use DNS forwarding to override the default forwarding configuration in the `/etc/resolv.conf` file by specifying
+the `consul-dns` service for the `consul` subdomain (zone).
+
+Find `consul-dns` service clusterIP:
+
+```shell-session
+$ oc get svc consul-dns --namespace consul --output jsonpath='{.spec.clusterIP}'
+172.30.186.254
+```
+
+Edit the `default` DNS Operator:
+
+```shell-session
+$ oc edit edit dns.operator/default
+```
+
+Append the following `servers` section entry to the `spec` section of the DNS Operator configuration:
+
+```yaml
+spec:
+  servers:
+  - name: consul-server
+    zones:
+    - consul
+    forwardPlugin:
+      policy: Random
+      upstreams:
+      - 172.30.186.254 # Set to clusterIP of consul-dns service
+```
+
+Save the configuration changes and verify the `dns-default` configmap has been updated:
+
+```shell-session
+$ oc get configmap/dns-default -n openshift-dns -o yaml
+```
+
+Example output with updated `consul` forwarding zone:
+
+```yaml
+...
+data:
+  Corefile: |
+    # consul-server
+    consul:5353 {
+        prometheus 127.0.0.1:9153
+        forward . 172.30.186.254 {
+            policy random
+        }
+        errors
+        log . {
+            class error
+        }
+        bufsize 1232
+        cache 900 {
+            denial 9984 30
+        }
+    }
+...
+```
+
 ## Verifying DNS Works
 
 To verify DNS works, run a simple job to query DNS. Save the following
