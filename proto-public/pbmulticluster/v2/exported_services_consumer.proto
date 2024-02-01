@@ -1,0 +1,17 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.multicluster.v2;
+
+// +kubebuilder:validation:Type=object
+// +kubebuilder:validation:Schemaless
+// +kubebuilder:pruning:PreserveUnknownFields
+message ExportedServicesConsumer {
+  oneof consumer_tenancy {
+    string peer = 1;
+    string partition = 2;
+    string sameness_group = 3;
+  }
+}
