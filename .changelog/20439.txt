@@ -1,0 +1,3 @@
+```release-note:bug
+docs: Consul DNS Forwarding configuration for OpenShift update for [Resolve Consul DNS Requests in Kubernetes](https://developer.hashicorp.com/consul/docs/k8s/dns)
+```
