@@ -501,7 +501,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// nothing found locally. recurse if we have a recursor, NXDOMAIN otherwise
 	if len(m.Answer) == 0 {
-		if req.RecursionDesired && len(cfg.Recursors) > 0 {
+		if req.RecursionDesired && m.RecursionAvailable {
 			d.handleRecurse(resp, req)
 			return
 		}
