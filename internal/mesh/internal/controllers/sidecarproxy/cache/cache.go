@@ -223,7 +223,6 @@ func (c *Cache) listAllProxyStateTemplatesTemporarily(ctx context.Context, rt co
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: tenancy.Partition,
-			PeerName:  tenancy.PeerName,
 		},
 	})
 	if err != nil {

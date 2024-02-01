@@ -718,6 +718,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				Time:    a.config.GRPCKeepaliveInterval,
 				Timeout: a.config.GRPCKeepaliveTimeout,
 			},
+			nil,
 		)
 
 		if a.baseDeps.UseV2Resources() {
@@ -754,6 +755,11 @@ func (a *Agent) Start(ctx context.Context) error {
 			return fmt.Errorf("can't start agent: client agents are not supported with v2 resources")
 		}
 
+		// the conn is used to connect to the consul server agent
+		conn, err := a.baseDeps.GRPCConnPool.ClientConn(a.baseDeps.RuntimeConfig.Datacenter)
+		if err != nil {
+			return err
+		}
 		a.externalGRPCServer = external.NewServer(
 			a.logger.Named("grpc.external"),
 			metrics.Default(),
@@ -763,6 +769,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				Time:    a.config.GRPCKeepaliveInterval,
 				Timeout: a.config.GRPCKeepaliveTimeout,
 			},
+			conn,
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
@@ -1106,7 +1113,14 @@ func (a *Agent) listenAndServeV2DNS() error {
 	if a.baseDeps.UseV2Resources() {
 		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config)
 	} else {
-		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config, a.RPC, a.logger.Named("catalog-data-fetcher"))
+		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config,
+			a.AgentEnterpriseMeta(),
+			a.cache.Get,
+			a.RPC,
+			a.rpcClientHealth.ServiceNodes,
+			a.rpcClientConfigEntry.GetSamenessGroup,
+			a.TranslateServicePort,
+			a.logger.Named("catalog-data-fetcher"))
 	}
 
 	// Generate a Query Processor with the appropriate data fetcher
@@ -1295,7 +1309,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 	}
 
 	httpAddrs := a.config.HTTPAddrs
-	if a.config.IsCloudEnabled() {
+	if a.scadaProvider != nil {
 		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
 	}
 

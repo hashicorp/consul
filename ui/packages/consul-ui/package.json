@@ -91,7 +91,6 @@
     "chalk": "^4.1.0",
     "clipboard": "^2.0.11",
     "consul-acls": "*",
-    "consul-hcp": "*",
     "consul-lock-sessions": "*",
     "consul-nspaces": "*",
     "consul-partitions": "*",

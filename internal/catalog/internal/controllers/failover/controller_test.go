@@ -67,8 +67,9 @@ func TestController(t *testing.T) {
 			apiServiceData := &pbcatalog.Service{
 				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
 				Ports: []*pbcatalog.ServicePort{{
-					TargetPort: "http",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+					VirtualPort: 8080,
+					TargetPort:  "http",
+					Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 				}},
 			}
 			svc := rtest.Resource(pbcatalog.ServiceType, "api").
@@ -108,7 +109,60 @@ func TestController(t *testing.T) {
 
 			t.Logf("reconciled to accepted")
 
-			// Update the failover to reference an unknown port
+			// Update the failover to reference a port twice (once by virtual, once by target port)
+			failoverData = &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{{
+							Ref:  apiServiceRef,
+							Port: "http",
+						}},
+					},
+					"8080": {
+						Destinations: []*pbcatalog.FailoverDestination{{
+							Ref:  apiServiceRef,
+							Port: "http",
+						}},
+					},
+				},
+			}
+			failover = rtest.Resource(pbcatalog.FailoverPolicyType, "api").
+				WithData(t, failoverData).
+				WithTenancy(tenancy).
+				Write(t, client)
+
+			t.Cleanup(func() { client.MustDelete(t, failover.Id) })
+
+			// Assert that the FailoverPolicy has the conflict condition.
+			client.WaitForStatusCondition(t, failover.Id, ControllerID, ConditionConflictDestinationPort(apiServiceRef, &pbcatalog.ServicePort{
+				VirtualPort: 8080,
+				TargetPort:  "http",
+			}))
+
+			// Assert that the ComputedFailoverPolicy has the conflict condition.
+			// The port normalization that occurs in the call to SimplifyFailoverPolicy results in the port being
+			// removed from the final FailoverPolicy and ComputedFailoverPolicy.
+			expFailoverData := &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{{
+							Ref:  apiServiceRef,
+							Port: "http",
+						}},
+					},
+				},
+			}
+			expectedComputedFP = &pbcatalog.ComputedFailoverPolicy{
+				PortConfigs:     expFailoverData.PortConfigs,
+				BoundReferences: []*pbresource.Reference{apiServiceRef},
+			}
+			waitAndAssertComputedFailoverPolicy(t, client, failover.Id, expectedComputedFP, ConditionConflictDestinationPort(apiServiceRef, &pbcatalog.ServicePort{
+				VirtualPort: 8080,
+				TargetPort:  "http",
+			}))
+			t.Logf("reconciled to using duplicate destination port")
+
+			// Update the failover to fix the duplicate, but reference an unknown port
 			failoverData = &pbcatalog.FailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
@@ -132,11 +186,27 @@ func TestController(t *testing.T) {
 
 			t.Cleanup(func() { client.MustDelete(t, failover.Id) })
 
+			// Assert that the FailoverPolicy has the unknown condition.
+			client.WaitForStatusCondition(t, failover.Id, ControllerID, ConditionUnknownPort(apiServiceRef, "admin"))
+
+			// Assert that the ComputedFailoverPolicy has the unknown condition.
+			// The port normalization that occurs in the call to SimplifyFailoverPolicy results in the port being
+			// removed from the final FailoverPolicy and ComputedFailoverPolicy.
+			expFailoverData = &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{{
+							Ref:  apiServiceRef,
+							Port: "http",
+						}},
+					},
+				},
+			}
 			expectedComputedFP = &pbcatalog.ComputedFailoverPolicy{
-				PortConfigs:     failoverData.PortConfigs,
+				PortConfigs:     expFailoverData.PortConfigs,
 				BoundReferences: []*pbresource.Reference{apiServiceRef},
 			}
-			waitAndAssertComputedFailoverPolicy(t, client, failover.Id, expectedComputedFP, ConditionUnknownPort("admin"))
+			waitAndAssertComputedFailoverPolicy(t, client, failover.Id, expectedComputedFP, ConditionUnknownPort(apiServiceRef, "admin"))
 			t.Logf("reconciled to unknown admin port")
 
 			// update the service to fix the stray reference, but point to a mesh port
@@ -144,14 +214,21 @@ func TestController(t *testing.T) {
 				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
 				Ports: []*pbcatalog.ServicePort{
 					{
-						TargetPort: "http",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						TargetPort:  "http",
+						VirtualPort: 8080,
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 					{
-						TargetPort: "admin",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
+						TargetPort:  "admin",
+						VirtualPort: 10000,
+						Protocol:    pbcatalog.Protocol_PROTOCOL_MESH,
 					},
 				},
+			}
+			// update the expected ComputedFailoverPolicy to add back in the admin port as well
+			expectedComputedFP = &pbcatalog.ComputedFailoverPolicy{
+				PortConfigs:     failoverData.PortConfigs,
+				BoundReferences: []*pbresource.Reference{apiServiceRef},
 			}
 			svc = rtest.Resource(pbcatalog.ServiceType, "api").
 				WithData(t, apiServiceData).
@@ -168,12 +245,14 @@ func TestController(t *testing.T) {
 				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
 				Ports: []*pbcatalog.ServicePort{
 					{
-						TargetPort: "http",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						VirtualPort: 8080,
+						TargetPort:  "http",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 					{
-						TargetPort: "admin",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						VirtualPort: 10000,
+						TargetPort:  "admin",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 				},
 			}
@@ -253,12 +332,14 @@ func TestController(t *testing.T) {
 				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"other-"}},
 				Ports: []*pbcatalog.ServicePort{
 					{
-						TargetPort: "http",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						VirtualPort: 8080,
+						TargetPort:  "http",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 					{
-						TargetPort: "admin",
-						Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+						VirtualPort: 10000,
+						TargetPort:  "admin",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 					},
 				},
 			}

@@ -136,6 +136,10 @@ func NewOTELSink(ctx context.Context, opts *OTELSinkOpts) (*OTELSink, error) {
 	}, nil
 }
 
+func (o *OTELSink) Shutdown() {
+	o.meterProvider.Shutdown(context.TODO())
+}
+
 // SetGauge emits a Consul gauge metric.
 func (o *OTELSink) SetGauge(key []string, val float32) {
 	o.SetGaugeWithLabels(key, val, nil)

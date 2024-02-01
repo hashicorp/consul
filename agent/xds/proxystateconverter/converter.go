@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
+	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
@@ -78,8 +79,6 @@ func (g *Converter) resourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) erro
 	return nil
 }
 
-const localPeerKey = "local"
-
 func (g *Converter) tlsConfigFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) error {
 	proxyStateTLS := &pbproxystate.TLS{}
 	g.proxyState.TrustBundles = make(map[string]*pbproxystate.TrustBundle)
@@ -89,7 +88,7 @@ func (g *Converter) tlsConfigFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) erro
 	g.proxyState.Tls = proxyStateTLS
 
 	// Add local trust bundle
-	g.proxyState.TrustBundles[localPeerKey] = &pbproxystate.TrustBundle{
+	g.proxyState.TrustBundles[resource.DefaultPeerName] = &pbproxystate.TrustBundle{
 		TrustDomain: cfgSnap.Roots.TrustDomain,
 		Roots:       []string{cfgSnap.RootPEMs()},
 	}

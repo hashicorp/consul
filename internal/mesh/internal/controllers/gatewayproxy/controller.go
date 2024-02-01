@@ -119,6 +119,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Type: pbmulticluster.ComputedExportedServicesType,
 	}
 
+	// This covers any incoming requests from outside my partition to services inside my partition
 	var exportedServices []*pbmulticluster.ComputedExportedService
 	dec, err := dataFetcher.FetchComputedExportedServices(ctx, exportedServicesID)
 	if err != nil {
@@ -129,13 +130,27 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		exportedServices = dec.Data.Services
 	}
 
+	// This covers any incoming requests from inside my partition to services outside my partition
+	meshGateways, err := dataFetcher.FetchMeshGateways(ctx)
+	if err != nil {
+		rt.Logger.Warn("error reading the associated mesh gateways", "error", err)
+	}
+
+	var remoteGatewayIDs []*pbresource.ID
+	for _, meshGateway := range meshGateways {
+		// If this is the mesh gateway in my local partition + datacenter, skip
+		if meshGateway.Id.Tenancy.Partition != req.ID.Tenancy.Partition {
+			remoteGatewayIDs = append(remoteGatewayIDs, meshGateway.Id)
+		}
+	}
+
 	trustDomain, err := r.getTrustDomain()
 	if err != nil {
 		rt.Logger.Error("error fetching trust domain to compute proxy state template", "error", err)
 		return err
 	}
 
-	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
+	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain, remoteGatewayIDs).Build()
 
 	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {

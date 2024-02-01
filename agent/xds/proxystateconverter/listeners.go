@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/platform"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/types"
@@ -838,7 +839,7 @@ func (s *Converter) createInboundMeshMTLS(cfgSnap *proxycfg.ConfigSnapshot) (*pb
 	}
 
 	// Add all trust bundle peer names, including local.
-	trustBundlePeerNames := []string{"local"}
+	trustBundlePeerNames := []string{resource.DefaultPeerName}
 	for _, tb := range cfgSnap.PeeringTrustBundles() {
 		trustBundlePeerNames = append(trustBundlePeerNames, tb.PeerName)
 	}

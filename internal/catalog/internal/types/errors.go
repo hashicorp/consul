@@ -9,11 +9,13 @@ import (
 )
 
 var (
-	errNotDNSLabel                = errors.New(fmt.Sprintf("value must match regex: %s", dnsLabelRegex))
+	errNotDNSLabel                = errors.New(fmt.Sprintf("value must be 1-63 characters and match regex: %s", dnsLabelRegex))
+	errNotPortName                = errors.New(fmt.Sprintf("value must be 1-15 characters, contain at least 1 alpha, and match regex: %s", ianaSvcNameRegex))
 	errNotIPAddress               = errors.New("value is not a valid IP address")
 	errUnixSocketMultiport        = errors.New("Unix socket address references more than one port")
 	errInvalidPhysicalPort        = errors.New("port number is outside the range 1 to 65535")
 	errInvalidVirtualPort         = errors.New("port number is outside the range 0 to 65535")
+	errInvalidPortID              = errors.New(fmt.Sprintf("value must be in the range 1 to 65535 or be 1-15 characters, contain at least 1 alpha, and match regex: %s", ianaSvcNameRegex))
 	errDNSWarningWeightOutOfRange = errors.New("DNS warning weight is outside the range 0 to 65535")
 	errDNSPassingWeightOutOfRange = errors.New("DNS passing weight is outside of the range 1 to 65535")
 	errLocalityZoneNoRegion       = errors.New("locality region cannot be empty if the zone is set")

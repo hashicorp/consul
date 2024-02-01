@@ -5,6 +5,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/internal/resource"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -15,7 +16,7 @@ func validateExportedServiceConsumerCommon(consumer *pbmulticluster.ExportedServ
 	switch consumer.GetConsumerTenancy().(type) {
 	case *pbmulticluster.ExportedServicesConsumer_Peer:
 		{
-			if consumer.GetPeer() == "" || consumer.GetPeer() == "local" {
+			if consumer.GetPeer() == "" || consumer.GetPeer() == resource.DefaultPeerName {
 				return resource.ErrInvalidListElement{
 					Name:    "peer",
 					Index:   indx,

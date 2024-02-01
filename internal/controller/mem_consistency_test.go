@@ -215,7 +215,6 @@ func TestControllerRuntimeMemoryCloning(t *testing.T) {
 			Type: fakeV2Type,
 			Tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 		}).
@@ -229,7 +228,6 @@ func TestControllerRuntimeMemoryCloning(t *testing.T) {
 			Type: fakeType,
 			Tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 		}).
@@ -308,7 +306,6 @@ func TestControllerRunnerSharedMemoryCache(t *testing.T) {
 			Type: fakeV2Type,
 			Tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 		}).

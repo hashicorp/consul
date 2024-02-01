@@ -151,7 +151,6 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 	tenancy *pbresource.Tenancy,
 ) {
 	clusterName := cluster.Name
-	tenancy.PeerName = "local"
 
 	newID := func(name string, tenancy *pbresource.Tenancy) topology.ID {
 		return topology.ID{

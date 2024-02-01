@@ -75,10 +75,6 @@ ${
 {{if .NamespacesEnabled}}
   <script src="${rootURL}assets/consul-nspaces/routes.js"></script>
 {{end}}
-{{if .HCPEnabled}}
-  <script src="${rootURL}assets/consul-hcp/services.js"></script>
-  <script src="${rootURL}assets/consul-hcp/routes.js"></script>
-{{end}}
 `
     : `
 <script>
@@ -112,10 +108,6 @@ ${
       name: 'consul-nspaces',
       default: ${config.operatorConfig.NamespacesEnabled}
     },
-    'CONSUL_HCP_ENABLE': {
-      name: 'consul-hcp',
-      default: ${config.operatorConfig.HCPEnabled}
-    }
   }
 );
 </script>

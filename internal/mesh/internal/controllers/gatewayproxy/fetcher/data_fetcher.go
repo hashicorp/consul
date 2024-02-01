@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -39,6 +40,22 @@ func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*typ
 		return nil, err
 	} else if dec == nil {
 		return nil, nil
+	}
+
+	return dec, nil
+}
+
+// FetchMeshGateways fetches all MeshGateway resources known to the local server.
+func (f *Fetcher) FetchMeshGateways(ctx context.Context) ([]*types.DecodedMeshGateway, error) {
+	tenancy := resource.DefaultClusteredTenancy()
+	tenancy.Partition = acl.WildcardPartitionName
+
+	dec, err := resource.ListDecodedResource[*pbmesh.MeshGateway](ctx, f.client, &pbresource.ListRequest{
+		Type:    pbmesh.MeshGatewayType,
+		Tenancy: tenancy,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return dec, nil
