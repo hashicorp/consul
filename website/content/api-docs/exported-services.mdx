@@ -1,24 +1,22 @@
 ---
 layout: api
 page_title: Exported Services - HTTP API
-description: The /exported-services endpoint is used to list all the exported services  
-  along with their consumers.
+description: The /exported-services endpoint lists exported services and their consumers.
 ---
 
 # Exported Services HTTP Endpoint
 
--> **1.17.3+:** The exported services API is available in Consul versions 1.17.3 and newer.
+<Note> 
+  The exported services HTTP API endpoint requires Consul v1.17.3 or newer.
+</Note>
 
-The `/exported-services` endpoint returns the list of exported services and their consumers.
+The `/exported-services` endpoint returns a list of exported services, as well as the admin partitions and cluster peers that consume the services.
 
-This will fetch all of the services that were exported using an
-[`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services).
-Sameness groups and wildcards in the configuration entry are expanded in the response.
+This list consists of the services that were exported using an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services). Sameness groups and wildcards in the configuration entry are expanded in the response.
 
 ## List Exported Services
 
-If overrides are needed they are passed as the JSON-encoded request body and
-the `POST` method must be used, otherwise `GET` is sufficient.
+This endpoint returns a list of exported services.
 
 | Method             | Path                 | Produces           |
 | ------------------ | -------------------- | ------------------ |
@@ -38,8 +36,7 @@ The table below shows this endpoint's support for
 
 ### Query Parameters
 
-- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the partition from which the 
-  services are exported. If not specified will default to `default`.
+- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the admin partition the services are exported from. When not specified, assumes the default value `default`.
 
 
 ### Sample Request

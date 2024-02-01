@@ -282,10 +282,6 @@
     "path": "exec"
   },
   {
-    "title": "exported-services",
-    "path": "exported-services"
-  },
-  {
     "title": "force-leave",
     "path": "force-leave"
   },
@@ -520,6 +516,10 @@
       {
         "title": "export",
         "path": "services/export"
+      },
+      {
+        "title": "exported-services",
+        "path": "services/exported-services"
       }
     ]
   },

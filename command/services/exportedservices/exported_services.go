@@ -149,12 +149,12 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Lists exported services"
 	help     = `
-Usage: consul exported-services [options]
+Usage: consul services exported-services [options]
 
   Lists all the exported services and their consumers. Wildcards and sameness groups(Enterprise) are expanded.
 
   Example:
 
-    $ consul exported-services
+    $ consul services exported-services
 `
 )
