@@ -1,0 +1,4 @@
+```release-note:bug
+api: fixes the issue of health check definition in the response of endpoint - agent/health/service/id/{id},
+not matching the input health check definition provided during service registration.
+```
