@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
@@ -129,9 +130,10 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
 
-	server := testServer(t)
-	client := testClient(t, server)
-	demo.RegisterTypes(server.Registry)
+	b := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes)
+	client := b.Run(t)
+
 	ctx := context.Background()
 
 	// create a watch
@@ -143,29 +145,30 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)
 
-	rsp := mustGetResource(t, rspCh)
-	require.NotNil(t, rsp.GetEndOfSnapshot())
+	mustGetEndOfSnapshot(t, rspCh)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	// insert and verify upsert event received
-	r1, err := server.Backend.WriteCAS(ctx, artist)
+	r1Resp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+	r1 := r1Resp.Resource
 	require.NoError(t, err)
-	rsp = mustGetResource(t, rspCh)
+	rsp := mustGetResource(t, rspCh)
 	require.NotNil(t, rsp.GetUpsert())
 	prototest.AssertDeepEqual(t, r1, rsp.GetUpsert().Resource)
 
 	// update and verify upsert event received
 	r2 := modifyArtist(t, r1)
-	r2, err = server.Backend.WriteCAS(ctx, r2)
+	r2Resp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: r2})
 	require.NoError(t, err)
+	r2 = r2Resp.Resource
 	rsp = mustGetResource(t, rspCh)
 	require.NotNil(t, rsp.GetUpsert())
 	prototest.AssertDeepEqual(t, r2, rsp.GetUpsert().Resource)
 
 	// delete and verify delete event received
-	err = server.Backend.DeleteCAS(ctx, r2.Id, r2.Version)
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: r2.Id, Version: r2.Version})
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
 	require.NotNil(t, rsp.GetDelete())
@@ -189,6 +192,8 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			})
 			require.NoError(t, err)
 			rspCh := handleResourceStream(t, stream)
+
+			mustGetEndOfSnapshot(t, rspCh)
 
 			// Testcase will pick one of executive, recordLabel or artist based on scope of type.
 			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
@@ -231,9 +236,10 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	// Then no watch events should be emitted
 	t.Parallel()
 
-	server := testServer(t)
-	demo.RegisterTypes(server.Registry)
-	client := testClient(t, server)
+	b := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes)
+	client := b.Run(t)
+
 	ctx := context.Background()
 
 	// create a watch for TypeArtistV1
@@ -245,20 +251,24 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)
 
+	mustGetEndOfSnapshot(t, rspCh)
+
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	// insert
-	r1, err := server.Backend.WriteCAS(ctx, artist)
+	r1Resp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 	require.NoError(t, err)
+	r1 := r1Resp.Resource
 
 	// update
 	r2 := clone(r1)
-	r2, err = server.Backend.WriteCAS(ctx, r2)
+	r2Resp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: r2})
 	require.NoError(t, err)
+	r2 = r2Resp.Resource
 
 	// delete
-	err = server.Backend.DeleteCAS(ctx, r2.Id, r2.Version)
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: r2.Id, Version: r2.Version})
 	require.NoError(t, err)
 
 	// verify no events received
@@ -270,7 +280,7 @@ func TestWatchList_ACL_ListDenied(t *testing.T) {
 	t.Parallel()
 
 	// deny all
-	rspCh, _ := roundTripACL(t, testutils.ACLNoPermissions(t))
+	rspCh, _ := roundTripACL(t, testutils.ACLNoPermissions(t), true)
 
 	// verify key:list denied
 	err := mustGetError(t, rspCh)
@@ -288,7 +298,7 @@ func TestWatchList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 		key_prefix "resource/" { policy = "list" }
 		key_prefix "resource/demo.v2.Artist/" { policy = "deny" }
 		`)
-	rspCh, _ := roundTripACL(t, authz)
+	rspCh, _ := roundTripACL(t, authz, false)
 
 	// verify resource filtered out by key:read denied, hence no events
 	mustGetNoResource(t, rspCh)
@@ -303,23 +313,26 @@ func TestWatchList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 		key_prefix "resource/" { policy = "list" }
 		key_prefix "resource/demo.v2.Artist/" { policy = "read" }
 	`)
-	rspCh, artist := roundTripACL(t, authz)
+	rspCh, artist := roundTripACL(t, authz, false)
 
 	// verify resource not filtered out by acl
 	event := mustGetResource(t, rspCh)
-	prototest.AssertDeepEqual(t, artist, event.Resource)
+
+	require.NotNil(t, event.GetUpsert())
+	prototest.AssertDeepEqual(t, artist, event.GetUpsert().Resource)
 }
 
 // roundtrip a WatchList which attempts to stream back a single write event
-func roundTripACL(t *testing.T, authz acl.Authorizer) (<-chan resourceOrError, *pbresource.Resource) {
-	server := testServer(t)
-	client := testClient(t, server)
-
+func roundTripACL(t *testing.T, authz acl.Authorizer, expectErr bool) (<-chan resourceOrError, *pbresource.Resource) {
 	mockACLResolver := &svc.MockACLResolver{}
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(authz, nil)
-	server.ACLResolver = mockACLResolver
-	demo.RegisterTypes(server.Registry)
+		Return(resolver.Result{Authorizer: authz}, nil)
+
+	b := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		WithACLResolver(mockACLResolver)
+	client := b.Run(t)
+	server := b.ServiceImpl()
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -331,6 +344,10 @@ func roundTripACL(t *testing.T, authz acl.Authorizer) (<-chan resourceOrError, *
 	})
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)
+
+	if !expectErr {
+		mustGetEndOfSnapshot(t, rspCh)
+	}
 
 	// induce single watch event
 	artist, err = server.Backend.WriteCAS(context.Background(), artist)
@@ -350,6 +367,11 @@ func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {
 	case <-time.After(250 * time.Millisecond):
 		return
 	}
+}
+
+func mustGetEndOfSnapshot(t *testing.T, ch <-chan resourceOrError) {
+	event := mustGetResource(t, ch)
+	require.NotNil(t, event.GetEndOfSnapshot(), "expected EndOfSnapshot but got got event %T", event.GetEvent())
 }
 
 func mustGetResource(t *testing.T, ch <-chan resourceOrError) *pbresource.WatchEvent {
@@ -418,6 +440,8 @@ func TestWatchList_NoTenancy(t *testing.T) {
 	})
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)
+
+	mustGetEndOfSnapshot(t, rspCh)
 
 	recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 	require.NoError(t, err)
