@@ -15,6 +15,11 @@ This page is used to document those details separately from the standard
 upgrade flow.
 
 ## Consul 1.17.x
+
+### Known issues
+
+Consul versions 1.17.2 and 1.16.5 perform excessively strict TLS SAN verification on terminating gateways, which prevents connections outside of the mesh to upstream services. Terminating gateway users are advised to avoid deploying these Consul versions. A fix will be present in a future release of Consul 1.17.3 and 1.16.6 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
+
 #### Audit Log naming changes (Enterprise)
 Prior to Consul 1.17.0, audit logs contained timestamps on both the original log file names as well as rotated log file names.
 After Consul 1.17.0, only timestamps will be included in rotated log file names.
@@ -33,6 +38,8 @@ service-defaults are configured in each partition and namespace before upgrading
 ## Consul 1.16.x
 
 ### Known issues
+
+Consul versions 1.17.2 and 1.16.5 perform excessively strict TLS SAN verification on terminating gateways, which prevents connections outside of the mesh to upstream services. Terminating gateway users are advised to avoid deploying these Consul versions. A fix will be present in a future release of Consul 1.17.3 and 1.16.6 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
 
 Service mesh in Consul versions 1.16.0 and 1.16.1 may have issues when a snapshot restore is performed and the servers are hosting xDS streams.
 When this bug triggers, it causes Envoy to incorrectly populate upstream endpoints. To prevent this issue, service mesh users who run agent-less workloads should upgrade Consul to v1.16.2 or later.
