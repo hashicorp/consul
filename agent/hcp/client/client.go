@@ -5,12 +5,16 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"golang.org/x/oauth2"
 
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
@@ -31,6 +35,7 @@ const metricsGatewayPath = "/v1/metrics"
 type Client interface {
 	FetchBootstrap(ctx context.Context) (*BootstrapConfig, error)
 	FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error)
+	GetObservabilitySecret(ctx context.Context) (clientID, clientSecret string, err error)
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
 	GetCluster(ctx context.Context) (*Cluster, error)
@@ -124,9 +129,8 @@ func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error
 
 	resp, err := c.gnm.AgentBootstrapConfig(params, nil)
 	if err != nil {
-		return nil, err
+		return nil, decodeError(err)
 	}
-
 	return bootstrapConfigFromHCP(resp.Payload), nil
 }
 
@@ -327,7 +331,7 @@ func (c *hcpClient) GetCluster(ctx context.Context) (*Cluster, error) {
 
 	resp, err := c.gnm.GetCluster(params, nil)
 	if err != nil {
-		return nil, err
+		return nil, decodeError(err)
 	}
 
 	return clusterFromHCP(resp.Payload), nil
@@ -339,4 +343,49 @@ func clusterFromHCP(payload *gnmmod.HashicorpCloudGlobalNetworkManager20220215Ge
 		AccessLevel:  payload.Cluster.ConsulAccessLevel,
 		HCPPortalURL: payload.Cluster.HcpPortalURL,
 	}
+}
+
+func decodeError(err error) error {
+	// Determine the code from the type of error
+	var code int
+	switch e := err.(type) {
+	case *url.Error:
+		oauthErr, ok := errors.Unwrap(e.Err).(*oauth2.RetrieveError)
+		if ok {
+			code = oauthErr.Response.StatusCode
+		}
+	case *hcpgnm.AgentBootstrapConfigDefault:
+		code = e.Code()
+	case *hcpgnm.GetClusterDefault:
+		code = e.Code()
+	}
+
+	// Return specific error for codes if relevant
+	switch code {
+	case http.StatusUnauthorized:
+		return ErrUnauthorized
+	case http.StatusForbidden:
+		return ErrForbidden
+	}
+
+	return err
+}
+
+func (c *hcpClient) GetObservabilitySecret(ctx context.Context) (string, string, error) {
+	params := hcpgnm.NewGetObservabilitySecretParamsWithContext(ctx).
+		WithID(c.resource.ID).
+		WithLocationOrganizationID(c.resource.Organization).
+		WithLocationProjectID(c.resource.Project)
+
+	resp, err := c.gnm.GetObservabilitySecret(params, nil)
+	if err != nil {
+		return "", "", err
+	}
+
+	if len(resp.GetPayload().Keys) == 0 {
+		return "", "", fmt.Errorf("no observability keys returned for cluster")
+	}
+
+	key := resp.GetPayload().Keys[len(resp.GetPayload().Keys)-1]
+	return key.ClientID, key.ClientSecret, nil
 }

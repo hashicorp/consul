@@ -193,7 +193,7 @@ func (b *Builder) Run(t testutil.TestingTB) pbresource.ResourceServiceClient {
 	switch config.TenancyBridge.(type) {
 	case *tenancy.V2TenancyBridge:
 		config.TenancyBridge.(*tenancy.V2TenancyBridge).WithClient(client)
-		// Default partition namespace can finally be created
+		// Default partition and namespace can finally be created
 		require.NoError(t, initTenancy(ctx, backend))
 
 		for _, tenancy := range b.tenancies {

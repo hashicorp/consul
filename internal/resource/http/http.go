@@ -28,7 +28,14 @@ const (
 	HeaderConsistencyMode = "x-consul-consistency-mode"
 )
 
+// NewHandler creates a new HTTP handler for the resource service.
+// httpPathPrefix is the prefix to be used for all HTTP endpoints. Should start with "/" and
+// end without a trailing "/".
+// client is the gRPC client to be used to communicate with the resource service.
+// registry is the resource registry to be used to determine the resource types.
+// parseToken is a function that will be called to parse the Consul token from the request.
 func NewHandler(
+	httpPathPrefix string,
 	client pbresource.ResourceServiceClient,
 	registry resource.Registry,
 	parseToken func(req *http.Request, token *string),
@@ -38,10 +45,10 @@ func NewHandler(
 		// List Endpoint
 		base := strings.ToLower(fmt.Sprintf("/%s/%s/%s", t.Type.Group, t.Type.GroupVersion, t.Type.Kind))
 		mux.Handle(base, http.StripPrefix(base, &listHandler{t, client, parseToken, logger}))
+		logger.Info("Registered resource endpoint", "endpoint", fmt.Sprintf("%s%s", httpPathPrefix, base))
 
 		// Individual Resource Endpoints
 		prefix := strings.ToLower(fmt.Sprintf("%s/", base))
-		logger.Info("Registered resource endpoint", "endpoint", prefix)
 		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken, logger}))
 	}
 
@@ -184,15 +191,13 @@ func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[strin
 	if namespace == "" {
 		namespace = query.Get("ns")
 	}
-	peer := query.Get("peer")
-	if peer == "" {
-		peer = query.Get("peer_name")
-	}
+
 	tenancy = &pbresource.Tenancy{
 		Partition: query.Get("partition"),
-		PeerName:  peer,
 		Namespace: namespace,
 	}
+
+	// TODO(peering/v2) handle parsing peer tenancy
 
 	resourceName := path.Base(r.URL.Path)
 	if resourceName == "." || resourceName == "/" {

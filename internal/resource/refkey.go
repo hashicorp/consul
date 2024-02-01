@@ -16,8 +16,8 @@ type ReferenceKey struct {
 	GVK       string
 	Partition string // Tenancy.*
 	Namespace string // Tenancy.*
-	PeerName  string // Tenancy.*
-	Name      string
+	// TODO(peering/v2) account for peer tenancy
+	Name string
 }
 
 // String returns a string representation of the ReferenceKey. This should not
@@ -26,10 +26,10 @@ type ReferenceKey struct {
 //
 // This format should be aligned with IDToString and ReferenceToString.
 func (r ReferenceKey) String() string {
-	return fmt.Sprintf("%s/%s.%s.%s/%s",
+	// TODO(peering/v2) account for peer tenancy
+	return fmt.Sprintf("%s/%s.%s/%s",
 		r.GVK,
 		orDefault(r.Partition, "default"),
-		orDefault(r.PeerName, "local"),
 		orDefault(r.Namespace, "default"),
 		r.Name,
 	)
@@ -38,7 +38,6 @@ func (r ReferenceKey) String() string {
 func (r ReferenceKey) GetTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: r.Partition,
-		PeerName:  r.PeerName,
 		Namespace: r.Namespace,
 	}
 }
@@ -68,7 +67,6 @@ func NewReferenceKey(refOrID ReferenceOrID) ReferenceKey {
 		GVK:       ToGVK(refOrID.GetType()),
 		Partition: orDefault(refOrID.GetTenancy().GetPartition(), "default"),
 		Namespace: orDefault(refOrID.GetTenancy().GetNamespace(), "default"),
-		PeerName:  orDefault(refOrID.GetTenancy().GetPeerName(), "local"),
 		Name:      refOrID.GetName(),
 	}
 }

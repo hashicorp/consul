@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
@@ -18,6 +19,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -33,7 +35,10 @@ func New(client pbresource.ResourceServiceClient, cache *cache.Cache) *Fetcher {
 	}
 }
 
+// FetchWorkload fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a Workload type.
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
+	assertResourceType(pbcatalog.WorkloadType, id.Type)
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
 	if err != nil {
 		return nil, err
@@ -48,27 +53,45 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 	return dec, err
 }
 
+// FetchProxyStateTemplate fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ProxyStateTemplate type.
 func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*types.DecodedProxyStateTemplate, error) {
+	assertResourceType(pbmesh.ProxyStateTemplateType, id.Type)
 	return resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.client, id)
 }
 
+// FetchComputedTrafficPermissions fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ComputedTrafficPermissons type.
 func (f *Fetcher) FetchComputedTrafficPermissions(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedTrafficPermissions, error) {
+	assertResourceType(pbauth.ComputedTrafficPermissionsType, id.Type)
 	return resource.GetDecodedResource[*pbauth.ComputedTrafficPermissions](ctx, f.client, id)
 }
 
+// FetchServiceEndpoints fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ServiceEndpoints type.
 func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) (*types.DecodedServiceEndpoints, error) {
+	assertResourceType(pbcatalog.ServiceEndpointsType, id.Type)
 	return resource.GetDecodedResource[*pbcatalog.ServiceEndpoints](ctx, f.client, id)
 }
 
+// FetchService fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a Service type.
 func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
+	assertResourceType(pbcatalog.ServiceType, id.Type)
 	return resource.GetDecodedResource[*pbcatalog.Service](ctx, f.client, id)
 }
 
+// FetchDestinations fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a Destinations type.
 func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*types.DecodedDestinations, error) {
+	assertResourceType(pbmesh.DestinationsType, id.Type)
 	return resource.GetDecodedResource[*pbmesh.Destinations](ctx, f.client, id)
 }
 
+// FetchComputedRoutes fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ComputedRoutes type.
 func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedRoutes, error) {
+	assertResourceType(pbmesh.ComputedRoutesType, id.Type)
 	if !types.IsComputedRoutesType(id.Type) {
 		return nil, fmt.Errorf("id must be a ComputedRoutes type")
 	}
@@ -83,11 +106,11 @@ func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*
 	return dec, err
 }
 
-func (f *Fetcher) FetchExplicitDestinationsData(
+func (f *Fetcher) FetchComputedExplicitDestinationsData(
 	ctx context.Context,
 	proxyID *pbresource.ID,
+	proxyCfg *pbmesh.ComputedProxyConfiguration,
 ) ([]*intermediateTypes.Destination, error) {
-
 	var destinations []*intermediateTypes.Destination
 
 	// Fetch computed explicit destinations first.
@@ -107,9 +130,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 	for _, dest := range cd.GetData().GetDestinations() {
 		d := &intermediateTypes.Destination{}
 
-		var (
-			serviceID = resource.IDFromReference(dest.DestinationRef)
-		)
+		serviceID := resource.IDFromReference(dest.DestinationRef)
 
 		// Fetch Service
 		svc, err := f.FetchService(ctx, serviceID)
@@ -132,13 +153,13 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 		}
 
 		// Check if the desired port exists on the service and skip it doesn't.
-		if svc.GetData().FindServicePort(dest.DestinationPort) == nil {
+		if svc.GetData().FindPortByID(dest.DestinationPort) == nil {
 			continue
 		}
 
 		// No destination port should point to a port with "mesh" protocol,
 		// so check if destination port has the mesh protocol and skip it if it does.
-		if svc.GetData().FindServicePort(dest.DestinationPort).GetProtocol() == pbcatalog.Protocol_PROTOCOL_MESH {
+		if svc.GetData().FindPortByID(dest.DestinationPort).GetProtocol() == pbcatalog.Protocol_PROTOCOL_MESH {
 			continue
 		}
 
@@ -169,15 +190,19 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
 			// Fetch ServiceEndpoints.
-			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID))
+			serviceEndpointID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
+			se, err := f.FetchServiceEndpoints(ctx, serviceEndpointID)
 			if err != nil {
 				return nil, err
 			}
 
 			if se != nil {
-				routeTarget.ServiceEndpointsId = se.Resource.Id
+				routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+					Id:        se.Id,
+					MeshPort:  routeTarget.MeshPort,
+					RoutePort: routeTarget.BackendRef.Port,
+				}
 				routeTarget.ServiceEndpoints = se.Data
-
 				// Gather all identities.
 				var identities []*pbresource.Reference
 				for _, identity := range se.GetData().GetIdentities() {
@@ -187,6 +212,58 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 					})
 				}
 				routeTarget.IdentityRefs = identities
+			}
+
+			// If the target service is in a different partition and the mesh gateway mode is
+			// "local" or "remote", use the ServiceEndpoints for the corresponding MeshGateway
+			// instead of the ServiceEndpoints for the target service. The IdentityRefs on the
+			// target will remain the same for TCP targets.
+			//
+			// TODO(nathancoleman) Consider cross-datacenter case as well
+			if routeTarget.BackendRef.Ref.Tenancy.Partition != proxyID.Tenancy.Partition {
+				mode := pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_NONE
+				if proxyCfg != nil && proxyCfg.DynamicConfig != nil {
+					mode = proxyCfg.GetDynamicConfig().GetMeshGatewayMode()
+				}
+
+				switch mode {
+				case pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_LOCAL:
+					// Use ServiceEndpoints for the MeshGateway in the source service's partition
+					routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id: &pbresource.ID{
+							Type:    pbcatalog.ServiceEndpointsType,
+							Name:    meshgateways.GatewayName,
+							Tenancy: proxyID.Tenancy,
+						},
+						MeshPort:  meshgateways.LANPortName,
+						RoutePort: meshgateways.LANPortName,
+					}
+
+					se, err := f.FetchServiceEndpoints(ctx, routeTarget.ServiceEndpointsRef.Id)
+					if err != nil {
+						return nil, err
+					} else if se != nil {
+						routeTarget.ServiceEndpoints = se.GetData()
+					}
+				case pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_REMOTE:
+					// Use ServiceEndpoints for the MeshGateway in the target service's partition
+					routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id: &pbresource.ID{
+							Type:    pbcatalog.ServiceEndpointsType,
+							Name:    meshgateways.GatewayName,
+							Tenancy: targetServiceID.Tenancy,
+						},
+						MeshPort:  meshgateways.WANPortName,
+						RoutePort: meshgateways.WANPortName,
+					}
+
+					se, err := f.FetchServiceEndpoints(ctx, routeTarget.ServiceEndpointsRef.Id)
+					if err != nil {
+						return nil, err
+					} else if se != nil {
+						routeTarget.ServiceEndpoints = se.GetData()
+					}
+				}
 			}
 		}
 
@@ -228,7 +305,6 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: proxyID.Tenancy.Partition,
-			PeerName:  proxyID.Tenancy.PeerName,
 		},
 	})
 	if err != nil {
@@ -327,7 +403,11 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 				// Fetch ServiceEndpoints.
 				se, ok := endpointsMap[resource.NewReferenceKey(seID)]
 				if ok {
-					routeTarget.ServiceEndpointsId = se.Resource.Id
+					routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        se.Resource.Id,
+						MeshPort:  routeTarget.MeshPort,
+						RoutePort: routeTarget.BackendRef.Port,
+					}
 					routeTarget.ServiceEndpoints = se.Data
 
 					// Gather all identities.
@@ -371,4 +451,11 @@ func isPartOfService(workloadID *pbresource.ID, svc *types.DecodedService) bool 
 		}
 	}
 	return false
+}
+
+func assertResourceType(expected, actual *pbresource.Type) {
+	if !proto.Equal(expected, actual) {
+		// this is always a programmer error so safe to panic
+		panic(fmt.Sprintf("expected a query for a type of %q, you provided a type of %q", expected, actual))
+	}
 }

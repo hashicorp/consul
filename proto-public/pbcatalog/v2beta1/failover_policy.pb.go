@@ -83,8 +83,11 @@ type FailoverPolicy struct {
 
 	// Config defines failover for any named port not present in PortConfigs.
 	Config *FailoverConfig `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-	// PortConfigs defines failover for a specific port on this service and takes
+	// PortConfigs defines failover for a specific port on a service and takes
 	// precedence over Config.
+	//
+	// For more details on potential values of the service port identifier key,
+	// see documentation for Service.ServicePort.
 	PortConfigs map[string]*FailoverConfig `protobuf:"bytes,2,rep,name=port_configs,json=portConfigs,proto3" json:"port_configs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -218,6 +221,10 @@ type FailoverDestination struct {
 
 	// This must be a Service.
 	Ref *pbresource.Reference `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+	// Port is the port of the destination service.
+	//
+	// For more details on potential values of the service port identifier key,
+	// see documentation for Service.ServicePort.
 	// TODO: what should an empty port mean?
 	Port       string `protobuf:"bytes,2,opt,name=port,proto3" json:"port,omitempty"`
 	Datacenter string `protobuf:"bytes,3,opt,name=datacenter,proto3" json:"datacenter,omitempty"`

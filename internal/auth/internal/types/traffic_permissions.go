@@ -50,7 +50,9 @@ func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Te
 
 	if t, c := defaultedSourceTenancy(src, parentTenancy); c {
 		src.Partition = t.Partition
-		src.Peer = t.PeerName
+		// TODO(peering/v2) revisit default peer source
+		// src.Peer = t.PeerName
+		src.Peer = resource.DefaultPeerName
 		src.Namespace = t.Namespace
 		changed = true
 	}
@@ -58,7 +60,9 @@ func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Te
 	for _, e := range src.Exclude {
 		if t, c := defaultedSourceTenancy(e, parentTenancy); c {
 			e.Partition = t.Partition
-			e.Peer = t.PeerName
+			// TODO(peering/v2) revisit default peer source
+			// e.Peer = t.PeerName
+			e.Peer = resource.DefaultPeerName
 			e.Namespace = t.Namespace
 			changed = true
 		}
@@ -74,8 +78,9 @@ func defaultedSourceTenancy(s pbauth.SourceToSpiffe, parentTenancy *pbresource.T
 
 	tenancy := pbauth.SourceToTenancy(s)
 
-	var peerChanged bool
-	tenancy.PeerName, peerChanged = firstNonEmptyString(tenancy.PeerName, parentTenancy.PeerName, resource.DefaultPeerName)
+	// TODO(peering/v2) default peer name somehow
+	// var peerChanged bool
+	// tenancy.PeerName, peerChanged = firstNonEmptyString(tenancy.PeerName, parentTenancy.PeerName, resource.DefaultPeerName)
 
 	var partitionChanged bool
 	tenancy.Partition, partitionChanged = firstNonEmptyString(tenancy.Partition, parentTenancy.Partition, resource.DefaultPartitionName)
@@ -89,7 +94,8 @@ func defaultedSourceTenancy(s pbauth.SourceToSpiffe, parentTenancy *pbresource.T
 		}
 	}
 
-	return tenancy, peerChanged || partitionChanged || namespaceChanged
+	// TODO(peering/v2) take peer being changed into account
+	return tenancy, partitionChanged || namespaceChanged // || peerChange
 }
 
 func firstNonEmptyString(a, b, c string) (string, bool) {
@@ -106,20 +112,18 @@ func firstNonEmptyString(a, b, c string) (string, bool) {
 
 var ValidateTrafficPermissions = resource.DecodeAndValidate(validateTrafficPermissions)
 
+// validator takes a traffic permission and ensures that it conforms to the actions allowed in
+// either CE or Enterprise versions of Consul
+type validator interface {
+	ValidateAction(data interface{ GetAction() pbauth.Action }) error
+}
+
 func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 	var merr error
 
-	// enumcover:pbauth.Action
-	switch res.Data.Action {
-	case pbauth.Action_ACTION_ALLOW:
-	case pbauth.Action_ACTION_DENY:
-	case pbauth.Action_ACTION_UNSPECIFIED:
-		fallthrough
-	default:
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "data.action",
-			Wrapped: errInvalidAction,
-		})
+	err := v.ValidateAction(res.Data)
+	if err != nil {
+		merr = multierror.Append(merr, err)
 	}
 
 	if res.Data.Destination == nil || (len(res.Data.Destination.IdentityName) == 0) {
@@ -129,7 +133,16 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 		})
 	}
 	// Validate permissions
-	for i, permission := range res.Data.Permissions {
+	if err := validatePermissions(res.Id, res.Data); err != nil {
+		merr = multierror.Append(merr, err)
+	}
+
+	return merr
+}
+
+func validatePermissions(id *pbresource.ID, data interface{ GetPermissions() []*pbauth.Permission }) error {
+	var merr error
+	for i, permission := range data.GetPermissions() {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "permissions",
@@ -137,11 +150,10 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
+		if err := validatePermission(permission, id, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
-
 	return merr
 }
 
@@ -270,7 +282,7 @@ func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe, id *pbresource.ID
 	if id.Tenancy == nil {
 		id.Tenancy = &pbresource.Tenancy{}
 	}
-	peerSet := src.GetPeer() != resource.DefaultPeerName
+	peerSet := !isLocalPeer(src.GetPeer())
 	apSet := src.GetPartition() != id.Tenancy.Partition
 	sgSet := src.GetSamenessGroup() != ""
 

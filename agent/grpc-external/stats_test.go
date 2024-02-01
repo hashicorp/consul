@@ -28,7 +28,7 @@ import (
 func TestServer_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
-	srv := NewServer(hclog.Default(), metricsObj, nil, rate.NullRequestLimitsHandler(), keepalive.ServerParameters{})
+	srv := NewServer(hclog.Default(), metricsObj, nil, rate.NullRequestLimitsHandler(), keepalive.ServerParameters{}, nil)
 
 	testservice.RegisterSimpleServer(srv, &testservice.Simple{})
 

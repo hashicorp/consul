@@ -10,7 +10,8 @@ const (
 	GroupName = "hcp"
 	Version   = "v2"
 
-	LinkKind = "Link"
+	LinkKind           = "Link"
+	TelemetryStateKind = "TelemetryState"
 )
 
 var (
@@ -18,5 +19,11 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         LinkKind,
+	}
+
+	TelemetryStateType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         TelemetryStateKind,
 	}
 )

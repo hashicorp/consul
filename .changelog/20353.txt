@@ -1,0 +1,3 @@
+```release-note:feature
+ui: adds V2CatalogEnabled to config that is passed to the ui
+```

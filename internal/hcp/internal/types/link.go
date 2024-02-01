@@ -6,9 +6,13 @@ package types
 import (
 	"errors"
 
+	"github.com/hashicorp/go-multierror"
+	hcpresource "github.com/hashicorp/hcp-sdk-go/resource"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
-	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type DecodedLink = resource.DecodedResource[*pbhcp.Link]
@@ -20,7 +24,8 @@ const (
 )
 
 var (
-	linkConfigurationNameError = errors.New("only a single Link resource is allowed and it must be named global")
+	errLinkConfigurationName = errors.New("only a single Link resource is allowed and it must be named global")
+	errInvalidHCPResourceID  = errors.New("could not parse, invalid format")
 )
 
 func RegisterLink(r resource.Registry) {
@@ -29,7 +34,42 @@ func RegisterLink(r resource.Registry) {
 		Proto:    &pbhcp.Link{},
 		Scope:    resource.ScopeCluster,
 		Validate: ValidateLink,
+		ACLs: &resource.ACLHooks{
+			Read:  aclReadHookLink,
+			Write: aclWriteHookLink,
+			List:  aclListHookLink,
+		},
 	})
+}
+
+func aclReadHookLink(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, _ *pbresource.Resource) error {
+	err := authorizer.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func aclWriteHookLink(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.Resource) error {
+	err := authorizer.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
+	if err != nil {
+		return err
+	}
+
+	err = authorizer.ToAllowAuthorizer().ACLWriteAllowed(authzContext)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func aclListHookLink(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	err := authorizer.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 var ValidateLink = resource.DecodeAndValidate(validateLink)
@@ -40,7 +80,7 @@ func validateLink(res *DecodedLink) error {
 	if res.Id.Name != LinkName {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "name",
-			Wrapped: linkConfigurationNameError,
+			Wrapped: errLinkConfigurationName,
 		})
 	}
 
@@ -63,6 +103,14 @@ func validateLink(res *DecodedLink) error {
 			Name:    "resource_id",
 			Wrapped: resource.ErrMissing,
 		})
+	} else {
+		_, parseErr := hcpresource.FromString(res.Data.ResourceId)
+		if parseErr != nil {
+			err = multierror.Append(err, resource.ErrInvalidField{
+				Name:    "resource_id",
+				Wrapped: errInvalidHCPResourceID,
+			})
+		}
 	}
 
 	return err

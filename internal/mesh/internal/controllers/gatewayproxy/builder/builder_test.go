@@ -15,10 +15,10 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/multicluster"
@@ -74,12 +74,12 @@ func (suite *proxyStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbresourc
 				// we want to test that the first address is used
 				{
 					Host:     "testhostname",
-					Ports:    []string{"wan"},
+					Ports:    []string{meshgateways.WANPortName},
 					External: false,
 				},
 			},
 			Ports: map[string]*pbcatalog.WorkloadPort{
-				"wan": {
+				meshgateways.WANPortName: {
 					Port:     443,
 					Protocol: 0,
 				},
@@ -105,7 +105,7 @@ func (suite *proxyStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbresourc
 				},
 			},
 			Ports: map[string]*pbcatalog.WorkloadPort{
-				"wan": {
+				meshgateways.WANPortName: {
 					Port:     443,
 					Protocol: 0,
 				},
@@ -199,7 +199,7 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 			"without address ports": suite.workloadWithOutAddressPorts,
 		} {
 			testutil.RunStep(suite.T(), name, func(t *testing.T) {
-				builder := NewProxyStateTemplateBuilder(workload, suite.exportedServicesPeerData.Data.Services, logger, f, dc, trustDomain)
+				builder := NewProxyStateTemplateBuilder(workload, suite.exportedServicesPeerData.Data.Services, logger, f, dc, trustDomain, nil)
 				expectedProxyStateTemplate := &pbmesh.ProxyStateTemplate{
 					ProxyState: &pbmesh.ProxyState{
 						Identity: &pbresource.Reference{
@@ -209,7 +209,7 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 						},
 						Listeners: []*pbproxystate.Listener{
 							{
-								Name:      xdscommon.PublicListenerName,
+								Name:      "wan_listener",
 								Direction: pbproxystate.Direction_DIRECTION_INBOUND,
 								BindAddress: &pbproxystate.Listener_HostPort{
 									HostPort: &pbproxystate.HostPortAddress{
@@ -236,29 +236,13 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 									{
 										Match: &pbproxystate.Match{
 											AlpnProtocols: []string{"consul~tcp"},
-											ServerNames:   []string{connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")},
+											ServerNames:   []string{connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, dc, "trustDomain")},
 										},
 										Destination: &pbproxystate.Router_L4{
 											L4: &pbproxystate.L4Destination{
 												Destination: &pbproxystate.L4Destination_Cluster{
 													Cluster: &pbproxystate.DestinationCluster{
-														Name: fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")),
-													},
-												},
-												StatPrefix: "prefix",
-											},
-										},
-									},
-									{
-										Match: &pbproxystate.Match{
-											AlpnProtocols: []string{"consul~mesh"},
-											ServerNames:   []string{connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")},
-										},
-										Destination: &pbproxystate.Router_L4{
-											L4: &pbproxystate.L4Destination{
-												Destination: &pbproxystate.L4Destination_Cluster{
-													Cluster: &pbproxystate.DestinationCluster{
-														Name: fmt.Sprintf("mesh.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")),
+														Name: fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, dc, "trustDomain")),
 													},
 												},
 												StatPrefix: "prefix",
@@ -284,18 +268,8 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 								},
 								Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
 							},
-							fmt.Sprintf("mesh.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")): {
-								Name: fmt.Sprintf("mesh.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")),
-								Group: &pbproxystate.Cluster_EndpointGroup{
-									EndpointGroup: &pbproxystate.EndpointGroup{
-										Group: &pbproxystate.EndpointGroup_Dynamic{},
-									},
-								},
-								AltStatName: "prefix",
-								Protocol:    pbproxystate.Protocol_PROTOCOL_TCP, // TODO
-							},
-							fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")): {
-								Name: fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")),
+							fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, dc, "trustDomain")): {
+								Name: fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, dc, "trustDomain")),
 								Group: &pbproxystate.Cluster_EndpointGroup{
 									EndpointGroup: &pbproxystate.EndpointGroup{
 										Group: &pbproxystate.EndpointGroup_Dynamic{},
@@ -307,21 +281,14 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 						},
 					},
 					RequiredEndpoints: map[string]*pbproxystate.EndpointRef{
-						fmt.Sprintf("mesh.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")): {
+						fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, dc, "trustDomain")): {
 							Id: &pbresource.ID{
 								Name:    "api-1",
 								Type:    pbcatalog.ServiceEndpointsType,
 								Tenancy: tenancy,
 							},
-							Port: "mesh",
-						},
-						fmt.Sprintf("tcp.%s", connect.PeeredServiceSNI("api-1", tenancy.Namespace, tenancy.Partition, "api-1", "trustDomain")): {
-							Id: &pbresource.ID{
-								Name:    "api-1",
-								Type:    pbcatalog.ServiceEndpointsType,
-								Tenancy: tenancy,
-							},
-							Port: "tcp",
+							RoutePort: "tcp",
+							MeshPort:  "mesh",
 						},
 					},
 					RequiredLeafCertificates: make(map[string]*pbproxystate.LeafCertificateRef),

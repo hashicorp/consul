@@ -1418,5 +1418,5 @@ func (suite *controllerSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) str
 }
 
 func backendName(name, port string, tenancy *pbresource.Tenancy) string {
-	return fmt.Sprintf("catalog.v2beta1.Service/%s.local.%s/%s?port=%s", tenancy.Partition, tenancy.Namespace, name, port)
+	return fmt.Sprintf("catalog.v2beta1.Service/%s.%s/%s?port=%s", tenancy.Partition, tenancy.Namespace, name, port)
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
@@ -189,9 +190,15 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES() {
 			oldCESData.Services[0].Consumers = append(oldCESData.Services[0].Consumers, suite.constructConsumer("part-n", "partition"))
 		}
 
+		oldStatus := &pbresource.Status{
+			Conditions: []*pbresource.Condition{
+				conditionComputed(),
+			},
+		}
 		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
 			WithData(suite.T(), oldCESData).
 			WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
+			WithStatus(statusKey, oldStatus).
 			Write(suite.T(), suite.client)
 		require.NotNil(suite.T(), oldCES)
 
@@ -238,6 +245,85 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES() {
 	})
 }
 
+func (suite *controllerSuite) TestReconcile_SkipWritingNewCES_WithStatusUpdate() {
+	// This test's purpose is to ensure that we skip
+	// writing the new CES when there are no changes to
+	// the existing one but write the status if there
+	// is a mismatch
+
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		oldCESData := &pbmulticluster.ComputedExportedServices{
+			Services: []*pbmulticluster.ComputedExportedService{
+				{
+					TargetRef: &pbresource.Reference{
+						Type:    pbcatalog.ServiceType,
+						Tenancy: tenancy,
+						Name:    "svc-0",
+					},
+					Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
+						suite.constructConsumer("peer-1", "peer"),
+					},
+				},
+			},
+		}
+
+		if suite.isEnterprise {
+			oldCESData.Services[0].Consumers = append(oldCESData.Services[0].Consumers, suite.constructConsumer("part-n", "partition"))
+		}
+
+		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
+			WithData(suite.T(), oldCESData).
+			WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
+			Write(suite.T(), suite.client)
+		require.NotNil(suite.T(), oldCES)
+
+		// Export the svc-0 service to just a peer
+		exportedSvcData := &pbmulticluster.ExportedServices{
+			Services: []string{"svc-0"},
+			Consumers: []*pbmulticluster.ExportedServicesConsumer{
+				{ConsumerTenancy: &pbmulticluster.ExportedServicesConsumer_Peer{Peer: "peer-1"}},
+			},
+		}
+		_ = rtest.Resource(pbmulticluster.ExportedServicesType, "exported-svcs").
+			WithData(suite.T(), exportedSvcData).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client)
+
+		if suite.isEnterprise {
+			// Export all services in a given partition to `part-n` partition
+			pesData := &pbmulticluster.PartitionExportedServices{
+				Consumers: []*pbmulticluster.ExportedServicesConsumer{
+					{ConsumerTenancy: &pbmulticluster.ExportedServicesConsumer_Partition{Partition: "part-n"}},
+				},
+			}
+			_ = rtest.Resource(pbmulticluster.PartitionExportedServicesType, "pes").
+				WithData(suite.T(), pesData).
+				WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
+				Write(suite.T(), suite.client)
+		}
+
+		svcData := &pbcatalog.Service{
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}
+		_ = rtest.Resource(pbcatalog.ServiceType, "svc-0").
+			WithData(suite.T(), svcData).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client)
+
+		passThroughClient := newPassThroughResourceClient(suite.client)
+		rt := suite.controllerRuntimeWithPassThroughClient(passThroughClient)
+		err := suite.reconciler.Reconcile(suite.ctx, rt, controller.Request{ID: oldCES.Id})
+		require.NoError(suite.T(), err)
+
+		// Checking version change to ensure that the status gets updated
+		newCES := suite.client.RequireVersionChanged(suite.T(), oldCES.Id, oldCES.Version)
+		rtest.RequireStatusCondition(suite.T(), newCES, statusKey, conditionComputed())
+		require.Equal(suite.T(), 0, passThroughClient.writesCount)
+	})
+}
+
 func (suite *controllerSuite) TestReconcile_ComputeCES() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		suite.writeService("svc-0", tenancy)
@@ -281,7 +367,9 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 		require.NoError(suite.T(), err)
 
-		computedCES := suite.getComputedExportedSvc(id)
+		res := suite.client.RequireResourceExists(suite.T(), id)
+		computedCES := suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 
 		var expectedCES *pbmulticluster.ComputedExportedServices
 		if suite.isEnterprise {
@@ -379,7 +467,8 @@ func (suite *controllerSuite) TestController() {
 		require.NotNil(suite.T(), expSvc)
 
 		res := suite.client.WaitForResourceExists(suite.T(), id)
-		computedCES := suite.getComputedExportedSvc(id)
+		computedCES := suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 
 		expectedComputedExportedService := constructComputedExportedServices(
 			constructComputedExportedService(
@@ -403,7 +492,9 @@ func (suite *controllerSuite) TestController() {
 		namespaceExportedSvc := suite.writeNamespaceExportedService("namesvc", tenancy, exportedNamespaceSvcData)
 
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
+
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
@@ -426,7 +517,8 @@ func (suite *controllerSuite) TestController() {
 		svc3 := suite.writeService("svc3", tenancy)
 
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
@@ -455,7 +547,8 @@ func (suite *controllerSuite) TestController() {
 		suite.client.MustDelete(suite.T(), svc3.Id)
 
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
@@ -485,10 +578,11 @@ func (suite *controllerSuite) TestController() {
 		partExpService := suite.writePartitionedExportedService("partsvc", tenancy, partitionedExportedSvcData)
 
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -516,17 +610,18 @@ func (suite *controllerSuite) TestController() {
 		svc4 := suite.writeService("svc4", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"})
 
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
 				},
 			),
 			constructComputedExportedService(
-				constructSvcReference("svc4", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc4", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -554,10 +649,11 @@ func (suite *controllerSuite) TestController() {
 		suite.client.MustDelete(suite.T(), svc4.Id)
 
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -586,10 +682,11 @@ func (suite *controllerSuite) TestController() {
 		suite.writeService("svc5", tenancy)
 
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 					suite.constructConsumer("peer-2", "peer"),
@@ -624,7 +721,8 @@ func (suite *controllerSuite) TestController() {
 		suite.client.MustDelete(suite.T(), partExpService.Id)
 
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
@@ -651,7 +749,8 @@ func (suite *controllerSuite) TestController() {
 
 		suite.client.MustDelete(suite.T(), namespaceExportedSvc.Id)
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
 				constructSvcReference("svc1", tenancy),
@@ -669,10 +768,11 @@ func (suite *controllerSuite) TestController() {
 		namespaceExportedSvc = suite.writeNamespaceExportedService("namesvc1", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}, exportedNamespaceSvcData)
 
 		res = suite.client.WaitForResourceExists(suite.T(), id)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
@@ -682,10 +782,11 @@ func (suite *controllerSuite) TestController() {
 
 		expSvc = suite.writeExportedService("expsvc1", tenancy, exportedSvcData)
 		res = suite.client.WaitForNewVersion(suite.T(), id, res.Version)
-		computedCES = suite.getComputedExportedSvc(res.Id)
+		computedCES = suite.getComputedExportedSvcData(res)
+		rtest.RequireStatusCondition(suite.T(), res, statusKey, conditionComputed())
 		expectedComputedExportedService = constructComputedExportedServices(
 			constructComputedExportedService(
-				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app", PeerName: resource.DefaultPeerName}),
+				constructSvcReference("svc0", &pbresource.Tenancy{Partition: tenancy.Partition, Namespace: "app"}),
 				[]*pbmulticluster.ComputedExportedServiceConsumer{
 					suite.constructConsumer("peer-1", "peer"),
 				},
@@ -725,9 +826,8 @@ func (suite *controllerSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) str
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
 }
 
-func (suite *controllerSuite) getComputedExportedSvc(id *pbresource.ID) *pbmulticluster.ComputedExportedServices {
-	computedExportedService := suite.client.RequireResourceExists(suite.T(), id)
-	decodedComputedExportedService := rtest.MustDecode[*pbmulticluster.ComputedExportedServices](suite.T(), computedExportedService)
+func (suite *controllerSuite) getComputedExportedSvcData(ces *pbresource.Resource) *pbmulticluster.ComputedExportedServices {
+	decodedComputedExportedService := rtest.MustDecode[*pbmulticluster.ComputedExportedServices](suite.T(), ces)
 	return decodedComputedExportedService.Data
 }
 
@@ -783,6 +883,14 @@ func (suite *controllerSuite) constructConsumer(name, consumerType string) *pbmu
 	}
 }
 
+func (suite *controllerSuite) controllerRuntimeWithPassThroughClient(client *passThroughResourceClient) controller.Runtime {
+	return controller.Runtime{
+		Cache:  suite.rt.Cache,
+		Logger: suite.rt.Logger,
+		Client: client,
+	}
+}
+
 func constructComputedExportedService(ref *pbresource.Reference, consumers []*pbmulticluster.ComputedExportedServiceConsumer) *pbmulticluster.ComputedExportedService {
 	finalConsumers := make([]*pbmulticluster.ComputedExportedServiceConsumer, 0)
 	for _, c := range consumers {
@@ -811,4 +919,58 @@ func constructSvcReference(name string, tenancy *pbresource.Tenancy) *pbresource
 		Tenancy: tenancy,
 		Name:    name,
 	}
+}
+
+type passThroughResourceClient struct {
+	client pbresource.ResourceServiceClient
+
+	writesCount      int
+	writeStatusCount int
+}
+
+// newPassThroughResourceClient returns a client that implements pbresource.ResourceServiceClient
+// It can be used to keep track of operations happening within a controller
+func newPassThroughResourceClient(client *rtest.Client) *passThroughResourceClient {
+	return &passThroughResourceClient{
+		client: client,
+	}
+}
+
+func (pc *passThroughResourceClient) resetCounters() {
+	pc.writeStatusCount = 0
+	pc.writesCount = 0
+}
+
+func (pc *passThroughResourceClient) Read(ctx context.Context, in *pbresource.ReadRequest, opts ...grpc.CallOption) (*pbresource.ReadResponse, error) {
+	return pc.client.Read(ctx, in, opts...)
+}
+
+func (pc *passThroughResourceClient) Write(ctx context.Context, in *pbresource.WriteRequest, opts ...grpc.CallOption) (*pbresource.WriteResponse, error) {
+	pc.writesCount++
+	return pc.client.Write(ctx, in, opts...)
+}
+
+func (pc *passThroughResourceClient) WriteStatus(ctx context.Context, in *pbresource.WriteStatusRequest, opts ...grpc.CallOption) (*pbresource.WriteStatusResponse, error) {
+	pc.writeStatusCount++
+	return pc.client.WriteStatus(ctx, in, opts...)
+}
+
+func (pc *passThroughResourceClient) Delete(ctx context.Context, in *pbresource.DeleteRequest, opts ...grpc.CallOption) (*pbresource.DeleteResponse, error) {
+	return pc.client.Delete(ctx, in, opts...)
+}
+
+func (pc *passThroughResourceClient) List(ctx context.Context, in *pbresource.ListRequest, opts ...grpc.CallOption) (*pbresource.ListResponse, error) {
+	return pc.client.List(ctx, in, opts...)
+}
+
+func (pc *passThroughResourceClient) ListByOwner(ctx context.Context, in *pbresource.ListByOwnerRequest, opts ...grpc.CallOption) (*pbresource.ListByOwnerResponse, error) {
+	return pc.client.ListByOwner(ctx, in, opts...)
+}
+
+func (pc *passThroughResourceClient) WatchList(ctx context.Context, in *pbresource.WatchListRequest, opts ...grpc.CallOption) (pbresource.ResourceService_WatchListClient, error) {
+	return pc.client.WatchList(ctx, in, opts...)
+}
+
+func (pc *passThroughResourceClient) MutateAndValidate(ctx context.Context, in *pbresource.MutateAndValidateRequest, opts ...grpc.CallOption) (*pbresource.MutateAndValidateResponse, error) {
+	return pc.client.MutateAndValidate(ctx, in, opts...)
 }

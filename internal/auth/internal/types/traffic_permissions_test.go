@@ -52,7 +52,7 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action_ACTION_UNSPECIFIED,
 				Permissions: nil,
 			},
-			expectErr: `invalid "data.action" field: action must be either allow or deny`,
+			expectErr: `invalid "data.action" field`,
 		},
 		"invalid-action": {
 			tp: &pbauth.TrafficPermissions{
@@ -62,7 +62,7 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action(50),
 				Permissions: nil,
 			},
-			expectErr: `invalid "data.action" field: action must be either allow or deny`,
+			expectErr: `invalid "data.action" field`,
 		},
 		"no-destination": {
 			tp: &pbauth.TrafficPermissions{
@@ -554,7 +554,8 @@ func TestMutateTrafficPermissions(t *testing.T) {
 								IdentityName: "i1",
 								Namespace:    "ns1",
 								Partition:    "ap1",
-								Peer:         "local",
+								// TODO(peering/v2) revisit peer defaulting
+								// Peer:         "local",
 							},
 							{
 								IdentityName: "i1",
@@ -621,7 +622,8 @@ func TestMutateTrafficPermissions(t *testing.T) {
 										IdentityName: "i1",
 										Namespace:    "ns1",
 										Partition:    "ap1",
-										Peer:         "local",
+										// TODO(peering/v2) revisit peer defaulting
+										// Peer:         "local",
 									},
 									{
 										IdentityName: "i1",
@@ -640,7 +642,6 @@ func TestMutateTrafficPermissions(t *testing.T) {
 			policyTenancy: &pbresource.Tenancy{
 				Partition: "ap1",
 				Namespace: "ns3",
-				PeerName:  "local",
 			},
 			tp: &pbauth.TrafficPermissions{
 				Permissions: []*pbauth.Permission{
@@ -695,7 +696,8 @@ func TestMutateTrafficPermissions(t *testing.T) {
 								IdentityName: "i1",
 								Namespace:    "ns1",
 								Partition:    "ap5",
-								Peer:         "local",
+								// TODO(peering/v2) revisit to figure out defaulting
+								// Peer:         "local",
 							},
 							{
 								IdentityName: "i1",
@@ -724,7 +726,6 @@ func TestMutateTrafficPermissions(t *testing.T) {
 			policyTenancy: &pbresource.Tenancy{
 				Partition: "ap1",
 				Namespace: "ns3",
-				PeerName:  "local",
 			},
 			tp: &pbauth.TrafficPermissions{
 				Permissions: []*pbauth.Permission{
@@ -783,7 +784,8 @@ func TestMutateTrafficPermissions(t *testing.T) {
 										IdentityName: "i1",
 										Namespace:    "ns1",
 										Partition:    "ap5",
-										Peer:         "local",
+										// TODO(peering/v2) revisit peer defaulting
+										// Peer:         "local",
 									},
 									{
 										IdentityName: "i1",

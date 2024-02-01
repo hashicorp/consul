@@ -285,6 +285,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 					A:   []byte{0xAC, 0x15, 0x2D, 0x43}, // 172 , 21, 45, 67
 				},
 			}
+			require.NotNil(t, in)
 			require.Equal(t, wantAnswer, in.Answer)
 		})
 	}
@@ -323,6 +324,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 			in, _, err := client.Exchange(m, agent.DNSAddr())
 			require.NoError(t, err)
 			// Verify if we hit SERVFAIL from Consul
+			require.NotNil(t, in)
 			require.Equal(t, dns.RcodeServerFailure, in.Rcode)
 		})
 	}
@@ -481,7 +483,7 @@ func TestDNS_ReverseLookup(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -529,7 +531,7 @@ func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "custom"
@@ -579,7 +581,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -3431,7 +3433,7 @@ func TestDNS_Compression_ReverseLookup(t *testing.T) {
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, experimentsHCL)

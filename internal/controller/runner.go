@@ -158,7 +158,6 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 		Type: typ,
 		Tenancy: &pbresource.Tenancy{
 			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
 			Namespace: storage.Wildcard,
 		},
 	})
@@ -333,10 +332,9 @@ type mapperRequest struct{ res *pbresource.Resource }
 // used to de-duplicate requests in the queue.
 func (i mapperRequest) Key() string {
 	return fmt.Sprintf(
-		"type=%q,part=%q,peer=%q,ns=%q,name=%q,uid=%q",
+		"type=%q,part=%q,ns=%q,name=%q,uid=%q",
 		resource.ToGVK(i.res.Id.Type),
 		i.res.Id.Tenancy.Partition,
-		i.res.Id.Tenancy.PeerName,
 		i.res.Id.Tenancy.Namespace,
 		i.res.Id.Name,
 		i.res.Id.Uid,

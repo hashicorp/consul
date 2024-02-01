@@ -12,10 +12,39 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+var (
+	ErrNoData       = fmt.Errorf("no data")
+	ErrECSNotGlobal = fmt.Errorf("ECS response is not global")
+	ErrNotSupported = fmt.Errorf("not supported")
+)
+
+// ECSNotGlobalError may be used to wrap an error or nil, to indicate that the
+// EDNS client subnet source scope is not global.
+// TODO (v2-dns): prepared queries errors are wrapped by this
+type ECSNotGlobalError struct {
+	error
+}
+
+func (e ECSNotGlobalError) Error() string {
+	if e.error == nil {
+		return ""
+	}
+	return e.error.Error()
+}
+
+func (e ECSNotGlobalError) Is(other error) bool {
+	return other == ErrECSNotGlobal
+}
+
+func (e ECSNotGlobalError) Unwrap() error {
+	return e.error
+}
+
 // Query is used to request a name-based Service Discovery lookup.
 type Query struct {
 	QueryType    QueryType
 	QueryPayload QueryPayload
+	Limit        int
 }
 
 // QueryType is used to filter service endpoints.
@@ -78,16 +107,23 @@ const (
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Address  string   // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
-	Weight   uint32   // SRV queries
-	Port     uint32   // SRV queries
-	Metadata []string // Used to collect metadata into TXT Records
-	Type     ResultType
+	Address  string            // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
+	Weight   uint32            // SRV queries
+	Port     uint32            // SRV queries
+	Metadata map[string]string // Used to collect metadata into TXT Records
+	Type     ResultType        // Used to reconstruct the fqdn name of the resource
 
 	// Used in SRV & PTR queries to point at an A/AAAA Record.
-	// In V1, this could be a full-qualified Service or Node name.
-	// In V2, this is generally a fully-qualified Workload name.
 	Target string
+
+	Tenancy ResultTenancy
+}
+
+// ResultTenancy is used to reconstruct the fqdn name of the resource.
+type ResultTenancy struct {
+	PeerName       string
+	Datacenter     string
+	EnterpriseMeta acl.EnterpriseMeta // TODO (v2-dns): need something that is compatible with the V2 catalog
 }
 
 // LookupType is used by the CatalogDataFetcher to properly filter endpoints.
@@ -140,6 +176,7 @@ func NewQueryProcessor(dataFetcher CatalogDataFetcher) *QueryProcessor {
 	}
 }
 
+// QueryByName is used to look up a service, node, workload, or prepared query.
 func (p *QueryProcessor) QueryByName(query *Query, ctx Context) ([]*Result, error) {
 	switch query.QueryType {
 	case QueryTypeNode:
@@ -170,6 +207,6 @@ func (p *QueryProcessor) QueryByName(query *Query, ctx Context) ([]*Result, erro
 }
 
 // QueryByIP is used to look up a service or node from an IP address.
-func (p *QueryProcessor) QueryByIP(ip net.IP, ctx Context) ([]*Result, error) {
-	return p.dataFetcher.FetchRecordsByIp(ctx, ip)
+func (p *QueryProcessor) QueryByIP(ip net.IP, reqCtx Context) ([]*Result, error) {
+	return p.dataFetcher.FetchRecordsByIp(reqCtx, ip)
 }

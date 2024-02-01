@@ -153,8 +153,6 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 		id.Tenancy = &pbresource.Tenancy{
 			Partition: "",
 			Namespace: "",
-			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-			PeerName: "local",
 		}
 	}
 
@@ -167,10 +165,6 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 		if err := resource.ValidateName(id.Tenancy.Namespace); err != nil {
 			return status.Errorf(codes.InvalidArgument, "%s.tenancy.namespace invalid: %v", errorPrefix, err)
 		}
-	}
-	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-	if id.Tenancy.PeerName == "" {
-		id.Tenancy.PeerName = resource.DefaultPeerName
 	}
 
 	return nil
@@ -212,11 +206,6 @@ func validateWildcardTenancy(tenancy *pbresource.Tenancy, namePrefix string) err
 	// relax validation to just check for lowercasing
 	if namePrefix != strings.ToLower(namePrefix) {
 		return status.Errorf(codes.InvalidArgument, "name_prefix invalid: must be lowercase alphanumeric, got: %v", namePrefix)
-	}
-
-	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-	if tenancy.PeerName == "" {
-		tenancy.PeerName = resource.DefaultPeerName
 	}
 
 	return nil

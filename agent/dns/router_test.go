@@ -17,30 +17,32 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/discovery"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // TODO (v2-dns)
 
-// Test Parameters
-// 	1. Domain vs AltDomain vs non-consul Main domain
-//  2. Reload the configuration (e.g. SOA)
-//  3. Something to check the token makes it through to the data fetcher
-// 4. Something case insensitive
+// TBD Test Cases
+//  1. Reload the configuration (e.g. SOA)
+//  2. Something to check the token makes it through to the data fetcher
+//  3. Something case-insensitive
+//  4. Test the edns settings.
+
+type HandleTestCase struct {
+	name                 string
+	agentConfig          *config.RuntimeConfig // This will override the default test Router Config
+	configureDataFetcher func(fetcher discovery.CatalogDataFetcher)
+	configureRecursor    func(recursor dnsRecursor)
+	mockProcessorError   error
+	request              *dns.Msg
+	requestContext       *discovery.Context
+	remoteAddress        net.Addr
+	response             *dns.Msg
+}
 
 func Test_HandleRequest(t *testing.T) {
-	type testCase struct {
-		name                 string
-		agentConfig          *config.RuntimeConfig // This will override the default test Router Config
-		configureDataFetcher func(fetcher discovery.CatalogDataFetcher)
-		configureRecursor    func(recursor dnsRecursor)
-		mockProcessorError   error
-		request              *dns.Msg
-		requestContext       *discovery.Context
-		remoteAddress        net.Addr
-		response             *dns.Msg
-	}
 
-	testCases := []testCase{
+	testCases := []HandleTestCase{
 		// recursor queries
 		{
 			name: "recursors not configured, non-matching domain",
@@ -59,13 +61,10 @@ func Test_HandleRequest(t *testing.T) {
 			// configureRecursor: call not expected.
 			response: &dns.Msg{
 				MsgHdr: dns.MsgHdr{
-					Opcode:             dns.OpcodeQuery,
-					Response:           true,
-					Authoritative:      false,
-					Rcode:              dns.RcodeServerFailure,
-					RecursionAvailable: true,
+					Opcode:   dns.OpcodeQuery,
+					Response: true,
+					Rcode:    dns.RcodeRefused,
 				},
-				Compress: true,
 				Question: []dns.Question{
 					{
 						Name:   "google.com.",
@@ -148,7 +147,7 @@ func Test_HandleRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "recursors configured, matching domain",
+			name: "recursors configured, no matching domain",
 			request: &dns.Msg{
 				MsgHdr: dns.MsgHdr{
 					Opcode: dns.OpcodeQuery,
@@ -222,6 +221,93 @@ func Test_HandleRequest(t *testing.T) {
 						Name:   "google.com.",
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
+					},
+				},
+			},
+		},
+		{
+			name: "recursors configured, the root domain is handled by the recursor",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   ".",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				// this response is modeled after `dig .`
+				resp := &dns.Msg{
+					MsgHdr: dns.MsgHdr{
+						Opcode:        dns.OpcodeQuery,
+						Response:      true,
+						Authoritative: true,
+						Rcode:         dns.RcodeSuccess,
+					},
+					Question: []dns.Question{
+						{
+							Name:   ".",
+							Qtype:  dns.TypeA,
+							Qclass: dns.ClassINET,
+						},
+					},
+					Answer: []dns.RR{
+						&dns.SOA{
+							Hdr: dns.RR_Header{
+								Name:   ".",
+								Rrtype: dns.TypeSOA,
+								Class:  dns.ClassINET,
+								Ttl:    86391,
+							},
+							Ns:      "a.root-servers.net.",
+							Serial:  2024012200,
+							Mbox:    "nstld.verisign-grs.com.",
+							Refresh: 1800,
+							Retry:   900,
+							Expire:  604800,
+							Minttl:  86400,
+						},
+					},
+				}
+				recursor.(*mockDnsRecursor).On("handle",
+					mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+					Rcode:         dns.RcodeSuccess,
+				},
+				Question: []dns.Question{
+					{
+						Name:   ".",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.SOA{
+						Hdr: dns.RR_Header{
+							Name:   ".",
+							Rrtype: dns.TypeSOA,
+							Class:  dns.ClassINET,
+							Ttl:    86391,
+						},
+						Ns:      "a.root-servers.net.",
+						Serial:  2024012200,
+						Mbox:    "nstld.verisign-grs.com.",
+						Refresh: 1800,
+						Retry:   900,
+						Expire:  604800,
+						Minttl:  86400,
 					},
 				},
 			},
@@ -620,7 +706,7 @@ func Test_HandleRequest(t *testing.T) {
 				},
 				Question: []dns.Question{
 					{
-						Name:   "c000020a.virtual.consul", // "intentionally missing the trailing dot"
+						Name:   "c000020a.virtual.dc1.consul", // "intentionally missing the trailing dot"
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
@@ -642,7 +728,7 @@ func Test_HandleRequest(t *testing.T) {
 				Compress: true,
 				Question: []dns.Question{
 					{
-						Name:   "c000020a.virtual.consul.",
+						Name:   "c000020a.virtual.dc1.consul.",
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
@@ -650,7 +736,7 @@ func Test_HandleRequest(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "c000020a.virtual.consul.",
+							Name:   "c000020a.virtual.dc1.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -709,10 +795,526 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 		},
+		// SOA Queries
+		{
+			name: "vanilla SOA query",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "consul.",
+						Qtype:  dns.TypeSOA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return([]*discovery.Result{
+						{
+							Address: "1.2.3.4",
+							Type:    discovery.ResultTypeWorkload,
+							Target:  "server-one", // This would correlate to the workload name
+						},
+						{
+							Address: "4.5.6.7",
+							Type:    discovery.ResultTypeWorkload,
+							Target:  "server-two", // This would correlate to the workload name
+						},
+					}, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, discovery.LookupTypeService, reqType)
+						require.Equal(t, structs.ConsulServiceName, req.Name)
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "consul.",
+						Qtype:  dns.TypeSOA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.SOA{
+						Hdr: dns.RR_Header{
+							Name:   "consul.",
+							Rrtype: dns.TypeSOA,
+							Class:  dns.ClassINET,
+							Ttl:    4,
+						},
+						Ns:      "ns.consul.",
+						Serial:  uint32(time.Now().Unix()),
+						Mbox:    "hostmaster.consul.",
+						Refresh: 1,
+						Expire:  3,
+						Retry:   2,
+						Minttl:  4,
+					},
+				},
+				Ns: []dns.RR{
+					&dns.NS{
+						Hdr: dns.RR_Header{
+							Name:   "consul.",
+							Rrtype: dns.TypeNS,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						Ns: "server-one.workload.consul.",
+					},
+					&dns.NS{
+						Hdr: dns.RR_Header{
+							Name:   "consul.",
+							Rrtype: dns.TypeNS,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						Ns: "server-two.workload.consul.",
+					},
+				},
+				Extra: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "server-one.workload.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "server-two.workload.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("4.5.6.7"),
+					},
+				},
+			},
+		},
+		{
+			name: "SOA query against alternate domain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "testdomain.",
+						Qtype:  dns.TypeSOA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSDomain:    "consul",
+				DNSAltDomain: "testdomain",
+				DNSNodeTTL:   123 * time.Second,
+				DNSSOA: config.RuntimeSOAConfig{
+					Refresh: 1,
+					Retry:   2,
+					Expire:  3,
+					Minttl:  4,
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return([]*discovery.Result{
+						{
+							Address: "1.2.3.4",
+							Type:    discovery.ResultTypeWorkload,
+							Target:  "server-one", // This would correlate to the workload name
+						},
+						{
+							Address: "4.5.6.7",
+							Type:    discovery.ResultTypeWorkload,
+							Target:  "server-two", // This would correlate to the workload name
+						},
+					}, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, discovery.LookupTypeService, reqType)
+						require.Equal(t, structs.ConsulServiceName, req.Name)
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "testdomain.",
+						Qtype:  dns.TypeSOA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.SOA{
+						Hdr: dns.RR_Header{
+							Name:   "testdomain.",
+							Rrtype: dns.TypeSOA,
+							Class:  dns.ClassINET,
+							Ttl:    4,
+						},
+						Ns:      "ns.testdomain.",
+						Serial:  uint32(time.Now().Unix()),
+						Mbox:    "hostmaster.testdomain.",
+						Refresh: 1,
+						Expire:  3,
+						Retry:   2,
+						Minttl:  4,
+					},
+				},
+				Ns: []dns.RR{
+					&dns.NS{
+						Hdr: dns.RR_Header{
+							Name:   "testdomain.",
+							Rrtype: dns.TypeNS,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						Ns: "server-one.workload.testdomain.",
+					},
+					&dns.NS{
+						Hdr: dns.RR_Header{
+							Name:   "testdomain.",
+							Rrtype: dns.TypeNS,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						Ns: "server-two.workload.testdomain.",
+					},
+				},
+				Extra: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "server-one.workload.testdomain.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "server-two.workload.testdomain.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("4.5.6.7"),
+					},
+				},
+			},
+		},
+		// PTR Lookups
+		{
+			name: "PTR lookup for node, query type is ANY",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Address: "1.2.3.4",
+						Type:    discovery.ResultTypeNode,
+						Target:  "foo",
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.node.dc2.consul.",
+					},
+				},
+			},
+		},
+		{
+			name: "PTR lookup for IPV6 node",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Address: "2001:db8::567:89ab",
+						Type:    discovery.ResultTypeNode,
+						Target:  "foo",
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "2001:db8::567:89ab", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.node.dc2.consul.",
+					},
+				},
+			},
+		},
+		{
+			name: "PTR lookup for invalid IP address",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "257.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+					Rcode:         dns.RcodeNameError,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "257.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Ns: []dns.RR{
+					&dns.SOA{
+						Hdr: dns.RR_Header{
+							Name:   "consul.",
+							Rrtype: dns.TypeSOA,
+							Class:  dns.ClassINET,
+							Ttl:    4,
+						},
+						Ns:      "ns.consul.",
+						Serial:  uint32(time.Now().Unix()),
+						Mbox:    "hostmaster.consul.",
+						Refresh: 1,
+						Expire:  3,
+						Retry:   2,
+						Minttl:  4,
+					},
+				},
+			},
+		},
+		{
+			name: "PTR lookup for invalid subdomain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.blah.arpa",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+					Rcode:         dns.RcodeNameError,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.blah.arpa.",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Ns: []dns.RR{
+					&dns.SOA{
+						Hdr: dns.RR_Header{
+							Name:   "consul.",
+							Rrtype: dns.TypeSOA,
+							Class:  dns.ClassINET,
+							Ttl:    4,
+						},
+						Ns:      "ns.consul.",
+						Serial:  uint32(time.Now().Unix()),
+						Mbox:    "hostmaster.consul.",
+						Refresh: 1,
+						Expire:  3,
+						Retry:   2,
+						Minttl:  4,
+					},
+				},
+			},
+		},
+		// Service Lookup
+		{
+			name: "When no data is return from a query, send SOA",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, discovery.ErrNoData).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, discovery.LookupTypeService, reqType)
+						require.Equal(t, "foo", req.Name)
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Ns: []dns.RR{
+					&dns.SOA{
+						Hdr: dns.RR_Header{
+							Name:   "consul.",
+							Rrtype: dns.TypeSOA,
+							Class:  dns.ClassINET,
+							Ttl:    4,
+						},
+						Ns:      "ns.consul.",
+						Serial:  uint32(time.Now().Unix()),
+						Mbox:    "hostmaster.consul.",
+						Refresh: 1,
+						Expire:  3,
+						Retry:   2,
+						Minttl:  4,
+					},
+				},
+			},
+		},
+		// TODO (v2-dns): add a test to make sure only 3 records are returned
 	}
 
-	run := func(t *testing.T, tc testCase) {
-		cdf := &discovery.MockCatalogDataFetcher{}
+	testCases = append(testCases, getAdditionalTestCases(t)...)
+
+	run := func(t *testing.T, tc HandleTestCase) {
+		cdf := discovery.NewMockCatalogDataFetcher(t)
 		if tc.configureDataFetcher != nil {
 			tc.configureDataFetcher(cdf)
 		}
@@ -743,6 +1345,58 @@ func Test_HandleRequest(t *testing.T) {
 
 }
 
+func TestRouterDynamicConfig_GetTTLForService(t *testing.T) {
+	type testCase struct {
+		name             string
+		inputKey         string
+		shouldMatch      bool
+		expectedDuration time.Duration
+	}
+
+	testCases := []testCase{
+		{
+			name:             "strict match",
+			inputKey:         "foo",
+			shouldMatch:      true,
+			expectedDuration: 1 * time.Second,
+		},
+		{
+			name:             "wildcard match",
+			inputKey:         "bar",
+			shouldMatch:      true,
+			expectedDuration: 2 * time.Second,
+		},
+		{
+			name:             "wildcard match 2",
+			inputKey:         "bart",
+			shouldMatch:      true,
+			expectedDuration: 2 * time.Second,
+		},
+		{
+			name:             "no match",
+			inputKey:         "homer",
+			shouldMatch:      false,
+			expectedDuration: 0 * time.Second,
+		},
+	}
+
+	rtCfg := &config.RuntimeConfig{
+		DNSServiceTTL: map[string]time.Duration{
+			"foo":  1 * time.Second,
+			"bar*": 2 * time.Second,
+		},
+	}
+	cfg, err := getDynamicRouterConfig(rtCfg)
+	require.NoError(t, err)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, ok := cfg.GetTTLForService(tc.inputKey)
+			require.Equal(t, tc.shouldMatch, ok)
+			require.Equal(t, tc.expectedDuration, actual)
+		})
+	}
+}
 func buildDNSConfig(agentConfig *config.RuntimeConfig, cdf discovery.CatalogDataFetcher, _ error) Config {
 	cfg := Config{
 		AgentConfig: &config.RuntimeConfig{

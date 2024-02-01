@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/testing/golden"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -174,7 +175,11 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 					ComputedPortRoutes: routestest.MutateTargets(t, computedRoutes.Data, portName, func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 						switch {
 						case resource.ReferenceOrIDMatch(svc.Id, details.BackendRef.Ref) && details.BackendRef.Port == portName:
-							details.ServiceEndpointsId = endpoints.Id
+							details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+								Id:        endpoints.Id,
+								MeshPort:  details.MeshPort,
+								RoutePort: details.BackendRef.Port,
+							}
 							details.ServiceEndpoints = seDec.Data
 							details.IdentityRefs = identities
 						}
