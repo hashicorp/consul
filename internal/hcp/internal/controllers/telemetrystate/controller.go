@@ -147,7 +147,7 @@ func writeTelemetryStateIfUpdated(ctx context.Context, rt controller.Runtime, st
 		return err
 	}
 
-	if currentState != nil && proto.Equal(currentState, state) {
+	if currentState != nil && proto.Equal(currentState.GetData(), state) {
 		return nil
 	}
 
