@@ -433,19 +433,12 @@ func testListWatch(t *testing.T, opts TestOptions) {
 					event, err := watch.Next(ctx)
 					require.NoError(t, err)
 
-					switch {
-					case event.GetUpsert() != nil:
-					case event.GetDelete() != nil:
-					case event.GetEndOfSnapshot() != nil:
-						if opts.IgnoreWatchListSnapshotOperations {
-							continue
-						} else if i == expectNum-1 {
-							continue
-						}
-					default:
-						t.Fatalf("unexpected event type %T", event.GetEvent())
+					if opts.IgnoreWatchListSnapshotOperations && event.GetEndOfSnapshot() != nil {
+						continue // ignore
+					} else if !opts.IgnoreWatchListSnapshotOperations && i == expectNum-1 {
+						require.NotNil(t, event.GetEndOfSnapshot(), "expected EndOfSnapshot got %T", event.GetEvent())
+						continue
 					}
-
 					require.NotNil(t, event.GetUpsert(), "index=%d", i)
 					prototest.AssertContainsElement(t, tc.results, event.GetUpsert().Resource, ignoreVersion)
 				}
