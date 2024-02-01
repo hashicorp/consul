@@ -291,8 +291,8 @@ func (r *Router) getQueryResults(req *dns.Msg, reqCtx Context, reqType requestTy
 					// need to add something to disambiguate the empty field.
 					Partition: resource.DefaultPartitionName,
 				},
+				Limit: 3,
 			},
-			Limit: 3, // TODO (v2-dns): need to thread this through to the backend and make sure we shuffle the results
 		}
 
 		results, err := r.processor.QueryByName(query, discovery.Context{Token: reqCtx.Token})
@@ -844,7 +844,7 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 		answer = append(answer, ptr)
 	case qType == dns.TypeNS:
 		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
-		fqdn := canonicalNameForResult(result.Type, serviceAddress.String(), domain, result.Tenancy, result.PortName)
+		fqdn := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, result.PortName)
 		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
 
 		answer = append(answer, makeNSRecord(domain, fqdn, ttl))
@@ -852,7 +852,7 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 	case qType == dns.TypeSOA:
 		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
 		// to be returned in the result.
-		fqdn := canonicalNameForResult(result.Type, serviceAddress.String(), domain, result.Tenancy, result.PortName)
+		fqdn := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, result.PortName)
 		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
 
 		ns = append(ns, makeNSRecord(domain, fqdn, ttl))

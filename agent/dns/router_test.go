@@ -833,6 +833,7 @@ func Test_HandleRequest(t *testing.T) {
 
 						require.Equal(t, discovery.LookupTypeService, reqType)
 						require.Equal(t, structs.ConsulServiceName, req.Name)
+						require.Equal(t, 3, req.Limit)
 					})
 			},
 			validateAndNormalizeExpected: true,
@@ -955,6 +956,7 @@ func Test_HandleRequest(t *testing.T) {
 
 						require.Equal(t, discovery.LookupTypeService, reqType)
 						require.Equal(t, structs.ConsulServiceName, req.Name)
+						require.Equal(t, 3, req.Limit)
 					})
 			},
 			validateAndNormalizeExpected: true,
@@ -990,6 +992,204 @@ func Test_HandleRequest(t *testing.T) {
 					},
 				},
 				Ns: []dns.RR{
+					&dns.NS{
+						Hdr: dns.RR_Header{
+							Name:   "testdomain.",
+							Rrtype: dns.TypeNS,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						Ns: "server-one.workload.testdomain.",
+					},
+					&dns.NS{
+						Hdr: dns.RR_Header{
+							Name:   "testdomain.",
+							Rrtype: dns.TypeNS,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						Ns: "server-two.workload.testdomain.",
+					},
+				},
+				Extra: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "server-one.workload.testdomain.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "server-two.workload.testdomain.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("4.5.6.7"),
+					},
+				},
+			},
+		},
+		// NS Queries
+		{
+			name: "vanilla NS query",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "consul.",
+						Qtype:  dns.TypeNS,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return([]*discovery.Result{
+						{
+							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
+							Type: discovery.ResultTypeWorkload,
+						},
+						{
+							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
+							Type: discovery.ResultTypeWorkload,
+						},
+					}, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, discovery.LookupTypeService, reqType)
+						require.Equal(t, structs.ConsulServiceName, req.Name)
+						require.Equal(t, 3, req.Limit)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "consul.",
+						Qtype:  dns.TypeNS,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.NS{
+						Hdr: dns.RR_Header{
+							Name:   "consul.",
+							Rrtype: dns.TypeNS,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						Ns: "server-one.workload.consul.", // TODO (v2-dns): this format needs to be consistent with other workloads
+					},
+					&dns.NS{
+						Hdr: dns.RR_Header{
+							Name:   "consul.",
+							Rrtype: dns.TypeNS,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						Ns: "server-two.workload.consul.",
+					},
+				},
+				Extra: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "server-one.workload.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "server-two.workload.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("4.5.6.7"),
+					},
+				},
+			},
+		},
+		{
+			name: "NS query against alternate domain",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "testdomain.",
+						Qtype:  dns.TypeNS,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSDomain:    "consul",
+				DNSAltDomain: "testdomain",
+				DNSNodeTTL:   123 * time.Second,
+				DNSSOA: config.RuntimeSOAConfig{
+					Refresh: 1,
+					Retry:   2,
+					Expire:  3,
+					Minttl:  4,
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return([]*discovery.Result{
+						{
+							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
+							Type: discovery.ResultTypeWorkload,
+						},
+						{
+							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
+							Type: discovery.ResultTypeWorkload,
+						},
+					}, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, discovery.LookupTypeService, reqType)
+						require.Equal(t, structs.ConsulServiceName, req.Name)
+						require.Equal(t, 3, req.Limit)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "testdomain.",
+						Qtype:  dns.TypeNS,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
 					&dns.NS{
 						Hdr: dns.RR_Header{
 							Name:   "testdomain.",
@@ -1579,7 +1779,7 @@ func Test_HandleRequest(t *testing.T) {
 		},
 	}
 
-	//testCases = append(testCases, getAdditionalTestCases(t)...)
+	testCases = append(testCases, getAdditionalTestCases(t)...)
 
 	run := func(t *testing.T, tc HandleTestCase) {
 		cdf := discovery.NewMockCatalogDataFetcher(t)
