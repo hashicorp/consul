@@ -2,19 +2,16 @@
 layout: commands
 page_title: 'Commands: Exported Services'
 description: >-
-  The `exported-services` command lists all the exported services along 
-  with their consumers. Wildcards and sameness groups are expanded.
+  The `consul services exported-services` command lists exported services and their consumers.
 ---
 
 # Consul Exported Services
 
-Command: `consul exported-services`
+Command: `consul services exported-services`
 
 Corresponding HTTP API Endpoint: [\[GET\] /v1/exported-services](/consul/api-docs/exported-services)
 
-The `exported-services` command displays all of the services that were exported 
-using an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services).
-Sameness groups and wildcards in the configuration entry are expanded in the response.
+The `exported-services` command displays the services that were exported using an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services). Sameness groups and wildcards in the configuration entry are expanded in the response.
 
 
 The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
@@ -25,7 +22,7 @@ The table below shows this command's [required ACLs](/consul/api-docs/api-struct
 
 ## Usage
 
-Usage: `consul exported-services [options]`
+Usage: `consul services exported-services [options]`
 
 #### Enterprise Options
 

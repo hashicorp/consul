@@ -69,7 +69,6 @@ import (
 	"github.com/hashicorp/consul/command/debug"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
-	exportedservices "github.com/hashicorp/consul/command/exportedservices"
 	"github.com/hashicorp/consul/command/forceleave"
 	"github.com/hashicorp/consul/command/info"
 	"github.com/hashicorp/consul/command/intention"
@@ -125,6 +124,7 @@ import (
 	"github.com/hashicorp/consul/command/services"
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
 	svcsexport "github.com/hashicorp/consul/command/services/export"
+	exportedservices "github.com/hashicorp/consul/command/services/exportedservices"
 	svcsregister "github.com/hashicorp/consul/command/services/register"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
@@ -213,7 +213,6 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"debug", func(ui cli.Ui) (cli.Command, error) { return debug.New(ui), nil }},
 		entry{"event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil }},
 		entry{"exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil }},
-		entry{"exported-services", func(ui cli.Ui) (cli.Command, error) { return exportedservices.New(ui), nil }},
 		entry{"force-leave", func(ui cli.Ui) (cli.Command, error) { return forceleave.New(ui), nil }},
 		entry{"info", func(ui cli.Ui) (cli.Command, error) { return info.New(ui), nil }},
 		entry{"intention", func(ui cli.Ui) (cli.Command, error) { return intention.New(), nil }},
@@ -271,6 +270,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil }},
 		entry{"services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil }},
 		entry{"services export", func(ui cli.Ui) (cli.Command, error) { return svcsexport.New(ui), nil }},
+		entry{"services exported-services", func(ui cli.Ui) (cli.Command, error) { return exportedservices.New(ui), nil }},
 		entry{"snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil }},
 		entry{"snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil }},
 		entry{"snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil }},
