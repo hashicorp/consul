@@ -299,7 +299,7 @@ func (b *BasicEnvoyExtender) patchListenerFilterChains(config *RuntimeConfig, l 
 	// Special case for Permissive mTLS, which adds a filter chain
 	// containing a TCP Proxy only. We don't care about errors
 	// applying filters as long as the main filter chain is
-	// patched successfully.
+	// patched successfully
 	if IsInboundPublicListener(l) && len(l.FilterChains) > 1 {
 		var isPatched bool
 		for idx, filterChain := range l.FilterChains {
