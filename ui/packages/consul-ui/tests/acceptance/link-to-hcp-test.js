@@ -9,7 +9,8 @@ import { setupApplicationTest } from 'ember-qunit';
 import { EnvStub } from 'consul-ui/services/env';
 
 const bannerSelector = '[data-test-link-to-hcp-banner]';
-module('Acceptance | link to hcp banner', function (hooks) {
+const linkToHcpSelector = '[data-test-link-to-hcp]';
+module('Acceptance | link to hcp', function (hooks) {
   setupApplicationTest(hooks);
 
   hooks.beforeEach(function () {
@@ -25,18 +26,23 @@ module('Acceptance | link to hcp banner', function (hooks) {
     );
   });
 
-  test('the banner is initially displayed on services page', async function (assert) {
-    assert.expect(3);
+  test('the banner and nav item are initially displayed on services page', async function (assert) {
     // default route is services page so we're good here
     await visit('/');
     // Expect the banner to be visible by default
-    assert.dom(bannerSelector).exists({ count: 1 });
+    assert.dom(bannerSelector).isVisible('Banner is visible by default');
+    // expect linkToHCP nav item to be visible as well
+    assert.dom(linkToHcpSelector).isVisible('Link to HCP nav item is visible by default');
     // Click on the dismiss button
     await click(`${bannerSelector} button[aria-label="Dismiss"]`);
     assert.dom(bannerSelector).doesNotExist('Banner is gone after dismissing');
+    // link to HCP nav item still there
+    assert.dom(linkToHcpSelector).isVisible('Link to HCP nav item is visible by default');
     // Refresh the page
     await visit('/');
     assert.dom(bannerSelector).doesNotExist('Banner is still gone after refresh');
+    // link to HCP nav item still there
+    assert.dom(linkToHcpSelector).isVisible('Link to HCP nav item is visible by default');
   });
 
   test('the banner is not displayed if the env var is not set', async function (assert) {
