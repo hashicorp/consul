@@ -52,7 +52,7 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 			"127.0.0.1:8502. If you intend to communicate in TLS mode, you have to either "+
 			"include https:// schema in the address, use grpc-tls flag or set environment variable "+
 			"CONSUL_GRPC_TLS = true, otherwise it uses plaintext mode")
-	fs.Var(&f.caFile, "grpc-tls",
+	fs.Var(&f.grpcTLS, "grpc-tls",
 		"Set to true if you aim to communicate in TLS mode in the GRPC call.")
 	fs.Var(&f.certFile, "client-cert",
 		"Path to a client cert file to use for TLS when 'verify_incoming' is enabled. This "+

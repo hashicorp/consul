@@ -26,7 +26,7 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
-const FORWARD_SERVICE_NAME_PREFIX = "hashicorp.consul."
+const FORWARD_SERVICE_NAME_PREFIX = "/hashicorp.consul."
 
 var (
 	metricsLabels = []metrics.Label{{
