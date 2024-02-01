@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/ryanuber/columnize"
 )
 
@@ -47,7 +48,9 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	format string
+	format            string
+	consumerPeer      string
+	consumerPartition string
 }
 
 func (c *cmd) init() {
@@ -59,6 +62,9 @@ func (c *cmd) init() {
 		PrettyFormat,
 		fmt.Sprintf("Output format {%s} (default: %s)", strings.Join(getSupportedFormats(), "|"), PrettyFormat),
 	)
+
+	c.flags.StringVar(&c.consumerPeer, "consumerPeer", "", "If provided, output is filtered to only services which have the consumer peer")
+	c.flags.StringVar(&c.consumerPartition, "consumerPartition", "", "If provided, output is filtered to only services which have the consumer partition")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -89,13 +95,14 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if len(exportedServices) == 0 {
+	filteredServices := c.FilterResponse(exportedServices)
+	if len(filteredServices) == 0 {
 		c.UI.Info("No exported services found")
 		return 0
 	}
 
 	if c.format == JSONFormat {
-		output, err := json.MarshalIndent(exportedServices, "", "    ")
+		output, err := json.MarshalIndent(filteredServices, "", "    ")
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error marshalling JSON: %s", err))
 			return 1
@@ -104,7 +111,7 @@ func (c *cmd) Run(args []string) int {
 		return 0
 	}
 
-	c.UI.Output(formatExportedServices(exportedServices))
+	c.UI.Output(formatExportedServices(filteredServices))
 
 	return 0
 }
@@ -136,6 +143,39 @@ func formatExportedServices(services []api.ResolvedExportedService) string {
 	}
 
 	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})})
+}
+
+func (c *cmd) FilterResponse(exportedServices []api.ResolvedExportedService) []api.ResolvedExportedService {
+	if c.consumerPartition == "" && c.consumerPeer == "" {
+		return exportedServices
+	}
+
+	var resp []api.ResolvedExportedService
+
+	for _, svc := range exportedServices {
+		cloneSvc := api.ResolvedExportedService{
+			Service:   svc.Service,
+			Partition: svc.Partition,
+			Namespace: svc.Namespace,
+		}
+
+		includeService := false
+
+		if stringslice.Contains(svc.Consumers.Partitions, c.consumerPartition) {
+			cloneSvc.Consumers.Partitions = []string{c.consumerPartition}
+			includeService = true
+		}
+		if stringslice.Contains(svc.Consumers.Peers, c.consumerPeer) {
+			cloneSvc.Consumers.Peers = []string{c.consumerPeer}
+			includeService = true
+		}
+
+		if includeService {
+			resp = append(resp, cloneSvc)
+		}
+	}
+
+	return resp
 }
 
 func (c *cmd) Synopsis() string {
