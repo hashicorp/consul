@@ -70,8 +70,14 @@ func TestSnapshotRestore(t *testing.T) {
 	t.Cleanup(cancel)
 
 	// Expect the initial state on the watch.
-	_, err = watch.Next(ctx)
+	got, err := watch.Next(ctx)
 	require.NoError(t, err)
+	require.NotNil(t, got.GetUpsert())
+
+	// expect to get snapshot end op
+	got, err = watch.Next(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, got.GetEndOfSnapshot())
 
 	restore, err := newStore.Restore()
 	require.NoError(t, err)
