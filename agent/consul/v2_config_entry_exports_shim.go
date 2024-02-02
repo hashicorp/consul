@@ -42,7 +42,11 @@ func (s *v1ServiceExportsShim) Start(ctx context.Context) {
 
 		if err != nil {
 			logger.Warn("encountered an error while streaming exported services", "error", err)
-			time.Sleep(time.Second)
+			select {
+			case <-time.After(time.Second):
+			case <-ctx.Done():
+				return
+			}
 		} else {
 			return
 		}
