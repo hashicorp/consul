@@ -22,11 +22,10 @@ const (
 
 func TestClientForwardToServer(t *testing.T) {
 	type operation struct {
-		action         func(*testing.T, libcluster.Agent, string) (int, string)
-		includeToken   bool
-		expectedCode   int
-		expectedMsg    string
-		expectedErrMsg string
+		action       func(*testing.T, libcluster.Agent, string) (int, string)
+		includeToken bool
+		expectedCode int
+		expectedMsg  string
 	}
 	type testCase struct {
 		description string
@@ -36,34 +35,31 @@ func TestClientForwardToServer(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			description: "The read request should be routed to consul server agent",
+			description: "The apply request should be forwarded to consul server agent",
 			operations: []operation{
 				{
-					action:         applyResource,
-					includeToken:   false,
-					expectedCode:   0,
-					expectedMsg:    "demo.v2.Artist 'korn' created.",
-					expectedErrMsg: "",
+					action:       applyResource,
+					includeToken: false,
+					expectedCode: 0,
+					expectedMsg:  "demo.v2.Artist 'korn' created.",
 				},
 			},
 			aclEnabled: false,
 		},
 		{
-			description: "The read request should be denied if missing token when ACL is enabled",
+			description: "The apply request should be denied if missing token when ACL is enabled",
 			operations: []operation{
 				{
-					action:         applyResource,
-					includeToken:   false,
-					expectedCode:   1,
-					expectedMsg:    "",
-					expectedErrMsg: "failed getting authorizer: ACL not found",
+					action:       applyResource,
+					includeToken: false,
+					expectedCode: 1,
+					expectedMsg:  "failed getting authorizer: ACL not found",
 				},
 				{
-					action:         applyResource,
-					includeToken:   true,
-					expectedCode:   0,
-					expectedMsg:    "demo.v2.Artist 'korn' created.",
-					expectedErrMsg: "",
+					action:       applyResource,
+					includeToken: true,
+					expectedCode: 0,
+					expectedMsg:  "demo.v2.Artist 'korn' created.",
 				},
 			},
 			aclEnabled: true,
@@ -87,11 +83,7 @@ func TestClientForwardToServer(t *testing.T) {
 				}
 				code, res := op.action(t, clientAgent, token)
 				require.Equal(t, op.expectedCode, code)
-				if code == 0 {
-					require.Contains(t, res, op.expectedMsg)
-				} else {
-					require.Contains(t, res, op.expectedErrMsg)
-				}
+				require.Contains(t, res, op.expectedMsg)
 			}
 		})
 	}
