@@ -9,12 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
@@ -43,8 +42,9 @@ func Test_FetchVirtualIP(t *testing.T) {
 			queryPayload: &QueryPayload{
 				Name: "db",
 				Tenancy: QueryTenancy{
-					Peer:           "test-peer",
-					EnterpriseMeta: defaultEntMeta,
+					Peer:      "test-peer",
+					Namespace: defaultTestNamespace,
+					Partition: defaultTestPartition,
 				},
 			},
 			context: Context{
@@ -61,9 +61,9 @@ func Test_FetchVirtualIP(t *testing.T) {
 			queryPayload: &QueryPayload{
 				Name: "db",
 				Tenancy: QueryTenancy{
-					Peer:           "test-peer",
-					EnterpriseMeta: defaultEntMeta,
-				},
+					Peer:      "test-peer",
+					Namespace: defaultTestNamespace,
+					Partition: defaultTestPartition},
 			},
 			context: Context{
 				Token: "test-token",
@@ -90,7 +90,8 @@ func Test_FetchVirtualIP(t *testing.T) {
 
 					// validate RPC options are set correctly from the queryPayload and context
 					require.Equal(t, tc.queryPayload.Tenancy.Peer, req.PeerName)
-					require.Equal(t, tc.queryPayload.Tenancy.EnterpriseMeta, req.EnterpriseMeta)
+					require.Equal(t, tc.queryPayload.Tenancy.Namespace, req.EnterpriseMeta.NamespaceOrEmpty())
+					require.Equal(t, tc.queryPayload.Tenancy.Partition, req.EnterpriseMeta.PartitionOrEmpty())
 					require.Equal(t, tc.context.Token, req.QueryOptions.Token)
 
 					if tc.expectedErr == nil {
@@ -143,7 +144,8 @@ func Test_FetchEndpoints(t *testing.T) {
 			queryPayload: &QueryPayload{
 				Name: "service-name",
 				Tenancy: QueryTenancy{
-					EnterpriseMeta: defaultEntMeta,
+					Namespace: defaultTestNamespace,
+					Partition: defaultTestPartition,
 				},
 			},
 			rpcFuncForServiceNodes: func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
@@ -151,12 +153,14 @@ func Test_FetchEndpoints(t *testing.T) {
 					Nodes: []structs.CheckServiceNode{
 						{
 							Node: &structs.Node{
-								Address: "node-address",
-								Node:    "node-name",
+								Address:   "node-address",
+								Node:      "node-name",
+								Partition: defaultTestPartition,
 							},
 							Service: &structs.NodeService{
-								Address: "127.0.0.1",
-								Service: "service-name",
+								Address:        "127.0.0.1",
+								Service:        "service-name",
+								EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(defaultTestPartition, defaultTestNamespace),
 							},
 						},
 					},
@@ -171,6 +175,10 @@ func Test_FetchEndpoints(t *testing.T) {
 					Target:  "service-name",
 					Type:    ResultTypeService,
 					Weight:  1,
+					Tenancy: ResultTenancy{
+						Namespace: defaultTestNamespace,
+						Partition: defaultTestPartition,
+					},
 				},
 			},
 			expectedErr: nil,
@@ -180,7 +188,8 @@ func Test_FetchEndpoints(t *testing.T) {
 			queryPayload: &QueryPayload{
 				Name: "service-name",
 				Tenancy: QueryTenancy{
-					EnterpriseMeta: defaultEntMeta,
+					Namespace: defaultTestNamespace,
+					Partition: defaultTestPartition,
 				},
 			},
 			rpcFuncForServiceNodes: func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
@@ -188,12 +197,14 @@ func Test_FetchEndpoints(t *testing.T) {
 					Nodes: []structs.CheckServiceNode{
 						{
 							Node: &structs.Node{
-								Address: "node-address",
-								Node:    "node-name",
+								Address:   "node-address",
+								Node:      "node-name",
+								Partition: defaultTestPartition,
 							},
 							Service: &structs.NodeService{
-								Address: "2001:db8:1:2:cafe::1337",
-								Service: "service-name",
+								Address:        "2001:db8:1:2:cafe::1337",
+								Service:        "service-name",
+								EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(defaultTestPartition, defaultTestNamespace),
 							},
 						},
 					},
@@ -208,6 +219,10 @@ func Test_FetchEndpoints(t *testing.T) {
 					Target:  "service-name",
 					Type:    ResultTypeService,
 					Weight:  1,
+					Tenancy: ResultTenancy{
+						Namespace: defaultTestNamespace,
+						Partition: defaultTestPartition,
+					},
 				},
 			},
 			expectedErr: nil,
@@ -217,7 +232,8 @@ func Test_FetchEndpoints(t *testing.T) {
 			queryPayload: &QueryPayload{
 				Name: "service-name",
 				Tenancy: QueryTenancy{
-					EnterpriseMeta: defaultEntMeta,
+					Namespace: defaultTestNamespace,
+					Partition: defaultTestPartition,
 				},
 			},
 			rpcFuncForServiceNodes: func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
@@ -225,12 +241,14 @@ func Test_FetchEndpoints(t *testing.T) {
 					Nodes: []structs.CheckServiceNode{
 						{
 							Node: &structs.Node{
-								Address: "node-address",
-								Node:    "node-name",
+								Address:   "node-address",
+								Node:      "node-name",
+								Partition: defaultTestPartition,
 							},
 							Service: &structs.NodeService{
-								Address: "foo",
-								Service: "service-name",
+								Address:        "foo",
+								Service:        "service-name",
+								EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(defaultTestPartition, defaultTestNamespace),
 							},
 						},
 					},
@@ -245,6 +263,10 @@ func Test_FetchEndpoints(t *testing.T) {
 					Target:  "foo",
 					Type:    ResultTypeNode,
 					Weight:  1,
+					Tenancy: ResultTenancy{
+						Namespace: defaultTestNamespace,
+						Partition: defaultTestPartition,
+					},
 				},
 			},
 			expectedErr: nil,
@@ -254,7 +276,8 @@ func Test_FetchEndpoints(t *testing.T) {
 			queryPayload: &QueryPayload{
 				Name: "service-name",
 				Tenancy: QueryTenancy{
-					EnterpriseMeta: defaultEntMeta,
+					Namespace: defaultTestNamespace,
+					Partition: defaultTestPartition,
 				},
 			},
 			rpcFuncForServiceNodes: func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
@@ -262,12 +285,14 @@ func Test_FetchEndpoints(t *testing.T) {
 					Nodes: []structs.CheckServiceNode{
 						{
 							Node: &structs.Node{
-								Address: "node-address",
-								Node:    "node-name",
+								Address:   "node-address",
+								Node:      "node-name",
+								Partition: defaultTestPartition,
 							},
 							Service: &structs.NodeService{
-								Address: "",
-								Service: "service-name",
+								Address:        "",
+								Service:        "service-name",
+								EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(defaultTestPartition, defaultTestNamespace),
 							},
 						},
 					},
@@ -282,6 +307,10 @@ func Test_FetchEndpoints(t *testing.T) {
 					Target:  "node-name",
 					Type:    ResultTypeNode,
 					Weight:  1,
+					Tenancy: ResultTenancy{
+						Namespace: defaultTestNamespace,
+						Partition: defaultTestPartition,
+					},
 				},
 			},
 			expectedErr: nil,
