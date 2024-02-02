@@ -12,15 +12,15 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -31,16 +31,14 @@ const (
 // v1DataFetcherDynamicConfig is used to store the dynamic configuration of the V1 data fetcher.
 type v1DataFetcherDynamicConfig struct {
 	// Default request tenancy
-	defaultEntMeta acl.EnterpriseMeta
-	datacenter     string
+	datacenter string
 
 	// Catalog configuration
-	allowStale          bool
-	maxStale            time.Duration
-	useCache            bool
-	cacheMaxAge         time.Duration
-	onlyPassing         bool
-	enterpriseDNSConfig EnterpriseDNSConfig
+	allowStale  bool
+	maxStale    time.Duration
+	useCache    bool
+	cacheMaxAge time.Duration
+	onlyPassing bool
 }
 
 // V1DataFetcher is used to fetch data from the V1 catalog.
@@ -82,15 +80,12 @@ func NewV1DataFetcher(config *config.RuntimeConfig,
 // LoadConfig loads the configuration for the V1 data fetcher.
 func (f *V1DataFetcher) LoadConfig(config *config.RuntimeConfig) {
 	dynamicConfig := &v1DataFetcherDynamicConfig{
-		allowStale:          config.DNSAllowStale,
-		maxStale:            config.DNSMaxStale,
-		useCache:            config.DNSUseCache,
-		cacheMaxAge:         config.DNSCacheMaxAge,
-		onlyPassing:         config.DNSOnlyPassing,
-		enterpriseDNSConfig: GetEnterpriseDNSConfig(config),
-		datacenter:          config.Datacenter,
-		// TODO (v2-dns): make this work
-		//defaultEntMeta:      config.EnterpriseRuntimeConfig.DefaultEntMeta,
+		allowStale:  config.DNSAllowStale,
+		maxStale:    config.DNSMaxStale,
+		useCache:    config.DNSUseCache,
+		cacheMaxAge: config.DNSCacheMaxAge,
+		onlyPassing: config.DNSOnlyPassing,
+		datacenter:  config.Datacenter,
 	}
 	f.dynamicConfig.Store(dynamicConfig)
 }
@@ -107,7 +102,7 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 			Token:      ctx.Token,
 			AllowStale: cfg.allowStale,
 		},
-		EnterpriseMeta: req.Tenancy.EnterpriseMeta,
+		EnterpriseMeta: queryTenancyToEntMeta(req.Tenancy),
 	}
 	out, err := f.fetchNode(cfg, args)
 	if err != nil {
@@ -128,8 +123,9 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 		Metadata: node.Meta,
 		Target:   node.Node,
 		Tenancy: ResultTenancy{
-			EnterpriseMeta: cfg.defaultEntMeta,
-			Datacenter:     cfg.datacenter,
+			// Namespace is not required because nodes are not namespaced
+			Partition:  node.GetEnterpriseMeta().PartitionOrDefault(),
+			Datacenter: node.Datacenter,
 		},
 	})
 
@@ -155,7 +151,7 @@ func (f *V1DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result,
 		// within a DC, therefore their uniqueness is not guaranteed globally.
 		PeerName:       req.Tenancy.Peer,
 		ServiceName:    req.Name,
-		EnterpriseMeta: req.Tenancy.EnterpriseMeta,
+		EnterpriseMeta: queryTenancyToEntMeta(req.Tenancy),
 		QueryOptions: structs.QueryOptions{
 			Token: ctx.Token,
 		},
@@ -176,6 +172,10 @@ func (f *V1DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result,
 // FetchRecordsByIp is used for PTR requests to look up a service/node from an IP.
 // The search is performed in the agent's partition and over all namespaces (or those allowed by the ACL token).
 func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, error) {
+	if ip == nil {
+		return nil, ErrNotSupported
+	}
+
 	configCtx := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
 	targetIP := ip.String()
 
@@ -200,8 +200,9 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 					Type:    ResultTypeNode,
 					Target:  n.Node,
 					Tenancy: ResultTenancy{
-						EnterpriseMeta: f.defaultEnterpriseMeta,
-						Datacenter:     configCtx.datacenter,
+						Namespace:  f.defaultEnterpriseMeta.NamespaceOrDefault(),
+						Partition:  f.defaultEnterpriseMeta.PartitionOrDefault(),
+						Datacenter: configCtx.datacenter,
 					},
 				})
 				return results, nil
@@ -229,8 +230,9 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 					Type:    ResultTypeService,
 					Target:  n.ServiceName,
 					Tenancy: ResultTenancy{
-						EnterpriseMeta: f.defaultEnterpriseMeta,
-						Datacenter:     configCtx.datacenter,
+						Namespace:  f.defaultEnterpriseMeta.NamespaceOrDefault(),
+						Partition:  f.defaultEnterpriseMeta.PartitionOrDefault(),
+						Datacenter: configCtx.datacenter,
 					},
 				})
 				return results, nil
@@ -255,6 +257,16 @@ func (f *V1DataFetcher) FetchWorkload(ctx Context, req *QueryPayload) (*Result, 
 // deprecated in V2
 func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error) {
 	return nil, nil
+}
+
+func (f *V1DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
+	if req.EnableFailover {
+		return ErrNotSupported
+	}
+	if req.PortName != "" {
+		return ErrNotSupported
+	}
+	return validateEnterpriseTenancy(req.Tenancy)
 }
 
 // fetchNode is used to look up a node in the Consul catalog within NodeServices.
@@ -336,7 +348,7 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 			UseCache:         cfg.useCache,
 			MaxStaleDuration: cfg.maxStale,
 		},
-		EnterpriseMeta: req.Tenancy.EnterpriseMeta,
+		EnterpriseMeta: queryTenancyToEntMeta(req.Tenancy),
 	}
 
 	out, _, err := f.rpcFuncForServiceNodes(context.TODO(), args)
@@ -365,15 +377,16 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 		address, target, resultType := getAddressTargetAndResultType(node)
 
 		results = append(results, &Result{
-			Address:  address,
-			Type:     resultType,
-			Target:   target,
-			Weight:   uint32(findWeight(node)),
-			Port:     uint32(f.translateServicePortFunc(node.Node.Datacenter, node.Service.Port, node.Service.TaggedAddresses)),
-			Metadata: node.Node.Meta,
+			Address:    address,
+			Type:       resultType,
+			Target:     target,
+			Weight:     uint32(findWeight(node)),
+			PortNumber: uint32(f.translateServicePortFunc(node.Node.Datacenter, node.Service.Port, node.Service.TaggedAddresses)),
+			Metadata:   node.Node.Meta,
 			Tenancy: ResultTenancy{
-				EnterpriseMeta: cfg.defaultEntMeta,
-				Datacenter:     cfg.datacenter,
+				Namespace:  node.Service.NamespaceOrEmpty(),
+				Partition:  node.Service.PartitionOrEmpty(),
+				Datacenter: node.Node.Datacenter,
 			},
 		})
 	}
