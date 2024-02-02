@@ -100,7 +100,7 @@ func (c *controllerRunner) run(ctx context.Context) error {
 	// Without doing this the cache is unsafe for general use without causing
 	// reconcile regressions in certain cases.
 	{
-		c.logger.Info("priming caches")
+		c.logger.Debug("priming caches")
 		primeGroup, primeGroupCtx := errgroup.WithContext(ctx)
 		// Managed Type Events
 		primeGroup.Go(func() error {
