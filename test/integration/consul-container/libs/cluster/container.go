@@ -77,6 +77,10 @@ func (c *consulContainerNode) GetPod() testcontainers.Container {
 	return c.pod
 }
 
+func (c *consulContainerNode) GetConsulContainer() testcontainers.Container {
+	return c.container
+}
+
 func (c *consulContainerNode) Logs(context context.Context) (io.ReadCloser, error) {
 	return c.container.Logs(context)
 }
