@@ -63,6 +63,16 @@ func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.Failover
 	return types.SimplifyFailoverPolicy(svc, failover)
 }
 
+// GetBoundIdentities returns the unique list of workload identity references
+// encoded into a data-bearing status condition on a Service resource by the
+// endpoints controller.
+//
+// This allows a controller to skip watching ServiceEndpoints (which is
+// expensive) to discover this data.
+func GetBoundIdentities(typ *pbresource.Type, res *pbresource.Resource) []*pbresource.Reference {
+	return endpoints.GetBoundIdentities(typ, res)
+}
+
 // ValidateLocalServiceRefNoSection ensures the following:
 //
 // - ref is non-nil
