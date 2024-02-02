@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/internal/controller/cache"
@@ -93,6 +94,32 @@ func (c *controllerRunner) run(ctx context.Context) error {
 		defer c.ctrl.stopCb(ctx, c.runtime(c.logger))
 	}
 
+	// Before we launch the reconciler or the dependency mappers, ensure the
+	// cache is properly primed to avoid errant reconciles.
+	//
+	// Without doing this the cache is unsafe for general use without causing
+	// reconcile regressions in certain cases.
+	{
+		c.logger.Debug("priming caches")
+		primeGroup, primeGroupCtx := errgroup.WithContext(ctx)
+		// Managed Type Events
+		primeGroup.Go(func() error {
+			return c.primeCache(primeGroupCtx, c.ctrl.managedTypeWatch.watchedType)
+		})
+		for _, w := range c.ctrl.watches {
+			watcher := w
+			// Watched Type Events
+			primeGroup.Go(func() error {
+				return c.primeCache(primeGroupCtx, watcher.watchedType)
+			})
+		}
+
+		if err := primeGroup.Wait(); err != nil {
+			return err
+		}
+		c.logger.Debug("priming caches complete")
+	}
+
 	group, groupCtx := errgroup.WithContext(ctx)
 	recQueue := runQueue[Request](groupCtx, c.ctrl)
 
@@ -153,6 +180,41 @@ func runQueue[T queue.ItemType](ctx context.Context, ctrl *Controller) queue.Wor
 	return queue.RunWorkQueue[T](ctx, base, max)
 }
 
+func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type) error {
+	wl, err := c.watchClient.WatchList(ctx, &pbresource.WatchListRequest{
+		Type: typ,
+		Tenancy: &pbresource.Tenancy{
+			Partition: storage.Wildcard,
+			Namespace: storage.Wildcard,
+		},
+	})
+	if err != nil {
+		c.logger.Error("failed to create cache priming watch", "error", err)
+		return err
+	}
+
+	for {
+		event, err := wl.Recv()
+		if err != nil {
+			c.logger.Warn("error received from cache priming watch", "error", err)
+			return err
+		}
+
+		switch {
+		case event.GetUpsert() != nil:
+			c.cache.Insert(event.GetUpsert().Resource)
+		case event.GetDelete() != nil:
+			c.cache.Delete(event.GetDelete().Resource)
+		case event.GetEndOfSnapshot() != nil:
+			// This concludes the initial snapshot. The cache is primed.
+			return nil
+		default:
+			c.logger.Warn("skipping unexpected event type", "type", hclog.Fmt("%T", event.GetEvent()))
+			continue
+		}
+	}
+}
+
 func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {
 	wl, err := c.watchClient.WatchList(ctx, &pbresource.WatchListRequest{
 		Type: typ,
@@ -177,11 +239,19 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 		// to ensure that any mapper/reconciliation queue deduping wont
 		// hide events from being observed and updating the cache state.
 		// Therefore we should do this before any queueing.
-		switch event.Operation {
-		case pbresource.WatchEvent_OPERATION_UPSERT:
-			c.cache.Insert(event.Resource)
-		case pbresource.WatchEvent_OPERATION_DELETE:
-			c.cache.Delete(event.Resource)
+		var resource *pbresource.Resource
+		switch {
+		case event.GetUpsert() != nil:
+			resource = event.GetUpsert().GetResource()
+			c.cache.Insert(resource)
+		case event.GetDelete() != nil:
+			resource = event.GetDelete().GetResource()
+			c.cache.Delete(resource)
+		case event.GetEndOfSnapshot() != nil:
+			continue // ignore
+		default:
+			c.logger.Warn("skipping unexpected event type", "type", hclog.Fmt("%T", event.GetEvent()))
+			continue
 		}
 
 		// Before adding the resource into the queue we must clone it.
@@ -192,7 +262,7 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 		// mutation of data held by the cache (and presumably by the resource
 		// service assuming that the regular client we were given is the inmem
 		// variant)
-		add(protoutil.Clone(event.Resource))
+		add(protoutil.Clone(resource))
 	}
 }
 
