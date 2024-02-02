@@ -5,7 +5,7 @@
 
 package discovery
 
-import "github.com/hashicorp/consul/acl"
-
-// defaultEntMeta is the default enterprise meta used for testing.
-var defaultEntMeta = acl.EnterpriseMeta{}
+const (
+	defaultTestNamespace = ""
+	defaultTestPartition = ""
+)

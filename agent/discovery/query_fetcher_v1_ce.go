@@ -8,7 +8,25 @@ package discovery
 import (
 	"errors"
 	"fmt"
+
+	"github.com/hashicorp/consul/acl"
 )
+
+func (f *V1DataFetcher) NormalizeRequest(req *QueryPayload) {
+	// Nothing to do for CE
+	return
+}
+
+func validateEnterpriseTenancy(req QueryTenancy) error {
+	if req.Namespace != "" || req.Partition != "" {
+		return ErrNotSupported
+	}
+	return nil
+}
+
+func queryTenancyToEntMeta(_ QueryTenancy) acl.EnterpriseMeta {
+	return acl.EnterpriseMeta{}
+}
 
 // fetchServiceFromSamenessGroup fetches a service from a sameness group.
 func (f *V1DataFetcher) fetchServiceFromSamenessGroup(ctx Context, req *QueryPayload, cfg *v1DataFetcherDynamicConfig) ([]*Result, error) {

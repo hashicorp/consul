@@ -28,6 +28,9 @@ func canonicalNameForResult(result *discovery.Result, domain string) string {
 		// Return a simpler format for non-peering nodes.
 		return fmt.Sprintf("%s.node.%s.%s", result.Target, result.Tenancy.Datacenter, domain)
 	case discovery.ResultTypeWorkload:
+		if result.PortName != "" {
+			return fmt.Sprintf("%s.port.%s.workload.%s", result.PortName, result.Target, domain)
+		}
 		return fmt.Sprintf("%s.workload.%s", result.Target, domain)
 	}
 	return ""
