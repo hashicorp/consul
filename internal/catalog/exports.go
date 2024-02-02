@@ -69,7 +69,7 @@ func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.Failover
 //
 // This allows a controller to skip watching ServiceEndpoints (which is
 // expensive) to discover this data.
-func GetBoundIdentities(typ *pbresource.Type, res *pbresource.Resource) []*pbresource.Reference {
+func GetBoundIdentities(typ *pbresource.Type, res *pbresource.Resource) []string {
 	return endpoints.GetBoundIdentities(typ, res)
 }
 

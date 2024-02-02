@@ -16,7 +16,7 @@ import (
 //
 // This allows a controller to skip watching ServiceEndpoints (which is
 // expensive) to discover this data.
-func GetBoundIdentities(typ *pbresource.Type, res *pbresource.Resource) []*pbresource.Reference {
+func GetBoundIdentities(typ *pbresource.Type, res *pbresource.Resource) []string {
 	if res.GetStatus() == nil {
 		return nil
 	}
@@ -42,14 +42,5 @@ func GetBoundIdentities(typ *pbresource.Type, res *pbresource.Resource) []*pbres
 	// Ensure determinstic sort so we don't get into infinite-reconcile
 	sort.Strings(identities)
 
-	var out []*pbresource.Reference
-	for _, id := range identities {
-		out = append(out, &pbresource.Reference{
-			Type:    typ,
-			Name:    id,
-			Tenancy: res.Id.Tenancy,
-		})
-	}
-
-	return out
+	return identities
 }

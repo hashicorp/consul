@@ -32,15 +32,7 @@ func TestGetBoundIdentities(t *testing.T) {
 	}
 
 	run := func(res *pbresource.Resource) []string {
-		got := endpoints.GetBoundIdentities(demo.TypeV2Album, res)
-
-		var out []string
-		for _, id := range got {
-			require.True(t, resource.EqualType(demo.TypeV2Album, id.Type))
-			require.True(t, resource.EqualTenancy(tenancy, id.Tenancy))
-			out = append(out, id.Name)
-		}
-		return out
+		return endpoints.GetBoundIdentities(demo.TypeV2Album, res)
 	}
 
 	require.Empty(t, run(build(nil)))
