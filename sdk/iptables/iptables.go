@@ -69,17 +69,17 @@ type Config struct {
 
 	// IptablesProvider is the Provider that will apply iptables rules.
 	IptablesProvider Provider
-
-	// AddAdditionalRulesFn can be implemented by the caller to
-	// add environment specific rules (like ECS) that needs to
-	// be executed for traffic redirection to work properly.
-	//
-	// This gets called by the Setup function after all the
-	// first class iptable rules are added. The implemented
-	// function should only call the `AddRule` and optionally
-	// the `Rules` method of the provider.
-	AddAdditionalRulesFn func(iptablesProvider Provider)
 }
+
+// AdditionalRulesFn can be implemented by the caller to
+// add environment specific rules (like ECS) that needs to
+// be executed for traffic redirection to work properly.
+//
+// This gets called by the Setup function after all the
+// first class iptable rules are added. The implemented
+// function should only call the `AddRule` and optionally
+// the `Rules` method of the provider.
+type AdditionalRulesFn func(iptablesProvider Provider)
 
 // Provider is an interface for executing iptables rules.
 type Provider interface {
@@ -98,9 +98,15 @@ type Provider interface {
 
 // Setup will set up iptables interception and redirection rules
 // based on the configuration provided in cfg.
-// This implementation was inspired by
-// https://github.com/openservicemesh/osm/blob/650a1a1dcf081ae90825f3b5dba6f30a0e532725/pkg/injector/iptables.go
 func Setup(cfg Config) error {
+	return SetupWithAdditionalRules(cfg, nil)
+}
+
+// SetupWithAdditionalRules will set up iptables interception and redirection rules
+// based on the configuration provided in cfg. The additionalRulesFn will be applied
+// after the normal set of rules. This implementation was inspired by
+// https://github.com/openservicemesh/osm/blob/650a1a1dcf081ae90825f3b5dba6f30a0e532725/pkg/injector/iptables.go
+func SetupWithAdditionalRules(cfg Config, additionalRulesFn AdditionalRulesFn) error {
 	if cfg.IptablesProvider == nil {
 		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
 	}
@@ -193,8 +199,8 @@ func Setup(cfg Config) error {
 	}
 
 	// Call function to add any additional rules passed on by the caller
-	if cfg.AddAdditionalRulesFn != nil {
-		cfg.AddAdditionalRulesFn(cfg.IptablesProvider)
+	if additionalRulesFn != nil {
+		additionalRulesFn(cfg.IptablesProvider)
 	}
 
 	return cfg.IptablesProvider.ApplyRules()
