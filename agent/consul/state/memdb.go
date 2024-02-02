@@ -212,6 +212,7 @@ var (
 	EventTopicIPRateLimit          = pbsubscribe.Topic_IPRateLimit
 	EventTopicSamenessGroup        = pbsubscribe.Topic_SamenessGroup
 	EventTopicJWTProvider          = pbsubscribe.Topic_JWTProvider
+	EventTopicExportedServices     = pbsubscribe.Topic_ExportedServices
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
