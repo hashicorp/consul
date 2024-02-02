@@ -31,9 +31,7 @@ func TestGetBoundIdentities(t *testing.T) {
 		return b.Build()
 	}
 
-	run := func(res *pbresource.Resource) []string {
-		return endpoints.GetBoundIdentities(demo.TypeV2Album, res)
-	}
+	run := endpoints.GetBoundIdentities
 
 	require.Empty(t, run(build(nil)))
 	require.Empty(t, run(build(&pbresource.Condition{

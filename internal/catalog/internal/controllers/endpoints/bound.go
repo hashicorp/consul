@@ -16,7 +16,7 @@ import (
 //
 // This allows a controller to skip watching ServiceEndpoints (which is
 // expensive) to discover this data.
-func GetBoundIdentities(typ *pbresource.Type, res *pbresource.Resource) []string {
+func GetBoundIdentities(res *pbresource.Resource) []string {
 	if res.GetStatus() == nil {
 		return nil
 	}
