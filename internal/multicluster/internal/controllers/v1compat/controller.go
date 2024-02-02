@@ -27,6 +27,8 @@ type AggregatedConfig interface {
 	GetExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) (*structs.ExportedServicesConfigEntry, error)
 	WriteExportedServicesConfigEntry(context.Context, *structs.ExportedServicesConfigEntry) error
 	DeleteExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) error
+	// EventChannel returns a channel of events that are consumed by the Custom Watcher.
+	EventChannel() chan controller.Event
 }
 
 func mapExportedServices(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
@@ -43,12 +45,30 @@ func mapExportedServices(_ context.Context, _ controller.Runtime, res *pbresourc
 	}, nil
 }
 
+func configMapper(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
+	// only partition is used from the request ID for reconciles
+	cesID := &pbresource.ID{
+		Name: "",
+		Type: pbmulticluster.ComputedExportedServicesType,
+		Tenancy: &pbresource.Tenancy{
+			Partition: event.Obj.(structs.ExportedServicesConfigEntryUpdate).Partition,
+			Namespace: "",
+		},
+	}
+	return []controller.Request{{ID: cesID}}, nil
+}
+
+func configSource(ag AggregatedConfig) *controller.Source {
+	return &controller.Source{Source: ag.EventChannel()}
+}
+
 func Controller(config AggregatedConfig) *controller.Controller {
+
 	return controller.NewController(ControllerName, pbmulticluster.ComputedExportedServicesType).
 		WithWatch(pbmulticluster.PartitionExportedServicesType, mapExportedServices).
 		WithWatch(pbmulticluster.NamespaceExportedServicesType, mapExportedServices).
 		WithWatch(pbmulticluster.ExportedServicesType, mapExportedServices).
-		// TODO Add custom watch for exported-services for config entry events to attempt re-reconciliation when that changes
+		WithCustomWatch(configSource(config), configMapper).
 		WithReconciler(&reconciler{config: config})
 }
 
