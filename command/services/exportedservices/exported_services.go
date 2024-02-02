@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/ryanuber/columnize"
 )
 
@@ -48,9 +48,8 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	format            string
-	consumerPeer      string
-	consumerPartition string
+	format string
+	filter string
 }
 
 func (c *cmd) init() {
@@ -63,8 +62,7 @@ func (c *cmd) init() {
 		fmt.Sprintf("Output format {%s} (default: %s)", strings.Join(getSupportedFormats(), "|"), PrettyFormat),
 	)
 
-	c.flags.StringVar(&c.consumerPeer, "consumerPeer", "", "If provided, output is filtered to only services which have the consumer peer")
-	c.flags.StringVar(&c.consumerPartition, "consumerPartition", "", "If provided, output is filtered to only services which have the consumer partition")
+	c.flags.StringVar(&c.filter, "filter", "", "go-bexpr filter string to filter the response")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -95,7 +93,21 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	filteredServices := c.FilterResponse(exportedServices)
+	var filterType []api.ResolvedExportedService
+	filter, err := bexpr.CreateFilter(c.filter, nil, filterType)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error while creating filter: %s", err))
+		return 1
+	}
+
+	raw, err := filter.Execute(exportedServices)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error while filtering response: %s", err))
+		return 1
+	}
+
+	filteredServices := raw.([]api.ResolvedExportedService)
+
 	if len(filteredServices) == 0 {
 		c.UI.Info("No exported services found")
 		return 0
@@ -120,62 +132,26 @@ func formatExportedServices(services []api.ResolvedExportedService) string {
 	result := make([]string, 0, len(services)+1)
 
 	if services[0].Partition != "" {
-		result = append(result, "Service\x1fPartition\x1fNamespace\x1fConsumer")
+		result = append(result, "Service\x1fPartition\x1fNamespace\x1fConsumer Peers\x1fConsumer Partitions")
 	} else {
-		result = append(result, "Service\x1fConsumer")
+		result = append(result, "Service\x1fConsumer Peers")
 	}
 
 	for _, expService := range services {
-		service := ""
+		row := ""
+		peers := strings.Join(expService.Consumers.Peers, ", ")
+		partitions := strings.Join(expService.Consumers.Partitions, ", ")
 		if expService.Partition != "" {
-			service = fmt.Sprintf("%s\x1f%s\x1f%s", expService.Service, expService.Partition, expService.Namespace)
+			row = fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%s", expService.Service, expService.Partition, expService.Namespace, peers, partitions)
 		} else {
-			service = expService.Service
+			row = fmt.Sprintf("%s\x1f%s", expService.Service, peers)
 		}
 
-		for _, peer := range expService.Consumers.Peers {
-			result = append(result, fmt.Sprintf("%s\x1fPeer: %s", service, peer))
-		}
-		for _, partition := range expService.Consumers.Partitions {
-			result = append(result, fmt.Sprintf("%s\x1fPartition: %s", service, partition))
-		}
+		result = append(result, row)
 
 	}
 
 	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})})
-}
-
-func (c *cmd) FilterResponse(exportedServices []api.ResolvedExportedService) []api.ResolvedExportedService {
-	if c.consumerPartition == "" && c.consumerPeer == "" {
-		return exportedServices
-	}
-
-	var resp []api.ResolvedExportedService
-
-	for _, svc := range exportedServices {
-		cloneSvc := api.ResolvedExportedService{
-			Service:   svc.Service,
-			Partition: svc.Partition,
-			Namespace: svc.Namespace,
-		}
-
-		includeService := false
-
-		if stringslice.Contains(svc.Consumers.Partitions, c.consumerPartition) {
-			cloneSvc.Consumers.Partitions = []string{c.consumerPartition}
-			includeService = true
-		}
-		if stringslice.Contains(svc.Consumers.Peers, c.consumerPeer) {
-			cloneSvc.Consumers.Peers = []string{c.consumerPeer}
-			includeService = true
-		}
-
-		if includeService {
-			resp = append(resp, cloneSvc)
-		}
-	}
-
-	return resp
 }
 
 func (c *cmd) Synopsis() string {

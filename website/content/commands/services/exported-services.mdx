@@ -28,9 +28,7 @@ Usage: `consul services exported-services [options]`
 
 - `-format={pretty|json}` - Command output format. The default value is `pretty`.
 
-- `-consumerPeer=<string>` - If provided, output is filtered to only services which have the consumer peer.
-
-- `-consumerPartition` <EnterpriseAlert inline /> - If provided, output is filtered to only services which have the consumer partition
+- `-filter` - Specifies an expression to use for filtering the results. `Consumers.Peers` and `Consumers.Partitions' selectors are supported.
 
 #### Enterprise Options
 
@@ -40,3 +38,20 @@ Usage: `consul services exported-services [options]`
 
 @include 'http_api_options_client.mdx'
 
+## Examples
+
+To list all exported services and consumers:
+
+    $ consul services exported-services
+    Service   Consumer Peers
+    backend   east, west
+    db        west
+    frontend  east, east-eu
+    web       east
+
+The following lists exported services with a filter expression:
+
+    $ consul services exported-services -filter='"west" in Consumers.Peers'
+    Service  Consumer Peers
+    backend  east, west
+    db       west

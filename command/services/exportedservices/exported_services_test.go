@@ -225,7 +225,7 @@ func TestExportedServices_filter(t *testing.T) {
 						Peer: "peer1",
 					},
 					{
-						Peer: "peer-2",
+						Peer: "peer2",
 					},
 				},
 			},
@@ -241,7 +241,7 @@ func TestExportedServices_filter(t *testing.T) {
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-format=json",
-			"-consumerPeer=east",
+			"-filter=" + `east in Consumers.Peers`,
 		}
 
 		code := cmd.Run(args)
@@ -254,7 +254,7 @@ func TestExportedServices_filter(t *testing.T) {
 		require.Equal(t, 2, len(resp))
 		require.Equal(t, "db", resp[0].Service)
 		require.Equal(t, "web", resp[1].Service)
-		require.Equal(t, []string{"east"}, resp[0].Consumers.Peers)
+		require.Equal(t, []string{"east", "west"}, resp[0].Consumers.Peers)
 		require.Equal(t, []string{"east"}, resp[1].Consumers.Peers)
 
 	})
@@ -266,7 +266,7 @@ func TestExportedServices_filter(t *testing.T) {
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-format=json",
-			"-consumerPeer=west",
+			"-filter=" + `west in Consumers.Peers`,
 		}
 
 		code := cmd.Run(args)
@@ -280,7 +280,7 @@ func TestExportedServices_filter(t *testing.T) {
 		require.Equal(t, "backend", resp[0].Service)
 		require.Equal(t, "db", resp[1].Service)
 		require.Equal(t, []string{"west"}, resp[0].Consumers.Peers)
-		require.Equal(t, []string{"west"}, resp[1].Consumers.Peers)
+		require.Equal(t, []string{"east", "west"}, resp[1].Consumers.Peers)
 	})
 
 	t.Run("consumerPeer=peer1", func(t *testing.T) {
@@ -290,7 +290,7 @@ func TestExportedServices_filter(t *testing.T) {
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-format=json",
-			"-consumerPeer=peer1",
+			"-filter=" + `peer1 in Consumers.Peers`,
 		}
 
 		code := cmd.Run(args)
@@ -302,7 +302,7 @@ func TestExportedServices_filter(t *testing.T) {
 
 		require.Equal(t, 1, len(resp))
 		require.Equal(t, "frontend", resp[0].Service)
-		require.Equal(t, []string{"peer1"}, resp[0].Consumers.Peers)
+		require.Equal(t, []string{"peer1", "peer2"}, resp[0].Consumers.Peers)
 	})
 
 	t.Run("No exported services", func(t *testing.T) {
@@ -311,7 +311,7 @@ func TestExportedServices_filter(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-consumerPeer=unknownpeer",
+			"-filter=" + `unknown in Consumers.Peers`,
 		}
 
 		code := cmd.Run(args)
