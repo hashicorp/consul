@@ -189,6 +189,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 
+			// this method is implemented by different flavours of consul e.g. oss, ce. ent.
 			s.enterpriseRequest(resp, req, handler)
 
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}

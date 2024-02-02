@@ -96,6 +96,7 @@ func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMetho
 }
 
 func (s *HTTPHandlers) enterpriseRequest(w http.ResponseWriter, req *http.Request, handler func(http.ResponseWriter, *http.Request)) {
+	// no special handling for CE. Calling the default handler with default params.
 	handler(w, req)
 }
 
