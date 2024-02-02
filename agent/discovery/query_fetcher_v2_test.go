@@ -58,13 +58,12 @@ func Test_FetchWorkload(t *testing.T) {
 					})
 			},
 			expectedResult: &Result{
-				Address: "1.2.3.4",
-				Type:    ResultTypeWorkload,
+				Node: &Location{Name: "foo-1234", Address: "1.2.3.4"},
+				Type: ResultTypeWorkload,
 				Tenancy: ResultTenancy{
 					Namespace: resource.DefaultNamespaceName,
 					Partition: resource.DefaultPartitionName,
 				},
-				Target: "foo-1234",
 			},
 			expectedErr: nil,
 		},
@@ -130,7 +129,7 @@ func Test_FetchWorkload(t *testing.T) {
 					})
 			},
 			expectedResult: &Result{
-				Address:    "1.2.3.4",
+				Node:       &Location{Name: "foo-1234", Address: "1.2.3.4"},
 				Type:       ResultTypeWorkload,
 				PortName:   "api",
 				PortNumber: 5678,
@@ -138,7 +137,6 @@ func Test_FetchWorkload(t *testing.T) {
 					Namespace: resource.DefaultNamespaceName,
 					Partition: resource.DefaultPartitionName,
 				},
-				Target: "foo-1234",
 			},
 			expectedErr: nil,
 		},
@@ -189,13 +187,12 @@ func Test_FetchWorkload(t *testing.T) {
 					})
 			},
 			expectedResult: &Result{
-				Address: "1.2.3.4",
-				Type:    ResultTypeWorkload,
+				Node: &Location{Name: "foo-1234", Address: "1.2.3.4"},
+				Type: ResultTypeWorkload,
 				Tenancy: ResultTenancy{
 					Namespace: "test-namespace",
 					Partition: "test-partition",
 				},
-				Target: "foo-1234",
 			},
 			expectedErr: nil,
 		},

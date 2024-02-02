@@ -104,17 +104,21 @@ const (
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Address    string            // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
+	Service    *Location         // The name and address of the service.
+	Node       *Location         // The name and address of the node.
 	Weight     uint32            // SRV queries
 	PortName   string            // Used to generate a fgdn when a specifc port was queried
 	PortNumber uint32            // SRV queries
 	Metadata   map[string]string // Used to collect metadata into TXT Records
 	Type       ResultType        // Used to reconstruct the fqdn name of the resource
 
-	// Used in SRV & PTR queries to point at an A/AAAA Record.
-	Target string
-
 	Tenancy ResultTenancy
+}
+
+// Location is used to represent a service, node, or workload.
+type Location struct {
+	Name    string
+	Address string
 }
 
 // ResultTenancy is used to reconstruct the fqdn name of the resource.

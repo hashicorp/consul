@@ -28,6 +28,8 @@ const (
 	staleCounterThreshold = 5 * time.Second
 )
 
+var errNameNotFound = fmt.Errorf("name not found")
+
 // v1DataFetcherDynamicConfig is used to store the dynamic configuration of the V1 data fetcher.
 type v1DataFetcherDynamicConfig struct {
 	// Default request tenancy
@@ -115,17 +117,19 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 	}
 
 	results := make([]*Result, 0, 1)
-	node := out.NodeServices.Node
+	n := out.NodeServices.Node
 
 	results = append(results, &Result{
-		Address:  node.Address,
+		Node: &Location{
+			Name:    n.Node,
+			Address: n.Address,
+		},
 		Type:     ResultTypeNode,
-		Metadata: node.Meta,
-		Target:   node.Node,
+		Metadata: n.Meta,
 		Tenancy: ResultTenancy{
 			// Namespace is not required because nodes are not namespaced
-			Partition:  node.GetEnterpriseMeta().PartitionOrDefault(),
-			Datacenter: node.Datacenter,
+			Partition:  n.GetEnterpriseMeta().PartitionOrDefault(),
+			Datacenter: n.Datacenter,
 		},
 	})
 
@@ -163,8 +167,11 @@ func (f *V1DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result,
 	}
 
 	result := &Result{
-		Address: out,
-		Type:    ResultTypeVirtual,
+		Service: &Location{
+			Name:    req.Name,
+			Address: out,
+		},
+		Type: ResultTypeVirtual,
 	}
 	return result, nil
 }
@@ -196,9 +203,11 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 		for _, n := range out.Nodes {
 			if targetIP == n.Address {
 				results = append(results, &Result{
-					Address: n.Address,
-					Type:    ResultTypeNode,
-					Target:  n.Node,
+					Node: &Location{
+						Name:    n.Node,
+						Address: n.Address,
+					},
+					Type: ResultTypeNode,
 					Tenancy: ResultTenancy{
 						Namespace:  f.defaultEnterpriseMeta.NamespaceOrDefault(),
 						Partition:  f.defaultEnterpriseMeta.PartitionOrDefault(),
@@ -226,13 +235,19 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 		for _, n := range sout.ServiceNodes {
 			if n.ServiceAddress == targetIP {
 				results = append(results, &Result{
-					Address: n.ServiceAddress,
-					Type:    ResultTypeService,
-					Target:  n.ServiceName,
+					Service: &Location{
+						Name:    n.ServiceName,
+						Address: n.ServiceAddress,
+					},
+					Type: ResultTypeService,
+					Node: &Location{
+						Name:    n.Node,
+						Address: n.Address,
+					},
 					Tenancy: ResultTenancy{
-						Namespace:  f.defaultEnterpriseMeta.NamespaceOrDefault(),
-						Partition:  f.defaultEnterpriseMeta.PartitionOrDefault(),
-						Datacenter: configCtx.datacenter,
+						Namespace:  n.NamespaceOrEmpty(),
+						Partition:  n.PartitionOrEmpty(),
+						Datacenter: n.Datacenter,
 					},
 				})
 				return results, nil
@@ -267,6 +282,34 @@ func (f *V1DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
 		return ErrNotSupported
 	}
 	return validateEnterpriseTenancy(req.Tenancy)
+}
+
+// buildResultsFromNodes builds a list of results from a list of nodes.
+func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServiceNode) []*Result {
+	results := make([]*Result, 0)
+	for _, n := range nodes {
+
+		results = append(results, &Result{
+			Service: &Location{
+				Name:    n.Service.Service,
+				Address: n.Service.Address,
+			},
+			Node: &Location{
+				Name:    n.Node.Node,
+				Address: n.Node.Address,
+			},
+			Type:       ResultTypeService,
+			Weight:     uint32(findWeight(n)),
+			PortNumber: uint32(f.translateServicePortFunc(n.Node.Datacenter, n.Service.Port, n.Service.TaggedAddresses)),
+			Metadata:   n.Node.Meta,
+			Tenancy: ResultTenancy{
+				Namespace:  n.Service.NamespaceOrEmpty(),
+				Partition:  n.Service.PartitionOrEmpty(),
+				Datacenter: n.Node.Datacenter,
+			},
+		})
+	}
+	return results
 }
 
 // fetchNode is used to look up a node in the Consul catalog within NodeServices.
@@ -353,7 +396,12 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 
 	out, _, err := f.rpcFuncForServiceNodes(context.TODO(), args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rpc request failed: %w", err)
+	}
+
+	// If we have no nodes, return not found!
+	if len(out.Nodes) == 0 {
+		return nil, errNameNotFound
 	}
 
 	// Filter out any service nodes due to health checks
@@ -372,57 +420,7 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
-	results := make([]*Result, 0, len(out.Nodes))
-	for _, node := range out.Nodes {
-		address, target, resultType := getAddressTargetAndResultType(node)
-
-		results = append(results, &Result{
-			Address:    address,
-			Type:       resultType,
-			Target:     target,
-			Weight:     uint32(findWeight(node)),
-			PortNumber: uint32(f.translateServicePortFunc(node.Node.Datacenter, node.Service.Port, node.Service.TaggedAddresses)),
-			Metadata:   node.Node.Meta,
-			Tenancy: ResultTenancy{
-				Namespace:  node.Service.NamespaceOrEmpty(),
-				Partition:  node.Service.PartitionOrEmpty(),
-				Datacenter: node.Node.Datacenter,
-			},
-		})
-	}
-
-	return results, nil
-}
-
-// getAddressTargetAndResultType returns the address, target and result type for a check service node.
-func getAddressTargetAndResultType(node structs.CheckServiceNode) (string, string, ResultType) {
-	// Set address and target
-	// if service address is present, set target and address based on service.
-	// otherwise get it from the node.
-	address := node.Service.Address
-	target := node.Service.Service
-	resultType := ResultTypeService
-
-	addressIP := net.ParseIP(address)
-	if addressIP == nil {
-		resultType = ResultTypeNode
-		if node.Service.Address != "" {
-			// cases where service address is foo or foo.node.consul
-			// For usage in DNS, these discovery results necessitate a CNAME record.
-			// These cases can be inferred from the discovery result when Type is Node and
-			// target is not an IP.
-			target = node.Service.Address
-		} else {
-			// cases where service address is empty and the service is bound to
-			// node with an address.  These do not require a CNAME record in.
-			// For usage in DNS, these discovery results do not require a CNAME record.
-			// These cases can be inferred from the discovery result when Type is Node and
-			// target is not an IP.
-			target = node.Node.Node
-		}
-		address = node.Node.Address
-	}
-	return address, target, resultType
+	return f.buildResultsFromServiceNodes(out.Nodes), nil
 }
 
 // findWeight returns the weight of a service node.
