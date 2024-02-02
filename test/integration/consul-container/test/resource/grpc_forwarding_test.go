@@ -126,15 +126,8 @@ func setupClusterAndClient(t *testing.T, aclEnabled bool) (*libcluster.Cluster, 
 		ApplyDefaultProxySettings: false,
 	}
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
-	var clientAgent libcluster.Agent
-	for _, a := range cluster.Agents {
-		if !a.IsServer() {
-			clientAgent = a
-			break
-		}
-	}
 
-	return cluster, clientAgent
+	return cluster, cluster.Clients()[0]
 }
 
 func terminate(t *testing.T, cluster *libcluster.Cluster) {
