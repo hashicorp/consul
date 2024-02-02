@@ -45,7 +45,7 @@ var (
 		Type:    StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  StatusReasonNoWorkloadIdentitiesFound,
-		Message: "[]",
+		Message: "",
 	}
 )
 
@@ -56,6 +56,6 @@ func ConditionIdentitiesFound(identities []string) *pbresource.Condition {
 		Type:    StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_TRUE,
 		Reason:  StatusReasonWorkloadIdentitiesFound,
-		Message: "[" + strings.Join(identities, ",") + "]",
+		Message: strings.Join(identities, ","),
 	}
 }

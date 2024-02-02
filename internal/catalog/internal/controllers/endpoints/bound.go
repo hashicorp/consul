@@ -33,19 +33,11 @@ func GetBoundIdentities(typ *pbresource.Type, res *pbresource.Resource) []*pbres
 			break
 		}
 	}
-	if len(encoded) <= 2 {
-		return nil // it could only ever be [] which is nothing
-	}
-
-	n := len(encoded)
-
-	if encoded[0] != '[' || encoded[n-1] != ']' {
+	if encoded == "" {
 		return nil
 	}
 
-	trimmed := encoded[1 : n-1]
-
-	identities := strings.Split(trimmed, ",")
+	identities := strings.Split(encoded, ",")
 
 	// Ensure determinstic sort so we don't get into infinite-reconcile
 	sort.Strings(identities)

@@ -47,27 +47,27 @@ func TestGetBoundIdentities(t *testing.T) {
 	require.Empty(t, run(build(&pbresource.Condition{
 		Type:    endpoints.StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_TRUE,
-		Message: "[]",
+		Message: "",
 	})))
 	require.Equal(t, []string{"foo"}, run(build(&pbresource.Condition{
 		Type:    endpoints.StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_TRUE,
-		Message: "[foo]",
+		Message: "foo",
 	})))
 	require.Empty(t, run(build(&pbresource.Condition{
 		Type:    endpoints.StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_FALSE,
-		Message: "[foo]",
+		Message: "foo",
 	})))
 	require.Equal(t, []string{"bar", "foo"}, run(build(&pbresource.Condition{
 		Type:    endpoints.StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_TRUE,
-		Message: "[bar,foo]", // proper order
+		Message: "bar,foo", // proper order
 	})))
 	require.Equal(t, []string{"bar", "foo"}, run(build(&pbresource.Condition{
 		Type:    endpoints.StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_TRUE,
-		Message: "[foo,bar]", // incorrect order gets fixed
+		Message: "foo,bar", // incorrect order gets fixed
 	})))
 
 }
