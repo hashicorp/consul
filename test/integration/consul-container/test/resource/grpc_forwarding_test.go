@@ -55,6 +55,12 @@ func TestClientForwardToServer(t *testing.T) {
 					expectedCode: 1,
 					expectedMsg:  "failed getting authorizer: ACL not found",
 				},
+			},
+			aclEnabled: true,
+		},
+		{
+			description: "The apply request should be allowed if providing token when ACL is enabled",
+			operations: []operation{
 				{
 					action:       applyResource,
 					includeToken: true,
