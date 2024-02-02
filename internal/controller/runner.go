@@ -117,7 +117,7 @@ func (c *controllerRunner) run(ctx context.Context) error {
 		if err := primeGroup.Wait(); err != nil {
 			return err
 		}
-		c.logger.Info("priming caches complete")
+		c.logger.Debug("priming caches complete")
 	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
