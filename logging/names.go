@@ -72,6 +72,7 @@ const (
 	XDS                   string = "xds"
 	XDSCapacityController string = "xds_capacity_controller"
 	Vault                 string = "vault"
+	V2ExportsShim         string = "v2_exports_shim"
 	Health                string = "health"
 	GRPCAPI               string = "grpc-api"
 	Resource              string = "resource"

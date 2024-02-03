@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 

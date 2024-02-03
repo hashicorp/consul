@@ -10,12 +10,17 @@ const LOCAL_STORAGE_KEY = 'consul:hideHcpLinkBanner';
 
 export default class HcpLinkStatus extends Service {
   @service('env') env;
+  @service abilities;
   @tracked
   userDismissedBanner = false;
 
   get shouldDisplayBanner() {
     const hcpLinkEnabled = this.env.var('CONSUL_HCP_LINK_ENABLED');
-    return !this.userDismissedBanner && hcpLinkEnabled;
+    return !this.userDismissedBanner && this.hasPermissionToLink && hcpLinkEnabled;
+  }
+
+  get hasPermissionToLink() {
+    return this.abilities.can('write operators') && this.abilities.can('write acls');
   }
 
   constructor() {

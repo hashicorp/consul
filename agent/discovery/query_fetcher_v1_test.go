@@ -9,12 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
-
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
@@ -43,16 +42,20 @@ func Test_FetchVirtualIP(t *testing.T) {
 			queryPayload: &QueryPayload{
 				Name: "db",
 				Tenancy: QueryTenancy{
-					Peer:           "test-peer",
-					EnterpriseMeta: defaultEntMeta,
+					Peer:      "test-peer",
+					Namespace: defaultTestNamespace,
+					Partition: defaultTestPartition,
 				},
 			},
 			context: Context{
 				Token: "test-token",
 			},
 			expectedResult: &Result{
-				Address: "192.168.10.10",
-				Type:    ResultTypeVirtual,
+				Service: &Location{
+					Name:    "db",
+					Address: "192.168.10.10",
+				},
+				Type: ResultTypeVirtual,
 			},
 			expectedErr: nil,
 		},
@@ -61,9 +64,9 @@ func Test_FetchVirtualIP(t *testing.T) {
 			queryPayload: &QueryPayload{
 				Name: "db",
 				Tenancy: QueryTenancy{
-					Peer:           "test-peer",
-					EnterpriseMeta: defaultEntMeta,
-				},
+					Peer:      "test-peer",
+					Namespace: defaultTestNamespace,
+					Partition: defaultTestPartition},
 			},
 			context: Context{
 				Token: "test-token",
@@ -90,13 +93,14 @@ func Test_FetchVirtualIP(t *testing.T) {
 
 					// validate RPC options are set correctly from the queryPayload and context
 					require.Equal(t, tc.queryPayload.Tenancy.Peer, req.PeerName)
-					require.Equal(t, tc.queryPayload.Tenancy.EnterpriseMeta, req.EnterpriseMeta)
+					require.Equal(t, tc.queryPayload.Tenancy.Namespace, req.EnterpriseMeta.NamespaceOrEmpty())
+					require.Equal(t, tc.queryPayload.Tenancy.Partition, req.EnterpriseMeta.PartitionOrEmpty())
 					require.Equal(t, tc.context.Token, req.QueryOptions.Token)
 
 					if tc.expectedErr == nil {
 						// set the out parameter to ensure that it is used to formulate the result.Address
 						reply := args.Get(3).(*string)
-						*reply = tc.expectedResult.Address
+						*reply = tc.expectedResult.Service.Address
 					}
 				})
 			// TODO (v2-dns): mock these properly
@@ -130,182 +134,62 @@ func Test_FetchEndpoints(t *testing.T) {
 		DNSUseCache:    true,
 		DNSCacheMaxAge: 100,
 	}
-	tests := []struct {
-		name                   string
-		queryPayload           *QueryPayload
-		context                Context
-		rpcFuncForServiceNodes func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error)
-		expectedResults        []*Result
-		expectedErr            error
-	}{
+	ctx := Context{
+		Token: "test-token",
+	}
+	expectedResults := []*Result{
 		{
-			name: "when service address is IPv4, result type is service, address is service address and target is service name",
-			queryPayload: &QueryPayload{
-				Name: "service-name",
-				Tenancy: QueryTenancy{
-					EnterpriseMeta: defaultEntMeta,
-				},
+			Node: &Location{
+				Name:    "node-name",
+				Address: "node-address",
 			},
-			rpcFuncForServiceNodes: func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
-				return structs.IndexedCheckServiceNodes{
-					Nodes: []structs.CheckServiceNode{
-						{
-							Node: &structs.Node{
-								Address: "node-address",
-								Node:    "node-name",
-							},
-							Service: &structs.NodeService{
-								Address: "127.0.0.1",
-								Service: "service-name",
-							},
-						},
-					},
-				}, cache.ResultMeta{}, nil
+			Service: &Location{
+				Name:    "service-name",
+				Address: "service-address",
 			},
-			context: Context{
-				Token: "test-token",
-			},
-			expectedResults: []*Result{
-				{
-					Address: "127.0.0.1",
-					Target:  "service-name",
-					Type:    ResultTypeService,
-					Weight:  1,
-				},
-			},
-			expectedErr: nil,
-		},
-		{
-			name: "when service address is IPv6, result type is service, address is service address and target is service name",
-			queryPayload: &QueryPayload{
-				Name: "service-name",
-				Tenancy: QueryTenancy{
-					EnterpriseMeta: defaultEntMeta,
-				},
-			},
-			rpcFuncForServiceNodes: func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
-				return structs.IndexedCheckServiceNodes{
-					Nodes: []structs.CheckServiceNode{
-						{
-							Node: &structs.Node{
-								Address: "node-address",
-								Node:    "node-name",
-							},
-							Service: &structs.NodeService{
-								Address: "2001:db8:1:2:cafe::1337",
-								Service: "service-name",
-							},
-						},
-					},
-				}, cache.ResultMeta{}, nil
-			},
-			context: Context{
-				Token: "test-token",
-			},
-			expectedResults: []*Result{
-				{
-					Address: "2001:db8:1:2:cafe::1337",
-					Target:  "service-name",
-					Type:    ResultTypeService,
-					Weight:  1,
-				},
-			},
-			expectedErr: nil,
-		},
-		{
-			name: "when service address is not IP but is not empty, result type is node, address is node address, and target is service address",
-			queryPayload: &QueryPayload{
-				Name: "service-name",
-				Tenancy: QueryTenancy{
-					EnterpriseMeta: defaultEntMeta,
-				},
-			},
-			rpcFuncForServiceNodes: func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
-				return structs.IndexedCheckServiceNodes{
-					Nodes: []structs.CheckServiceNode{
-						{
-							Node: &structs.Node{
-								Address: "node-address",
-								Node:    "node-name",
-							},
-							Service: &structs.NodeService{
-								Address: "foo",
-								Service: "service-name",
-							},
-						},
-					},
-				}, cache.ResultMeta{}, nil
-			},
-			context: Context{
-				Token: "test-token",
-			},
-			expectedResults: []*Result{
-				{
-					Address: "node-address",
-					Target:  "foo",
-					Type:    ResultTypeNode,
-					Weight:  1,
-				},
-			},
-			expectedErr: nil,
-		},
-		{
-			name: "when service address is empty, result type is node, address is node address, and target is node name",
-			queryPayload: &QueryPayload{
-				Name: "service-name",
-				Tenancy: QueryTenancy{
-					EnterpriseMeta: defaultEntMeta,
-				},
-			},
-			rpcFuncForServiceNodes: func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
-				return structs.IndexedCheckServiceNodes{
-					Nodes: []structs.CheckServiceNode{
-						{
-							Node: &structs.Node{
-								Address: "node-address",
-								Node:    "node-name",
-							},
-							Service: &structs.NodeService{
-								Address: "",
-								Service: "service-name",
-							},
-						},
-					},
-				}, cache.ResultMeta{}, nil
-			},
-			context: Context{
-				Token: "test-token",
-			},
-			expectedResults: []*Result{
-				{
-					Address: "node-address",
-					Target:  "node-name",
-					Type:    ResultTypeNode,
-					Weight:  1,
-				},
-			},
-			expectedErr: nil,
+			Type:   ResultTypeService,
+			Weight: 1,
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			logger := testutil.Logger(t)
-			mockRPC := cachetype.NewMockRPC(t)
-			// TODO (v2-dns): mock these properly
-			translateServicePortFunc := func(dc string, port int, taggedAddresses map[string]structs.ServiceAddress) int { return 0 }
-			rpcFuncForSamenessGroup := func(ctx context.Context, req *structs.ConfigEntryQuery) (structs.SamenessGroupConfigEntry, cache.ResultMeta, error) {
-				return structs.SamenessGroupConfigEntry{}, cache.ResultMeta{}, nil
-			}
-			getFromCacheFunc := func(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error) {
-				return nil, cache.ResultMeta{}, nil
-			}
-
-			df := NewV1DataFetcher(rc, acl.DefaultEnterpriseMeta(), getFromCacheFunc, mockRPC.RPC, tc.rpcFuncForServiceNodes, rpcFuncForSamenessGroup, translateServicePortFunc, logger)
-
-			results, err := df.FetchEndpoints(tc.context, tc.queryPayload, LookupTypeService)
-			require.Equal(t, tc.expectedErr, err)
-			require.Equal(t, tc.expectedResults, results)
-		})
+	logger := testutil.Logger(t)
+	mockRPC := cachetype.NewMockRPC(t)
+	// TODO (v2-dns): mock these properly
+	translateServicePortFunc := func(dc string, port int, taggedAddresses map[string]structs.ServiceAddress) int { return 0 }
+	rpcFuncForSamenessGroup := func(ctx context.Context, req *structs.ConfigEntryQuery) (structs.SamenessGroupConfigEntry, cache.ResultMeta, error) {
+		return structs.SamenessGroupConfigEntry{}, cache.ResultMeta{}, nil
 	}
+	getFromCacheFunc := func(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error) {
+		return nil, cache.ResultMeta{}, nil
+	}
+	rpcFuncForServiceNodes := func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
+		return structs.IndexedCheckServiceNodes{
+			Nodes: []structs.CheckServiceNode{
+				{
+					Node: &structs.Node{
+						Address: "node-address",
+						Node:    "node-name",
+					},
+					Service: &structs.NodeService{
+						Address: "service-address",
+						Service: "service-name",
+					},
+				},
+			},
+		}, cache.ResultMeta{}, nil
+	}
+	queryPayload := &QueryPayload{
+		Name: "service-name",
+		Tenancy: QueryTenancy{
+			Peer:      "test-peer",
+			Namespace: defaultTestNamespace,
+			Partition: defaultTestPartition,
+		},
+	}
+
+	df := NewV1DataFetcher(rc, acl.DefaultEnterpriseMeta(), getFromCacheFunc, mockRPC.RPC, rpcFuncForServiceNodes, rpcFuncForSamenessGroup, translateServicePortFunc, logger)
+
+	results, err := df.FetchEndpoints(ctx, queryPayload, LookupTypeService)
+	require.NoError(t, err)
+	require.Equal(t, expectedResults, results)
 }

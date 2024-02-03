@@ -12,15 +12,15 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -31,16 +31,18 @@ const (
 // v1DataFetcherDynamicConfig is used to store the dynamic configuration of the V1 data fetcher.
 type v1DataFetcherDynamicConfig struct {
 	// Default request tenancy
-	defaultEntMeta acl.EnterpriseMeta
-	datacenter     string
+	datacenter string
+
+	segmentName   string
+	nodeName      string
+	nodePartition string
 
 	// Catalog configuration
-	allowStale          bool
-	maxStale            time.Duration
-	useCache            bool
-	cacheMaxAge         time.Duration
-	onlyPassing         bool
-	enterpriseDNSConfig EnterpriseDNSConfig
+	allowStale  bool
+	maxStale    time.Duration
+	useCache    bool
+	cacheMaxAge time.Duration
+	onlyPassing bool
 }
 
 // V1DataFetcher is used to fetch data from the V1 catalog.
@@ -82,15 +84,12 @@ func NewV1DataFetcher(config *config.RuntimeConfig,
 // LoadConfig loads the configuration for the V1 data fetcher.
 func (f *V1DataFetcher) LoadConfig(config *config.RuntimeConfig) {
 	dynamicConfig := &v1DataFetcherDynamicConfig{
-		allowStale:          config.DNSAllowStale,
-		maxStale:            config.DNSMaxStale,
-		useCache:            config.DNSUseCache,
-		cacheMaxAge:         config.DNSCacheMaxAge,
-		onlyPassing:         config.DNSOnlyPassing,
-		enterpriseDNSConfig: GetEnterpriseDNSConfig(config),
-		datacenter:          config.Datacenter,
-		// TODO (v2-dns): make this work
-		//defaultEntMeta:      config.EnterpriseRuntimeConfig.DefaultEntMeta,
+		allowStale:  config.DNSAllowStale,
+		maxStale:    config.DNSMaxStale,
+		useCache:    config.DNSUseCache,
+		cacheMaxAge: config.DNSCacheMaxAge,
+		onlyPassing: config.DNSOnlyPassing,
+		datacenter:  config.Datacenter,
 	}
 	f.dynamicConfig.Store(dynamicConfig)
 }
@@ -107,7 +106,7 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 			Token:      ctx.Token,
 			AllowStale: cfg.allowStale,
 		},
-		EnterpriseMeta: req.Tenancy.EnterpriseMeta,
+		EnterpriseMeta: queryTenancyToEntMeta(req.Tenancy),
 	}
 	out, err := f.fetchNode(cfg, args)
 	if err != nil {
@@ -120,16 +119,19 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 	}
 
 	results := make([]*Result, 0, 1)
-	node := out.NodeServices.Node
+	n := out.NodeServices.Node
 
 	results = append(results, &Result{
-		Address:  node.Address,
+		Node: &Location{
+			Name:    n.Node,
+			Address: n.Address,
+		},
 		Type:     ResultTypeNode,
-		Metadata: node.Meta,
-		Target:   node.Node,
+		Metadata: n.Meta,
 		Tenancy: ResultTenancy{
-			EnterpriseMeta: cfg.defaultEntMeta,
-			Datacenter:     cfg.datacenter,
+			// Namespace is not required because nodes are not namespaced
+			Partition:  n.GetEnterpriseMeta().PartitionOrDefault(),
+			Datacenter: n.Datacenter,
 		},
 	})
 
@@ -155,7 +157,7 @@ func (f *V1DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result,
 		// within a DC, therefore their uniqueness is not guaranteed globally.
 		PeerName:       req.Tenancy.Peer,
 		ServiceName:    req.Name,
-		EnterpriseMeta: req.Tenancy.EnterpriseMeta,
+		EnterpriseMeta: queryTenancyToEntMeta(req.Tenancy),
 		QueryOptions: structs.QueryOptions{
 			Token: ctx.Token,
 		},
@@ -167,8 +169,11 @@ func (f *V1DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result,
 	}
 
 	result := &Result{
-		Address: out,
-		Type:    ResultTypeVirtual,
+		Service: &Location{
+			Name:    req.Name,
+			Address: out,
+		},
+		Type: ResultTypeVirtual,
 	}
 	return result, nil
 }
@@ -176,6 +181,10 @@ func (f *V1DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result,
 // FetchRecordsByIp is used for PTR requests to look up a service/node from an IP.
 // The search is performed in the agent's partition and over all namespaces (or those allowed by the ACL token).
 func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, error) {
+	if ip == nil {
+		return nil, ErrNotSupported
+	}
+
 	configCtx := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
 	targetIP := ip.String()
 
@@ -196,12 +205,15 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 		for _, n := range out.Nodes {
 			if targetIP == n.Address {
 				results = append(results, &Result{
-					Address: n.Address,
-					Type:    ResultTypeNode,
-					Target:  n.Node,
+					Node: &Location{
+						Name:    n.Node,
+						Address: n.Address,
+					},
+					Type: ResultTypeNode,
 					Tenancy: ResultTenancy{
-						EnterpriseMeta: f.defaultEnterpriseMeta,
-						Datacenter:     configCtx.datacenter,
+						Namespace:  f.defaultEnterpriseMeta.NamespaceOrDefault(),
+						Partition:  f.defaultEnterpriseMeta.PartitionOrDefault(),
+						Datacenter: configCtx.datacenter,
 					},
 				})
 				return results, nil
@@ -225,12 +237,19 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 		for _, n := range sout.ServiceNodes {
 			if n.ServiceAddress == targetIP {
 				results = append(results, &Result{
-					Address: n.ServiceAddress,
-					Type:    ResultTypeService,
-					Target:  n.ServiceName,
+					Service: &Location{
+						Name:    n.ServiceName,
+						Address: n.ServiceAddress,
+					},
+					Type: ResultTypeService,
+					Node: &Location{
+						Name:    n.Node,
+						Address: n.Address,
+					},
 					Tenancy: ResultTenancy{
-						EnterpriseMeta: f.defaultEnterpriseMeta,
-						Datacenter:     configCtx.datacenter,
+						Namespace:  n.NamespaceOrEmpty(),
+						Partition:  n.PartitionOrEmpty(),
+						Datacenter: n.Datacenter,
 					},
 				})
 				return results, nil
@@ -254,7 +273,157 @@ func (f *V1DataFetcher) FetchWorkload(ctx Context, req *QueryPayload) (*Result, 
 // FetchPreparedQuery evaluates the results of a prepared query.
 // deprecated in V2
 func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error) {
-	return nil, nil
+	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
+
+	// Execute the prepared query.
+	args := structs.PreparedQueryExecuteRequest{
+		Datacenter:    req.Tenancy.Datacenter,
+		QueryIDOrName: req.Name,
+		QueryOptions: structs.QueryOptions{
+			Token:      ctx.Token,
+			AllowStale: cfg.allowStale,
+			MaxAge:     cfg.cacheMaxAge,
+		},
+
+		// Always pass the local agent through. In the DNS interface, there
+		// is no provision for passing additional query parameters, so we
+		// send the local agent's data through to allow distance sorting
+		// relative to ourself on the server side.
+		Agent: structs.QuerySource{
+			Datacenter:    cfg.datacenter,
+			Segment:       cfg.segmentName,
+			Node:          cfg.nodeName,
+			NodePartition: cfg.nodePartition,
+		},
+		Source: structs.QuerySource{
+			Ip: req.SourceIP.String(),
+		},
+	}
+
+	out, err := f.executePreparedQuery(cfg, args)
+	if err != nil {
+		return nil, err
+	}
+
+	// (v2-dns) TODO: (v2-dns) get TTLS working.  They come from the database so not having
+	// TTL on the discovery result poses challenges.
+
+	/*
+		// TODO (slackpad) - What's a safe limit we can set here? It seems like
+		// with dup filtering done at this level we need to get everything to
+		// match the previous behavior. We can optimize by pushing more filtering
+		// into the query execution, but for now I think we need to get the full
+		// response. We could also choose a large arbitrary number that will
+		// likely work in practice, like 10*maxUDPAnswerLimit which should help
+		// reduce bandwidth if there are thousands of nodes available.
+		// Determine the TTL. The parse should never fail since we vet it when
+		// the query is created, but we check anyway. If the query didn't
+		// specify a TTL then we will try to use the agent's service-specific
+		// TTL configs.
+		var ttl time.Duration
+		if out.DNS.TTL != "" {
+			var err error
+			ttl, err = time.ParseDuration(out.DNS.TTL)
+			if err != nil {
+				f.logger.Warn("Failed to parse TTL for prepared query , ignoring",
+					"ttl", out.DNS.TTL,
+					"prepared_query", req.Name,
+				)
+			}
+		} else {
+			ttl, _ = cfg.GetTTLForService(out.Service)
+		}
+	*/
+
+	// If we have no nodes, return not found!
+	if len(out.Nodes) == 0 {
+		return nil, ErrNoData
+	}
+
+	// Perform a random shuffle
+	out.Nodes.Shuffle()
+	return f.buildResultsFromServiceNodes(out.Nodes), nil
+}
+
+// executePreparedQuery is used to execute a PreparedQuery against the Consul catalog.
+// If the config is set to UseCache, it will use agent cache.
+func (f *V1DataFetcher) executePreparedQuery(cfg *v1DataFetcherDynamicConfig, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+	var out structs.PreparedQueryExecuteResponse
+
+RPC:
+	if cfg.useCache {
+		raw, m, err := f.getFromCacheFunc(context.TODO(), cachetype.PreparedQueryName, &args)
+		if err != nil {
+			return nil, err
+		}
+		reply, ok := raw.(*structs.PreparedQueryExecuteResponse)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, err
+		}
+
+		f.logger.Trace("cache results for prepared query",
+			"cache_hit", m.Hit,
+			"prepared_query", args.QueryIDOrName,
+		)
+
+		out = *reply
+	} else {
+		if err := f.rpcFunc(context.Background(), "PreparedQuery.Execute", &args, &out); err != nil {
+			return nil, err
+		}
+	}
+
+	// Verify that request is not too stale, redo the request.
+	if args.AllowStale {
+		if out.LastContact > cfg.maxStale {
+			args.AllowStale = false
+			f.logger.Warn("Query results too stale, re-requesting")
+			goto RPC
+		} else if out.LastContact > staleCounterThreshold {
+			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
+		}
+	}
+
+	return &out, nil
+}
+
+func (f *V1DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
+	if req.EnableFailover {
+		return ErrNotSupported
+	}
+	if req.PortName != "" {
+		return ErrNotSupported
+	}
+	return validateEnterpriseTenancy(req.Tenancy)
+}
+
+// buildResultsFromServiceNodes builds a list of results from a list of nodes.
+func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServiceNode) []*Result {
+	results := make([]*Result, 0)
+	for _, n := range nodes {
+
+		results = append(results, &Result{
+			Service: &Location{
+				Name:    n.Service.Service,
+				Address: n.Service.Address,
+			},
+			Node: &Location{
+				Name:    n.Node.Node,
+				Address: n.Node.Address,
+			},
+			Type:       ResultTypeService,
+			Weight:     uint32(findWeight(n)),
+			PortNumber: uint32(f.translateServicePortFunc(n.Node.Datacenter, n.Service.Port, n.Service.TaggedAddresses)),
+			Metadata:   n.Node.Meta,
+			Tenancy: ResultTenancy{
+				Namespace:  n.Service.NamespaceOrEmpty(),
+				Partition:  n.Service.PartitionOrEmpty(),
+				Datacenter: n.Node.Datacenter,
+			},
+		})
+	}
+	return results
 }
 
 // fetchNode is used to look up a node in the Consul catalog within NodeServices.
@@ -336,12 +505,17 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 			UseCache:         cfg.useCache,
 			MaxStaleDuration: cfg.maxStale,
 		},
-		EnterpriseMeta: req.Tenancy.EnterpriseMeta,
+		EnterpriseMeta: queryTenancyToEntMeta(req.Tenancy),
 	}
 
 	out, _, err := f.rpcFuncForServiceNodes(context.TODO(), args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rpc request failed: %w", err)
+	}
+
+	// If we have no nodes, return not found!
+	if len(out.Nodes) == 0 {
+		return nil, ErrNoData
 	}
 
 	// Filter out any service nodes due to health checks
@@ -360,56 +534,7 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
-	results := make([]*Result, 0, len(out.Nodes))
-	for _, node := range out.Nodes {
-		address, target, resultType := getAddressTargetAndResultType(node)
-
-		results = append(results, &Result{
-			Address:  address,
-			Type:     resultType,
-			Target:   target,
-			Weight:   uint32(findWeight(node)),
-			Port:     uint32(f.translateServicePortFunc(node.Node.Datacenter, node.Service.Port, node.Service.TaggedAddresses)),
-			Metadata: node.Node.Meta,
-			Tenancy: ResultTenancy{
-				EnterpriseMeta: cfg.defaultEntMeta,
-				Datacenter:     cfg.datacenter,
-			},
-		})
-	}
-
-	return results, nil
-}
-
-// getAddressTargetAndResultType returns the address, target and result type for a check service node.
-func getAddressTargetAndResultType(node structs.CheckServiceNode) (string, string, ResultType) {
-	// Set address and target
-	// if service address is present, set target and address based on service.
-	// otherwise get it from the node.
-	address := node.Service.Address
-	target := node.Service.Service
-	resultType := ResultTypeService
-
-	addressIP := net.ParseIP(address)
-	if addressIP == nil {
-		resultType = ResultTypeNode
-		if node.Service.Address != "" {
-			// cases where service address is foo or foo.node.consul
-			// For usage in DNS, these discovery results necessitate a CNAME record.
-			// These cases can be inferred from the discovery result when Type is Node and
-			// target is not an IP.
-			target = node.Service.Address
-		} else {
-			// cases where service address is empty and the service is bound to
-			// node with an address.  These do not require a CNAME record in.
-			// For usage in DNS, these discovery results do not require a CNAME record.
-			// These cases can be inferred from the discovery result when Type is Node and
-			// target is not an IP.
-			target = node.Node.Node
-		}
-		address = node.Node.Address
-	}
-	return address, target, resultType
+	return f.buildResultsFromServiceNodes(out.Nodes), nil
 }
 
 // findWeight returns the weight of a service node.
