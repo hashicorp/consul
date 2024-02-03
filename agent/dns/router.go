@@ -42,6 +42,7 @@ var (
 	errInvalidQuestion = fmt.Errorf("invalid question")
 	errNameNotFound    = fmt.Errorf("name not found")
 	errNotImplemented  = fmt.Errorf("not implemented")
+	errQueryNotFound   = fmt.Errorf("query not found")
 	errRecursionFailed = fmt.Errorf("recursion failed")
 
 	trailingSpacesRE = regexp.MustCompile(" +$")
@@ -188,7 +189,7 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context,
 	}
 
 	reqType := parseRequestType(req)
-	results, query, err := r.getQueryResults(req, reqCtx, reqType, qName)
+	results, query, err := r.getQueryResults(req, reqCtx, reqType, qName, remoteAddress)
 	switch {
 	case errors.Is(err, errNameNotFound):
 		r.logger.Error("name not found", "name", qName)
@@ -273,7 +274,8 @@ func getTTLForResult(name string, query *discovery.Query, cfg *RouterDynamicConf
 }
 
 // getQueryResults returns a discovery.Result from a DNS message.
-func (r *Router) getQueryResults(req *dns.Msg, reqCtx Context, reqType requestType, qName string) ([]*discovery.Result, *discovery.Query, error) {
+func (r *Router) getQueryResults(req *dns.Msg, reqCtx Context, reqType requestType,
+	qName string, remoteAddress net.Addr) ([]*discovery.Result, *discovery.Query, error) {
 	switch reqType {
 	case requestTypeConsul:
 		// This is a special case of discovery.QueryByName where we know that we need to query the consul service
@@ -296,7 +298,7 @@ func (r *Router) getQueryResults(req *dns.Msg, reqCtx Context, reqType requestTy
 		results, err := r.processor.QueryByName(query, discovery.Context{Token: reqCtx.Token})
 		return results, query, err
 	case requestTypeName:
-		query, err := buildQueryFromDNSMessage(req, reqCtx, r.domain, r.altDomain)
+		query, err := buildQueryFromDNSMessage(req, reqCtx, r.domain, r.altDomain, remoteAddress)
 		if err != nil {
 			r.logger.Error("error building discovery query from DNS request", "error", err)
 			return nil, query, err
@@ -307,6 +309,8 @@ func (r *Router) getQueryResults(req *dns.Msg, reqCtx Context, reqType requestTy
 			switch err.Error() {
 			case errNameNotFound.Error():
 				return nil, query, errNameNotFound
+			case errQueryNotFound.Error():
+				return nil, query, errQueryNotFound
 			}
 
 			return nil, query, err

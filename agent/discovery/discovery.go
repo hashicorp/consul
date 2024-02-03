@@ -79,11 +79,11 @@ type QueryTenancy struct {
 // QueryPayload represents all information needed by the data backend
 // to decide which records to include.
 type QueryPayload struct {
-	Name       string
-	PortName   string       // v1 - this could optionally be "connect" or "ingress"; v2 - this is the service port name
-	Tag        string       // deprecated: use for V1 only
-	RemoteAddr net.Addr     // deprecated: used for prepared queries
-	Tenancy    QueryTenancy // tenancy includes any additional labels specified before the domain
+	Name     string
+	PortName string       // v1 - this could optionally be "connect" or "ingress"; v2 - this is the service port name
+	Tag      string       // deprecated: use for V1 only
+	SourceIP net.IP       // deprecated: used for prepared queries
+	Tenancy  QueryTenancy // tenancy includes any additional labels specified before the domain
 
 	// v2 fields only
 	EnableFailover bool

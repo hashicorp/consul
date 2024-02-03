@@ -171,7 +171,7 @@ func (f *V2DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
 	if req.Tag != "" {
 		return ErrNotSupported
 	}
-	if req.RemoteAddr != nil {
+	if req.SourceIP != nil {
 		return ErrNotSupported
 	}
 	return nil

@@ -598,14 +598,13 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
 func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		node_name = "my.test-node"
@@ -1679,7 +1678,7 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): this requires WAN translation work to be implemented
 func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1896,7 +1895,6 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
 func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1920,7 +1918,7 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 	}
 	for _, tst := range tests {
 		t.Run(fmt.Sprintf("A lookup %v", tst.name), func(t *testing.T) {
-			for name, experimentsHCL := range getVersionHCL(false) {
+			for name, experimentsHCL := range getVersionHCL(true) {
 				t.Run(name, func(t *testing.T) {
 					a := NewTestAgent(t, fmt.Sprintf("%s %s", tst.config, experimentsHCL))
 					defer a.Shutdown()
@@ -2168,14 +2166,13 @@ func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
 func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
