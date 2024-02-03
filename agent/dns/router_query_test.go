@@ -206,7 +206,7 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 			if context == nil {
 				context = &Context{}
 			}
-			query, err := buildQueryFromDNSMessage(tc.request, *context, "consul.", ".")
+			query, err := buildQueryFromDNSMessage(tc.request, *context, "consul.", ".", nil)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedQuery, query)
 		})
