@@ -124,13 +124,15 @@ func (f *V2DataFetcher) FetchWorkload(reqContext Context, req *QueryPayload) (*R
 
 	tenancy := response.GetResource().GetId().GetTenancy()
 	result := &Result{
-		Address: address,
-		Type:    ResultTypeWorkload,
+		Node: &Location{
+			Address: address,
+			Name:    response.GetResource().GetId().GetName(),
+		},
+		Type: ResultTypeWorkload,
 		Tenancy: ResultTenancy{
 			Namespace: tenancy.GetNamespace(),
 			Partition: tenancy.GetPartition(),
 		},
-		Target: response.GetResource().GetId().GetName(),
 	}
 
 	if req.PortName == "" {
@@ -169,7 +171,7 @@ func (f *V2DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
 	if req.Tag != "" {
 		return ErrNotSupported
 	}
-	if req.RemoteAddr != nil {
+	if req.SourceIP != nil {
 		return ErrNotSupported
 	}
 	return nil
