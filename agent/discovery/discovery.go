@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 var (
-	ErrNoData       = fmt.Errorf("no data")
 	ErrECSNotGlobal = fmt.Errorf("ECS response is not global")
+	ErrNoData       = fmt.Errorf("no data")
+	ErrNotFound     = fmt.Errorf("not found")
 	ErrNotSupported = fmt.Errorf("not supported")
 )
 
@@ -65,18 +64,16 @@ const (
 
 // Context is used to pass information about the request.
 type Context struct {
-	Token            string
-	DefaultPartition string
-	DefaultNamespace string
-	DefaultLocality  *structs.Locality
+	Token string
 }
 
 // QueryTenancy is used to filter catalog data based on tenancy.
 type QueryTenancy struct {
-	EnterpriseMeta acl.EnterpriseMeta
-	SamenessGroup  string
-	Peer           string
-	Datacenter     string
+	Namespace     string
+	Partition     string
+	SamenessGroup string
+	Peer          string
+	Datacenter    string
 }
 
 // QueryPayload represents all information needed by the data backend
@@ -89,7 +86,7 @@ type QueryPayload struct {
 	Tenancy    QueryTenancy // tenancy includes any additional labels specified before the domain
 
 	// v2 fields only
-	DisableFailover bool
+	EnableFailover bool
 }
 
 // ResultType indicates the Consul resource that a discovery record represents.
@@ -107,11 +104,12 @@ const (
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Address  string            // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
-	Weight   uint32            // SRV queries
-	Port     uint32            // SRV queries
-	Metadata map[string]string // Used to collect metadata into TXT Records
-	Type     ResultType        // Used to reconstruct the fqdn name of the resource
+	Address    string            // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
+	Weight     uint32            // SRV queries
+	PortName   string            // Used to generate a fgdn when a specifc port was queried
+	PortNumber uint32            // SRV queries
+	Metadata   map[string]string // Used to collect metadata into TXT Records
+	Type       ResultType        // Used to reconstruct the fqdn name of the resource
 
 	// Used in SRV & PTR queries to point at an A/AAAA Record.
 	Target string
@@ -121,9 +119,10 @@ type Result struct {
 
 // ResultTenancy is used to reconstruct the fqdn name of the resource.
 type ResultTenancy struct {
-	PeerName       string
-	Datacenter     string
-	EnterpriseMeta acl.EnterpriseMeta // TODO (v2-dns): need something that is compatible with the V2 catalog
+	Namespace  string
+	Partition  string
+	PeerName   string
+	Datacenter string
 }
 
 // LookupType is used by the CatalogDataFetcher to properly filter endpoints.
@@ -138,6 +137,8 @@ const (
 // CatalogDataFetcher is an interface that abstracts data collection
 // for Discovery queries. It is assumed that the instantiation also
 // includes any agent configuration that influences catalog queries.
+//
+//go:generate mockery --name CatalogDataFetcher --inpackage
 type CatalogDataFetcher interface {
 	// LoadConfig is used to hot-reload the data fetcher with new agent config.
 	LoadConfig(config *config.RuntimeConfig)
@@ -162,6 +163,13 @@ type CatalogDataFetcher interface {
 	// FetchPreparedQuery evaluates the results of a prepared query.
 	// deprecated in V2
 	FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error)
+
+	// NormalizeRequest mutates the original request based on data fetcher configuration, like
+	// defaulting tenancy to the agent's partition.
+	NormalizeRequest(req *QueryPayload)
+
+	// ValidateRequest throws an error is any of the input fields are invalid for this data fetcher.
+	ValidateRequest(ctx Context, req *QueryPayload) error
 }
 
 // QueryProcessor is used to process a Discovery Query and return the results.
@@ -178,6 +186,12 @@ func NewQueryProcessor(dataFetcher CatalogDataFetcher) *QueryProcessor {
 
 // QueryByName is used to look up a service, node, workload, or prepared query.
 func (p *QueryProcessor) QueryByName(query *Query, ctx Context) ([]*Result, error) {
+	if err := p.dataFetcher.ValidateRequest(ctx, &query.QueryPayload); err != nil {
+		return nil, err
+	}
+
+	p.dataFetcher.NormalizeRequest(&query.QueryPayload)
+
 	switch query.QueryType {
 	case QueryTypeNode:
 		return p.dataFetcher.FetchNodes(ctx, &query.QueryPayload)

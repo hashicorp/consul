@@ -4,8 +4,6 @@ package dns
 
 import (
 	config "github.com/hashicorp/consul/agent/config"
-	discovery "github.com/hashicorp/consul/agent/discovery"
-
 	miekgdns "github.com/miekg/dns"
 
 	mock "github.com/stretchr/testify/mock"
@@ -19,11 +17,11 @@ type MockDNSRouter struct {
 }
 
 // HandleRequest provides a mock function with given fields: req, reqCtx, remoteAddress
-func (_m *MockDNSRouter) HandleRequest(req *miekgdns.Msg, reqCtx discovery.Context, remoteAddress net.Addr) *miekgdns.Msg {
+func (_m *MockDNSRouter) HandleRequest(req *miekgdns.Msg, reqCtx Context, remoteAddress net.Addr) *miekgdns.Msg {
 	ret := _m.Called(req, reqCtx, remoteAddress)
 
 	var r0 *miekgdns.Msg
-	if rf, ok := ret.Get(0).(func(*miekgdns.Msg, discovery.Context, net.Addr) *miekgdns.Msg); ok {
+	if rf, ok := ret.Get(0).(func(*miekgdns.Msg, Context, net.Addr) *miekgdns.Msg); ok {
 		r0 = rf(req, reqCtx, remoteAddress)
 	} else {
 		if ret.Get(0) != nil {
