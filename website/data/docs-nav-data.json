@@ -2044,10 +2044,6 @@
         "path": "integrate/nia"
       },
       {
-        "title": "Vault integration program",
-        "path": "integrate/vault"
-      },
-      {
         "title": "Proxy integration",
         "path": "integrate/proxy"
       }

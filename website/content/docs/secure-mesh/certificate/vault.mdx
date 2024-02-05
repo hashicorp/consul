@@ -31,12 +31,7 @@ This page describes how configure the Vault CA provider.
 
 ## Enable Vault as the CA
 
-You can enable Vault as the CA by configuring Consul to use `"vault"` as the CA provider
-and including the required provider configuration options.
-You can provide the CA configuration in the server agents' configuration file
-or in the body of a `PUT` request to the
-[`/connect/ca/configuration`](/consul/api-docs/connect/ca#update-ca-configuration) API endpoint.
-Refer to the [Configuration Reference](#configuration-reference) for details about configuration options and for example use cases.
+You can enable Vault as the CA by configuring Consul to use `"vault"` as the CA provider and including the required provider configuration options. You can provide the CA configuration in the server agents' configuration file or in the body of a `PUT` request to the [`/connect/ca/configuration`](/consul/api-docs/connect/ca#update-ca-configuration) API endpoint. Refer to the [Configuration Reference](#configuration-reference) for details about configuration options and for example use cases.
 
 The following example shows the required configurations for a default implementation:
 
