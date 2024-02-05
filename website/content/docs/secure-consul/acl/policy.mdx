@@ -45,7 +45,7 @@ key "foo/bar/secret" {
   policy = "deny"
 }
 
-# This controls access to cluster-wide Consul operator information.
+# This rule controls access to cluster-wide Consul operator information.
 operator = "read"
 ```
 
@@ -307,7 +307,7 @@ $ curl \
 </Tab>
 </Tabs>
 
-The ACL HTTP API will return the policy configuration when the call is successfully performed:
+The ACL endpoint returns the policy configuration when the call is successfully performed:
 
 ```json
 {
@@ -325,7 +325,7 @@ The ACL HTTP API will return the policy configuration when the call is successfu
 
 ## Link policies to tokens
 
-After you create a policy, you must link it to a token before the policy has an effect.A service or agent presents the token when interacting with resources in the network. The ACL system processes evaluate the policies linked to the token to determine if the requester has access to the requested resource.
+After you create a policy, you must link it to a token before the policy has an effect. A service or agent presents the token when interacting with resources in the network. The ACL system evaluates the policies linked to the token to determine if the requester has access to the requested resource.
 
 The ACLs administrator can use the CLI or API to link policies to tokens. You can also generate the tokens dynamically from an external system using Consul [auth methods](/consul/docs/secure-consul/acl/auth-methods). Refer to the [tokens documentation](/consul/docs/secure-consul/acl/token) for details about creating and linking policies to tokens.
 
