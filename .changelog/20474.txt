@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Adds a link to HCP modal with integration to side-nav item and link to HCP banner
+```
