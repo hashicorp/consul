@@ -20,15 +20,17 @@ Prior to Consul 1.17.0, audit logs contained timestamps on both the original log
 After Consul 1.17.0, only timestamps will be included in rotated log file names.
 
 #### Service-defaults upstream config (Enterprise)
-Prior to Consul v1.17.0, [Kubernetes annotations for upstream services](/consul/docs/reference/k8s/annotation-label#consul-hashicorp-com-connect-service-upstreams)
-that did not explicitly specify a namespace or partition incorrectly used service-defaults configurations, such as [default protocol](https://developer.hashicorp.com/consul/docs/reference/config-entry/service-default#set-the-default-protocol), from the default partition and namespace instead of the local partition and namespace.
+
+Prior to Consul v1.17.0, [Kubernetes annotations for upstream services](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
+that did not explicitly specify a namespace or partition incorrectly used service-defaults configurations, such as [default protocol](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-defaults#set-the-default-protocol), from the default partition and namespace instead of the local partition and namespace.
 
 This bug is fixed starting in Consul v1.17.0. Now service-defaults configurations from the local partition and namespace are fetched when not specified in annotations.
 If you are using non-default partitions and namespaces with Consul-k8s, we recommend explicitly defining these fields for all upstreams in addition to ensuring that accurate
 service-defaults are configured in each partition and namespace before upgrading. Doing so ensures that no unexpected protocol changes occur during the upgrade.
 
 #### ACL tokens with templated policies
-[ACL templated policies](/consul/docs/security/acl#templated-policies) were added to 1.17.0 to simplify obtaining the right permissions for ACL tokens. When performing a [rolling upgrade](/consul/tutorials/datacenter-operations/upgrade-federated-environment#server-rolling-upgrade) and a version of Consul prior to 1.17.x is presented with a token created Consul v1.17.x or newer that contains templated policies, the templated policies field is not recognized. As a result, the token might not have the expected permissions on the older version of Consul.
+
+[ACL templated policies](/consul/docs/secure-consul/acl#templated-policies) were added to 1.17.0 to simplify obtaining the right permissions for ACL tokens. When performing a [rolling upgrade](/consul/tutorials/datacenter-operations/upgrade-federated-environment#server-rolling-upgrade) and a version of Consul prior to 1.17.x is presented with a token created Consul v1.17.x or newer that contains templated policies, the templated policies field is not recognized. As a result, the token might not have the expected permissions on the older version of Consul.
 
 ## Consul 1.16.x
 
@@ -838,8 +840,7 @@ service mesh](#multi-datacenter-service-mesh) in the Enterprise version.
 
 ### ACL Upgrade
 
-Consul 1.4.0 includes a [new ACL
-system](/consul/tutorials/security/access-control-setup-production)
+Consul 1.4.0 includes an [ACL system](/consul/docs/secure/acl)
 that is designed to have a smooth upgrade path but requires care to upgrade
 components in the right order.
 
@@ -1262,11 +1263,7 @@ be configured and set to `true`. This provides a safer out-of-the-box
 configuration for Consul where operators must opt-in to allow script-based
 health checks.
 
-If your cluster uses script health checks please be sure to set this to `true`
-as part of upgrading agents. If this is set to `true`, you should also enable
-[ACLs](/consul/tutorials/security/access-control-setup-production)
-to provide control over which users are allowed to register health checks that
-could potentially execute scripts on the agent machines.
+If your cluster uses script health checks please be sure to set this to `true` as part of upgrading agents. If this is set to `true`, you should also enable [ACLs](/consul/docs/secure/acl) to provide control over which users are allowed to register health checks that could potentially execute scripts on the agent machines.
 
 !> **Security Warning:** Using `enable_script_checks` without ACLs and without
 `allow_write_http_from` is _DANGEROUS_. Use the `enable_local_script_checks` setting
@@ -1485,7 +1482,7 @@ require any ACL to manage them, and prepared queries with a `Name` defined are
 now governed by a new `query` ACL policy that will need to be configured
 after the upgrade.
 
-See the [ACL rules documentation](/consul/docs/security/acl/acl-rules#prepared-query-rules) for more details
+Refer to the [ACL rules documentation](/consul/docs/secure-consul/acl/rules#prepared-query-rules) for more details
 about the new behavior and how it compares to previous versions of Consul.
 
 ## Consul 0.6

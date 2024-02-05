@@ -7,7 +7,7 @@ description: >-
 
 # ACL rule configuration reference
 
-This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, refer to  [Policies](/consul/docs/security/acl/acl-policies).
+This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, refer to [Policies](/consul/docs/secure-consul/acl/policies).
 
 ## Overview
 
@@ -649,7 +649,7 @@ Read access to all imported nodes is granted when either of the following rule s
 For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
 
 You may need similarly scoped [Service Rules](#reading-imported-services) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
-These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).
+These permissions are satisfied when using a [service identity](/consul/docs/reference/acl/rule#service-identities).
 
 Refer to [Reading Services](/consul/docs/reference/config-entry/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
 
@@ -888,7 +888,7 @@ Read access to all imported services is granted when either of the following rul
 For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
 
 You may need similarly scoped [Node Rules](#reading-imported-nodes) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
-These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).
+These permissions are satisfied when using a [service identity](/consul/docs/reference/acl/rule#service-identities).
 
 Refer to [Reading Services](/consul/docs/reference/config-entry/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
 
