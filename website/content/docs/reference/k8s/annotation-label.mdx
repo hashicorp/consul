@@ -297,7 +297,7 @@ Resource labels could be used on a Kubernetes service to control connect-inject 
 
 ### Annotations
 
-The following Kubernetes resource annotations could be used on a pod to [Service Sync](/consul/docs/k8s/service-sync) behavior:
+The following Kubernetes resource annotations could be used on a pod to [Service Sync](/consul/docs/register/service/k8s/service-sync) behavior:
 
 - `consul.hashicorp.com/service-sync`: If this is set to `true`, then the Kubernetes service is explicitly configured to be synced to Consul.
 
@@ -306,7 +306,7 @@ The following Kubernetes resource annotations could be used on a pod to [Service
     'consul.hashicorp.com/service-sync': 'true'
   ```
 
-- `consul.hashicorp.com/service-port`: Configures the port to register to the Consul Catalog for the Kubernetes service. The annotation value may be a name of a port (recommended) or an exact port value. Refer to [service ports](/consul/docs/k8s/service-sync#service-ports) for more information.
+- `consul.hashicorp.com/service-port`: Configures the port to register to the Consul Catalog for the Kubernetes service. The annotation value may be a name of a port (recommended) or an exact port value. Refer to [service ports](/consul/docs/register/service/k8s/service-sync#service-ports) for more information.
 
   ```yaml
   annotations:

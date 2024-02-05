@@ -99,7 +99,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/ecs/terraform/migrate-existing-tasks',
-    destination: '/consul/docs/ecs/deploy/migrate-existing-tasks',
+    destination: '/consul/docs/register/service/ecs/migrate',
     permanent: true,
   },
   {

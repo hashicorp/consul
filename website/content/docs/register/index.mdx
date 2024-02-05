@@ -22,9 +22,9 @@ You can define and register services with Consul, which makes them discoverable 
 
 For service discovery, the core Consul workflow for services consists of three stages:
 
-1. **Define services and health checks**: A service definition lets you define various aspects of the service, including how it is discovered by other services in the network. You can define health checks in the service definitions to verify the health of the service. Refer to [Define Services](/consul/docs/services/usage/define-services) and [Define Health Checks](/consul/docs/services/usage/checks) for additional information.
+1. **Define services and health checks**: A service definition lets you define various aspects of the service, including how it is discovered by other services in the network. You can define health checks in the service definitions to verify the health of the service. Refer to [Define Services](/consul/docs/register/service/vm/define) and [Define Health Checks](/consul/docs/register/service/vm/health-checks) for additional information.
 
-1. **Register services and health checks**: After defining your services and health checks, you must register them with a Consul agent. Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for additional information.
+1. **Register services and health checks**: After defining your services and health checks, you must register them with a Consul agent. Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for additional information.
 
 1. **Query for services**: After registering your services and health checks, other services in your network can use the DNS to perform static or dynamic lookups to access your service. Refer to [DNS Usage Overview](/consul/docs/services/discovery/dns-overview) for additional information about the different ways to discover services in your datacenters.
 
@@ -45,4 +45,4 @@ Refer to [`connectInject`](/consul/docs/k8s/connect#installation-and-configurati
 
 You can define common characteristics for services in your mesh, such as the admin partition, namespace, or upstreams, by creating and applying a `service-defaults` configuration entry. You can also define override configurations for specific upstreams or service instances. To use `service-defaults` configuration entries, you must enable Consul service mesh in your network.
 
-Refer to [Define Service Defaults](/consul/docs/services/usage/define-services#define-service-defaults) for additional information.
+Refer to [Define Service Defaults](/consul/docs/register/service/vm/define#define-service-defaults) for additional information.

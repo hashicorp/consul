@@ -11,18 +11,21 @@ This topic describes the supported runtimes and environments for using Consul se
 
 For requirements associated with using the Terraform `mesh-task` module to deploy Consul service mesh, refer [Deploy Consul with the Terraform module](/consul/docs/register/service/ecs/automatic). For requirements associated with manually deploying Consul service mesh to your ECS cluster, refer [Deploy Consul manually](/consul/docs/register/service/ecs/manual). 
 
-## Supported environments and runtimes
+## Supported environments, runtimes, and capabilities
 
-Consul on ECS supports the following environments and runtimes:
+Consul on ECS supports the following environments, runtimes, and capabilities:
 
-- **Launch Types**: Fargate and EC2
-- **Network Modes**: `awsvpc`
-- **Subnets**: Private and public subnets. Tasks must have network access to Amazon ECR or other public container registries to pull images.
-- **Consul servers**: You can use your own Consul servers running on virtual machines or [use HCP Consul to host the servers for you](/hcp/docs/consul/hcp-managed).
-- **ECS controller**: The ECS controller assists with reconciling state back to Consul and facilitates Consul security features.
-- **Admin partitions**: <EnterpriseAlert inline/> Enable ACLs and configure the ECS controller to use admin partitions. You must deploy one controller for each admin partition. 
-- **Namespaces**:  <EnterpriseAlert inline/> Enable ACLs and configure the ECS controller to use namespaces. 
-- **Dataplane containers**: To manage proxies using Consul dataplane, you must use the Terraform `mesh-task` module to install Consul service mesh.
+- **Launch Types:** Fargate and EC2
+- **Network Modes:** `awsvpc`
+- **Subnets:** Private and public subnets. Tasks must have network access to Amazon ECR or other public container registries to pull images.
+- **Consul servers:** You can use your own Consul servers running on virtual machines or [use HCP Consul to host the servers for you](/hcp/docs/consul/hcp-managed).
+- **ECS controller:** The ECS controller assists with reconciling state back to Consul and facilitates Consul security features.
+- **Admin partitions:** <EnterpriseAlert inline/> Enable ACLs and configure the ECS controller to use admin partitions. You must deploy one controller for each admin partition. 
+- **Namespaces:** <EnterpriseAlert inline/> Enable ACLs and configure the ECS controller to use namespaces. 
+- **Dataplane containers:** To manage proxies using Consul dataplane, you must use the Terraform `mesh-task` module to install Consul service mesh.
+- **Transparent proxy:** Consul on ECS 0.8.x supports transparent proxy for ECS on EC2 tasks. Transparent proxy in ECS requires the host to `NET_ADMIN` capabilities, which ECS Fargate does not currently support. You can enable transparent proxy with the `enable_transparent_proxy` parameter in the `mesh-task` Terraform module or through `ecs_config_json`. The `enable_transparent_proxy` parameter will have precedence over `ecs_config_json`.
+
+  Refer to the [Consul ECS GitHub repository](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main/examples/dev-server-ec2-transparent-proxy) for examples of how to use transparent proxy with Consul on ECS.
 
 ## Resource usage
 

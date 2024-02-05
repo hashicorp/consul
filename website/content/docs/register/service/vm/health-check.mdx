@@ -11,7 +11,7 @@ This topic describes how to create different types of health checks for your ser
 
 ## Overview
 
-Health checks are configurations that verifies the health of a service or node. Health checks configurations are nested in the `service` block. Refer to [Define Services](/consul/docs/services/usage/define-services) for information about specifying other service parameters.   
+Health checks are configurations that verifies the health of a service or node. Health checks configurations are nested in the `service` block. Refer to [Define Services](/consul/docs/register/service/vm/define) for information about specifying other service parameters.   
 
 You can define individual health checks for your service in separate `check` blocks or define multiple checks in a `checks` block. Refer to [Define multiple checks](#define-multiple-checks) for additional information.
 
@@ -31,7 +31,7 @@ If your network runs in a Kubernetes environment, you can sync service health in
 
 ### Registration
 
-After defining health checks, you must register the service containing the checks with Consul. Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for additional information. If the service is already registered, you can reload the service configuration file to implement your health check. Refer to [Reload](/consul/commands/reload) for additional information.
+After defining health checks, you must register the service containing the checks with Consul. Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for additional information. If the service is already registered, you can reload the service configuration file to implement your health check. Refer to [Reload](/consul/commands/reload) for additional information.
 
 ## Define multiple checks
 

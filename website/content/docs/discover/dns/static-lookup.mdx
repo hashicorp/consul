@@ -91,7 +91,7 @@ Consul server agents are in the `default` partition. If you send a DNS query to 
 
 You can query the network for service providers using either the [standard lookup](#standard-lookup) method or [strict RFC 2782 lookup](#rfc-2782-lookup) method.
 
-By default, all SRV records are weighted equally in service lookup responses, but you can configure the weights using the [`Weights`](/consul/docs/reference/service#weights) attribute of the service definition. Refer to [Define Services](/consul/docs/services/usage/define-services) for additional information.
+By default, all SRV records are weighted equally in service lookup responses, but you can configure the weights using the [`Weights`](/consul/docs/reference/service#weights) attribute of the service definition. Refer to [Define Services](/consul/docs/register/service/vm/define) for additional information.
 
 The DNS protocol limits the size of requests, even when performing DNS TCP queries, which may affect your experience querying for services. For services with more than 500 instances, you may not be able to retrieve the complete list of instances for the service. Refer to [RFC 1035, Domain Names - Implementation and Specification](https://datatracker.ietf.org/doc/html/rfc1035#section-2.3.4) for additional information.
 

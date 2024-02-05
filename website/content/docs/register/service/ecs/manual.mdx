@@ -78,7 +78,7 @@ The following example shows the top-level fields:
 
 ## Configure task tags
 
-The `tags` list must include the following tags if you are using the ECS controller in a [secure configuration](/consul/docs/ecs/deploy/manual#secure-configuration-requirements).
+The `tags` list must include the following tags if you are using the ECS controller in a [secure configuration](/consul/docs/register/service/ecs/manual#secure-configuration-requirements).
 Without these tags, the ACL controller is unable to provision a service token for the task.
 
 | Tag | Description | Type | Default | 
@@ -340,4 +340,4 @@ You can configure Consul servers connected to your ECS workloads to capture a lo
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
 
 - [Configure routes between ECS tasks](/consul/docs/connect/ecs)
-- [Configure the ECS task bind address](/consul/docs/ecs/deploy/bind-addresses)
+- [Configure the ECS task bind address](/consul/docs/register/service/ecs/configure-task-bind-address)

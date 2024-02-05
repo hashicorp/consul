@@ -15,11 +15,11 @@ We are pleased to announce the following Consul updates.
 
    <Note> Sameness groups is currently a beta feature in Consul Enterprise v1.16.0. </Note>
 
-- **Permissive mTLS:** You can enable the `permissive` mTLS mode to enable sidecar proxies to accept both mTLS and non-mTLS traffic. Using this mode enables you to onboard services without downtime and without reconfiguring or redeploying your application. Refer to the [Onboard services while in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for more information on how to use permissive mTLS to onboard services to Consul.
+- **Permissive mTLS:** You can enable the `permissive` mTLS mode to enable sidecar proxies to accept both mTLS and non-mTLS traffic. Using this mode enables you to onboard services without downtime and without reconfiguring or redeploying your application. Refer to the [Onboard services while in transparent proxy mode](/consul/docs/register/external/permissive-mtls) for more information on how to use permissive mTLS to onboard services to Consul.
 
 - **Transparent proxy enhancements for failover and virtual services:** We have made several internal improvements, such as ensuring that virtual IPs are always available, to reduce the friction associated with operating Consul in transparent proxy mode. Onboarding services, configuring failover redirects, and other operations require less administrative effort and ensure a smoother experience. Refer to the following documentation for additional information: 
 
-    - [Onboard services while in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode)
+    - [Onboard services while in transparent proxy mode](/consul/docs/register/external/permissive-mtls)
     - [Route traffic to virtual services](/consul/docs/k8s/l7-traffic/route-to-virtual-services)
     - [Configure failover services](/consul/docs/k8s/l7-traffic/failover-tproxy).
 

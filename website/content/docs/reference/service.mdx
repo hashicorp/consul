@@ -9,8 +9,8 @@ description: >-
 
 This topic describes the options you can use to define services for registering them with Consul. Refer to the following topics for usage information:
 
-- [Define Services](/consul/docs/services/usage/define-services)
-- [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) 
+- [Define Services](/consul/docs/register/service/vm/define)
+- [Register Services and Health Checks](/consul/docs/register/service/vm) 
 
 ## Configuration model
 
@@ -88,7 +88,7 @@ Specifies a list of string values that add service-level labels. Tag values are 
 tags = ["v2", "primary"]
 ```
 
-Consul uses tags as an anti-entropy mechanism to maintain the state of the cluster. You can disable the anti-entropy feature for a service using the [`enable_tag_override`](#enable_tag_override) setting, which enables external agents to modify tags on services in the catalog. Refer to [Modify anti-entropy synchronization](/consul/docs/services/usage/define-services#modify-anti-entropy-synchronization) for additional usage information.
+Consul uses tags as an anti-entropy mechanism to maintain the state of the cluster. You can disable the anti-entropy feature for a service using the [`enable_tag_override`](#enable_tag_override) setting, which enables external agents to modify tags on services in the catalog. Refer to [Modify anti-entropy synchronization](/consul/docs/register/service/vm/define#modify-anti-entropy-synchronization) for additional usage information.
 
 ### `meta`
 
@@ -324,7 +324,7 @@ Set to `true` to allow external Consul agents modify tags on the services in the
 
 This parameter only applies to the locally-registered service. If multiple nodes register a service with the same `name`, the `enable_tag_override` configuration, and all other service configuration items, operate independently.
 
-Refer to [Modify anti-entropy synchronization](/consul/docs/services/usage/define-services#modify-anti-entropy-synchronization) for additional usage information.
+Refer to [Modify anti-entropy synchronization](/consul/docs/register/service/vm/define#modify-anti-entropy-synchronization) for additional usage information.
 
 - Type: boolean
 - Default: `false`

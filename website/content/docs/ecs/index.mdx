@@ -11,7 +11,7 @@ This overview provides information about connecting your workloads managed by [A
 
 ## Workflow 
 
-You can install Consul on ECS with the [HashiCorp Terraform modules](/consul/docs/ecs/deploy/terraform) or by [manually configuring the task definition](/consul/docs/ecs/deploy/manual). We strongly recommend using the Terraform modules and resources because Terraform automatically builds and enables Consul service mesh containers for your workloads. The Terraform module installation method also allows you to add your existing ECS task definitions to the Consul service mesh without additional configuration. 
+You can install Consul on ECS with the [HashiCorp Terraform modules](/consul/docs/register/service/ecs/automatic) or by [manually configuring the task definition](/consul/docs/register/service/ecs/manual). We strongly recommend using the Terraform modules and resources because Terraform automatically builds and enables Consul service mesh containers for your workloads. The Terraform module installation method also allows you to add your existing ECS task definitions to the Consul service mesh without additional configuration. 
 
 ### Terraform module installation 
 
@@ -39,15 +39,15 @@ You can also refer to the following example configurations:
 
 ### Documentation
  
-- [Install Consul on ECS with Terraform](/consul/docs/ecs/deploy/terraform)
+- [Install Consul on ECS with Terraform](/consul/docs/register/service/ecs/automatic)
 - [Configure routes between ECS tasks](/consul/docs/connect/ecs)
-- [Configure the ECS task bind address](/consul/docs/ecs/deploy/bind-addresses)
-- [Install Consul on ECS manually](/consul/docs/ecs/deploy/manual)
+- [Configure the ECS task bind address](/consul/docs/register/service/ecs/configure-task-bind-address)
+- [Install Consul on ECS manually](/consul/docs/register/service/ecs/manual)
 
 ### Reference
 
 - [Architecture](/consul/docs/ecs/architecture)
-- [Technical specifications](/consul/docs/ecs/tech-specs)
+- [Technical specifications](/consul/docs/register/service/ecs/requirements)
 - [Task configuration reference](/consul/docs/ecs/reference/configuration-reference)
 - [Cross-compatibility reference](/consul/docs/ecs/reference/compatibility)
 - [Consul server JSON schema reference](/consul/docs/ecs/reference/consul-server-json)
