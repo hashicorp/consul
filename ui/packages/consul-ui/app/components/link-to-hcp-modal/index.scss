@@ -1,5 +1,8 @@
-.link-to-hcp-model {
+.link-to-hcp-modal {
   &__generate-token {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     margin-top: 8px;
 
     &__copy-card {
@@ -9,6 +12,10 @@
       align-items: start;
       gap: 10px;
       padding: 16px 24px;
+
+      &__token {
+        margin-top: 8px;
+      }
     }
   }
 }

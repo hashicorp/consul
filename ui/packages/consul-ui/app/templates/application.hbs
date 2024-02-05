@@ -97,6 +97,11 @@
               <DataSource @src={{uri '/${partition}/${nspace}/${dc}/policy/00000000-0000-0000-0000-000000000002'
                                      (hash dc=dc.Name partition=partition nspace=nspace) }} as |globalReadonlyPolicy|>
 
+                {{#if this.hcpLinkModal.isModalVisible}}
+                  <LinkToHcpModal @policy={{globalReadonlyPolicy}} @dc={{dc.Name}} @nspace={{nspace}}
+                                  @partition={{partition}}/>
+                {{/if}}
+              </DataSource>
                 {{! figure out our current DC and convert it to a model }}
                 <DataSource
                   @src={{uri
@@ -105,11 +110,6 @@
                 }}
                   as |dc|
                 >
-                  {{#if this.hcpLinkModal.isModalVisible}}
-                    <LinkToHcpModal @policy={{globalReadonlyPolicy}} @dc={{dc.Name}} @nspace={{nspace}}
-                                    @partition={{partition}}/>
-                  {{/if}}
-
                   {{#if dc.data}}
                     <HashicorpConsul
                       id='wrapper'
@@ -142,7 +142,6 @@
                     </HashicorpConsul>
                   {{/if}}
                 </DataSource>
-              </DataSource>
             {{/if}}
           {{/let}}
         </DataSource>

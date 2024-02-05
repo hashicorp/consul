@@ -8,19 +8,27 @@ import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
 
+export const ACCESS_LEVEL = {
+  GLOBALREADONLY: 'CONSUL_ACCESS_LEVEL_GLOBAL_READ_ONLY',
+  GLOBALREADWRITE: 'CONSUL_ACCESS_LEVEL_GLOBAL_READ_WRITE',
+};
+
 export default class LinkToHcpModalComponent extends Component {
   @service('repository/token') tokenRepo;
   @service('repository/policy') policyRepo;
   @service('hcp-link-modal') hcpLinkModal;
+  @service('router') router;
+
   @tracked
   token = '';
   @tracked
-  accessLevel;
+  accessLevel = ACCESS_LEVEL.GLOBALREADWRITE;
   @tracked
   isGeneratingToken = false;
+  AccessLevel = ACCESS_LEVEL;
 
   get isReadOnlyAccessLevelSelected() {
-    return this.accessLevel === 'READONLY';
+    return this.accessLevel === this.AccessLevel.GLOBALREADONLY;
   }
 
   get isTokenGenerated() {
