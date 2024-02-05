@@ -108,13 +108,16 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	}
 
 	// Validation - Ensure V2 Resource APIs are not enabled unless hcpAllowV2ResourceApis flag is set
-	var newStatus *pbresource.Status
+	newStatus := &pbresource.Status{
+		ObservedGeneration: res.Generation,
+		Conditions:         []*pbresource.Condition{},
+	}
+	defer writeStatusIfNotEqual(ctx, rt, res, newStatus)
 	if r.resourceApisEnabled && !r.hcpAllowV2ResourceApis {
-		newStatus = &pbresource.Status{
-			ObservedGeneration: res.Generation,
-			Conditions:         []*pbresource.Condition{ConditionDisabled},
-		}
-		return writeStatusIfNotEqual(ctx, rt, res, newStatus)
+		newStatus.Conditions = append(newStatus.Conditions, ConditionValidatedFailed)
+		return nil
+	} else {
+		newStatus.Conditions = append(newStatus.Conditions, ConditionValidatedSuccess)
 	}
 
 	// Merge the link data with the existing cloud config so that we only overwrite the
@@ -133,7 +136,8 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	cluster, err := hcpClient.GetCluster(ctx)
 	if err != nil {
 		rt.Logger.Error("error querying HCP for cluster", "error", err)
-		linkingFailed(ctx, rt, res, err)
+		condition := linkingFailedCondition(err)
+		newStatus.Conditions = append(newStatus.Conditions, condition)
 		return err
 	}
 	accessLevel := hcpAccessLevelToConsul(cluster.AccessLevel)
@@ -165,10 +169,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		}
 	}
 
-	newStatus = &pbresource.Status{
-		ObservedGeneration: res.Generation,
-		Conditions:         []*pbresource.Condition{ConditionLinked(link.ResourceId)},
-	}
+	newStatus.Conditions = append(newStatus.Conditions, ConditionLinked(link.ResourceId))
 
 	return writeStatusIfNotEqual(ctx, rt, res, newStatus)
 }

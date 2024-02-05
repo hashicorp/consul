@@ -183,7 +183,7 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 
 	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
 
-	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionDisabled)
+	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionValidatedFailed)
 }
 
 func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_LinkNotDisabled() {
@@ -216,6 +216,7 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
 
 	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionLinked(linkData.ResourceId))
+	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionValidatedSuccess)
 }
 
 func (suite *controllerSuite) TestController_GetClusterError() {
