@@ -1183,12 +1183,8 @@
             "path": "discover/dns/static-lookup"
           },
           {
-            "title": "Perform dynamic lookups",
+            "title": "Perform dynamic lookups with prepared queries",
             "path": "discover/dns/dynamic-lookup"
-          },
-          {
-            "title": "Issue prepared queries",
-            "path": "discover/dns/prepared-query"
           },
           {
             "title": "Resolve Consul DNS in Kubernetes",
