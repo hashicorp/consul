@@ -140,7 +140,7 @@ Refer to [Monitor Raft metrics and logs for WAL](/consul/docs/agent/wal-logstore
 
 We recommend leaving the cluster in the test configuration for several days or weeks, as long as you observe no errors. An extended test provides more confidence that WAL operates correctly under varied workloads and during routine server restarts. If you observe any errors, end the test immediately and report them.
 
-If you disabled configuration management automation, consider reenabling it during the testing phase to pick up other updates for the host. You must ensure that it does not revert the Consul configuration file and remove the altered backend configuration. One way to do this is add the `raft_logstore` block to a separate file that is not managed by your automation. This file can either be added to the directory if [`-config-dir`](/consul/docs/agent/config/cli-flags#_config_dir) is used or as an additional [`-config-file`](/consul/docs/agent/config/cli-flags#_config_file) argument.
+If you disabled configuration management automation, consider reenabling it during the testing phase to pick up other updates for the host. You must ensure that it does not revert the Consul configuration file and remove the altered backend configuration. One way to do this is add the `raft_logstore` block to a separate file that is not managed by your automation. This file can either be added to the directory if [`-config-dir`](/consul/docsreference-cli/agent#_config_dir) is used or as an additional [`-config-file`](/consul/docsreference-cli/agent#_config_file) argument.
 
 ## Next steps
 

@@ -110,7 +110,7 @@ Consul's agents use network sockets for gossip communication with the other node
 
 Auto scaling groups (ASGs) are infrastructure associations in cloud providers used to ensure a specific number of replicas are available for a deployment. When using ASGs for Consul servers, there are specific requirements and processes for bootstrapping Raft and maintaining quorum.
 
-We recommend using the [`bootstrap-expect` command-line flag](/consul/docs/agent/config/cli-flags#_bootstrap_expect) during cluster creation. However, if you spawn new servers to add to a cluster or upgrade servers, do not configure them to automatically bootstrap. If `bootstrap-expect` is set on these replicas, it is possible for them to create a separate Raft system, which causes a _split brain_ and leads to errors and general cluster instability.
+We recommend using the [`bootstrap-expect` command-line flag](/consul/docsreference-cli/agent#_bootstrap_expect) during cluster creation. However, if you spawn new servers to add to a cluster or upgrade servers, do not configure them to automatically bootstrap. If `bootstrap-expect` is set on these replicas, it is possible for them to create a separate Raft system, which causes a _split brain_ and leads to errors and general cluster instability.
 
 #### NUMA architecture awareness
 
