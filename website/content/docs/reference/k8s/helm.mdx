@@ -120,7 +120,7 @@ Use these links to navigate to a particular top-level stanza.
   - `secretsBackend` ((#v-global-secretsbackend)) - secretsBackend is used to configure Vault as the secrets backend for the Consul on Kubernetes installation.
     The Vault cluster needs to have the Kubernetes Auth Method, KV2 and PKI secrets engines enabled
     and have necessary secrets, policies and roles created prior to installing Consul.
-    Refer to [Vault as the Secrets Backend](/consul/docs/k8s/deployment-configurations/vault)
+    Refer to [Vault as the Secrets Backend](/consul/docs/deploy/server/k8s/examples/vault)
     documentation for full instructions.
 
     The Vault cluster _must_ not have the Consul cluster installed by this Helm chart as its storage backend
@@ -751,7 +751,7 @@ Use these links to navigate to a particular top-level stanza.
     storage classes, the PersistentVolumeClaims would need to be manually created.
     A `null` value will use the Kubernetes cluster's default StorageClass. If a default
     StorageClass does not exist, you will need to create one.
-    Refer to the [Read/Write Tuning](/consul/docs/install/performance#read-write-tuning)
+    Refer to the [Read/Write Tuning](/consul/docs/deploy/server/vm/requirements#read-write-tuning)
     section of the Server Performance Requirements documentation for considerations
     around choosing a performant storage class.
 
