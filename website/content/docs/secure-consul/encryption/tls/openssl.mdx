@@ -489,6 +489,3 @@ $ curl https://server.dc1.consul:8501/ui/ --cacert consul-agent-ca.pem -I
 HTTP/2 200
 ## ...
 ```
-
-## Next steps
-You have enabled TLS on your Consul datacenter so it will encrypt all RPC, consensus, and HTTP traffic. With TLS encryption enabled, you need reference the [CA cert](/consul/commands/#consul_cacert), [client cert file](/consul/commands/#consul_client_key), and [client key file](/consul/commands/#consul_client_cert) to complete any API or CLI operation since they are HTTP traffic.
