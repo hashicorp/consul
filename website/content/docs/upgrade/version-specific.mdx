@@ -8,7 +8,7 @@ description: >-
 
 # Upgrading Specific Versions
 
-The [upgrading page](/consul/docs/upgrading) covers the details of doing a
+The [upgrading page](/consul/docs/upgrade) covers the details of doing a
 standard upgrade. However, specific versions of Consul may have more details
 provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
@@ -381,7 +381,7 @@ To avoid this problem, make the following agent configuration changes:
    [deprecated TLS options](/consul/docs/agent/config/config-files#tls_deprecated_options)
 1. Reapply TLS material to the non-gRPC interfaces that need it with the
    interface-specific TLS configuration stanzas
-   [introduced in Consul 1.12](/consul/docs/upgrading/upgrade-specific#tls-configuration):
+   [introduced in Consul 1.12](/consul/docs/upgrade/version-specific#tls-configuration):
    [`tls.https`](/consul/docs/agent/config/config-files#tls_https) and
    [`tls.internal_rpc`](/consul/docs/agent/config/config-files#tls_internal_rpc).
 
@@ -609,7 +609,7 @@ agents require that either the [`start_join`](/consul/docs/agent/config/config-f
 agents. If those stipulations are not met, attempting to start the client or snapshot agent will
 result in it immediately shutting down.
 
-For the step by step upgrade procedures see the [Upgrading to 1.10.0](/consul/docs/upgrading/instructions/upgrade-to-1-10-x) documentation.
+For the step by step upgrade procedures see the [Upgrading to 1.10.0](/consul/docs/upgrade/instructions/1-10-x) documentation.
 For answers to common licensing questions please refer to the [FAQ](/consul/docs/enterprise/license/faq)
 
 ### Envoy xDS Protocol Upgrades
@@ -864,7 +864,7 @@ Datacenters can be upgraded in any order although secondaries will remain in
 upgraded.
 
 Each datacenter should follow the [standard rolling upgrade
-procedure](/consul/docs/upgrading#standard-upgrades).
+procedure](/consul/docs/upgrade#standard-upgrades).
 
 #### Legacy ACL Mode
 
@@ -971,7 +971,7 @@ The following previously deprecated fields and config options have been removed:
 - `CheckID` has been removed from config file check definitions (use `id` instead).
 - `script` has been removed from config file check definitions (use `args` instead).
 - `enableTagOverride` is no longer valid in service definitions (use `enable_tag_override` instead).
-- The [deprecated set of metric names](/consul/docs/upgrading/upgrade-specific#metric-names-updated) (beginning with `consul.consul.`) has been removed
+- The [deprecated set of metric names](/consul/docs/upgrade/version-specific#metric-names-updated) (beginning with `consul.consul.`) has been removed
   along with the `enable_deprecated_names` option from the metrics configuration.
 
 #### New defaults for Raft Snapshot Creation
@@ -1041,7 +1041,7 @@ Raft protocol version 3 requires Consul running 0.8.0 or newer on all servers
 in order to work, so if you are upgrading with older servers in a cluster then
 you will need to set this back to 2 in order to upgrade. See [Raft Protocol
 Version
-Compatibility](/consul/docs/upgrading/upgrade-specific#raft-protocol-version-compatibility)
+Compatibility](/consul/docs/upgrade/version-specific#raft-protocol-version-compatibility)
 for more details. Also the format of `peers.json` used for outage recovery is
 different when running with the latest Raft protocol. Review [Manual Recovery
 Using
@@ -1049,7 +1049,7 @@ peers.json](/consul/tutorials/datacenter-operations/recovery-outage#manual-recov
 for a description of the required format.
 
 Please note that the Raft protocol is different from Consul's internal protocol
-as described on the [Protocol Compatibility Promise](/consul/docs/upgrading/compatibility)
+as described on the [Protocol Compatibility Promise](/consul/docs/upgrade/compatibility-promise)
 page, and as is shown in commands like `consul members` and `consul version`.
 To see the version of the Raft protocol in use on each server, use the `consul operator raft list-peers` command.
 

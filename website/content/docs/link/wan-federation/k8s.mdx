@@ -127,7 +127,7 @@ If you've set `enableAutoEncrypt: true`, this is also supported.
 1. If using ACLs, you'll already have `global.acls.manageSystemACLs: true`. For the primary cluster, you'll also need to set `global.acls.createReplicationToken: true`. This ensures that an ACL token is created that secondary clusters can use to authenticate with the primary.
 1. Mesh Gateways are enabled with the default configuration. The default configuration creates a Kubernetes Load Balancer service. If you wish to customize the mesh gateway, see the [Helm reference](/consul/docs/reference/k8s/helm#v-meshgateway) for that setting.
 
-With the above settings added to your existing config, follow the [Upgrading](/consul/docs/k8s/upgrade) guide to upgrade your cluster and then come back to the [Federation Secret](#federation-secret) section.
+With the above settings added to your existing config, follow the [Upgrading](/consul/docs/upgrade/k8s) guide to upgrade your cluster and then come back to the [Federation Secret](#federation-secret) section.
 
 -> **NOTE:** You must be using consul-helm 0.21.0+.
 
