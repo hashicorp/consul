@@ -828,7 +828,7 @@ Starting with Consul 1.7.1 this is the new default.
 #### Removal of Deprecated Features
 
 Managed proxies, which are deprecated since Consul v1.3.0, have now been
-[removed](/consul/docs/connect/proxies). Before upgrading, you must
+[removed](/consul/docs/connect/proxy). Before upgrading, you must
 migrate any managed proxy usage to [sidecar service
 registrations](/consul/docs/reference/proxy/sidecar).
 
@@ -920,7 +920,7 @@ with the new ACL [Token](/consul/api-docs/acl/tokens) and
 
 This only applies to users upgrading from an older version of Consul Enterprise to Consul Enterprise 1.4.0 (all license types).
 
-In addition, this upgrade will only affect clusters where [service mesh is enabled](/consul/docs/connect/configuration) on your servers before the migration.
+In addition, this upgrade will only affect clusters where [service mesh is enabled](/consul/docs/connect/configuration-entries) on your servers before the migration.
 
 Multi-datacenter service mesh uses the same primary/secondary approach as ACLs and
 will use the same [primary_datacenter](#primary-datacenter). When a secondary

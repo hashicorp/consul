@@ -39,7 +39,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/transparent-proxy',
-    destination: '/consul/docs/k8s/connect/transparent-proxy',
+    destination: '/consul/docs/connect/proxy/transparent-proxy',
     permanent: true,
   },
   {

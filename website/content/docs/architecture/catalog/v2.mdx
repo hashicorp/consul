@@ -70,7 +70,7 @@ For example, traffic permissions are part of the `auth` group. Permissions allow
 
 One practical impact of resource groups is that the [HTTPRoute](/consul/docs/reference/resource/httproute), [GRPCRoute](/consul/docs/reference/resource/grpcroute), and [TCPRoute](/consul/docs/reference/resource/tcproute) CRDs require you to specify a `name` and `type` in configuration blocks. The `catalog.v2beta1.Service` type indicates that the rules defined in these CRDs apply to all workloads registered in the Consul catalog under the given name.
 
-You can also use the `consul resource` command to return information about Consul resources in each group using a `group.groupVersion.kind` syntax. Refer to [`consul resource`](/consul/docs/k8s/multiport/reference/resource-command) for more information.
+You can also use the `consul resource` command to return information about Consul resources in each group using a `group.groupVersion.kind` syntax. Refer to [`consul resource`](/consul/docs/connect/multi-port/reference/resource-command) for more information.
 
 The following table describes the Consul resources that belong to each resource group and the resource's `group.groupVersion.kind` syntax.
 
@@ -118,7 +118,7 @@ Be aware of the following constraints and technical limitations on the v2 catalo
 - The v1 and v2 catalog APIs cannot run concurrently.
 - The Consul UI does not support the v2 catalog API in this release. You must disable the UI in the Helm chart in order to use the v2 catalog API.
 - HCP Consul does not support the v2 catalog API in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
-- We do not recommend updating existing clusters to enable the v2 catalog in this release. Instead, deploy a new Consul cluster and [enable the v2 catalog in the Helm chart](/consul/docs/k8s/multiport/configure#enable-the-v2-catalog).
+- We do not recommend updating existing clusters to enable the v2 catalog in this release. Instead, deploy a new Consul cluster and [enable the v2 catalog in the Helm chart](/consul/docs/connect/multi-port/configure#enable-the-v2-catalog).
 
 ## Guidance
 
@@ -126,12 +126,12 @@ The following resources are available to help you use the v2 catalog API:
 
 ### Usage documentation
 
-- [Multi-port services overview](/consul/docs/k8s/multiport)
-- [Configure multi-port services](/consul/docs/k8s/multiport/configure)
+- [Multi-port services overview](/consul/docs/connect/multi-port)
+- [Configure multi-port services](/consul/docs/connect/multi-port/configure)
 
 ### Reference documentation
 
-- [`consul resource` CLI command](/consul/docs/k8s/multiport/reference/resource-command)
+- [`consul resource` CLI command](/consul/docs/connect/multi-port/reference/resource-command)
 - [GRPCRoute configuration reference](/consul/docs/reference/resource/grpcroute)
 - [HTTPRoute configuration reference](/consul/docs/reference/resource/httproute)
 - [ProxyConfiguration configuration reference](/consul/docs/reference/resource/proxyconfiguration)
