@@ -452,9 +452,6 @@ HTTP/2 200
 ```
 
 ### Enable `verify_incoming_rpc` and disable `verify_incoming` 
-
-Your Consul agent will deny the connection straight away because `verify_incoming` is enabled.
-
 When `verify_incoming` is enabled, Consul requires that all incoming connections make use of TLS and that the client provides a certificate signed by a CA from the `ca_file` or `ca_path`. This applies to both server RPC and to the HTTPS API.
 
 Because the browser does not present a certificate signed by your CA, you cannot access the UI. If you `curl` your HTTPS UI, it returns an error.
