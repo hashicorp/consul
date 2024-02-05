@@ -434,7 +434,7 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/connect/gateways/ingress-gateway/tls-external-service',
+      '/consul/docs/connect/access/ingress-gateway/tls-external-service',
     destination: '/consul/docs/access/ingress-gateway/tls-external-service',
     permanent: true,
   },
@@ -442,7 +442,7 @@ module.exports = [
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/access/ingress-gateway/tls-external-service/:slug*',
     destination:
-      '/consul/docs/:version/connect/gateways/ingress-gateway/tls-external-service/:slug',
+      '/consul/docs/:version/connect/access/ingress-gateway/tls-external-service/:slug',
     permanent: true,
   }, // END redirects for API gateway and ingress gateway topics - Consul IA refresh 2024
 ]
