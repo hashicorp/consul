@@ -14,7 +14,7 @@ Rate limits apply to each Consul server separately and limit the number of read 
 
 Because all requests coming to a Consul server eventually perform an RPC or an internal gRPC request, global rate limits apply to Consul's user interfaces, such as the HTTP API interface, the CLI, and the external gRPC endpoint for services in the service mesh.
 
-Refer to [Initialize Rate Limit Settings](/consul/docs/agent/limits/init-rate-limits) for additional information about right-sizing your gRPC request configurations.
+Refer to [Initialize Rate Limit Settings](/consul/docs/manage-consul/agent-rate-limit/initialize) for additional information about right-sizing your gRPC request configurations.
 
 ## Set a global rate limit for a Consul server
 
@@ -55,7 +55,7 @@ limits = {
 
 ## Monitor request rate traffic
 
-You should continue to monitor request traffic to ensure that request rates remain within the threshold you defined. Refer to [Monitor traffic rate limit data](/consul/docs/agent/limits/usage/monitor-rate-limits) for instructions about checking metrics and log entries, as well as troubleshooting information.
+You should continue to monitor request traffic to ensure that request rates remain within the threshold you defined. Refer to [Monitor traffic rate limit data](/consul/docs/manage-consul/agent-rate-limit/monitor) for instructions about checking metrics and log entries, as well as troubleshooting information.
 
 ## Disable request rate limits
 

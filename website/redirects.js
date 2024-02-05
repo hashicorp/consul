@@ -43,14 +43,14 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/agent/limits/init-rate-limits',
-    destination: '/consul/docs/agent/limits/usage/init-rate-limits',
+    source: '/consul/docs/manage-consul/agent-rate-limit//init-rate-limits',
+    destination: '/consul/docs/manage-consul/agent-rate-limit/initialize',
     permanent: true,
   },
   {
-    source: '/consul/docs/agent/limits/set-global-traffic-rate-limits',
+    source: '/consul/docs/manage-consul/agent-rate-limit//set-global-traffic-rate-limits',
     destination:
-      '/consul/docs/agent/limits/usage/set-global-traffic-rate-limits',
+      '/consul/docs/manage-consul/agent-rate-limit/set-global',
     permanent: true,
   },
   {
