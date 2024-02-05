@@ -5,7 +5,7 @@ on:
       - closed
     branches:
       - main
-      - 'release/*.*.x'
+      - release/**
 
 jobs:
   trigger-ce-merge:
