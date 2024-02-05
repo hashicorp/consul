@@ -5,9 +5,9 @@ description: >-
   Use the Kubernetes auth method type to authenticate to Consul with a Kubernetes service account token and receive an ACL token with privileges based on JWT identity attributes. Learn how to configure auth method parameters using this reference page and example configuration.
 ---
 
-# Access Control List (ACL) Kubernetes auth method configuration reference
+# ACL Kubernetes auth method configuration reference
 
--> **1.5.0+:** This feature is available in Consul versions 1.5.0 and newer.
+<Tip> This feature is available in Consul versions 1.5.0 and newer. </Tip>
 
 The `kubernetes` auth method type allows for a Kubernetes service account token
 to be used to authenticate to Consul. This method of authentication makes it
@@ -17,7 +17,7 @@ This page assumes general knowledge of [Kubernetes](https://kubernetes.io/) and
 the concepts described in the main [auth method
 documentation](/consul/docs/secure-consul/acl/auth-methods).
 
-## Config Parameters
+## Config parameters
 
 The following auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
 parameters are required to properly configure an auth method of type
@@ -57,7 +57,7 @@ parameters are required to properly configure an auth method of type
   to determine an alternate namespace.
   Deprecated in Consul 1.8.0 in favor of [namespace rules](/consul/api-docs/acl/auth-methods#namespacerules).
 
-### Sample Config
+### Sample config
 
 ```json
 {
@@ -80,9 +80,13 @@ needs to have access to two Kubernetes APIs:
 
 - [**TokenReview**](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/)
 
-  -> Kubernetes should be running with `--service-account-lookup`. This is
+  <Tip>
+  
+  Kubernetes should be running with `--service-account-lookup`. This is
   defaulted to true in Kubernetes 1.7, but any versions prior should ensure
   the Kubernetes API server is started with this setting.
+
+  </Tip>
 
 - [**ServiceAccount**](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens)
 
@@ -132,7 +136,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
-## Kubernetes Authentication Details
+## Kubernetes authentication details
 
 Initially the
 [`ServiceAccountJWT`](/consul/docs/secure-consul/acl/auth-methods/kubernetes#serviceaccountjwt)
@@ -147,7 +151,7 @@ API to check for the existence of an annotation of
 found its value will override the trusted attribute of `serviceaccount.name`
 for the purposes of evaluating any binding rules.
 
-## Trusted Identity Attributes
+## Trusted identity attributes
 
 The authentication step returns the following trusted identity attributes for
 use in binding rule selectors and bind name interpolation.

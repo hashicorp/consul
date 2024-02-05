@@ -23,11 +23,11 @@ Consul Kubernetes versions all of its components (`consul-k8s` CLI, `consul-k8s-
 
 As of Consul v1.14.0, Kubernetes deployments use [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. If you upgrade Consul from a version that uses client agents to a version that uses dataplanes, you must follow specific steps to update your Helm chart and remove client agents from the existing deployment. Refer to [Upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplane) for more information.
 
-The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs`](https://github.com/hashicorp/go-netaddrs) library and command line tool for more information.
+The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/reference/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs`](https://github.com/hashicorp/go-netaddrs) library and command line tool for more information.
 
 ## Supported Envoy versions
 
-Supported versions of Envoy and `consul-dataplane` (for Consul K8s 1.0 and above) for Consul versions are also found in [Envoy - Supported Versions](/consul/docs/connect/proxies/envoy#supported-versions). Starting with `consul-k8s` 1.0, `consul-dataplane` will include a bundled version of Envoy. The recommended best practice is to use the default version of Envoy or `consul-dataplane` that is provided in the Helm `values.yaml` file, as that is the version that has been tested with the default Consul and Consul Kubernetes binaries for a given Helm chart.
+Supported versions of Envoy and `consul-dataplane` (for Consul K8s 1.0 and above) for Consul versions are also found in [Envoy - Supported Versions](/consul/docs/reference/proxy/envoy#supported-versions). Starting with `consul-k8s` 1.0, `consul-dataplane` will include a bundled version of Envoy. The recommended best practice is to use the default version of Envoy or `consul-dataplane` that is provided in the Helm `values.yaml` file, as that is the version that has been tested with the default Consul and Consul Kubernetes binaries for a given Helm chart.
 
 ## Vault as a Secrets Backend compatibility
 

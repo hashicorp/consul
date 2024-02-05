@@ -28,7 +28,7 @@ You should also monitor read and write rate activity and make any necessary adju
 
 ## Define rate limits
 
-Create a control plane request limit configuration entry in the `default` partition. The configuration entry applies to all client requests targeting any partition. Refer to the [control plane request limit configuration entry](/consul/docs/connect/config-entries/control-plane-request-limit) reference documentation for details about the available configuration parameters.
+Create a control plane request limit configuration entry in the `default` partition. The configuration entry applies to all client requests targeting any partition. Refer to the [control plane request limit configuration entry](/consul/docs/reference/config-entry/control-plane-request-limit) reference documentation for details about the available configuration parameters.
 
 Specify the following parameters:
 
@@ -69,4 +69,4 @@ $ kubectl apply control-plane-request-limit.yaml
 
 ## Disable request rate limits
 
-Set the [limits.request_limits.mode](/consul/docs/agent/config/config-files#mode-1) in the agent configuration to `disabled` to allow services to exceed the specified read and write requests limits. The `disabled` mode applies to all request rate limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/connect/config-entries/control-plane-request-limit).  Note that any other mode specified in the agent configuration only applies to global traffic rate limits.
+Set the [limits.request_limits.mode](/consul/docs/agent/config/config-files#mode-1) in the agent configuration to `disabled` to allow services to exceed the specified read and write requests limits. The `disabled` mode applies to all request rate limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/reference/config-entry/control-plane-request-limit).  Note that any other mode specified in the agent configuration only applies to global traffic rate limits.

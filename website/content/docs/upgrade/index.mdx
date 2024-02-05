@@ -30,7 +30,7 @@ For most upgrades, the process is simple. Assuming the current version of Consul
 
 4. Once all the server agents are upgraded, begin a rollout of client agents following the same process.
 
-   -> **Upgrade Envoy proxies:** If a client agent has associated Envoy proxies (e.g., sidecars, gateways), install a [compatible Envoy version](/consul/docs/connect/proxies/envoy#supported-versions) for Consul version B. After stopping client agent version A, stop its associated Envoy proxies. After restarting the client agent with version B, restart its associated Envoy proxies with the compatible Envoy version.
+   -> **Upgrade Envoy proxies:** If a client agent has associated Envoy proxies (e.g., sidecars, gateways), install a [compatible Envoy version](/consul/docs/reference/proxy/envoy#supported-versions) for Consul version B. After stopping client agent version A, stop its associated Envoy proxies. After restarting the client agent with version B, restart its associated Envoy proxies with the compatible Envoy version.
 
 5. You are now running the latest Consul agent. You can verify this by running `consul members` to make sure all members have the latest build and highest protocol version.
 

@@ -153,7 +153,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
       - Admin partitions: Upstream services may be running in a different
         partition. When specifying a partition, you must also specify a namespace. Place the partition name after the namespace. If you specify the name of the datacenter, it must be the local datacenter. Communicating across partitions using this method is only supported within a
         datacenter. For cross partition communication across datacenters, [establish a cluster
-        peering connection](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering) and set the upstream with a labeled annotation format.
+        peering connection](/consul/docs/link/cluster-peering/establish-connection/k8s) and set the upstream with a labeled annotation format.
 
         ```yaml
         annotations:
@@ -221,7 +221,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
 - `consul.hashicorp.com/sidecar-proxy-` - Override default resource settings for
   the sidecar proxy container.
-  The defaults are set in Helm config via the [`connectInject.sidecarProxy.resources`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-resources) key.
+  The defaults are set in Helm config via the [`connectInject.sidecarProxy.resources`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-resources) key.
 
   - `consul.hashicorp.com/sidecar-proxy-cpu-limit` - Override the default CPU limit.
   - `consul.hashicorp.com/sidecar-proxy-cpu-request` - Override the default CPU request.
@@ -233,24 +233,24 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
 - `consul.hashicorp.com/consul-sidecar-` - Override default resource settings for
   the `consul-sidecar` container.
-  The defaults are set in Helm config via the [`global.consulSidecarContainer.resources`](/consul/docs/k8s/helm#v-global-consulsidecarcontainer) key.
+  The defaults are set in Helm config via the [`global.consulSidecarContainer.resources`](/consul/docs/reference/k8s/helm#v-global-consulsidecarcontainer) key.
 
   - `consul.hashicorp.com/consul-sidecar-cpu-limit` - Override the default CPU limit.
   - `consul.hashicorp.com/consul-sidecar-cpu-request` - Override the default CPU request.
   - `consul.hashicorp.com/consul-sidecar-memory-limit` - Override the default memory limit.
   - `consul.hashicorp.com/consul-sidecar-memory-request` - Override the default memory request.
 
-- `consul.hashicorp.com/enable-sidecar-proxy-lifecycle` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenabled)
-- `consul.hashicorp.com/enable-sidecar-proxy-shutdown-drain-listeners` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnableShutdownDrainListeners`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultShutdownGracePeriodSeconds`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulPort`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)
-- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulShutdownPath`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)
+- `consul.hashicorp.com/enable-sidecar-proxy-lifecycle` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnabled`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenabled)
+- `consul.hashicorp.com/enable-sidecar-proxy-shutdown-drain-listeners` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultEnableShutdownDrainListeners`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)
+- `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultShutdownGracePeriodSeconds`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)
+- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulPort`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)
+- `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulShutdownPath`](/consul/docs/reference/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)
 
-- `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
-- `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
-- `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
-- `consul.hashicorp.com/prometheus-scrape-port` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePort`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapeport).
-- `consul.hashicorp.com/prometheus-scrape-path` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePath`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapepath).
+- `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/consul/docs/reference/k8s/helm#v-connectinject-metrics-defaultenabled).
+- `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/consul/docs/reference/k8s/helm#v-connectinject-metrics-defaultenablemerging).
+- `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/consul/docs/reference/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
+- `consul.hashicorp.com/prometheus-scrape-port` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePort`](/consul/docs/reference/k8s/helm#v-connectinject-metrics-defaultprometheusscrapeport).
+- `consul.hashicorp.com/prometheus-scrape-path` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePath`](/consul/docs/reference/k8s/helm#v-connectinject-metrics-defaultprometheusscrapepath).
 - `consul.hashicorp.com/prometheus-ca-file` - Local filesystem path to a CA file for Envoy to use
   when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
   is set in proxy config.
@@ -276,7 +276,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
   annotations:
     "consul.hashicorp.com/consul-sidecar-user-volume-mount": "[{\"name\": \"secrets-store-mount\", \"mountPath\": \"/mnt/secrets-store\"}]"
   ```
-- `consul.hashicorp.com/proxy-config-map` - JSON object specifying [Proxy Config Options](/consul/docs/connect/proxies/envoy#proxy-config-options). The proxy config map provides a low-level interface for setting configuration fields on a per-proxy basis during service registration. This configuration field is intended to be used in situations where a field does not exist in [service defaults configuration entries](/consul/docs/connect/config-entries/service-defaults) and another annotation does not provide explicit access to one of the Envoy configuration options.
+- `consul.hashicorp.com/proxy-config-map` - JSON object specifying [Proxy Config Options](/consul/docs/reference/proxy/envoy#proxy-config-options). The proxy config map provides a low-level interface for setting configuration fields on a per-proxy basis during service registration. This configuration field is intended to be used in situations where a field does not exist in [service defaults configuration entries](/consul/docs/reference/config-entry/service-default) and another annotation does not provide explicit access to one of the Envoy configuration options.
   ```yaml
   annotations:
     "consul.hashicorp.com/proxy-config-map": "{ \"xds_fetch_timeout_ms\": 30000 }"
@@ -327,7 +327,7 @@ The following Kubernetes resource annotations could be used on a pod to [Service
     'consul.hashicorp.com/service-meta-KEY': 'value'
   ```
 
-- `consul.hashicorp.com/service-weight:` - Configures ability to support weighted loadbalancing by service annotation for Catalog Sync. The integer provided will be applied as a weight for the `passing` state for the health of the service. Refer to [weights](/consul/docs/services/configuration/services-configuration-reference#weights) in service configuration for more information on how this is leveraged for services in the Consul catalog.
+- `consul.hashicorp.com/service-weight:` - Configures ability to support weighted loadbalancing by service annotation for Catalog Sync. The integer provided will be applied as a weight for the `passing` state for the health of the service. Refer to [weights](/consul/docs/reference/service#weights) in service configuration for more information on how this is leveraged for services in the Consul catalog.
 
   ```yaml
   annotations:

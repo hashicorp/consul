@@ -208,7 +208,7 @@ Virtual addresses are not required to be routable IPs within the network. They a
 If the following conditions are met, connections to virtual addresses are load balanced across available instances of a service, provided the following conditions are satisfied:
 
 1. [Transparent proxy](/consul/docs/connect/transparent-proxy) is enabled for the downstream and upstream services.
-1. The upstream service is not configured for individual instances to be [dialed directly](/consul/docs/connect/config-entries/service-defaults#dialeddirectly).
+1. The upstream service is not configured for individual instances to be [dialed directly](/consul/docs/reference/config-entry/service-default#dialeddirectly).
 
 In the following example, the downstream services in the mesh can connect to the `redis` service at `203.0.113.50` on port `80`:
 
@@ -331,7 +331,7 @@ Refer to [Modify anti-entropy synchronization](/consul/docs/services/usage/defin
 
 ### `checks`
 
-The `checks` block contains an array of objects that define health checks for the service. Health checks perform several safety functions, such as allowing a web balancer to gracefully remove failing nodes and allowing a database to replace a failed secondary. Refer to [Health Check Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about configuring health checks.
+The `checks` block contains an array of objects that define health checks for the service. Health checks perform several safety functions, such as allowing a web balancer to gracefully remove failing nodes and allowing a database to replace a failed secondary. Refer to [Health Check Configuration Reference](/consul/docs/reference/service/health-checks) for information about configuring health checks.
 
 ### `kind`
 
@@ -340,8 +340,8 @@ String value that identifies the service as a proxy and determines its role in t
 You can specify the following values:
 
 - `connect-proxy`: Defines the configuration for a service mesh proxy. Refer to [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies) for details about registering a service as a service mesh proxy.
-- `ingress-gateway`: Defines the configuration for an [ingress gateway](/consul/docs/connect/config-entries/ingress-gateway)
-- `mesh-gateway`: Defines the configuration for a [mesh gateway](/consul/docs/connect/gateways/mesh-gateway)
+- `ingress-gateway`: Defines the configuration for an [ingress gateway](/consul/docs/reference/config-entry/ingress-gateway)
+- `mesh-gateway`: Defines the configuration for a [mesh gateway](/consul/docs/link/mesh-gateway/)
 - `terminating-gateway`: Defines the configuration for a [terminating gateway](/consul/docs/connect/gateways/terminating-gateway)
 
 For non-service registration roles, the `kind` field has a different context when used to define configuration entries, such as `service-defaults`. Refer to the documentation for the configuration entry you want to implement for additional information. 
@@ -359,7 +359,7 @@ The following table describes the parameters that you can place in the `connect`
 | Parameter | Description | Default |
 | ---       | ---         | ---     |
 | `native` | Boolean value that advertises the service as a native service mesh proxy. Use this parameter to integrate your application with the `connect` API. Refer to [Service Mesh Native App Integration Overview](/consul/docs/connect/native) for additional information. If set to `true`, do not configure a `sidecar_service`. | `false` |
-| `sidecar_service` | Object that defines a sidecar proxy for the service. Do not configure if `native` is set to `true`. Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for usage and configuration details. | Refer to [Sidecar service defaults](/consul/docs/connect/proxies/deploy-sidecar-services#sidecar-service-defaults). |
+| `sidecar_service` | Object that defines a sidecar proxy for the service. Do not configure if `native` is set to `true`. Refer to [Deploy sidecar services](/consul/docs/reference/proxy/sidecar) for usage and configuration details. | Refer to [Sidecar service defaults](/consul/docs/reference/proxy/sidecar#sidecar-service-defaults). |
 
 ###  `locality` <EnterpriseAlert inline/>  
 

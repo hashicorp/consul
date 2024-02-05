@@ -30,7 +30,7 @@ The default ACLs that the Consul Helm chart configures are suitable for most cas
 
 ## Create a service resolver configuration entry
 
-Specify the target failover in the [`spec.failover.targets`](/consul/docs/connect/config-entries/service-resolver#failover-targets-service) field in the service resolver configuration entry. In the following example, the `api-beta` service is configured to failover to the `api` service in any service subset:
+Specify the target failover in the [`spec.failover.targets`](/consul/docs/reference/config-entry/service-resolver#failover-targets-service) field in the service resolver configuration entry. In the following example, the `api-beta` service is configured to failover to the `api` service in any service subset:
 
 <CodeBlockConfig filename="api-beta-failover.yaml">
 
@@ -48,7 +48,7 @@ spec:
 
 </CodeBlockConfig>
 
-Refer to the [service resolver configuration entry reference](/consul/docs/connect/config-entries/service-resolver) documentation for information about all service resolver configurations.
+Refer to the [service resolver configuration entry reference](/consul/docs/reference/config-entry/service-resolver) documentation for information about all service resolver configurations.
 
 You can apply the configuration using the `kubectl apply` command:
 
@@ -89,7 +89,7 @@ spec:
 
 </CodeBlockConfig>
 
-Refer to the [service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information about configuring service intentions. 
+Refer to the [service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intention) for additional information about configuring service intentions. 
 
 You can apply the configuration using the `kubectl apply` command:
 

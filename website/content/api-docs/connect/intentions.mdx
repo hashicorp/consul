@@ -13,7 +13,7 @@ The `/connect/intentions` endpoint provide tools for managing
 
 -> **1.9.0 and later:** Reading and writing intentions has been
 migrated to the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions)
+[`service-intentions`](/consul/docs/reference/config-entry/service-intention)
 config entry kind.
 
 ## Upsert Intention by Name ((#upsert-intention-by-name))
@@ -74,7 +74,7 @@ The corresponding CLI command is [`consul intention create -replace`](/consul/co
   the `Permissions` field.
 
 - `Permissions` `(array<IntentionPermission>)` - The list of all [additional L7
-  attributes](/consul/docs/connect/config-entries/service-intentions#intentionpermission)
+  attributes](/consul/docs/reference/config-entry/service-intention#intentionpermission)
   that extend the intention match criteria.
 
   Permission precedence is applied top to bottom. For any given request the
@@ -118,7 +118,7 @@ true
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [upserting by name](#upsert-intention-by-name) or editing the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/reference/config-entry/service-intention) config
 entry for the destination.
 
 This endpoint creates a new intention and returns its ID if it was created
@@ -211,7 +211,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [upserting by name](#upsert-intention-by-name) or editing the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/reference/config-entry/service-intention) config
 entry for the destination.
 
 This endpoint updates an intention with the given values.
@@ -319,7 +319,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [reading by name](#read-specific-intention-by-name) or by viewing the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions)
+[`service-intentions`](/consul/docs/reference/config-entry/service-intention)
 config entry for the destination.
 
 This endpoint reads a specific intention.
@@ -497,7 +497,7 @@ $ curl \
 
 -> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
 [deleting by name](#delete-intention-by-name) or editing the
-[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/reference/config-entry/service-intention) config
 entry for the destination.
 
 This endpoint deletes a specific intention.

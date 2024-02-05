@@ -5,7 +5,7 @@ description: >-
   Use the OIDC auth method type to authenticate to Consul through a web browser with an OpenID Connect provider. Learn how to configure the auth method parameters using this reference page and example configuration.
 ---
 
-# Access Control List (ACL) OpenID Connect (OIDC) auth method configuration reference
+# ACL OpenID Connect (OIDC) auth method configuration reference
 
 <EnterpriseAlert>
 
@@ -31,7 +31,7 @@ processing of the claims data in the JWT.
 
 @include 'jwt_or_oidc.mdx'
 
-## Config Parameters
+## Config parameters
 
 The following auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
 parameters are required to properly configure an auth method of type
@@ -69,7 +69,7 @@ parameters are required to properly configure an auth method of type
 
 - `OIDCScopes` `(array<string>)` - A list of OIDC scopes.
 
-- `OIDCACRValues` `(array<string>)` - A list of Authentication Context Class Reference values to use for the authentication request. See [OIDC reference](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.1.2.1) for more info on this parameter.  Added in v1.11.0.
+- `OIDCACRValues` `(array<string>)` - A list of Authentication Context Class Reference values to use for the authentication request. Refer to  [OIDC reference](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.1.2.1) for more info on this parameter.  Added in v1.11.0.
 
 - `JWTSupportedAlgs` `(array<string>)` - JWTSupportedAlgs is a list of
   supported signing algorithms. Defaults to `RS256`. ([Available
@@ -82,7 +82,7 @@ parameters are required to properly configure an auth method of type
   debug-level logging is active. Not recommended in production since sensitive
   information may be present in OIDC responses.
 
-### Sample Config
+### Sample config
 
 ```json
 {
@@ -111,14 +111,14 @@ parameters are required to properly configure an auth method of type
 }
 ```
 
-## JWT Verification
+## JWT verification
 
 JWT signatures will be verified against public keys from the issuer via OIDC
 discovery. Keys will be fetched from the OIDC Discovery URL during
 authentication and OIDC validation criteria (e.g. `iss`, `aud`, etc.) will be
 applied.
 
-## OIDC Authentication
+## OIDC authentication
 
 Consul includes two built-in OIDC login flows: the Consul UI, and the CLI using
 [`consul login`](/consul/commands/login).
@@ -148,7 +148,7 @@ different host and/or listening port if needed, and a URI with this host/port
 must match one of the configured redirected URIs. These same "localhost" URIs
 must be added to the provider as well.
 
-### OIDC Login
+### OIDC login
 
 #### Consul UI
 
@@ -176,7 +176,7 @@ The callback listener defaults to listen on `localhost:8550`. If you want to
 customize that use the optional flag
 [`-oidc-callback-listen-addr=<host:port>`](/consul/commands/login#oidc-callback-listen-addr).
 
-## OIDC Configuration Troubleshooting
+## Troubleshoot OIDC configuration
 
 The amount of configuration required for OIDC is relatively small, but it can
 be tricky to debug why things aren't working. Some tips for setting up OIDC:
@@ -197,8 +197,8 @@ be tricky to debug why things aren't working. Some tips for setting up OIDC:
   requested, and can be added by setting
   `[OIDCScopes](#oidcscopes)="profile,groups"` on the auth method.
 
-- If you're seeing claim-related errors in logs, review the provider's docs
-  very carefully to see how they're naming and structuring their claims.
+- If you're refer to ing claim-related errors in logs, review the provider's docs
+  very carefully to refer to  how they're naming and structuring their claims.
   Depending on the provider, you may be able to construct a simple `curl`
   [implicit grant](https://developer.okta.com/blog/2018/05/24/what-is-the-oauth2-implicit-grant-type)
   request to obtain a JWT that you can inspect. An example of how to decode the

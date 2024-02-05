@@ -7,8 +7,8 @@ description: >-
 
 # Multi-cluster federation — Kubernetes
 
-This page describes how to federate multiple Kubernetes clusters. Refer to [Multi-Cluster Overview](/consul/docs/k8s/deployment-configurations/multi-cluster)
-for more information, including [networking requirements](/consul/docs/k8s/deployment-configurations/multi-cluster#network-requirements).
+This page describes how to federate multiple Kubernetes clusters. Refer to [Multi-Cluster Overview](/consul/docs/link/wan-federation)
+for more information, including [networking requirements](/consul/docs/link/wan-federation#network-requirements).
 
 ## Primary Datacenter
 
@@ -102,7 +102,7 @@ Modifications:
 1. The default mesh gateway configuration
    creates a Kubernetes Load Balancer service. If you wish to customize the
    mesh gateway, for example using a Node Port service or a custom DNS entry,
-   see the [Helm reference](/consul/docs/k8s/helm#v-meshgateway) for that setting.
+   see the [Helm reference](/consul/docs/reference/k8s/helm#v-meshgateway) for that setting.
 
 With your `values.yaml` ready to go, follow our [Installation Guide](/consul/docs/k8s/installation/install)
 to install Consul on your primary cluster.
@@ -144,7 +144,7 @@ If you've set `enableAutoEncrypt: true`, this is also supported.
    with the primary.
 1. Mesh Gateways are enabled with the default configuration. The default configuration
    creates a Kubernetes Load Balancer service. If you wish to customize the
-   mesh gateway, see the [Helm reference](/consul/docs/k8s/helm#v-meshgateway) for that setting.
+   mesh gateway, see the [Helm reference](/consul/docs/reference/k8s/helm#v-meshgateway) for that setting.
 
 With the above settings added to your existing config, follow the [Upgrading](/consul/docs/k8s/upgrade)
 guide to upgrade your cluster and then come back to the [Federation Secret](#federation-secret) section.
@@ -153,7 +153,7 @@ guide to upgrade your cluster and then come back to the [Federation Secret](#fed
 
 #### ProxyDefaults
 
-If you are using consul-helm 0.30.0+ you must also create a [`ProxyDefaults`](/consul/docs/connect/config-entries/proxy-defaults)
+If you are using consul-helm 0.30.0+ you must also create a [`ProxyDefaults`](/consul/docs/reference/config-entry/proxy-defaults)
 resource to configure Consul to use the mesh gateways for service mesh traffic.
 
 ```yaml
@@ -400,7 +400,7 @@ Modifications:
 1. The default mesh gateway configuration
    creates a Kubernetes Load Balancer service. If you wish to customize the
    mesh gateway, for example using a Node Port service or a custom DNS entry,
-   see the [Helm reference](/consul/docs/k8s/helm#v-meshgateway) for that setting.
+   see the [Helm reference](/consul/docs/reference/k8s/helm#v-meshgateway) for that setting.
 
 With your `values.yaml` ready to go, follow our [Installation Guide](/consul/docs/k8s/installation/install)
 to install Consul on your secondary cluster(s).

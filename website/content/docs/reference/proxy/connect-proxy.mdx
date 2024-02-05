@@ -48,7 +48,7 @@ The following table describes the parameters that must be added to the service d
 | `port` | Integer value that specifies the port where other services in the mesh can discover and connect to proxied services. | Required | None |
 | `address` | Specifies the IP address of the proxy. | Optional <br/>The address will be inherited from the node configuration. | `address` specified in the node configuration. |
 
-You can specify several additional parameters to configure the proxy to meet your requirements. See [Proxy Parameters](#proxy-parameters) for additional information.
+You can specify several additional parameters to configure the proxy to meet your requirements. Refer to  [Proxy Parameters](#proxy-parameters) for additional information.
 
 ### Example
 
@@ -89,7 +89,7 @@ Specify the following parameters in the `proxy` code block to configure a sideca
 * `local_service_port`: Integer value that specifies the port that the proxy should use to connect to the _local_ service instance. Refer to the [proxy parameters reference](#local-service-port) for details.
 * `local_service_address`: String value that specifies the IP address or hostname that the proxy should use to connect to the _local_ service. Refer to the [proxy parameters reference](#local-service-address) for details.
 
-Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information about configuring service mesh proxies as sidecars.
+Refer to [Deploy sidecar services](/consul/docs/reference/proxy/sidecar) for additional information about configuring service mesh proxies as sidecars.
 
 ### Complete configuration example
 
@@ -150,8 +150,8 @@ The following table describes all parameters that can be defined in the `proxy` 
 | `local_service_address` <a name="local-service-address"/>| String value that specifies the IP address or hostname that a sidecar proxy should use to connect to the _local_ service. | Optional | `127.0.0.1` |
 | `destination_service_name` | String value that specifies the _name_ of the service the instance is proxying. The name is used during service discovery to route to the correct proxy instances for a given service name. | Required | None |
 | `local_service_socket_path` | String value that specifies the path of a Unix domain socket for connecting to the local application instance. <br/>This parameter value is created by the application and conflicts with `local_service_address` and `local_service_port`. <br/>Supported when using Envoy for the proxy. | Optional | None |
-| `mode` | String value that specifies the proxy mode. See [Proxy Modes](#proxy-modes) for additional information. | Optional | `direct` |
-| `transparent_proxy` | Object value that specifies the configuration specific to proxies in `transparent` mode. <br/>See [Proxy Modes](#proxy-modes) and [Transparent Proxy Configuration Reference](#transparent-proxy-configuration-reference) for additional information. <br/>This parameter was added in Consul 1.10.0. | Optional | None |
+| `mode` | String value that specifies the proxy mode. Refer to  [Proxy Modes](#proxy-modes) for additional information. | Optional | `direct` |
+| `transparent_proxy` | Object value that specifies the configuration specific to proxies in `transparent` mode. <br/>Refer to  [Proxy Modes](#proxy-modes) and [Transparent Proxy Configuration Reference](#transparent-proxy-configuration-reference) for additional information. <br/>This parameter was added in Consul 1.10.0. | Optional | None |
 | `config` | Object value that specifies an opaque JSON configuration. The JSON is stored and returned along with the service instance when called from the API. | Optional | None |
 | `upstreams` | An array of objects that specify the upstream services that the proxy should create listeners for. Refer to  [Upstream Configuration Reference](#upstream-configuration-reference) for details. | Optional | None |
 | `mesh_gateway` | Object value that specifies the mesh gateway configuration for the proxy. Refer to [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for details. | Optional | None |
@@ -173,7 +173,7 @@ You can configure the service mesh proxy to create listeners for upstream servic
 | `local_bind_socket_mode` | String value that specifies a Unix octal that configures file permissions for the socket. | Optional | None |
 | `destination_type` | String value that specifies the type of discovery query the proxy should use for finding service mesh instances. The following values are supported: <li>`service`: Queries for upstream `service` types. </li><li> `prepared_query`: Queries for upstream prepared queries.</li> | Optional | `service` |
 | `datacenter` | String value that specifies the datacenter to issue the discovery query to. | Optional | Defaults to the local datacenter. |
-| `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>See the [built-in proxy configuration reference](/consul/docs/connect/proxies/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, see [Envoy configuration reference](/consul/docs/connect/proxies/envoy#proxy-upstream-config-options) | Optional | None |
+| `config` | Object value that specifies opaque configuration options that will be provided to the proxy instance for the upstream. <br/>Valid JSON objects are also supported. <br/>The `config` parameter can specify timeouts, retries, and other proxy-specific features for the given upstream. <br/>Refer to  the [built-in proxy configuration reference](/consul/docs/reference/proxy/built-in#proxy-upstream-config-key-reference) for configuration options when using the built-in proxy. <br/>If using Envoy as a proxy, refer to  [Envoy configuration reference](/consul/docs/reference/proxy/envoy#proxy-upstream-config-options) | Optional | None |
 | `mesh_gateway` | Object that defines the mesh gateway configuration for the proxy. Refer to the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference) for configuration details. | Optional | None |
 
 ### Upstream configuration examples
@@ -315,9 +315,12 @@ Note that the examples in this topic use snake case, which is a convention that 
    directly by transparent proxies. Transparent proxies typically dial upstreams using the "virtual"
    tagged address, which load balances across instances. A database cluster with a leader is an example
    where dialing individual instances can be helpful. Cannot be used with upstreams which define a `destination_peer`.
+   
+   <Note>
 
-  ~> **Note:** Dynamic routing rules such as failovers and redirects do not apply to services dialed directly.
-     Additionally, the connection is proxied using a TCP proxy with a connection timeout of 5 seconds.
+      Dynamic routing rules such as failovers and redirects do not apply to services dialed directly. Additionally, the connection is proxied using a TCP proxy with a connection timeout of 5 seconds.
+
+   </Note>
 
 ### Mesh gateway configuration reference
 
@@ -481,9 +484,11 @@ The `mode` field is optional. When omitted, Envoy uses the default mode. This is
 [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-pipe)
 for details.
 
--> These options conflict with the `local_bind_socket_port` and
-`local_bind_socket_address` options. For a given upstream the proxy can bind either to an IP port or
-a Unix socket, but not both.
+<Tip>
+
+  These options conflict with the `local_bind_socket_port` and `local_bind_socket_address` options. For a given upstream the proxy can bind either to an IP port or a Unix socket, but not both.
+
+</Tip>
 
 Similarly to expose a service listening on a Unix Domain socket to the service
 mesh, use either the `socket_path` field in the service definition or the
