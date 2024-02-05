@@ -566,6 +566,10 @@
             ]
           },
           {
+            "title": "Migrate legacy tokens",
+            "path": "secure-consul/acl/legacy"
+          },
+          {
             "title": "Troubleshoot",
             "path": "secure-consul/acl/troubleshoot"
           }
