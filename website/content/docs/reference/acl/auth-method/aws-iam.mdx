@@ -5,7 +5,7 @@ description: >-
   Use the AWS IAM auth method to authenticate to Consul through Amazon Web Service Identity Access Management role and user identities. Learn how to configure the auth method parameters using this reference page and example configuration.
 ---
 
-# Access Control List (ACL) AWS Identity and Access Management (IAM) auth method configuration reference
+# ACL AWS Identity and Access Management (IAM) auth method configuration reference
 
 The AWS Identity and Access Management (IAM) auth method type allows for AWS
 IAM Roles and Users to be used to authenticate to Consul in order to obtain
@@ -14,7 +14,7 @@ a Consul token.
 This page assumes general knowledge of [AWS
 IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html)
 and the concepts described in the main [auth method
-documentation](/consul/docs/security/acl/auth-methods).
+documentation](/consul/docs/secure-consul/acl/auth-methods).
 
 ## Overview
 
@@ -33,7 +33,7 @@ method with a strong guarantee of the client's identity. The auth method compare
 Resource Name (ARN) of the client with the `BoundIAMPrincipalARNs` list to determine if the client
 is permitted to login.
 
-## Config Parameters
+## Config parameters
 
 The following are the auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
 parameters for an auth method of type `aws-iam`:
@@ -102,7 +102,7 @@ parameters for an auth method of type `aws-iam`:
 }
 ```
 
-## Trusted Identity Attributes
+## Trusted identity attributes
 
 The authentication step returns the following trusted identity attributes for use in binding rule
 selectors and bind name interpolation. All of these attributes are strings that can be interpolated
@@ -116,7 +116,7 @@ and support the following selector operations: `Equal, Not Equal, In, Not In, Ma
 | `entity_path`        | The path of the IAM role or user        | `EnableIAMEntityDetails=true`                                      |
 | `entity_tags.<key>`  | Value of a tag on the IAM role or user  | `EnableIAMEntityDetails=true` and `IAMEntityTags` contains `<key>` |
 
-## IAM Policies
+## IAM policies
 
 When `EnableIAMEntityDetails=false`, no specific IAM policies are needed.
 
@@ -158,7 +158,7 @@ the client must have permission to fetch the role or user, respectively.
   }
   ```
 
-## Authentication Procedure
+## Authentication procedure
 
 If `EnableIAMEntityDetails=false`, a client must log in with the following `consul login` command.
 

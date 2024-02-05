@@ -62,9 +62,9 @@ This step is optional in most scenarios. Refer to [Workflow](#workflow) for addi
 
 1. Configure the `locality` block in your service definition for both downstream (client) and upstream services. The `locality` block is a map containing the `region` and `zone` parameters. When you start a proxy for the service, Consul passes the locality to the proxy so that it can route traffic accordingly.
 
-   The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/services/configuration/services-configuration-reference#locality) in the services configuration reference for additional information.
+   The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/reference/service#locality) in the services configuration reference for additional information.
 
-1. Verify that your service is also configured with a proxy. Refer to [Define service mesh proxy](/consul/docs/connect/proxies/deploy-sidecar-services#define-service-mesh-proxy) for additional information.
+1. Verify that your service is also configured with a proxy. Refer to [Define service mesh proxy](/consul/docs/reference/proxy/sidecar#define-service-mesh-proxy) for additional information.
 Register or re-register the service to apply the configuration. Refer to [Register services and health checks](/consul/docs/services/usage/register-services-checks) for instructions.
 
 In the following example, the `web` service is available in the `us-west-1` region and `us-west-1a` zone on AWS:
@@ -88,7 +88,7 @@ You can configure the default routing behavior for all proxies in the mesh as we
 
 ### Configure default routing behavior
 
-Configure the `PrioritizeByLocality` block in the proxy defaults configuration entry and specify the `failover` mode. This configuration enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Refer to [`PrioritizeByLocality`](/consul/docs/connect/config-entries/proxy-defaults#prioritizebylocality) in the proxy defaults reference for details about the configuration.
+Configure the `PrioritizeByLocality` block in the proxy defaults configuration entry and specify the `failover` mode. This configuration enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Refer to [`PrioritizeByLocality`](/consul/docs/reference/config-entry/proxy-defaults#prioritizebylocality) in the proxy defaults reference for details about the configuration.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -166,7 +166,7 @@ Apply the configuration by either running the [`consul config write` CLI command
 
 1. Create a service resolver configuration entry and specify the following fields:
    - `Name`: The name of the target upstream service for which downstream clients should use locality-aware routing.
-   - `PrioritizeByLocality`: This block enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Set the `mode` inside the block to `failover`. Refer to [`PrioritizeByLocality`](/consul/docs/connect/config-entries/service-resolver#prioritizebylocality) in the service resolver reference for details about the configuration.
+   - `PrioritizeByLocality`: This block enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Set the `mode` inside the block to `failover`. Refer to [`PrioritizeByLocality`](/consul/docs/reference/config-entry/service-resolver#prioritizebylocality) in the service resolver reference for details about the configuration.
 
    <Tabs>
    <Tab heading="HCL" group="hcl">
@@ -258,7 +258,7 @@ The routes from each downstream service instance to the nearest set of healthy u
 
 Consul configures Envoy's built-in [`overprovisioning_factor`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/endpoint/v3/endpoint.proto#config-endpoint-v3-clusterloadassignment) and [outlier detection](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/outlier_detection.proto#config-cluster-v3-outlierdetection) settings to enforce failover behavior. However, Envoy does not provide granular metrics specific to failover or endpoint traffic within a cluster. As a result, using external observability tools that expose network traffic within your environment is the best method for observing route changes.
 
-To verify that locality-aware routing and failover configurations, you can inspect Envoy's xDS configuration dump for a downstream proxy. Refer to the [consul-k8s CLI docs](https://developer.hashicorp.com/consul/docs/k8s/k8s-cli#proxy-read) for details on how to obtain the xDS configuration dump on Kubernetes. For other workloads, use the Envoy [admin interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin) and ensure that you [include EDS](https://www.envoyproxy.io/docs/envoy/latest/operations/admin#get--config_dump?include_eds).
+To verify that locality-aware routing and failover configurations, you can inspect Envoy's xDS configuration dump for a downstream proxy. Refer to the [consul-k8s CLI docs](/consul/docs/reference/k8s/consul-k8s-cli#proxy-read) for details on how to obtain the xDS configuration dump on Kubernetes. For other workloads, use the Envoy [admin interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin) and ensure that you [include EDS](https://www.envoyproxy.io/docs/envoy/latest/operations/admin#get--config_dump?include_eds).
 
 Inspect the [priority](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/priority#arch-overview-load-balancing-priority-levels) on each set of endpoints under the upstream `ClusterLoadAssignment` in the `EndpointsConfigDump`. Alternatively, the same priorities should be visibile within the output of the [`/clusters?format=json`](https://www.envoyproxy.io/docs/envoy/latest/operations/admin#get--clusters?format=json) admin endpoint.
 
@@ -341,13 +341,13 @@ Refer to [Troubleshooting](#troubleshooting) if you do not observe the expected 
 
 ## Adjust load balancing and failover behavior
 
-You can adjust the global or per-service load balancing and failover behaviors by applying the property override Envoy extension. The property override extension allows you to set and remove individual properties on the Envoy resources Consul generates. Refer to [Configure Envoy proxy properties](/consul/docs/connect/proxies/envoy-extensions/usage/property-override) for additional information.
+You can adjust the global or per-service load balancing and failover behaviors by applying the property override Envoy extension. The property override extension allows you to set and remove individual properties on the Envoy resources Consul generates. Refer to [Configure Envoy proxy properties](/consul/docs/reference/proxy/envoy-extensions/usage/property-override) for additional information.
 
 1. Add the `EnvoyExtensions` configuration block to the service defaults or proxy defaults configuration entry.
 1. Configure the following settings  in the `EnvoyExtensions` configuration:
     - [`overprovisioning_factor`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/endpoint/v3/endpoint.proto#config-endpoint-v3-clusterloadassignment)
     - [outlier detection](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/outlier_detection.proto#config-cluster-v3-outlierdetection) configuration.
-1. Apply the configuration. Refer to [Apply the configuration entry](/consul/docs/connect/proxies/envoy-extensions/usage/property-override#apply-the-configuration-entry) for details.
+1. Apply the configuration. Refer to [Apply the configuration entry](/consul/docs/reference/proxy/envoy-extensions/usage/property-override#apply-the-configuration-entry) for details.
 
 By default, Consul sets `overprovisioning_factor` to `100000`, which enforces total failover, and `max_ejection_percent` to `100`. Refer to the Envoy documentation about these fields before attempting to modify them.
 

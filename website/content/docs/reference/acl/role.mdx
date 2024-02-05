@@ -5,7 +5,7 @@ description: >-
   Roles are a named collection of ACL policies, service identities, and node identities. Learn how roles allow you to reuse and update access control policies without needing to distribute new tokens to users.
 ---
 
-# Access Control List (ACL) role configuration reference
+# ACL role configuration reference
 
 A role is a collection of policies that your ACL administrator can link to a token.
 They enable you to reuse policies by decoupling the policies from the token distributed to team members.
@@ -16,7 +16,7 @@ As a result, roles can provide a more convenient authentication infrastructure t
 
 Roles are configurations linking several policies to a token. The following procedure describes the workflow for implementing roles.
 
-1. Assemble rules into policies (see [Policies](/consul/docs/security/acl/acl-policies)) and register them in Consul.
+1. Assemble rules into [policies](/consul/docs/secure-consul/acl/policies) and register them in Consul.
 1. Define a role and include the policy IDs or names.
 1. Register the role in Consul and link it to a token.
 1. Distribute the tokens to users for implementation.
@@ -119,7 +119,7 @@ node_prefix "" {
 }
 ```
 
-Refer to the [rules reference](/consul/docs/security/acl/acl-rules) for information about the rules in the policy.
+Refer to the [rules reference](/consul/docs/secure-consul/acl/rules) for information about the rules in the policy.
 
 ### Example
 
@@ -216,7 +216,7 @@ node_prefix "" {
 }
 ```
 
-Refer to the [rules reference](/consul/docs/security/acl/acl-rules) for information about the rules in the policy.
+Refer to the [rules reference](/consul/docs/secure-consul/acl/rules) for information about the rules in the policy.
 
 ### Example
 
@@ -349,7 +349,7 @@ service_prefix "" {
 }
 ```
 
-Refer to the [rules reference](/consul/docs/security/acl/acl-rules) for information about the rules in the policy.
+Refer to the [rules reference](/consul/docs/secure-consul/acl/rules) for information about the rules in the policy.
 
 ### Example
 

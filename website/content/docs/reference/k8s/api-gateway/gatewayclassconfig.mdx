@@ -71,7 +71,7 @@ Set to `true` to enable deployments to run with managed service accounts created
 * Default: `false`
 
 ### consul.authentication.method
-Specifies the [Consul auth method](/consul/docs/security/acl/auth-methods) used for initial authentication by Consul API Gateway.
+Specifies the [Consul auth method](/consul/docs/secure-consul/acl/auth-methods) used for initial authentication by Consul API Gateway.
 * Type: string
 * Required: optional
 
@@ -184,7 +184,7 @@ You can specify the following strings:
 * `NodePort`: The gateway is exposed on each Kubernetes node at a static port.
 * `LoadBalancer`: The gateway is exposed to external traffic by a load balancer.
 
-For more on Kubernetes services, see [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
+For more on Kubernetes services, refer to  [Publishing Services](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).
 
 ### useHostPorts
 If set to `true`, then the Envoy container ports are mapped to host ports.

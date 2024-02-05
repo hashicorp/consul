@@ -36,7 +36,7 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
 
 #### Envoy Options for both Sidecars and Gateways
 
-- `-proxy-id` - The [proxy service](/consul/docs/connect/proxies/proxy-config-reference) ID.
+- `-proxy-id` - The [proxy service](/consul/docs/reference/proxy/connect-proxy) ID.
   This service ID must already be registered with the local agent unless a gateway is being
   registered with the `-register` flag. As of Consul 1.8.0, this can also be
   specified via the `CONNECT_PROXY_ID` environment variable.
@@ -126,7 +126,7 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
   always specifies `--config-file` and `--v2-config-only` and by default passes
   `--disable-hot-restart` see [hot restart](#envoy-hot-restart).
 
-- `-enable-config-gen-logging` - This flag enables debug message logging when generating the Envoy bootstrap configuration to help troubleshoot issues. Logs output to `stderr`. For more information about generating the Envoy bootstrap configuration, refer to [Envoy proxy configuration](/consul/docs/connect/proxies/envoy#bootstrap-configuration).
+- `-enable-config-gen-logging` - This flag enables debug message logging when generating the Envoy bootstrap configuration to help troubleshoot issues. Logs output to `stderr`. For more information about generating the Envoy bootstrap configuration, refer to [Envoy proxy configuration](/consul/docs/reference/proxy/envoy#bootstrap-configuration).
 
 #### Envoy Sidecar Proxy Options
 
@@ -167,14 +167,14 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
 
   If Envoy is configured as an ingress gateway, Consul instantiates a `/ready` HTTP endpoint at the specified IP and port. Consul uses `/ready` HTTP endpoints
   to check gateway health. Ingress gateways also use the specified IP when instantiating user-defined listeners configured in the
-  [ingress gateway configuration entry](/consul/docs/connect/config-entries/ingress-gateway).
+  [ingress gateway configuration entry](/consul/docs/reference/config-entry/ingress-gateway).
 
   ~> **Note**: Ensure that user-defined ingress gateway listeners use a
      different port than the port specified in `-address` so that they do not
      conflict with the health check endpoint.
 
 - `-admin-access-log-path` -
-  **Deprecated in Consul 1.15.0 in favor of [`proxy-defaults` access logs](/consul/docs/connect/config-entries/proxy-defaults#accesslogs).**
+  **Deprecated in Consul 1.15.0 in favor of [`proxy-defaults` access logs](/consul/docs/reference/config-entry/proxy-defaults#accesslogs).**
   The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
   use `/dev/null`.
@@ -227,7 +227,7 @@ proxy configuration needed.
 
 In the following examples, a local service instance is registered on the local agent with a
 sidecar proxy (using the [sidecar service
-registration](/consul/docs/connect/proxies/deploy-sidecar-services) helper):
+registration](/consul/docs/reference/proxy/sidecar) helper):
 
 ```hcl
 service {

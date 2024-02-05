@@ -24,7 +24,7 @@ Enterprise features of CTS address organization complexities of collaboration, o
 | Collaboration | | Run [history](/terraform/cloud-docs/run/manage), [triggers](/terraform/cloud-docs/workspaces/settings/run-triggers), and [notifications](/terraform/cloud-docs/workspaces/settings/notifications) supported on Terraform Cloud |
 | Governance | | [Sentinel](/terraform/cloud-docs/policy-enforcement) to enforce governance policies as code |
 
-The [Terraform Cloud driver](/consul/docs/nia/configuration#terraform-cloud-driver) enables CTS Enterprise to integrate with Terraform Cloud or Terraform Enterprise. The [Terraform Cloud driver](/consul/docs/nia/network-drivers/terraform-cloud) page provides an overview of how the integration works within CTS.
+The [Terraform Cloud driver](/consul/docs/reference/cts/configuration#terraform-cloud-driver) enables CTS Enterprise to integrate with Terraform Cloud or Terraform Enterprise. The [Terraform Cloud driver](/consul/docs/nia/network-drivers/terraform-cloud) page provides an overview of how the integration works within CTS.
 
 ## Consul Admin Partition Support
 CTS subscribes to a Consul agent. Depending on the admin partition the Consul agent is a part of and the services within the admin partition, CTS will be able to subscribe to those services and support the automation workflow. As such, admin partitions are not relevant to the CTS workflow. We recommend deploying a single CTS instance that subscribes to services/KV within a single partition and using a different CTS instance (or instances) to subscribe to services/KV in another partition.

@@ -7,7 +7,7 @@ description: >-
 
 # API gateway configuration entry reference
 
-This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
+This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/reference/k8s/api-gateway/gateway).
 
 ## Introduction
 
@@ -490,7 +490,7 @@ Listeners = [
         name = "listener-one"
         port     = 9001
         protocol = "http"
-        # override and default are backed by the same type of data structure, see the following section for more on how they interact
+        # override and default are backed by the same type of data structure, refer to  the following section for more on how they interact
         override = {
             JWT = {
                 Providers = [

@@ -30,7 +30,7 @@ description: >-
 
 ## Breaking changes
 
-- The new Dataplane architecture comes with the following breaking changes to configuring Consul on ECS. Refer to the [Upgrade to Consul dataplane architecture](https://developer.hashicorp.com/consul/docs/ecs/upgrade-to-dataplanes) documentation for a step-by-step upgrade guide.
+- The new Dataplane architecture comes with the following breaking changes to configuring Consul on ECS. Refer to the [Upgrade to Consul dataplane architecture](/consul/docs/ecs/upgrade-to-dataplanes) documentation for a step-by-step upgrade guide.
   - Consul client agents are no longer used.
   - Consul Dataplane must be run in place of Envoy in each ECS task. Consul Dataplane manages the Envoy process and proxies xDS requests from Envoy to Consul servers.
   - The `consul-ecs` binary now communicates with Consul servers using HTTP(S) and GRPC.

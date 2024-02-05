@@ -189,7 +189,7 @@ server:
 </CodeTabs>
 
 ~> **Note**: On Kubernetes, the Consul Server configuration set in the Helm config's
-[`server.extraConfig`](/consul/docs/k8s/helm#v-server-extraconfig) key must be specified
+[`server.extraConfig`](/consul/docs/reference/k8s/helm#v-server-extraconfig) key must be specified
 as JSON.  The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that Helm
 doesn't try to template them.
 
@@ -296,7 +296,7 @@ namespace_prefix "" {
 
 It's typical for most authenticated users to have this level of access in Consul
 as it's required for viewing the catalog or discovering services. If you use a
-[Single Sign-On integration](/consul/docs/security/acl/auth-methods/oidc) (Consul
+[Single Sign-On integration](/consul/docs/secure-consul/acl/auth-methods/oidc) (Consul
 Enterprise) users of the UI can be automatically issued an ACL token with the
 privileges above to be allowed access to the metrics through the proxy.
 

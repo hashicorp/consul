@@ -28,11 +28,11 @@ Complete the following steps to configure failover service instances in Consul o
 
 ### ACL requirements
 
-The default ACLs that the Consul Helm chart configures are suitable for most cases, but if you have more complex security policies for Consul API access, refer to the [ACL documentation](/consul/docs/security/acl) for additional guidance. 
+The default ACLs that the Consul Helm chart configures are suitable for most cases, but if you have more complex security policies for Consul API access, refer to the [ACL documentation](/consul/docs/secure-consul/acl) for additional guidance. 
 
 ## Create a service resolver configuration entry
 
-Specify the target failover in the [`spec.redirect.service`](/consul/docs/connect/config-entries/service-resolver#spec-redirect-service) field in the service resolver configuration entry. In the following example, the `virtual-api` service is configured to redirect to the `real-api`:
+Specify the target failover in the [`spec.redirect.service`](/consul/docs/reference/config-entry/service-resolver#spec-redirect-service) field in the service resolver configuration entry. In the following example, the `virtual-api` service is configured to redirect to the `real-api`:
 
 <CodeBlockConfig filename="virtual-api-redirect.yaml">
 
@@ -48,7 +48,7 @@ spec:
 
 </CodeBlockConfig>
 
-Refer to the [service resolver configuration entry reference](/consul/docs/connect/config-entries/service-resolver) documentation for information about all service resolver configurations.
+Refer to the [service resolver configuration entry reference](/consul/docs/reference/config-entry/service-resolver) documentation for information about all service resolver configurations.
 
 You can apply the configuration using the `kubectl apply` command:
 
@@ -89,7 +89,7 @@ spec:
 
 </CodeBlockConfig>
 
-Refer to the [service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information about configuring service intentions. 
+Refer to the [service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intention) for additional information about configuring service intentions. 
 
 You can apply the configuration using the `kubectl apply` command:
 

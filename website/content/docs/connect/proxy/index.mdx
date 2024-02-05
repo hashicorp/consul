@@ -21,7 +21,7 @@ A _service mesh proxy_ is any type of proxy service that you use for communicati
 
 Sidecar proxies are service mesh proxy implementations that transparently handles inbound and outbound service connections. Sidecars automatically wrap and verify TLS connections. In a non-containerized network, each service in your mesh should have its own sidecar proxy.   
 
-Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information.
+Refer to [Deploy sidecar services](/consul/docs/reference/proxy/sidecar) for additional information.
 
 ### Gateways
 
@@ -43,10 +43,10 @@ Refer to the following topics for additional information:
 
 Consul has first-class support for Envoy proxies, which is a highly configurable open source edge service proxy. Consul configures Envoy by optionally exposing a gRPC service on the local agent that serves Envoy's xDS configuration API. Refer to the following documentation for additional information:
 
-- [Envoy proxy reference](/consul/docs/connect/proxies/envoy)
+- [Envoy proxy reference](/consul/docs/reference/proxy/envoy)
 - [Envoy API documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-docs/xds_protocol)
  
-You can use Consul's built-in proxy service that supports L4 network traffic, which is suitable for testing and development but not recommended for production environments. Refer to the [built-in proxy reference](/consul/docs/connect/proxies/built-in) for additional information.
+You can use Consul's built-in proxy service that supports L4 network traffic, which is suitable for testing and development but not recommended for production environments. Refer to the [built-in proxy reference](/consul/docs/reference/proxy/built-in) for additional information.
 
 ## Workflow
 
@@ -75,13 +75,13 @@ Refer to the following resources for help using service mesh proxies:
 ### Usage documentation
 
 - [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies) 
-- [Deploy sidecar proxies](/consul/docs/connect/proxies/deploy-sidecar-services)
-- [Extend Envoy proxies](/consul/docs/connect/proxies/envoy-extensions)
+- [Deploy sidecar proxies](/consul/docs/reference/proxy/sidecar)
+- [Extend Envoy proxies](/consul/docs/reference/proxy/envoy-extensions)
 - [Integrate custom proxies](/consul/docs/connect/proxies/integrate)
 
 ### Reference documentation
 
-- [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for additional information. 
-- [Envoy proxies reference](/consul/docs/connect/proxies/envoy)
-- [Service mesh proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference)
+- [Proxy defaults configuration entry reference](/consul/docs/reference/config-entry/proxy-defaults) for additional information. 
+- [Envoy proxies reference](/consul/docs/reference/proxy/envoy)
+- [Service mesh proxy configuration reference](/consul/docs/reference/proxy/connect-proxy)
 - [`consul connect envoy` command](/consul/commands/connect/envoy)
