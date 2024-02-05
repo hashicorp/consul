@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/bootstrap/constants"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -58,6 +59,11 @@ func MonitorHCPLink(
 		var link pbhcp.Link
 		if err := res.GetData().UnmarshalTo(&link); err != nil {
 			logger.Error("error unmarshalling link data", "error", err)
+			continue
+		}
+
+		if validated, _ := hcpctl.IsValidated(res); !validated {
+			logger.Debug("HCP Link not validated, not starting manager")
 			continue
 		}
 
