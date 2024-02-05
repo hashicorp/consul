@@ -18,12 +18,15 @@ import (
 const (
 	StatusKey = "consul.io/hcp/link"
 
-	StatusLinked                         = "linked"
-	LinkedReason                         = "SUCCESS"
+	// Statuses
+	StatusLinked    = "linked"
 	FailedReason                         = "FAILED"
 	DisabledReasonV2ResourcesUnsupported = "DISABLED_V2_RESOURCES_UNSUPPORTED"
-	UnauthorizedReason                   = "UNAUTHORIZED"
-	ForbiddenReason                      = "FORBIDDEN"
+	LinkedSuccessReason                              = "SUCCESS"
+	LinkedFailedReason                               = "FAILED"
+	LinkedDisabledReasonV2ResourcesUnsupportedReason = "DISABLED_V2_RESOURCES_UNSUPPORTED"
+	LinkedUnauthorizedReason                         = "UNAUTHORIZED"
+	LinkedForbiddenReason                            = "FORBIDDEN"
 
 	LinkedMessageFormat                = "Successfully linked to cluster '%s'"
 	FailedMessage                      = "Failed to link to HCP due to unexpected error"
@@ -36,25 +39,25 @@ var (
 	ConditionDisabled = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  DisabledReasonV2ResourcesUnsupported,
+		Reason:  LinkedDisabledReasonV2ResourcesUnsupportedReason,
 		Message: DisabledResourceAPIsEnabledMessage,
 	}
 	ConditionFailed = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  FailedReason,
+		Reason:  LinkedFailedReason,
 		Message: FailedMessage,
 	}
 	ConditionUnauthorized = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  UnauthorizedReason,
+		Reason:  LinkedUnauthorizedReason,
 		Message: UnauthorizedMessage,
 	}
 	ConditionForbidden = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  ForbiddenReason,
+		Reason:  LinkedForbiddenReason,
 		Message: ForbiddenMessage,
 	}
 )
@@ -63,7 +66,7 @@ func ConditionLinked(resourceId string) *pbresource.Condition {
 	return &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_TRUE,
-		Reason:  LinkedReason,
+		Reason:  LinkedSuccessReason,
 		Message: fmt.Sprintf(LinkedMessageFormat, resourceId),
 	}
 }
