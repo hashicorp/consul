@@ -596,20 +596,20 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   </Warning>
 
-- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. Refer to  the [Server Performance](/consul/docs/install/performance) documentation for more details. The following parameters are available:
+- `performance` Available in Consul 0.7 and later, this is a nested object that allows tuning the performance of different subsystems in Consul. Refer to  the [Server Performance](/consul/docs/deploy/server/vm/requirements) documentation for more details. The following parameters are available:
 
   - `leave_drain_time` - A duration that a server will dwell during a graceful leave in order to allow requests to be retried against other Consul servers. Under normal circumstances, this can prevent clients from experiencing "no leader" errors when performing a rolling update of the Consul servers. This was added in Consul 1.0. Must be a duration value such as 10s. Defaults to 5s.
 
   - `raft_multiplier` - An integer multiplier used by Consul servers to scale key Raft timing parameters. Omitting this value or setting it to 0 uses default timing described below. Lower values are used to tighten timing and increase sensitivity while higher values relax timings and reduce sensitivity. Tuning this affects the time it takes Consul to detect leader failures and to perform leader elections, at the expense of requiring more network and CPU resources for better performance.
 
     By default, Consul will use a lower-performance timing that's suitable
-    for [minimal Consul servers](/consul/docs/install/performance#minimum), currently equivalent
+    for [minimal Consul servers](/consul/docs/deploy/server/vm/requirements#minimum), currently equivalent
     to setting this to a value of 5 (this default may be changed in future versions of Consul,
     depending if the target minimum server profile changes). Setting this to a value of 1 will
     configure Raft to its highest-performance mode, equivalent to the default timing of Consul
-    prior to 0.7, and is recommended for [production Consul servers](/consul/docs/install/performance#production).
+    prior to 0.7, and is recommended for [production Consul servers](/consul/docs/deploy/server/vm/requirements#production).
 
-    Refer to  the note on [last contact](/consul/docs/install/performance#production-server-requirements) timing for more
+    Refer to  the note on [last contact](/consul/docs/deploy/server/vm/requirements#production-server-requirements) timing for more
     details on tuning this parameter. The maximum allowed value is 10.
 
   - `rpc_hold_timeout` - A duration that a client
@@ -1683,7 +1683,7 @@ subsystem that provides Consul's service mesh capabilities.
     engine to use to persist logs. Valid options are `boltdb` or `wal`. Default
     is `boltdb`. The `wal` option specifies an experimental backend that
     should be used with caution. Refer to
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
+    [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal/)
     for more information.
 
   - `disable_log_cache` ((#raft_logstore_disable_log_cache)) Disables the in-memory cache for recent logs. We recommend using it for performance testing purposes, as no significant improvement has been measured when the cache is disabled. While the in-memory log cache theoretically prevents disk reads for recent logs, recent logs are also stored in the OS page cache, which does not slow either the `boltdb` or `wal` backend's ability to read them.
@@ -1708,7 +1708,7 @@ subsystem that provides Consul's service mesh capabilities.
     data directory, and restart so it can be caught back up with a correct
     server again. Please report verification failures including details about
     your hardware and workload via GitHub issues. Refer to
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
+    [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal/)
     for more information.
 
     - `enabled` ((#raft_logstore_verification_enabled)) - Set to `true` to
@@ -1733,7 +1733,7 @@ subsystem that provides Consul's service mesh capabilities.
     within the file.
 
   - - `wal` ((#raft_logstore_wal)) - Object that configures the `wal` backend.
-    Refer to [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
+    Refer to [Experimental WAL LogStore backend](/consul/docs/deploy/server/wal/)
     for more information.
 
     - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - Integer value
