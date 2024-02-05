@@ -3337,6 +3337,47 @@ func TestProxyConfigEntry(t *testing.T) {
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
 
+func TestProxyConfigEntry_ComputeProtocol(t *testing.T) {
+	t.Run("ComputeProtocol sets protocol field correctly", func(t *testing.T) {
+		pd := &ProxyConfigEntry{
+			Kind: ProxyDefaults,
+			Name: "global",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}
+		require.NoError(t, pd.ComputeProtocol())
+		require.Equal(t, &ProxyConfigEntry{
+			Kind:     ProxyDefaults,
+			Name:     "global",
+			Protocol: "http",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}, pd)
+	})
+	t.Run("Normalize sets protocol field correctly", func(t *testing.T) {
+		pd := &ProxyConfigEntry{
+			Kind: ProxyDefaults,
+			Name: "global",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}
+		require.NoError(t, pd.Normalize())
+		pd.Hash = 0
+		require.Equal(t, &ProxyConfigEntry{
+			Kind:     ProxyDefaults,
+			Name:     "global",
+			Protocol: "http",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+		}, pd)
+	})
+}
+
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
