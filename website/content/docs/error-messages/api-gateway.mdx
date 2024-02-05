@@ -8,8 +8,9 @@ description: Use error message outputs to debug and troubleshoot Consul API gate
 
 This topic provides information about potential error messages associated with Consul API Gateway. If you receive an error message that does not appear in this section, refer to the following resources:
 
-- [Common Consul errors](/consul/docs/troubleshoot/common-errors#common-errors-on-kubernetes)
-- [Consul troubleshooting guide](/consul/docs/troubleshoot/common-errors)
+- [Consul error messages](/consul/docs/error-messages/consul)
+- [Consul on Kubernetes error messages](/consul/docs/error-messages/k8s)
+- [Consul-Terraform-Sync error messages](/consul/docs/error-messages/cts)
 - [Consul Discuss forum](https://discuss.hashicorp.com/)
 
 <!--
@@ -43,9 +44,14 @@ REPLACE THIS with the actions the user should take to try to correct the situati
 
 ## Helm installation failed: "no matches for kind"
 
+<CodeBlockConfig hideClipboard>
+
 ```log
 Error: INSTALLATION FAILED: unable to build kubernetes objects from release manifest: [unable to recognize "": no matches for kind "GatewayClass" in version "gateway.networking.k8s.io/v1alpha2", unable to recognize "": no matches for kind "GatewayClassConfig" in version "api-gateway.consul.hashicorp.com/v1alpha1"]
 ```
+
+</CodeBlockConfig>
+
 **Conditions:**
 Consul API Gateway generates this error when the required CRD files have not been installed in Kubernetes prior to installing Consul API Gateway.
 
@@ -57,10 +63,14 @@ Install the required CRDs. Refer to the [Consul API Gateway installation instruc
 
 ## Operation cannot be fulfilled, the object has been modified
 
-```
-{"error": "Operation cannot be fulfilled on gatewayclassconfigs.consul.hashicorp.com \"consul-api-gateway\": the object has been modified; please apply your changes to the latest version and try again"}
+<CodeBlockConfig hideClipboard>
 
+```log
+{"error": "Operation cannot be fulfilled on gatewayclassconfigs.consul.hashicorp.com \"consul-api-gateway\": the object has been modified; please apply your changes to the latest version and try again"}
 ```
+
+</CodeBlockConfig>
+
 **Conditions:**
 This error occurs when the gateway controller attempts to update an object that has been modified previously. It is a normal part of running the controller and will resolve itself by automatically retrying.
 

@@ -2248,23 +2248,23 @@
     ]
   },
   {
-    "title": "Common error messages",
+    "title": "Error messages",
     "routes": [
       {
         "title": "Consul",
-        "path": "common-error-messages/consul"
+        "path": "error-messages/consul"
       },
       {
         "title": "Consul on Kubernetes",
-        "path": "common-error-messages/k8s"
+        "path": "error-messages/k8s"
       },
       {
         "title": "Consul-Terraform-Sync (CTS)",
-        "path": "common-error-messages/cts"
+        "path": "error-messages/cts"
       },
       {
         "title": "API gateway",
-        "path": "common-error-messages/api-gateway"
+        "path": "error-messages/api-gateway"
       }
     ]
   },
