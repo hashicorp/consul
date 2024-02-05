@@ -1040,7 +1040,7 @@
               },
               {
                 "title": "Register services with service sync",
-                "path": "register/service/register/service/k8s/service-sync"
+                "path": "register/service/k8s/service-sync"
               },
               {
                 "title": "Annotations and labels",
