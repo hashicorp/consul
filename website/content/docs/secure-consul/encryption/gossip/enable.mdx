@@ -2,14 +2,14 @@
 layout: docs
 page_title: Enable gossip communication
 description: >-
-  TODO
+  Consul encrypts communication between agents in the LAN gossip pool. Learn how to generate a gossip encryption key and distribute it to agents in a Consul datacenter.
 ---
 
 # Enable gossip communication
 
-This page describes how to enable gossip encryption for Consul. Gossip encryption is used to encrypt all gossip communication between Consul agents. This includes communication between servers, between clients, and between servers and clients.
+This page describes how to enable gossip encryption for Consul. Gossip encryption is used to encrypt all communication between Consul agents in the LAN gossip pool. This pool includes communication between servers, between clients, and between servers and clients.
 
-This page provides instructions for enabling gossip encryption for new Consul datacenters. If you are adding gossip encryption to an existing Consul datacenter, refer to [Enable gossip encryption for existing datacenters](/consul/docs/secure-consul/encryption/gossip/existing.mdx).
+This page provides instructions for enabling gossip encryption for new Consul datacenters. If you are adding gossip encryption to an existing Consul datacenter, refer to [Enable gossip encryption for existing datacenters](/consul/docs/secure-consul/encryption/gossip/existing).
 
 ## Workflow
 
@@ -29,7 +29,7 @@ pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 
 ## Start the Consul agent with the encryption key
 
-Add the encryption key to your Consul agent configuration file. The following example sets the [`encrypt`](/consul/docs/reference/agent#encrypt) to the newly-generated encrypt key.
+Add the encryption key to your Consul agent configuration file. The following example sets the [`encrypt`](/consul/docs/reference/agent#encrypt) to the newly generated encrypt key.
 
 <CodeTabs>
 <CodeBlockConfig filename="/etc/consul.d/consul.hcl" highlight="5" lineNumbers>
@@ -74,6 +74,6 @@ $ consul agent -config-dir=/etc/consul.d/
            Encrypt: Gossip: true, TLS-Outgoing: false, TLS-Incoming: false, Auto-Encrypt-TLS: false
 ```
 
-If encryption is enabled, the output of [`consul agent`](/consul/commands/agent) will include "Encrypt: true":
+If encryption is enabled, the output of [`consul agent`](/consul/commands/agent) includes `"Encrypt: true":`
 
-All server and client agents within a Consul cluster must share the same encryption key to send and receive cluster information. If you have multiple WAN joined datacenters, you must use the same encryption key in all datacenters.
+All server and client agents within a Consul cluster must share the same encryption key to send and receive cluster information. If you join multiple datacenters in a WAN-federated deployment, you must use the same encryption key in all of the federated datacenters.
