@@ -43,7 +43,6 @@ func (e ECSNotGlobalError) Unwrap() error {
 type Query struct {
 	QueryType    QueryType
 	QueryPayload QueryPayload
-	Limit        int
 }
 
 // QueryType is used to filter service endpoints.
@@ -84,6 +83,7 @@ type QueryPayload struct {
 	Tag      string       // deprecated: use for V1 only
 	SourceIP net.IP       // deprecated: used for prepared queries
 	Tenancy  QueryTenancy // tenancy includes any additional labels specified before the domain
+	Limit    int          // The maximum number of records to return
 
 	// v2 fields only
 	EnableFailover bool
