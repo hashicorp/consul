@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -76,27 +76,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	// If the workload is not for a xGateway, let the sidecarproxy reconciler handle it
 	if gatewayKind := workload.Metadata["gateway-kind"]; gatewayKind == "" {
 		rt.Logger.Trace("workload is not a gateway; skipping reconciliation", "workload", workloadID, "workloadData", workload.Data)
-		return nil
-	}
-
-	// TODO NET-7014 Determine what gateway controls this workload
-	// For now, we cheat by knowing the MeshGateway's name, type + tenancy ahead of time
-	gatewayID := &pbresource.ID{
-		Name:    "mesh-gateway",
-		Type:    pbmesh.MeshGatewayType,
-		Tenancy: resource.DefaultPartitionedTenancy(),
-	}
-
-	// Check if the gateway exists.
-	gateway, err := dataFetcher.FetchMeshGateway(ctx, gatewayID)
-	if err != nil {
-		rt.Logger.Error("error reading the associated gateway", "error", err)
-		return err
-	}
-	if gateway == nil {
-		// If gateway has been deleted, then return as ProxyStateTemplate should be
-		// cleaned up by the garbage collector because of the owner reference.
-		rt.Logger.Trace("gateway doesn't exist; skipping reconciliation", "gateway", gatewayID)
 		return nil
 	}
 

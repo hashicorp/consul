@@ -4,37 +4,41 @@
 package dns
 
 import (
-	"errors"
+	"net"
 	"strings"
 
 	"github.com/miekg/dns"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/discovery"
 )
 
 // buildQueryFromDNSMessage returns a discovery.Query from a DNS message.
-func buildQueryFromDNSMessage(req *dns.Msg, domain, altDomain string,
-	cfg *RouterDynamicConfig, defaultEntMeta acl.EnterpriseMeta, defaultDatacenter string) (*discovery.Query, error) {
+func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain string,
+	remoteAddress net.Addr) (*discovery.Query, error) {
 	queryType, queryParts, querySuffixes := getQueryTypePartsAndSuffixesFromDNSMessage(req, domain, altDomain)
 
-	queryTenancy, err := getQueryTenancy(queryType, querySuffixes, defaultEntMeta, cfg, defaultDatacenter)
+	queryTenancy, err := getQueryTenancy(reqCtx, queryType, querySuffixes)
 	if err != nil {
 		return nil, err
 	}
 
 	name, tag := getQueryNameAndTagFromParts(queryType, queryParts)
 
+	portName := parsePort(queryParts)
+
+	if queryType == discovery.QueryTypeWorkload && req.Question[0].Qtype == dns.TypeSRV {
+		// Currently we do not support SRV records for workloads
+		return nil, errNotImplemented
+	}
+
 	return &discovery.Query{
 		QueryType: queryType,
 		QueryPayload: discovery.QueryPayload{
-			Name:    name,
-			Tenancy: queryTenancy,
-			Tag:     tag,
-			// TODO (v2-dns): what should these be?
-			//PortName:   "",
-			//RemoteAddr: nil,
-			//DisableFailover: false,
+			Name:     name,
+			Tenancy:  queryTenancy,
+			Tag:      tag,
+			PortName: portName,
+			SourceIP: getSourceIP(req, queryType, remoteAddress),
 		},
 	}, nil
 }
@@ -64,30 +68,48 @@ func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []str
 }
 
 // getQueryTenancy returns a discovery.QueryTenancy from a DNS message.
-func getQueryTenancy(queryType discovery.QueryType, querySuffixes []string,
-	defaultEntMeta acl.EnterpriseMeta, cfg *RouterDynamicConfig, defaultDatacenter string) (discovery.QueryTenancy, error) {
-	if queryType == discovery.QueryTypeService {
-		return getQueryTenancyForService(querySuffixes, defaultEntMeta, cfg, defaultDatacenter)
+func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixes []string) (discovery.QueryTenancy, error) {
+	labels, ok := parseLabels(querySuffixes)
+	if !ok {
+		return discovery.QueryTenancy{}, errNameNotFound
 	}
 
-	locality, ok := discovery.ParseLocality(querySuffixes, defaultEntMeta, cfg.EnterpriseDNSConfig)
-	if !ok {
-		return discovery.QueryTenancy{}, errors.New("invalid locality")
+	// If we don't have an explicit partition in the request, try the first fallback
+	// which was supplied in the request context. The agent's partition will be used as the last fallback
+	// later in the query processor.
+	if labels.Partition == "" {
+		labels.Partition = reqCtx.DefaultPartition
+	}
+
+	// If we have a sameness group, we can return early without further data massage.
+	if labels.SamenessGroup != "" {
+		return discovery.QueryTenancy{
+			Namespace:     labels.Namespace,
+			Partition:     labels.Partition,
+			SamenessGroup: labels.SamenessGroup,
+		}, nil
 	}
 
 	if queryType == discovery.QueryTypeVirtual {
-		if locality.Peer == "" {
+		if labels.Peer == "" {
 			// If the peer name was not explicitly defined, fall back to the ambiguously-parsed version.
-			locality.Peer = locality.PeerOrDatacenter
+			labels.Peer = labels.PeerOrDatacenter
 		}
 	}
 
-	return discovery.GetQueryTenancyBasedOnLocality(locality, defaultDatacenter)
+	return discovery.QueryTenancy{
+		Namespace:  labels.Namespace,
+		Partition:  labels.Partition,
+		Peer:       labels.Peer,
+		Datacenter: labels.Datacenter,
+	}, nil
 }
 
 // getQueryTypePartsAndSuffixesFromDNSMessage returns the query type, the parts, and suffixes of the query name.
 func getQueryTypePartsAndSuffixesFromDNSMessage(req *dns.Msg, domain, altDomain string) (queryType discovery.QueryType, parts []string, suffixes []string) {
 	// Get the QName without the domain suffix
+	// TODO (v2-dns): we will also need to handle the "failover" and "no-failover" suffixes here.
+	// They come AFTER the domain. See `stripSuffix` in router.go
 	qName := trimDomainFromQuestionName(req.Question[0].Name, domain, altDomain)
 
 	// Split into the label parts
@@ -97,7 +119,7 @@ func getQueryTypePartsAndSuffixesFromDNSMessage(req *dns.Msg, domain, altDomain 
 	for i := len(labels) - 1; i >= 0 && !done; i-- {
 		queryType = getQueryTypeFromLabels(labels[i])
 		switch queryType {
-		case discovery.QueryTypeService,
+		case discovery.QueryTypeService, discovery.QueryTypeWorkload,
 			discovery.QueryTypeConnect, discovery.QueryTypeVirtual, discovery.QueryTypeIngress,
 			discovery.QueryTypeNode, discovery.QueryTypePreparedQuery:
 			parts = labels[:i]
@@ -122,7 +144,7 @@ func getQueryTypePartsAndSuffixesFromDNSMessage(req *dns.Msg, domain, altDomain 
 
 // trimDomainFromQuestionName returns the question name without the domain suffix.
 func trimDomainFromQuestionName(questionName, domain, altDomain string) string {
-	qName := strings.ToLower(dns.Fqdn(questionName))
+	qName := dns.CanonicalName(questionName)
 	longer := domain
 	shorter := altDomain
 
@@ -156,4 +178,25 @@ func getQueryTypeFromLabels(label string) discovery.QueryType {
 	default:
 		return discovery.QueryTypeInvalid
 	}
+}
+
+// getSourceIP returns the source IP from the dns request.
+func getSourceIP(req *dns.Msg, queryType discovery.QueryType, remoteAddr net.Addr) (sourceIP net.IP) {
+	if queryType == discovery.QueryTypePreparedQuery {
+		subnet := ednsSubnetForRequest(req)
+
+		if subnet != nil {
+			sourceIP = subnet.Address
+		} else {
+			switch v := remoteAddr.(type) {
+			case *net.UDPAddr:
+				sourceIP = v.IP
+			case *net.TCPAddr:
+				sourceIP = v.IP
+			case *net.IPAddr:
+				sourceIP = v.IP
+			}
+		}
+	}
+	return sourceIP
 }

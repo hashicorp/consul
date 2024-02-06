@@ -1111,7 +1111,7 @@ func (a *Agent) listenAndServeV2DNS() error {
 
 	// Check the catalog version and decide which implementation of the data fetcher to implement
 	if a.baseDeps.UseV2Resources() {
-		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config)
+		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config, a.delegate.ResourceServiceClient(), a.logger.Named("catalog-data-fetcher"))
 	} else {
 		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config,
 			a.AgentEnterpriseMeta(),

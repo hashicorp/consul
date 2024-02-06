@@ -8,7 +8,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 )
 
 type (
@@ -19,7 +19,7 @@ type (
 	DecodedDestinationsConfiguration  = resource.DecodedResource[*pbmesh.DestinationsConfiguration]
 	DecodedComputedRoutes             = resource.DecodedResource[*pbmesh.ComputedRoutes]
 	DecodedComputedTrafficPermissions = resource.DecodedResource[*pbauth.ComputedTrafficPermissions]
-	DecodedFailoverPolicy             = resource.DecodedResource[*pbcatalog.FailoverPolicy]
+	DecodedComputedFailoverPolicy     = resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]
 	DecodedService                    = resource.DecodedResource[*pbcatalog.Service]
 	DecodedServiceEndpoints           = resource.DecodedResource[*pbcatalog.ServiceEndpoints]
 	DecodedWorkload                   = resource.DecodedResource[*pbcatalog.Workload]

@@ -201,14 +201,19 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 				}},
 			}).
 			Build()
-		failoverPolicy := resourcetest.ResourceID(resource.ReplaceType(pbcatalog.FailoverPolicyType, targetService.Id)).
+
+		failoverPolicy := &pbcatalog.FailoverPolicy{
+			Config: &pbcatalog.FailoverConfig{
+				Destinations: []*pbcatalog.FailoverDestination{{
+					Ref: backupTargetServiceRef,
+				}},
+			},
+		}
+		simiplifiedFailoverPolicy := catalog.SimplifyFailoverPolicy(anyServiceData, failoverPolicy)
+		computedFailoverPolicy := resourcetest.ResourceID(resource.ReplaceType(pbcatalog.ComputedFailoverPolicyType, targetService.Id)).
 			WithTenancy(tenancy).
-			WithData(t, &pbcatalog.FailoverPolicy{
-				Config: &pbcatalog.FailoverConfig{
-					Destinations: []*pbcatalog.FailoverDestination{{
-						Ref: backupTargetServiceRef,
-					}},
-				},
+			WithData(t, &pbcatalog.ComputedFailoverPolicy{
+				PortConfigs: simiplifiedFailoverPolicy.PortConfigs,
 			}).
 			Build()
 		webRoutes := routestest.BuildComputedRoutes(t, resource.ReplaceType(pbmesh.ComputedRoutesType, destService.Id),
@@ -216,7 +221,7 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 			resourcetest.MustDecode[*pbcatalog.Service](t, targetService),
 			resourcetest.MustDecode[*pbcatalog.Service](t, backupTargetService),
 			resourcetest.MustDecode[*pbmesh.TCPRoute](t, tcpRoute),
-			resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, failoverPolicy),
+			resourcetest.MustDecode[*pbcatalog.ComputedFailoverPolicy](t, computedFailoverPolicy),
 		)
 
 		var (

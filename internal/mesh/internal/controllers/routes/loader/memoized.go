@@ -19,12 +19,12 @@ import (
 type memoizingLoader struct {
 	client pbresource.ResourceServiceClient
 
-	mapHTTPRoute         map[resource.ReferenceKey]*types.DecodedHTTPRoute
-	mapGRPCRoute         map[resource.ReferenceKey]*types.DecodedGRPCRoute
-	mapTCPRoute          map[resource.ReferenceKey]*types.DecodedTCPRoute
-	mapDestinationPolicy map[resource.ReferenceKey]*types.DecodedDestinationPolicy
-	mapFailoverPolicy    map[resource.ReferenceKey]*types.DecodedFailoverPolicy
-	mapService           map[resource.ReferenceKey]*types.DecodedService
+	mapHTTPRoute              map[resource.ReferenceKey]*types.DecodedHTTPRoute
+	mapGRPCRoute              map[resource.ReferenceKey]*types.DecodedGRPCRoute
+	mapTCPRoute               map[resource.ReferenceKey]*types.DecodedTCPRoute
+	mapDestinationPolicy      map[resource.ReferenceKey]*types.DecodedDestinationPolicy
+	mapComputedFailoverPolicy map[resource.ReferenceKey]*types.DecodedComputedFailoverPolicy
+	mapService                map[resource.ReferenceKey]*types.DecodedService
 }
 
 func newMemoizingLoader(client pbresource.ResourceServiceClient) *memoizingLoader {
@@ -32,13 +32,13 @@ func newMemoizingLoader(client pbresource.ResourceServiceClient) *memoizingLoade
 		panic("client is required")
 	}
 	return &memoizingLoader{
-		client:               client,
-		mapHTTPRoute:         make(map[resource.ReferenceKey]*types.DecodedHTTPRoute),
-		mapGRPCRoute:         make(map[resource.ReferenceKey]*types.DecodedGRPCRoute),
-		mapTCPRoute:          make(map[resource.ReferenceKey]*types.DecodedTCPRoute),
-		mapDestinationPolicy: make(map[resource.ReferenceKey]*types.DecodedDestinationPolicy),
-		mapFailoverPolicy:    make(map[resource.ReferenceKey]*types.DecodedFailoverPolicy),
-		mapService:           make(map[resource.ReferenceKey]*types.DecodedService),
+		client:                    client,
+		mapHTTPRoute:              make(map[resource.ReferenceKey]*types.DecodedHTTPRoute),
+		mapGRPCRoute:              make(map[resource.ReferenceKey]*types.DecodedGRPCRoute),
+		mapTCPRoute:               make(map[resource.ReferenceKey]*types.DecodedTCPRoute),
+		mapDestinationPolicy:      make(map[resource.ReferenceKey]*types.DecodedDestinationPolicy),
+		mapComputedFailoverPolicy: make(map[resource.ReferenceKey]*types.DecodedComputedFailoverPolicy),
+		mapService:                make(map[resource.ReferenceKey]*types.DecodedService),
 	}
 }
 
@@ -58,8 +58,8 @@ func (m *memoizingLoader) GetDestinationPolicy(ctx context.Context, id *pbresour
 	return getOrCacheResource[*pbmesh.DestinationPolicy](ctx, m.client, m.mapDestinationPolicy, pbmesh.DestinationPolicyType, id)
 }
 
-func (m *memoizingLoader) GetFailoverPolicy(ctx context.Context, id *pbresource.ID) (*types.DecodedFailoverPolicy, error) {
-	return getOrCacheResource[*pbcatalog.FailoverPolicy](ctx, m.client, m.mapFailoverPolicy, pbcatalog.FailoverPolicyType, id)
+func (m *memoizingLoader) GetComputedFailoverPolicy(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedFailoverPolicy, error) {
+	return getOrCacheResource[*pbcatalog.ComputedFailoverPolicy](ctx, m.client, m.mapComputedFailoverPolicy, pbcatalog.ComputedFailoverPolicyType, id)
 }
 
 func (m *memoizingLoader) GetService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
