@@ -43,7 +43,6 @@ func (e ECSNotGlobalError) Unwrap() error {
 type Query struct {
 	QueryType    QueryType
 	QueryPayload QueryPayload
-	Limit        int
 }
 
 // QueryType is used to filter service endpoints.
@@ -79,11 +78,12 @@ type QueryTenancy struct {
 // QueryPayload represents all information needed by the data backend
 // to decide which records to include.
 type QueryPayload struct {
-	Name       string
-	PortName   string       // v1 - this could optionally be "connect" or "ingress"; v2 - this is the service port name
-	Tag        string       // deprecated: use for V1 only
-	RemoteAddr net.Addr     // deprecated: used for prepared queries
-	Tenancy    QueryTenancy // tenancy includes any additional labels specified before the domain
+	Name     string
+	PortName string       // v1 - this could optionally be "connect" or "ingress"; v2 - this is the service port name
+	Tag      string       // deprecated: use for V1 only
+	SourceIP net.IP       // deprecated: used for prepared queries
+	Tenancy  QueryTenancy // tenancy includes any additional labels specified before the domain
+	Limit    int          // The maximum number of records to return
 
 	// v2 fields only
 	EnableFailover bool
@@ -104,17 +104,21 @@ const (
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Address    string            // A/AAAA/CNAME records - could be used in the Extra section. CNAME is required to handle hostname addresses in workloads & nodes.
+	Service    *Location         // The name and address of the service.
+	Node       *Location         // The name and address of the node.
 	Weight     uint32            // SRV queries
 	PortName   string            // Used to generate a fgdn when a specifc port was queried
 	PortNumber uint32            // SRV queries
 	Metadata   map[string]string // Used to collect metadata into TXT Records
 	Type       ResultType        // Used to reconstruct the fqdn name of the resource
 
-	// Used in SRV & PTR queries to point at an A/AAAA Record.
-	Target string
-
 	Tenancy ResultTenancy
+}
+
+// Location is used to represent a service, node, or workload.
+type Location struct {
+	Name    string
+	Address string
 }
 
 // ResultTenancy is used to reconstruct the fqdn name of the resource.

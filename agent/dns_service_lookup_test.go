@@ -1339,7 +1339,7 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it
 func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
