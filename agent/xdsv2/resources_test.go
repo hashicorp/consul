@@ -56,9 +56,7 @@ func (suite *resourceTestSuite) SetupTest() {
 // using the golden test output/expected files from the XDS controller tests as
 // inputs to the XDSV2 resources generation.
 func (suite *resourceTestSuite) TestAllResourcesFromIR_XDSGoldenFileInputs() {
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		inputPath := "../../internal/mesh/internal/controllers/xds"
-
+	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
 		cases := []string{
 			// destinations - please add in alphabetical order
 			"destination/l4-single-destination-ip-port-bind-address",
@@ -87,9 +85,13 @@ func (suite *resourceTestSuite) TestAllResourcesFromIR_XDSGoldenFileInputs() {
 
 		for _, name := range cases {
 			suite.Run(name, func() {
+				testName := fmt.Sprintf("%s-%s-%s", name, tenancy.Partition, tenancy.Namespace)
+
 				// Arrange - paths to input and output golden files.
-				testFile := fmt.Sprintf("%s-%s-%s.golden", name, tenancy.Partition, tenancy.Namespace)
-				inputFilePath := fmt.Sprintf("%s/testdata/%s", inputPath, testFile)
+				inputFilePath := golden.Filepath(
+					testName,
+					golden.WithBaseDirectory("../../internal/mesh/internal/controllers/xds/testdata"),
+				)
 				inputValueInput := golden.GetBytesAtFilePath(suite.T(), inputFilePath)
 
 				// Act.
@@ -141,13 +143,13 @@ func (suite *resourceTestSuite) TestAllResourcesFromIR_XDSGoldenFileInputs() {
 						require.NoError(t, err)
 						gotJSON := protoToJSON(t, resp)
 
-						expectedJSON := golden.Get(t, gotJSON, fmt.Sprintf("%s/%s", prettyName, testFile))
+						expectedJSON := golden.Get(t, gotJSON, fmt.Sprintf("%s/%s", prettyName, testName))
 						require.JSONEq(t, expectedJSON, gotJSON)
 					})
 				}
 			})
 		}
-	})
+	}, suite.T())
 }
 
 func protoToJSON(t *testing.T, pb proto.Message) string {
@@ -167,16 +169,4 @@ func jsonToProxyState(t *testing.T, json []byte) *meshv2beta1.ProxyState {
 	err := um.Unmarshal(json, ps)
 	require.NoError(t, err)
 	return ps
-}
-
-func (suite *resourceTestSuite) runTestCaseWithTenancies(testCase func(tenancy *pbresource.Tenancy)) {
-	for _, tenancy := range suite.tenancies {
-		suite.Run(suite.appendTenancyInfo(tenancy), func() {
-			testCase(tenancy)
-		})
-	}
-}
-
-func (suite *resourceTestSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) string {
-	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
 }

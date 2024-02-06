@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,7 +49,7 @@ func TestFormat(t *testing.T) {
 
 			gName := fmt.Sprintf("%s", fmtName)
 
-			expected := golden(t, gName, actual)
+			expected := golden.Get(t, actual, gName)
 			require.Equal(t, expected, actual)
 		})
 	}

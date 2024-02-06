@@ -4,35 +4,13 @@
 package inspect
 
 import (
-	"flag"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
-
-// update allows golden files to be updated based on the current output.
-var update = flag.Bool("update", false, "update golden files")
-
-// golden reads and optionally writes the expected data to the golden file,
-// returning the contents as a string.
-func golden(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".golden")
-	if *update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
 
 func TestSnapshotInspectCommand_noTabs(t *testing.T) {
 	t.Parallel()
@@ -95,7 +73,7 @@ func TestSnapshotInspectCommand(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	want := golden(t, t.Name(), ui.OutputWriter.String())
+	want := golden.Get(t, ui.OutputWriter.String(), t.Name())
 	require.Equal(t, want, ui.OutputWriter.String())
 }
 
@@ -113,7 +91,7 @@ func TestSnapshotInspectKVDetailsCommand(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	want := golden(t, t.Name(), ui.OutputWriter.String())
+	want := golden.Get(t, ui.OutputWriter.String(), t.Name())
 	require.Equal(t, want, ui.OutputWriter.String())
 }
 
@@ -131,7 +109,7 @@ func TestSnapshotInspectKVDetailsDepthCommand(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	want := golden(t, t.Name(), ui.OutputWriter.String())
+	want := golden.Get(t, ui.OutputWriter.String(), t.Name())
 	require.Equal(t, want, ui.OutputWriter.String())
 }
 
@@ -149,7 +127,7 @@ func TestSnapshotInspectKVDetailsDepthFilterCommand(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	want := golden(t, t.Name(), ui.OutputWriter.String())
+	want := golden.Get(t, ui.OutputWriter.String(), t.Name())
 	require.Equal(t, want, ui.OutputWriter.String())
 }
 
@@ -167,7 +145,7 @@ func TestSnapshotInspectCommandRaw(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	want := golden(t, t.Name(), ui.OutputWriter.String())
+	want := golden.Get(t, ui.OutputWriter.String(), t.Name())
 	require.Equal(t, want, ui.OutputWriter.String())
 }
 

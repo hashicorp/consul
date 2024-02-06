@@ -5,7 +5,6 @@ package envoy
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,10 +24,9 @@ import (
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
-
-var update = flag.Bool("update", false, "update golden files")
 
 func TestEnvoyCommand_noTabs(t *testing.T) {
 	t.Parallel()
@@ -1317,15 +1315,7 @@ func TestGenerateConfig(t *testing.T) {
 
 			actual := ui.OutputWriter.Bytes()
 
-			// If we got the arg handling write, verify output
-			golden := filepath.Join("testdata", tc.Name+".golden")
-			if *update {
-				os.WriteFile(golden, actual, 0644)
-			}
-
-			expected, err := os.ReadFile(golden)
-			require.NoError(t, err)
-			require.Equal(t, string(expected), string(actual))
+			golden.GetAndVerify(t, string(actual), tc.Name)
 		})
 	}
 }

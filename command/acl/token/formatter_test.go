@@ -4,38 +4,16 @@
 package token
 
 import (
-	"flag"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/testing/golden"
 )
-
-// update allows golden files to be updated based on the current output.
-var update = flag.Bool("update", false, "update golden files")
-
-// golden reads and optionally writes the expected data to the golden file,
-// returning the contents as a string.
-func golden(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".golden")
-	if *update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
 
 func TestFormatToken(t *testing.T) {
 	type testCase struct {
@@ -144,7 +122,7 @@ func TestFormatToken(t *testing.T) {
 						gName = tcase.overrideGoldenName
 					}
 
-					expected := golden(t, path.Join("FormatToken", gName), actual)
+					expected := golden.Get(t, actual, path.Join("FormatToken", gName))
 					require.Equal(t, expected, actual)
 				})
 			}
@@ -263,7 +241,7 @@ func TestFormatTokenList(t *testing.T) {
 						gName = tcase.overrideGoldenName
 					}
 
-					expected := golden(t, path.Join("FormatTokenList", gName), actual)
+					expected := golden.Get(t, actual, path.Join("FormatTokenList", gName))
 					require.Equal(t, expected, actual)
 				})
 			}
@@ -514,7 +492,7 @@ func testFormatTokenExpanded(t *testing.T, dirPath string) {
 						gName = tcase.overrideGoldenName
 					}
 
-					expected := golden(t, path.Join(dirPath, gName), actual)
+					expected := golden.Get(t, actual, path.Join(dirPath, gName))
 					require.Equal(t, expected, actual)
 				})
 			}

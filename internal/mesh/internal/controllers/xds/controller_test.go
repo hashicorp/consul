@@ -1148,7 +1148,6 @@ func TestXdsController(t *testing.T) {
 // side effects or change in scope to XDS controller are not introduce mistakenly.
 func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		path := "../sidecarproxy/builder/testdata"
 		cases := []string{
 			// destinations - please add in alphabetical order
 			"destination/l4-single-destination-ip-port-bind-address",
@@ -1180,7 +1179,14 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 			suite.Run(name, func() {
 				// Create ProxyStateTemplate from the golden file.
 				pst := JSONToProxyTemplate(suite.T(),
-					golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s-%s-%s.golden", path, name, tenancy.Partition, tenancy.Namespace)))
+					golden.GetBytes(
+						suite.T(),
+						"",
+						fmt.Sprintf("%s-%s-%s", name, tenancy.Partition, tenancy.Namespace),
+						golden.WithBaseDirectory("../sidecarproxy/builder/testdata"),
+						golden.WithDisableUpdate(),
+					),
+				)
 
 				// Destinations will need endpoint refs set up.
 				if strings.Split(name, "/")[0] == "destination" && len(pst.ProxyState.Endpoints) == 0 {
@@ -1225,7 +1231,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 
 				// Compare actual vs expected.
 				actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
-				expected := golden.Get(suite.T(), actual, name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden")
+				expected := golden.Get(suite.T(), actual, name+"-"+tenancy.Partition+"-"+tenancy.Namespace)
 				require.JSONEq(suite.T(), expected, actual)
 			})
 		}

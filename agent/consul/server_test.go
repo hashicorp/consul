@@ -44,6 +44,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -2319,9 +2320,7 @@ func TestServer_ControllerDependencies(t *testing.T) {
 	require.NoError(t, err)
 
 	waitForLeaderEstablishment(t, s1)
-	// gotest.tools/v3 defines CLI flags which are incompatible wit the golden package
-	// Once we eliminate gotest.tools/v3 from usage within Consul we could uncomment this
-	// actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
-	// expected := golden.Get(t, actual, "v2-resource-dependencies")
-	// require.Equal(t, expected, actual)
+	actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
+	expected := golden.Get(t, actual, "v2-resource-dependencies", golden.WithGoldenFileSuffix(".md"))
+	require.Equal(t, expected, actual)
 }
