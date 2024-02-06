@@ -128,7 +128,7 @@ func getVersionHCL(enableV2 bool) map[string]string {
 }
 
 // Copied to agent/dns/recursor_test.go
-func TestRecursorAddr(t *testing.T) {
+func TestNDS_RecursorAddr(t *testing.T) {
 	addr, err := recursorAddr("8.8.8.8")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -153,7 +153,7 @@ func TestRecursorAddr(t *testing.T) {
 	}
 }
 
-func TestEncodeKVasRFC1464(t *testing.T) {
+func TestDNS_EncodeKVasRFC1464(t *testing.T) {
 	// Test cases are from rfc1464
 	type rfc1464Test struct {
 		key, value, internalForm, externalForm string
@@ -187,7 +187,7 @@ func TestDNS_Over_TCP(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -244,7 +244,7 @@ func TestDNS_EmptyAltDomain(t *testing.T) {
 	}
 }
 
-func TestDNSCycleRecursorCheck(t *testing.T) {
+func TestDNS_CycleRecursorCheck(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -286,7 +286,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 		})
 	}
 }
-func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
+func TestDNS_CycleRecursorCheckAllFail(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -325,6 +325,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7643 - Implement EDNS0 records when queried
 func TestDNS_EDNS0(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -372,6 +373,7 @@ func TestDNS_EDNS0(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7643 - Implement EDNS0 records when queried
 func TestDNS_EDNS0_ECS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -613,6 +615,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7640 - NS Record not populate on some invalid service / prepared query lookups
 func TestDNS_SOA_Settings(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -812,6 +815,9 @@ func TestDNS_InifiniteRecursion(t *testing.T) {
 	}
 }
 
+// TODO: NET-7640 - NS Record not populate on some invalid service / prepared query lookups
+// this is actually an I/O timeout so it might not be the same root cause listed in NET-7640
+// but going to cover investigating it there.
 func TestDNS_NSRecords(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -854,6 +860,7 @@ func TestDNS_NSRecords(t *testing.T) {
 	}
 }
 
+// TODO: NET-7640 - NS Record not populate on some invalid service / prepared query lookups
 func TestDNS_AltDomain_NSRecords(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -909,6 +916,7 @@ func TestDNS_AltDomain_NSRecords(t *testing.T) {
 	}
 }
 
+// TODO: NET-7640 - NS Record not populate on some invalid service / prepared query lookups
 func TestDNS_NSRecords_IPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -952,6 +960,7 @@ func TestDNS_NSRecords_IPV6(t *testing.T) {
 	}
 }
 
+// TODO: NET-7640 - NS Record not populate on some invalid service / prepared query lookups
 func TestDNS_AltDomain_NSRecords_IPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1007,6 +1016,7 @@ func TestDNS_AltDomain_NSRecords_IPV6(t *testing.T) {
 	}
 }
 
+// TODO NET-7644 - Implement service and prepared query lookup for tagged addresses
 func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1597,7 +1607,8 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 }
 
-func TestBinarySearch(t *testing.T) {
+// TODO(v2-dns): NET-7646 - account for this functionality since there is
+func TestDNS_BinarySearch(t *testing.T) {
 	msgSrc := new(dns.Msg)
 	msgSrc.Compress = true
 	msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
@@ -1637,6 +1648,7 @@ func TestBinarySearch(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7635 - Fix dns: overflowing header size or IO timeouts
 func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1969,6 +1981,7 @@ func TestDNS_NonExistentDC_Server(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7647 - Fix non-existent dc tests
 // TestDNS_NonExistentDC_RPC verifies NXDOMAIN is returned when
 // Consul server agent is queried over RPC by a non-server agent
 // for a service in a non-existent domain
@@ -2013,6 +2026,7 @@ func TestDNS_NonExistentDC_RPC(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7647 - Fix non-existent dc tests
 func TestDNS_NonExistingLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2049,6 +2063,7 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7647 - Fix non-existent dc tests
 func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2195,7 +2210,7 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		alt_domain = "test-domain."
@@ -2288,6 +2303,7 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7640 - NS or SOA Records not populate on some invalid service / prepared query lookups
 func TestDNS_AltDomains_SOA(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2348,7 +2364,7 @@ func TestDNS_AltDomains_Overlap(t *testing.T) {
 	// this tests the domain matching logic in DNSServer when encountering more
 	// than one potential match (i.e. ambiguous match)
 	// it should select the longer matching domain when dispatching
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		node_name = "test-node"
@@ -2398,7 +2414,7 @@ func TestDNS_AltDomain_DCName_Overlap(t *testing.T) {
 
 	// this tests the DC name overlap with the consul domain/alt-domain
 	// we should get response when DC suffix is a prefix of consul alt-domain
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		datacenter = "dc-test"
@@ -2438,7 +2454,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -2489,6 +2505,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7640 - NS or SOA Records not populate on some invalid service / prepared query lookups
 func TestDNS_InvalidQueries(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2537,6 +2554,7 @@ func TestDNS_InvalidQueries(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7648 - Prepared Query - inject agent source and dc to RPC
 func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2577,6 +2595,7 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7648 - Prepared Query - inject agent source and dc to RPC
 func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2626,7 +2645,7 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			req := &dns.Msg{}
@@ -2688,7 +2707,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2731,7 +2750,7 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2782,7 +2801,7 @@ func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 }
 
 func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2842,7 +2861,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 }
 
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2898,7 +2917,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -2981,7 +3000,7 @@ func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -3032,6 +3051,7 @@ func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
 	}
 }
 
+// TODO(v2-dns): NET-7649 - Implement sync extra
 func TestDNS_syncExtra(t *testing.T) {
 	resp := &dns.Msg{
 		Answer: []dns.RR{
@@ -3256,7 +3276,7 @@ func TestDNS_syncExtra(t *testing.T) {
 }
 
 func TestDNS_Compression_trimUDPResponse(t *testing.T) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -3283,7 +3303,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, experimentsHCL)
@@ -3611,7 +3631,7 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -3677,7 +3697,7 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 	}
 }
 
-func TestECSNotGlobalError(t *testing.T) {
+func TestDNS_ECSNotGlobalError(t *testing.T) {
 	t.Run("wrap nil", func(t *testing.T) {
 		e := ecsNotGlobalError{}
 		require.True(t, errors.Is(e, errECSNotGlobal))
@@ -3709,7 +3729,7 @@ func perfectlyRandomChoices(size int, frac float64) []bool {
 	return out
 }
 
-func TestPerfectlyRandomChoices(t *testing.T) {
+func TestDNS_PerfectlyRandomChoices(t *testing.T) {
 	count := func(got []bool) int {
 		var x int
 		for _, v := range got {
@@ -3771,7 +3791,7 @@ type testCaseParseLocality struct {
 	expectedOK          bool
 }
 
-func Test_ParseLocality(t *testing.T) {
+func TestDNS_ParseLocality(t *testing.T) {
 	testCases := getTestCasesParseLocality()
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -3789,7 +3809,7 @@ func Test_ParseLocality(t *testing.T) {
 
 }
 
-func Test_EffectiveDatacenter(t *testing.T) {
+func TestDNS_EffectiveDatacenter(t *testing.T) {
 	type testCase struct {
 		name          string
 		queryLocality queryLocality
