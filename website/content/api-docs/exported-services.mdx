@@ -1,0 +1,143 @@
+---
+layout: api
+page_title: Exported Services - HTTP API
+description: The /exported-services endpoint lists exported services and their consumers.
+---
+
+# Exported Services HTTP Endpoint
+
+<Note> 
+  The exported services HTTP API endpoint requires Consul v1.17.3 or newer.
+</Note>
+
+The `/exported-services` endpoint returns a list of exported services, as well as the admin partitions and cluster peers that consume the services.
+
+This list consists of the services that were exported using an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services). Sameness groups and wildcards in the configuration entry are expanded in the response.
+
+## List Exported Services
+
+This endpoint returns a list of exported services.
+
+| Method             | Path                 | Produces           |
+| ------------------ | -------------------- | ------------------ |
+| `GET`              | `/exported-services` | `application/json` |
+
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching   | ACL Required                   |
+| ---------------- | ----------------- | --------------- | ------------------------------ |
+| `YES`            | `none`            | `none`          | `mesh:read` or `operator:read` |
+
+
+### Query Parameters
+
+- `partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the admin partition the services are exported from. When not specified, assumes the default value `default`.
+
+
+### Sample Request
+
+```shell-session
+$ curl --header "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
+   http://127.0.0.1:8500/v1/exported-services
+```
+
+### Sample Response
+
+<Tabs>
+
+<Tab heading="CE">
+
+```json
+[
+    {
+        "Service": "frontend",
+        "Consumers": {
+            "Peers": [
+                "east",
+                "west",
+            ]
+        }
+    },
+    {
+        "Service": "db",
+        "Consumers": {
+            "Peers": [
+                "east",
+            ]
+        }
+    },
+    {
+        "Service": "web",
+        "Consumers": {
+            "Peers": [
+                "east",
+                "west"
+            ]
+        }
+    }
+]
+```
+
+</Tab>
+
+<Tab heading="Enterprise">
+
+```json
+[
+    {
+        "Service": "frontend",
+        "Partition": "default",
+        "Namespace": "default",
+        "Consumers": {
+            "Peers": [
+                "east",
+                "west"
+            ],
+            "Partitions": [
+                "part1"
+            ]
+        }
+    },
+    {
+        "Service": "frontend",
+        "Partition": "default",
+        "Namespace": "ns",
+        "Consumers": {
+            "Peers": [
+                "east",
+            ]
+        }
+    },
+    {
+        "Service": "web",
+        "Partition": "default",
+        "Namespace": "default",
+        "Consumers": {
+            "Peers": [
+                "west"
+            ],
+            "Partitions": [
+                "part1"
+            ]
+        }
+    },
+    {
+        "Service": "db",
+        "Partition": "default",
+        "Namespace": "default",
+        "Consumers": {
+            "Partitions": [
+                "part1"
+            ]
+        }
+    }
+]
+```
+
+</Tab>
+</Tabs>
