@@ -33,7 +33,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	// temporarily creating the cache here until we can get rid of the xroutemapper object entirely. Its not super clean to hack together a cache for usage in this func
 	// but its better than alternatives and this should be relatively short lived.
 	testCache := cache.New()
-	testCache.AddIndex(pbcatalog.FailoverPolicyType, indexers.RefOrIDIndex("dest-refs", func(res *resource.DecodedResource[*pbcatalog.FailoverPolicy]) []*pbresource.Reference {
+	testCache.AddIndex(pbcatalog.ComputedFailoverPolicyType, indexers.RefOrIDIndex("dest-refs", func(res *resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]) []*pbresource.Reference {
 		return res.Data.GetUnderlyingDestinationRefs()
 	}))
 
@@ -53,7 +53,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	}
 
 	mapper := xroutemapper.New(func(_ context.Context, rt controller.Runtime, id *pbresource.ID) ([]*pbresource.ID, error) {
-		iter, err := rt.Cache.ListIterator(pbcatalog.FailoverPolicyType, "dest-refs", id)
+		iter, err := rt.Cache.ListIterator(pbcatalog.ComputedFailoverPolicyType, "dest-refs", id)
 		if err != nil {
 			return nil, err
 		}
@@ -121,12 +121,12 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 		return dec
 	}
 
-	writeFailover := func(name string, data *pbcatalog.FailoverPolicy) *types.DecodedFailoverPolicy {
-		res := rtest.Resource(pbcatalog.FailoverPolicyType, name).
+	writeFailover := func(name string, data *pbcatalog.ComputedFailoverPolicy) *types.DecodedComputedFailoverPolicy {
+		res := rtest.Resource(pbcatalog.ComputedFailoverPolicyType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
-		dec, err := resource.Decode[*pbcatalog.FailoverPolicy](res)
+		dec, err := resource.Decode[*pbcatalog.ComputedFailoverPolicy](res)
 		require.NoError(t, err)
 		return dec
 	}
@@ -346,12 +346,18 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 		), out.RoutesByParentRef)
 	})
 
-	barFailover := writeFailover("bar", &pbcatalog.FailoverPolicy{
-		Config: &pbcatalog.FailoverConfig{
-			Destinations: []*pbcatalog.FailoverDestination{{
-				Ref: newRef(pbcatalog.ServiceType, "admin"),
-			}},
+	barFailover := writeFailover("bar", &pbcatalog.ComputedFailoverPolicy{
+		PortConfigs: map[string]*pbcatalog.FailoverConfig{
+			"http": {
+				Destinations: []*pbcatalog.FailoverDestination{
+					{
+						Ref:  newRef(pbcatalog.ServiceType, "admin"),
+						Port: "http",
+					},
+				},
+			},
 		},
+		BoundReferences: []*pbresource.Reference{newRef(pbcatalog.ServiceType, "admin")},
 	})
 
 	testutil.RunStep(t, "add a failover", func(t *testing.T) {
