@@ -18,6 +18,11 @@ You can operate CTS in regular or high-availability (HA) mode. HA mode is an ent
 
 Refer to [Requirements](/consul/docs/cts/requirements) for information about 
 
+### Use a private module with the Terraform network driver
+
+- To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](/terraform/tutorials/cloud/cloud-login?utm_source=docs) to authenticate the local Terraform CLI prior to starting CTS.
+- To use a private module with the [`terraform_cloud` driver](#terraform-cloud-driver), no extra steps are needed.
+
 ## Run Consul-Terraform-Sync with high availability
 
 <EnterpriseAlert>
@@ -108,7 +113,22 @@ Verify that you have met the [basic requirements](/consul/docs/nia/usage/require
 * Terraform CLI 0.13 or later
 * All instances in a cluster must be in the same datacenter.
 
-You must configure appropriate ACL permissions for your cluster. Refer to [ACL permissions](#) for details.
+### ACL requirements
+The following table describes the ACL policies required by CTS. 
+
+| Policy | Resources |
+| ------ | --------- |
+| `service:read` | Any services monitored by tasks |
+| `node:read` | Any nodes hosting services monitored by tasks |
+| `keys:read` | Any Consul KV pairs monitored by tasks |
+| `namespace:read` | <EnterpriseAlert inline />  Any namespaces for resources monitored by tasks |
+| `service:write` | The CTS service when [service registration](/consul/docs/nia/configuration#service-registration) is enabled |
+| `keys:write` | `consul-terraform-sync/` Only required when using Consul as the [Terraform backend](/consul/docs/nia/configuration#backend). |
+
+> Complete the [Secure Consul-Terraform-Sync for Production tutorial](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure?utm_source=docs#configure-acl-privileges-for-consul-terraform-sync) to get hands-on experience configuring CTS.
+
+### High availability mode requirements
+
 
 We recommend specifying the [TFC driver](/consul/docs/nia/network-drivers/terraform-cloud) in your CTS configuration if you want to run in high availability mode.
 
