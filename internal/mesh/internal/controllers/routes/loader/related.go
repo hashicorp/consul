@@ -17,24 +17,24 @@ import (
 type RelatedResources struct {
 	ComputedRoutesList []*pbresource.ID
 	// RoutesByParentRef is a map of a parent Service to the xRoutes that compose it.
-	RoutesByParentRef   map[resource.ReferenceKey]map[resource.ReferenceKey]struct{}
-	HTTPRoutes          map[resource.ReferenceKey]*types.DecodedHTTPRoute
-	GRPCRoutes          map[resource.ReferenceKey]*types.DecodedGRPCRoute
-	TCPRoutes           map[resource.ReferenceKey]*types.DecodedTCPRoute
-	Services            map[resource.ReferenceKey]*types.DecodedService
-	FailoverPolicies    map[resource.ReferenceKey]*types.DecodedFailoverPolicy
-	DestinationPolicies map[resource.ReferenceKey]*types.DecodedDestinationPolicy
+	RoutesByParentRef        map[resource.ReferenceKey]map[resource.ReferenceKey]struct{}
+	HTTPRoutes               map[resource.ReferenceKey]*types.DecodedHTTPRoute
+	GRPCRoutes               map[resource.ReferenceKey]*types.DecodedGRPCRoute
+	TCPRoutes                map[resource.ReferenceKey]*types.DecodedTCPRoute
+	Services                 map[resource.ReferenceKey]*types.DecodedService
+	ComputedFailoverPolicies map[resource.ReferenceKey]*types.DecodedComputedFailoverPolicy
+	DestinationPolicies      map[resource.ReferenceKey]*types.DecodedDestinationPolicy
 }
 
 func NewRelatedResources() *RelatedResources {
 	return &RelatedResources{
-		RoutesByParentRef:   make(map[resource.ReferenceKey]map[resource.ReferenceKey]struct{}),
-		HTTPRoutes:          make(map[resource.ReferenceKey]*types.DecodedHTTPRoute),
-		GRPCRoutes:          make(map[resource.ReferenceKey]*types.DecodedGRPCRoute),
-		TCPRoutes:           make(map[resource.ReferenceKey]*types.DecodedTCPRoute),
-		Services:            make(map[resource.ReferenceKey]*types.DecodedService),
-		FailoverPolicies:    make(map[resource.ReferenceKey]*types.DecodedFailoverPolicy),
-		DestinationPolicies: make(map[resource.ReferenceKey]*types.DecodedDestinationPolicy),
+		RoutesByParentRef:        make(map[resource.ReferenceKey]map[resource.ReferenceKey]struct{}),
+		HTTPRoutes:               make(map[resource.ReferenceKey]*types.DecodedHTTPRoute),
+		GRPCRoutes:               make(map[resource.ReferenceKey]*types.DecodedGRPCRoute),
+		TCPRoutes:                make(map[resource.ReferenceKey]*types.DecodedTCPRoute),
+		Services:                 make(map[resource.ReferenceKey]*types.DecodedService),
+		ComputedFailoverPolicies: make(map[resource.ReferenceKey]*types.DecodedComputedFailoverPolicy),
+		DestinationPolicies:      make(map[resource.ReferenceKey]*types.DecodedDestinationPolicy),
 	}
 }
 
@@ -85,8 +85,8 @@ func (r *RelatedResources) AddResource(res any) {
 		r.AddDestinationPolicy(dec)
 	case *types.DecodedService:
 		r.AddService(dec)
-	case *types.DecodedFailoverPolicy:
-		r.AddFailoverPolicy(dec)
+	case *types.DecodedComputedFailoverPolicy:
+		r.AddComputedFailoverPolicy(dec)
 	default:
 		panic(fmt.Sprintf("unknown decoded resource type: %T", res))
 	}
@@ -115,8 +115,8 @@ func (r *RelatedResources) AddService(dec *types.DecodedService) {
 	addResource(dec.Resource.Id, dec, r.Services)
 }
 
-func (r *RelatedResources) AddFailoverPolicy(dec *types.DecodedFailoverPolicy) {
-	addResource(dec.Resource.Id, dec, r.FailoverPolicies)
+func (r *RelatedResources) AddComputedFailoverPolicy(dec *types.DecodedComputedFailoverPolicy) {
+	addResource(dec.Resource.Id, dec, r.ComputedFailoverPolicies)
 }
 
 func (r *RelatedResources) addRouteSetEntries(
@@ -195,17 +195,17 @@ func (r *RelatedResources) GetService(ref resource.ReferenceOrID) *types.Decoded
 	return r.Services[resource.NewReferenceKey(ref)]
 }
 
-func (r *RelatedResources) GetFailoverPolicy(ref resource.ReferenceOrID) *types.DecodedFailoverPolicy {
-	return r.FailoverPolicies[resource.NewReferenceKey(ref)]
+func (r *RelatedResources) GetComputedFailoverPolicy(ref resource.ReferenceOrID) *types.DecodedComputedFailoverPolicy {
+	return r.ComputedFailoverPolicies[resource.NewReferenceKey(ref)]
 }
 
-func (r *RelatedResources) GetFailoverPolicyForService(ref resource.ReferenceOrID) *types.DecodedFailoverPolicy {
+func (r *RelatedResources) GetComputedFailoverPolicyForService(ref resource.ReferenceOrID) *types.DecodedComputedFailoverPolicy {
 	failRef := &pbresource.Reference{
-		Type:    pbcatalog.FailoverPolicyType,
+		Type:    pbcatalog.ComputedFailoverPolicyType,
 		Tenancy: ref.GetTenancy(),
 		Name:    ref.GetName(),
 	}
-	return r.GetFailoverPolicy(failRef)
+	return r.GetComputedFailoverPolicy(failRef)
 }
 
 func (r *RelatedResources) GetDestinationPolicy(ref resource.ReferenceOrID) *types.DecodedDestinationPolicy {
