@@ -53,54 +53,56 @@ func MonitorHCPLink(
 			continue
 		}
 
-		logger.Debug("HCP Link upserted, starting manager if not already started")
+		if watchEvent.GetUpsert() != nil {
+			logger.Debug("HCP Link upserted, starting manager if not already started")
 
-		res := watchEvent.GetUpsert().GetResource()
-		var link pbhcp.Link
-		if err := res.GetData().UnmarshalTo(&link); err != nil {
-			logger.Error("error unmarshalling link data", "error", err)
-			continue
-		}
-
-		if validated, _ := hcpctl.IsValidated(res); !validated {
-			logger.Debug("HCP Link not validated, not starting manager")
-			continue
-		}
-
-		// Update the HCP manager configuration with the link values
-		// Merge the link data with the existing cloud config so that we only overwrite the
-		// fields that are provided by the link. This ensures that:
-		// 1. The HCP configuration (i.e., how to connect to HCP) is preserved
-		// 2. The Consul agent's node ID and node name are preserved
-		newCfg := config.CloudConfig{
-			ResourceID:   link.ResourceId,
-			ClientID:     link.ClientId,
-			ClientSecret: link.ClientSecret,
-		}
-		mergedCfg := config.Merge(cloudConfig, newCfg)
-		hcpClient, err := hcpClientFn(mergedCfg)
-		if err != nil {
-			logger.Error("error creating HCP client", "error", err)
-			continue
-		}
-
-		// Load the management token if access is set to read-write. Read-only clusters
-		// will not have a management token provided by HCP.
-		var token string
-		if link.GetAccessLevel() == pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE {
-			token, err = loadMgmtTokenFn(ctx, logger, hcpClient, dataDir)
-			if err != nil {
-				logger.Error("error loading management token", "error", err)
+			res := watchEvent.GetUpsert().GetResource()
+			var link pbhcp.Link
+			if err := res.GetData().UnmarshalTo(&link); err != nil {
+				logger.Error("error unmarshalling link data", "error", err)
 				continue
 			}
-		}
 
-		mergedCfg.ManagementToken = token
-		m.UpdateConfig(hcpClient, mergedCfg)
+			if validated, _ := hcpctl.IsValidated(res); !validated {
+				logger.Debug("HCP Link not validated, not starting manager")
+				continue
+			}
 
-		err = m.Start(ctx)
-		if err != nil {
-			logger.Error("error starting HCP manager", "error", err)
+			// Update the HCP manager configuration with the link values
+			// Merge the link data with the existing cloud config so that we only overwrite the
+			// fields that are provided by the link. This ensures that:
+			// 1. The HCP configuration (i.e., how to connect to HCP) is preserved
+			// 2. The Consul agent's node ID and node name are preserved
+			newCfg := config.CloudConfig{
+				ResourceID:   link.ResourceId,
+				ClientID:     link.ClientId,
+				ClientSecret: link.ClientSecret,
+			}
+			mergedCfg := config.Merge(cloudConfig, newCfg)
+			hcpClient, err := hcpClientFn(mergedCfg)
+			if err != nil {
+				logger.Error("error creating HCP client", "error", err)
+				continue
+			}
+
+			// Load the management token if access is set to read-write. Read-only clusters
+			// will not have a management token provided by HCP.
+			var token string
+			if link.GetAccessLevel() == pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE {
+				token, err = loadMgmtTokenFn(ctx, logger, hcpClient, dataDir)
+				if err != nil {
+					logger.Error("error loading management token", "error", err)
+					continue
+				}
+			}
+
+			mergedCfg.ManagementToken = token
+			m.UpdateConfig(hcpClient, mergedCfg)
+
+			err = m.Start(ctx)
+			if err != nil {
+				logger.Error("error starting HCP manager", "error", err)
+			}
 		}
 	}
 }
