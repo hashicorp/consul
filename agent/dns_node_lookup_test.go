@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
+// TODO (v2-dns): Failing on "lookup a non-existing node, we should receive a SOA"
+// it is coming back empty.
 func TestDNS_NodeLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -116,12 +118,13 @@ func TestDNS_NodeLookup(t *testing.T) {
 	}
 }
 
-func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
+func TestDNS_NodeLookup_CaseInsensitive(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
+
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -155,6 +158,8 @@ func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7632 - Fix node lookup when question name has a period in it.
+// Answer is coming back empty
 func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -207,7 +212,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -266,7 +271,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -324,7 +329,7 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -378,7 +383,7 @@ func TestDNS_NodeLookup_TXT_DontSuppress(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `dns_config = { enable_additional_node_meta_txt = false } `+experimentsHCL)
 			defer a.Shutdown()
@@ -432,7 +437,7 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -481,7 +486,7 @@ func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `dns_config = { enable_additional_node_meta_txt = false } `+experimentsHCL)
 			defer a.Shutdown()
@@ -530,7 +535,7 @@ func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `dns_config = { enable_additional_node_meta_txt = false } `+experimentsHCL)
 			defer a.Shutdown()
@@ -582,7 +587,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
