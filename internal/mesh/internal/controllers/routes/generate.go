@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -314,10 +313,9 @@ func compile(
 			}
 			boundRefCollector.AddRefOrID(svcRef)
 
-			failoverPolicy := related.GetFailoverPolicyForService(svcRef)
+			failoverPolicy := related.GetComputedFailoverPolicyForService(svcRef)
 			if failoverPolicy != nil {
-				simpleFailoverPolicy := catalog.SimplifyFailoverPolicy(svc.Data, failoverPolicy.Data)
-				portFailoverConfig, ok := simpleFailoverPolicy.PortConfigs[details.BackendRef.Port]
+				portFailoverConfig, ok := failoverPolicy.Data.PortConfigs[details.BackendRef.Port]
 				if ok {
 					boundRefCollector.AddRefOrID(failoverPolicy.Resource.Id)
 
