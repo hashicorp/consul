@@ -6,7 +6,6 @@ package hcp
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -15,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-var linkWatchRetryTime = time.Second
+var linkWatchRetryCount = 10
 
 func NewLinkWatch(ctx context.Context, logger hclog.Logger, client pbresource.ResourceServiceClient) (chan *pbresource.WatchEvent, error) {
 	watchClient, err := client.WatchList(
@@ -30,24 +29,30 @@ func NewLinkWatch(ctx context.Context, logger hclog.Logger, client pbresource.Re
 
 	eventCh := make(chan *pbresource.WatchEvent)
 	go func() {
+		errorCounter := 0
 		for {
-			watchEvent, err := watchClient.Recv()
-			if err != nil {
-				select {
-				case <-ctx.Done():
-					logger.Debug("context canceled, exiting")
-					close(eventCh)
-					return
-				default:
+			select {
+			case <-ctx.Done():
+				logger.Debug("context canceled, exiting")
+				close(eventCh)
+				return
+			default:
+				watchEvent, err := watchClient.Recv()
+				if err != nil {
 					logger.Error("error receiving link watch event", "error", err)
 
-					// In case of an error, wait before retrying, so we don't log errors in a fast loop
-					time.Sleep(linkWatchRetryTime)
+					errorCounter++
+					if errorCounter >= linkWatchRetryCount {
+						logger.Error("received multiple consecutive errors from link watch client, will stop watching link")
+						close(eventCh)
+						return
+					}
+
 					continue
 				}
-
+				errorCounter = 0
+				eventCh <- watchEvent
 			}
-			eventCh <- watchEvent
 		}
 	}()
 
