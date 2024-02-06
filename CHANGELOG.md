@@ -1,3 +1,46 @@
+## 1.18.0-rc1 (February 6, 2024)
+
+BREAKING CHANGES:
+
+* config-entries: Allow disabling request and idle timeouts with negative values in service router and service resolver config entries. [[GH-19992](https://github.com/hashicorp/consul/issues/19992)]
+* telemetry: Adds fix to always use the value of `telemetry.disable_hostname` when determining whether to prefix gauge-type metrics with the hostname of the Consul agent. Previously, if only the default metric sink was enabled, this configuration was ignored and always treated as `true`, even though its default value is `false`. [[GH-20312](https://github.com/hashicorp/consul/issues/20312)]
+
+SECURITY:
+
+* Update `golang.org/x/crypto` to v0.17.0 to address [CVE-2023-48795](https://nvd.nist.gov/vuln/detail/CVE-2023-48795). [[GH-20023](https://github.com/hashicorp/consul/issues/20023)]
+* connect: update supported envoy versions to 1.24.12, 1.25.11, 1.26.6, 1.27.2 to address [CVE-2023-44487](https://github.com/envoyproxy/envoy/security/advisories/GHSA-jhv4-f7mr-xx76) [[GH-19306](https://github.com/hashicorp/consul/issues/19306)]
+* mesh: update supported envoy version 1.28.0 in addition to 1.25.11, 1.26.6, 1.27.2, 1.28.0 to address [CVE-2023-44487](https://github.com/envoyproxy/envoy/security/advisories/GHSA-jhv4-f7mr-xx76) [[GH-19879](https://github.com/hashicorp/consul/issues/19879)]
+
+FEATURES:
+
+* acl: add policy bindtype to binding rules. [[GH-19499](https://github.com/hashicorp/consul/issues/19499)]
+* agent: add fault injection filter support [[GH-7513](https://github.com/hashicorp/consul/issues/7513)]
+* cloud: Adds new API/CLI to initiate and manage linking a Consul cluster to HCP Consul Central [[GH-20312](https://github.com/hashicorp/consul/issues/20312)]
+* ui: Added a banner to let users link their clusters to HCP [[GH-20275](https://github.com/hashicorp/consul/issues/20275)]
+* ui: Adds a redirect and warning message around unavailable UI with V2 enabled [[GH-20359](https://github.com/hashicorp/consul/issues/20359)]
+* ui: adds V2CatalogEnabled to config that is passed to the ui [[GH-20353](https://github.com/hashicorp/consul/issues/20353)]
+* v2: prevent use of the v2 experiments in secondary datacenters for now [[GH-20299](https://github.com/hashicorp/consul/issues/20299)]
+
+IMPROVEMENTS:
+
+* ProxyCfg: avoid setting a watch on `Internal.ServiceDump` when mesh gateway is not used. [[GH-20168](https://github.com/hashicorp/consul/issues/20168)]
+* ProxyCfg: only return the nodes list when querying the `Internal.ServiceDump` watch from proxycfg [[GH-20168](https://github.com/hashicorp/consul/issues/20168)]
+* api: add a new api(/v1/exported-services) to list all the exported service and their consumers. [[GH-20015](https://github.com/hashicorp/consul/issues/20015)]
+* cloud: unconditionally add Access-Control-Expose-Headers HTTP header [[GH-20220](https://github.com/hashicorp/consul/issues/20220)]
+* connect: Add `CaseInsensitive` flag to service-routers that allows paths and path prefixes to ignore URL upper and lower casing. [[GH-19647](https://github.com/hashicorp/consul/issues/19647)]
+* connect: Replace usage of deprecated Envoy field `envoy.config.core.v3.HeaderValueOption.append`. [[GH-20078](https://github.com/hashicorp/consul/issues/20078)]
+* connect: Replace usage of deprecated Envoy fields `envoy.config.route.v3.HeaderMatcher.safe_regex_match` and `envoy.type.matcher.v3.RegexMatcher.google_re2`. [[GH-20013](https://github.com/hashicorp/consul/issues/20013)]
+* docs: add Link API documentation [[GH-20308](https://github.com/hashicorp/consul/issues/20308)]
+* resource: lowercase names enforced for v2 resources only. [[GH-19218](https://github.com/hashicorp/consul/issues/19218)]
+
+BUG FIXES:
+
+* connect: Fix regression with SAN matching on terminating gateways [GH-20360](https://github.com/hashicorp/consul/issues/20360) [[GH-20417](https://github.com/hashicorp/consul/issues/20417)]
+* logging: add /api prefix to v2 resource endpoint logs [[GH-20352](https://github.com/hashicorp/consul/issues/20352)]
+* mesh: Fix bug where envoy extensions could not be configured with "permissive" mTLS mode. Note that envoy extensions currently do not apply to non-mTLS traffic in permissive mode. [[GH-20406](https://github.com/hashicorp/consul/issues/20406)]
+* raft:  Fix panic during downgrade from enterprise to oss. [[GH-19311](https://github.com/hashicorp/consul/issues/19311)]
+* raft:  Fix panic during downgrade from enterprise to oss.
+
 ## 1.17.2 (January 23, 2024)
 SECURITY:
 
