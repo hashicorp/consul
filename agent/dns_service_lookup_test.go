@@ -26,7 +26,6 @@ func TestDNS_ServiceReverseLookup(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -82,7 +81,6 @@ func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -138,7 +136,6 @@ func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -196,7 +193,6 @@ func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -252,7 +248,6 @@ func TestDNS_ServiceLookupNoMultiCNAME(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -315,7 +310,6 @@ func TestDNS_ServiceLookupPreferNoCNAME(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -376,13 +370,11 @@ func TestDNS_ServiceLookupPreferNoCNAME(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): requires additional recursion work
 func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -469,13 +461,12 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7640 - NS Record not populate on some invalid service / prepared query lookups.
 func TestDNS_ServiceLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -603,7 +594,6 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -663,12 +653,11 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7659 - Fix Ingress and Connect Service Lookups
 func TestDNS_ConnectServiceLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
@@ -716,12 +705,11 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7659 - Fix Ingress and Connect Service Lookups
 func TestDNS_IngressServiceLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
@@ -832,7 +820,6 @@ func TestDNS_ExternalServiceLookup(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -898,7 +885,6 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -1004,7 +990,6 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -1134,13 +1119,12 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7636 - Implement target having encoded IP address
 func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -1236,13 +1220,12 @@ func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7636 - Implement target having encoded IP address
 func TestDNS_AltDomain_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -1345,13 +1328,12 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it
 func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{
 		Answer: []dns.RR{
 			dnsCNAME("www.google.com", "google.com"),
@@ -1467,13 +1449,12 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7636 - Implement target having encoded IP address
 func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -1569,13 +1550,12 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7636 - Implement target having encoded IP address
 func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -1678,13 +1658,12 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires WAN translation work to be implemented
+// TODO (v2-dns):  NET-7634 - Implement WAN translation
 func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a1 := NewTestAgent(t, `
@@ -1895,12 +1874,11 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	}
 }
 
-func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
+func TestDNS_ServiceLookup_CaseInsensitive(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	tests := []struct {
 		name   string
 		config string
@@ -1997,13 +1975,12 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this returns a response where the answer is an SOA record
+// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it
 func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -2078,13 +2055,12 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this returns a response where the answer is an SOA record
+// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it.
 func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -2171,7 +2147,6 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -2277,13 +2252,12 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7641 - Service lookups not properly de-duping SRV records
 func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -2417,13 +2391,12 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires implementing health filtering
+// TODO (v2-dns): NET-7637 - implementing health filtering
 func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -2582,13 +2555,12 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires implementing health filtering
+// TODO (v2-dns): NET-7637 - implementing health filtering
 func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -2704,13 +2676,12 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires implementing health filtering
+// TODO (v2-dns): NET-7637 - implementing health filtering
 func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -2856,13 +2827,12 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7635 - Fix dns: overflowing header size in tests
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -2956,13 +2926,12 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7635 - Fix dns: overflowing header size in tests
 func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -3034,13 +3003,12 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
+// TODO (v2-dns): NET-7638 - Implemented truncated response
 func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -3328,12 +3296,12 @@ func checkDNSService(
 	}
 }
 
+// TODO (v2-dns): NET-7633 - implement answer limits.
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	tests := []struct {
 		name                   string
 		aRecordLimit           int
@@ -3386,40 +3354,35 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		test := test // capture loop var
 
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
 
 			// All those queries should have at max queriesLimited elements
 
 			t.Run("A", func(t *testing.T) {
-				t.Parallel()
 				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeA, test.expectedAResults, test.udpSize)
 			})
 
 			t.Run("AAAA", func(t *testing.T) {
-				t.Parallel()
 				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeAAAA, test.expectedAAAAResults, test.udpSize)
 			})
 
 			t.Run("ANY", func(t *testing.T) {
-				t.Parallel()
 				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeANY, test.expectedANYResults, test.udpSize)
 			})
 
 			// No limits but the size of records for SRV records, since not subject to randomization issues
 			t.Run("SRV", func(t *testing.T) {
-				t.Parallel()
 				checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize)
 			})
 		})
 	}
 }
 
+// TODO (v2-dns): NET-7633 - implement answer limits.
 func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 
@@ -3462,7 +3425,6 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 			for _, test := range tests {
 				test := test // capture loop var
 				t.Run(fmt.Sprintf("A lookup %v", test), func(t *testing.T) {
-					t.Parallel()
 					ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID, experimentsHCL)
 					if !ok {
 						t.Fatalf("Expected service A lookup %s to pass: %v", test.name, err)
@@ -3470,7 +3432,6 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 				})
 
 				t.Run(fmt.Sprintf("AAAA lookup %v", test), func(t *testing.T) {
-					t.Parallel()
 					ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID, experimentsHCL)
 					if !ok {
 						t.Fatalf("Expected service AAAA lookup %s to pass: %v", test.name, err)
@@ -3478,7 +3439,6 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 				})
 
 				t.Run(fmt.Sprintf("ANY lookup %v", test), func(t *testing.T) {
-					t.Parallel()
 					ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID, experimentsHCL)
 					if !ok {
 						t.Fatalf("Expected service ANY lookup %s to pass: %v", test.name, err)
@@ -3489,13 +3449,11 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
 func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{
 		Answer: []dns.RR{
 			dnsCNAME("www.google.com", "google.com"),
@@ -3504,7 +3462,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -3595,13 +3553,11 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): this requires a prepared query
 func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{
 		Answer: []dns.RR{
 			dnsCNAME("www.google.com", "google.com"),
@@ -3610,7 +3566,7 @@ func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -3707,7 +3663,6 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -3793,7 +3748,6 @@ func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -3875,7 +3829,6 @@ func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -3976,7 +3929,6 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	tests := []struct {
 		token   string
 		results int
@@ -4017,7 +3969,7 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 				}
 			`
 
-			for name, experimentsHCL := range getVersionHCL(false) {
+			for name, experimentsHCL := range getVersionHCL(true) {
 				t.Run(name, func(t *testing.T) {
 					a := NewTestAgent(t, hcl+experimentsHCL)
 					defer a.Shutdown()

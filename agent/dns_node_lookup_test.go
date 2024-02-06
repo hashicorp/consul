@@ -14,12 +14,13 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
+// TODO (v2-dns): Failing on "lookup a non-existing node, we should receive a SOA"
+// it is coming back empty.
 func TestDNS_NodeLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -117,13 +118,12 @@ func TestDNS_NodeLookup(t *testing.T) {
 	}
 }
 
-func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
+func TestDNS_NodeLookup_CaseInsensitive(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -157,12 +157,13 @@ func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7632 - Fix node lookup when question name has a period in it.
+// Answer is coming back empty
 func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(false) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -210,8 +211,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -256,12 +256,16 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7631 - Implement external CNAME references
+// Failing on answer assertion.  some CNAMEs are not getting created
+// and the record type on the AAAA record is incorrect.
+// External services do not appear to be working properly here
+// and in the service lookup tests.
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{
 		Answer: []dns.RR{
 			dnsCNAME("www.google.com", "google.com"),
@@ -271,7 +275,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
@@ -329,7 +333,7 @@ func TestDNS_NodeLookup_TXT(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -383,7 +387,7 @@ func TestDNS_NodeLookup_TXT_DontSuppress(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `dns_config = { enable_additional_node_meta_txt = false } `+experimentsHCL)
 			defer a.Shutdown()
@@ -437,7 +441,7 @@ func TestDNS_NodeLookup_ANY(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -486,7 +490,7 @@ func TestDNS_NodeLookup_ANY_DontSuppressTXT(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `dns_config = { enable_additional_node_meta_txt = false } `+experimentsHCL)
 			defer a.Shutdown()
@@ -535,7 +539,7 @@ func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `dns_config = { enable_additional_node_meta_txt = false } `+experimentsHCL)
 			defer a.Shutdown()
@@ -574,12 +578,14 @@ func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7631 - Implement external CNAME references
+// Failing on "Should have the CNAME record + a few A records" comment
+// External services do not appear to be working properly here either.
 func TestDNS_NodeLookup_TTL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{
 		Answer: []dns.RR{
 			dnsCNAME("www.google.com", "google.com"),
@@ -588,7 +594,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]

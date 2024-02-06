@@ -1,0 +1,3 @@
+```release-note:bug
+  audit-logs: **(Enterprise Only)** Fixes non ASCII characters in audit logs because of gzip.
+```

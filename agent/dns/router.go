@@ -291,8 +291,8 @@ func (r *Router) getQueryResults(req *dns.Msg, reqCtx Context, reqType requestTy
 					// need to add something to disambiguate the empty field.
 					Partition: resource.DefaultPartitionName,
 				},
+				Limit: 3,
 			},
-			Limit: 3, // TODO (v2-dns): need to thread this through to the backend and make sure we shuffle the results
 		}
 
 		results, err := r.processor.QueryByName(query, discovery.Context{Token: reqCtx.Token})
@@ -844,7 +844,7 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 		answer = append(answer, ptr)
 	case qType == dns.TypeNS:
 		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
-		fqdn := canonicalNameForResult(result.Type, serviceAddress.String(), domain, result.Tenancy, result.PortName)
+		fqdn := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, result.PortName)
 		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
 
 		answer = append(answer, makeNSRecord(domain, fqdn, ttl))
@@ -852,7 +852,7 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 	case qType == dns.TypeSOA:
 		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
 		// to be returned in the result.
-		fqdn := canonicalNameForResult(result.Type, serviceAddress.String(), domain, result.Tenancy, result.PortName)
+		fqdn := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, result.PortName)
 		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
 
 		ns = append(ns, makeNSRecord(domain, fqdn, ttl))
@@ -864,19 +864,16 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
-		if cfg.NodeMetaTXT {
-			name := serviceAddress.FQDN()
-			if !serviceAddress.IsInternalFQDN(r.domain) && !serviceAddress.IsExternalFQDN(r.domain) {
-				name = canonicalNameForResult(discovery.ResultTypeNode, result.Node.Name, domain, result.Tenancy, result.PortName)
-			}
-			extra = append(extra, makeTXTRecord(name, result, ttl)...)
-		}
 	default:
 		a, e := r.getAnswerExtrasForAddressAndTarget(nodeAddress, serviceAddress, req, reqCtx,
 			result, ttl, remoteAddress, cfg, domain, maxRecursionLevel)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 	}
+
+	a, e := getAnswerAndExtraTXT(req, cfg, qName, result, ttl, domain)
+	answer = append(answer, a...)
+	extra = append(extra, e...)
 	return
 }
 
@@ -888,8 +885,6 @@ func (r *Router) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAddress, ser
 	reqType := parseRequestType(req)
 
 	switch {
-	// Virtual IPs and Address requests
-	// both return IPs with empty targets
 	case (reqType == requestTypeAddress || result.Type == discovery.ResultTypeVirtual) &&
 		serviceAddress.IsEmptyString() && nodeAddress.IsIP():
 		a, e := getAnswerExtrasForIP(qName, nodeAddress, req.Question[0], reqType,
@@ -897,10 +892,16 @@ func (r *Router) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAddress, ser
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
-	case result.Type == discovery.ResultTypeNode:
+	case result.Type == discovery.ResultTypeNode && nodeAddress.IsIP():
 		canonicalNodeName := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, result.PortName)
 		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, req.Question[0], reqType,
 			result, ttl, domain)
+		answer = append(answer, a...)
+		extra = append(extra, e...)
+
+	case result.Type == discovery.ResultTypeNode && !nodeAddress.IsIP():
+		a, e := r.makeRecordFromFQDN(serviceAddress.FQDN(), result, req, reqCtx, cfg,
+			ttl, remoteAddress, maxRecursionLevel)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -946,7 +947,46 @@ func (r *Router) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAddress, ser
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 	}
+
 	return
+}
+
+// getAnswerAndExtraTXT determines whether a TXT needs to be create and then
+// returns the TXT record in the answer or extra depending on the question type.
+func getAnswerAndExtraTXT(req *dns.Msg, cfg *RouterDynamicConfig, qName string,
+	result *discovery.Result, ttl uint32, domain string) (answer []dns.RR, extra []dns.RR) {
+	recordHeaderName := qName
+	serviceAddress := newDNSAddress("")
+	if result.Service != nil {
+		serviceAddress = newDNSAddress(result.Service.Address)
+	}
+	if result.Type != discovery.ResultTypeNode &&
+		result.Type != discovery.ResultTypeVirtual &&
+		!serviceAddress.IsInternalFQDN(domain) &&
+		!serviceAddress.IsExternalFQDN(domain) {
+		recordHeaderName = canonicalNameForResult(discovery.ResultTypeNode, result.Node.Name,
+			domain, result.Tenancy, result.PortName)
+	}
+	qType := req.Question[0].Qtype
+	generateMeta := false
+	metaInAnswer := false
+	if qType == dns.TypeANY || qType == dns.TypeTXT {
+		generateMeta = true
+		metaInAnswer = true
+	} else if cfg.NodeMetaTXT {
+		generateMeta = true
+	}
+
+	// Do not generate txt records if we don't have to: https://github.com/hashicorp/consul/pull/5272
+	if generateMeta {
+		meta := makeTXTRecord(recordHeaderName, result, ttl)
+		if metaInAnswer {
+			answer = append(answer, meta...)
+		} else {
+			extra = append(extra, meta...)
+		}
+	}
+	return answer, extra
 }
 
 // getAnswerExtrasForIP creates the dns answer and extra from IP dnsAddress pairs.
@@ -1075,7 +1115,7 @@ func (r *Router) makeRecordFromFQDN(fqdn string, result *discovery.Result,
 MORE_REC:
 	for _, rr := range more {
 		switch rr.Header().Rrtype {
-		case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
+		case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA, dns.TypeTXT:
 			// set the TTL manually
 			rr.Header().Ttl = ttl
 			additional = append(additional, rr)

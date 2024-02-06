@@ -83,12 +83,12 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	// temporarily creating the cache here until we can get rid of this xroutemapper object entirely. Its not super clean to hack together a cache for usage in this func
 	// but its better than alternatives and this should be relatively short lived.
 	testCache := cache.New()
-	testCache.AddIndex(pbcatalog.FailoverPolicyType, indexers.RefOrIDIndex("dest-refs", func(res *resource.DecodedResource[*pbcatalog.FailoverPolicy]) []*pbresource.Reference {
+	testCache.AddIndex(pbcatalog.ComputedFailoverPolicyType, indexers.RefOrIDIndex("dest-refs", func(res *resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]) []*pbresource.Reference {
 		return res.Data.GetUnderlyingDestinationRefs()
 	}))
 
 	m := New(func(_ context.Context, rt controller.Runtime, id *pbresource.ID) ([]*pbresource.ID, error) {
-		iter, err := rt.Cache.ListIterator(pbcatalog.FailoverPolicyType, "dest-refs", id)
+		iter, err := rt.Cache.ListIterator(pbcatalog.ComputedFailoverPolicyType, "dest-refs", id)
 		if err != nil {
 			return nil, err
 		}
@@ -131,12 +131,22 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 				Ref: ref,
 			})
 		}
-		policy := rtest.Resource(pbcatalog.FailoverPolicyType, name).
+
+		failoverPolicy := &pbcatalog.FailoverPolicy{
+			Config: &pbcatalog.FailoverConfig{
+				Destinations: dests,
+			},
+		}
+
+		simiplifiedFailoverPolicy := catalog.SimplifyFailoverPolicy(&pbcatalog.Service{
+			Ports: []*pbcatalog.ServicePort{{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP}},
+		}, failoverPolicy)
+
+		policy := rtest.Resource(pbcatalog.ComputedFailoverPolicyType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
-			WithData(t, &pbcatalog.FailoverPolicy{
-				Config: &pbcatalog.FailoverConfig{
-					Destinations: dests,
-				},
+			WithData(t, &pbcatalog.ComputedFailoverPolicy{
+				PortConfigs:     simiplifiedFailoverPolicy.PortConfigs,
+				BoundReferences: refs,
 			}).Build()
 		rtest.ValidateAndNormalize(t, registry, policy)
 		return policy
@@ -661,7 +671,7 @@ func requireTracking(
 		reqs, err = mapper.MapTCPRoute(context.Background(), rt, res)
 	case resource.EqualType(pbmesh.DestinationPolicyType, res.Id.Type):
 		reqs, err = mapper.MapServiceNameAligned(context.Background(), rt, res)
-	case resource.EqualType(pbcatalog.FailoverPolicyType, res.Id.Type):
+	case resource.EqualType(pbcatalog.ComputedFailoverPolicyType, res.Id.Type):
 		c.Insert(res)
 		reqs, err = mapper.MapServiceNameAligned(context.Background(), rt, res)
 	case resource.EqualType(pbcatalog.ServiceType, res.Id.Type):
