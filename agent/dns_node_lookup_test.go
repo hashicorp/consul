@@ -124,7 +124,6 @@ func TestDNS_NodeLookup_CaseInsensitive(t *testing.T) {
 	}
 
 	for name, experimentsHCL := range getVersionHCL(true) {
-
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -257,6 +256,11 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7631 - Implement external CNAME references
+// Failing on answer assertion.  some CNAMEs are not getting created
+// and the record type on the AAAA record is incorrect.
+// External services do not appear to be working properly here
+// and in the service lookup tests.
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -574,6 +578,9 @@ func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
 	}
 }
 
+// TODO (v2-dns): NET-7631 - Implement external CNAME references
+// Failing on "Should have the CNAME record + a few A records" comment
+// External services do not appear to be working properly here either.
 func TestDNS_NodeLookup_TTL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
