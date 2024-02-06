@@ -25,7 +25,10 @@ import (
 )
 
 // ControllerName is the name for this controller. It's used for logging or status keys.
-const ControllerName = "consul.io/gateway-proxy"
+const (
+	ControllerName         = "consul.io/gateway-proxy"
+	GatewayKindMetadataKey = "gateway-kind"
+)
 
 // Controller is responsible for triggering reconciler for watched resources
 func Controller(cache *cache.Cache, trustDomainFetcher sidecarproxy.TrustDomainFetcher, dc string, defaultAllow bool) *controller.Controller {
@@ -75,7 +78,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 
-	switch workload.Metadata["gateway-type"] {
+	switch workload.Metadata[GatewayKindMetadataKey] {
 	case meshgateways.GatewayKind:
 		rt.Logger.Trace("workload is a mesh-gateway; reconciling", "workload", workloadID, "workloadData", workload.Data)
 		return r.reconcileMeshGatewayProxyState(ctx, dataFetcher, workload, rt, req)
