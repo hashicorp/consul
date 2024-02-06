@@ -26,3 +26,9 @@ var IsValidated = link.IsValidated
 func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
 	controllers.Register(mgr, deps)
 }
+
+// Needed for testing
+var StatusKey = link.StatusKey
+var StatusValidated = link.StatusValidated
+var ConditionValidatedSuccess = link.ConditionValidatedSuccess
+var ConditionValidatedFailed = link.ConditionValidatedFailed
