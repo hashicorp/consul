@@ -29,6 +29,7 @@ func MonitorHCPLink(
 	hcpLinkEventCh chan *pbresource.WatchEvent,
 	hcpClientFn func(cfg config.CloudConfig) (hcpclient.Client, error),
 	loadMgmtTokenFn func(ctx context.Context, logger hclog.Logger, hcpClient hcpclient.Client, dataDir string) (string, error),
+	cloudConfig config.CloudConfig,
 	dataDir string,
 ) {
 	for watchEvent := range hcpLinkEventCh {
@@ -65,13 +66,12 @@ func MonitorHCPLink(
 		// fields that are provided by the link. This ensures that:
 		// 1. The HCP configuration (i.e., how to connect to HCP) is preserved
 		// 2. The Consul agent's node ID and node name are preserved
-		existingCfg := m.GetCloudConfig()
 		newCfg := config.CloudConfig{
 			ResourceID:   link.ResourceId,
 			ClientID:     link.ClientId,
 			ClientSecret: link.ClientSecret,
 		}
-		mergedCfg := config.Merge(existingCfg, newCfg)
+		mergedCfg := config.Merge(cloudConfig, newCfg)
 		hcpClient, err := hcpClientFn(mergedCfg)
 		if err != nil {
 			logger.Error("error creating HCP client", "error", err)

@@ -913,6 +913,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 			hcpLinkWatchCh,
 			hcpclient.NewClient,
 			bootstrap.LoadManagementToken,
+			flat.HCP.Config,
 			flat.HCP.DataDir,
 		)
 	}
@@ -1023,7 +1024,6 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 			ResourceApisEnabled:    s.useV2Resources,
 			HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
 			CloudConfig:            deps.HCP.Config,
-			HCPManager:             s.hcpManager,
 		},
 	)
 

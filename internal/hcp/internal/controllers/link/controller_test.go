@@ -15,7 +15,6 @@ import (
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/agent/hcp"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
@@ -82,15 +81,11 @@ func (suite *controllerSuite) TestController_Ok() {
 		AccessLevel:  &readWrite,
 	}, nil)
 
-	hcpMgr := hcp.NewMockManager(suite.T())
-	hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
-
 	mgr.Register(LinkController(
 		false,
 		false,
 		mockClientFn,
 		config.CloudConfig{},
-		hcpMgr,
 	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
@@ -132,15 +127,11 @@ func (suite *controllerSuite) TestController_Initialize() {
 		ResourceID:   types.GenerateTestResourceID(suite.T()),
 	}
 
-	hcpMgr := hcp.NewMockManager(suite.T())
-	hcpMgr.EXPECT().GetCloudConfig().Return(cloudCfg)
-
 	mgr.Register(LinkController(
 		false,
 		false,
 		mockClientFn,
 		cloudCfg,
-		hcpMgr,
 	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
@@ -172,13 +163,11 @@ func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	_, mockClientFunc := mockHcpClientFn(suite.T())
 
-	hcpMgr := hcp.NewMockManager(suite.T())
 	mgr.Register(LinkController(
 		true,
 		false,
 		mockClientFunc,
 		config.CloudConfig{},
-		hcpMgr,
 	))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
@@ -205,15 +194,11 @@ func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_Link
 		HCPPortalURL: "http://test.com",
 	}, nil)
 
-	hcpMgr := hcp.NewMockManager(suite.T())
-	hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
-
 	mgr.Register(LinkController(
 		true,
 		true,
 		mockClientFunc,
 		config.CloudConfig{},
-		hcpMgr,
 	))
 
 	mgr.SetRaftLeader(true)
@@ -260,15 +245,11 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 			mockClient, mockClientFunc := mockHcpClientFn(t)
 			mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, tc.expectErr)
 
-			hcpMgr := hcp.NewMockManager(t)
-			hcpMgr.EXPECT().GetCloudConfig().Return(config.CloudConfig{})
-
 			mgr.Register(LinkController(
 				true,
 				true,
 				mockClientFunc,
 				config.CloudConfig{},
-				hcpMgr,
 			))
 
 			mgr.SetRaftLeader(true)
