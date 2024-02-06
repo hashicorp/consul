@@ -5,99 +5,88 @@ package hcp
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 
 	"github.com/hashicorp/go-hclog"
 
-	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/internal/controller"
+	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-type controllerSuite struct {
-	suite.Suite
+// This tests that when we get a watch event from the Recv call, we get that same event on the
+// output channel, then we
+func TestLinkWatch_Ok(t *testing.T) {
+	testWatchEvent := &pbresource.WatchEvent{}
 
-	ctx    context.Context
-	client *rtest.Client
-	rt     controller.Runtime
+	mockWatchListClient := mockpbresource.NewResourceService_WatchListClient(t)
+	mockWatchListClient.EXPECT().Recv().Return(testWatchEvent, nil)
 
-	tenancies []*pbresource.Tenancy
-	dataDir   string
+	client := mockpbresource.NewResourceServiceClient(t)
+	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
+		Type:       pbhcp.LinkType,
+		NamePrefix: types.LinkName,
+	}).Return(mockWatchListClient, nil)
+	linkWatchCh, err := NewLinkWatch(context.Background(), hclog.Default(), client)
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		select {
+		case event := <-linkWatchCh:
+			return event == testWatchEvent
+		default:
+			return false
+		}
+	}, 10*time.Millisecond, time.Millisecond)
 }
 
-func (suite *controllerSuite) SetupTest() {
-	suite.ctx = testutil.TestContext(suite.T())
-	suite.tenancies = rtest.TestTenancies()
-	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register).
-		WithTenancies(suite.tenancies...).
-		Run(suite.T())
+// This tests ensures that when the context is canceled, the linkWatchCh is closed
+func TestLinkWatch_ContextCanceled(t *testing.T) {
+	mockWatchListClient := mockpbresource.NewResourceService_WatchListClient(t)
+	// Recv may not be called if the context is cancelled before the `select` block
+	// within the NewLinkWatch goroutine
+	mockWatchListClient.EXPECT().Recv().Return(nil, errors.New("context canceled")).Maybe()
 
-	suite.rt = controller.Runtime{
-		Client: client,
-		Logger: testutil.Logger(suite.T()),
-	}
-	suite.client = rtest.NewClient(client)
+	client := mockpbresource.NewResourceServiceClient(t)
+	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
+		Type:       pbhcp.LinkType,
+		NamePrefix: types.LinkName,
+	}).Return(mockWatchListClient, nil)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	linkWatchCh, err := NewLinkWatch(ctx, hclog.Default(), client)
+	require.NoError(t, err)
+
+	cancel()
+
+	// Ensure the linkWatchCh is closed
+	_, ok := <-linkWatchCh
+	require.False(t, ok)
 }
 
-func TestLinkWatch(t *testing.T) {
-	suite.Run(t, new(controllerSuite))
-}
+// This tests ensures that when Recv returns errors repeatedly, we eventually close the channel
+// and exit the goroutine
+func TestLinkWatch_RepeatErrors(t *testing.T) {
+	mockWatchListClient := mockpbresource.NewResourceService_WatchListClient(t)
+	// Recv should be called 10 times and no more since it is repeatedly returning an error.
+	mockWatchListClient.EXPECT().Recv().Return(nil, errors.New("unexpected error")).Times(linkWatchRetryCount)
 
-func (suite *controllerSuite) deleteResourceFunc(id *pbresource.ID) func() {
-	return func() {
-		suite.client.MustDelete(suite.T(), id)
-	}
-}
+	client := mockpbresource.NewResourceServiceClient(t)
+	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
+		Type:       pbhcp.LinkType,
+		NamePrefix: types.LinkName,
+	}).Return(mockWatchListClient, nil)
 
-func (suite *controllerSuite) TestLinkWatch_Ok() {
-	// Run the controller manager
-	linkData := &pbhcp.Link{
-		ClientId:     "abc",
-		ClientSecret: "abc",
-		ResourceId:   types.GenerateTestResourceID(suite.T()),
-	}
+	linkWatchCh, err := NewLinkWatch(context.Background(), hclog.Default(), client)
+	require.NoError(t, err)
 
-	linkWatchCh, err := NewLinkWatch(suite.ctx, hclog.Default(), suite.client)
-	require.NoError(suite.T(), err)
-
-	link := rtest.Resource(pbhcp.LinkType, "global").
-		WithData(suite.T(), linkData).
-		Write(suite.T(), suite.client)
-
-	// The first event will always be the "end of snapshot" event
-	endOfSnapshotEvent := <-linkWatchCh
-	require.NotNil(suite.T(), endOfSnapshotEvent.GetEndOfSnapshot())
-
-	select {
-	case watchEvent := <-linkWatchCh:
-		require.NotNil(suite.T(), watchEvent.GetUpsert())
-		res := watchEvent.GetUpsert().GetResource()
-		var upsertedLink pbhcp.Link
-		err := res.GetData().UnmarshalTo(&upsertedLink)
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), linkData.ClientId, upsertedLink.ClientId)
-		require.Equal(suite.T(), linkData.ClientSecret, upsertedLink.ClientSecret)
-		require.Equal(suite.T(), linkData.ResourceId, upsertedLink.ResourceId)
-	case <-time.After(time.Second):
-		require.Fail(suite.T(), "nothing emitted on link watch channel for upsert")
-	}
-
-	_, err = suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: link.Id})
-	require.NoError(suite.T(), err)
-
-	select {
-	case watchEvent := <-linkWatchCh:
-		require.NotNil(suite.T(), watchEvent.GetDelete())
-	case <-time.After(time.Second):
-		require.Fail(suite.T(), "nothing emitted on link watch channel for delete")
-	}
+	// Ensure the linkWatchCh is closed
+	_, ok := <-linkWatchCh
+	require.False(t, ok)
 }
