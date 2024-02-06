@@ -36,7 +36,7 @@ func TestClientForwardToServer(t *testing.T) {
 	}
 	type testCase struct {
 		description    string
-		operations     []operation
+		operation      operation
 		aclEnabled     bool
 		tlsEnabled     bool
 		verifyIncoming bool
@@ -45,13 +45,11 @@ func TestClientForwardToServer(t *testing.T) {
 	testCases := []testCase{
 		{
 			description: "The apply request should be forwarded to consul server agent",
-			operations: []operation{
-				{
-					action:       applyResource,
-					includeToken: false,
-					expectedCode: 0,
-					expectedMsg:  "demo.v2.Artist 'korn' created.",
-				},
+			operation: operation{
+				action:       applyResource,
+				includeToken: false,
+				expectedCode: 0,
+				expectedMsg:  "demo.v2.Artist 'korn' created.",
 			},
 			aclEnabled:     false,
 			tlsEnabled:     false,
@@ -59,25 +57,21 @@ func TestClientForwardToServer(t *testing.T) {
 		},
 		{
 			description: "The apply request should be denied if missing token when ACL is enabled",
-			operations: []operation{
-				{
-					action:       applyResource,
-					includeToken: false,
-					expectedCode: 1,
-					expectedMsg:  "failed getting authorizer: ACL not found",
-				},
+			operation: operation{
+				action:       applyResource,
+				includeToken: false,
+				expectedCode: 1,
+				expectedMsg:  "failed getting authorizer: ACL not found",
 			},
 			aclEnabled: true,
 		},
 		{
 			description: "The apply request should be allowed if providing token when ACL is enabled",
-			operations: []operation{
-				{
-					action:       applyResource,
-					includeToken: true,
-					expectedCode: 0,
-					expectedMsg:  "demo.v2.Artist 'korn' created.",
-				},
+			operation: operation{
+				action:       applyResource,
+				includeToken: true,
+				expectedCode: 0,
+				expectedMsg:  "demo.v2.Artist 'korn' created.",
 			},
 			aclEnabled:     true,
 			tlsEnabled:     false,
@@ -85,13 +79,11 @@ func TestClientForwardToServer(t *testing.T) {
 		},
 		{
 			description: "The apply request should be forwarded to consul server agent when server is in TLS mode",
-			operations: []operation{
-				{
-					action:       applyResource,
-					includeToken: false,
-					expectedCode: 0,
-					expectedMsg:  "demo.v2.Artist 'korn' created.",
-				},
+			operation: operation{
+				action:       applyResource,
+				includeToken: false,
+				expectedCode: 0,
+				expectedMsg:  "demo.v2.Artist 'korn' created.",
 			},
 			aclEnabled:     false,
 			tlsEnabled:     true,
@@ -99,13 +91,11 @@ func TestClientForwardToServer(t *testing.T) {
 		},
 		{
 			description: "The apply request should be forwarded to consul server agent when server and client are in TLS mode",
-			operations: []operation{
-				{
-					action:       applyResource,
-					includeToken: false,
-					expectedCode: 0,
-					expectedMsg:  "demo.v2.Artist 'korn' created.",
-				},
+			operation: operation{
+				action:       applyResource,
+				includeToken: false,
+				expectedCode: 0,
+				expectedMsg:  "demo.v2.Artist 'korn' created.",
 			},
 			aclEnabled:     false,
 			tlsEnabled:     true,
@@ -123,15 +113,13 @@ func TestClientForwardToServer(t *testing.T) {
 			defer terminate(t, cluster)
 
 			// perform actions and validate returned messages
-			for _, op := range tc.operations {
-				token := ""
-				if op.includeToken {
-					token = cluster.TokenBootstrap
-				}
-				code, res := op.action(t, clientAgent, token, tc.verifyIncoming)
-				require.Equal(t, op.expectedCode, code)
-				require.Contains(t, res, op.expectedMsg)
+			token := ""
+			if tc.operation.includeToken {
+				token = cluster.TokenBootstrap
 			}
+			code, res := tc.operation.action(t, clientAgent, token, tc.verifyIncoming)
+			require.Equal(t, tc.operation.expectedCode, code)
+			require.Contains(t, res, tc.operation.expectedMsg)
 		})
 	}
 }
