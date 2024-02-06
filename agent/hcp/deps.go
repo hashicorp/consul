@@ -9,6 +9,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"go.opentelemetry.io/otel"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
@@ -42,7 +43,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger, dataDir string) (Deps,
 
 	metricsClient := client.NewMetricsClient(ctx, metricsProvider)
 
-	sink, err := sink(ctx, metricsClient, metricsProvider)
+	sink, err := newSink(ctx, metricsClient, metricsProvider)
 	if err != nil {
 		// Do not prevent server start if sink init fails, only log error.
 		logger.Error("failed to init sink", "error", err)
@@ -57,14 +58,21 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger, dataDir string) (Deps,
 	}, nil
 }
 
-// sink initializes an OTELSink which forwards Consul metrics to HCP.
+// newSink initializes an OTELSink which forwards Consul metrics to HCP.
 // This step should not block server initialization, errors are returned, only to be logged.
-func sink(
+func newSink(
 	ctx context.Context,
 	metricsClient telemetry.MetricsClient,
 	cfgProvider *hcpProviderImpl,
 ) (metrics.ShutdownSink, error) {
 	logger := hclog.FromContext(ctx)
+
+	// Set the global OTEL error handler. Without this, on any failure to publish metrics in
+	// otelExporter.Export, the error is logger to stderr without the formatting or group
+	// that hclog provides. Here we override that global error handler once so logs are
+	// in the standard format and include "hcp" in the group name like:
+	// 2024-02-06T22:35:19.072Z [ERROR] agent.hcp: failed to export metrics: failed to export metrics: code 404: 404 page not found
+	otel.SetErrorHandler(&otelErrorHandler{logger: logger})
 
 	reader := telemetry.NewOTELReader(metricsClient, cfgProvider)
 	sinkOpts := &telemetry.OTELSinkOpts{
@@ -80,4 +88,12 @@ func sink(
 	logger.Debug("initialized HCP metrics sink")
 
 	return sink, nil
+}
+
+type otelErrorHandler struct {
+	logger hclog.Logger
+}
+
+func (o *otelErrorHandler) Handle(err error) {
+	o.logger.Error(err.Error())
 }
