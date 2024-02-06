@@ -73,12 +73,16 @@ func (suite *controllerSuite) TestLinkWatch_Ok() {
 		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
 
+	// The first event will always be the "end of snapshot" event
+	endOfSnapshotEvent := <-linkWatchCh
+	require.NotNil(suite.T(), endOfSnapshotEvent.GetEndOfSnapshot())
+
 	select {
 	case watchEvent := <-linkWatchCh:
-		require.Equal(suite.T(), pbresource.WatchEvent_OPERATION_UPSERT, watchEvent.Operation)
-		res := watchEvent.Resource
+		require.NotNil(suite.T(), watchEvent.GetUpsert())
+		res := watchEvent.GetUpsert().GetResource()
 		var upsertedLink pbhcp.Link
-		err := res.Data.UnmarshalTo(&upsertedLink)
+		err := res.GetData().UnmarshalTo(&upsertedLink)
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), linkData.ClientId, upsertedLink.ClientId)
 		require.Equal(suite.T(), linkData.ClientSecret, upsertedLink.ClientSecret)
@@ -92,7 +96,7 @@ func (suite *controllerSuite) TestLinkWatch_Ok() {
 
 	select {
 	case watchEvent := <-linkWatchCh:
-		require.Equal(suite.T(), pbresource.WatchEvent_OPERATION_DELETE, watchEvent.Operation)
+		require.NotNil(suite.T(), watchEvent.GetDelete())
 	case <-time.After(time.Second):
 		require.Fail(suite.T(), "nothing emitted on link watch channel for delete")
 	}
