@@ -167,6 +167,7 @@ func (r *reconciler) reconcileMeshGatewayProxyState(ctx context.Context, dataFet
 			Data:     proxyTemplateData,
 		},
 	})
+
 	if err != nil {
 		rt.Logger.Error("error writing proxy state template", "error", err)
 		return err
