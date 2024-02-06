@@ -153,6 +153,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			Data:     proxyTemplateData,
 		},
 	})
+
 	if err != nil {
 		rt.Logger.Error("error writing proxy state template", "error", err)
 		return err
