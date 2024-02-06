@@ -885,8 +885,6 @@ func (r *Router) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAddress, ser
 	reqType := parseRequestType(req)
 
 	switch {
-	// Virtual IPs and Address requests
-	// both return IPs with empty targets
 	case (reqType == requestTypeAddress || result.Type == discovery.ResultTypeVirtual) &&
 		serviceAddress.IsEmptyString() && nodeAddress.IsIP():
 		a, e := getAnswerExtrasForIP(qName, nodeAddress, req.Question[0], reqType,
@@ -894,10 +892,16 @@ func (r *Router) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAddress, ser
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
-	case result.Type == discovery.ResultTypeNode:
+	case result.Type == discovery.ResultTypeNode && nodeAddress.IsIP():
 		canonicalNodeName := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, result.PortName)
 		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, req.Question[0], reqType,
 			result, ttl, domain)
+		answer = append(answer, a...)
+		extra = append(extra, e...)
+
+	case result.Type == discovery.ResultTypeNode && !nodeAddress.IsIP():
+		a, e := r.makeRecordFromFQDN(serviceAddress.FQDN(), result, req, reqCtx, cfg,
+			ttl, remoteAddress, maxRecursionLevel)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -1111,7 +1115,7 @@ func (r *Router) makeRecordFromFQDN(fqdn string, result *discovery.Result,
 MORE_REC:
 	for _, rr := range more {
 		switch rr.Header().Rrtype {
-		case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
+		case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA, dns.TypeTXT:
 			// set the TTL manually
 			rr.Header().Ttl = ttl
 			additional = append(additional, rr)
