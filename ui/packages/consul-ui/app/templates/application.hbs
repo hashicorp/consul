@@ -93,15 +93,10 @@
           as |dc dcs|
           }}
             {{#if (and (gt dc.Name.length 0) dcs)}}
-
-              <DataSource @src={{uri '/${partition}/${nspace}/${dc}/policy/00000000-0000-0000-0000-000000000002'
-                                     (hash dc=dc.Name partition=partition nspace=nspace) }} as |globalReadonlyPolicy|>
-
                 {{#if this.hcpLinkModal.isModalVisible}}
-                  <LinkToHcpModal @policy={{globalReadonlyPolicy}} @dc={{dc.Name}} @nspace={{nspace}}
-                                  @partition={{partition}}/>
+                  <LinkToHcpModal @dc={{dc.Name}} @nspace={{nspace}} @partition={{partition}}/>
                 {{/if}}
-              </DataSource>
+
                 {{! figure out our current DC and convert it to a model }}
                 <DataSource
                   @src={{uri
