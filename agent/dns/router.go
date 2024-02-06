@@ -839,19 +839,16 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
-		if cfg.NodeMetaTXT {
-			name := target.FQDN()
-			if !target.IsInternalFQDN(r.domain) && !target.IsExternalFQDN(r.domain) {
-				name = canonicalNameForResult(result, r.domain)
-			}
-			extra = append(extra, makeTXTRecord(name, result, ttl)...)
-		}
 	default:
 		a, e := r.getAnswerExtrasForAddressAndTarget(address, target, req, reqCtx,
 			result, ttl, remoteAddress, cfg, maxRecursionLevel)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 	}
+
+	a, e := getAnswerAndExtraTXT(req, cfg, qName, result, ttl, domain)
+	answer = append(answer, a...)
+	extra = append(extra, e...)
 	return
 }
 
@@ -910,7 +907,46 @@ func (r *Router) getAnswerExtrasForAddressAndTarget(address *dnsAddress, target 
 		answer = append(a, answer...)
 		extra = append(e, extra...)
 	}
+
 	return
+}
+
+// getAnswerAndExtraTXT determines whether a TXT needs to be create and then
+// returns the TXT record in the answer or extra depending on the question type.
+func getAnswerAndExtraTXT(req *dns.Msg, cfg *RouterDynamicConfig, qName string,
+	result *discovery.Result, ttl uint32, domain string) (answer []dns.RR, extra []dns.RR) {
+	recordHeaderName := qName
+	serviceAddress := newDNSAddress("")
+	if result.Service != nil {
+		serviceAddress = newDNSAddress(result.Service.Address)
+	}
+	if result.Type != discovery.ResultTypeNode &&
+		result.Type != discovery.ResultTypeVirtual &&
+		!serviceAddress.IsInternalFQDN(domain) &&
+		!serviceAddress.IsExternalFQDN(domain) {
+		recordHeaderName = canonicalNameForResult(discovery.ResultTypeNode, result.Node.Name,
+			domain, result.Tenancy, result.PortName)
+	}
+	qType := req.Question[0].Qtype
+	generateMeta := false
+	metaInAnswer := false
+	if qType == dns.TypeANY || qType == dns.TypeTXT {
+		generateMeta = true
+		metaInAnswer = true
+	} else if cfg.NodeMetaTXT {
+		generateMeta = true
+	}
+
+	// Do not generate txt records if we don't have to: https://github.com/hashicorp/consul/pull/5272
+	if generateMeta {
+		meta := makeTXTRecord(recordHeaderName, result, ttl)
+		if metaInAnswer {
+			answer = append(answer, meta...)
+		} else {
+			extra = append(extra, meta...)
+		}
+	}
+	return answer, extra
 }
 
 // getAnswerExtrasForIP creates the dns answer and extra from IP dnsAddress pairs.
