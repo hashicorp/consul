@@ -419,7 +419,7 @@ The following table describes the parameters you can define the `buffer_period` 
 
 | Parameter | Description | Data type | Default |
 | --- |---|---------| --- |
-| `enabled` | Set to true to enable buffer periods globally. Specifying `min` also enables buffer periods. | Boolean | `true` |
+| `enabled` | Set to `true` to enable buffer periods globally. Specifying `min` also enables buffer periods. | Boolean | `true` |
 | `min` | Specifies the minimum amount of time to wait after changes are detected before triggering related tasks. | String  | `5s` |
 | `max` | Specifies the maximum amount of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is four times the value of `min`. | String  | `20s` |
 
@@ -673,16 +673,23 @@ The following table describes the parameters you can define in the `service` blo
 
 Map that specifies which task to execute when CTS runs Terraform. You can configure multiple `task` blocks to run multiple tasks. When `task` block is not specified in your configuration, you can add them to a running CTS instance by calling the [`/tasks` API endpoint](/consul/docs/reference/cts/api/tasks#tasks) or running the [`task` command](/consul/docs/reference/cts/cli/task#task).
 
-The `task` block contains the following blocks:
+The `task` block may contain the following blocks:
 
 - [`name`](#task-name)
 - [`description`](#task-description)
 - [`enabled`](#task-true)
 - [`providers`](#task-providers)
+- [`services`](#task-services): Deprecated, use `module_input` instead
 - [`module`](#task-module)
 - [`version`](#task-version)
+- [`working_dir`](#task-working_dir) 
 - [`variable_files`](#task-variable_files)
-- [`condition`](#task-condition)
+- [`buffer_period`](#task-buffer_period)
+- [`condition "services"`](#task-condition-services), [`condition "catalog-services"`](#task-condition-catalog-services), [`condition "consul-kv"`](#task-condition-consul-kv), or [`condition "schedule"`](#task-condition-schedule)
+- [`module_input "services"`](#task-module_input-services)
+- [`module_input "consul-kv"`](#task-module_input-consul-kv)
+- [`terraform_version`](#task-terraform_version)
+- [`terraform_cloud_workspace`](#task-terraform_cloud_workspace)
 
 #### Values
 
@@ -730,7 +737,7 @@ A task can use multiple providers, but only one provider instance of a provider 
 
 ### `task.services` 
 
-**Deprecated since v0.5.0. Use [`condition`](#task-condition) or [`module_input`](#task-module_input) instead. Refer to the [0.5.0 release notes](/consul/docs/release-notes/consul-terraform-sync/v0_5_x#deprecate-services-field) for additional information .** 
+**Deprecated since v0.5.0.** Use [`condition`](#task-condition) or [`module_input`](#task-module_input) instead. Refer to the [0.5.0 release notes](/consul/docs/release-notes/consul-terraform-sync/v0_5_x#deprecate-services-field) for additional information. 
 
 Specifies a list of logical service names or service IDs that the task monitors for changes in the Consul catalog. CTS monitors services in the `default` namespace unless a different namespace is explicitly defined for services with matching IDs in a `service` block. 
 
@@ -746,7 +753,7 @@ The `services` configuration has different behaviors depending on the [`task.con
 
 ### `task.source`  
 
-**Deprecated since v0.5.0. Use [`task.module`](#task-module) instead.**
+**Deprecated since v0.5.0.** Use [`task.module`](#task-module) instead.
 
 Specifies the location of the source code for the Terraform module.
 
@@ -819,7 +826,7 @@ The following table describes the parameters you can define the `buffer_period` 
 
 ### `task.condition "services"` 
 
-The `condition "services"` triggers the task when CTS detects services that match either the regular expression configured in `regexp` field or services listed by name in `names` field. Either `regexp` or `names` must be configured, but not both.
+Specifies a condition that triggers CTS to execute the task when CTS detects changes for the specified services. CTS monitors services that match either the regular expression configured in `regexp` field or service names listed in the `names` field. Either `regexp` or `names` must be configured, but not both.
 
 The `task.condition "<type">` specifies a condition that triggers CTS to execute the task. You can only configure one `task.condition "<type">` per task. Refer to the following parameters for information about other condition types you can define in the task:
 
@@ -828,8 +835,10 @@ The `task.condition "<type">` specifies a condition that triggers CTS to execute
 - [`condition "schedule"`](#task-condition-schedule)
 
 You can only set the monitored services' information for a task using one configuration option. As a result, services conditions have the following restrictions:
-- You cannot configure the task with the `services` field (deprecated).
-- You cannot configure the task with a `module_input "services"` or `source_input "services"` (deprecated) block.
+
+- You cannot configure the task with the `services` field, which is deprecated.
+- You cannot configure the task with a `module_input "services"` block.
+- You cannot configure the task with a `source_input "services"` block, which is deprecated.
 
 Refer to [Task Execution: Services Condition](/consul/docs/cts/tasks#services-condition) for details on how CTS triggers tasks that contain services conditions. The following table describes the parameters you can set for the `condition "services'` block:
 
@@ -841,7 +850,7 @@ Refer to [Task Execution: Services Condition](/consul/docs/cts/tasks#services-co
 | `namespace`  | <EnterpriseAlert inline /> Specifies the namespace containing services to query for the task. | String  | In order of precedence: <ol><li>Inferred from the CTS ACL token</li><li> `default`</li></ol> |
 | `filter` |  Specifies an expression that filters service names. <br/><br/> Refer to the [services filtering documentation](/consul/api-docs/health#filtering-2) and [Creating Expressions](/consul/api-docs/features/filtering#creating-expressions) in the API documentation for additional information.  | String | None |
 | `cts_user_defined_meta` | Specifies metadata to append to the [service input variable](/consul/docs/cts/create-terraform-module#services-module-input). Refer to the module configured for the task for information about metadata usage, expected keys, and format. | Map of strings | None|
-| `source_includes_var` | **Deprecated since v0.5.0. Use `use_as_module_input` field instead.** | Boolean | `true` |
+| `source_includes_var` | **Deprecated since v0.5.0**. Use `use_as_module_input` field instead. | Boolean | `true` |
 | `use_as_module_input` | Set to `true` to allow CTS to use condition values as inputs for the [`services` variable](/consul/docs/cts/create-terraform-modules#services-variable) for the Terraform module.<br/><br/>Refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS returns an error and exits. | Boolean | `true` |
 
 #### Values
@@ -868,7 +877,7 @@ The following table describes the parameters you can configure for the `conditio
 | `datacenter` |  Specifies the name of a datacenter to query for the task. | String | Datacenter of the agent that CTS queries. |
 | `namespace`  | <EnterpriseAlert inline /> Specifies the namespace containing services to query for the task. | String  | In order of precedence: <ol><li>Inferred from the CTS ACL token</li><li> `default`</li></ol> |
 | `node_meta`  | Specifies node metadata key-value pairs that CTS uses to filter services. The task only uses services registered at a node with the specified key-value pairs.  | Map of strings | None |
-| `source_includes_var` | **Deprecated since v0.5.0. Use `use_as_module_input` instead.** | Boolean | `true` |
+| `source_includes_var` | **Deprecated since v0.5.0.** Use `use_as_module_input` instead. | Boolean | `true` |
 | `use_as_module_input` | Set to `true` to allow CTS to use condition values as inputs for the [`services` variable](/consul/docs/cts/create-terraform-modules#services-variable) for the Terraform module.<br/><br/>Refer to the selected module's documentation for guidance on how to configure this field. If configured inconsistently with the module, CTS returns an error and exits. | Boolean | `true` |
 
 #### Values
@@ -897,7 +906,7 @@ The following table describes the parameters you can configure in the `condition
 | `recurse` |  Set to `true` to enable CTS to treat the `path` value as a prefix. When set to `false`, CTS processes the `path` value as a literal match. | Boolean | `false` |
 | `datacenter` |  Specifies the name of a datacenter to query. | Datacenter of the agent that CTS queries. | String |
 | `namespace`  | <EnterpriseAlert inline /> Specifies the namespace containing services to query for the task. | String  | In order of precedence: <ol><li>Inferred from the CTS ACL token</li><li> `default`</li></ol> |
-| `source_includes_var` | **Deprecated since v0.5.0. Use `use_as_module_input` instead.** | Boolean | True |
+| `source_includes_var` | **Deprecated since v0.5.0.** Use `use_as_module_input` instead.| Boolean | `true` |
 | `use_as_module_input` | Set to `true` to enable CTS to use condition values as inputs for the [`consul_kv` variable](/consul/docs/cts/create-terraform-module#consul-kv-variable) for the Terraform module.<br/><br/>Refer to the selected module's documentation for guidance on how to configure this field. When configured inconsistently with the module, CTS returns an error and exits. | Boolean | `true` |
 
 #### Values
@@ -931,15 +940,22 @@ Refer to the following topics for additional information:
 
 ### `task.source_input` 
 
-**Deprecated since v0.5.0. Use `module_input` instead.**
+**Deprecated since v0.5.0.** Use `module_input` instead.
 
 ### `task.module_input "services"` 
 
-The `module_input "services"` specifies services registered with Consul that are tagged with metadata that the task uses as Terraform module inputs. Refer to [Services module input](/consul/docs/cts/create-terraform-module#services-module-input) for additional information.
+Specifies services registered with Consul that are tagged with metadata. The task uses the metadata as inputs for the Terraform module. Refer to [Services module input](/consul/docs/cts/create-terraform-module#services-module-input) for additional information.
 
-Refer to [Module input types](#module-input-types) for example configurations.
+You cannot configure a task with a `condition` and `module_input` block of the same type. For example, configuring `condition "consul-kv"` and `module_input "consul-kv"` causes an error because both configure the `consul_kv` variable.
 
 The `module_input` block contains inputs the module requires for task execution that supplement the inputs specified in the `condition` block. You can configure multiple `module_input` blocks per task, but you cannot configure more than one of the same type. For example, you can only specify one `module_input "services"` per task.
+
+A task that monitors services can only contain one of the following configurations:
+ 
+- `condition "services"` block
+- `module_input "services"` block
+
+Refer to [Module input types](#module-input-types) for example configurations.
 
 The following table describes parameters you can configure in the `module_input "services"` block:
 
@@ -979,9 +995,6 @@ The following table describes the parameters you can configure in the `module_in
 - Data type: Map
 - Default: None
 
-
-
-
 ### `task.terraform_version` <EnterpriseAlert inline />
 
 Deprecated since v0.6.0, use [`terraform_cloud_workspace.terraform_version`](#task-terraform_cloud_workspace-terraform-version) instead. 
@@ -992,8 +1005,6 @@ Specifies the version of Terraform to use for the Terraform Cloud workspace asso
 
 - Data type: String
 - Default: None
-
-
 
 ### `task.terraform_cloud_workspace` <EnterpriseAlert inline /> 
 
@@ -1008,25 +1019,6 @@ The following table describes the attributes you can define in the `terraform_cl
 | `agent_pool_name` | Specifies the name of the agent pool that runs the Terraform workloads. The task only supports `agent_pool_name` when `execution_mode` is set to `agent`. Either `agent_pool_id` or `agent_pool_name` are required. `agent_pool_id` takes precedence over `agent_pool_name` when both are provided. | String  | None |
 | `terraform_version` | Specifies the version of Terraform to use for the Terraform Cloud workspace associated with the task. | String | Latest compatible version supported by the organization. |
 
-
-<!-- TODO distribute this information across all pertinent conf items -->
-#### Task Module Input Restrictions
-
-There are some limitations to the type of `module_input` blocks that can be configured for a task given the task's `condition` block and `services` field (deprecated). This is because a task cannot have multiple configurations defining the same type of monitored variable:
-- A task cannot be configured with a `condition` and `module_input` block of the same type. For example, configuring `condition "consul-kv"` and `module_input "consul-kv"` will error because both configure the `consul_kv` variable.
-- A task cannot be configured with two or more `module_input` blocks of the same type. For example, configuring two `module_input "catalog-services"` within a task will return an error because they define multiple configurations for the `catalog_services` variable.
-- A task that monitors services can only contain one of the following configurations:
-  - `condition "services"` block
-  - `module_input "services"` block
-    - Block was previously named `source_input "services"` (deprecated)
-  - `services` field (deprecated)
-
-  All of the listed configurations define the `services` variable and including more than one configuration will return an error.
-
-
-You can optionally add one or more `module_input` blocks to the `task` block. A `module_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Both scheduled and dynamic tasks can be configured with `module_input` blocks.
-
-<!-- END TODO -->
 
 ### `driver "terraform"`
 
@@ -1084,7 +1076,6 @@ Set to `true` to enable CTS to include stderr and stdout in the CTS log, which h
 
 - Data type: Boolean
 - Default: `false`
- 
 
 ### `driver "terraform".path` 
  
@@ -1169,7 +1160,6 @@ Specifies the Terraform Cloud organization that hosts the workspaces CTS manages
 
 - Data type: String
 - Default: None
-
 
 ### `driver "terraform-cloud".token` 
 
