@@ -4,6 +4,7 @@
 package dns
 
 import (
+	"net"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -12,7 +13,8 @@ import (
 )
 
 // buildQueryFromDNSMessage returns a discovery.Query from a DNS message.
-func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain string) (*discovery.Query, error) {
+func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain string,
+	remoteAddress net.Addr) (*discovery.Query, error) {
 	queryType, queryParts, querySuffixes := getQueryTypePartsAndSuffixesFromDNSMessage(req, domain, altDomain)
 
 	queryTenancy, err := getQueryTenancy(reqCtx, queryType, querySuffixes)
@@ -36,16 +38,20 @@ func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain st
 			Tenancy:  queryTenancy,
 			Tag:      tag,
 			PortName: portName,
-			//RemoteAddr: nil, // TODO (v2-dns): Prepared Queries for V1 Catalog
+			SourceIP: getSourceIP(req, queryType, remoteAddress),
 		},
 	}, nil
 }
 
 // getQueryNameAndTagFromParts returns the query name and tag from the query parts that are taken from the original dns question.
 func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []string) (string, string) {
+	n := len(queryParts)
+	if n == 0 {
+		return "", ""
+	}
+
 	switch queryType {
 	case discovery.QueryTypeService:
-		n := len(queryParts)
 		// Support RFC 2782 style syntax
 		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
 			// Grab the tag since we make nuke it if it's tcp
@@ -60,9 +66,9 @@ func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []str
 			// _name._tag.service.consul
 			return name, tag
 		}
-		return queryParts[len(queryParts)-1], ""
+		return queryParts[n-1], ""
 	}
-	return queryParts[len(queryParts)-1], ""
+	return queryParts[n-1], ""
 }
 
 // getQueryTenancy returns a discovery.QueryTenancy from a DNS message.
@@ -176,4 +182,25 @@ func getQueryTypeFromLabels(label string) discovery.QueryType {
 	default:
 		return discovery.QueryTypeInvalid
 	}
+}
+
+// getSourceIP returns the source IP from the dns request.
+func getSourceIP(req *dns.Msg, queryType discovery.QueryType, remoteAddr net.Addr) (sourceIP net.IP) {
+	if queryType == discovery.QueryTypePreparedQuery {
+		subnet := ednsSubnetForRequest(req)
+
+		if subnet != nil {
+			sourceIP = subnet.Address
+		} else {
+			switch v := remoteAddr.(type) {
+			case *net.UDPAddr:
+				sourceIP = v.IP
+			case *net.TCPAddr:
+				sourceIP = v.IP
+			case *net.IPAddr:
+				sourceIP = v.IP
+			}
+		}
+	}
+	return sourceIP
 }

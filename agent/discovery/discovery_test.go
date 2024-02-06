@@ -26,9 +26,9 @@ var (
 	}
 
 	testResult = &Result{
-		Address: "1.2.3.4",
+		Node:    &Location{Address: "1.2.3.4"},
 		Type:    ResultTypeNode, // This isn't correct for some test cases, but we are only asserting the right data fetcher functions are called
-		Target:  "foo",
+		Service: &Location{Name: "foo"},
 	}
 )
 
