@@ -270,3 +270,32 @@ func TestMonitorHCPLink_Ok_ReadOnly(t *testing.T) {
 	close(linkWatchCh)
 	wg.Wait()
 }
+
+func TestMonitorHCPLink_EndOfSnapshot(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	linkWatchCh := make(chan *pbresource.WatchEvent)
+	mgr := NewMockManager(t)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		MonitorHCPLink(
+			ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, nil,
+			nil, config.CloudConfig{}, "",
+		)
+	}()
+
+	linkWatchCh <- &pbresource.WatchEvent{
+		Event: &pbresource.WatchEvent_EndOfSnapshot_{
+			EndOfSnapshot: &pbresource.WatchEvent_EndOfSnapshot{},
+		},
+	}
+
+	// Wait for MonitorHCPLink to return before assertions run
+	close(linkWatchCh)
+	wg.Wait()
+}
