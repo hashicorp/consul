@@ -95,9 +95,9 @@ func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMetho
 	return nil
 }
 
-// enterpriseHandler is a noop for the enterprise implementation. we pass the original back
-func (s *HTTPHandlers) enterpriseHandler(next http.Handler) http.Handler {
-	return next
+func (s *HTTPHandlers) enterpriseRequest(w http.ResponseWriter, req *http.Request, handler func(http.ResponseWriter, *http.Request)) {
+	// no special handling for CE. Calling the default handler with default params.
+	handler(w, req)
 }
 
 // uiTemplateDataTransform returns an optional uiserver.UIDataTransform to allow
