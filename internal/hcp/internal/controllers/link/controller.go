@@ -14,7 +14,6 @@ import (
 
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 
-	"github.com/hashicorp/consul/agent/hcp"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
@@ -43,7 +42,6 @@ func LinkController(
 	hcpAllowV2ResourceApis bool,
 	hcpClientFn HCPClientFn,
 	cfg config.CloudConfig,
-	hcpManager hcp.Manager,
 ) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
 		WithInitializer(
@@ -56,7 +54,7 @@ func LinkController(
 				resourceApisEnabled:    resourceApisEnabled,
 				hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
 				hcpClientFn:            hcpClientFn,
-				hcpManager:             hcpManager,
+				cloudConfig:            cfg,
 			},
 		)
 }
@@ -65,7 +63,7 @@ type linkReconciler struct {
 	resourceApisEnabled    bool
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
-	hcpManager             hcp.Manager
+	cloudConfig            config.CloudConfig
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
@@ -123,9 +121,8 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	// fields that are provided by the link. This ensures that:
 	// 1. The HCP configuration (i.e., how to connect to HCP) is preserved
 	// 2. The Consul agent's node ID and node name are preserved
-	existingCfg := r.hcpManager.GetCloudConfig()
 	newCfg := CloudConfigFromLink(&link)
-	cfg := config.Merge(existingCfg, newCfg)
+	cfg := config.Merge(r.cloudConfig, newCfg)
 	hcpClient, err := r.hcpClientFn(cfg)
 	if err != nil {
 		rt.Logger.Error("error creating HCP client", "error", err)

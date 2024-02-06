@@ -4,7 +4,6 @@
 package controllers
 
 import (
-	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/controllers/link"
@@ -15,17 +14,17 @@ type Dependencies struct {
 	CloudConfig            config.CloudConfig
 	ResourceApisEnabled    bool
 	HCPAllowV2ResourceApis bool
-	HCPManager             *hcp.HCPManager
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
-	mgr.Register(link.LinkController(
-		deps.ResourceApisEnabled,
-		deps.HCPAllowV2ResourceApis,
-		link.DefaultHCPClientFn,
-		deps.CloudConfig,
-		deps.HCPManager,
-	))
+	mgr.Register(
+		link.LinkController(
+			deps.ResourceApisEnabled,
+			deps.HCPAllowV2ResourceApis,
+			link.DefaultHCPClientFn,
+			deps.CloudConfig,
+		),
+	)
 
 	mgr.Register(telemetrystate.TelemetryStateController(link.DefaultHCPClientFn))
 }

@@ -47,7 +47,7 @@ func TestManager_MonitorHCPLink(t *testing.T) {
 	require.False(t, mgr.isRunning())
 	go MonitorHCPLink(
 		ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, mockHcpClientFn, loadMgmtTokenFn,
-		"",
+		config.CloudConfig{}, "",
 	)
 
 	// Set up a link

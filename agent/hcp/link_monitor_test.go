@@ -51,7 +51,7 @@ func TestMonitorHCPLink_Ok(t *testing.T) {
 		defer wg.Done()
 		MonitorHCPLink(
 			ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, mockHcpClientFn,
-			loadMgmtTokenFn, dataDir,
+			loadMgmtTokenFn, config.CloudConfig{}, dataDir,
 		)
 	}()
 
@@ -135,8 +135,7 @@ func TestMonitorHCPLink_Ok_ReadOnly(t *testing.T) {
 		defer wg.Done()
 		MonitorHCPLink(
 			ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, mockHcpClientFn,
-			loadMgmtTokenFn,
-			"",
+			loadMgmtTokenFn, config.CloudConfig{}, "",
 		)
 	}()
 
