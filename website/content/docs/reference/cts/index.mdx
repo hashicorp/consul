@@ -457,7 +457,7 @@ Map that specifies how CTS loads an enterprise license. The following table desc
 | Parameter | Description | Type | Default |
 | --------- | -------- | ---- | ------- |
 | `path` | Specifies the path to a file containing an enterprise license. When set, CTS uses the license until you enable automatic license retrieval. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. To learn more, review [Setting the License](/consul/docs/cts/enterprise#setting-the-license). | String | None |
-| `auto_retrieval` |  Map that contains the `enabled` field. Set `enabled` to `true` to enable CTS to automatically retrieve a license. Refer to [Eanble auto-retrieval](/consul/docs/cts/configure#auto-retrieval) for additional information. | Review [Auto-Retrieval](/consul/docs/nia/configuration#auto-retrieval) for defaults. |
+| `auto_retrieval` |  Map that contains the `enabled` field. Set `enabled` to `true` to enable CTS to automatically retrieve a license. Refer to [Eanble auto-retrieval](/consul/docs/cts/configure#auto-retrieval) for additional information. | None |
 
 ### `consul`
 
@@ -562,7 +562,7 @@ The following table describes the parameters you can set in the `service_registr
 | `default_check.enabled` | Enables CTS to create the default health check. | Boolean |  `true` |
 | `default_check.address` | The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port, if applicable. | String |  `http://localhost:<port>` or `https://localhost:<port>`. Determined from the [`port` configuration](#port) and whether [`tls`](#tls) is enabled on the CTS API. |
 
-The default health check is an [HTTP check](/consul/docs/services/usage/checks#http-checks) that calls the [Health API](/consul/docs/nia/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/consul/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
+The default health check is an [HTTP check](/consul/docs/register/services/vm/health-checks#http-checks) that calls the [Health API](/consul/docs/reference/cts/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/consul/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
 
 | Parameter | Value |
 | --------- | ----- |
@@ -571,7 +571,7 @@ The default health check is an [HTTP check](/consul/docs/services/usage/checks#h
 | Namespace | `service_registration.namespace` |
 | Notes | `Check created by Consul-Terraform-Sync`|
 | DeregisterCriticalServiceAfter | `30m` |
-| ServiceID | [`id`](/consul/docs/nia/configuration#id) |
+| ServiceID | [`id`](#id) |
 | Status | `critical` |
 | HTTP | `<default_check.address>/v1/health` |
 | Method | `GET` |
@@ -586,7 +586,7 @@ The default health check is an [HTTP check](/consul/docs/services/usage/checks#h
 
 ### `high_availability` <EnterpriseAlert inline />
 
-Add a `high_availability` block to your configuration to enable CTS to run in high availability mode. Refer to [Run Consul-Terraform-Sync with High Availability](/consul/docs/nia/usage/run-ha) for additional information. The `high_availability` block contains the following configuration items.
+Add a `high_availability` block to your configuration to enable CTS to run in high availability mode. Refer to [Run Consul-Terraform-Sync with High Availability](/consul/docs/cts/run#run-consul-terraform-sync-with-high-availability) for additional information. The `high_availability` block contains the following configuration items.
 
 - [`cluster`](#high_availability-cluster)
 - [`instance`](#high_availability-instance)
@@ -1194,7 +1194,7 @@ Map that defines how CTS manages Terraform Cloud workspaces. The following table
 | Parameter | Description | Data type | Default |
 | --------- | ---- | ----------- | ------- |
 | `prefix` | Specifies a prefix to prepend to the workspace names that CTS automatically generates. CTS adds the prefix to all tasks that use the driver. By default, CTS uses the task name for the workspace name. Configuring `prefix` generates names according the `<prefix>_<task name>` format. For example, CTS generates `cts_task_firewall` when `prefix = "cts_"` for a task named `task_firewall`. | String | None |
-| `tags` | Specifies tags that CTS adds to all automated workspaces when the workspace is first created or discovered. CTS adds tags workspaces it discovers when the workspace meets automation requirements. Refer to [Network drivers](/consul/docs/nia/network-drivers/terraform-cloud#remote-workspaces) for additional information. Discovered workspaces must also satisfies the `tags_allowlist` and `tags_denylist` settings. This option does not affect existing tags. Tags that were manually removed during runtime are re-tagged when CTS restarts. Compatible with Terraform Cloud and Terraform Enterprise v202108-1+ | List of strings | None |
+| `tags` | Specifies tags that CTS adds to all automated workspaces when the workspace is first created or discovered. CTS adds tags workspaces it discovers when the workspace meets automation requirements. Refer to [Network drivers](/consul/docs/cts/network-drivers/terraform-cloud#remote-workspaces) for additional information. Discovered workspaces must also satisfies the `tags_allowlist` and `tags_denylist` settings. This option does not affect existing tags. Tags that were manually removed during runtime are re-tagged when CTS restarts. Compatible with Terraform Cloud and Terraform Enterprise v202108-1+ | List of strings | None |
 | `tags_allowlist` | Specifies a list of tags for CTS to check Terraform Cloud workspaces for. A workspace must contain at least one of the tags for CTS to perform automation tasks in the workspace. Tags on the deny list take precedence over tags on the allow list. Compatible with Terraform Cloud and Terraform Enterprise v202108-1+.| List of strings | None |
 | `tags_denylist` | Specifies a list of tags for CTS to check Terraform Cloud workspaces for. CTS does not perform automation tasks in workspaces that contain any of the tags. Tags on the deny list take precedence over tags on the allow list. Compatible with Terraform Cloud and Terraform Enterprise v202108-1+. | List of strings | None |
 
