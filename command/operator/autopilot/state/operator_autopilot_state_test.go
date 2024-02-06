@@ -5,7 +5,6 @@ package state
 
 import (
 	"encoding/json"
-	"flag"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,30 +12,11 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
-
-// update allows golden files to be updated based on the current output.
-var update = flag.Bool("update", false, "update golden files")
-
-// golden reads and optionally writes the expected data to the golden file,
-// returning the contents as a string.
-func golden(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".golden")
-	if *update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
 
 func TestStateCommand_noTabs(t *testing.T) {
 	t.Parallel()
@@ -128,7 +108,7 @@ func TestStateCommand_Formatter(t *testing.T) {
 					actual, err := formatter.FormatState(&state)
 					require.NoError(t, err)
 
-					expected := golden(t, filepath.Join(name, format), actual)
+					expected := golden.Get(t, actual, filepath.Join(name, format))
 					require.Equal(t, expected, actual)
 				})
 			}

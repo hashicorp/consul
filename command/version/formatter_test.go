@@ -4,35 +4,13 @@
 package version
 
 import (
-	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/stretchr/testify/require"
 )
-
-// update allows golden files to be updated based on the current output.
-var update = flag.Bool("update", false, "update golden files")
-
-// golden reads and optionally writes the expected data to the golden file,
-// returning the contents as a string.
-func golden(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".golden")
-	if *update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
 
 func TestFormat(t *testing.T) {
 	buildDate, _ := time.Parse(time.RFC3339, "2022-06-01T13:18:45Z")
@@ -62,7 +40,7 @@ func TestFormat(t *testing.T) {
 
 			gName := fmt.Sprintf("%s", fmtName)
 
-			expected := golden(t, gName, actual)
+			expected := golden.Get(t, actual, gName)
 			require.Equal(t, expected, actual)
 		})
 	}

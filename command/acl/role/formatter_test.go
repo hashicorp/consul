@@ -4,36 +4,14 @@
 package role
 
 import (
-	"flag"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/stretchr/testify/require"
 )
-
-// update allows golden files to be updated based on the current output.
-var update = flag.Bool("update", false, "update golden files")
-
-// golden reads and optionally writes the expected data to the golden file,
-// returning the contents as a string.
-func golden(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".golden")
-	if *update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
 
 func TestFormatRole(t *testing.T) {
 	type testCase struct {
@@ -114,7 +92,7 @@ func TestFormatRole(t *testing.T) {
 						gName = tcase.overrideGoldenName
 					}
 
-					expected := golden(t, path.Join("FormatRole", gName), actual)
+					expected := golden.Get(t, actual, path.Join("FormatRole", gName))
 					require.Equal(t, expected, actual)
 				})
 			}
@@ -201,7 +179,7 @@ func TestFormatRoleList(t *testing.T) {
 						gName = tcase.overrideGoldenName
 					}
 
-					expected := golden(t, path.Join("FormatRoleList", gName), actual)
+					expected := golden.Get(t, actual, path.Join("FormatRoleList", gName))
 					require.Equal(t, expected, actual)
 				})
 			}

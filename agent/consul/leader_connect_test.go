@@ -17,7 +17,6 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
-	"gotest.tools/v3/assert"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -1368,7 +1367,7 @@ func TestNewCARoot(t *testing.T) {
 			return
 		}
 		require.NoError(t, err)
-		assert.DeepEqual(t, tc.expected, root)
+		require.Equal(t, tc.expected, root)
 	}
 
 	// Test certs can be generated with

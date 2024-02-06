@@ -5,10 +5,9 @@ package xds
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-version"
@@ -16,11 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
+	gtest "github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
-
-// update allows golden files to be updated based on the current output.
-var update = flag.Bool("update", false, "update golden files")
 
 // goldenSimple is just for read/write access to a golden file that is not
 // envoy specific.
@@ -82,25 +79,27 @@ func goldenEnvoyVersionName(t *testing.T, envoyVersion string) string {
 func golden(t *testing.T, name, subname, latestSubname, got string) string {
 	t.Helper()
 
-	suffix := ".golden"
+	var (
+		currentFile string
+		latestFile  string
+		isLatest    bool
+	)
+
 	if subname != "" {
-		suffix = fmt.Sprintf(".%s.golden", subname)
-	}
-
-	golden := filepath.Join("testdata", name+suffix)
-
-	var latestGoldenPath, latestExpected string
-	isLatest := subname == latestSubname
-	// Include latestSubname in the latest golden path if it exists.
-	if latestSubname == "" {
-		latestGoldenPath = filepath.Join("testdata", fmt.Sprintf("%s.golden", name))
+		currentFile = gtest.Filepath(strings.Join([]string{name, subname}, "."))
 	} else {
-		latestGoldenPath = filepath.Join("testdata", fmt.Sprintf("%s.%s.golden", name, latestSubname))
+		currentFile = gtest.Filepath(name)
 	}
 
-	if raw, err := os.ReadFile(latestGoldenPath); err == nil {
-		latestExpected = string(raw)
+	isLatest = subname == latestSubname
+
+	if latestSubname == "" {
+		latestFile = gtest.Filepath(name)
+	} else {
+		latestFile = gtest.Filepath(strings.Join([]string{name, latestSubname}, "."))
 	}
+
+	latestExpected := gtest.GetAtFilePath(t, latestFile)
 
 	// Handle easy updates to the golden files in the agent/xds/testdata
 	// directory.
@@ -108,7 +107,7 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 	// To trim down PRs, we only create per-version golden files if they differ
 	// from the latest version.
 
-	if *update && got != "" {
+	if gtest.ShouldUpdate() && got != "" {
 		var gotInterface, latestExpectedInterface interface{}
 		json.Unmarshal([]byte(got), &gotInterface)
 		json.Unmarshal([]byte(latestExpected), &latestExpectedInterface)
@@ -118,19 +117,19 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 			// In update mode we erase a golden file if it is identical to
 			// the golden file corresponding to the latest version of
 			// envoy.
-			err := os.Remove(golden)
+			err := os.Remove(currentFile)
 			if err != nil && !os.IsNotExist(err) {
 				require.NoError(t, err)
 			}
 			return got
 		}
 
-		require.NoError(t, os.WriteFile(golden, []byte(got), 0644))
+		gtest.WriteContentsToFilePath(t, got, currentFile)
 
 		return got
 	}
 
-	expected, err := os.ReadFile(golden)
+	expected, err := os.ReadFile(currentFile)
 	if latestExpected != "" && os.IsNotExist(err) {
 		// In readonly mode if a specific golden file isn't found, we fallback
 		// on the latest one.

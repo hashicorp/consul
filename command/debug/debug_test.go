@@ -21,9 +21,6 @@ import (
 	"github.com/google/pprof/profile"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
-	"gotest.tools/v3/assert"
-	"gotest.tools/v3/assert/cmp"
-	"gotest.tools/v3/fs"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -72,27 +69,70 @@ func TestDebugCommand(t *testing.T) {
 	require.Equal(t, 0, code)
 	require.Equal(t, "", ui.ErrorWriter.String())
 
-	expected := fs.Expected(t,
-		fs.WithDir("debug",
-			fs.WithFile("index.json", "", fs.MatchFileContent(validIndexJSON)),
-			fs.WithFile("agent.json", "", fs.MatchFileContent(validJSON)),
-			fs.WithFile("host.json", "", fs.MatchFileContent(validJSON)),
-			fs.WithFile("members.json", "", fs.MatchFileContent(validJSON)),
-			fs.WithFile("metrics.json", "", fs.MatchAnyFileContent),
-			fs.WithFile("consul.log", "", fs.MatchFileContent(validLogFile)),
-			fs.WithFile("profile.prof", "", fs.MatchFileContent(validProfileData)),
-			fs.WithFile("trace.out", "", fs.MatchAnyFileContent),
-			fs.WithDir("2021-07-08T09-10-12Z",
-				fs.WithFile("goroutine.prof", "", fs.MatchFileContent(validProfileData)),
-				fs.WithFile("heap.prof", "", fs.MatchFileContent(validProfileData))),
-			fs.WithDir("2021-07-08T09-10-13Z",
-				fs.WithFile("goroutine.prof", "", fs.MatchFileContent(validProfileData)),
-				fs.WithFile("heap.prof", "", fs.MatchFileContent(validProfileData))),
-			// Ignore the extra directories, they should be the same as the first two
-			fs.MatchExtraFiles))
-	assert.Assert(t, fs.Equal(testDir, expected))
+	concat := func(fname string) string {
+		return filepath.Join(testDir, "debug", fname)
+	}
 
+	requireFileExists(t, concat("trace.out"))
+	requireFileExists(t, concat("metrics.json"))
+	requireValidJSON(t, concat("agent.json"))
+	requireValidJSON(t, concat("host.json"))
+	requireValidJSON(t, concat("members.json"))
+	requireValidIndexJSON(t, concat("index.json"))
+	requireValidPProf(t, concat("profile.prof"))
+	requireValidLogFile(t, concat("consul.log"))
+	requireValidPProf(t, concat(filepath.Join("2021-07-08T09-10-12Z/goroutine.prof")))
+	requireValidPProf(t, concat(filepath.Join("2021-07-08T09-10-12Z/heap.prof")))
+	requireValidPProf(t, concat(filepath.Join("2021-07-08T09-10-13Z/goroutine.prof")))
+	requireValidPProf(t, concat(filepath.Join("2021-07-08T09-10-13Z/heap.prof")))
 	require.Equal(t, "", ui.ErrorWriter.String(), "expected no error output")
+}
+
+func requireValidLogFile(t *testing.T, fpath string) {
+	actual := requireFileExists(t, fpath)
+
+	scanner := bufio.NewScanner(bytes.NewReader(actual))
+	for scanner.Scan() {
+		logLine := scanner.Text()
+		require.True(t, validateLogLine([]byte(logLine)))
+	}
+	if scanner.Err() != nil {
+		require.Failf(t, "error reading log file", "error: %s", scanner.Err().Error())
+	}
+}
+
+func requireValidIndexJSON(t *testing.T, fpath string) {
+	actual := requireFileExists(t, fpath)
+	var target debugIndex
+	decoder := json.NewDecoder(bytes.NewReader(actual))
+	decoder.DisallowUnknownFields()
+	require.NoError(t, decoder.Decode(&target))
+}
+
+func requireValidJSON(t *testing.T, fpath string) {
+	t.Helper()
+
+	actual := requireFileExists(t, fpath)
+
+	var target interface{}
+	decoder := json.NewDecoder(bytes.NewReader(actual))
+	require.NoError(t, decoder.Decode(&target))
+}
+
+func requireValidPProf(t *testing.T, fpath string) {
+	t.Helper()
+
+	actual := requireFileExists(t, fpath)
+
+	_, err := profile.ParseData(actual)
+	require.NoError(t, err)
+}
+
+func requireFileExists(t *testing.T, filepath string) []byte {
+	t.Helper()
+	actual, err := os.ReadFile(filepath)
+	require.NoError(t, err)
+	return actual
 }
 
 func TestDebugCommand_WithSinceFlag(t *testing.T) {
@@ -120,46 +160,6 @@ func TestDebugCommand_WithSinceFlag(t *testing.T) {
 	code := cmd.Run(args)
 	require.Equal(t, 0, code)
 	require.Equal(t, "", ui.ErrorWriter.String())
-}
-
-func validLogFile(raw []byte) fs.CompareResult {
-	scanner := bufio.NewScanner(bytes.NewReader(raw))
-	for scanner.Scan() {
-		logLine := scanner.Text()
-		if !validateLogLine([]byte(logLine)) {
-			return cmp.ResultFailure(fmt.Sprintf("log line is not valid %s", logLine))
-		}
-	}
-	if scanner.Err() != nil {
-		return cmp.ResultFailure(scanner.Err().Error())
-	}
-	return cmp.ResultSuccess
-}
-
-func validIndexJSON(raw []byte) fs.CompareResult {
-	var target debugIndex
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&target); err != nil {
-		return cmp.ResultFailure(err.Error())
-	}
-	return cmp.ResultSuccess
-}
-
-func validJSON(raw []byte) fs.CompareResult {
-	var target interface{}
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	if err := decoder.Decode(&target); err != nil {
-		return cmp.ResultFailure(err.Error())
-	}
-	return cmp.ResultSuccess
-}
-
-func validProfileData(raw []byte) fs.CompareResult {
-	if _, err := profile.ParseData(raw); err != nil {
-		return cmp.ResultFailure(err.Error())
-	}
-	return cmp.ResultSuccess
 }
 
 type incrementalTime struct {

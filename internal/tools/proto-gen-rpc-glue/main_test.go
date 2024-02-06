@@ -12,9 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// update allows golden files to be updated based on the current output.
-var update = flag.Bool("update", false, "update golden files")
-
 func TestE2E(t *testing.T) {
 	// Generate new output
 	*flagPath = "./e2e/source.pb.go"
@@ -37,7 +34,7 @@ func golden(t *testing.T, actual, path string) string {
 	t.Helper()
 
 	path += ".golden"
-	if *update {
+	if golden.ShouldUpdate {
 		if dir := filepath.Dir(path); dir != "." {
 			require.NoError(t, os.MkdirAll(dir, 0755))
 		}

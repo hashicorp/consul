@@ -33,6 +33,7 @@ import (
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -7396,7 +7397,7 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
 	require.NoError(t, err)
 	actual := string(b)
-	require.JSONEq(t, golden(t, actual, testRuntimeConfigSanitizeExpectedFilename), actual)
+	require.JSONEq(t, golden.Get(t, actual, testRuntimeConfigSanitizeExpectedFilename), actual)
 }
 
 func TestRuntime_apiAddresses(t *testing.T) {

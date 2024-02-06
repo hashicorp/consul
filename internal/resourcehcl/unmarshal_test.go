@@ -4,7 +4,6 @@
 package resourcehcl_test
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path"
@@ -17,11 +16,10 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resourcehcl"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
-
-var update = flag.Bool("update", false, "update golden files")
 
 func FuzzUnmarshall(f *testing.F) {
 	entries, err := os.ReadDir("./testdata")
@@ -109,7 +107,7 @@ func TestUnmarshal(t *testing.T) {
 			output, err := resourcehcl.UnmarshalOptions{SourceFileName: name}.
 				Unmarshal(input, registry)
 
-			if *update {
+			if golden.ShouldUpdate() {
 				if err == nil {
 					json, err := protojson.Marshal(output)
 					require.NoError(t, err)
@@ -126,7 +124,7 @@ func TestUnmarshal(t *testing.T) {
 				t.Fatalf("both %s.golden and %s.error exist, delete one", base, base)
 			}
 
-			if !haveGoldenError && !haveGoldenJSON && !*update {
+			if !haveGoldenError && !haveGoldenJSON && !golden.ShouldUpdate() {
 				t.Fatalf("neither %s.golden or %s.error exist, run the tests again with the -update flag to create one", base, base)
 			}
 
