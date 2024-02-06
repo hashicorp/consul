@@ -68,7 +68,7 @@ func newSink(
 	logger := hclog.FromContext(ctx)
 
 	// Set the global OTEL error handler. Without this, on any failure to publish metrics in
-	// otelExporter.Export, the error is logger to stderr without the formatting or group
+	// otelExporter.Export, the default OTEL handler logs to stderr without the formatting or group
 	// that hclog provides. Here we override that global error handler once so logs are
 	// in the standard format and include "hcp" in the group name like:
 	// 2024-02-06T22:35:19.072Z [ERROR] agent.hcp: failed to export metrics: failed to export metrics: code 404: 404 page not found
