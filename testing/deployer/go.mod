@@ -6,9 +6,9 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/consul-server-connection-manager v0.1.4
-	github.com/hashicorp/consul/api v1.26.1
-	github.com/hashicorp/consul/proto-public v0.5.1
-	github.com/hashicorp/consul/sdk v0.15.0
+	github.com/hashicorp/consul/api v1.28.0-rc1
+	github.com/hashicorp/consul/proto-public v0.6.0-rc1
+	github.com/hashicorp/consul/sdk v0.16.0-rc1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
