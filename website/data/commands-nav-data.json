@@ -516,6 +516,10 @@
       {
         "title": "export",
         "path": "services/export"
+      },
+      {
+        "title": "exported-services",
+        "path": "services/exported-services"
       }
     ]
   },

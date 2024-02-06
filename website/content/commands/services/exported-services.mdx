@@ -1,0 +1,57 @@
+---
+layout: commands
+page_title: 'Commands: Exported Services'
+description: >-
+  The `consul services exported-services` command lists exported services and their consumers.
+---
+
+# Consul Exported Services
+
+Command: `consul services exported-services`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/exported-services](/consul/api-docs/exported-services)
+
+The `exported-services` command displays the services that were exported using an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services). Sameness groups and wildcards in the configuration entry are expanded in the response.
+
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+
+| ACL Required                   |
+| ------------------------------ |
+| `mesh:read` or `operator:read` |
+
+## Usage
+
+Usage: `consul services exported-services [options]`
+
+#### Command Options
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+- `-filter` - Specifies an expression to use for filtering the results. `Consumers.Peers` and `Consumers.Partitions' selectors are supported.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+To list all exported services and consumers:
+
+    $ consul services exported-services
+    Service   Consumer Peers
+    backend   east, west
+    db        west
+    frontend  east, east-eu
+    web       east
+
+The following lists exported services with a filter expression:
+
+    $ consul services exported-services -filter='"west" in Consumers.Peers'
+    Service  Consumer Peers
+    backend  east, west
+    db       west
