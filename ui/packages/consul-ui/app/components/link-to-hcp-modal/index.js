@@ -39,24 +39,23 @@ export default class LinkToHcpModalComponent extends Component {
     this.hcpLinkModal.hide();
   };
 
-  @action
-  onCancel() {
-    this.deactivateModal();
-  }
-  @action
-  onGenerateTokenClicked(event) {
+  onGenerateTokenClicked = (policy) => {
     this.isGeneratingToken = true;
-    // TODO: check why policy is not set
     let token = this.tokenRepo.create({
       Datacenter: this.args.dc,
       Partition: this.args.partition,
       Namespace: this.args.nspace,
-      Policies: [this.args.policy.data],
+      Policies: [policy.data],
     });
     this.tokenRepo.persist(token, event).then((token) => {
       this.token = token.SecretID;
       this.isGeneratingToken = false;
     });
+  };
+
+  @action
+  onCancel() {
+    this.deactivateModal();
   }
   @action
   onAccessModeChanged({ target }) {

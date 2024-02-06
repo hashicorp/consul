@@ -12,9 +12,10 @@ import { inject as service } from '@ember/service';
  * organization/${organizationId}/project/${projectId}/hashicorp.consul.global-network-manager.cluster/${clusterName}
  *
  * A HCP URL looks like:
- * portal.cloud.hashicorp.com?cluster_name=test-from-api&redirect_to=link-consul-cluster&cluster_version=1.18.0&cluster_access_mode=CONSUL_ACCESS_LEVEL_GLOBAL_READ_WRITE&redirect_url=localhost:8500/services
+ * https://portal.cloud.hashicorp.com/sign-in?cluster_name=test-from-api&redirect_to=link-consul-cluster&cluster_version=1.18.0&cluster_access_mode=CONSUL_ACCESS_LEVEL_GLOBAL_READ_WRITE&redirect_url=localhost:8500/services
  */
-export const HCP_PREFIX = 'https://portal.cloud.hashicorp.com?redirect_to=link-consul-cluster';
+export const HCP_PREFIX =
+  'https://portal.cloud.hashicorp.com/sign-in?redirect_to=link-consul-cluster';
 export default class hcpAuthenticationLink extends Helper {
   @service('env') env;
   compute([resourceId, accessMode], hash) {
@@ -22,7 +23,7 @@ export default class hcpAuthenticationLink extends Helper {
       return;
     }
 
-    let url = HCP_PREFIX;
+    let url = new URL(HCP_PREFIX);
     const clusterVersion = this.env.var('CONSUL_VERSION');
 
     // Array looks like: ["organization", organizationId, "project", projectId, "hashicorp.consul.global-network-manager.cluster", "Cluster Id"]
@@ -31,10 +32,14 @@ export default class hcpAuthenticationLink extends Helper {
       return '';
     }
 
-    url += `&cluster_name=${clusterName}`;
-    url += clusterVersion ? `&cluster_version=${clusterVersion}` : '';
-    url += accessMode ? `&cluster_access_mode=${accessMode}` : '';
+    url.searchParams.append('cluster_name', clusterName);
+    if (clusterVersion) {
+      url.searchParams.append('cluster_version', clusterVersion);
+    }
+    if (accessMode) {
+      url.searchParams.append('cluster_access_mode', accessMode);
+    }
 
-    return url;
+    return url.toString();
   }
 }
