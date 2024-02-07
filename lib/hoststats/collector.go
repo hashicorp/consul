@@ -109,11 +109,13 @@ func (c *Collector) collect() {
 	hs.CPU = cpus
 
 	// Collect disk stats
-	diskStats, err := c.collectDiskStats(c.dataDir)
-	if err != nil {
-		c.logger.Error("failed to collect dataDir disk stats", "error", err)
+	if c.dataDir != "" {
+		diskStats, err := c.collectDiskStats(c.dataDir)
+		if err != nil {
+			c.logger.Error("failed to collect dataDir disk stats", "error", err)
+		}
+		hs.DataDirStats = diskStats
 	}
-	hs.DataDirStats = diskStats
 
 	// Update the collected status object.
 	c.hostStatsLock.Lock()
