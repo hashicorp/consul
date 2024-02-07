@@ -1906,10 +1906,6 @@
         "href": "access/vm"
       },
       {
-        "title": "Segment network",
-        "href": "segment/vm"
-      },
-      {
         "title": "Link network segments",
         "href": "link/vm"
       },
@@ -1922,8 +1918,8 @@
         "href": "manage-traffic/vm"
       },
       {
-        "title": "Access services",
-        "href": "access/vm"
+        "title": "Observe services",
+        "href": "observe/telemetry/vm"
       }
     ]
   },
@@ -1955,10 +1951,6 @@
         "href": "access/k8s"
       },
       {
-        "title": "Segment network",
-        "href": "segment/k8s"
-      },
-      {
         "title": "Link network segments",
         "href": "link/k8s"
       },
@@ -1969,6 +1961,10 @@
       {
         "title": "Manage service traffic",
         "href": "manage-traffic/k8s"
+      },
+      {
+        "title": "Observe services",
+        "href": "observe/telemetry/k8s"
       }
     ]
   },
