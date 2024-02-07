@@ -850,7 +850,7 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 		originalToken: originalToken,
 		initialRoots:  indexedRoots,
 		initialCert:   cert,
-		extraCerts:    exrts,
+		extraCerts:    extraCerts,
 		stop:          cancel,
 	}
 }
