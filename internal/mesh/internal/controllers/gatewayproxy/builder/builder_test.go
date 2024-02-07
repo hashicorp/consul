@@ -182,7 +182,7 @@ func (suite *proxyStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbresourc
 	}
 
 	suite.exportedServicesPeerResource = resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
-		WithData(suite.T(), suite.exportedServicesPartitionData.Data).
+		WithData(suite.T(), suite.exportedServicesPeerData.Data).
 		Write(suite.T(), suite.client)
 }
 

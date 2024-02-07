@@ -17,10 +17,12 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/apigateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -41,6 +43,9 @@ type gatewayproxyControllerSuite struct {
 	apigwWorkload   *types.DecodedWorkload
 	serviceWorkload *types.DecodedWorkload
 
+	exportedServicesPeerData     *types.DecodedComputedExportedServices
+	exportedServicesPeerResource *pbresource.Resource
+
 	tenancies []*pbresource.Tenancy
 }
 
@@ -48,7 +53,7 @@ func (suite *gatewayproxyControllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
 	suite.tenancies = resourcetest.TestTenancies()
 	suite.client = svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithRegisterFns(types.Register, catalog.RegisterTypes, multicluster.RegisterTypes).
 		WithTenancies(suite.tenancies...).
 		Run(suite.T())
 	suite.resourceClient = resourcetest.NewClient(suite.client)
@@ -60,7 +65,10 @@ func (suite *gatewayproxyControllerSuite) SetupTest() {
 
 func (suite *gatewayproxyControllerSuite) TestReconciler_Reconcile() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		r := reconciler{}
+		r := reconciler{
+			dc:             "dc",
+			getTrustDomain: func() (string, error) { return "trust-domain", nil },
+		}
 		ctx := context.Background()
 
 		testutil.RunStep(suite.T(), "non-gateway workload is reconciled", func(t *testing.T) {
@@ -105,11 +113,11 @@ func (suite *gatewayproxyControllerSuite) TestReconciler_Reconcile() {
 
 			require.NoError(t, err)
 
-			dec, err := resource.GetDecodedResource[*types.DecodedProxyStateTemplate](ctx, suite.client, id)
+			dec, err := resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, suite.client, id)
 			require.NoError(t, err)
-			require.Equal(t, dec.Id, expectedWrittenResource.Id)
+			require.Equal(t, dec.Id.Name, expectedWrittenResource.Id.Name)
 			require.Equal(t, dec.Metadata, expectedWrittenResource.Metadata)
-			require.Equal(t, dec.Owner, expectedWrittenResource.Owner)
+			require.Equal(t, dec.Owner.Name, expectedWrittenResource.Owner.Name)
 		})
 	})
 }
@@ -271,6 +279,31 @@ func (suite *gatewayproxyControllerSuite) setupSuiteWithTenancy(tenancy *pbresou
 	resourcetest.Resource(pbcatalog.WorkloadType, "api-1").
 		WithData(suite.T(), suite.serviceWorkload.Data).
 		WithTenancy(tenancy).
+		Write(suite.T(), suite.client)
+
+	suite.exportedServicesPeerData = &types.DecodedComputedExportedServices{
+		Resource: &pbresource.Resource{},
+		Data: &pbmulticluster.ComputedExportedServices{
+			Services: []*pbmulticluster.ComputedExportedService{
+				{
+					TargetRef: &pbresource.Reference{
+						Type:    pbcatalog.ServiceType,
+						Tenancy: tenancy,
+						Name:    "api-1",
+						Section: "",
+					},
+					Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
+						{
+							Tenancy: &pbmulticluster.ComputedExportedServiceConsumer_Peer{Peer: "api-1"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	suite.exportedServicesPeerResource = resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
+		WithData(suite.T(), suite.exportedServicesPeerData.Data).
 		Write(suite.T(), suite.client)
 }
 
