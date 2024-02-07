@@ -63,8 +63,8 @@ func MonitorHCPLink(
 				continue
 			}
 
-			if validated, _ := hcpctl.IsValidated(res); !validated {
-				logger.Debug("HCP Link not validated, not starting manager")
+			if validated, reason := hcpctl.IsValidated(res); !validated {
+				logger.Debug("HCP Link not validated, not starting manager", "reason", reason)
 				continue
 			}
 
