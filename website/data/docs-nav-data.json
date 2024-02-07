@@ -2075,41 +2075,54 @@
       },
       {
         "title": "Configure CTS",
-        "path": "cts/configure"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "cts/configure"
+          },
+          {
+            "title": "Global settings",
+            "path": "cts/configure/global"
+          },
+          {
+            "title": "Task settings",
+            "path": "cts/configure/task"
+          },
+          {
+            "title": "Driver settings",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "cts/configure/network-drivers"
+              },
+              {
+                "title": "Terraform driver",
+                "path": "cts/configure/network-drivers/terraform"
+              },
+              {
+                "title": "Terraform Cloud driver",
+                "path": "cts/configure/network-drivers/terraform-cloud",
+                "badge": {
+                  "text": "ENTERPRISE",
+                  "type": "outlined",
+                  "color": "neutral"
+                }
+              }
+            ]
+          },
+          {
+            "title": "License settings",
+            "path": "cts/configure/license"
+          }
+        ]
       },
       {
         "title": "Run CTS",
         "path": "cts/run"
       },
       {
-        "title": "Configure CTS task",
-        "path": "cts/task"
-      },
-      {
         "title": "Create Terraform module",
         "path": "cts/create-terraform-module"
-      },
-      {
-        "title": "Network drivers",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "cts/network-drivers"
-          },
-          {
-            "title": "Terraform",
-            "path": "cts/network-drivers/terraform"
-          },
-          {
-            "title": "Terraform Cloud",
-            "badge": {
-              "text": "ENTERPRISE",
-              "type": "outlined",
-              "color": "neutral"
-            },
-            "path": "cts/network-drivers/terraform-cloud"
-          }
-        ]
       },
       {
         "title": "Enterprise",

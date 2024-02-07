@@ -1,0 +1,259 @@
+---
+layout: docs
+page_title: Configure Consul-Terraform-Sync
+description: >-
+  A high level guide to configure Consul-Terraform-Sync.
+---
+
+# Configure Consul-Terraform-Sync
+
+This topic describes how to define settings in the Consul-Terraform-Sync (CTS) configuration file.
+
+## Overview
+
+CTS directs network infrastructure automation (NIA) activities according to the CTS configuration file. Write the configuration file using Terraform configuration language and HCL syntax. Refer to the [Terraform configuration language reference](/terraform/language) to learn about the Terraform language. Refer to the [HCL reference](https://github.com/hashicorp/hcl) in GitHub for information about the HCL syntax.
+
+Configure the following components in the file to configure how CTS works:
+
+- **Global configurations**: Specify log-level, working directory, and other default configurations. You can configure overrides for specific tasks as you define the CTS configuration.
+- **License**: If you are using the enterprise edition of CTS, then you must configure CTS to use your license.
+- **Connection to the Consul cluster**: Specify configurations that enable CTS to connect to and query the Consul server.
+- **High-availablity**: If you are using the enterprise edition of CTS and want to operate CTS in high availability mode, then specify the high availability settings.
+- **Terraform tasks**: A task captures a network automation process by defining which network resources to update on a given condition. Configure CTS with one or more tasks that contain a list of Consul services, a Terraform module, and various Terraform providers.  
+- **Network drivers**: CTS interacts with your network device through a network driver.
+- **Terraform provider**: Providers are plug-ins that Terraform interfaces with to provision infrastructure. You can define provider settings in the CTS configuration. Refer to the provider documentation in the Terraform registry for details on how to configure the provider.
+
+Refer to [Consul-Terraform-Sync (CTS) configuration reference](/consul/docs/reference/cts) for details about all configuration parameters.
+
+## Configure global settings
+
+## Define the working directory
+
+CTS generates local artifacts to prepare configuration versions used for workspace runs. The location of the files created can be set with the [`working_dir`](/consul/docs/nia/configuration#working_dir) option or configured per task. When a task is configured with a local module and is run with the Terraform Cloud driver, the local module is copied and uploaded as a part of the configuration version.
+
+The version of Terraform to use for each workspace can also be set within the [task](#task) configuration.
+
+## Define tasks
+
+Create an .hcl file in the CTS installation directory. 
+Define a `task` block for each network resource you want to update and the condition that triggers the update. 
+You can define multiple tasks in the configuration.
+Specify the following required fields in the `task` block:
+
+- [`name`](/consul/docs/reference/cts#name): Specifies a unique name for the task.   
+- [`module`](/consul/docs/reference/cts#module): Specifies the location of the Terraform module that CTS runs when it detects a change in your Consul service mesh. You can specify local or remote module. 
+- [`providers`](/consul/docs/reference/cts#providers): Specifies a list of providers
+
+- Within the [`task` block](/consul/docs/nia/configuration#task), the list of services for a task represents the service layer that drives network automation. The `module` is the discovery location of the Terraform module that defines the network automation process for the task. The `condition`, not shown below, defaults to the services condition when unconfigured such that network resources are updated on changes to the list of services over time.
+
+Review the Terraform module to be used for network automation and identify the Terraform providers required by the module. If the module depends on a set of providers, include the list of provider names in the `providers` field to associate the corresponding provider configuration with the task. These providers will need to be configured later in a separate block.
+
+```hcl
+task {
+  name        = "website-x"
+  description = "automate services for website-x"
+  module      = "namespace/example/module"
+  version     = "1.0.0"
+  providers   = ["myprovider"]
+  condition "services" {
+    names = ["web", "api"]
+  }
+}
+```
+
+The type of the `module_input` block that can be configured depends on the `condition` block type and the `services` field (deprecated). See [Task Module Input Restrictions](/consul/docs/nia/configuration#task-module-input-restrictions) for more details.
+
+## Terraform Providers
+
+Configuring Terraform providers within CTS requires 2 config components. The first component is required within the [`driver.terraform` block](/consul/docs/nia/configuration#terraform-driver). All providers configured for CTS must be listed within the `required_providers` stanza to satisfy a [Terraform v0.13+ requirement](/terraform/language/providers/requirements#requiring-providers) for Terraform to discover and install them. The providers listed are later organized by CTS to be included in the appropriate Terraform configuration files for each task.
+
+```hcl
+driver "terraform" {
+  required_providers {
+    myprovider = {
+      source  = "namespace/myprovider"
+      version = "1.3.0"
+    }
+  }
+}
+```
+
+The second component for configuring a provider is the [`terraform_provider` block](/consul/docs/nia/configuration#terraform-provider). This block resembles [provider blocks for Terraform configuration](/terraform/language/providers/configuration) and has the same responsibility for understanding API interactions and exposing resources for a specific infrastructure platform.
+
+Terraform modules configured for task automation may require configuring the referenced providers. For example, configuring the host address and authentication to interface with your network infrastructure. Refer to the Terraform provider documentation hosted on the [Terraform Registry](https://registry.terraform.io/browse/providers) to find available options. The `terraform_provider` block is loaded by CTS during runtime and processed to be included in [autogenerated Terraform configuration files](/consul/docs/nia/network-drivers#provider) used for task automation. Omitting the `terraform_provider` block for a provider will defer to the Terraform behavior assuming an empty default configuration.
+
+```hcl
+terraform_provider "myprovider" {
+  address = "myprovider.example.com"
+}
+```
+
+### Secure Terraform providers configuration
+
+The `terraform_provider` block supports dynamically loading arguments and the local environment from other sources. This can be used to securely configure your Terraform provider from the shell environment, Consul KV, or Vault. Using the `task_env` meta-argument and template syntax below, you can avoid exposing sensitive values or credentials in plain text within configuration files for CTS.
+
+`task_env` and the template syntax for dynamic values are only supported within the `terraform_provider` block.
+
+#### Provider Environment Variables
+
+Terraform providers may support shell environment variables as values for some of their arguments. When available, we recommend using environment variables as a way to keep credentials out of plain-text configuration files. Refer to the official provider docs hosted on the [Terraform Registry](https://registry.terraform.io/browse/providers) to find supported environment variables for a provider. By default, CTS enables all Terraform workspaces to inherit from its environment.
+
+The `task_env` block is a meta-argument available for the `terraform_provider` block that can be used to rename or scope the available environment to a selected set of variables. Passing sensitive values as environment variables will scope the values to only the tasks that require the provider.
+
+```hcl
+terraform_provider "foo" {
+  // Direct assignment of provider arguments are rendered in plain-text within
+  // the CTS configuration and the generated terraform.tfvars
+  // file for the corresponding Terraform workspaces.
+  // token = "<token value>"
+
+  // Instead of configuring the token argument directly for the provider,
+  // use the provider's supported environment variable for the token argument.
+  // For example,
+  // $ export FOO_TOKEN = "<token value>"
+
+  // Dynamically assign the task's environment from the shell env, Consul KV,
+  // Vault.
+  task_env {
+    "FOO_TOKEN" = "{{ env \"CTS_FOO_TOKEN\" }}"
+  }
+}
+```
+
+!> **Security note**: CTS does not prevent sensitive values from being written to Terraform state files. We recommend securing state files in addition to securely configuring Terraform providers. Options for securing state files can be set within [`driver.backend`](#backend) based on the backend used. For example, Consul KV is the default backend and can be secured with ACLs for KV path. For other backends, we recommend enabling encryption, if applicable.
+
+#### Load Dynamic Values
+
+Load dynamic values for Terraform providers with integrated template syntax.
+
+##### Env
+
+`env` reads the given environment variable accessible to CTS.
+
+```hcl
+terraform_provider "example" {
+  address = "{{ env \"EXAMPLE_HOSTNAME\" }}"
+}
+```
+
+#### Consul
+
+`key` queries the key's value in the KV store of the Consul server configured in the required [`consul` block](#consul).
+
+```hcl
+terraform_provider "example" {
+  value = "{{ key \"path/example/key\" }}"
+}
+```
+
+#### Vault
+
+`with secret` queries the [Vault KV secrets engine](/vault/api-docs/secret/kv). Vault is an optional source that require operators to configure the Vault client with a [`vault` block](#vault-configuration). Access the secret using template dot notation `Data.data.<secret_key>`.
+
+```hcl
+vault {
+  address = "vault.example.com"
+}
+
+terraform_provider "example" {
+  token = "{{ with secret \"secret/my/path\" }}{{ .Data.data.foo }}{{ end }}"
+}
+```
+
+##### Vault Configuration
+
+- `address` - (string) The URI of the Vault server. This can also be set via the `VAULT_ADDR` environment variable.
+- `enabled` - (bool) Enabled controls whether the Vault integration is active.
+- `namespace` - (string) Namespace is the Vault namespace to use for reading secrets. This can also be set via the `VAULT_NAMESPACE` environment variable.
+- `renew_token` - (bool) Renews the Vault token. This can also be set via the `VAULT_RENEW_TOKEN` environment variable.
+- `tls` - [(tls block)](#tls-1) TLS indicates the client should use a secure connection while talking to Vault. Supports the environment variables:
+  - `VAULT_CACERT`
+  - `VAULT_CAPATH`
+  - `VAULT_CLIENT_CERT`
+  - `VAULT_CLIENT_KEY`
+  - `VAULT_SKIP_VERIFY`
+  - `VAULT_TLS_SERVER_NAME`
+- `token` - (string) Token is the Vault token to communicate with for requests. It may be a wrapped token or a real token. This can also be set via the `VAULT_TOKEN` environment variable, or via the `VaultAgentTokenFile`.
+- `vault_agent_token_file` - (string) The path of the file that contains a Vault Agent token. If this is specified, CTS will not try to renew the Vault token.
+- `transport` - [(transport block)](#transport) Transport configures the low-level network connection details.
+- `unwrap_token` - (bool) Unwraps the provided Vault token as a wrapped token.
+
+-> Note: Vault credentials are not accessible by tasks and the associated Terraform configurations, including automated Terraform modules. If the task requires Vault, you will need to separately configure the Vault provider and explicitly include it in the `task.providers` list.
+
+## Configure the connection to Consul
+
+
+### Enable TLS 
+
+Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/consul/docs/agent/config/config-files) must be configured for the local Consul with the [cert_file](/consul/docs/agent/config/config-files#cert_file) and [key_file](/consul/docs/agent/config/config-files#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
+
+To read more on suggestions for configuring the Consul agent, see [run an agent](/consul/docs/nia/usage/requirements#run-an-agent).
+
+### Enable TLS for the connection to Consul
+
+If Consul is using a self-signed certificate and the certificate is not on the global CA chain, you can set the certificate with `ca_cert` or `ca_path`. Alternatively, you can disable SSL verification by setting `verify` to  `false`, but doing so introduces a potential security vulnerability.
+
+### Reduce latency  
+
+To achieve the shortest latency between a Consul service update to a task execution, configure `max_idle_conns_per_host` equal to or greater than the number of services in automation across all tasks. This value should be lower than the configured [`http_max_conns_per_client`](/consul/docs/agent/config/config-files#http_max_conns_per_client) for the Consul agent.
+
+If `max_idle_conns_per_host` and the number of services in automation is greater than the Consul agent limit, CTS may error due to connection limits (status code 429). You may increase the agent limit with caution. _Note: requests to the Consul agent made by Terraform subprocesses or any other process on the same host as CTS will contribute to the Consul agent connection limit._
+
+## Configure license retrieval 
+
+### Auto-retrieval
+
+You can use the `auto_retrieval` block to configure the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/consul/docs/nia/enterprise/license#license-expiration-handling).
+
+~> Enabling `auto_retrieval` is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you have to restart CTS every time you load a new license.
+
+## Summary
+
+Piecing it all together, the configuration file for CTS will have several HCL blocks in addition to other options for configuring the CTS daemon: `task`, `driver.terraform`, and `terraform_provider` blocks.
+
+An example HCL configuration file is shown below to automate one task to execute a Terraform module on the condition when there are changes to two services.
+
+<CodeBlockConfig filename="cts-example-config.hcl">
+
+```hcl
+log_level = "info"
+
+syslog {
+  enabled = true
+}
+
+consul {
+  address = "consul.example.com"
+}
+
+task {
+  name        = "website-x"
+  description = "automate services for website-x"
+  module      = "namespace/example/module"
+  version     = "1.0.0"
+  providers   = ["myprovider"]
+  condition "services" {
+    names = ["web", "api"]
+  }
+  buffer_period {
+    min = "10s"
+  }
+}
+
+driver "terraform" {
+  log = true
+
+  required_providers {
+    myprovider = {
+      source  = "namespace/myprovider"
+      version = "1.3.0"
+    }
+  }
+}
+
+terraform_provider "myprovider" {
+  address = "myprovider.example.com"
+}
+```
+
+</CodeBlockConfig>
