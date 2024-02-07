@@ -26,16 +26,26 @@ func RegisterTypes(r resource.Registry) {
 }
 
 type ControllerDependencies = controllers.Dependencies
+type CompatControllerDependencies = controllers.CompatDependencies
 
-func DefaultControllerDependencies(ac v1compat.AggregatedConfig) ControllerDependencies {
+func DefaultControllerDependencies() ControllerDependencies {
 	return ControllerDependencies{
 		ExportedServicesSamenessGroupsExpander: exportedServicesSamenessGroupExpander.New(),
-		ConfigEntryExports:                     ac,
+	}
+}
+
+func DefaultCompatControllerDependencies(ac v1compat.AggregatedConfig) CompatControllerDependencies {
+	return CompatControllerDependencies{
+		ConfigEntryExports: ac,
 	}
 }
 
 // RegisterControllers registers controllers for the multicluster types with
 // the given controller Manager.
-func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
-	controllers.Register(mgr, deps)
+func RegisterControllers(mgr *controller.Manager) {
+	controllers.Register(mgr, DefaultControllerDependencies())
+}
+
+func RegisterCompatControllers(mgr *controller.Manager, deps CompatControllerDependencies) {
+	controllers.RegisterCompat(mgr, deps)
 }

@@ -1043,10 +1043,11 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		})
 
 		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
+		multicluster.RegisterControllers(s.controllerManager)
+	} else {
+		shim := NewExportedServicesShim(s)
+		multicluster.RegisterCompatControllers(s.controllerManager, multicluster.DefaultCompatControllerDependencies(shim))
 	}
-
-	shim := NewExportedServicesShim(s)
-	multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(shim))
 
 	reaper.RegisterControllers(s.controllerManager)
 
