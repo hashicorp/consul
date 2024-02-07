@@ -42,6 +42,7 @@ message DestinationRule {
   string path_regex = 3;
   repeated string methods = 4;
   repeated DestinationRuleHeader destination_rule_header = 5;
+  repeated ExcludePermissionRule exclude = 6;
 }
 
 message DestinationRuleHeader {
@@ -52,4 +53,12 @@ message DestinationRuleHeader {
   string suffix = 5;
   string regex = 6;
   bool invert = 7;
+}
+
+message ExcludePermissionRule {
+  string path_exact = 1;
+  string path_prefix = 2;
+  string path_regex = 3;
+  repeated string methods = 4;
+  repeated DestinationRuleHeader headers = 5;
 }
