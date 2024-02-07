@@ -4,6 +4,8 @@
 package types
 
 import (
+	"golang.org/x/exp/slices"
+
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
@@ -293,7 +295,7 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 					}
 				}
 				for _, m := range excl.Methods {
-					if len(dest.Methods) != 0 && !listContains(dest.Methods, m) {
+					if len(dest.Methods) != 0 && !slices.Contains(dest.Methods, m) {
 						merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
 							Name:    "exclude_permission_header_rule",
 							Wrapped: errExclValuesMustBeSubset,
@@ -301,7 +303,7 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 					}
 				}
 				for _, port := range excl.PortNames {
-					if len(dest.PortNames) != 0 && !listContains(dest.PortNames, port) {
+					if len(dest.PortNames) != 0 && !slices.Contains(dest.PortNames, port) {
 						merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
 							Name:    "exclude_permission_header_rule",
 							Wrapped: errExclValuesMustBeSubset,
@@ -319,15 +321,6 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 	}
 
 	return merr
-}
-
-func listContains(list []string, str string) bool {
-	for _, item := range list {
-		if item == str {
-			return true
-		}
-	}
-	return false
 }
 
 func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe, id *pbresource.ID) bool {

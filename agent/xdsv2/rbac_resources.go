@@ -363,8 +363,8 @@ func translateRule(dr *pbproxystate.DestinationRule) *envoy_rbac_v3.Permission {
 func permissionsFromDestinationRules(drs []*pbproxystate.DestinationRule) []*envoy_rbac_v3.Permission {
 	var perms []*envoy_rbac_v3.Permission
 	for _, dr := range drs {
-		var subPerms []*envoy_rbac_v3.Permission
-		for _, er := range dr.Exclude {
+		subPerms := make([]*envoy_rbac_v3.Permission, len(dr.Exclude))
+		for i, er := range dr.Exclude {
 			translated := translateRule(&pbproxystate.DestinationRule{
 				PathExact:             er.PathExact,
 				PathPrefix:            er.PathPrefix,
@@ -372,9 +372,9 @@ func permissionsFromDestinationRules(drs []*pbproxystate.DestinationRule) []*env
 				Methods:               er.Methods,
 				DestinationRuleHeader: er.Headers,
 			})
-			subPerms = append(subPerms, &envoy_rbac_v3.Permission{
+			subPerms[i] = &envoy_rbac_v3.Permission{
 				Rule: &envoy_rbac_v3.Permission_NotRule{NotRule: translated},
-			})
+			}
 		}
 		subPerms = append([]*envoy_rbac_v3.Permission{translateRule(dr)}, subPerms...)
 		perms = append(perms, combineAndPermissions(subPerms))
