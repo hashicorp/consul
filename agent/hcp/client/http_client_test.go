@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/hcp/config"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +17,7 @@ func TestNewHTTPClient(t *testing.T) {
 	mockHCPCfg, err := mockCfg.HCPConfig()
 	require.NoError(t, err)
 
-	client := NewHTTPClient(mockHCPCfg.APITLSConfig(), mockHCPCfg, hclog.NewNullLogger())
+	client := NewHTTPClient(mockHCPCfg.APITLSConfig(), mockHCPCfg)
 	require.NotNil(t, client)
 
 	var req *http.Request
