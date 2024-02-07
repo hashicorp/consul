@@ -284,7 +284,7 @@ func TestL7TrafficPermissions(t *testing.T) {
 		}
 		t.Log(initialTrafficPerms)
 		// Wait for the resource updates to go through and Envoy to be ready
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 		// Check the default server workload envoy config for RBAC filters matching testcase criteria
 		serverWorkload := cluster.WorkloadsByID(topology.ID{
 			Partition: "default",

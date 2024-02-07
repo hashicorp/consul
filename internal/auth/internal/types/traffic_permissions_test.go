@@ -42,6 +42,37 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action_ACTION_ALLOW,
 			},
 		},
+		"ok-permissions": {
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{IdentityName: "wi-1"},
+				Action:      pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								IdentityName: "wi-2",
+								Namespace:    "default",
+								Partition:    "default",
+							},
+							{
+								IdentityName: "wi-1",
+								Namespace:    "default",
+								Partition:    "ap1",
+							},
+						},
+						DestinationRules: []*pbauth.DestinationRule{
+							{
+								PathPrefix: "/",
+								Methods:    []string{"GET"},
+								Headers:    []*pbauth.DestinationRuleHeader{{Name: "X-Consul-Token", Present: false, Invert: true}},
+								PortNames:  []string{"https"},
+								Exclude:    []*pbauth.ExcludePermissionRule{{PathExact: "/admin"}},
+							},
+						},
+					},
+				},
+			},
+		},
 		"unspecified-action": {
 			// Any type other than the TrafficPermissions type would work
 			// to cause the error we are expecting
