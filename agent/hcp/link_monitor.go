@@ -34,6 +34,7 @@ func MonitorHCPLink(
 	dataDir string,
 ) {
 	for watchEvent := range hcpLinkEventCh {
+		// This indicates that a Link was deleted
 		if watchEvent.GetDelete() != nil {
 			logger.Debug("HCP Link deleted, stopping HCP manager")
 
@@ -53,6 +54,7 @@ func MonitorHCPLink(
 			continue
 		}
 
+		// This indicates that a Link was either created or updated
 		if watchEvent.GetUpsert() != nil {
 			logger.Debug("HCP Link upserted, starting manager if not already started")
 
