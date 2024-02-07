@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -36,14 +35,8 @@ func TestLinkWatch_Ok(t *testing.T) {
 	linkWatchCh, err := NewLinkWatch(context.Background(), hclog.Default(), client)
 	require.NoError(t, err)
 
-	require.Eventually(t, func() bool {
-		select {
-		case event := <-linkWatchCh:
-			return event == testWatchEvent
-		default:
-			return false
-		}
-	}, 10*time.Millisecond, time.Millisecond)
+	event := <-linkWatchCh
+	require.Equal(t, testWatchEvent, event)
 }
 
 // This tests ensures that when the context is canceled, the linkWatchCh is closed
