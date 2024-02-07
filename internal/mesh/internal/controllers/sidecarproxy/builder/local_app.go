@@ -156,7 +156,7 @@ type PortRule struct {
 	rule *pbproxystate.DestinationRule
 }
 
-func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) map[string]*PortRule { // was []string, dr
+func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) map[string]*PortRule {
 	portRules := make(map[string]*PortRule)
 	targetPorts := allPorts
 	if len(dr.PortNames) > 0 {
