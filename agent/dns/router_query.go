@@ -26,9 +26,12 @@ func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain st
 
 	portName := parsePort(queryParts)
 
-	if queryType == discovery.QueryTypeWorkload && req.Question[0].Qtype == dns.TypeSRV {
+	switch {
+	case queryType == discovery.QueryTypeWorkload && req.Question[0].Qtype == dns.TypeSRV:
 		// Currently we do not support SRV records for workloads
 		return nil, errNotImplemented
+	case queryType == discovery.QueryTypeInvalid, name == "":
+		return nil, errInvalidQuestion
 	}
 
 	return &discovery.Query{

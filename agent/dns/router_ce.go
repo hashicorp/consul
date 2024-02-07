@@ -36,3 +36,8 @@ func canonicalNameForResult(resultType discovery.ResultType, target, domain stri
 	}
 	return ""
 }
+
+// getDefaultPartitionName returns the default partition name.
+func getDefaultPartitionName() string {
+	return ""
+}
