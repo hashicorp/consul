@@ -87,7 +87,7 @@ func (c *Collector) collect() {
 	// Determine up-time
 	uptime, err := host.Uptime()
 	if err != nil {
-		c.logger.Error("failed to collect uptime stats", "error", err)
+		c.logger.Debug("failed to collect uptime stats", "error", err)
 		uptime = 0
 	}
 	hs.Uptime = uptime
@@ -95,7 +95,7 @@ func (c *Collector) collect() {
 	// Collect memory stats
 	mstats, err := c.collectMemoryStats()
 	if err != nil {
-		c.logger.Error("failed to collect memory stats", "error", err)
+		c.logger.Debug("failed to collect memory stats", "error", err)
 		mstats = &MemoryStats{}
 	}
 	hs.Memory = mstats
@@ -103,17 +103,19 @@ func (c *Collector) collect() {
 	// Collect cpu stats
 	cpus, err := c.collectCPUStats()
 	if err != nil {
-		c.logger.Error("failed to collect cpu stats", "error", err)
+		c.logger.Debug("failed to collect cpu stats", "error", err)
 		cpus = []*CPUStats{}
 	}
 	hs.CPU = cpus
 
 	// Collect disk stats
-	diskStats, err := c.collectDiskStats(c.dataDir)
-	if err != nil {
-		c.logger.Error("failed to collect dataDir disk stats", "error", err)
+	if c.dataDir != "" {
+		diskStats, err := c.collectDiskStats(c.dataDir)
+		if err != nil {
+			c.logger.Debug("failed to collect dataDir disk stats", "error", err)
+		}
+		hs.DataDirStats = diskStats
 	}
-	hs.DataDirStats = diskStats
 
 	// Update the collected status object.
 	c.hostStatsLock.Lock()
