@@ -71,6 +71,17 @@ func (this *DestinationRuleHeader) UnmarshalJSON(b []byte) error {
 	return TrafficPermissionsUnmarshaler.Unmarshal(b, this)
 }
 
+// MarshalJSON is a custom marshaler for ExcludePermissionRule
+func (this *ExcludePermissionRule) MarshalJSON() ([]byte, error) {
+	str, err := TrafficPermissionsMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for ExcludePermissionRule
+func (this *ExcludePermissionRule) UnmarshalJSON(b []byte) error {
+	return TrafficPermissionsUnmarshaler.Unmarshal(b, this)
+}
+
 var (
 	TrafficPermissionsMarshaler   = &protojson.MarshalOptions{}
 	TrafficPermissionsUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}
