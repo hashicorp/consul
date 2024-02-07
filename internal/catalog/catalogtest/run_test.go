@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller/controllertest"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -21,7 +22,7 @@ func runInMemResourceServiceAndControllers(t *testing.T) pbresource.ResourceServ
 	t.Helper()
 
 	return controllertest.NewControllerTestBuilder().
-		WithResourceRegisterFns(catalog.RegisterTypes).
+		WithResourceRegisterFns(catalog.RegisterTypes, multicluster.RegisterTypes).
 		WithControllerRegisterFns(
 			reaper.RegisterControllers,
 			catalog.RegisterControllers,
