@@ -35,7 +35,7 @@ module('Integration | Helper | hcp-authentication-link', function (hooks) {
 
     assert.equal(
       this.element.textContent.trim(),
-      `${HCP_PREFIX}&cluster_name=${clusterName}&cluster_version=${clusterVersion}`
+      `${HCP_PREFIX}?cluster_name=${clusterName}&cluster_version=${clusterVersion}`
     );
   });
 
@@ -45,7 +45,7 @@ module('Integration | Helper | hcp-authentication-link', function (hooks) {
     await render(hbs`{{hcp-authentication-link resourceId}}`);
     assert.equal(
       this.element.textContent.trim(),
-      `${HCP_PREFIX}&cluster_version=${clusterVersion}`
+      `${HCP_PREFIX}?cluster_version=${clusterVersion}`
     );
 
     // not enough items in id
@@ -54,7 +54,7 @@ module('Integration | Helper | hcp-authentication-link', function (hooks) {
     await render(hbs`{{hcp-authentication-link resourceId}}`);
     assert.equal(
       this.element.textContent.trim(),
-      `${HCP_PREFIX}&cluster_version=${clusterVersion}`
+      `${HCP_PREFIX}?cluster_version=${clusterVersion}`
     );
 
     // value is null
@@ -62,7 +62,7 @@ module('Integration | Helper | hcp-authentication-link', function (hooks) {
     await render(hbs`{{hcp-authentication-link resourceId}}`);
     assert.equal(
       this.element.textContent.trim(),
-      `${HCP_PREFIX}&cluster_version=${clusterVersion}`
+      `${HCP_PREFIX}?cluster_version=${clusterVersion}`
     );
   });
 
@@ -74,7 +74,7 @@ module('Integration | Helper | hcp-authentication-link', function (hooks) {
 
     assert.equal(
       this.element.textContent.trim(),
-      `${HCP_PREFIX}&cluster_name=${clusterName}&cluster_version=${clusterVersion}&cluster_access_mode=${accessMode}`
+      `${HCP_PREFIX}?cluster_name=${clusterName}&cluster_version=${clusterVersion}&cluster_access_mode=${accessMode}`
     );
   });
 });
