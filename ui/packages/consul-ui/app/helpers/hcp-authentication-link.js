@@ -19,20 +19,18 @@ export const HCP_PREFIX =
 export default class hcpAuthenticationLink extends Helper {
   @service('env') env;
   compute([resourceId, accessMode], hash) {
-    if (!resourceId) {
-      return;
-    }
-
     let url = new URL(HCP_PREFIX);
     const clusterVersion = this.env.var('CONSUL_VERSION');
 
-    // Array looks like: ["organization", organizationId, "project", projectId, "hashicorp.consul.global-network-manager.cluster", "Cluster Id"]
-    const [, , , projectId, , clusterName] = resourceId.split('/');
-    if (!projectId || !clusterName) {
-      return '';
+    // if resourceId is empty, we still might want the user to get to the HCP sign-in page
+    if (resourceId) {
+      // Array looks like: ["organization", organizationId, "project", projectId, "hashicorp.consul.global-network-manager.cluster", "Cluster Id"]
+      const [, , , , , clusterName] = resourceId.split('/');
+      if (clusterName) {
+        url.searchParams.append('cluster_name', clusterName);
+      }
     }
 
-    url.searchParams.append('cluster_name', clusterName);
     if (clusterVersion) {
       url.searchParams.append('cluster_version', clusterVersion);
     }
