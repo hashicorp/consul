@@ -5,6 +5,7 @@ package hcp
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -35,7 +36,7 @@ func TestMonitorHCPLink(t *testing.T) {
 		return mockHCPClient, nil
 	}
 
-	loadMgmtTokenFn := func(ctx context.Context, logger hclog.Logger, hcpClient hcpclient.Client, dataDir string) (string, error) {
+	mockLoadMgmtTokenFn := func(ctx context.Context, logger hclog.Logger, hcpClient hcpclient.Client, dataDir string) (string, error) {
 		return "test-mgmt-token", nil
 	}
 
@@ -50,6 +51,8 @@ func TestMonitorHCPLink(t *testing.T) {
 		mutateLink              func(*pbhcp.Link)
 		mutateUpsertEvent       func(*pbresource.WatchEvent_Upsert)
 		applyMocksAndAssertions func(*testing.T, *MockManager, *pbhcp.Link)
+		hcpClientFn             func(config.CloudConfig) (hcpclient.Client, error)
+		loadMgmtTokenFn         func(context.Context, hclog.Logger, hcpclient.Client, string) (string, error)
 	}
 
 	testCases := map[string]testCase{
@@ -65,7 +68,7 @@ func TestMonitorHCPLink(t *testing.T) {
 					AuthURL:         "test.com",
 					ManagementToken: "test-mgmt-token",
 				}
-				mgr.EXPECT().UpdateConfig(mockHCPClient, expectedCfg)
+				mgr.EXPECT().UpdateConfig(mockHCPClient, expectedCfg).Once()
 
 				mgr.EXPECT().Stop().Return(nil).Once()
 			},
@@ -85,7 +88,7 @@ func TestMonitorHCPLink(t *testing.T) {
 					AuthURL:         "test.com",
 					ManagementToken: "",
 				}
-				mgr.EXPECT().UpdateConfig(mockHCPClient, expectedCfg)
+				mgr.EXPECT().UpdateConfig(mockHCPClient, expectedCfg).Once()
 
 				mgr.EXPECT().Stop().Return(nil).Once()
 			},
@@ -102,6 +105,51 @@ func TestMonitorHCPLink(t *testing.T) {
 			applyMocksAndAssertions: func(t *testing.T, mgr *MockManager, link *pbhcp.Link) {
 				mgr.AssertNotCalled(t, "Start", mock.Anything)
 				mgr.AssertNotCalled(t, "UpdateConfig", mock.Anything, mock.Anything)
+				mgr.EXPECT().Stop().Return(nil).Once()
+			},
+		},
+		"Error_InvalidLink": {
+			mutateUpsertEvent: func(upsert *pbresource.WatchEvent_Upsert) {
+				upsert.Resource = nil
+			},
+			applyMocksAndAssertions: func(t *testing.T, mgr *MockManager, link *pbhcp.Link) {
+				mgr.AssertNotCalled(t, "Start", mock.Anything)
+				mgr.AssertNotCalled(t, "UpdateConfig", mock.Anything, mock.Anything)
+				mgr.EXPECT().Stop().Return(nil).Once()
+			},
+		},
+		"Error_HCPManagerStop": {
+			applyMocksAndAssertions: func(t *testing.T, mgr *MockManager, link *pbhcp.Link) {
+				mgr.EXPECT().Start(mock.Anything).Return(nil).Once()
+				mgr.EXPECT().UpdateConfig(mock.Anything, mock.Anything).Return().Once()
+				mgr.EXPECT().Stop().Return(errors.New("could not stop HCP manager")).Once()
+			},
+		},
+		"Error_CreatingHCPClient": {
+			applyMocksAndAssertions: func(t *testing.T, mgr *MockManager, link *pbhcp.Link) {
+				mgr.AssertNotCalled(t, "Start", mock.Anything)
+				mgr.AssertNotCalled(t, "UpdateConfig", mock.Anything, mock.Anything)
+				mgr.EXPECT().Stop().Return(nil).Once()
+			},
+			hcpClientFn: func(_ config.CloudConfig) (hcpclient.Client, error) {
+				return nil, errors.New("could not create HCP client")
+			},
+		},
+		// This should result in the HCP manager not being started
+		"Error_LoadMgmtToken": {
+			applyMocksAndAssertions: func(t *testing.T, mgr *MockManager, link *pbhcp.Link) {
+				mgr.AssertNotCalled(t, "Start", mock.Anything)
+				mgr.AssertNotCalled(t, "UpdateConfig", mock.Anything, mock.Anything)
+				mgr.EXPECT().Stop().Return(nil).Once()
+			},
+			loadMgmtTokenFn: func(ctx context.Context, logger hclog.Logger, hcpClient hcpclient.Client, dataDir string) (string, error) {
+				return "", errors.New("could not load management token")
+			},
+		},
+		"Error_HCPManagerStart": {
+			applyMocksAndAssertions: func(t *testing.T, mgr *MockManager, link *pbhcp.Link) {
+				mgr.EXPECT().Start(mock.Anything).Return(errors.New("could not start HCP manager")).Once()
+				mgr.EXPECT().UpdateConfig(mock.Anything, mock.Anything).Return().Once()
 				mgr.EXPECT().Stop().Return(nil).Once()
 			},
 		},
@@ -132,14 +180,24 @@ func TestMonitorHCPLink(t *testing.T) {
 
 			linkWatchCh := make(chan *pbresource.WatchEvent)
 
+			testHcpClientFn := mockHcpClientFn
+			if test.hcpClientFn != nil {
+				testHcpClientFn = test.hcpClientFn
+			}
+
+			testLoadMgmtToken := mockLoadMgmtTokenFn
+			if test.loadMgmtTokenFn != nil {
+				testLoadMgmtToken = test.loadMgmtTokenFn
+			}
+
 			// Start MonitorHCPLink
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				MonitorHCPLink(
-					ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, mockHcpClientFn,
-					loadMgmtTokenFn, existingCfg, dataDir,
+					ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, testHcpClientFn,
+					testLoadMgmtToken, existingCfg, dataDir,
 				)
 			}()
 
