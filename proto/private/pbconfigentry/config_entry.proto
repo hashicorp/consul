@@ -53,6 +53,7 @@ enum Kind {
   KindTCPRoute = 10;
   KindSamenessGroup = 11;
   KindJWTProvider = 12;
+  KindExportedServices = 13;
 }
 
 message ConfigEntry {
@@ -75,6 +76,7 @@ message ConfigEntry {
     InlineCertificate InlineCertificate = 14;
     SamenessGroup SamenessGroup = 15;
     JWTProvider JWTProvider = 16;
+    ExportedServices ExportedServices = 17;
   }
 }
 
@@ -1304,4 +1306,41 @@ message JWTForwardingConfig {
 message JWTCacheConfig {
   // mog: func-to=int func-from=int32
   int32 Size = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExportedServicesConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message ExportedServices {
+  string Name = 1;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 2;
+  map<string, string> Meta = 3;
+  uint64 Hash = 4;
+  repeated ExportedServicesService Services = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExportedService
+// output=config_entry.gen.go
+// name=Structs
+message ExportedServicesService {
+  string Name = 1;
+  string Namespace = 2;
+  repeated ExportedServicesConsumer Consumers = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceConsumer
+// output=config_entry.gen.go
+// name=Structs
+message ExportedServicesConsumer {
+  string Partition = 1;
+  string Peer = 2;
+  string SamenessGroup = 3;
 }

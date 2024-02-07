@@ -437,7 +437,11 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicJWTProvider, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().JWTProviderSnapshot(req, buf)
 	}, true)
+	panicIfErr(err)
 
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicExportedServices, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().ExportedServicesSnapshot(req, buf)
+	}, true)
 	panicIfErr(err)
 }
 

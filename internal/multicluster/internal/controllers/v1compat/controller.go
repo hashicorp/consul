@@ -24,9 +24,11 @@ const (
 )
 
 type AggregatedConfig interface {
+	Start(context.Context)
 	GetExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) (*structs.ExportedServicesConfigEntry, error)
 	WriteExportedServicesConfigEntry(context.Context, *structs.ExportedServicesConfigEntry) error
 	DeleteExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) error
+	EventChannel() chan controller.Event
 }
 
 func mapExportedServices(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
@@ -43,12 +45,31 @@ func mapExportedServices(_ context.Context, _ controller.Runtime, res *pbresourc
 	}, nil
 }
 
+func mapConfigEntryEvents(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
+	partition := event.Obj.Key()
+
+	return []controller.Request{
+		{
+			ID: &pbresource.ID{
+				Type: pbmulticluster.ComputedExportedServicesType,
+				Tenancy: &pbresource.Tenancy{
+					Partition: partition,
+				},
+				Name: types.ComputedExportedServicesName,
+			},
+		},
+	}, nil
+}
+
 func Controller(config AggregatedConfig) *controller.Controller {
 	return controller.NewController(ControllerName, pbmulticluster.ComputedExportedServicesType).
+		WithNotifyStart(func(ctx context.Context, r controller.Runtime) {
+			go config.Start(ctx)
+		}).
 		WithWatch(pbmulticluster.PartitionExportedServicesType, mapExportedServices).
 		WithWatch(pbmulticluster.NamespaceExportedServicesType, mapExportedServices).
 		WithWatch(pbmulticluster.ExportedServicesType, mapExportedServices).
-		// TODO Add custom watch for exported-services for config entry events to attempt re-reconciliation when that changes
+		WithCustomWatch(&controller.Source{Source: config.EventChannel()}, mapConfigEntryEvents).
 		WithReconciler(&reconciler{config: config})
 }
 

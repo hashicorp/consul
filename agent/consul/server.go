@@ -1008,7 +1008,6 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager)
-		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err
@@ -1046,7 +1045,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
 	}
 
-	multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
+	shim := NewExportedServicesShim(s)
+	multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(shim))
 
 	reaper.RegisterControllers(s.controllerManager)
 

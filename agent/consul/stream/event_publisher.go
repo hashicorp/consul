@@ -23,7 +23,7 @@ type EventPublisher struct {
 	// seconds.
 	snapCacheTTL time.Duration
 
-	// This lock protects the snapCache, topicBuffers and topicBuffer.refs.
+	// This lock protects the snapCache, topicBuffers, snapshotHandlers, and topicBuffer.refs.
 	lock sync.RWMutex
 
 	// topicBuffers stores the head of the linked-list buffers to publish events to
@@ -116,15 +116,17 @@ func NewEventPublisher(snapCacheTTL time.Duration) *EventPublisher {
 }
 
 // RegisterHandler will register a new snapshot handler function. The expectation is
-// that all handlers get registered prior to the event publisher being Run. Handler
-// registration is therefore not concurrency safe and access to handlers is internally
-// not synchronized. Passing supportsWildcard allows consumers to subscribe to events
-// on this topic with *any* subject (by requesting SubjectWildcard) but this must be
-// supported by the handler function.
+// that all handlers get registered prior to the event publisher being Run. Passing
+// supportsWildcard allows consumers to subscribe to events on this topic with *any*
+// subject (by requesting SubjectWildcard) but this must be supported by the handler
+// function.
 func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supportsWildcard bool) error {
 	if topic.String() == "" {
 		return fmt.Errorf("the topic cannnot be empty")
 	}
+
+	e.lock.Lock()
+	defer e.lock.Unlock()
 
 	if _, found := e.snapshotHandlers[topic]; found {
 		return fmt.Errorf("a handler is already registered for the topic: %s", topic.String())
@@ -143,7 +145,11 @@ func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supp
 }
 
 func (e *EventPublisher) RefreshTopic(topic Topic) error {
-	if _, found := e.snapshotHandlers[topic]; !found {
+	e.lock.Lock()
+	_, found := e.snapshotHandlers[topic]
+	e.lock.Unlock()
+
+	if !found {
 		return fmt.Errorf("topic %s is not registered", topic)
 	}
 
