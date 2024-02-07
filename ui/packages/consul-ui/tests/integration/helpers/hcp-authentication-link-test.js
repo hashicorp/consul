@@ -39,22 +39,31 @@ module('Integration | Helper | hcp-authentication-link', function (hooks) {
     );
   });
 
-  test('it returns empty string with invalid resourceId', async function (assert) {
+  test('it returns correct link with invalid resourceId', async function (assert) {
     this.resourceId = 'invalid';
 
     await render(hbs`{{hcp-authentication-link resourceId}}`);
-    assert.equal(this.element.textContent.trim(), '');
+    assert.equal(
+      this.element.textContent.trim(),
+      `${HCP_PREFIX}&cluster_version=${clusterVersion}`
+    );
 
     // not enough items in id
     this.resourceId =
       '`organization/b4432207-bb9c-438e-a160-b98923efa979/project/${projectId}/hashicorp.consul.global-network-manager.cluster`';
     await render(hbs`{{hcp-authentication-link resourceId}}`);
-    assert.equal(this.element.textContent.trim(), '');
+    assert.equal(
+      this.element.textContent.trim(),
+      `${HCP_PREFIX}&cluster_version=${clusterVersion}`
+    );
 
     // value is null
     this.resourceId = null;
     await render(hbs`{{hcp-authentication-link resourceId}}`);
-    assert.equal(this.element.textContent.trim(), '');
+    assert.equal(
+      this.element.textContent.trim(),
+      `${HCP_PREFIX}&cluster_version=${clusterVersion}`
+    );
   });
 
   test('it makes a URL out of a real resourceId and accessLevel, if passed', async function (assert) {
