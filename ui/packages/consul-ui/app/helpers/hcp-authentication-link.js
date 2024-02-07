@@ -12,10 +12,10 @@ import { inject as service } from '@ember/service';
  * organization/${organizationId}/project/${projectId}/hashicorp.consul.global-network-manager.cluster/${clusterName}
  *
  * A HCP URL looks like:
- * https://portal.cloud.hashicorp.com/sign-in?cluster_name=test-from-api&redirect_to=link-consul-cluster&cluster_version=1.18.0&cluster_access_mode=CONSUL_ACCESS_LEVEL_GLOBAL_READ_WRITE&redirect_url=localhost:8500/services
+ * https://portal.cloud.hashicorp.com/services/consul/clusters/self-managed/link-existing?cluster_name=test-from-api&cluster_version=1.18.0&cluster_access_mode=CONSUL_ACCESS_LEVEL_GLOBAL_READ_WRITE&redirect_url=localhost:8500/services
  */
 export const HCP_PREFIX =
-  'https://portal.cloud.hashicorp.com/sign-in?redirect_to=link-consul-cluster';
+  'https://portal.cloud.hashicorp.com/services/consul/clusters/self-managed/link-existing';
 export default class hcpAuthenticationLink extends Helper {
   @service('env') env;
   compute([resourceId, accessMode], hash) {
