@@ -9,11 +9,13 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/apigateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
@@ -34,9 +36,11 @@ const (
 func Controller(cache *cache.Cache, trustDomainFetcher sidecarproxy.TrustDomainFetcher, dc string, defaultAllow bool) *controller.Controller {
 	// TODO NET-7016 Use caching functionality in NewController being implemented at time of writing
 	// TODO NET-7017 Add the host of other types we should watch
+	// TODO NET-7565: Add watch for serviceTypes across partitions
 	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmulticluster.ComputedExportedServicesType, mapper.AllMeshGatewayWorkloadsInPartition).
 		WithReconciler(&reconciler{
 			cache:          cache,
 			dc:             dc,
@@ -124,7 +128,9 @@ func (r *reconciler) reconcileMeshGatewayProxyState(ctx context.Context, dataFet
 	}
 
 	// This covers any incoming requests from inside my partition to services outside my partition
-	meshGateways, err := dataFetcher.FetchMeshGateways(ctx)
+	meshGateways, err := dataFetcher.FetchMeshGateways(ctx, &pbresource.Tenancy{
+		Partition: acl.WildcardPartitionName,
+	})
 	if err != nil {
 		rt.Logger.Warn("error reading the associated mesh gateways", "error", err)
 	}
