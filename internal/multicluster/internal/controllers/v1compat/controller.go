@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
+	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -24,9 +26,11 @@ const (
 )
 
 type AggregatedConfig interface {
+	Start(context.Context)
 	GetExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) (*structs.ExportedServicesConfigEntry, error)
 	WriteExportedServicesConfigEntry(context.Context, *structs.ExportedServicesConfigEntry) error
 	DeleteExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) error
+	EventChannel() chan controller.Event
 }
 
 func mapExportedServices(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
@@ -43,12 +47,31 @@ func mapExportedServices(_ context.Context, _ controller.Runtime, res *pbresourc
 	}, nil
 }
 
+func mapConfigEntryEvents(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
+	partition := event.Obj.Key()
+
+	return []controller.Request{
+		{
+			ID: &pbresource.ID{
+				Type: pbmulticluster.ComputedExportedServicesType,
+				Tenancy: &pbresource.Tenancy{
+					Partition: partition,
+				},
+				Name: types.ComputedExportedServicesName,
+			},
+		},
+	}, nil
+}
+
 func Controller(config AggregatedConfig) *controller.Controller {
 	return controller.NewController(ControllerName, pbmulticluster.ComputedExportedServicesType).
+		WithNotifyStart(func(ctx context.Context, r controller.Runtime) {
+			go config.Start(ctx)
+		}).
 		WithWatch(pbmulticluster.PartitionExportedServicesType, mapExportedServices).
 		WithWatch(pbmulticluster.NamespaceExportedServicesType, mapExportedServices).
 		WithWatch(pbmulticluster.ExportedServicesType, mapExportedServices).
-		// TODO Add custom watch for exported-services for config entry events to attempt re-reconciliation when that changes
+		WithCustomWatch(&controller.Source{Source: config.EventChannel()}, mapConfigEntryEvents).
 		WithReconciler(&reconciler{config: config})
 }
 
@@ -84,30 +107,48 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		EnterpriseMeta: *entMeta,
 	}
 
-	partitionExports, err := resource.ListDecodedResource[*pbmulticluster.PartitionExportedServices](ctx, rt.Client, &pbresource.ListRequest{
-		Type:    pbmulticluster.PartitionExportedServicesType,
-		Tenancy: req.ID.Tenancy,
-	})
+	partitionExports, err := cache.ListDecoded[*pbmulticluster.PartitionExportedServices](
+		rt.Cache,
+		pbmulticluster.PartitionExportedServicesType,
+		"id",
+		&pbresource.ID{
+			Type:    pbmulticluster.PartitionExportedServicesType,
+			Tenancy: req.ID.Tenancy,
+		},
+		index.IndexQueryOptions{Prefix: true},
+	)
 
 	if err != nil {
 		rt.Logger.Error("error retrieving partition exported services", "error", err)
 		return err
 	}
 
-	namespaceExports, err := resource.ListDecodedResource[*pbmulticluster.NamespaceExportedServices](ctx, rt.Client, &pbresource.ListRequest{
-		Type:    pbmulticluster.NamespaceExportedServicesType,
-		Tenancy: req.ID.Tenancy,
-	})
+	namespaceExports, err := cache.ListDecoded[*pbmulticluster.NamespaceExportedServices](
+		rt.Cache,
+		pbmulticluster.NamespaceExportedServicesType,
+		"id",
+		&pbresource.ID{
+			Type:    pbmulticluster.NamespaceExportedServicesType,
+			Tenancy: req.ID.Tenancy,
+		},
+		index.IndexQueryOptions{Prefix: true},
+	)
 
 	if err != nil {
 		rt.Logger.Error("error retrieving namespace exported service", "error", err)
 		return err
 	}
 
-	serviceExports, err := resource.ListDecodedResource[*pbmulticluster.ExportedServices](ctx, rt.Client, &pbresource.ListRequest{
-		Type:    pbmulticluster.ExportedServicesType,
-		Tenancy: req.ID.Tenancy,
-	})
+	serviceExports, err := cache.ListDecoded[*pbmulticluster.ExportedServices](
+		rt.Cache,
+		pbmulticluster.ExportedServicesType,
+		"id",
+		&pbresource.ID{
+			Type:    pbmulticluster.ExportedServicesType,
+			Tenancy: req.ID.Tenancy,
+		},
+		index.IndexQueryOptions{Prefix: true},
+	)
 
 	if err != nil {
 		rt.Logger.Error("error retrieving exported services", "error", err)

@@ -278,6 +278,86 @@ func DestinationConfigFromStructs(t *structs.DestinationConfig, s *DestinationCo
 	s.Addresses = t.Addresses
 	s.Port = int32(t.Port)
 }
+func ExportedServicesToStructs(s *ExportedServices, t *structs.ExportedServicesConfigEntry) {
+	if s == nil {
+		return
+	}
+	{
+		t.Services = make([]structs.ExportedService, len(s.Services))
+		for i := range s.Services {
+			if s.Services[i] != nil {
+				ExportedServicesServiceToStructs(s.Services[i], &t.Services[i])
+			}
+		}
+	}
+	t.Meta = s.Meta
+	t.Hash = s.Hash
+}
+func ExportedServicesFromStructs(t *structs.ExportedServicesConfigEntry, s *ExportedServices) {
+	if s == nil {
+		return
+	}
+	{
+		s.Services = make([]*ExportedServicesService, len(t.Services))
+		for i := range t.Services {
+			{
+				var x ExportedServicesService
+				ExportedServicesServiceFromStructs(&t.Services[i], &x)
+				s.Services[i] = &x
+			}
+		}
+	}
+	s.Meta = t.Meta
+	s.Hash = t.Hash
+}
+func ExportedServicesConsumerToStructs(s *ExportedServicesConsumer, t *structs.ServiceConsumer) {
+	if s == nil {
+		return
+	}
+	t.Partition = s.Partition
+	t.Peer = s.Peer
+	t.SamenessGroup = s.SamenessGroup
+}
+func ExportedServicesConsumerFromStructs(t *structs.ServiceConsumer, s *ExportedServicesConsumer) {
+	if s == nil {
+		return
+	}
+	s.Partition = t.Partition
+	s.Peer = t.Peer
+	s.SamenessGroup = t.SamenessGroup
+}
+func ExportedServicesServiceToStructs(s *ExportedServicesService, t *structs.ExportedService) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Namespace = s.Namespace
+	{
+		t.Consumers = make([]structs.ServiceConsumer, len(s.Consumers))
+		for i := range s.Consumers {
+			if s.Consumers[i] != nil {
+				ExportedServicesConsumerToStructs(s.Consumers[i], &t.Consumers[i])
+			}
+		}
+	}
+}
+func ExportedServicesServiceFromStructs(t *structs.ExportedService, s *ExportedServicesService) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Namespace = t.Namespace
+	{
+		s.Consumers = make([]*ExportedServicesConsumer, len(t.Consumers))
+		for i := range t.Consumers {
+			{
+				var x ExportedServicesConsumer
+				ExportedServicesConsumerFromStructs(&t.Consumers[i], &x)
+				s.Consumers[i] = &x
+			}
+		}
+	}
+}
 func ExposeConfigToStructs(s *ExposeConfig, t *structs.ExposeConfig) {
 	if s == nil {
 		return
