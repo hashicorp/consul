@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Consul server requirements for virtual machines
+page_title: Consul server requirements on VMs
 description: >-
-    Consul servers require sufficient compute resources to communicate and process data quickly. Learn about Consul's minimum server requirements and recommendations for different workloads. 
+  Consul servers require sufficient compute resources to communicate and process data quickly. Learn about Consul's minimum server requirements and recommendations for different workloads. 
 ---
 
-# Consul server requirements for virtual machines
+# Consul server requirements on VMs
 
 Since Consul servers run a [consensus protocol](/consul/docs/architecture/consensus) to
 process all write operations and are contacted on nearly all read operations, server
@@ -154,7 +154,7 @@ For **write-heavy** workloads, the total RAM available for overhead must approxi
 RAM NEEDED = number of keys * average key size * 2-3x
 ```
 
-Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side. ([Documentation](/consul/docsreference-cli/agent#_data_dir))
+Since writes must be synced to disk (persistent storage) on a quorum of servers before they are committed, deploying a disk with high write throughput (or an SSD) will enhance performance on the write side. ([Documentation](/consul/docs/agent/config/cli-flags#_data_dir))
 
 For a **read-heavy** workload, configure all Consul server agents with the `allow_stale` DNS option, or query the API with the `stale` [consistency mode](/consul/api-docs/features/consistency). By default, all queries made to the server are RPC forwarded to and serviced by the leader. By enabling stale reads, any server will respond to any query, thereby reducing overhead on the leader. Typically, the stale response is `100ms` or less from consistent mode but it drastically improves performance and reduces latency under high load.
 
@@ -162,7 +162,7 @@ If the leader server is out of memory or the disk is full, the server eventually
 
 It should be noted that `stale` is not appropriate for coordination where strong consistency is important (i.e. locking or application leader election). For critical cases, the optional `consistent` API query mode is required for true linearizability; the trade off is that this turns a read into a full quorum write so requires more resources and takes longer.
 
-**Read-heavy** clusters may take advantage of the [enhanced reading](/consul/docs/manage-consul/read-replicas) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
+**Read-heavy** clusters may take advantage of the [enhanced reading](/consul/docs/enterprise/read-scale) feature (Enterprise) for better scalability. This feature allows additional servers to be introduced as non-voters. Being a non-voter, the server will still participate in data replication, but it will not block the leader from committing log entries.
 
 Consul's agents use network sockets for communicating with the other nodes (gossip) and with the server agent. In addition, file descriptors are also opened for watch handlers, health checks, and log files. For a **write heavy** cluster, the `ulimit` size must be increased from the default value (`1024`) to prevent the leader from running out of file descriptors.
 
