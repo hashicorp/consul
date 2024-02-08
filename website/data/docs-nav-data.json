@@ -1339,7 +1339,64 @@
     ]
   },
   {
-    "title": "Secure mesh ingress",
+    "title": "Manage tenancy",
+    "badge": {
+      "text": "ENTERPRISE",
+      "type": "outlined",
+      "color": "neutral"
+    },
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "segment"
+      },
+      {
+        "title": "Admin partitions",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/admin-partition"
+          },
+          {
+            "title": "Configure partitions on Kubernetes",
+            "path": "segment/admin-partition/k8s"
+          }
+        ]
+      },
+      {
+        "title": "Namespaces",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/namespace"
+          },
+          {
+            "title": "Configure namespaces on Kubernetes",
+            "path": "segment/namespace/k8s"
+          }
+        ]
+      },
+      {
+        "title": "Network segments",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/network-segment"
+          },
+          {
+            "title": "Create network segments (VM)",
+            "path": "segment/network-segment/vm"
+          }
+        ]
+      },
+      {
+        "title": "Sameness groups",
+        "path": "segment/sameness-group"
+      }
+    ]
+  },
+  {
+    "title": "Secure network north/south",
     "routes": [
       {
         "title": "Overview",
@@ -1490,64 +1547,7 @@
     ]
   },
   {
-    "title": "Manage tenancy",
-    "badge": {
-      "text": "ENTERPRISE",
-      "type": "outlined",
-      "color": "neutral"
-    },
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "segment"
-      },
-      {
-        "title": "Admin partitions",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/admin-partition"
-          },
-          {
-            "title": "Configure partitions on Kubernetes",
-            "path": "segment/admin-partition/k8s"
-          }
-        ]
-      },
-      {
-        "title": "Namespaces",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/namespace"
-          },
-          {
-            "title": "Configure namespaces on Kubernetes",
-            "path": "segment/namespace/k8s"
-          }
-        ]
-      },
-      {
-        "title": "Network segments",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/network-segment"
-          },
-          {
-            "title": "Create network segments (VM)",
-            "path": "segment/network-segment/vm"
-          }
-        ]
-      },
-      {
-        "title": "Sameness groups",
-        "path": "segment/sameness-group"
-      }
-    ]
-  },
-  {
-    "title": "Link network segments",
+    "title": "Link network east/west",
     "routes": [
       {
         "title": "Overview",
@@ -1657,7 +1657,7 @@
     ]
   },
   {
-    "title": "Secure services",
+    "title": "Secure mesh traffic",
     "routes": [
       {
         "title": "Overview",
@@ -1813,7 +1813,7 @@
     ]
   },
   {
-    "title": "Observe services",
+    "title": "Observe service mesh",
     "routes": [
       {
         "title": "Overview",
