@@ -20,6 +20,7 @@ func RegisterTypes(r resource.Registry) {
 type ControllerDependencies = controllers.Dependencies
 
 var IsValidated = link.IsValidated
+var LinkName = types.LinkName
 
 // RegisterControllers registers controllers for the catalog types with
 // the given controller Manager.
@@ -29,6 +30,5 @@ func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
 
 // Needed for testing
 var StatusKey = link.StatusKey
-var StatusValidated = link.StatusValidated
 var ConditionValidatedSuccess = link.ConditionValidatedSuccess
 var ConditionValidatedFailed = link.ConditionValidatedFailed
