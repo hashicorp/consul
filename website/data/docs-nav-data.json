@@ -70,7 +70,7 @@
     ]
   },
   {
-    "title": "Concepts (Deep dives)",
+    "title": "Concepts",
     "routes": [
       {
         "title": "Admin partition",
@@ -120,7 +120,7 @@
       },
       {
         "title": "Improve Consul resilience",
-        "path": "architecture/improving-consul-resilience"
+        "path": "architecture/resilience"
       },
       {
         "title": "Anti-entropy",
@@ -220,10 +220,6 @@
               {
                 "title": "Server requirements",
                 "path": "deploy/server/vm/requirements"
-              },
-              {
-                "title": "Consul Enterprise",
-                "path": "deploy/server/vm/enterprise"
               }
             ]
           },
@@ -237,6 +233,18 @@
               {
                 "title": "Kubernetes requirements",
                 "path": "deploy/server/k8s/requirements"
+              },
+              {
+                "title": "Deploy with Helm",
+                "path": "deploy/server/k8s/helm"
+              },
+              {
+                "title": "Deploy with consul-k8s",
+                "path": "deploy/server/k8s/consul-k8s"
+              },
+              {
+                "title": "Deploy Consul Enterprise",
+                "path": "deploy/server/k8s/enterprise"
               },
               {
                 "title": "Platform guides",
@@ -275,20 +283,12 @@
                 "title": "Advanced examples",
                 "routes": [
                   {
-                    "title": "Clients outside Kubernetes",
-                    "path": "deploy/server/k8s/examples/clients-outside"
-                  },
-                  {
                     "title": "Servers outside Kubernetes",
                     "path": "deploy/server/k8s/examples/servers-outside"
                   },
                   {
                     "title": "Consul in multiple Kubernetes clusters",
                     "path": "deploy/server/k8s/examples/multiple-clusters"
-                  },
-                  {
-                    "title": "Consul Enterprise",
-                    "path": "deploy/server/k8s/examples/enterprise"
                   },
                   {
                     "title": "Multi-cluster federation",
@@ -372,6 +372,10 @@
                 ]
               }
             ]
+          },
+          {
+            "title": "AWS ECS",
+            "path": "deploy/server/ecs"
           }
         ]
       },
@@ -387,17 +391,8 @@
             "path": "deploy/control-plane/vm"
           },
           {
-            "title": "Kubernetes",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "deploy/control-plane/k8s"
-              },
-              {
-                "title": "Clients outside Kubernetes",
-                "path": "deploy/control-plane/k8s/external-client"
-              }
-            ]
+            "title": "Overview",
+            "path": "deploy/control-plane/k8s"
           },
           {
             "title": "Nomad",
@@ -441,14 +436,6 @@
       {
         "title": "Consul Enterprise",
         "path": "deploy/enterprise"
-      },
-      {
-        "title": "Virtual machine (VM)",
-        "path": "deploy/vm"
-      },
-      {
-        "title": "Kubernetes",
-        "path": "deploy/k8s"
       }
     ]
   },
@@ -642,24 +629,7 @@
       },
       {
         "title": "Agent telemetry",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "monitor-consul/telemetry"
-          },
-          {
-            "title": "Enable host metrics",
-            "path": "monitor-consul/telemetry/enable-host-metrics"
-          },
-          {
-            "title": "Access and stream metrics",
-            "path": "monitor-consul/telemetry/access-stream-metrics"
-          },
-          {
-            "title": "Stream metrics to external store",
-            "path": "monitor-consul/telemetry/stream-metrics-external"
-          }
-        ]
+        "path": "monitor-consul/telemetry"
       },
       {
         "title": "Consul logs",
@@ -1052,16 +1022,12 @@
             "title": "ECS",
             "routes": [
               {
-                "title": "Overview",
-                "path": "register/service/ecs"
-              },
-              {
                 "title": "Requirements",
                 "path": "register/service/ecs/requirements"
               },
               {
                 "title": "Register tasks with Terraform",
-                "path": "register/service/ecs/automatic"
+                "path": "register/service/ecs"
               },
               {
                 "title": "Register tasks manually",
@@ -1074,10 +1040,6 @@
               {
                 "title": "Configure ECS task bind address",
                 "path": "register/service/ecs/configure-task-bind-address"
-              },
-              {
-                "title": "Consul Enterprise",
-                "path": "register/service/ecs/enterprise"
               }
             ]
           },
@@ -1339,7 +1301,64 @@
     ]
   },
   {
-    "title": "Secure mesh ingress",
+    "title": "Manage tenancy",
+    "badge": {
+      "text": "ENTERPRISE",
+      "type": "outlined",
+      "color": "neutral"
+    },
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "segment"
+      },
+      {
+        "title": "Admin partitions",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/admin-partition"
+          },
+          {
+            "title": "Configure partitions on Kubernetes",
+            "path": "segment/admin-partition/k8s"
+          }
+        ]
+      },
+      {
+        "title": "Namespaces",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/namespace"
+          },
+          {
+            "title": "Configure namespaces on Kubernetes",
+            "path": "segment/namespace/k8s"
+          }
+        ]
+      },
+      {
+        "title": "Network segments",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/network-segment"
+          },
+          {
+            "title": "Create network segments (VM)",
+            "path": "segment/network-segment/vm"
+          }
+        ]
+      },
+      {
+        "title": "Sameness groups",
+        "path": "segment/sameness-group"
+      }
+    ]
+  },
+  {
+    "title": "Secure network north/south",
     "routes": [
       {
         "title": "Overview",
@@ -1490,64 +1509,7 @@
     ]
   },
   {
-    "title": "Manage tenancy",
-    "badge": {
-      "text": "ENTERPRISE",
-      "type": "outlined",
-      "color": "neutral"
-    },
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "segment"
-      },
-      {
-        "title": "Admin partitions",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/admin-partition"
-          },
-          {
-            "title": "Configure partitions on Kubernetes",
-            "path": "segment/admin-partition/k8s"
-          }
-        ]
-      },
-      {
-        "title": "Namespaces",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/namespace"
-          },
-          {
-            "title": "Configure namespaces on Kubernetes",
-            "path": "segment/namespace/k8s"
-          }
-        ]
-      },
-      {
-        "title": "Network segments",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/network-segment"
-          },
-          {
-            "title": "Create network segments (VM)",
-            "path": "segment/network-segment/vm"
-          }
-        ]
-      },
-      {
-        "title": "Sameness groups",
-        "path": "segment/sameness-group"
-      }
-    ]
-  },
-  {
-    "title": "Link network segments",
+    "title": "Link network east/west",
     "routes": [
       {
         "title": "Overview",
@@ -1657,7 +1619,7 @@
     ]
   },
   {
-    "title": "Secure services",
+    "title": "Secure mesh traffic",
     "routes": [
       {
         "title": "Overview",
@@ -1813,7 +1775,7 @@
     ]
   },
   {
-    "title": "Observe services",
+    "title": "Observe service mesh",
     "routes": [
       {
         "title": "Overview",
@@ -1927,7 +1889,11 @@
       },
       {
         "title": "Deploy Consul",
-        "href": "deploy/vm"
+        "href": "deploy/server/vm"
+      },
+      {
+        "title": "Upgrade Consul",
+        "href": "upgrade"
       },
       {
         "title": "Register services",
@@ -1972,7 +1938,11 @@
       },
       {
         "title": "Deploy Consul",
-        "href": "deploy/k8s"
+        "href": "deploy/server/k8s"
+      },
+      {
+        "title": "Upgrade Consul",
+        "href": "upgrade/k8s"
       },
       {
         "title": "Register services",
@@ -1987,15 +1957,15 @@
         "href": "connect/k8s"
       },
       {
-        "title": "Access services",
+        "title": "Secure north/south",
         "href": "access/k8s"
       },
       {
-        "title": "Link network segments",
+        "title": "Link east/west",
         "href": "link/k8s"
       },
       {
-        "title": "Secure services",
+        "title": "Secure service mesh",
         "href": "secure-mesh/k8s"
       },
       {
@@ -2014,6 +1984,14 @@
       {
         "title": "Overview",
         "path": "ecs"
+      },
+      {
+        "title": "Deploy Consul",
+        "href": "deploy/server/ecs"
+      },
+      {
+        "title": "Upgrade Consul",
+        "href": "upgrade/ecs"
       },
       {
         "title": "Register services",
@@ -2356,7 +2334,16 @@
       },
       {
         "title": "Agent",
-        "path": "reference/agent"
+        "routes": [
+          {
+            "title": "Configuration reference",
+            "path": "reference/agent"
+          },
+          {
+            "title": "Telemetry reference",
+            "path": "reference/agent/telemetry"
+          }
+        ]
       },
       {
         "title": "Service",

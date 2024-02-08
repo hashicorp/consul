@@ -178,11 +178,11 @@ The following table describes a subset of special purpose tokens. Refer to [`acl
 
 | Token                         | Servers    | Clients    | Description |
 | ----------------------------- | ---------- | ---------- | ----------- |
-| [`acl.tokens.agent`](/consul/docs/agent/config/config-files#acl_tokens_agent) | `optional` | `optional` | Used for internal agent operations. Refer to [ACL agent token](#acl-agent-token) for details. |
-| [`acl.tokens.agent_recovery`](/consul/docs/agent/config/config-files#acl_tokens_agent_recovery) | `optional` | `optional` | Enables access to the [`agent/` HTTP API endpoint](/consul/api-docs/agent) when remote bearer token resolution fails. <br/>Used for setting up the cluster and performing initial join operations. <br/>Refer to [ACL agent recovery token](#acl-agent-recovery-token) for details. |
-| [`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default) | `optional` | `optional` | Specifies a default token to use for client requests if no token is supplied. This token is commonly configured with read-only access to services to enable DNS service discovery on agents. |
-| [`acl.tokens.initial_management`](/consul/docs/agent/config/config-files#acl_tokens_initial_management) | `optional` | `n/a` | Used to bootstrap the ACL system. Refer to [Initial management token](#initial-management-token). |
-| [`acl.tokens.replication`](/consul/docs/agent/config/config-files#acl_tokens_replication) | `optional` | `n/a` | Authorizes secondary datacenters to replicate data from the primary datacenter. |
+| [`acl.tokens.agent`](/consul/docs/reference/agent#acl_tokens_agent) | `optional` | `optional` | Used for internal agent operations. Refer to [ACL agent token](#acl-agent-token) for details. |
+| [`acl.tokens.agent_recovery`](/consul/docs/reference/agent#acl_tokens_agent_recovery) | `optional` | `optional` | Enables access to the [`agent/` HTTP API endpoint](/consul/api-docs/agent) when remote bearer token resolution fails. <br/>Used for setting up the cluster and performing initial join operations. <br/>Refer to [ACL agent recovery token](#acl-agent-recovery-token) for details. |
+| [`acl.tokens.default`](/consul/docs/reference/agent#acl_tokens_default) | `optional` | `optional` | Specifies a default token to use for client requests if no token is supplied. This token is commonly configured with read-only access to services to enable DNS service discovery on agents. |
+| [`acl.tokens.initial_management`](/consul/docs/reference/agent#acl_tokens_initial_management) | `optional` | `n/a` | Used to bootstrap the ACL system. Refer to [Initial management token](#initial-management-token). |
+| [`acl.tokens.replication`](/consul/docs/reference/agent#acl_tokens_replication) | `optional` | `n/a` | Authorizes secondary datacenters to replicate data from the primary datacenter. |
 
 You can use the [`/v1/agent/token` endpoint](/consul/api-docs/agent#update-acl-tokens) to create or update all reserved tokens except the `initial_management` token.
 

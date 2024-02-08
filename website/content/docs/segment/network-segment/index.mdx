@@ -32,7 +32,7 @@ By default, all Consul agents are part of a shared Serf LAN gossip pool, referre
 
 ## Segment membership
 
-Server agents are members of all segments. The datacenter includes the `<default>` segment, as well as additional segments defined in the `segments` server agent configuration option. Refer to the [`segments`](/consul/docs/agent/config/config-files#segments) documentation for additional information. 
+Server agents are members of all segments. The datacenter includes the `<default>` segment, as well as additional segments defined in the `segments` server agent configuration option. Refer to the [`segments`](/consul/docs/reference/agent#segments) documentation for additional information. 
 
 Each client agent can only be a member of one segment at a time. Client agents are members of the `<default>` segment unless they are configured to join a different segment. 
 For a client agent to join the Consul datacenter, it must connect to another agent (client or server) within its configured segment.
