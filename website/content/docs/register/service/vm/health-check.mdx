@@ -11,7 +11,7 @@ This topic describes how to create different types of health checks for your ser
 
 ## Overview
 
-Health checks are configurations that verifies the health of a service or node. Health checks configurations are nested in the `service` block. Refer to [Define Services](/consul/docs/services/usage/define-services) for information about specifying other service parameters.   
+Health checks are configurations that verifies the health of a service or node. Health checks configurations are nested in the `service` block. Refer to [Define Services](/consul/docs/register/service/vm/define) for information about specifying other service parameters.   
 
 You can define individual health checks for your service in separate `check` blocks or define multiple checks in a `checks` block. Refer to [Define multiple checks](#define-multiple-checks) for additional information.
 
@@ -31,7 +31,7 @@ If your network runs in a Kubernetes environment, you can sync service health in
 
 ### Registration
 
-After defining health checks, you must register the service containing the checks with Consul. Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for additional information. If the service is already registered, you can reload the service configuration file to implement your health check. Refer to [Reload](/consul/commands/reload) for additional information.
+After defining health checks, you must register the service containing the checks with Consul. Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for additional information. If the service is already registered, you can reload the service configuration file to implement your health check. Refer to [Reload](/consul/commands/reload) for additional information.
 
 ## Define multiple checks
 
@@ -131,8 +131,8 @@ Script checks timeout after 30 seconds by default, but you can configure a custo
 To enable script checks, you must first enable the agent to send external requests, then configure the health check settings in the service definition:
 
 1. Add one of the following configurations to your agent configuration file to enable a script check:
-   - [`enable_local_script_checks`](/consul/docs/agent/config/cli-flags#enable_local_script_checks): Enable script checks defined in local configuration files. Script checks registered using the HTTP API are not allowed.
-   - [`enable_script_checks`](/consul/docs/agent/config/cli-flags#enable_script_checks): Enable script checks no matter how they are registered.
+   - [`enable_local_script_checks`](/consul/docsreference-cli/agent#enable_local_script_checks): Enable script checks defined in local configuration files. Script checks registered using the HTTP API are not allowed.
+   - [`enable_script_checks`](/consul/docsreference-cli/agent#enable_script_checks): Enable script checks no matter how they are registered.
 
    !> **Security warning:** Enabling non-local script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead.
 
@@ -169,7 +169,7 @@ To enable script checks, you must first enable the agent to send external reques
    ```
    </CodeTabs>
 
-Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations.
+Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
 
 ### Script check exit codes
 The following exit codes returned by the script check determine the health check status:
@@ -184,7 +184,7 @@ Any output of the script is captured and made available in the `Output` field of
 _HTTP_ checks send an HTTP request to the specified URL and report the service health based on the [HTTP response code](#http-check-response-codes). We recommend using HTTP checks over [script checks](#script-checks) that use cURL or another external process to check an HTTP operation. 
 
 ### HTTP check configuration
-Add an `http` field to the `check` block in your service definition file and specify the HTTP address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations.
+Add an `http` field to the `check` block in your service definition file and specify the HTTP address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
 
 In the following example, an HTTP check named `HTTP API on port 5000` sends a `POST` request to the `health` endpoint every 10 seconds:
 
@@ -244,7 +244,7 @@ Responses larger than 4KB are truncated. The HTTP response determines the status
 TCP checks establish connections to the specified IPs or hosts. If the check successfully establishes a connection, the service status is reported as `success`. If the IP or host does not accept the connection, the service status is reported as `critical`. We recommend TCP checks over [script checks](#script-checks)  that use netcat or another external process to check a socket operation. 
 
 ### TCP check configuration
-Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations.
+Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
 
 In the following example, a TCP check named `SSH TCP on port 22` attempts to connect to `localhost:22` every 10 seconds:
 
@@ -283,7 +283,7 @@ By default, TCP check requests timeout at 10 seconds, but you can specify a cust
 UDP checks direct the Consul agent to send UDP datagrams to the specified IP or hostname and port. The check status is set to `success` if any response is received from the targeted UDP server. Any other result sets the status to `critical`.
 
 ### UDP check configuration
-Add a `udp` field to the `check` block in your service definition file and specify the address, including port number, for sending datagrams. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
+Add a `udp` field to the `check` block in your service definition file and specify the address, including port number, for sending datagrams. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
 
 In the following example, a UDP check named `DNS UDP on port 53` sends datagrams to `localhost:53` every 10 seconds: 
 
@@ -319,7 +319,7 @@ By default, UDP checks timeout at 10 seconds, but you can specify a custom timeo
 OSService checks if an OS service is running on the host. OSService checks support Windows services on Windows hosts or SystemD services on Unix hosts. The check logs the service as `healthy` if it is running. If the service is not running, the status is logged as `critical`. All other results are logged with `warning`. A `warning` status indicates that the check is not reliable because an issue is preventing it from determining the health of the service.
 
 ### OSService check configurations
-Add an `os_service` field to the `check` block in your service definition file and specify the name of the service to check. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
+Add an `os_service` field to the `check` block in your service definition file and specify the name of the service to check. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
 
 In the following example, an OSService check named `svcname-001 Windows Service Health` verifies that the `myco-svctype-svcname-001` service is running every 10 seconds:
 
@@ -362,7 +362,7 @@ TTL checks also persist their last known status to disk so that the Consul agent
 You can manually mark a service as unhealthy using the [`consul maint` CLI command](/consul/commands/maint) or [`agent/maintenance` HTTP API endpoint](/consul/api-docs/agent#enable-maintenance-mode), rather than waiting for a TTL health check if the `ttl` duration is high.
 
 ### TTL check configuration
-Add a `ttl` field to the `check` block in your service definition file and specify how long to wait for an update from the external process. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
+Add a `ttl` field to the `check` block in your service definition file and specify how long to wait for an update from the external process. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
 
 In the following example, a TTL check named `Web App Status` logs the application as `critical` if a status update is not received every 30 seconds:
 
@@ -403,9 +403,9 @@ To enable Docker checks, you must first enable the agent to send external reques
 
 1. Add one of the following configurations to your agent configuration file to enable a Docker check:
 
-   - [`enable_local_script_checks`](/consul/docs/agent/config/cli-flags#enable_local_script_checks): Enable script checks defined in local config files. Script checks registered using the HTTP API are not allowed.
+   - [`enable_local_script_checks`](/consul/docsreference-cli/agent#enable_local_script_checks): Enable script checks defined in local config files. Script checks registered using the HTTP API are not allowed.
   
-   - [`enable_script_checks`](/consul/docs/agent/config/cli-flags#enable_script_checks): Enable script checks no matter how they are registered.
+   - [`enable_script_checks`](/consul/docsreference-cli/agent#enable_script_checks): Enable script checks no matter how they are registered.
 
    !> **Security warning**: Enabling non-local script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead.
 1. Configure the following fields in the `check` block in your service definition file:
@@ -449,7 +449,7 @@ check = {
 gRPC checks send a request to the specified endpoint. These checks are intended for applications that support the standard [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
 
 ### gRPC check configuration
-Add a `grpc` field to the `check` block in your service definition file and specify the endpoint, including port number, for sending requests. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
+Add a `grpc` field to the `check` block in your service definition file and specify the endpoint, including port number, for sending requests. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
 
 In the following example, a gRPC check named `Service health status` probes the entire application by sending requests to `127.0.0.1:12345` every 10 seconds:
 
@@ -518,7 +518,7 @@ By default, gRPC checks timeout after 10 seconds, but you can specify a custom d
 H2ping checks test an endpoint that uses HTTP2 by connecting to the endpoint and sending a ping frame. If the endpoint sends a response within the specified interval, the check status is set to `success`.
 
 ### H2ping check configuration
-Add an `h2ping` field to the `check` block in your service definition file and specify the HTTP2 endpoint, including port number, for the check to ping. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations.
+Add an `h2ping` field to the `check` block in your service definition file and specify the HTTP2 endpoint, including port number, for the check to ping. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
 
 In the following example, an H2ping check named `h2ping` pings the endpoint at `localhost:22222` every 10 seconds:
 
@@ -563,7 +563,7 @@ For aliased services on the same agent, the check monitors the local state witho
 For the blocking query, the alias check presents the ACL token set on the actual service or the token configured in the check definition. If neither are available, the alias check falls back to the default ACL token set for the agent. Refer to [`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default) for additional information about the default ACL token.
 
 ### Alias checks configuration
-Add an `alias_service` field to the `check` block in your service definition file and specify the name of the service or node to alias. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations.
+Add an `alias_service` field to the `check` block in your service definition file and specify the name of the service or node to alias. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
 
 In the following example, an alias check with the ID `web-alias` reports the health state of the `web` service:
 

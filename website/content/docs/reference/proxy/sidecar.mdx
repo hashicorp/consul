@@ -31,7 +31,7 @@ proxy.
 - `kind` - Defaults to `connect-proxy`. This value cannot be overridden.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
-  check](/consul/docs/services/usage/checks#alias-checks) for the parent service. If either
+  check](/consul/docs/register/service/vm/health-checks#alias-checks) for the parent service. If either
   `check` or `checks` fields are set, only the provided checks are registered.
 - `proxy.destination_service_name` - Defaults to the parent service name.
 - `proxy.destination_service_id` - Defaults to the parent service ID.
@@ -41,9 +41,9 @@ proxy.
 ### Example with overwritten configurations
 
 In the following example, the `sidecar_service` macro sets baselines configurations for the proxy, but the [proxy
-upstreams](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
+upstreams](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference)
 and [built-in proxy
-configuration](/consul/docs/connect/proxies/built-in) fields contain custom values:  
+configuration](/consul/docs/reference/proxy/built-in) fields contain custom values:  
 
 ```json
 {

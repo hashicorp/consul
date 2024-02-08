@@ -82,7 +82,7 @@ information.
 - `-dev` ((#\_dev)) - Enable development server mode. This is useful for
   quickly starting a Consul agent with all persistence options turned off, enabling
   an in-memory server which can be used for rapid prototyping or developing against
-  the API. In this mode, [service mesh is enabled](/consul/docs/connect/configuration) and
+  the API. In this mode, [service mesh is enabled](/consul/docs/connect/configuration-entries) and
   will by default create a new root CA certificate on startup. This mode is **not**
   intended for production use as it does not write any data to disk. The gRPC port
   is also defaulted to `8502` in this mode.
@@ -92,7 +92,7 @@ information.
   only the given `-encrypt` key will be available on startup. This defaults to false.
 
 - `-enable-script-checks` ((#\_enable_script_checks)) This controls whether
-  [health checks that execute scripts](/consul/docs/services/usage/checks) are enabled on this
+  [health checks that execute scripts](/consul/docs/register/service/vm/health-checks) are enabled on this
   agent, and defaults to `false` so operators must opt-in to allowing these. This
   was added in Consul 0.9.0.
 
@@ -148,11 +148,11 @@ information.
   to close the agent or `SIGHUP` to update check definitions) to the agent.
 
 - `-protocol` ((#\_protocol)) - The Consul protocol version to use. Consul
-  agents speak protocol 2 by default, however agents will automatically use protocol > 2 when speaking to compatible agents. This should be set only when [upgrading](/consul/docs/upgrading). You can view the protocol versions supported by Consul by running `consul version`.
+  agents speak protocol 2 by default, however agents will automatically use protocol > 2 when speaking to compatible agents. This should be set only when [upgrading](/consul/docs/upgrade). You can view the protocol versions supported by Consul by running `consul version`.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
   of the Raft consensus protocol used for server communications. This must be set
-  to 3 in order to gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](/consul/docs/agent/config/config-files#cleanup_dead_servers). Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See [Raft Protocol Version Compatibility](/consul/docs/upgrading/upgrade-specific#raft-protocol-version-compatibility) for more details.
+  to 3 in order to gain access to Autopilot features, with the exception of [`cleanup_dead_servers`](/consul/docs/agent/config/config-files#cleanup_dead_servers). Defaults to 3 in Consul 1.0.0 and later (defaulted to 2 previously). See [Raft Protocol Version Compatibility](/consul/docs/upgrade/version-specific#raft-protocol-version-compatibility) for more details.
 
 - `-segment` ((#\_segment)) <EnterpriseAlert inline /> - This flag is used to set
   the name of the network segment the agent belongs to. An agent can only join and
@@ -372,7 +372,7 @@ information.
   The `-retry-join` option accepts a unified interface using the
   [go-discover](https://github.com/hashicorp/go-discover) library for doing
   automatic cluster joining using cloud metadata. For more information, see
-  the [Cloud Auto-join page](/consul/docs/install/cloud-auto-join).
+  the [Cloud Auto-join page](/consul/docs/deploy/server/vm/cloud-auto-join).
 
   <CodeBlockConfig heading="Using Cloud Auto-Joining">
 

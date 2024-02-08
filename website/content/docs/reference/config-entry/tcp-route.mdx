@@ -8,7 +8,7 @@ description: >-
 # TCP route configuration entry reference
 
 This topic provides reference information for the gateway TCP routes configuration
-entry. Refer to [Route Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/routes) for information
+entry. Refer to [Route Resource Configuration](/consul/docs/reference/k8s/api-gateway/routes) for information
 about configuring API gateways in Kubernetes environments.
 
 ## Configuration model
@@ -249,7 +249,7 @@ Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition)
 
 ### `Parents.SectionName`
 
-Specifies the name of the listener defined in the [`api-gateway` configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway) that the route binds to. If the field is configured to an empty string, the route binds to all listeners on the parent gateway.
+Specifies the name of the listener defined in the [`api-gateway` configuration](/consul/docs/reference/config-entry/api-gateway) that the route binds to. If the field is configured to an empty string, the route binds to all listeners on the parent gateway.
 
 #### Values
 

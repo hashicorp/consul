@@ -5,13 +5,13 @@ description: >-
   Consul-Terraform-Sync provides an API interface that lets you query CTS instance health, check CTS instance status, and run CTS tasks.
 ---
 
-# Consul-Terraform-Sync API Overview
+# Consul-Terraform-Sync API overview
 
 Consul-Terraform-Sync (CTS) provides an HTTP API interface for querying CTS instances and running and managing tasks.   
 
 ## Port
 
-The API is served at the default port `8558` or a different port if set with [`port` configuration](/consul/docs/nia/configuration#port)
+The API is served at the default port `8558` or a different port if set with [`port` configuration](/consul/docs/reference/cts/configuration#port)
 
 ## Version prefix
 
@@ -27,4 +27,4 @@ Each call to a CTS API endpoint returns a `request_id` field. The field is a str
 
 ## Error messages
 
-The API sends a response code in the 200 range if the call is successful. If the call is unsuccessful, the API sends an error message that includes additional information when possible. Refer to [Error Messages](/consul/docs/nia/usage/errors-ref) for additional information.
+The API sends a response code in the 200 range if the call is successful. If the call is unsuccessful, the API sends an error message that includes additional information when possible. Refer to [Error Messages](/consul/docs/error-messages/cts) for additional information.

@@ -12,10 +12,10 @@ description: >-
 - **Enhanced Envoy Access Logging:** Envoy access logs are now centrally managed via the `accessLogs` field within the ProxyDefaults CRD to allow operators to easily turn on access logs for all proxies within the service mesh. Refer to [Access logs overview](/consul/docs/connect/observability/access-logs) for more information.
 
 - **Consul Envoy Extensions:** The new Envoy extension system enables you to modify Consul-generated Envoy resources outside of the Consul binary. This will allow extensions to add, delete, and modify Envoy listeners, routes, clusters, and endpoints, enabling support for additional Envoy features without changes to the Consul codebase.
-The new `envoyExtensions` field in the ProxyDefaults and ServiceDefaults CRDs enable built-in Envoy extensions. Refer to [Envoy extensions overview](/consul/docs/connect/proxies/envoy-extensions) for more information on how to use these extensions.
+The new `envoyExtensions` field in the ProxyDefaults and ServiceDefaults CRDs enable built-in Envoy extensions. Refer to [Envoy extensions overview](/consul/docs/reference/proxy/envoy-extensions) for more information on how to use these extensions.
 
 - **Envoy Proxy Debugging CLI Commands**: This release adds a new command to quickly modify the log level of Envoy proxies for sidecars and gateways for easier debugging.
-Refer to [consul-k8s CLI proxy log command](/consul/docs/k8s/k8s-cli#proxy-log) docs for more information.
+Refer to [consul-k8s CLI proxy log command](/consul/docs/reference/k8s/consul-k8s-cli#proxy-log) docs for more information.
   * Add `consul-k8s proxy log podname` command for displaying current log levels or updating log levels for Envoy in a given pod.
 
 
@@ -35,16 +35,16 @@ that you wanted to be injected, you must now set namespaceSelector as follows:
 
 ## Supported Software
 
-~> **Note:** Consul 1.14.x and 1.13.x are not supported. Please refer to [Supported Consul and Kubernetes versions](/consul/docs/k8s/compatibility#supported-consul-and-kubernetes-versions) for more detail on choosing the correct `consul-k8s` version.
+~> **Note:** Consul 1.14.x and 1.13.x are not supported. Please refer to [Supported Consul and Kubernetes versions](/consul/docs/deploy/server/k8s/requirements#supported-consul-and-kubernetes-versions) for more detail on choosing the correct `consul-k8s` version.
 - Consul 1.15.x.
-- Consul Dataplane v1.1.x. Refer to [Envoy and Consul Dataplane](/consul/docs/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version.
+- Consul Dataplane v1.1.x. Refer to [Envoy and Consul Dataplane](/consul/docs/reference/proxy/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version.
 - Kubernetes 1.23.x - 1.26.x
 - `kubectl` 1.23.x - 1.26.x
 - Helm 3.6+
 
 ## Upgrading
 
-For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/k8s/upgrade)
+For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/upgrade/k8s)
 
 ## Known Issues
 

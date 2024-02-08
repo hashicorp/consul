@@ -39,18 +39,18 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/transparent-proxy',
-    destination: '/consul/docs/k8s/connect/transparent-proxy',
+    destination: '/consul/docs/connect/proxy/transparent-proxy',
     permanent: true,
   },
   {
-    source: '/consul/docs/agent/limits/init-rate-limits',
-    destination: '/consul/docs/agent/limits/usage/init-rate-limits',
+    source: '/consul/docs/manage-consul/agent-rate-limit//init-rate-limits',
+    destination: '/consul/docs/manage-consul/agent-rate-limit/initialize',
     permanent: true,
   },
   {
-    source: '/consul/docs/agent/limits/set-global-traffic-rate-limits',
-    destination:
-      '/consul/docs/agent/limits/usage/set-global-traffic-rate-limits',
+    source:
+      '/consul/docs/manage-consul/agent-rate-limit//set-global-traffic-rate-limits',
+    destination: '/consul/docs/manage-consul/agent-rate-limit/set-global',
     permanent: true,
   },
   {
@@ -99,7 +99,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/ecs/terraform/migrate-existing-tasks',
-    destination: '/consul/docs/ecs/deploy/migrate-existing-tasks',
+    destination: '/consul/docs/register/service/ecs/migrate',
     permanent: true,
   },
   {
@@ -336,20 +336,20 @@ module.exports = [
   {
     source:
       '/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services',
-    destination: '/consul/docs/access/api-gateway/route/peer',
+    destination: '/consul/docs/access/api-gateway/define-route/peer',
     permanent: true,
   },
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/access/api-gateway/route/peer/:slug*',
     destination:
-      '/consul/docs/:version/connect/gateways/api-gateway/define-routes/route-to-peered-services/:slug',
+      '/consul/docs/:version/connect/gateways/api-gateway/define-route/route-to-peered-services/:slug',
     permanent: true,
   },
   {
     source:
       '/consul/docs/connect/gateways/api-gateway/secure-traffic/encrypt-vms',
-    destination: '/consul/docs/access/api-gateway/secure/encrypt',
+    destination: '/consul/docs/access/api-gateway/secure-traffic/encrypt',
     permanent: true,
   },
   {
@@ -362,7 +362,7 @@ module.exports = [
   {
     source:
       '/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms',
-    destination: '/consul/docs/access/api-gateway/secure/jwt-vm',
+    destination: '/consul/docs/access/api-gateway/secure-traffic/jwt-vm',
     permanent: true,
   },
   {
@@ -375,7 +375,7 @@ module.exports = [
   {
     source:
       '/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s',
-    destination: '/consul/docs/access/api-gateway/secure/jwt-k8s',
+    destination: '/consul/docs/access/api-gateway/secure-traffic/jwt-k8s',
     permanent: true,
   },
   {
@@ -410,7 +410,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/gateways/ingress-gateway/usage',
-    destination: '/consul/docs/access/ingress-gateway/create/vms',
+    destination: '/consul/docs/access/ingress-gateway/create-vm',
     permanent: true,
   },
   {
@@ -422,7 +422,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/gateways/ingress-gateway/usage',
-    destination: '/consul/docs/access/ingress-gateway/create/vms',
+    destination: '/consul/docs/access/ingress-gateway/create-vm',
     permanent: true,
   },
   {
@@ -433,8 +433,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source:
-      '/consul/docs/connect/gateways/ingress-gateway/tls-external-service',
+    source: '/consul/docs/connect/access/ingress-gateway/tls-external-service',
     destination: '/consul/docs/access/ingress-gateway/tls-external-service',
     permanent: true,
   },
@@ -442,7 +441,7 @@ module.exports = [
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/access/ingress-gateway/tls-external-service/:slug*',
     destination:
-      '/consul/docs/:version/connect/gateways/ingress-gateway/tls-external-service/:slug',
+      '/consul/docs/:version/connect/access/ingress-gateway/tls-external-service/:slug',
     permanent: true,
   }, // END redirects for API gateway and ingress gateway topics - Consul IA refresh 2024
 ]

@@ -458,7 +458,7 @@ Specifies the path prefix to match on the HTTP request path. When using this fie
 
 ### `Routes[].Match{}.HTTP{}.PathRegex`
 
-Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
+Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/reference/proxy/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
 
 #### Values
 
@@ -551,7 +551,7 @@ Specifies that a request matches when the header with the given name has this su
 
 ### `Routes[].Match{}.HTTP{}.Header[].Regex`
 
-Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `Present`, `Exact`, `Prefix`, or `Suffix` in the same HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
+Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `Present`, `Exact`, `Prefix`, or `Suffix` in the same HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/reference/proxy/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
 
 #### Values
 
@@ -612,7 +612,7 @@ Specifies that a request matches when the query parameter with the given name is
 
 ### `Routes[].Match{}.HTTP{}.QueryParam[].Regex`
 
-Specifies that a request matches when the query parameter with the given name matches this regular expression. When using this field, do not configure `Present` or `Exact` in the same map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
+Specifies that a request matches when the query parameter with the given name matches this regular expression. When using this field, do not configure `Present` or `Exact` in the same map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/reference/proxy/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
 
 #### Values
 
@@ -653,7 +653,7 @@ Specifies the name of the service to resolve. If this parameter is not specified
 
 ### `Routes[].Destination{}.ServiceSubset`
 
-Specifies a named subset of the given service to resolve instead of the one defined as that service's `DefaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If this parameter is not specified, the default subset is used.
+Specifies a named subset of the given service to resolve instead of the one defined as that service's `DefaultSubset` in the [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver). If this parameter is not specified, the default subset is used.
 
 #### Values
 
@@ -935,7 +935,7 @@ Specifies the path prefix to match on the HTTP request path. When using this fie
 
 ### `spec.routes[].match.http.pathRegex`
 
-Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
+Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/reference/proxy/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
 
 #### Values
 
@@ -1028,7 +1028,7 @@ Specifies that a request matches when the header with the given name has this su
 
 ### `spec.routes[].match.http.header.regex`
 
-Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `present`, `exact`, `prefix`, or `suffix` in the same  HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
+Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `present`, `exact`, `prefix`, or `suffix` in the same  HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/reference/proxy/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
 
 #### Values
 
@@ -1088,7 +1088,7 @@ Specifies that a request matches when the query parameter with the given name is
 
 ### `spec.routes[].match.http.queryParam[].regex`
 
-Specifies that a request matches when the query parameter with the given name matches this regular expression. When using this field, do not configure `present` or `exact` in the same map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
+Specifies that a request matches when the query parameter with the given name matches this regular expression. When using this field, do not configure `present` or `exact` in the same map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/reference/proxy/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use.
 
 #### Values
 
@@ -1129,7 +1129,7 @@ Specifies the name of the service to resolve. If this parameter is not specified
 
 ### `spec.routes[].destination.serviceSubset`
 
-Specifies a named subset of the given service to resolve instead of the one defined as that service's `defaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If this parameter is not specified, the default subset is used.
+Specifies a named subset of the given service to resolve instead of the one defined as that service's `defaultSubset` in the [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver). If this parameter is not specified, the default subset is used.
 
 #### Values
 

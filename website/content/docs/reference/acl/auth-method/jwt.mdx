@@ -5,9 +5,9 @@ description: >-
   Use the JWT auth method to authenticate to Consul with a JSON web token and receive an ACL token with privileges based on JWT identity attributes. Learn how to configure the auth method parameters using this reference page and example configuration.
 ---
 
-# Access Control List (ACL) JSON Web Token (JWT) auth method configuration reference
+# ACL JSON Web Token (JWT) auth method configuration reference
 
--> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
+<Tip> This feature is available in Consul versions 1.8.0 and newer. </Tip>
 
 The `jwt` auth method can be used to authenticate with Consul by providing a
 [JWT](https://en.wikipedia.org/wiki/JSON_Web_Token) directly. The JWT is
@@ -15,15 +15,15 @@ cryptographically verified using locally-provided keys, or, if configured, an
 OIDC Discovery service can be used to fetch the appropriate keys.
 
 This page assumes general knowledge of JWTs and the concepts described in the
-main [auth method documentation](/consul/docs/security/acl/auth-methods).
+main [auth method documentation](/consul/docs/secure-consul/acl/auth-methods).
 
-Both the [`jwt`](/consul/docs/security/acl/auth-methods/jwt) and the
-[`oidc`](/consul/docs/security/acl/auth-methods/oidc) auth method types allow additional
+Both the [`jwt`](/consul/docs/secure-consul/acl/auth-methods/jwt) and the
+[`oidc`](/consul/docs/secure-consul/acl/auth-methods/oidc) auth method types allow additional
 processing of the claims data in the JWT.
 
 @include 'jwt_or_oidc.mdx'
 
-## Config Parameters
+## Config parameters
 
 The following auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
 parameters are required to properly configure an auth method of type
@@ -86,9 +86,9 @@ parameters are required to properly configure an auth method of type
   validating all claims to account for clock skew. Defaults to 60 (1 minute)
   if set to 0 and can be disabled if set to -1.
 
-### Sample Configs
+### Sample configs
 
-#### Static Keys
+#### Static keys
 
 ```json
 {
@@ -131,7 +131,7 @@ parameters are required to properly configure an auth method of type
 }
 ```
 
-#### OIDC Discovery
+#### OIDC discovery
 
 ```json
 {
@@ -154,7 +154,7 @@ parameters are required to properly configure an auth method of type
 }
 ```
 
-## JWT Verification
+## JWT verification
 
 JWT signatures will be verified against public keys from the issuer. This
 process can be done one of three ways:

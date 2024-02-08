@@ -62,7 +62,7 @@ HashiCorp recommends all production deployments consider:
 
 ### Spread Servers Across Infrastructure Availability Zones
 
-The cloud or on-premise infrastructure underlying your  [Consul datacenter](/consul/docs/install/glossary#datacenter)
+The cloud or on-premise infrastructure underlying your  [Consul datacenter](/consul/docs/reference/glossary#datacenter)
 may be split into several "availability zones".
 An availability zone is meant to share no points of failure with other zones by:
 - Having power, cooling, and networking systems independent from other zones
@@ -96,7 +96,7 @@ Consul Enterprise provides a way to improve fault tolerance without this perform
 
 ### <EnterpriseAlert inline /> Use Backup Voting Servers to Replace Lost Voters
 
-Consul Enterprise [redundancy zones](/consul/docs/enterprise/redundancy)
+Consul Enterprise [redundancy zones](/consul/docs/manage-consul/redundancy-zones)
 can be used to improve fault tolerance without the performance penalty of increasing the number of voting servers.
 
 Each redundancy zone should be assigned 2 or more Consul servers.
@@ -128,7 +128,7 @@ to also gain the infrastructure-level fault tolerance benefits provided by avail
 However, Consul redundancy zones can be used even without the backing of infrastructure availability zones.
 
 For more information on redundancy zones, refer to:
-- [Redundancy zone documentation](/consul/docs/enterprise/redundancy)
+- [Redundancy zone documentation](/consul/docs/manage-consul/redundancy-zones)
   for a more detailed explanation
-- [Redundancy zone tutorial](/consul/tutorials/enterprise/redundancy-zones)
+- [Redundancy zone tutorial](/consul/tutorials/manage-consul/redundancy-zones-zones)
   to learn how to use them

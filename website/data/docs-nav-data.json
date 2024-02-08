@@ -457,129 +457,177 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "secure"
+        "path": "secure-consul"
       },
       {
         "title": "Access Control Lists (ACLs)",
         "routes": [
           {
             "title": "Overview",
-            "path": "secure/acl"
+            "path": "secure-consul/acl"
           },
+
           {
             "title": "Token",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "secure/acl/token"
-              },
-              {
-                "title": "Service token",
-                "path": "secure/acl/token/service"
-              },
-              {
-                "title": "Agent token",
-                "path": "secure/acl/token/agent"
-              },
-              {
-                "title": "UI token",
-                "path": "secure/acl/token/ui"
-              },
-              {
-                "title": "Mesh gateway token",
-                "path": "secure/acl/token/mesh-gateway"
-              },
-              {
-                "title": "Ingress gateway token",
-                "path": "secure/acl/token/ingress-gateway"
-              },
-              {
-                "title": "Terminating gateway token",
-                "path": "secure/acl/token/terminating-gateway"
-              },
-              {
-                "title": "DNS token",
-                "path": "secure/acl/token/dns"
-              },
-              {
-                "title": "Replication token",
-                "path": "secure/acl/token/replication"
-              },
-              {
-                "title": "Snapshot agent token",
-                "path": "secure/acl/token/snapshot-agent"
-              },
-              {
-                "title": "Vault Consul storage backend",
-                "path": "secure/acl/token/vault-storage-backend"
-              },
-              {
-                "title": "Consul ESM token",
-                "path": "secure/acl/token/esm"
-              }
-            ]
+            "path": "secure-consul/acl/token"
           },
           {
             "title": "Policy",
-            "path": "secure/acl/policy"
+            "path": "secure-consul/acl/policy"
           },
           {
             "title": "Role",
-            "path": "secure/acl/role"
+            "path": "secure-consul/acl/role"
           },
           {
             "title": "Rule",
-            "path": "secure/acl/rule"
-          },
-          {
-            "title": "Enable ACLs in federated datacenters",
-            "path": "secure/acl/enable-federated-datacenters"
+            "href": "reference/acl/rule"
           },
           {
             "title": "Auth methods",
             "routes": [
               {
                 "title": "Overview",
-                "path": "secure/acl/auth-method"
+                "path": "secure-consul/acl/auth-method"
               },
               {
                 "title": "Kubernetes",
-                "path": "secure/acl/auth-method/k8s"
+                "path": "secure-consul/acl/auth-method/k8s"
               },
               {
                 "title": "JWT",
-                "path": "secure/acl/auth-method/jwt"
+                "path": "secure-consul/acl/auth-method/jwt"
               },
               {
                 "title": "OIDC (ENT)",
-                "path": "secure/acl/auth-method/oidc"
+                "path": "secure-consul/acl/auth-method/oidc"
               },
               {
                 "title": "AWS IAM",
-                "path": "secure/acl/auth-method/aws-iam"
+                "path": "secure-consul/acl/auth-method/aws-iam"
+              }
+            ]
+          },
+          {
+            "title": "Bootstrap ACL system",
+            "path": "secure-consul/acl/bootstrap"
+          },
+          {
+            "title": "Enable ACLs in federated datacenters",
+            "path": "secure-consul/acl/enable-federated-datacenters"
+          },
+          {
+            "title": "Create common policies and tokens",
+            "routes": [
+              {
+                "title": "Service token",
+                "path": "secure-consul/acl/create/service"
+              },
+              {
+                "title": "Agent token",
+                "path": "secure-consul/acl/create/agent"
+              },
+              {
+                "title": "UI token",
+                "path": "secure-consul/acl/create/ui"
+              },
+              {
+                "title": "Mesh gateway token",
+                "path": "secure-consul/acl/create/mesh-gateway"
+              },
+              {
+                "title": "Ingress gateway token",
+                "path": "secure-consul/acl/create/ingress-gateway"
+              },
+              {
+                "title": "Terminating gateway token",
+                "path": "secure-consul/acl/create/terminating-gateway"
+              },
+              {
+                "title": "DNS token",
+                "path": "secure-consul/acl/create/dns"
+              },
+              {
+                "title": "Replication token",
+                "path": "secure-consul/acl/create/replication"
+              },
+              {
+                "title": "Snapshot agent token",
+                "path": "secure-consul/acl/create/snapshot-agent"
+              },
+              {
+                "title": "Vault Consul storage backend",
+                "path": "secure-consul/acl/create/vault-storage-backend"
+              },
+              {
+                "title": "Consul ESM token",
+                "path": "secure-consul/acl/create/esm"
+              }
+            ]
+          },
+          {
+            "title": "Migrate legacy tokens",
+            "path": "secure-consul/acl/legacy"
+          },
+          {
+            "title": "Troubleshoot",
+            "path": "secure-consul/acl/troubleshoot"
+          }
+        ]
+      },
+      {
+        "title": "Encryption",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "secure-consul/encryption"
+          },
+          {
+            "title": "Encrypt gossip traffic",
+            "routes": [
+              {
+                "title": "Enable on new datacenters",
+                "path": "secure-consul/encryption/gossip/enable"
+              },
+              {
+                "title": "Enable on existing datacenters",
+                "path": "secure-consul/encryption/gossip/existing"
+              }
+            ]
+          },
+          {
+            "title": "Encrypt RPC traffic (TLS)",
+            "routes": [
+              {
+                "title": "Built-in",
+                "path": "secure-consul/encryption/tls/builtin"
+              },
+              {
+                "title": "OpenSSL",
+                "path": "secure-consul/encryption/tls/openssl"
+              },
+              {
+                "title": "Enable on existing datacenters",
+                "path": "secure-consul/encryption/tls/existing"
               }
             ]
           }
         ]
       },
       {
-        "title": "Encryption",
-        "path": "secure/encryption"
-      },
-      {
         "title": "Security model",
         "routes": [
           {
             "title": "Overview",
-            "path": "secure/security-model"
+            "path": "secure-consul/security-model"
           },
           {
-            "title": "Consul core",
-            "path": "secure/security-model/core"
+            "title": "Consul Core",
+            "path": "secure-consul/security-model/core"
           },
           {
             "title": "Consul-Terraform-Sync (CTS)",
-            "path": "secure/security-model/cts"
+            "path": "secure-consul/security-model/cts"
           }
         ]
       }
@@ -1135,12 +1183,8 @@
             "path": "discover/dns/static-lookup"
           },
           {
-            "title": "Perform dynamic lookups",
+            "title": "Perform dynamic lookups with prepared queries",
             "path": "discover/dns/dynamic-lookup"
-          },
-          {
-            "title": "Issue prepared queries",
-            "path": "discover/dns/prepared-query"
           },
           {
             "title": "Resolve Consul DNS in Kubernetes",
@@ -1374,10 +1418,6 @@
           {
             "title": "Reference",
             "routes": [
-              {
-                "title": "Overview",
-                "href": "reference/k8s/api-gateway"
-              },
               {
                 "title": "Gateway",
                 "href": "reference/k8s/api-gateway/gateway"
@@ -2045,10 +2085,6 @@
         "path": "integrate/nia"
       },
       {
-        "title": "Vault integration program",
-        "path": "integrate/vault"
-      },
-      {
         "title": "Proxy integration",
         "path": "integrate/proxy"
       }
@@ -2112,7 +2148,7 @@
       },
       {
         "title": "Security model",
-        "href": "secure/security-model/cts"
+        "href": "secure-consul/security-model/cts"
       },
       {
         "title": "Install CTS",
@@ -2253,23 +2289,23 @@
     ]
   },
   {
-    "title": "Common error messages",
+    "title": "Error messages",
     "routes": [
       {
         "title": "Consul",
-        "path": "common-error-messages/consul"
+        "path": "error-messages/consul"
       },
       {
         "title": "Consul on Kubernetes",
-        "path": "common-error-messages/k8s"
+        "path": "error-messages/k8s"
       },
       {
         "title": "Consul-Terraform-Sync (CTS)",
-        "path": "common-error-messages/cts"
+        "path": "error-messages/cts"
       },
       {
         "title": "API gateway",
-        "path": "common-error-messages/api-gateway"
+        "path": "error-messages/api-gateway"
       }
     ]
   },
@@ -2281,12 +2317,7 @@
     "title": "Configuration reference",
     "routes": [
       {
-        "title": "Glossary",
-        "hidden": true,
-        "path": "reference/glossary"
-      },
-      {
-        "title": "Access Control Lists (ACLs)",
+        "title": "Access control lists (ACLs)",
         "routes": [
           {
             "title": "Auth methods",
@@ -2310,26 +2341,22 @@
             ]
           },
           {
-            "title": "Policies",
-            "path": "reference/acl/policy"
-          },
-          {
-            "title": "Roles",
-            "path": "reference/acl/role"
+            "title": "Tokens",
+            "path": "reference/acl/token"
           },
           {
             "title": "Rules",
             "path": "reference/acl/rule"
-          },
-          {
-            "title": "Tokens",
-            "path": "reference/acl/token"
           }
         ]
       },
       {
         "title": "Agent",
         "path": "reference/agent"
+      },
+      {
+        "title": "Service",
+        "path": "reference/service"
       },
       {
         "title": "Configuration entries",
@@ -2487,10 +2514,6 @@
             "title": "API gateway resources",
             "routes": [
               {
-                "title": "Overview",
-                "path": "reference/k8s/api-gateway"
-              },
-              {
                 "title": "Gateway",
                 "path": "reference/k8s/api-gateway/gateway"
               },
@@ -2604,15 +2627,7 @@
             "path": "reference/resource/trafficpermissions"
           }
         ]
-      },
-      {
-        "title": "Service definitions",
-        "path": "reference/service"
       }
     ]
-  },
-  {
-    "title": "Glossary",
-    "path": "glossary"
   }
 ]

@@ -41,7 +41,7 @@ Other optional service mesh configurations that you can set in the server config
 
 - [certificate authority settings](/consul/docs/agent/config/config-files#connect)
 - [token replication](/consul/docs/agent/config/config-files#acl_tokens_replication)
-- [dev mode](/consul/docs/agent/config/cli-flags#_dev)
+- [dev mode](/consul/docsreference-cli/agent#_dev)
 - [server host name verification](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_server_hostname)
 
 If you would like to use Envoy as your service mesh proxy you will need to [enable gRPC](/consul/docs/agent/config/config-files#grpc_port).
@@ -52,7 +52,7 @@ Additionally if you plan on using the observability features of Consul service m
 
 ## Centralized proxy and service configuration
 
-If your network contains many instances of the same service and many colocated sidecar proxies, you can specify global settings for proxies or services in [Configuration Entries](/consul/docs/agent/config-entries). You can override the centralized configurations for individual proxy instances in their [sidecar service definitions](/consul/docs/connect/proxies/deploy-sidecar-services), and the default protocols for service instances in their [service definitions](/consul/docs/services/usage/define-services).
+If your network contains many instances of the same service and many colocated sidecar proxies, you can specify global settings for proxies or services in [Configuration Entries](/consul/docs/agent/config-entries). You can override the centralized configurations for individual proxy instances in their [sidecar service definitions](/consul/docs/reference/proxy/sidecar), and the default protocols for service instances in their [service definitions](/consul/docs/register/service/vm/define).
 
 ## Schedulers
 
@@ -64,4 +64,4 @@ Consul service mesh can be used with Nomad to provide secure service-to-service 
 
 ### Kubernetes
 
-The Consul Helm chart can automate much of Consul's service mesh configuration, and makes it easy to automatically inject Envoy sidecars into new pods when they are deployed. Learn about the [Helm chart](/consul/docs/k8s/helm) in general, or if you are already familiar with it, check out its [service mesh specific configurations](/consul/docs/k8s/connect).
+The Consul Helm chart can automate much of Consul's service mesh configuration, and makes it easy to automatically inject Envoy sidecars into new pods when they are deployed. Learn about the [Helm chart](/consul/docs/reference/k8s/helm) in general, or if you are already familiar with it, check out its [service mesh specific configurations](/consul/docs/k8s/connect).

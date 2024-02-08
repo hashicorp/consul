@@ -7,7 +7,7 @@ description: >-
 
 # Consul Architecture
 
-This topic provides an overview of the Consul architecture. We recommend reviewing the Consul [glossary](/consul/docs/install/glossary) as a companion to this topic to help you become familiar with HashiCorp terms.
+This topic provides an overview of the Consul architecture. We recommend reviewing the Consul [glossary](/consul/docs/reference/glossary) as a companion to this topic to help you become familiar with HashiCorp terms.
 
 > Refer to the [Reference Architecture tutorial](/consul/tutorials/production-deploy/reference-architecture) for hands-on guidance about deploying Consul in production.
 
@@ -15,13 +15,13 @@ This topic provides an overview of the Consul architecture. We recommend reviewi
 
 Consul provides a control plane that enables you to register, access, and secure services deployed across your network. The _control plane_ is the part of the network infrastructure that maintains a central registry to track services and their respective IP addresses. 
 
-When using Consul’s service mesh capabilities, Consul dynamically configures sidecar and gateway proxies in the request path, which enables you to authorize service-to-service connections, route requests to healthy service instances, and enforce mTLS encryption without modifying your service’s code. This ensures that communication remains performant and reliable. Refer to [Service Mesh Proxy Overview](/consul/docs/connect/proxies) for an overview of sidecar proxies.
+When using Consul’s service mesh capabilities, Consul dynamically configures sidecar and gateway proxies in the request path, which enables you to authorize service-to-service connections, route requests to healthy service instances, and enforce mTLS encryption without modifying your service’s code. This ensures that communication remains performant and reliable. Refer to [Service Mesh Proxy Overview](/consul/docs/connect/proxy) for an overview of sidecar proxies.
 
 ![Diagram of the Consul control plane](/img/consul-arch/consul-arch-overview-control-plane.svg)
 
 ## Datacenters
 
-The Consul control plane contains one or more _datacenters_. A datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations. A datacenter contains at least one [Consul server agent](#server-agents), but a real-world deployment contains three or five server agents and several [Consul client agents](#client-agents). You can create multiple datacenters and allow nodes in different datacenters to interact with each other. Refer to [Bootstrap a Datacenter](/consul/docs/install/bootstrapping) for information about how to create a datacenter.
+The Consul control plane contains one or more _datacenters_. A datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations. A datacenter contains at least one [Consul server agent](#server-agents), but a real-world deployment contains three or five server agents and several [Consul client agents](#client-agents). You can create multiple datacenters and allow nodes in different datacenters to interact with each other. Refer to [Bootstrap a Datacenter](/consul/docs/deploy/server/vm/bootstrap) for information about how to create a datacenter.
 
 ### Clusters
 
@@ -55,7 +55,7 @@ You can also run Consul with an alternate service mesh configuration that deploy
 
 ## LAN gossip pool
 
-Client and server agents participate in a LAN gossip pool so that they can distribute and perform node [health checks](/consul/docs/services/usage/checks). Agents in the pool propagate the health check information across the cluster. Agent gossip communication occurs on port `8301` using UDP. Agent gossip falls back to TCP if UDP is not available. Refer to [Gossip Protocol](/consul/docs/architecture/gossip) for additional information. 
+Client and server agents participate in a LAN gossip pool so that they can distribute and perform node [health checks](/consul/docs/register/service/vm/health-checks). Agents in the pool propagate the health check information across the cluster. Agent gossip communication occurs on port `8301` using UDP. Agent gossip falls back to TCP if UDP is not available. Refer to [Gossip Protocol](/consul/docs/architecture/gossip) for additional information. 
 
 The following simplified diagram shows the interactions between servers and clients.
 
@@ -85,7 +85,7 @@ In this model, when a client agent requests a resource in a remote secondary dat
 
 You can configure control plane and data plane traffic to go through mesh gateways, which simplifies networking requirements.
 
-> **Hands-on**: To enable services to communicate across datacenters when the ACL system is enabled, refer to the [ACL Replication for Multiple Datacenters](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters) tutorial. 
+To enable services to communicate across datacenters when the ACL system is enabled, refer to the [Enable ACLs in WAN federated datacenters](/consul/docs/secure-consul/acl/enable-federated-datacenters) documentation.
 
 #### WAN gossip pool
 

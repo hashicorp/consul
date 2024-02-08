@@ -59,7 +59,7 @@ Use these links to navigate to a particular top-level stanza.
     the prefix will be `<helm release name>-consul`.
 
   - `domain` ((#v-global-domain)) (`string: consul`) - The domain Consul will answer DNS queries for
-    (Refer to [`-domain`](/consul/docs/agent/config/cli-flags#_domain)) and the domain services synced from
+    (Refer to [`-domain`](/consul/docsreference-cli/agent#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
   - `peering` ((#v-global-peering)) - Configures the Cluster Peering feature. Requires Consul v1.14+ and Consul-K8s v1.0.0+.
@@ -120,7 +120,7 @@ Use these links to navigate to a particular top-level stanza.
   - `secretsBackend` ((#v-global-secretsbackend)) - secretsBackend is used to configure Vault as the secrets backend for the Consul on Kubernetes installation.
     The Vault cluster needs to have the Kubernetes Auth Method, KV2 and PKI secrets engines enabled
     and have necessary secrets, policies and roles created prior to installing Consul.
-    Refer to [Vault as the Secrets Backend](/consul/docs/k8s/deployment-configurations/vault)
+    Refer to [Vault as the Secrets Backend](/consul/docs/deploy/server/k8s/examples/vault)
     documentation for full instructions.
 
     The Vault cluster _must_ not have the Consul cluster installed by this Helm chart as its storage backend
@@ -136,7 +136,7 @@ Use these links to navigate to a particular top-level stanza.
 
       - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace` 
         agent annotation and [Vault Connect CA namespace](/consul/docs/connect/ca/vault#namespace).
-        To override one of these values individually, see `agentAnnotations` and `connectCA.additionalConfig`.
+        To override one of these values individually, refer to  `agentAnnotations` and `connectCA.additionalConfig`.
 
       - `enabled` ((#v-global-secretsbackend-vault-enabled)) (`boolean: false`) - Enabling the Vault secrets backend will replace Kubernetes secrets with referenced Vault secrets.
 
@@ -262,7 +262,7 @@ Use these links to navigate to a particular top-level stanza.
             inject webhooks.
 
   - `gossipEncryption` ((#v-global-gossipencryption)) - Configures Consul's gossip encryption key.
-    (Refer to [`-encrypt`](/consul/docs/agent/config/cli-flags#_encrypt)).
+    (Refer to [`-encrypt`](/consul/docsreference-cli/agent#_encrypt)).
     By default, gossip encryption is not enabled. The gossip encryption key may be set automatically or manually.
     The recommended method is to automatically generate the key.
     To automatically generate and set a gossip encryption key, set autoGenerate to true.
@@ -295,10 +295,10 @@ Use these links to navigate to a particular top-level stanza.
 
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
-    Refer to [`-recursor`](/consul/docs/agent/config/cli-flags#_recursor) for more details.
+    Refer to [`-recursor`](/consul/docsreference-cli/agent#_recursor) for more details.
     If this is an empty array (the default), then Consul DNS will only resolve queries for the Consul top level domain (by default `.consul`).
 
-  - `tls` ((#v-global-tls)) - Enables [TLS](/consul/tutorials/security/tls-encryption-secure)
+  - `tls` ((#v-global-tls)) - Enables [TLS](/consul/docs/secure-consul/encryption/tls/builtin)
     across the cluster to verify authenticity of the Consul servers and clients.
     Requires Consul v1.4.1+.
 
@@ -523,7 +523,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+      Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure-consul/acl/auth-methods/kubernetes).
 
       If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
       `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -751,13 +751,15 @@ Use these links to navigate to a particular top-level stanza.
     storage classes, the PersistentVolumeClaims would need to be manually created.
     A `null` value will use the Kubernetes cluster's default StorageClass. If a default
     StorageClass does not exist, you will need to create one.
-    Refer to the [Read/Write Tuning](/consul/docs/install/performance#read-write-tuning)
+    Refer to the [Read/Write Tuning](/consul/docs/deploy/server/vm/requirements#read-write-tuning)
     section of the Server Performance Requirements documentation for considerations
     around choosing a performant storage class.
 
-    ~> **Note:** The [Reference Architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers)
-    contains best practices and recommendations for selecting suitable
-    hardware sizes for your Consul servers.
+    <Note>
+    
+    The [Reference Architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers) contains best practices and recommendations for selecting suitable hardware sizes for your Consul servers.
+
+    </Note>
 
   - `persistentVolumeClaimRetentionPolicy` ((#v-server-persistentvolumeclaimretentionpolicy)) (`map`) - The [Persistent Volume Claim (PVC) retention policy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention)
     controls if and how PVCs are deleted during the lifecycle of a StatefulSet.
@@ -828,7 +830,7 @@ Use these links to navigate to a particular top-level stanza.
     control a rolling update of Consul server agents. This value specifies the
     [partition](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions)
     for performing a rolling update. Please read the linked Kubernetes
-    and [Upgrade Consul](/consul/docs/k8s/upgrade#upgrading-consul-servers)
+    and [Upgrade Consul](/consul/docs/upgrade/k8s#upgrading-consul-servers)
     documentation for more information.
 
   - `disruptionBudget` ((#v-server-disruptionbudget)) - This configures the [`PodDisruptionBudget`](https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
@@ -1124,14 +1126,14 @@ Use these links to navigate to a particular top-level stanza.
         queries are allowed to happen. In any large enough time interval, rate
         limiter limits the rate to RequestLimitsReadRate tokens per second.
 
-        See https://en.wikipedia.org/wiki/Token_bucket for more about token
+        Refer to  https://en.wikipedia.org/wiki/Token_bucket for more about token
         buckets.
 
       - `writeRate` ((#v-server-limits-requestlimits-writerate)) (`integer: -1`) - Setting that controls how frequently RPC, gRPC, and HTTP
         writes are allowed to happen. In any large enough time interval, rate
         limiter limits the rate to RequestLimitsWriteRate tokens per second.
 
-        See https://en.wikipedia.org/wiki/Token_bucket for more about token
+        Refer to  https://en.wikipedia.org/wiki/Token_bucket for more about token
         buckets.
 
 ### externalServers ((#h-externalservers))
@@ -1171,7 +1173,7 @@ Use these links to navigate to a particular top-level stanza.
   - `k8sAuthMethodHost` ((#v-externalservers-k8sauthmethodhost)) (`string: null`) - If you are setting `global.acls.manageSystemACLs` and
     `connectInject.enabled` to true, set `k8sAuthMethodHost` to the address of the Kubernetes API server.
     This address must be reachable from the Consul servers.
-    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
+    Please refer to the [Kubernetes Auth Method documentation](/consul/docs/secure-consul/acl/auth-methods/kubernetes).
 
     If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
     `externalServers.k8sAuthMethodHost` should be set to the same value.
@@ -1199,7 +1201,7 @@ Use these links to navigate to a particular top-level stanza.
   - `image` ((#v-client-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers
     running Consul client agents.
 
-  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid [`-retry-join` values](/consul/docs/agent/config/cli-flags#_retry_join).
+  - `join` ((#v-client-join)) (`array<string>: null`) - A list of valid [`-retry-join` values](/consul/docsreference-cli/agent#_retry_join).
     If this is `null` (default), then the clients will attempt to automatically
     join the server cluster running within Kubernetes.
     This means that with `server.enabled` set to true, clients will automatically
@@ -1220,7 +1222,7 @@ Use these links to navigate to a particular top-level stanza.
     required for Connect.
 
   - `nodeMeta` ((#v-client-nodemeta)) - nodeMeta specifies an arbitrary metadata key/value pair to associate with the node
-    (refer to [`-node-meta`](/consul/docs/agent/config/cli-flags#_node_meta))
+    (refer to [`-node-meta`](/consul/docsreference-cli/agent#_node_meta))
 
     - `pod-name` ((#v-client-nodemeta-pod-name)) (`string: ${HOSTNAME}`)
 
@@ -1559,7 +1561,7 @@ Use these links to navigate to a particular top-level stanza.
     to run the sync program.
 
   - `default` ((#v-synccatalog-default)) (`boolean: true`) - If true, all valid services in K8S are
-    synced by default. If false, the service must be [annotated](/consul/docs/k8s/service-sync#enable-and-disable-sync)
+    synced by default. If false, the service must be [annotated](/consul/docs/register/service/k8s/service-sync#enable-and-disable-sync)
     properly to sync.
     In either case an annotation can override the default.
 
@@ -2112,8 +2114,8 @@ Use these links to navigate to a particular top-level stanza.
     If set to an empty string all service accounts can log in.
     This only has effect if ACLs are enabled.
 
-    Refer to Auth methods [Binding rules](/consul/docs/security/acl/auth-methods#binding-rules)
-    and [Trusted identiy attributes](/consul/docs/security/acl/auth-methods/kubernetes#trusted-identity-attributes)
+    Refer to Auth methods [Binding rules](/consul/docs/secure-consul/acl/auth-methods#binding-rules)
+    and [Trusted identiy attributes](/consul/docs/secure-consul/acl/auth-methods/kubernetes#trusted-identity-attributes)
     for more details.
     Requires Consul >= v1.5.
 
@@ -2625,7 +2627,11 @@ Use these links to navigate to a particular top-level stanza.
 
   - `image` ((#v-apigateway-image)) (`string: null`) - Image to use for the api-gateway-controller pods and gateway instances
 
-    ~> **Note:** Using API Gateway <= 0.4 with external servers requires setting `client.enabled: true`.
+    <Note>
+    
+    Using API Gateway <= 0.4 with external servers requires setting `client.enabled: true`.
+
+    </Note>
 
   - `imageEnvoy` ((#v-apigateway-imageenvoy)) (`string: envoyproxy/envoy:<latest supported version>`) - The name (and tag) of the Envoy Docker image used for the
     apiGateway. For other Consul compoenents, imageEnvoy has been replaced with Consul Dataplane.
