@@ -105,10 +105,9 @@ func (suite *controllerSuite) createTrafficPermissions(
 	names []string,
 	defaults []string,
 	tenancy *pbresource.Tenancy,
-) []*pbresource.Resource {
+) {
 	suite.T().Helper()
 	var (
-		rs              []*pbresource.Resource
 		destinationName string
 		sources         []*pbauth.Source
 
@@ -189,16 +188,13 @@ func (suite *controllerSuite) createTrafficPermissions(
 			WithTenancy(tenancy).
 			ID()
 
-		r := ReconcileComputedTrafficPermissions(
+		ReconcileComputedTrafficPermissions(
 			suite.T(),
 			suite.client,
 			id,
 			tpList...,
 		)
-		rs = append(rs, r.Resource)
 	}
-
-	return rs
 }
 
 type serviceFixture struct {
@@ -429,15 +425,13 @@ func (suite *controllerSuite) testReconcile_CIDCreate_IncrementalConstruction(om
 		}
 
 		var (
-			wi    []*pbresource.Resource
-			ctpID *pbresource.ID
-			svc   []*serviceFixture
-			cr    *types.DecodedComputedRoutes
+			wi  []*pbresource.Resource
+			svc []*serviceFixture
+			cr  *types.DecodedComputedRoutes
 		)
 
 		if omit != omitWorkloadIdentity {
 			wi = suite.createWorkloadIdentities([]string{"wi1", "wi2"}, tenancy)
-			ctpID = resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi[0].Id)
 		}
 		if omit != omitCTP {
 			suite.createTrafficPermissions([]string{"d-wi1-s-wi2"}, []string{"wi2"}, tenancy)
@@ -498,7 +492,7 @@ func (suite *controllerSuite) testReconcile_CIDCreate_IncrementalConstruction(om
 
 		suite.reconcileOnce(resID)
 
-		ctpID = resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi[0].Id)
+		ctpID := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi[0].Id)
 
 		cid := suite.client.RequireResourceExists(suite.T(), resID)
 		suite.requireCID(cid, &pbmesh.ComputedImplicitDestinations{

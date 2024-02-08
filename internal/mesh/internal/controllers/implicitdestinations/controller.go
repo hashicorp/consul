@@ -100,7 +100,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// generate new CID and compare, if different, write new one, if not return without doing anything
-	newData, err := r.generateComputedImplicitDestinations(ctx, rt, wi)
+	newData, err := r.generateComputedImplicitDestinations(rt, wi)
 	if err != nil {
 		rt.Logger.Error("error generating computed implicit destinations", "error", err)
 		// TODO: update the workload identity with this error as a status condition?
@@ -143,7 +143,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 }
 
 // generateComputedImplicitDestinations will use all associated Traffic Permissions to create new ComputedImplicitDestinations data
-func (r *reconciler) generateComputedImplicitDestinations(ctx context.Context, rt controller.Runtime, cid *pbresource.ID) (*pbmesh.ComputedImplicitDestinations, error) {
+func (r *reconciler) generateComputedImplicitDestinations(rt controller.Runtime, cid *pbresource.ID) (*pbmesh.ComputedImplicitDestinations, error) {
 	wiID := resource.ReplaceType(pbauth.WorkloadIdentityType, cid)
 
 	// Summary: list CTPs by WI[source]
