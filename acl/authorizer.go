@@ -93,6 +93,10 @@ type Authorizer interface {
 
 	// IntentionDefaultAllow determines the default authorized behavior
 	// when no intentions match a Connect request.
+	//
+	// Deprecated: Use DefaultIntentionPolicy under agent configuration.
+	// Moving forwards, intentions will not inherit default allow behavior
+	// from the ACL system.
 	IntentionDefaultAllow(*AuthorizerContext) EnforcementDecision
 
 	// IntentionRead determines if a specific intention can be read.
@@ -293,17 +297,6 @@ func (a AllowAuthorizer) IdentityWriteAllowed(name string, ctx *AuthorizerContex
 func (a AllowAuthorizer) IdentityWriteAnyAllowed(ctx *AuthorizerContext) error {
 	if a.Authorizer.IdentityWriteAny(ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessWrite, "any identity")
-	}
-	return nil
-}
-
-// IntentionDefaultAllowAllowed determines the default authorized behavior
-// when no intentions match a Connect request.
-func (a AllowAuthorizer) IntentionDefaultAllowAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.IntentionDefaultAllow(ctx) != Allow {
-		// This is a bit nuanced, in that this isn't set by a rule, but inherited globally
-		// TODO(acl-error-enhancements) revisit when we have full accessor info
-		return PermissionDeniedError{Cause: "Denied by intention default"}
 	}
 	return nil
 }

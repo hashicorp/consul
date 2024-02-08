@@ -4315,7 +4315,7 @@ func (s *Store) ServiceTopology(
 	ws memdb.WatchSet,
 	dc, service string,
 	kind structs.ServiceKind,
-	defaultAllow acl.EnforcementDecision,
+	defaultAllow bool,
 	entMeta *acl.EnterpriseMeta,
 ) (uint64, *structs.ServiceTopology, error) {
 	tx := s.db.ReadTxn()
@@ -4466,7 +4466,7 @@ func (s *Store) ServiceTopology(
 			Partition:        un.PartitionOrDefault(),
 			Intentions:       srcIntentions,
 			MatchType:        structs.IntentionMatchDestination,
-			DefaultDecision:  defaultAllow,
+			DefaultAllow:     defaultAllow,
 			AllowPermissions: false,
 		}
 		decision, err := s.IntentionDecision(opts)
@@ -4590,7 +4590,7 @@ func (s *Store) ServiceTopology(
 			Partition:        dn.PartitionOrDefault(),
 			Intentions:       dstIntentions,
 			MatchType:        structs.IntentionMatchSource,
-			DefaultDecision:  defaultAllow,
+			DefaultAllow:     defaultAllow,
 			AllowPermissions: false,
 		}
 		decision, err := s.IntentionDecision(opts)
