@@ -5,6 +5,39 @@ description: >-
   Consul-Terraform-Sync Tasks
 ---
 
+The version of Terraform to use for each workspace can also be set within the [task](#task) configuration.
+
+## Define tasks
+
+Create an .hcl file in the CTS installation directory.
+Define a `task` block for each network resource you want to update and the condition that triggers the update.
+You can define multiple tasks in the configuration.
+Specify the following required fields in the `task` block:
+
+- [`name`](/consul/docs/reference/cts#name): Specifies a unique name for the task.
+- [`module`](/consul/docs/reference/cts#module): Specifies the location of the Terraform module that CTS runs when it detects a change in your Consul service mesh. You can specify local or remote module.
+- [`providers`](/consul/docs/reference/cts#providers): Specifies a list of providers
+
+- Within the [`task` block](/consul/docs/nia/configuration#task), the list of services for a task represents the service layer that drives network automation. The `module` is the discovery location of the Terraform module that defines the network automation process for the task. The `condition`, not shown below, defaults to the services condition when unconfigured such that network resources are updated on changes to the list of services over time.
+
+Review the Terraform module to be used for network automation and identify the Terraform providers required by the module. If the module depends on a set of providers, include the list of provider names in the `providers` field to associate the corresponding provider configuration with the task. These providers will need to be configured later in a separate block.
+
+```hcl
+task {
+  name        = "website-x"
+  description = "automate services for website-x"
+  module      = "namespace/example/module"
+  version     = "1.0.0"
+  providers   = ["myprovider"]
+  condition "services" {
+    names = ["web", "api"]
+  }
+}
+```
+
+The type of the `module_input` block that can be configured depends on the `condition` block type and the `services` field (deprecated). See [Task Module Input Restrictions](/consul/docs/nia/configuration#task-module-input-restrictions) for more details.
+
+
 # Tasks
 
 A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream. Consul-Terraform-Sync (CTS) carries out automation for executing tasks using network drivers. For a Terraform driver, the scope of a task is a Terraform module.

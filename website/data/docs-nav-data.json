@@ -2085,8 +2085,16 @@
             "path": "cts/configure/global"
           },
           {
+            "title": "Consul connection settings",
+            "path": "cts/configure/consul"
+          },
+          {
             "title": "Task settings",
             "path": "cts/configure/task"
+          },
+          {
+            "title": "Provider settings",
+            "path": "cts/configure/provider"
           },
           {
             "title": "Driver settings",
@@ -2125,21 +2133,8 @@
         "path": "cts/create-terraform-module"
       },
       {
-        "title": "Enterprise",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "cts/enterprise"
-          },
-          {
-            "title": "Terraform",
-            "path": "cts/enterprise/license"
-          },
-          {
-            "title": "Terraform Cloud",
-            "href": "cts/network-drivers/terraform-cloud"
-          }
-        ]
+        "title": "CTS Enterprise",
+        "path": "cts/enterprise"
       },
       {
         "title": "Configuration reference",

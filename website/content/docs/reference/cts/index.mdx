@@ -13,15 +13,15 @@ This topic contains configuration reference information for Consul-Terraform-Syn
 
 The following list outlines filed hierarchy, data types, and requirements in the CTS configuration. Click on a property name to view additional details, including default values:
 
-- [`log_level`](#log-level): string 
-- [`working_dir`](#workfing-dir): string
+- [`log_level`](#log_level): string 
+- [`working_dir`](#workfing_dir): string
 - [`port`](#port): number
 - [`id`](#id): string
 - [`syslog`](#syslog): map
   - [`enabled`](#syslog): boolean
   - [`facility`](#syslog): string
   - [`name`](#syslog): string
-- [`buffer_period`](#bufferperiod): map
+- [`buffer_period`](#buffer_period): map
   - [`enabled`](#bufferperiod): boolean
   - [`min`](#bufferperiod): string
   - [`max`](#bufferperiod): string
@@ -31,7 +31,7 @@ The following list outlines filed hierarchy, data types, and requirements in the
   - [`key`](#tls): string
   - [`verify_incoming`](#tls): boolean
   - [`ca_cert`](#tls): string
-- [`license_path`](#licensepath): string | <EnterpriseAlert inline /> | deprecated, use `license` instead  
+- [`license_path`](#license_path): string | <EnterpriseAlert inline /> | deprecated, use `license` instead  
 - [`license`](#license): map | <EnterpriseAlert inline />
   - [`path`](#license): string
   - [`auto_retrieval`](#license): map

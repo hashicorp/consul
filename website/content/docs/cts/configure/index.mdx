@@ -1,19 +1,19 @@
 ---
 layout: docs
-page_title: Configure Consul-Terraform-Sync
+page_title: Consul-Terraform-Sync configuration overvie
 description: >-
   A high level guide to configure Consul-Terraform-Sync.
 ---
 
-# Configure Consul-Terraform-Sync
+# Consul-Terraform-Sync configuration overview
 
-This topic describes how to define settings in the Consul-Terraform-Sync (CTS) configuration file.
+This topic provides an overview of how to configure the Consul-Terraform-Sync (CTS) configuration file. The settings in the CTS configuration file determine aspects of network infrastructure automation (NIA) 
 
 ## Overview
 
-CTS directs network infrastructure automation (NIA) activities according to the CTS configuration file. Write the configuration file using Terraform configuration language and HCL syntax. Refer to the [Terraform configuration language reference](/terraform/language) to learn about the Terraform language. Refer to the [HCL reference](https://github.com/hashicorp/hcl) in GitHub for information about the HCL syntax.
+CTS directs network infrastructure automation (NIA) activities according to a CTS configuration file. Write the configuration file using Terraform configuration language and HCL syntax. Refer to the [Terraform configuration language reference](/terraform/language) to learn about the Terraform language. Refer to the [HCL reference](https://github.com/hashicorp/hcl) in GitHub for information about the HCL syntax.
 
-Configure the following components in the file to configure how CTS works:
+The CTS configuration is a single file that has several parts:
 
 - **Global configurations**: Specify log-level, working directory, and other default configurations. You can configure overrides for specific tasks as you define the CTS configuration.
 - **License**: If you are using the enterprise edition of CTS, then you must configure CTS to use your license.
@@ -22,6 +22,8 @@ Configure the following components in the file to configure how CTS works:
 - **Terraform tasks**: A task captures a network automation process by defining which network resources to update on a given condition. Configure CTS with one or more tasks that contain a list of Consul services, a Terraform module, and various Terraform providers.  
 - **Network drivers**: CTS interacts with your network device through a network driver.
 - **Terraform provider**: Providers are plug-ins that Terraform interfaces with to provision infrastructure. You can define provider settings in the CTS configuration. Refer to the provider documentation in the Terraform registry for details on how to configure the provider.
+
+Additionally, you can implement security features, such as mutual TLS verification and Vault secrets storage, throughout the configuration file.   
 
 Refer to [Consul-Terraform-Sync (CTS) configuration reference](/consul/docs/reference/cts) for details about all configuration parameters.
 
