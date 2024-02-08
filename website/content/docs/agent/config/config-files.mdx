@@ -402,7 +402,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   </CodeTabs>
 
-- `cache` configuration for client agents. The configurable values are the following:
+- `cache` configuration for client agents. When an `?index` query parameter is specified but '?cached' is not appended in a [streaming backend call](/consul/api-docs/features/blocking#streaming-backend), Consul bypasses these configuration values. The configurable values are the following:
 
   - `entry_fetch_max_burst` The size of the token bucket used to recharge the rate-limit per
     cache entry. The default value is 2 and means that when cache has not been updated
