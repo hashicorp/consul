@@ -1599,7 +1599,6 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7646 - account for this functionality in v1 since there is
 // no way to run a v2 version of this test since it is calling a private function and not
 // using a test agent.
 func TestDNS_BinarySearch(t *testing.T) {
@@ -1791,6 +1790,8 @@ func TestDNS_AddressLookup(t *testing.T) {
 				require.True(t, ok)
 				require.Equal(t, aRec.A.To4().String(), answer)
 				require.Zero(t, aRec.Hdr.Ttl)
+				require.Nil(t, in.Ns)
+				require.Nil(t, in.Extra)
 			}
 		})
 	}
@@ -1857,6 +1858,11 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 				require.Nil(t, in.Answer)
 				require.NotNil(t, in.Extra)
 				require.Len(t, in.Extra, 1)
+				aRecord := in.Extra[0].(*dns.A)
+				require.Equal(t, "7f000001.addr.dc1.consul.", aRecord.Hdr.Name)
+				require.Equal(t, dns.TypeA, aRecord.Hdr.Rrtype)
+				require.Zero(t, aRecord.Hdr.Ttl)
+				require.Equal(t, "127.0.0.1", aRecord.A.String())
 			}
 		})
 	}
@@ -1952,7 +1958,7 @@ func TestDNS_NonExistentDC_Server(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1967,14 +1973,18 @@ func TestDNS_NonExistentDC_Server(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 
-			if in.Rcode != dns.RcodeNameError {
-				t.Fatalf("Expected RCode: %#v, had: %#v", dns.RcodeNameError, in.Rcode)
-			}
+			require.Equal(t, dns.RcodeNameError, in.Rcode)
+			require.Equal(t, 0, len(in.Answer))
+			require.Equal(t, 0, len(in.Extra))
+			require.Equal(t, 1, len(in.Ns))
+			soa := in.Ns[0].(*dns.SOA)
+			require.Equal(t, "consul.", soa.Hdr.Name)
+			require.Equal(t, "ns.consul.", soa.Ns)
+			require.Equal(t, "hostmaster.consul.", soa.Mbox)
 		})
 	}
 }
 
-// TODO(v2-dns): NET-7647 - Fix non-existent dc tests
 // TestDNS_NonExistentDC_RPC verifies NXDOMAIN is returned when
 // Consul server agent is queried over RPC by a non-server agent
 // for a service in a non-existent domain
@@ -1983,7 +1993,7 @@ func TestDNS_NonExistentDC_RPC(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			s := NewTestAgent(t, `
 		node_name = "test-server"
@@ -2019,13 +2029,12 @@ func TestDNS_NonExistentDC_RPC(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7647 - Fix non-existent dc tests
-func TestDNS_NonExistingLookup(t *testing.T) {
+func TestDNS_NonExistentLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2056,13 +2065,12 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7647 - Fix non-existent dc tests
-func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
+func TestDNS_NonExistentLookupEmptyAorAAAA(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2545,13 +2553,12 @@ func TestDNS_InvalidQueries(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7648 - Prepared Query - inject agent source and dc to RPC
 func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2586,13 +2593,12 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7648 - Prepared Query - inject agent source and dc to RPC
 func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -3042,7 +3048,6 @@ func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7649 - Implement sync extra
 func TestDNS_syncExtra(t *testing.T) {
 	resp := &dns.Msg{
 		Answer: []dns.RR{

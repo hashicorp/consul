@@ -5,7 +5,9 @@ package dns
 
 import (
 	"errors"
+	"fmt"
 	"net"
+	"reflect"
 	"testing"
 	"time"
 
@@ -41,6 +43,21 @@ type HandleTestCase struct {
 }
 
 func Test_HandleRequest(t *testing.T) {
+	soa := &dns.SOA{
+		Hdr: dns.RR_Header{
+			Name:   "consul.",
+			Rrtype: dns.TypeSOA,
+			Class:  dns.ClassINET,
+			Ttl:    4,
+		},
+		Ns:      "ns.consul.",
+		Mbox:    "hostmaster.consul.",
+		Serial:  uint32(time.Now().Unix()),
+		Refresh: 1,
+		Retry:   2,
+		Expire:  3,
+		Minttl:  4,
+	}
 
 	testCases := []HandleTestCase{
 		// recursor queries
@@ -788,17 +805,7 @@ func Test_HandleRequest(t *testing.T) {
 						Qclass: dns.ClassINET,
 					},
 				},
-				Extra: []dns.RR{
-					&dns.AAAA{
-						Hdr: dns.RR_Header{
-							Name:   "20010db800010002cafe000000001337.virtual.dc1.consul.",
-							Rrtype: dns.TypeAAAA,
-							Class:  dns.ClassINET,
-							Ttl:    123,
-						},
-						AAAA: net.ParseIP("2001:db8:1:2:cafe::1337"),
-					},
-				},
+				Ns: []dns.RR{soa},
 			},
 		},
 		// SOA Queries
@@ -1491,6 +1498,7 @@ func Test_HandleRequest(t *testing.T) {
 					Opcode:        dns.OpcodeQuery,
 					Response:      true,
 					Authoritative: true,
+					Rcode:         dns.RcodeSuccess,
 				},
 				Compress: true,
 				Question: []dns.Question{
@@ -1721,7 +1729,7 @@ func Test_HandleRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "workload AAAA query with namespace, partition, and cluster id; returns A record",
+			name: "workload A query with namespace, partition, and cluster id; IPV4 address; returns A record",
 			request: &dns.Msg{
 				MsgHdr: dns.MsgHdr{
 					Opcode: dns.OpcodeQuery,
@@ -1729,7 +1737,7 @@ func Test_HandleRequest(t *testing.T) {
 				Question: []dns.Question{
 					{
 						Name:   "foo.workload.bar.ns.baz.ap.dc3.dc.consul.",
-						Qtype:  dns.TypeAAAA,
+						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
 				},
@@ -1767,11 +1775,11 @@ func Test_HandleRequest(t *testing.T) {
 				Question: []dns.Question{
 					{
 						Name:   "foo.workload.bar.ns.baz.ap.dc3.dc.consul.",
-						Qtype:  dns.TypeAAAA,
+						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
 				},
-				Extra: []dns.RR{
+				Answer: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
 							Name:   "foo.workload.bar.ns.baz.ap.dc3.dc.consul.",
@@ -1900,4 +1908,269 @@ func buildDNSConfig(agentConfig *config.RuntimeConfig, cdf discovery.CatalogData
 	}
 
 	return cfg
+}
+
+// TestDNS_BinaryTruncate tests the dnsBinaryTruncate function.
+func TestDNS_BinaryTruncate(t *testing.T) {
+	msgSrc := new(dns.Msg)
+	msgSrc.Compress = true
+	msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
+
+	for i := 0; i < 5000; i++ {
+		target := fmt.Sprintf("host-redis-%d-%d.test.acme.com.node.dc1.consul.", i/256, i%256)
+		msgSrc.Answer = append(msgSrc.Answer, &dns.SRV{Hdr: dns.RR_Header{Name: "redis.service.consul.", Class: 1, Rrtype: dns.TypeSRV, Ttl: 0x3c}, Port: 0x4c57, Target: target})
+		msgSrc.Extra = append(msgSrc.Extra, &dns.CNAME{Hdr: dns.RR_Header{Name: target, Class: 1, Rrtype: dns.TypeCNAME, Ttl: 0x3c}, Target: fmt.Sprintf("fx.168.%d.%d.", i/256, i%256)})
+	}
+	for _, compress := range []bool{true, false} {
+		for idx, maxSize := range []int{12, 256, 512, 8192, 65535} {
+			t.Run(fmt.Sprintf("binarySearch %d", maxSize), func(t *testing.T) {
+				msg := new(dns.Msg)
+				msgSrc.Compress = compress
+				msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
+				msg.Answer = msgSrc.Answer
+				msg.Extra = msgSrc.Extra
+				msg.Ns = msgSrc.Ns
+				index := make(map[string]dns.RR, len(msg.Extra))
+				indexRRs(msg.Extra, index)
+				blen := dnsBinaryTruncate(msg, maxSize, index, true)
+				msg.Answer = msg.Answer[:blen]
+				syncExtra(index, msg)
+				predicted := msg.Len()
+				buf, err := msg.Pack()
+				if err != nil {
+					t.Error(err)
+				}
+				if predicted < len(buf) {
+					t.Fatalf("Bug in DNS library: %d != %d", predicted, len(buf))
+				}
+				if len(buf) > maxSize || (idx != 0 && len(buf) < 16) {
+					t.Fatalf("bad[%d]: %d > %d", idx, len(buf), maxSize)
+				}
+			})
+		}
+	}
+}
+
+// TestDNS_syncExtra tests the syncExtra function.
+func TestDNS_syncExtra(t *testing.T) {
+	resp := &dns.Msg{
+		Answer: []dns.RR{
+			// These two are on the same host so the redundant extra
+			// records should get deduplicated.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1002,
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+			// This one isn't in the Consul domain so it will get a
+			// CNAME and then an A record from the recursor.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1003,
+				Target: "demo.consul.io.",
+			},
+			// This one isn't in the Consul domain and it will get
+			// a CNAME and A record from a recursor that alters the
+			// case of the name. This proves we look up in the index
+			// in a case-insensitive way.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "insensitive.consul.io.",
+			},
+			// This is also a CNAME, but it'll be set up to loop to
+			// make sure we don't crash.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "deadly.consul.io.",
+			},
+			// This is also a CNAME, but it won't have another record.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "nope.consul.io.",
+			},
+		},
+		Extra: []dns.RR{
+			// These should get deduplicated.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			// This is a normal CNAME followed by an A record but we
+			// have flipped the order. The algorithm should emit them
+			// in the opposite order.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "fakeserver.consul.io.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "demo.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "fakeserver.consul.io.",
+			},
+			// These differ in case to test case insensitivity.
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "INSENSITIVE.CONSUL.IO.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "Another.Server.Com.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "another.server.com.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			// This doesn't appear in the answer, so should get
+			// dropped.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-186.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.186"),
+			},
+			// These two test edge cases with CNAME handling.
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "deadly.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "deadly.consul.io.",
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "nope.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "notthere.consul.io.",
+			},
+		},
+	}
+
+	index := make(map[string]dns.RR)
+	indexRRs(resp.Extra, index)
+	syncExtra(index, resp)
+
+	expected := &dns.Msg{
+		Answer: resp.Answer,
+		Extra: []dns.RR{
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "demo.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "fakeserver.consul.io.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "fakeserver.consul.io.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "INSENSITIVE.CONSUL.IO.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "Another.Server.Com.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "another.server.com.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "deadly.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "deadly.consul.io.",
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "nope.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "notthere.consul.io.",
+			},
+		},
+	}
+	if !reflect.DeepEqual(resp, expected) {
+		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
+	}
 }

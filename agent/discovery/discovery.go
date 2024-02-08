@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	ErrECSNotGlobal = fmt.Errorf("ECS response is not global")
-	ErrNoData       = fmt.Errorf("no data")
-	ErrNotFound     = fmt.Errorf("not found")
-	ErrNotSupported = fmt.Errorf("not supported")
+	ErrECSNotGlobal       = fmt.Errorf("ECS response is not global")
+	ErrNoData             = fmt.Errorf("no data")
+	ErrNotFound           = fmt.Errorf("not found")
+	ErrNotSupported       = fmt.Errorf("not supported")
+	ErrNoPathToDatacenter = fmt.Errorf("no path to datacenter")
 )
 
 // ECSNotGlobalError may be used to wrap an error or nil, to indicate that the
