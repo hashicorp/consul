@@ -2351,7 +2351,16 @@
       },
       {
         "title": "Agent",
-        "path": "reference/agent"
+        "routes": [
+          {
+            "title": "Configuration reference",
+            "path": "reference/agent"
+          },
+          {
+            "title": "Telemetry reference",
+            "path": "reference/agent/telemetry"
+          }
+        ]
       },
       {
         "title": "Service",
