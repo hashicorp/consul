@@ -1131,7 +1131,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docstraffic/route-to-virtual-services',
+    source: '/consul/docs/k8s/l7-traffic/route-to-virtual-services',
     destination: '/consul/docs/manage-traffic/failover/virtual-services',
     permanent: true,
   },
@@ -3254,7 +3254,7 @@ module.exports = [
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/cts/architecture/:slug*',
-    destination: '/consul/docs/:versionhitecture/:slug',
+    destination: '/consul/docs/:version/nia/architecture/:slug',
     permanent: true,
   },
   {
