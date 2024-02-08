@@ -2310,10 +2310,6 @@
     ]
   },
   {
-    "title": "Glossary",
-    "href": "glossary"
-  },
-  {
     "title": "Configuration reference",
     "routes": [
       {
@@ -2637,5 +2633,9 @@
         ]
       }
     ]
+  },
+  {
+    "title": "Glossary",
+    "path": "glossary"
   }
 ]
