@@ -66,7 +66,7 @@ func TestServerIntentionUpstreams(t *testing.T) {
 	dataSource := ServerIntentionUpstreams(ServerDataSourceDeps{
 		ACLResolver: newStaticResolver(authz),
 		GetStore:    func() Store { return store },
-	})
+	}, "")
 
 	ch := make(chan proxycfg.UpdateEvent)
 	err := dataSource.Notify(ctx, &structs.ServiceSpecificRequest{ServiceName: serviceName}, "", ch)
@@ -80,6 +80,47 @@ func TestServerIntentionUpstreams(t *testing.T) {
 	createIntention("db")
 
 	result = getEventResult[*structs.IndexedServiceList](t, ch)
+	require.Len(t, result.Services, 1)
+	require.Equal(t, "db", result.Services[0].Name)
+}
+
+// Variant of TestServerIntentionUpstreams where a default allow intention policy
+// returns "db" service as an IntentionUpstream even if there are no explicit
+// intentions for "db".
+func TestServerIntentionUpstreams_DefaultIntentionPolicy(t *testing.T) {
+	const serviceName = "web"
+
+	var index uint64
+	getIndex := func() uint64 {
+		index++
+		return index
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	store := state.NewStateStore(nil)
+	disableLegacyIntentions(t, store)
+
+	require.NoError(t, store.EnsureRegistration(getIndex(), &structs.RegisterRequest{
+		Node: "node-1",
+		Service: &structs.NodeService{
+			Service: "db",
+		},
+	}))
+
+	// Ensures that "db" service will not be filtered due to ACLs
+	authz := policyAuthorizer(t, `service "db" { policy = "read" }`)
+
+	dataSource := ServerIntentionUpstreams(ServerDataSourceDeps{
+		ACLResolver: newStaticResolver(authz),
+		GetStore:    func() Store { return store },
+	}, "allow")
+
+	ch := make(chan proxycfg.UpdateEvent)
+	require.NoError(t, dataSource.Notify(ctx, &structs.ServiceSpecificRequest{ServiceName: serviceName}, "", ch))
+
+	result := getEventResult[*structs.IndexedServiceList](t, ch)
 	require.Len(t, result.Services, 1)
 	require.Equal(t, "db", result.Services[0].Name)
 }
