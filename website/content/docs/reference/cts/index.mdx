@@ -102,7 +102,7 @@ The `consul` block configures the CTS connection with a Consul agent so that CTS
 
 <Note> 
   
-Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/consul/docs/agent/config/config-files) must be configured for the local Consul with the [cert_file](/consul/docs/agent/config/config-files#cert_file) and [key_file](/consul/docs/agent/config/config-files#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
+Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/consul/docs/reference/agent) must be configured for the local Consul with the [cert_file](/consul/docs/reference/agent#cert_file) and [key_file](/consul/docs/reference/agent#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
 
 </Note>
 
@@ -161,7 +161,7 @@ Configures HTTP basic authentication for communicating with Consul.
 
 ### TLS
 
-Configure TLS to use a secure client connection with Consul. Using HTTP/2 can solve issues related to hitting Consul's maximum connection limits, as well as improve efficiency when processing many blocking queries. This option is required for Consul-Terraform-Sync when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](/consul/docs/agent/config/config-files#verify_incoming).
+Configure TLS to use a secure client connection with Consul. Using HTTP/2 can solve issues related to hitting Consul's maximum connection limits, as well as improve efficiency when processing many blocking queries. This option is required for Consul-Terraform-Sync when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](/consul/docs/reference/agent#verify_incoming).
 
 If Consul is using a self-signed certificate that you have not added to the global CA chain, you can set this certificate with `ca_cert` or `ca_path`. Alternatively, you can disable SSL verification by setting `verify` to false. However, disabling verification is a potential security vulnerability.
 
@@ -179,7 +179,7 @@ If Consul is using a self-signed certificate that you have not added to the glob
 
 Configures the low-level network connection details to Consul.
 
-To achieve the shortest latency between a Consul service update to a task execution, configure `max_idle_conns_per_host` equal to or greater than the number of services in automation across all tasks. This value should be lower than the configured [`http_max_conns_per_client`](/consul/docs/agent/config/config-files#http_max_conns_per_client) for the Consul agent.
+To achieve the shortest latency between a Consul service update to a task execution, configure `max_idle_conns_per_host` equal to or greater than the number of services in automation across all tasks. This value should be lower than the configured [`http_max_conns_per_client`](/consul/docs/reference/agent#http_max_conns_per_client) for the Consul agent.
 
 If `max_idle_conns_per_host` and the number of services in automation is greater than the Consul agent limit, CTS may error due to connection limits (status code 429). You may increase the agent limit with caution. _Requests to the Consul agent made by Terraform subprocesses or any other process on the same host as CTS will contribute to the Consul agent connection limit._
 

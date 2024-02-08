@@ -20,7 +20,7 @@ The following steps describe the general workflow for enabling gossip encryption
 1. Start the Consul agent with `encrypt_verify_outgoing` enabled.
 1. Start the Consul agent with both `encrypt_verify_incoming` and `encrypt_verify_outgoing` enabled.
 
-These steps are similar to enabling gossip encryption on new datacenters, but require you to configure the [`encrypt_verify_incoming`](/consul/docs/agent/config/config-files#encrypt_verify_incoming) and [`encrypt_verify_outgoing`](/consul/docs/agent/config/config-files#encrypt_verify_outgoing) agent configuration parameters.
+These steps are similar to enabling gossip encryption on new datacenters, but require you to configure the [`encrypt_verify_incoming`](/consul/docs/reference/agent#encrypt_verify_incoming) and [`encrypt_verify_outgoing`](/consul/docs/reference/agent#encrypt_verify_outgoing) agent configuration parameters.
 
 ## Generate an encryption key
 
@@ -33,7 +33,7 @@ pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 
 ## Disable verify encryption
 
-Set the [`encrypt`](/consul/docs/agent/config/config-files#_encrypt) key, and set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false` in the agent configuration file. Then initiate a rolling update of all the agents with these new values. After this step, the agents will be able to decrypt gossip but will not yet be able to send encrypted traffic.
+Set the [`encrypt`](/consul/docs/reference/agent#_encrypt) key, and set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false` in the agent configuration file. Then initiate a rolling update of all the agents with these new values. After this step, the agents will be able to decrypt gossip but will not yet be able to send encrypted traffic.
 
 <CodeTabs>
 <CodeBlockConfig filename="/etc/consul.d/consul.hcl" highlight="5-7">

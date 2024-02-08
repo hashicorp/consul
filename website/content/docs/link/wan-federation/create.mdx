@@ -26,7 +26,7 @@ datacenter capability. Check the
 
 To get started, follow the [Deployment guide](/consul/tutorials/production-deploy/deployment-guide) 
 to start each datacenter. If ACLs are enabled or you are using Consul Enterprise, 
-you must set the [`primary_datacenter`](/consul/docs/agent/config/config-files#primary_datacenter) in the server's configuration in both datacenters.
+you must set the [`primary_datacenter`](/consul/docs/reference/agent#primary_datacenter) in the server's configuration in both datacenters.
 
 After bootstrapping you should have two datacenters, `dc1` and `dc2`. Note that 
 datacenter names are opaque to Consul; they are simply labels that help human 
@@ -179,7 +179,7 @@ Setting `bind_addr` to a public address (or one that can be routed across the WA
 will resolve this issue. Be aware that exposing the RPC server on a public port 
 should only be done **after** firewall rules have been established.
 
-The [`translate_wan_addrs`](/consul/docs/agent/config/config-files#translate_wan_addrs) 
+The [`translate_wan_addrs`](/consul/docs/reference/agent#translate_wan_addrs) 
 configuration provides a basic address rewriting capability.
 
 ## Data replication

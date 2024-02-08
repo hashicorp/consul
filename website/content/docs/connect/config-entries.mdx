@@ -13,7 +13,7 @@ The noun _connect_ is used throughout this documentation to refer to the connect
 
 ## Agent configuration
 
-Begin by enabling service mesh for your Consul cluster. By default, service is disabled. Enabling service mesh requires changing the configuration of only your Consul _servers_ (not client agents). To enable service mesh, add the following to a new or existing [server configuration file](/consul/docs/agent/config/config-files). In an existing cluster, this configuration change requires a Consul server restart, which you can perform one server at a time to maintain availability. In HCL:
+Begin by enabling service mesh for your Consul cluster. By default, service is disabled. Enabling service mesh requires changing the configuration of only your Consul _servers_ (not client agents). To enable service mesh, add the following to a new or existing [server configuration file](/consul/docs/reference/agent). In an existing cluster, this configuration change requires a Consul server restart, which you can perform one server at a time to maintain availability. In HCL:
 
 
 <CodeTabs heading="Enable Consul service mesh" tabs={[ "HCL", "JSON" ]}>
@@ -39,14 +39,14 @@ Services and proxies may always register with service mesh settings, but unless 
 
 Other optional service mesh configurations that you can set in the server configuration file include:
 
-- [certificate authority settings](/consul/docs/agent/config/config-files#connect)
-- [token replication](/consul/docs/agent/config/config-files#acl_tokens_replication)
+- [certificate authority settings](/consul/docs/reference/agent#connect)
+- [token replication](/consul/docs/reference/agent#acl_tokens_replication)
 - [dev mode](/consul/docsreference-cli/agent#_dev)
-- [server host name verification](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_server_hostname)
+- [server host name verification](/consul/docs/reference/agent#tls_internal_rpc_verify_server_hostname)
 
-If you would like to use Envoy as your service mesh proxy you will need to [enable gRPC](/consul/docs/agent/config/config-files#grpc_port).
+If you would like to use Envoy as your service mesh proxy you will need to [enable gRPC](/consul/docs/reference/agent#grpc_port).
 
-Additionally if you plan on using the observability features of Consul service mesh, it can be convenient to configure your proxies and services using [configuration entries](/consul/docs/agent/config-entries) which you can interact with using the CLI or API, or by creating configuration entry files. You will want to enable [centralized service configuration](/consul/docs/agent/config/config-files#enable_central_service_config) on clients, which allows each service's proxy configuration to be managed centrally via API.
+Additionally if you plan on using the observability features of Consul service mesh, it can be convenient to configure your proxies and services using [configuration entries](/consul/docs/agent/config-entries) which you can interact with using the CLI or API, or by creating configuration entry files. You will want to enable [centralized service configuration](/consul/docs/reference/agent#enable_central_service_config) on clients, which allows each service's proxy configuration to be managed centrally via API.
 
 !> **Security note:** Enabling service mesh is enough to try the feature but doesn't automatically ensure complete security. Please read the [service mesh production tutorial](/consul/tutorials/developer-mesh/service-mesh-production-checklist) to understand the additional steps needed for a secure deployment.
 
