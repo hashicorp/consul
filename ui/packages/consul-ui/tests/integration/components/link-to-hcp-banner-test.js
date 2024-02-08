@@ -27,14 +27,6 @@ module('Integration | Component | link-to-hcp-banner', function (hooks) {
 
   hooks.beforeEach(function () {
     this.owner.register('service:hcp-link-status', HcpLinkStatusStub);
-    this.owner.register(
-      'service:env',
-      class Stub extends EnvStub {
-        stubEnv = {
-          CONSUL_HCP_LINK_ENABLED: true,
-        };
-      }
-    );
   });
 
   test('it renders banner when hcp-link-status says it should', async function (assert) {
