@@ -134,11 +134,11 @@
         "ClientSecret": "hidden",
         "Hostname": "",
         "ManagementToken": "hidden",
+        "NodeID": "",
+        "NodeName": "",
         "ResourceID": "cluster1",
         "ScadaAddress": "",
-        "TLSConfig": null,
-        "NodeID": "",
-        "NodeName": ""
+        "TLSConfig": null
     },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
@@ -185,6 +185,7 @@
     "DNSUseCache": false,
     "DataDir": "",
     "Datacenter": "",
+    "DefaultIntentionPolicy": "",
     "DefaultQueryTime": "0s",
     "DevMode": false,
     "DisableAnonymousSignature": false,
