@@ -24,10 +24,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/hashicorp/serf/coordinate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -128,7 +129,7 @@ func getVersionHCL(enableV2 bool) map[string]string {
 }
 
 // Copied to agent/dns/recursor_test.go
-func TestNDS_RecursorAddr(t *testing.T) {
+func TestDNS_RecursorAddr(t *testing.T) {
 	addr, err := recursorAddr("8.8.8.8")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -328,14 +329,12 @@ func TestDNS_CycleRecursorCheckAllFail(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7643 - Implement EDNS0 records when queried
 func TestDNS_EDNS0(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -377,14 +376,12 @@ func TestDNS_EDNS0(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7643 - Implement EDNS0 records when queried
 func TestDNS_EDNS0_ECS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -623,7 +620,6 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7640 - NS Record not populate on some invalid service / prepared query lookups
 func TestDNS_SOA_Settings(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -651,7 +647,7 @@ func TestDNS_SOA_Settings(t *testing.T) {
 		require.Equal(t, uint32(retry), soaRec.Retry)
 		require.Equal(t, uint32(ttl), soaRec.Hdr.Ttl)
 	}
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			// Default configuration
@@ -770,8 +766,7 @@ func TestDNS_InifiniteRecursion(t *testing.T) {
 	}
 
 	// This test should not create an infinite recursion
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -827,16 +822,12 @@ func TestDNS_InifiniteRecursion(t *testing.T) {
 	}
 }
 
-// TODO: NET-7640 - NS Record not populate on some invalid service / prepared query lookups
-// this is actually an I/O timeout so it might not be the same root cause listed in NET-7640
-// but going to cover investigating it there.
 func TestDNS_NSRecords(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -873,14 +864,12 @@ func TestDNS_NSRecords(t *testing.T) {
 	}
 }
 
-// TODO: NET-7640 - NS Record not populate on some invalid service / prepared query lookups
 func TestDNS_AltDomain_NSRecords(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, `
@@ -930,14 +919,12 @@ func TestDNS_AltDomain_NSRecords(t *testing.T) {
 	}
 }
 
-// TODO: NET-7640 - NS Record not populate on some invalid service / prepared query lookups
 func TestDNS_NSRecords_IPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
  		domain = "CONSUL."
@@ -975,14 +962,12 @@ func TestDNS_NSRecords_IPV6(t *testing.T) {
 	}
 }
 
-// TODO: NET-7640 - NS Record not populate on some invalid service / prepared query lookups
 func TestDNS_AltDomain_NSRecords_IPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -1630,7 +1615,9 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7646 - account for this functionality since there is
+// TODO(v2-dns): NET-7646 - account for this functionality in v1 since there is
+// no way to run a v2 version of this test since it is calling a private function and not
+// using a test agent.
 func TestDNS_BinarySearch(t *testing.T) {
 	msgSrc := new(dns.Msg)
 	msgSrc.Compress = true
@@ -1671,14 +1658,12 @@ func TestDNS_BinarySearch(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7635 - Fix dns: overflowing header size or IO timeouts
 func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -2336,14 +2321,12 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 	}
 }
 
-// TODO(v2-dns): NET-7640 - NS or SOA Records not populate on some invalid service / prepared query lookups
 func TestDNS_AltDomains_SOA(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		node_name = "test-node"
@@ -2539,14 +2522,12 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7640 - NS or SOA Records not populate on some invalid service / prepared query lookups
 func TestDNS_InvalidQueries(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
