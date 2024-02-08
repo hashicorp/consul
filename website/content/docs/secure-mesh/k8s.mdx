@@ -2,101 +2,47 @@
 layout: docs
 page_title: Secure service mesh on Kubernetes overview
 description: >-
-  Consul documentation provides reference material for all features and options available in Consul.
+  This topic provides an overview of Consul's features for securing service mesh communication when running Consul on Kubernetes (k8s). Consul enforces zero-trust security using a built-in mTLS certificate authority (CA) and service intentions.
 ---
 
-# Secure service mesh on Kubernetes overview
+# Secure service mesh overview
 
-This sample page template provides an outline for how to create an overview page. The first paragraph describes the page's content.
+This topic provides an overview for securing service-to-service communication within a service mesh when running Consul on Kubernetes. You can configure an mTLS certificate authority and intentions based on service identity to secure intra-mesh communication.
 
-To disambiguate content and provide alternate options for user journeys, use a second paragraph with a hyperlink to [direct users to an appropriate alternative](https://developer.hashicorp.com).
+For information about gossip encryption and securing your Consul deployment with the Access Control List (ACL) system, refer to [Secure Consul](/consul/secure) in the Consul Operations section.
 
 ## Introduction
 
-Introductory blocks are optional and may not be necessary for your overview page. If applicable, describe why the topic area is important in the introductory block. You can briefly describe the constituent topics and how they are related. 
+With Consul, a fully configured service mesh is one that enforces _zero-trust security_ by securing service-to-service communication in the following ways:
 
-If you use a diagram in an overview page, include it in the introduction.
+- Sidecar proxies encrypt and decrypt a service's traffic using an mTLS certificate signed by Consul
+- Sidecar proxies deny incoming requests by default
+- Sidecar proxies authorize incoming requests according to explicitly defined service intentions
 
-![Use descriptive alt text](/img/docs/image.png#light-theme-only)
+## Certificate authority
 
-![Use descriptive alt text](/img/docs/image.png#dark-theme-only)
+@include 'features/certificate-authority.mdx'
 
-Never end a section with an image. Always include at least one sentence that describes the contents of the diagram.
+## Service intentions
 
-## Workflows
+@include 'features/service-intentions.mdx'
 
-Use this section to summarize the main usage steps associated with the topic area. The topic area you are introducing may have a simple workflow, a complex set of workflows, or multiple related but separate workflows.
+## Traffic Permissions
 
-When developing new documentation content, the main workflow is generally the intial configuration, deployment, or instantiation of the topic. Workflows can use either ordered or unordered lists, depending on whether the workflow requires completing steps in a specific order.
- 
-### Primary workflow
+@include 'features/v2/traffic-permissions.mdx'
 
-The overall process for {end goal of workflow} consists of the following steps.
+## Tutorials
 
-1. First action users take complete this workflow. When using multiple sentences, keep the first sentence short and action-oriented, then elaborate in the second sentence.
-1. Second action for completing this workflow. Try to keep workflow steps symmetrical, so if you use two sentences for one step, use two sentences for the other steps.
-1. Final action common to the workflow. After this action, users will take actions specific to their organization or operational needs.
+To learn more about the workflows described in this topic, refer to the [Securely connect your services with Consul service mesh on Kubernetes tutorial](/consul/tutorials/get-started-kubernetes/kubernetes-gs-service-mesh).
 
-If a dedicated usage page exists, follow the workflow with a [link to refer the reader to the usage page](https://developer.hashicorp.com).
+## Reference documentation
 
-### Alternative or secondary workflow
+For reference material related to Consul's service mesh security options on Kubernetes, refer to the following pages:
 
-To {achieve a secondary goal}, complete the following steps:
-
-- Describe the first action users would need to undertake to complete this workflow.     
-- Second action for completing this workflow.
-- Final action.
-
-## General subtopic
-
-You may need to describe additional characteristics about topic area. 
-
-### Nested subtopic
-
-Group information into logical sections. 
-
-### Nested subtopic 
-
-- Use a bulleted list when describing three or more components.
-- Use diagrams, video, and other media as necessary.       
-- Use subheadings to segment and organize information.
-
-## Guidance
-
-Some users land on an overview page and do not know where to go next. Use this section to link to topics that help get started.
-
-### Tutorials
-
-- To learn how to {do what the tutorial describes}, complete the [Name of tutorial](https://link-to-tutorial).
-- To learn how to {do what the tutorial describes}, complete the [Name of tutorial](https://link-to-tutorial).
-
-### Usage documentation
-
-Grouping links into lists that align with the order of the workflows on this page and the order of pages in the nav bar.
-
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
-
-### Runtime specific usage documentation
-
-You can also separate usage docs according to environment, runtime, or other logical segments:
-
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
-- [Usage page title](https://developer.hashicorp.com)
-
-### Reference
-
-The most experienced users want to quickly find the reference information for specific parts of the component they are using. List all relevant reference pages for the topic.
-
-- [Reference page title](https://developer.hashicorp.com)
-- [Reference page title](https://developer.hashicorp.com)
-- [Reference page title](https://developer.hashicorp.com)
+- [Helm chart reference](/consul/docs/reference/k8s/helm)
+- [`ServiceIntentions` custom resource definition (CRD) reference](/consul/docs/reference/config-entry/service-intentions)
+- [`TrafficPermissions` v2 resource reference](/consul/docs/resource/trafficpermissions)
 
 ### Constraints, limitations, and troubleshooting
 
-List limitations that inhibit functionality. When creating new content, we typically refer to this section as "constraints and limitations" and update its contents as new features are added. When a release goes GA and all runtimes/environments are supported, you can refer to this section as "Basic troubleshooting".
-
-- List limitations such as constraints on names or operating features simultaneously.
-- List alternate approaches for completing usage tasks (example: Two admin partitions in the same datacenter cannot be peered. Use the `exported-services` configuration entry instead.)
+@include 'limitations/secure-mesh.mdx'
