@@ -461,13 +461,12 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7640 - NS Record not populate on some invalid service / prepared query lookups.
 func TestDNS_ServiceLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2252,13 +2251,12 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7641 - Service lookups not properly de-duping SRV records
 func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2827,13 +2825,12 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7635 - Fix dns: overflowing header size in tests
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2926,13 +2923,12 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7635 - Fix dns: overflowing header size in tests
 func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -3377,13 +3373,12 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7633 - implement answer limits.
 func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			// Build a matrix of config parameters (udpAnswerLimit), and the

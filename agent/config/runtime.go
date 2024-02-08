@@ -272,7 +272,7 @@ type RuntimeConfig struct {
 	// Records returned in the ANSWER section of a DNS response for UDP
 	// responses without EDNS support (limited to 512 bytes).
 	// This parameter is deprecated, if you want to limit the number of
-	// records returned by A or AAAA questions, please use DNSARecordLimit
+	// records returned by A or AAAA questions, please use TestDNS_ServiceLookup_Randomize
 	// instead.
 	//
 	// hcl: dns_config { udp_answer_limit = int }

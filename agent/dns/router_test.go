@@ -89,7 +89,8 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 			agentConfig: &config.RuntimeConfig{
-				DNSRecursors: []string{"8.8.8.8"},
+				DNSRecursors:      []string{"8.8.8.8"},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
 			},
 			configureRecursor: func(recursor dnsRecursor) {
 				resp := &dns.Msg{
@@ -161,7 +162,8 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 			agentConfig: &config.RuntimeConfig{
-				DNSRecursors: []string{"8.8.8.8"},
+				DNSRecursors:      []string{"8.8.8.8"},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
 			},
 			configureRecursor: func(recursor dnsRecursor) {
 				recursor.(*mockDnsRecursor).On("handle", mock.Anything, mock.Anything, mock.Anything).
@@ -200,7 +202,8 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 			agentConfig: &config.RuntimeConfig{
-				DNSRecursors: []string{"8.8.8.8"},
+				DNSRecursors:      []string{"8.8.8.8"},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
 			},
 			configureRecursor: func(recursor dnsRecursor) {
 				err := errors.New("ahhhhh!!!!")
@@ -240,7 +243,8 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 			agentConfig: &config.RuntimeConfig{
-				DNSRecursors: []string{"8.8.8.8"},
+				DNSRecursors:      []string{"8.8.8.8"},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
 			},
 			configureRecursor: func(recursor dnsRecursor) {
 				// this response is modeled after `dig .`
@@ -934,6 +938,7 @@ func Test_HandleRequest(t *testing.T) {
 					Expire:  3,
 					Minttl:  4,
 				},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
 			},
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
 				fetcher.(*discovery.MockCatalogDataFetcher).
@@ -1151,6 +1156,7 @@ func Test_HandleRequest(t *testing.T) {
 					Expire:  3,
 					Minttl:  4,
 				},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
 			},
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
 				fetcher.(*discovery.MockCatalogDataFetcher).
@@ -1881,6 +1887,7 @@ func buildDNSConfig(agentConfig *config.RuntimeConfig, cdf discovery.CatalogData
 				Expire:  3,
 				Minttl:  4,
 			},
+			DNSUDPAnswerLimit: maxUDPAnswerLimit,
 		},
 		EntMeta:   acl.EnterpriseMeta{},
 		Logger:    hclog.NewNullLogger(),
