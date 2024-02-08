@@ -9,7 +9,7 @@ description: >-
 
 ## Release Highlights
 
-- **Enhanced Envoy Access Logging:** Envoy access logs are now centrally managed via the `accessLogs` field within the ProxyDefaults CRD to allow operators to easily turn on access logs for all proxies within the service mesh. Refer to [Access logs overview](/consul/docs/connect/observability/access-logs) for more information.
+- **Enhanced Envoy Access Logging:** Envoy access logs are now centrally managed via the `accessLogs` field within the ProxyDefaults CRD to allow operators to easily turn on access logs for all proxies within the service mesh. Refer to [Access logs overview](/consul/docs/observe/access-logs) for more information.
 
 - **Consul Envoy Extensions:** The new Envoy extension system enables you to modify Consul-generated Envoy resources outside of the Consul binary. This will allow extensions to add, delete, and modify Envoy listeners, routes, clusters, and endpoints, enabling support for additional Envoy features without changes to the Consul codebase.
 The new `envoyExtensions` field in the ProxyDefaults and ServiceDefaults CRDs enable built-in Envoy extensions. Refer to [Envoy extensions overview](/consul/docs/reference/proxy/envoy-extensions) for more information on how to use these extensions.

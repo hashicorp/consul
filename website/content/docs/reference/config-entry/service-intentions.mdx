@@ -7,7 +7,7 @@ description: >-
 
 # Service intentions configuration entry reference
 
-This topic provides reference information for the service intentions configuration entry. Intentions are configurations for controlling access between services in the service mesh. A single service intentions configuration entry specifies one destination service and one or more L4 traffic sources, L7 traffic sources, or combination of traffic sources. Refer to [Service mesh intentions overview](/consul/docs/connect/intentions) for additional information.
+This topic provides reference information for the service intentions configuration entry. Intentions are configurations for controlling access between services in the service mesh. A single service intentions configuration entry specifies one destination service and one or more L4 traffic sources, L7 traffic sources, or combination of traffic sources. Refer to [Service mesh intentions overview](/consul/docs/secure-mesh/intentions) for additional information.
 
 ## Configuration model
 
@@ -614,7 +614,7 @@ Each member of the `Header` list is a map that contains a `Name` field and at le
 
 ### `Sources[].Precedence`
 
-The `Precedence` field contains a read-only integer. Consul generates the value based on name configurations for the source and destination services. Refer to [Precedence and matching order](/consul/docs/connect/intentions/create-manage-intentions#precedence-and-matching-order) for additional information.
+The `Precedence` field contains a read-only integer. Consul generates the value based on name configurations for the source and destination services. Refer to [Precedence and matching order](/consul/docs/secure-mesh/intentions/create#precedence-and-matching-order) for additional information.
 
 ### `Sources[].Type`
 

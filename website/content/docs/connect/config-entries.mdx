@@ -33,7 +33,7 @@ connect {
 ```
 </CodeTabs>
 
-This will enable service mesh and configure your Consul cluster to use the built-in certificate authority for creating and managing certificates. You may also configure Consul to use an external [certificate management system](/consul/docs/connect/ca), such as [Vault](https://www.vaultproject.io/).
+This will enable service mesh and configure your Consul cluster to use the built-in certificate authority for creating and managing certificates. You may also configure Consul to use an external [certificate management system](/consul/docs/secure-mesh/certificate), such as [Vault](https://www.vaultproject.io/).
 
 Services and proxies may always register with service mesh settings, but unless service mesh is enabled on the server agents, their attempts to communicate will fail because they have no means to obtain or verify service mesh TLS certificates.
 

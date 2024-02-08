@@ -135,7 +135,7 @@ Use these links to navigate to a particular top-level stanza.
     - `vault` ((#v-global-secretsbackend-vault))
 
       - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace` 
-        agent annotation and [Vault Connect CA namespace](/consul/docs/connect/ca/vault#namespace).
+        agent annotation and [Vault Connect CA namespace](/consul/docs/secure-mesh/certificate/vault#namespace).
         To override one of these values individually, refer to  `agentAnnotations` and `connectCA.additionalConfig`.
 
       - `enabled` ((#v-global-secretsbackend-vault-enabled)) (`boolean: false`) - Enabling the Vault secrets backend will replace Kubernetes secrets with referenced Vault secrets.
@@ -215,7 +215,7 @@ Use these links to navigate to a particular top-level stanza.
         The provider will be configured to use the Vault Kubernetes auth method
         and therefore requires the role provided by `global.secretsBackend.vault.consulServerRole`
         to have permissions to the root and intermediate PKI paths.
-        Please refer to [Vault ACL policies](/consul/docs/connect/ca/vault#vault-acl-policies)
+        Please refer to [Vault ACL policies](/consul/docs/secure-mesh/certificate/vault#vault-acl-policies)
         documentation for information on how to configure the Vault policies.
 
         - `address` ((#v-global-secretsbackend-vault-connectca-address)) (`string: ""`) - The address of the Vault server.
@@ -223,13 +223,13 @@ Use these links to navigate to a particular top-level stanza.
         - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
-          For more details, please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#rootpkipath).
+          For more details, please refer to [Vault Connect CA configuration](/consul/docs/secure-mesh/certificate/vault#rootpkipath).
 
         - `intermediatePKIPath` ((#v-global-secretsbackend-vault-connectca-intermediatepkipath)) (`string: ""`) - The path to a PKI secrets engine for the generated intermediate certificate.
-          For more details, please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#intermediatepkipath).
+          For more details, please refer to [Vault Connect CA configuration](/consul/docs/secure-mesh/certificate/vault#intermediatepkipath).
 
         - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional Connect CA configuration in JSON format.
-          Please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#configuration)
+          Please refer to [Vault Connect CA configuration](/consul/docs/secure-mesh/certificate/vault#configuration)
           for all configuration options available for that provider.
 
           Example:
@@ -324,7 +324,7 @@ Use these links to navigate to a particular top-level stanza.
     - `verify` ((#v-global-tls-verify)) (`boolean: true`) - If true, `verify_outgoing`, `verify_server_hostname`,
       and `verify_incoming` for internal RPC communication will be set to `true` for Consul servers and clients.
       Set this to false to incrementally roll out TLS on an existing Consul cluster.
-      Please refer to [TLS on existing clusters](/consul/docs/k8s/operations/tls-on-existing-cluster)
+      Please refer to [TLS on existing clusters](/consul/docs/secure-mesh/certificate/existing)
       for more details.
 
     - `httpsOnly` ((#v-global-tls-httpsonly)) (`boolean: true`) - If true, the Helm chart will configure Consul to disable the HTTP port on

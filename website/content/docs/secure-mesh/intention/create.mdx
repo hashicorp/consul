@@ -11,7 +11,7 @@ This topic describes how to create and manage service intentions, which are conf
 
 ## Overview
 
-You can create single intentions or create them in batches using the Consul API, CLI, or UI. You can also define a service intention configuration entry that sets default intentions for all services in the mesh. Refer to [Service intentions overview](/consul/docs/connect/intentions/) for additional background information about intentions.
+You can create single intentions or create them in batches using the Consul API, CLI, or UI. You can also define a service intention configuration entry that sets default intentions for all services in the mesh. Refer to [Service intentions overview](/consul/docs/secure-mesh/intentions/) for additional background information about intentions.
 
 ## Requirements
 
@@ -99,7 +99,7 @@ The following example creates an intention that allows `web` service instances t
 $ consul intention create -allow web db
 ```
 
-You can use the asterisk (`*`) wildcard to specify multiple destination services. Refer to [Precedence and match order](/consul/docs/connect/intentions/create-manage-intentions#precedence-and-match-order) for additional information.
+You can use the asterisk (`*`) wildcard to specify multiple destination services. Refer to [Precedence and match order](/consul/docs/secure-mesh/intentions/create#precedence-and-match-order) for additional information.
 
 ### Consul UI
 

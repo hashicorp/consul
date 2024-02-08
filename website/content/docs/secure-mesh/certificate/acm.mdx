@@ -13,7 +13,7 @@ Authority
 to manage and sign certificates.
 
 -> This page documents the specifics of the AWS ACM Private CA provider.
-Please read the [certificate management overview](/consul/docs/connect/ca)
+Please read the [certificate management overview](/consul/docs/secure-mesh/certificate)
 page first to understand how Consul manages certificates with configurable
 CA providers.
 
@@ -131,7 +131,7 @@ For now, the limitation means that once ACM Private CA is configured as the CA
 provider, it is not possible to reconfigure a different CA provider, or rotate
 the root CA key without potentially observing some transient connection
 failures. See the section on [forced rotation without
-cross-signing](/consul/docs/connect/ca#forced-rotation-without-cross-signing) for
+cross-signing](/consul/docs/secure-mesh/certificate#forced-rotation-without-cross-signing) for
 more details.
 
 ### Primary DC Must be a Root CA

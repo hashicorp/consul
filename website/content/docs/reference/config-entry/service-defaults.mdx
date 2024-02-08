@@ -556,7 +556,7 @@ Specifies the name of the Consul admin partition that the configuration entry ap
 
 ### `Meta`
 
-Specifies a set of custom key-value pairs to add to the [Consul KV](/consul/docs/dynamic-app-config/kv) store.
+Specifies a set of custom key-value pairs to add to the [Consul KV](/consul/docs/dynamic-app/kv) store.
 
 #### Values
 
@@ -572,7 +572,7 @@ Specifies the default protocol for the service. In service mesh use cases, the `
 - [observability](/consul/docs/connect/observability)
 - [service splitter configuration entry](/consul/docs/reference/config-entry/service-splitter)
 - [service router configuration entry](/consul/docs/reference/config-entry/service-router)
-- [L7 intentions](/consul/docs/connect/intentions#l7-traffic-intentions)
+- [L7 intentions](/consul/docs/secure-mesh/intentions#l7-traffic-intentions)
 
 You can set the global protocol for proxies in the [`proxy-defaults`](/consul/docs/reference/config-entry/proxy-defaults#default-protocol) configuration entry, but the protocol specified in the `service-defaults` configuration entry overrides the `proxy-defaults` configuration.
 
@@ -1034,7 +1034,7 @@ Specifies the default protocol for the service. In service service mesh use case
 - [observability](/consul/docs/connect/observability)
 - [`service-splitter` configuration entry](/consul/docs/reference/config-entry/service-splitter)
 - [`service-router` configuration entry](/consul/docs/reference/config-entry/service-router)
-- [L7 intentions](/consul/docs/connect/intentions#l7-traffic-intentions)
+- [L7 intentions](/consul/docs/secure-mesh/intentions#l7-traffic-intentions)
 
 You can set the global protocol for proxies in the [`ProxyDefaults` configuration entry](/consul/docs/reference/config-entry/proxy-defaults#default-protocol), but the protocol specified in the `ServiceDefaults` configuration entry overrides the `ProxyDefaults` configuration.
 
