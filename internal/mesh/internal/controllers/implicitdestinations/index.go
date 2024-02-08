@@ -120,8 +120,6 @@ func indexFromTenantedName(tn tenantedName) []byte {
 	return b.Bytes()
 }
 
-// Cache: ctpByPartition
-
 // Cache: reverse CR => SVC[backend]
 var computedRoutesByBackendServiceIndex = indexers.RefOrIDIndex(
 	"computed-routes-by-backend-service",
