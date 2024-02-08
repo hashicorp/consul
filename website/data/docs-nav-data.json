@@ -375,7 +375,7 @@
           },
           {
             "title": "AWS ECS",
-            "path": "deploy/ecs"
+            "path": "deploy/server/ecs"
           }
         ]
       },
