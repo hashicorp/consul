@@ -18,7 +18,7 @@ func (f *V1DataFetcher) NormalizeRequest(req *QueryPayload) {
 }
 
 func validateEnterpriseTenancy(req QueryTenancy) error {
-	if req.Namespace != "" || req.Partition != "" {
+	if req.Namespace != "" || req.Partition != acl.DefaultPartitionName {
 		return ErrNotSupported
 	}
 	return nil

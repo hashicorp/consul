@@ -115,7 +115,7 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 
 	// If we have no out.NodeServices.Nodeaddress, return not found!
 	if out.NodeServices == nil {
-		return nil, errors.New("no nodes found")
+		return nil, ErrNotFound
 	}
 
 	results := make([]*Result, 0, 1)
@@ -302,7 +302,11 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 
 	out, err := f.executePreparedQuery(cfg, args)
 	if err != nil {
-		return nil, err
+		// errors.Is() doesn't work with errors.New() so we need to check the error message.
+		if err.Error() == structs.ErrQueryNotFound.Error() {
+			err = ErrNotFound
+		}
+		return nil, ECSNotGlobalError{err}
 	}
 
 	// (v2-dns) TODO: (v2-dns) get TTLS working.  They come from the database so not having
@@ -337,12 +341,12 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		return nil, ErrNoData
+		return nil, ECSNotGlobalError{ErrNoData}
 	}
 
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
-	return f.buildResultsFromServiceNodes(out.Nodes), nil
+	return f.buildResultsFromServiceNodes(out.Nodes, req), ECSNotGlobalError{}
 }
 
 // executePreparedQuery is used to execute a PreparedQuery against the Consul catalog.
@@ -399,10 +403,16 @@ func (f *V1DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
 }
 
 // buildResultsFromServiceNodes builds a list of results from a list of nodes.
-func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServiceNode) []*Result {
-	results := make([]*Result, 0)
-	for _, n := range nodes {
+func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServiceNode, req *QueryPayload) []*Result {
+	// Convert the service endpoints to results up to the limit
+	limit := req.Limit
+	if len(nodes) < limit || limit == 0 {
+		limit = len(nodes)
+	}
 
+	results := make([]*Result, 0, limit)
+	for idx := 0; idx < limit; idx++ {
+		n := nodes[idx]
 		results = append(results, &Result{
 			Service: &Location{
 				Name:    n.Service.Service,
@@ -534,7 +544,7 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
-	return f.buildResultsFromServiceNodes(out.Nodes), nil
+	return f.buildResultsFromServiceNodes(out.Nodes, req), nil
 }
 
 // findWeight returns the weight of a service node.
