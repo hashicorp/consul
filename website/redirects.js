@@ -2,9 +2,7 @@
  * Copyright (c) HashiCorp, Inc.
  * SPDX-License-Identifier: BUSL-1.1
  */
-
 // REDIRECTS FILE
-
 // See the README file in this directory for documentation. Please do not
 // modify or delete existing redirects without first verifying internally.
 // Next.js redirect documentation: https://nextjs.org/docs/api-reference/next.config.js/redirects
@@ -21,7 +19,6 @@ module.exports = [
     destination: '/consul/docs/use-case/service-mesh',
     permanent: true,
   },
-
   {
     source: '/consul/docs/consul-vs-other',
     destination: '/consul/docs/why',
@@ -47,13 +44,11 @@ module.exports = [
     destination: '/consul/docs/why/api-gateway',
     permanent: true,
   },
-
   {
     source: '/consul/docs/connect/connect-internals',
     destination: '/consul/docs/concepts/service-mesh',
     permanent: true,
   },
-
   {
     source: '/consul/docs/install/ports',
     destination: '/consul/docs/deploy/server/ports',
@@ -64,7 +59,6 @@ module.exports = [
     destination: '/consul/docs/deploy/server/fips',
     permanent: true,
   },
-
   {
     source: '/consul/docs/install/bootstrapping',
     destination: '/consul/docs/deploy/server/vm/bootstrap',
@@ -80,13 +74,11 @@ module.exports = [
     destination: '/consul/docs/deploy/server/vm/requirements',
     permanent: true,
   },
-
   {
     source: '/consul/k8s/compatibility',
     destination: '/consul/docs/deploy/server/k8s/requirements',
     permanent: true,
   },
-
   {
     source: '/consul/tutorials/kubernetes/kubernetes-minikube',
     destination: '/consul/docs/deploy/server/k8s/plaform/minikube',
@@ -261,14 +253,12 @@ module.exports = [
     destination: '/consul/docs/deploy/server/wal/revert-boltdb',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/k8s/deployment-configurations/clients-outside-kubernetes',
     destination: '/consul/docs/deploy/control-plane/k8s',
     permanent: true,
   },
-
   {
     source: '/consul/docs/connect/configuration',
     destination: '/consul/docs/deploy/service-mesh/enable',
@@ -289,7 +279,6 @@ module.exports = [
     destination: '/consul/docs/deploy/scale',
     permanent: true,
   },
-
   {
     source: '/consul/docs/security',
     destination: '/consul/docs/secure-consul/',
@@ -345,7 +334,6 @@ module.exports = [
     destination: '/consul/docs/secure-consul/acl/auth-methods/aws-iam',
     permanent: true,
   },
-
   {
     source: '/consul/docs/security/acl/acl-federated-datacenters',
     destination: '/consul/docs/secure-consul/acl/federation',
@@ -473,19 +461,16 @@ module.exports = [
     destination: '/consul/docs/secure-consul/security-model/nia',
     permanent: true,
   },
-
   {
     source: '/consul/docs/agent/telemetry',
     destination: '/consul/docs/monitor-consul/telemetry/',
     permanent: true,
   },
-
   {
     source: '/consul/docs/enterprise/audit-logging',
     destination: '/consul/docs/monitor-consul/log/audit-log',
     permanent: true,
   },
-
   {
     source: '/consul/docs/enterprise/backups',
     destination: '/consul/docs/manage-consul/automated-backups',
@@ -527,7 +512,6 @@ module.exports = [
       '/consul/docs/manage-consul/agent-rate-limit/source-ip-addresses',
     permanent: true,
   },
-
   {
     source: '/consul/docs/upgrading',
     destination: '/consul/docs/upgrade',
@@ -608,7 +592,6 @@ module.exports = [
     destination: '/consul/docs/upgrade/ecs/dataplane',
     permanent: true,
   },
-
   {
     source: '/consul/docs/release-notes/consul-api-gateway',
     destination: '/consul/docs/release-notes/api-gateway',
@@ -619,13 +602,11 @@ module.exports = [
     destination: '/consul/docs/release-notes/ecs',
     permanent: true,
   },
-
   {
     source: '/consul/docs/services/services',
     destination: '/consul/docs/register',
     permanent: true,
   },
-
   {
     source: '/consul/docs/services/usage/define-services',
     destination: '/consul/docs/register/service/vm/define',
@@ -641,13 +622,11 @@ module.exports = [
     destination: '/consul/docs/register/service/vm',
     permanent: true,
   },
-
   {
     source: '/consul/docs/k8s/service-sync',
     destination: '/consul/docs/register/service/k8s/service-sync',
     permanent: true,
   },
-
   {
     source: '/consul/docs/ecs/tech-specs',
     destination: '/consul/docs/register/service/ecs/requirements',
@@ -694,7 +673,6 @@ module.exports = [
     destination: '/consul/docs/register/service/lambda/manual',
     permanent: true,
   },
-
   {
     source: '/consul/docs/k8s/connect/terminating-gateways',
     destination: '/consul/docs/register/external/terminating-gateway/k8s',
@@ -705,7 +683,6 @@ module.exports = [
     destination: '/consul/docs/register/external/permissive-mtls',
     permanent: true,
   },
-
   {
     source: '/consul/docs/services/discovery/dns-overview',
     destination: '/consul/docs/discover/dns',
@@ -731,7 +708,6 @@ module.exports = [
     destination: '/consul/docs/discover/dns/k8s',
     permanent: true,
   },
-
   {
     source: '/consul/docs/connect/connect-internals',
     destination: '/consul/docsLINK TO /concept/service-mesh',
@@ -788,7 +764,6 @@ module.exports = [
     destination: '/consul/docs/connect/proxy/transparent-proxy/enable',
     permanent: true,
   },
-
   {
     source: '/consul/docs/connect/dev',
     destination: '/consul/docs/connect/troubleshoot/develop-debug',
@@ -799,7 +774,6 @@ module.exports = [
     destination: '/consul/docs/connect/troubleshoot/service-to-service',
     permanent: true,
   },
-
   {
     source: '/consul/docs/ecs/deploy/configure-routes',
     destination: '/consul/docs/connect/ecs',
@@ -810,7 +784,6 @@ module.exports = [
     destination: '/consul/docs/connect/lambda',
     permanent: true,
   },
-
   {
     source: '/consul/docs/gateways',
     destination: '/consul/docs/access',
@@ -908,19 +881,16 @@ module.exports = [
     destination: '/consul/docs/access/ingress-gateway/tls-external-service',
     permanent: true,
   },
-
   {
     source: '/consul/docs/enterprise/admin-partitions',
     destination: '/consul/docs/segment/admin-partition',
     permanent: true,
   },
-
   {
     source: '/consul/docs/enterprise/namespaces',
     destination: '/consul/docs/segment/namespace',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups',
@@ -938,7 +908,6 @@ module.exports = [
     destination: '/consul/docs/segment/network-segment/vm',
     permanent: true,
   },
-
   {
     source: '/consul/docs/connect/cluster-peering',
     destination: '/consul/docs/link/cluster-peering',
@@ -970,7 +939,6 @@ module.exports = [
     destination: '/consul/docs/link/cluster-peering/manage-connection/k8s',
     permanent: true,
   },
-
   {
     source: '/consul/tutorials/datacenter-operations/federation-network-areas',
     destination: '/consul/docs/link/network-area',
@@ -981,7 +949,6 @@ module.exports = [
     destination: '/consul/docs/link/wan-federation/',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes',
@@ -1023,7 +990,6 @@ module.exports = [
     destination: '/consul/docs/link/mesh-gateway/admin-partition',
     permanent: true,
   },
-
   {
     source: '/consul/docs/connect/intentions',
     destination: '/consul/docs/secure-mesh/intentions',
@@ -1050,7 +1016,6 @@ module.exports = [
     destination: '/consul/docs/secure-mesh/certificate/bootstrap/vm',
     permanent: true,
   },
-
   {
     source: '/consul/docs/k8s/operations/certificate-rotation',
     destination: '/consul/docs/secure-mesh/certificate/rotate/tls',
@@ -1087,7 +1052,6 @@ module.exports = [
     destination: '/consul/docs/secure-mesh/certificate/enable-permissive-mtls',
     permanent: true,
   },
-
   {
     source: '/consul/docs/manage-traffic',
     destination: '/consul/docs/manage-traffic',
@@ -1103,7 +1067,6 @@ module.exports = [
     destination: '/consul/docs/manage-traffic/limit-rate',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/connect/cluster-peering/usage/peering-traffic-management',
@@ -1140,7 +1103,6 @@ module.exports = [
     destination: '/consul/docs/manage-traffic/failover/sameness-group',
     permanent: true,
   },
-
   {
     source: '/consul/docs/connect/observability/access-logs',
     destination: '/consul/docs/observe/access-logs',
@@ -1161,7 +1123,6 @@ module.exports = [
     destination: '/consul/docs/observe/distributed-tracing',
     permanent: true,
   },
-
   {
     source: '/consul/docs/dynamic-app-config/kv',
     destination: '/consul/docs/dynamic-app/kv',
@@ -1172,7 +1133,6 @@ module.exports = [
     destination: '/consul/docs/dynamic-app/kv/store',
     permanent: true,
   },
-
   {
     source: '/consul/docs/dynamic-app-config/sessions',
     destination: '/consul/docs/dynamic-app/sessions',
@@ -1183,7 +1143,6 @@ module.exports = [
     destination: '/consul/docs/dynamic-app/watches',
     permanent: true,
   },
-
   {
     source: '/consul/docs/enterprise/license/overview',
     destination: '/consul/docs/enterprise/license',
@@ -1195,7 +1154,6 @@ module.exports = [
       '/consul/docs/enterprise/license/automated-entitlement-utilization',
     permanent: true,
   },
-
   {
     source: '/consul/docs/integrate/download-tools',
     destination: '/consul/docs/integrate/consul-tools',
@@ -1216,7 +1174,6 @@ module.exports = [
     destination: '/consul/docs/integrate/proxy',
     permanent: true,
   },
-
   {
     source: '/consul/docs/connect/proxies/envoy-extensions',
     destination: '/consul/docs/envoy-extension/',
@@ -1260,7 +1217,6 @@ module.exports = [
     destination: '/consul/docs/envoy-extension/wasm',
     permanent: true,
   },
-
   {
     source: '/consul/docs/nia',
     destination: '/consul/docs/cts',
@@ -1276,7 +1232,6 @@ module.exports = [
     destination: '/consul/docs/cts/requirements',
     permanent: true,
   },
-
   {
     source: '/consul/docs/nia/installation/install',
     destination: '/consul/docs/cts/deploy/install',
@@ -1287,7 +1242,6 @@ module.exports = [
     destination: '/consul/docs/cts/configure',
     permanent: true,
   },
-
   {
     source: '/consul/docs/nia/tasks',
     destination: '/consul/docs/cts/configure/task',
@@ -1329,7 +1283,6 @@ module.exports = [
     destination: '/consul/docs/cts/enterprise',
     permanent: true,
   },
-
   {
     source: '/consul/docs/k8s/k8s-cli',
     destination: '/consul/docsreference-cli/consul-k8s',
@@ -1340,7 +1293,6 @@ module.exports = [
     destination: '/consul/docsreference-cli/consul-dataplane',
     permanent: true,
   },
-
   {
     source: '/consul/docs/troubleshoot/common-errors',
     destination: '/consul/docs/error-messages/consul',
@@ -1367,7 +1319,6 @@ module.exports = [
     destination: '/consul/docs/reference/glossary',
     permanent: true,
   },
-
   {
     source: '/consul/docs/agent/config/config-files',
     destination: '/consul/docs/reference/agent',
@@ -1474,7 +1425,6 @@ module.exports = [
       '/consul/docs/reference/config-entry/control-plane-request-limit',
     permanent: true,
   },
-
   {
     source: '/consul/docs/security/acl/acl-rules',
     destination: '/consul/docs/reference/acl/rule',
@@ -1500,13 +1450,11 @@ module.exports = [
     destination: '/consul/docs/reference/acl/auth-method/aws-iam',
     permanent: true,
   },
-
   {
     source: '/consul/docs/k8s/annotations-and-labels',
     destination: '/consul/docs/reference/k8s/annotation-label',
     permanent: true,
   },
-
   {
     source: '/consul/docs/k8s/helm',
     destination: '/consul/docs/reference/k8s/helm',
@@ -1702,9 +1650,7 @@ module.exports = [
     destination: '/consul/docs/reference/resource/trafficpermissions',
     permanent: true,
   },
-
   // Links to previous versions redirect correctly
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/use-case/service-discovery/:slug*',
@@ -1717,7 +1663,6 @@ module.exports = [
     destination: '/consul/docs/:version/concepts/service-mesh/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/why/:slug*',
@@ -1752,14 +1697,12 @@ module.exports = [
       '/consul/docs/:version/consul-vs-other/api-gateway-compare/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/concepts/service-mesh/:slug*',
     destination: '/consul/docs/:version/connect/connect-internals/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/deploy/server/ports/:slug*',
@@ -1772,7 +1715,6 @@ module.exports = [
     destination: '/consul/docs/:version/enterprise/fips/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/deploy/server/vm/bootstrap/:slug*',
@@ -1791,14 +1733,12 @@ module.exports = [
     destination: '/consul/docs/:version/install/performance/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/deploy/server/k8s/requirements/:slug*',
     destination: '/consul/k8s/compatibility/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/deploy/server/k8s/plaform/minikube/:slug*',
@@ -2001,7 +1941,6 @@ module.exports = [
       '/consul/docs/:version/agent/wal-logstore/revert-to-boltdb/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/deploy/control-plane/k8s/:slug*',
@@ -2009,7 +1948,6 @@ module.exports = [
       '/consul/docs/:version/k8s/deployment-configurations/clients-outside-kubernetes/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/deploy/service-mesh/enable/:slug*',
@@ -2036,7 +1974,6 @@ module.exports = [
     destination: '/consul/docs/:version/architecture/scale/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/secure-consul//:slug*',
@@ -2105,7 +2042,6 @@ module.exports = [
       '/consul/docs/:version/security/acl/auth-methods/aws-iam/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/secure-consul/acl/federation/:slug*',
@@ -2261,21 +2197,18 @@ module.exports = [
     destination: '/consul/docs/:version/security/security-models/nia/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/monitor-consul/telemetry//:slug*',
     destination: '/consul/docs/:version/agent/telemetry/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/monitor-consul/log/audit-log/:slug*',
     destination: '/consul/docs/:version/enterprise/audit-logging/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/manage-consul/automated-backups/:slug*',
@@ -2328,7 +2261,6 @@ module.exports = [
       '/consul/docs/:version/agent/limits/usage/limit-request-rates-from-ips/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/upgrade/:slug*',
@@ -2430,7 +2362,6 @@ module.exports = [
     destination: '/consul/docs/:version/ecs/upgrade-to-dataplanes/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/release-notes/api-gateway/:slug*',
@@ -2443,14 +2374,12 @@ module.exports = [
     destination: '/consul/docs/:version/release-notes/consul-ecs/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/register/:slug*',
     destination: '/consul/docs/:version/services/services/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/register/service/vm/define/:slug*',
@@ -2470,14 +2399,12 @@ module.exports = [
       '/consul/docs/:version/services/usage/register-services-checks/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/register/service/k8s/service-sync/:slug*',
     destination: '/consul/docs/:version/k8s/service-sync/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/register/service/ecs/requirements/:slug*',
@@ -2533,7 +2460,6 @@ module.exports = [
     destination: '/consul/docs/:version/lambda/registration/manual/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/register/external/terminating-gateway/k8s/:slug*',
@@ -2547,7 +2473,6 @@ module.exports = [
       '/consul/docs/:version/k8s/connect/onboarding-tproxy-mode/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/discover/dns/:slug*',
@@ -2581,7 +2506,6 @@ module.exports = [
     destination: '/consul/docs/:version/k8s/dns/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)LINK TO /concept/service-mesh/:slug*',
@@ -2651,7 +2575,6 @@ module.exports = [
       '/consul/docs/:version/k8s/connect/transparent-proxy/enable-transparent-proxy/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/connect/troubleshoot/develop-debug/:slug*',
@@ -2665,7 +2588,6 @@ module.exports = [
       '/consul/docs/:version/troubleshoot/troubleshoot-services/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/connect/ecs/:slug*',
@@ -2678,7 +2600,6 @@ module.exports = [
     destination: '/consul/docs/:version/lambda/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/access/:slug*',
@@ -2804,21 +2725,18 @@ module.exports = [
       '/consul/docs/:version/gateways/ingress-gateway/tls-external-service/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/segment/admin-partition/:slug*',
     destination: '/consul/docs/:version/enterprise/admin-partitions/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/segment/namespace/:slug*',
     destination: '/consul/docs/:version/enterprise/namespaces/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/link/sameness-group/:slug*',
@@ -2840,7 +2758,6 @@ module.exports = [
       '/consul/docs/:version/enterprise/network-segments/create-network-segment/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/link/cluster-peering/:slug*',
@@ -2882,7 +2799,6 @@ module.exports = [
       '/consul/docs/:version/k8s/connect/cluster-peering/usage/manage-peering/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/link/network-area/:slug*',
@@ -2897,7 +2813,6 @@ module.exports = [
       '/consul/docs/:version/k8s/deployment-configurations/multi-cluster/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/link/wan-federation/k8s/:slug*',
@@ -2946,7 +2861,6 @@ module.exports = [
       '/consul/docs/:version/connect/gateways/mesh-gateway/service-to-service-traffic-partitions/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/secure-mesh/intentions/:slug*',
@@ -2980,7 +2894,6 @@ module.exports = [
       '/consul/tutorials/developer-mesh/service-mesh-production-checklist#bootstrap-certificate-authority-for-consul-service-mesh/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/secure-mesh/certificate/rotate/tls/:slug*',
@@ -3027,7 +2940,6 @@ module.exports = [
       '/consul/docs/:version/k8s/connect/onboarding-tproxy-mode#enable-permissive-mtls-mode/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/manage-traffic/:slug*',
@@ -3048,7 +2960,6 @@ module.exports = [
       '/consul/docs/:version/manage-traffic/limit-request-rates/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/manage-traffic/cluster-peering/vm/:slug*',
@@ -3094,7 +3005,6 @@ module.exports = [
     destination: '/consul/docs/:version/manage-traffic/failover/sameness/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/observe/access-logs/:slug*',
@@ -3122,7 +3032,6 @@ module.exports = [
     destination: '/consul/docs/:version/connect/distributed-tracing/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/dynamic-app/kv/:slug*',
@@ -3136,7 +3045,6 @@ module.exports = [
       '/consul/tutorials/interactive/get-started-key-value-store/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/dynamic-app/sessions/:slug*',
@@ -3149,7 +3057,6 @@ module.exports = [
     destination: '/consul/docs/:version/dynamic-app-config/watches/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/enterprise/license/:slug*',
@@ -3163,7 +3070,6 @@ module.exports = [
       '/consul/docs/:version/enterprise/license/utilization-reporting/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/integrate/consul-tools/:slug*',
@@ -3188,7 +3094,6 @@ module.exports = [
     destination: '/consul/docs/:version/connect/proxies/integrate/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/envoy-extension//:slug*',
@@ -3244,7 +3149,6 @@ module.exports = [
       '/consul/docs/:version/connect/proxies/envoy-extensions/usage/wasm/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/cts/:slug*',
@@ -3263,7 +3167,6 @@ module.exports = [
     destination: '/consul/docs/:version/nia/usage/requirements/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/cts/deploy/install/:slug*',
@@ -3276,7 +3179,6 @@ module.exports = [
     destination: '/consul/docs/:version/nia/installation/configure/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/cts/configure/task/:slug*',
@@ -3327,7 +3229,6 @@ module.exports = [
     destination: '/consul/docs/:version/nia/enterprise/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)reference-cli/consul-k8s/:slug*',
@@ -3341,7 +3242,6 @@ module.exports = [
       '/consul/docs/:version/connect/dataplane/consul-dataplane/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/error-messages/consul/:slug*',
@@ -3374,7 +3274,6 @@ module.exports = [
     destination: '/consul/docs/:version/install/glossary/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/reference/agent/:slug*',
@@ -3513,7 +3412,6 @@ module.exports = [
       '/consul/docs/:version/connect/config-entries/control-plane-request-limit/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/reference/acl/rule/:slug*',
@@ -3546,14 +3444,12 @@ module.exports = [
       '/consul/docs/:version/security/acl/auth-methods/aws-iam/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/reference/k8s/annotation-label/:slug*',
     destination: '/consul/docs/:version/k8s/annotations-and-labels/:slug',
     permanent: true,
   },
-
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/reference/k8s/helm/:slug*',
