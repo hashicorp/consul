@@ -62,24 +62,3 @@ func TestLinkWatch_ContextCanceled(t *testing.T) {
 	_, ok := <-linkWatchCh
 	require.False(t, ok)
 }
-
-// This tests ensures that when Recv returns errors repeatedly, we eventually close the channel
-// and exit the goroutine
-func TestLinkWatch_RepeatErrors(t *testing.T) {
-	mockWatchListClient := mockpbresource.NewResourceService_WatchListClient(t)
-	// Recv should be called 10 times and no more since it is repeatedly returning an error.
-	mockWatchListClient.EXPECT().Recv().Return(nil, errors.New("unexpected error")).Times(linkWatchRetryCount)
-
-	client := mockpbresource.NewResourceServiceClient(t)
-	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
-		Type:       pbhcp.LinkType,
-		NamePrefix: types.LinkName,
-	}).Return(mockWatchListClient, nil)
-
-	linkWatchCh, err := NewLinkWatch(context.Background(), hclog.Default(), client)
-	require.NoError(t, err)
-
-	// Ensure the linkWatchCh is closed
-	_, ok := <-linkWatchCh
-	require.False(t, ok)
-}
