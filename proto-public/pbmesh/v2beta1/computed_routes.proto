@@ -139,9 +139,7 @@ message BackendTargetDetails {
   // ServiceEndpointsRef is not populated naturally and the field exists only for downstream consumers.
   pbproxystate.EndpointRef service_endpoints_ref = 24;
 
-  // ServiceEndpoints is not populated naturally and the field exists only for
-  // downstream consumers.
-  hashicorp.consul.catalog.v2beta1.ServiceEndpoints service_endpoints = 22;
+  reserved 22; // formerly ServiceEndpoints, never marshaled
 
   // IdentityRefs are not populated naturally and the field exists only for
   // downstream consumers.
