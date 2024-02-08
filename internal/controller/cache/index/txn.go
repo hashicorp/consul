@@ -7,7 +7,7 @@ import (
 	iradix "github.com/hashicorp/go-immutable-radix/v2"
 
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 type txn struct {

@@ -6,7 +6,7 @@ package workloadselector
 import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func aclReadHookResourceWithWorkloadSelector(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {

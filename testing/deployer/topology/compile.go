@@ -16,7 +16,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/exp/maps"
 

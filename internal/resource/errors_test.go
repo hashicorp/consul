@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // update allows golden files to be updated based on the current output.

@@ -4,9 +4,10 @@
 package builder
 
 import (
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 	"github.com/stretchr/testify/require"
 

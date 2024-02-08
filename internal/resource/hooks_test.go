@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/stretchr/testify/require"
 )

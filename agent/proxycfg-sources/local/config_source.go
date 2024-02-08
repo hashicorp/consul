@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	structs "github.com/hashicorp/consul/agent/structs"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // ConfigSource wraps a proxycfg.Manager to create watches on services

@@ -3,7 +3,7 @@
 
 package index
 
-import "github.com/hashicorp/consul/proto-public/pbresource"
+import pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 //go:generate mockery --name resourceIterable --with-expecter --exported
 type resourceIterable interface {

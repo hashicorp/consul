@@ -6,10 +6,10 @@ syntax = "proto3";
 package hashicorp.consul.multicluster.v2;
 
 import "pbmulticluster/v2/exported_services_consumer.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 message ExportedServices {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   repeated string services = 1;
   repeated ExportedServicesConsumer consumers = 2;

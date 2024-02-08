@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/internal/resourcehcl"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 const JSON_INDENT = "  "

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/topology"

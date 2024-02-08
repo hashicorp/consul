@@ -15,7 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/testing/golden"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"

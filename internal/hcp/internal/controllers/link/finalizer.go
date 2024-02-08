@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func cleanup(rt controller.Runtime, hcpManager hcp.Manager, dataDir string) error {

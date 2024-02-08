@@ -6,7 +6,7 @@ package resource
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // IDToString returns a string representation of pbresource.ID. This should not

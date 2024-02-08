@@ -3,7 +3,7 @@
 package indexersmock
 
 import (
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	mock "github.com/stretchr/testify/mock"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 )

@@ -6,7 +6,7 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v2beta1;
 
 import "google/protobuf/duration.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 // DestinationPolicy is the destination-controlled set of defaults that
 // are used when similar controls defined in an DestinationsConfiguration are
@@ -19,7 +19,7 @@ import "pbresource/annotations.proto";
 //
 // This is a Resource type.
 message DestinationPolicy {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // PortConfigs defines the destination policy for a specific port on a service.
   //

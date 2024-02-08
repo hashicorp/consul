@@ -11,11 +11,11 @@ import "pbcatalog/v2beta1/protocol.proto";
 import "pbcatalog/v2beta1/selector.proto";
 import "pbmesh/v2beta1/connection.proto";
 import "pbmesh/v2beta1/routing.proto";
-import "pbresource/annotations.proto";
-import "pbresource/resource.proto";
+import "pbresource/v1/annotations.proto";
+import "pbresource/v1/resource.proto";
 
 message DestinationsConfiguration {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // Selection of workloads these destinations should apply to.
   // These can be prefixes or specific workload names.
@@ -34,7 +34,7 @@ message DestinationsConfiguration {
 message DestinationConfigOverrides {
   // DestinationRef is the reference to an destination service that this configuration applies to.
   // This has to be pbcatalog.Service type.
-  hashicorp.consul.resource.Reference destination_ref = 1;
+  hashicorp.consul.resource.v1.Reference destination_ref = 1;
 
   // DestinationPort is the port of the destination service.
   //

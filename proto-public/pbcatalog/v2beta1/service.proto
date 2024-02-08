@@ -7,10 +7,10 @@ package hashicorp.consul.catalog.v2beta1;
 
 import "pbcatalog/v2beta1/protocol.proto";
 import "pbcatalog/v2beta1/selector.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 message Service {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // workloads is a selector for the workloads this service should represent.
   WorkloadSelector workloads = 1;

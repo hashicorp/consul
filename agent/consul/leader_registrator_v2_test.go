@@ -21,10 +21,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
-	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
+	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource/v1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 var (

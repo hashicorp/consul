@@ -5,7 +5,7 @@ package cache
 
 import (
 	"github.com/hashicorp/consul/internal/protoutil"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // NewCloningReadOnlyCache will wrap the provided ReadOnlyCache with

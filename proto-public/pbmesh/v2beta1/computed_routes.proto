@@ -15,12 +15,12 @@ import "pbmesh/v2beta1/http_route.proto";
 import "pbmesh/v2beta1/http_route_retries.proto";
 import "pbmesh/v2beta1/http_route_timeouts.proto";
 import "pbmesh/v2beta1/pbproxystate/references.proto";
-import "pbresource/annotations.proto";
-import "pbresource/resource.proto";
+import "pbresource/v1/annotations.proto";
+import "pbresource/v1/resource.proto";
 
 // This is a Resource type.
 message ComputedRoutes {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // PortedConfigs is the map of service ports to the ComputedPortRoutes for
   // those ports.
@@ -32,7 +32,7 @@ message ComputedRoutes {
 
   // BoundReferences is a slice of mixed type references of resources that were
   // involved in the formulation of this resource.
-  repeated hashicorp.consul.resource.Reference bound_references = 2;
+  repeated hashicorp.consul.resource.v1.Reference bound_references = 2;
 }
 
 message ComputedPortRoutes {
@@ -145,7 +145,7 @@ message BackendTargetDetails {
 
   // IdentityRefs are not populated naturally and the field exists only for
   // downstream consumers.
-  repeated hashicorp.consul.resource.Reference identity_refs = 23;
+  repeated hashicorp.consul.resource.v1.Reference identity_refs = 23;
 }
 
 // +kubebuilder:validation:Enum=BACKEND_TARGET_DETAILS_TYPE_UNSPECIFIED;BACKEND_TARGET_DETAILS_TYPE_DIRECT;BACKEND_TARGET_DETAILS_TYPE_INDIRECT

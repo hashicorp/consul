@@ -6,7 +6,7 @@ package catalogv2beta1
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func TestComputedFailoverPolicy_GetUnderlyingDestinations_AndRefs(t *testing.T) {

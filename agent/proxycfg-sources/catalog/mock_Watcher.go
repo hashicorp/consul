@@ -6,7 +6,7 @@ import (
 	limiter "github.com/hashicorp/consul/agent/grpc-external/limiter"
 	mock "github.com/stretchr/testify/mock"
 
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 )

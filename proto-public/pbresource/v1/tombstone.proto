@@ -1,0 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+// For more information, see: https://github.com/hashicorp/consul/tree/main/docs/resources
+package hashicorp.consul.resource.v1;
+
+import "pbresource/v1/annotations.proto";
+import "pbresource/v1/resource.proto";
+
+// Tombstone represents a promise to delete all of a resource's immediately
+// owned (child) resources, if any.
+message Tombstone {
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_UNDEFINED};
+
+  // Owner resource identifier
+  ID owner = 1;
+}

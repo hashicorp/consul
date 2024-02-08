@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 type TrafficPermissionsMapper struct {

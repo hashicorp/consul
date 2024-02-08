@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/test-integ/topoutil"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"

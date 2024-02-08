@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 var (

@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
@@ -132,7 +132,7 @@ func (s *Server) markForDeletion(ctx context.Context, res *pbresource.Resource) 
 // still be deleted from the system by the reaper controller.
 func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.ID) error {
 	// Don't create a tombstone when the resource being deleted is itself a tombstone.
-	if resource.EqualType(resource.TypeV1Tombstone, deleteId.Type) {
+	if resource.EqualType(pbresource.TombstoneType, deleteId.Type) {
 		return nil
 	}
 
@@ -154,7 +154,7 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 	//  	on the ResourceService.Write() endpoint to lock things down?
 	_, err = s.Backend.WriteCAS(ctx, &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    resource.TypeV1Tombstone,
+			Type:    pbresource.TombstoneType,
 			Tenancy: deleteId.Tenancy,
 			Name:    TombstoneNameFor(deleteId),
 			Uid:     ulid.Make().String(),

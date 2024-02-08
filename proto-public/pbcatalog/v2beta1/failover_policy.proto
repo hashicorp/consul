@@ -5,12 +5,12 @@ syntax = "proto3";
 
 package hashicorp.consul.catalog.v2beta1;
 
-import "pbresource/annotations.proto";
-import "pbresource/resource.proto";
+import "pbresource/v1/annotations.proto";
+import "pbresource/v1/resource.proto";
 
 // This is a Resource type.
 message FailoverPolicy {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // Config defines failover for any named port not present in PortConfigs.
   FailoverConfig config = 1;
@@ -40,7 +40,7 @@ message FailoverConfig {
 
 message FailoverDestination {
   // This must be a Service.
-  hashicorp.consul.resource.Reference ref = 1;
+  hashicorp.consul.resource.v1.Reference ref = 1;
 
   // Port is the port of the destination service.
   //

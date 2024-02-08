@@ -32,7 +32,7 @@ import (
 	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 

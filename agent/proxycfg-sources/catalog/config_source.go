@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 const source proxycfg.ProxySource = "catalog"

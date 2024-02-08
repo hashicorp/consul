@@ -9,7 +9,7 @@ import "pbmesh/v2beta1/common.proto";
 import "pbmesh/v2beta1/http_route.proto";
 import "pbmesh/v2beta1/http_route_retries.proto";
 import "pbmesh/v2beta1/http_route_timeouts.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 // NOTE: this should align to the GAMMA/gateway-api version, or at least be
 // easily translatable.
@@ -18,7 +18,7 @@ import "pbresource/annotations.proto";
 //
 // This is a Resource type.
 message GRPCRoute {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // ParentRefs references the resources (usually Services) that a Route wants
   // to be attached to.

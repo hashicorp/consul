@@ -17,7 +17,7 @@ import (
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/tenancy/internal/controllers/common"
 	"github.com/hashicorp/consul/internal/tenancy/internal/controllers/namespace"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	"github.com/hashicorp/consul/sdk/testutil"

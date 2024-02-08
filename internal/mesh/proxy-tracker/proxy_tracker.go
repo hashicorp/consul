@@ -6,8 +6,9 @@ package proxytracker
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/lib/channels"
 	"sync"
+
+	"github.com/hashicorp/consul/lib/channels"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -16,7 +17,7 @@ import (
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // ProxyConnection implements the queue.ItemType interface so that it can be used in a controller.Event.

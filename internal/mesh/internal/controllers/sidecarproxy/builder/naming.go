@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func DestinationSNI(serviceRef *pbresource.Reference, datacenter, trustDomain string) string {

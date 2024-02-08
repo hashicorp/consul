@@ -3,7 +3,7 @@
 
 package index
 
-import "github.com/hashicorp/consul/proto-public/pbresource"
+import pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 // Indexer is the base interface that all indexers must implement. Additionally
 // an indexer must also implement either the SingleIndexer or MultiIndexer interface

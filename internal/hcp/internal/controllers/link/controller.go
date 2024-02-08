@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // HCPClientFn is a function that can be used to create an HCP client from a Link object.

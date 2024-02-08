@@ -7,11 +7,11 @@ package hashicorp.consul.catalog.v2beta1;
 
 import "google/protobuf/duration.proto";
 import "pbcatalog/v2beta1/selector.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 // This resource will belong to a workload and will have an ownership relationship.
 message HealthStatus {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // Type is the type of this health check, such as http, tcp, or kubernetes-readiness
   string type = 1;
@@ -35,7 +35,7 @@ enum Health {
 }
 
 message HealthChecks {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   WorkloadSelector workloads = 1;
   repeated HealthCheck health_checks = 2;
@@ -92,7 +92,7 @@ message CheckTLSConfig {
 
 // This resource will belong to a node and will have an ownership relationship.
 message NodeHealthStatus {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_PARTITION};
 
   // Type is the type of this health check, such as http, tcp, or kubernetes-readiness
   string type = 1;

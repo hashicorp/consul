@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/go-bexpr"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 type MetadataFilterableResources interface {

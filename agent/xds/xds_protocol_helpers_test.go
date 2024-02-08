@@ -39,7 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 

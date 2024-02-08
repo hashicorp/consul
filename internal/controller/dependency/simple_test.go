@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/stretchr/testify/require"
 )

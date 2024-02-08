@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	libserf "github.com/hashicorp/consul/lib/serf"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 	"github.com/hashicorp/consul/testrpc"
 )

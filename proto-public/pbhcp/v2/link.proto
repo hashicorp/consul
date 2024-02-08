@@ -6,7 +6,7 @@ syntax = "proto3";
 package hashicorp.consul.hcp.v2;
 
 import "pbhcp/v2/hcp_config.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 enum AccessLevel {
   ACCESS_LEVEL_UNSPECIFIED = 0;
@@ -15,7 +15,7 @@ enum AccessLevel {
 }
 
 message Link {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_CLUSTER};
 
   string resource_id = 1;
   string client_id = 2;

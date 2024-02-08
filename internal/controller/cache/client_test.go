@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
+	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource/v1"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )

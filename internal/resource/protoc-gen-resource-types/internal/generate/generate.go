@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func Generate(gp *protogen.Plugin) error {
@@ -36,10 +36,11 @@ type groupInfo struct {
 	Name    string
 	Version string
 
-	Kinds       []kind
-	ImportPath  protogen.GoImportPath
-	PackageName protogen.GoPackageName
-	Directory   string
+	Kinds              []kind
+	ImportPath         protogen.GoImportPath
+	PackageName        protogen.GoPackageName
+	Directory          string
+	NeedResourceImport bool
 }
 
 type kind struct {
@@ -99,9 +100,10 @@ func (g *generator) ensureAPIGroup(gv apiGroupVersion, importPath protogen.GoImp
 			Name:    gv.Group,
 			Version: gv.Version,
 
-			ImportPath:  importPath,
-			PackageName: pkg,
-			Directory:   dir,
+			ImportPath:         importPath,
+			PackageName:        pkg,
+			Directory:          dir,
+			NeedResourceImport: importPath != "github.com/hashicorp/consul/proto-public/pbresource/v1",
 		}
 		g.resources[gv] = grp
 	} else if grp.ImportPath != importPath {
@@ -132,10 +134,11 @@ var (
 
 package {{.PackageName}}
 
+{{if .NeedResourceImport -}}
 import (	
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
-
+{{- end}}
 const (
 	GroupName = "{{.Name}}"
 	Version = "{{.Version}}"
@@ -147,7 +150,7 @@ const (
 
 var (
 {{range $kind := .Kinds}}
-	{{$kind.Name}}Type = &pbresource.Type{
+	{{$kind.Name}}Type = &{{if $.NeedResourceImport }}pbresource.{{end}}Type{
  		Group:        GroupName,
  		GroupVersion: Version,
  		Kind:         {{$kind.Name}}Kind,

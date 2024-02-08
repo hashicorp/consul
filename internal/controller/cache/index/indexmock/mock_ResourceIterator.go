@@ -3,7 +3,7 @@
 package indexmock
 
 import (
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	mock "github.com/stretchr/testify/mock"
 )
 

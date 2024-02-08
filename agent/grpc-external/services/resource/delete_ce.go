@@ -5,7 +5,7 @@
 
 package resource
 
-import "github.com/hashicorp/consul/proto-public/pbresource"
+import pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 func blockBuiltinsDeletion(rtype *pbresource.Type, id *pbresource.ID) error {
 	if err := blockDefaultNamespaceDeletion(rtype, id); err != nil {

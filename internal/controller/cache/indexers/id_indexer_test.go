@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/controller/cache/indexers/indexersmock"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )

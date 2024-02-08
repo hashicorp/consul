@@ -11,7 +11,7 @@ import (
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // mockUpdater mocks the updater functions, and stores ProxyStates from calls to PushChange, so we can assert it was

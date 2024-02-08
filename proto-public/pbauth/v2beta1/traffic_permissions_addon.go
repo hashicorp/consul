@@ -3,7 +3,7 @@
 
 package authv2beta1
 
-import "github.com/hashicorp/consul/proto-public/pbresource"
+import pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 type SourceToSpiffe interface {
 	GetIdentityName() string

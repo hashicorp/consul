@@ -5,10 +5,10 @@ syntax = "proto3";
 
 package hashicorp.consul.auth.v2beta1;
 
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 message TrafficPermissions {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // Destination is a configuration of the destination proxies
   // where these traffic permissions should apply.
@@ -32,14 +32,14 @@ message TrafficPermissions {
 }
 
 message NamespaceTrafficPermissions {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   Action action = 1;
   repeated Permission permissions = 2;
 }
 
 message PartitionTrafficPermissions {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_PARTITION};
 
   Action action = 1;
   repeated Permission permissions = 2;

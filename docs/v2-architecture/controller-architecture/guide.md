@@ -16,16 +16,16 @@ $ mkdir proto-public/pbfoo/v1alpha1
 // proto-public/pbfoo/v1alpha1/foo.proto
 syntax = "proto3";
 
-import "pbresource/resource.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/resource.proto";
+import "pbresource/v1/annotations.proto";
 
 package hashicorp.consul.foo.v1alpha1;
 
 message Bar {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
   
   string baz = 1;
-  hashicorp.consul.resource.ID qux = 2;
+  hashicorp.consul.resource.v1.ID qux = 2;
 }
 ```
 
@@ -47,7 +47,7 @@ package foo
 import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbv1alpha1 "github.com/hashicorp/consul/proto-public/pbfoo/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func RegisterTypes(r resource.Registry) {
@@ -97,7 +97,7 @@ $ grpcurl -d @ \
   -plaintext \
   -protoset pkg/consul.protoset \
   127.0.0.1:8502 \
-  hashicorp.consul.resource.ResourceService.Write \
+  hashicorp.consul.resource.v1.ResourceService.Write \
 <<EOF
   {
     "resource": {
@@ -246,7 +246,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/controller"
 	pbv1alpha1 "github.com/hashicorp/consul/proto-public/pbfoo/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func barController() controller.Controller {
@@ -447,7 +447,7 @@ import (
 
  "github.com/hashicorp/consul/internal/controller"
  pbv1alpha1 "github.com/hashicorp/consul/proto-public/pbfoo/v1alpha1"
- "github.com/hashicorp/consul/proto-public/pbresource"
+ pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func barController() controller.Controller {

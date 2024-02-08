@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // GetBoundIdentities returns the unique list of workload identity references

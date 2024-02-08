@@ -5,13 +5,13 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
-import "pbresource/resource.proto";
+import "pbresource/v1/resource.proto";
 
 // NOTE: roughly equivalent to structs.ResourceReference
 message ParentReference {
   // For east/west configuration, this should point to a Service.
   // For north/south it should point to a Gateway.
-  hashicorp.consul.resource.Reference ref = 1;
+  hashicorp.consul.resource.v1.Reference ref = 1;
 
   // For east/west this is the name of the Consul Service port to direct traffic to
   // or empty to imply all.
@@ -24,7 +24,7 @@ message ParentReference {
 
 message BackendReference {
   // For east/west configuration, this should point to a Service.
-  hashicorp.consul.resource.Reference ref = 1;
+  hashicorp.consul.resource.v1.Reference ref = 1;
 
   // For east/west this is the name of the Consul Service port to direct traffic to
   // or empty to imply using the same value as the parent ref.

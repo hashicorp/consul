@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"

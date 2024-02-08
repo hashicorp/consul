@@ -3,7 +3,7 @@
 
 package catalogv2beta1
 
-import "github.com/hashicorp/consul/proto-public/pbresource"
+import pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 
 // GetUnderlyingDestinations will collect FailoverDestinations from all
 // internal fields and bundle them up in one slice.

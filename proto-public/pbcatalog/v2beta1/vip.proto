@@ -5,10 +5,10 @@ syntax = "proto3";
 
 package hashicorp.consul.catalog.v2beta1;
 
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 message VirtualIPs {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   repeated IP ips = 1;
 }

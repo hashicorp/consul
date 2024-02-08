@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // functions copied out of consul:internal/resource/*.go

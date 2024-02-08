@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: pbresource/resource.proto
+// source: pbresource/v1/service.proto
 
-package pbresource
+package resourcev1
 
 import (
 	context "context"
@@ -126,7 +126,7 @@ func NewResourceServiceClient(cc grpc.ClientConnInterface) ResourceServiceClient
 
 func (c *resourceServiceClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error) {
 	out := new(ReadResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/Read", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.v1.ResourceService/Read", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (c *resourceServiceClient) Read(ctx context.Context, in *ReadRequest, opts 
 
 func (c *resourceServiceClient) Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error) {
 	out := new(WriteResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/Write", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.v1.ResourceService/Write", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (c *resourceServiceClient) Write(ctx context.Context, in *WriteRequest, opt
 
 func (c *resourceServiceClient) WriteStatus(ctx context.Context, in *WriteStatusRequest, opts ...grpc.CallOption) (*WriteStatusResponse, error) {
 	out := new(WriteStatusResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/WriteStatus", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.v1.ResourceService/WriteStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (c *resourceServiceClient) WriteStatus(ctx context.Context, in *WriteStatus
 
 func (c *resourceServiceClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
 	out := new(ListResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/List", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.v1.ResourceService/List", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (c *resourceServiceClient) List(ctx context.Context, in *ListRequest, opts 
 
 func (c *resourceServiceClient) ListByOwner(ctx context.Context, in *ListByOwnerRequest, opts ...grpc.CallOption) (*ListByOwnerResponse, error) {
 	out := new(ListByOwnerResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/ListByOwner", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.v1.ResourceService/ListByOwner", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (c *resourceServiceClient) ListByOwner(ctx context.Context, in *ListByOwner
 
 func (c *resourceServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
 	out := new(DeleteResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/Delete", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.v1.ResourceService/Delete", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (c *resourceServiceClient) Delete(ctx context.Context, in *DeleteRequest, o
 }
 
 func (c *resourceServiceClient) WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ResourceService_ServiceDesc.Streams[0], "/hashicorp.consul.resource.ResourceService/WatchList", opts...)
+	stream, err := c.cc.NewStream(ctx, &ResourceService_ServiceDesc.Streams[0], "/hashicorp.consul.resource.v1.ResourceService/WatchList", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func (x *resourceServiceWatchListClient) Recv() (*WatchEvent, error) {
 
 func (c *resourceServiceClient) MutateAndValidate(ctx context.Context, in *MutateAndValidateRequest, opts ...grpc.CallOption) (*MutateAndValidateResponse, error) {
 	out := new(MutateAndValidateResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/MutateAndValidate", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.v1.ResourceService/MutateAndValidate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +367,7 @@ func _ResourceService_Read_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.resource.ResourceService/Read",
+		FullMethod: "/hashicorp.consul.resource.v1.ResourceService/Read",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ResourceServiceServer).Read(ctx, req.(*ReadRequest))
@@ -385,7 +385,7 @@ func _ResourceService_Write_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.resource.ResourceService/Write",
+		FullMethod: "/hashicorp.consul.resource.v1.ResourceService/Write",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ResourceServiceServer).Write(ctx, req.(*WriteRequest))
@@ -403,7 +403,7 @@ func _ResourceService_WriteStatus_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.resource.ResourceService/WriteStatus",
+		FullMethod: "/hashicorp.consul.resource.v1.ResourceService/WriteStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ResourceServiceServer).WriteStatus(ctx, req.(*WriteStatusRequest))
@@ -421,7 +421,7 @@ func _ResourceService_List_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.resource.ResourceService/List",
+		FullMethod: "/hashicorp.consul.resource.v1.ResourceService/List",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ResourceServiceServer).List(ctx, req.(*ListRequest))
@@ -439,7 +439,7 @@ func _ResourceService_ListByOwner_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.resource.ResourceService/ListByOwner",
+		FullMethod: "/hashicorp.consul.resource.v1.ResourceService/ListByOwner",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ResourceServiceServer).ListByOwner(ctx, req.(*ListByOwnerRequest))
@@ -457,7 +457,7 @@ func _ResourceService_Delete_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.resource.ResourceService/Delete",
+		FullMethod: "/hashicorp.consul.resource.v1.ResourceService/Delete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ResourceServiceServer).Delete(ctx, req.(*DeleteRequest))
@@ -496,7 +496,7 @@ func _ResourceService_MutateAndValidate_Handler(srv interface{}, ctx context.Con
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.resource.ResourceService/MutateAndValidate",
+		FullMethod: "/hashicorp.consul.resource.v1.ResourceService/MutateAndValidate",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ResourceServiceServer).MutateAndValidate(ctx, req.(*MutateAndValidateRequest))
@@ -508,7 +508,7 @@ func _ResourceService_MutateAndValidate_Handler(srv interface{}, ctx context.Con
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ResourceService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "hashicorp.consul.resource.ResourceService",
+	ServiceName: "hashicorp.consul.resource.v1.ResourceService",
 	HandlerType: (*ResourceServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -547,5 +547,5 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "pbresource/resource.proto",
+	Metadata: "pbresource/v1/service.proto",
 }

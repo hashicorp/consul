@@ -6,10 +6,10 @@ syntax = "proto3";
 package hashicorp.consul.multicluster.v2;
 
 import "pbmulticluster/v2/exported_services_consumer.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 message PartitionExportedServices {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_PARTITION};
 
   repeated ExportedServicesConsumer consumers = 1;
 }

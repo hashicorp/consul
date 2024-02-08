@@ -5,10 +5,10 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 // MeshConfiguration is responsible for configuring the default behavior of Mesh Gateways.
 // This is a Resource type.
 message MeshConfiguration {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_CLUSTER};
 }

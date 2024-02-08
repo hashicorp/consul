@@ -22,8 +22,8 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 var (

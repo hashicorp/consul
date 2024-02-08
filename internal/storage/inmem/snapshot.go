@@ -6,7 +6,7 @@ package inmem
 import (
 	"github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // Snapshot obtains a point-in-time snapshot of the store that can later be

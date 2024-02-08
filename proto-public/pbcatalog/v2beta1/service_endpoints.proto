@@ -7,11 +7,11 @@ package hashicorp.consul.catalog.v2beta1;
 
 import "pbcatalog/v2beta1/health.proto";
 import "pbcatalog/v2beta1/workload.proto";
-import "pbresource/annotations.proto";
-import "pbresource/resource.proto";
+import "pbresource/v1/annotations.proto";
+import "pbresource/v1/resource.proto";
 
 message ServiceEndpoints {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   repeated Endpoint endpoints = 1;
 }
@@ -19,7 +19,7 @@ message ServiceEndpoints {
 message Endpoint {
   // target_ref is the reference to the resource
   // for this endpoint endpoint. This currently must be a workload.
-  hashicorp.consul.resource.ID target_ref = 1;
+  hashicorp.consul.resource.v1.ID target_ref = 1;
 
   // addresses is the list of addresses for this endpoint.
   // This has the same structure as the workload addresses.

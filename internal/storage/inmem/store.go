@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // Store implements an in-memory resource database using go-memdb.

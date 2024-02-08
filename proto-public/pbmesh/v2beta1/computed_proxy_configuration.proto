@@ -6,10 +6,10 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v2beta1;
 
 import "pbmesh/v2beta1/proxy_configuration.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 message ComputedProxyConfiguration {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // dynamic_config is the configuration that could be changed
   // dynamically (i.e. without needing restart).

@@ -3,7 +3,7 @@
 package tenancyv2beta1
 
 import (
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 const (

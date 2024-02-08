@@ -6,11 +6,11 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v2beta1;
 
 import "pbmesh/v2beta1/pbproxystate/transport_socket.proto";
-import "pbresource/annotations.proto";
-import "pbresource/resource.proto";
+import "pbresource/v1/annotations.proto";
+import "pbresource/v1/resource.proto";
 
 message APIGateway {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // GatewayClassName is the name of the GatewayClass used by the APIGateway
   string gateway_class_name = 1;
@@ -47,7 +47,7 @@ message APIGatewayListener {
 message APIGatewayTLSConfiguration {
   // Certificates is a set of references to certificates
   // that a gateway listener uses for TLS termination.
-  repeated hashicorp.consul.resource.Reference certificates = 1;
+  repeated hashicorp.consul.resource.v1.Reference certificates = 1;
 
   // TLSParameters contains optional configuration for running TLS termination.
   optional pbproxystate.TLSParameters tls_parameters = 2;

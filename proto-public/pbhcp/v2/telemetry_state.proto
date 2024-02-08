@@ -3,14 +3,14 @@ syntax = "proto3";
 package hashicorp.consul.hcp.v2;
 
 import "pbhcp/v2/hcp_config.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 // TelemetryState describes configuration required to forward telemetry to the HashiCorp Cloud Platform.
 // This resource is managed internally and is only written if the cluster is linked to HCP. Any
 // manual changes to the resource will be reconciled and overwritten with the internally computed
 // state.
 message TelemetryState {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_CLUSTER};
 
   // ResourceId is the identifier for the cluster linked with HCP.
   string resource_id = 1;

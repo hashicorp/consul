@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 	// Track resource types that are allowed to have an undefined scope. These are usually
 	// non-customer facing or internal types.
 	undefinedScopeAllowed = map[string]bool{
-		storage.UnversionedTypeFrom(TypeV1Tombstone).String(): true,
+		storage.UnversionedTypeFrom(pbresource.TombstoneType).String(): true,
 	}
 )
 
@@ -122,7 +122,7 @@ func NewRegistry() Registry {
 	// does not get routed through the resource service and bypasses ACLs
 	// as part of the Delete endpoint.
 	registry.Register(Registration{
-		Type:  TypeV1Tombstone,
+		Type:  pbresource.TombstoneType,
 		Proto: &pbresource.Tombstone{},
 	})
 	return registry

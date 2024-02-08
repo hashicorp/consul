@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // SamenessgroupExpander is used to expand sameness group for a ComputedFailover resource

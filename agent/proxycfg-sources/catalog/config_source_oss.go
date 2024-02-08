@@ -7,7 +7,7 @@ package catalog
 
 import (
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func GetEnterpriseMetaFromResourceID(id *pbresource.ID) *acl.EnterpriseMeta {

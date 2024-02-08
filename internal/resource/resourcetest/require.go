@@ -6,7 +6,7 @@ package resourcetest
 import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"

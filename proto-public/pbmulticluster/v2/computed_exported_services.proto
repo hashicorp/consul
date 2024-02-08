@@ -5,17 +5,17 @@ syntax = "proto3";
 
 package hashicorp.consul.multicluster.v2;
 
-import "pbresource/annotations.proto";
-import "pbresource/resource.proto";
+import "pbresource/v1/annotations.proto";
+import "pbresource/v1/resource.proto";
 
 message ComputedExportedServices {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_PARTITION};
 
   repeated ComputedExportedService services = 1;
 }
 
 message ComputedExportedService {
-  hashicorp.consul.resource.Reference target_ref = 1;
+  hashicorp.consul.resource.v1.Reference target_ref = 1;
   repeated ComputedExportedServiceConsumer consumers = 2;
 }
 

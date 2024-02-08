@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 	pbmulticlusterv2beta1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 type serviceExports struct {

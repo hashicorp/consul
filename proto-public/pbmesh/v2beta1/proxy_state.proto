@@ -13,11 +13,11 @@ import "pbmesh/v2beta1/pbproxystate/listener.proto";
 import "pbmesh/v2beta1/pbproxystate/references.proto";
 import "pbmesh/v2beta1/pbproxystate/route.proto";
 import "pbmesh/v2beta1/pbproxystate/transport_socket.proto";
-import "pbresource/annotations.proto";
-import "pbresource/resource.proto";
+import "pbresource/v1/annotations.proto";
+import "pbresource/v1/resource.proto";
 
 message ProxyStateTemplate {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // ProxyState is the partially filled out ProxyState resource. The Endpoints, LeafCertificates and TrustBundles fields will need filling in after the resource is stored.
   ProxyState proxy_state = 1;
@@ -34,7 +34,7 @@ message ProxyStateTemplate {
 
 message ProxyState {
   // Identity is a reference to the identity of the workload this proxy is for.
-  hashicorp.consul.resource.Reference identity = 1;
+  hashicorp.consul.resource.v1.Reference identity = 1;
   // Listeners is a list of listeners for this proxy.
   repeated pbproxystate.Listener listeners = 2;
   // Clusters is a map from cluster name to clusters. The keys are referenced from listeners or routes.

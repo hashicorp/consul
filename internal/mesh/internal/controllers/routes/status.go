@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	catalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 const (

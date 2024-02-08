@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // SpiffeIDService is the structure to represent the SPIFFE ID for a service.

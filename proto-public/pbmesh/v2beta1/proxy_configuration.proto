@@ -10,11 +10,11 @@ import "pbcatalog/v2beta1/selector.proto";
 import "pbmesh/v2beta1/connection.proto";
 import "pbmesh/v2beta1/expose.proto";
 import "pbmesh/v2beta1/routing.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 // This is a Resource type.
 message ProxyConfiguration {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_NAMESPACE};
 
   // Selection of workloads this proxy configuration should apply to.
   // These can be prefixes or specific workload names.

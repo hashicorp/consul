@@ -10,7 +10,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/hashicorp/consul/internal/dnsutil"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 // MaxNameLength is the maximum length of a resource name.

@@ -6,10 +6,10 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v2beta1;
 
 import "pbcatalog/v2beta1/selector.proto";
-import "pbresource/annotations.proto";
+import "pbresource/v1/annotations.proto";
 
 message MeshGateway {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+  option (hashicorp.consul.resource.v1.spec) = {scope: SCOPE_PARTITION};
 
   // GatewayClassName is the name of the GatewayClass used by the MeshGateway
   string gateway_class_name = 1;

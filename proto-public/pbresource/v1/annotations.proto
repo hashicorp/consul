@@ -3,7 +3,7 @@
 
 syntax = "proto3";
 
-package hashicorp.consul.resource;
+package hashicorp.consul.resource.v1;
 
 import "google/protobuf/descriptor.proto";
 

@@ -6,7 +6,7 @@ package indexers
 import (
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func IDIndex(name string, opts ...index.IndexOption) *index.Index {

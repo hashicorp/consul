@@ -11,8 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 const (
@@ -27,7 +26,7 @@ func RegisterControllers(mgr *controller.Manager) {
 }
 
 func reaperController() *controller.Controller {
-	return controller.NewController(statusKeyReaperController, resource.TypeV1Tombstone).
+	return controller.NewController(statusKeyReaperController, pbresource.TombstoneType).
 		WithReconciler(newReconciler())
 }
 

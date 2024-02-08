@@ -5,6 +5,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/go-multierror"
@@ -13,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource/v1"
 )
 
 func RegisterProxyStateTemplate(r resource.Registry) {
