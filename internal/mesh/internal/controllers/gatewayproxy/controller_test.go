@@ -87,7 +87,7 @@ func (suite *gatewayproxyControllerSuite) TestReconciler_Reconcile() {
 
 			require.NoError(t, err)
 
-			dec, err := resource.GetDecodedResource[*types.DecodedProxyStateTemplate](ctx, suite.client, id)
+			dec, err := resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, suite.client, id)
 			require.NoError(t, err)
 			require.Nil(t, dec)
 		})
@@ -115,6 +115,7 @@ func (suite *gatewayproxyControllerSuite) TestReconciler_Reconcile() {
 
 			dec, err := resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, suite.client, id)
 			require.NoError(t, err)
+			require.NotNil(t, dec)
 			require.Equal(t, dec.Id.Name, expectedWrittenResource.Id.Name)
 			require.Equal(t, dec.Metadata, expectedWrittenResource.Metadata)
 			require.Equal(t, dec.Owner.Name, expectedWrittenResource.Owner.Name)
@@ -224,7 +225,7 @@ func (suite *gatewayproxyControllerSuite) setupSuiteWithTenancy(tenancy *pbresou
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
 				Name:    "mesh-gateway",
-				Tenancy: meshGWTenancy,
+				Tenancy: tenancy,
 			},
 			Metadata: map[string]string{
 				GatewayKindMetadataKey: meshgateways.GatewayKind,
@@ -234,7 +235,7 @@ func (suite *gatewayproxyControllerSuite) setupSuiteWithTenancy(tenancy *pbresou
 
 	resourcetest.Resource(pbcatalog.WorkloadType, "mesh-gateway").
 		WithData(suite.T(), suite.meshgwWorkload.Data).
-		WithTenancy(meshGWTenancy).
+		WithTenancy(tenancy).
 		WithMeta(GatewayKindMetadataKey, meshgateways.GatewayKind).
 		Write(suite.T(), suite.client)
 
