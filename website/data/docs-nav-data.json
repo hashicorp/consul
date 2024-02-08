@@ -629,24 +629,7 @@
       },
       {
         "title": "Agent telemetry",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "monitor-consul/telemetry"
-          },
-          {
-            "title": "Enable host metrics",
-            "path": "monitor-consul/telemetry/enable-host-metrics"
-          },
-          {
-            "title": "Access and stream metrics",
-            "path": "monitor-consul/telemetry/access-stream-metrics"
-          },
-          {
-            "title": "Stream metrics to external store",
-            "path": "monitor-consul/telemetry/stream-metrics-external"
-          }
-        ]
+        "path": "monitor-consul/telemetry"
       },
       {
         "title": "Consul logs",
