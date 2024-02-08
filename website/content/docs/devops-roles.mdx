@@ -1,0 +1,46 @@
+---
+page_title: DevOps roles and Consul
+description: Learn about the DevOps team roles that can use Consul, including suggest learning paths for platform operators, application developers, network operators, and security operators new to Consul.
+---
+
+# DevOps roles and Consul
+
+This page describes typical DevOps team roles, how Consul enables additional functionality for those roles, and documentation paths for users to follow when learning Consul and developing workflows for your organization. 
+
+These user roles are not related to Consul’s Access Control List (ACL) system. Refer to [ACL roles](/consul/docs/security/acl/acl-roles) for information about creating ACL policies and linking them to tokens.
+
+## Introduction
+
+Consul is a service networking solution that supports different aspects of the cloud operating model. It enables service discovery and service mesh scenarios that enhance your team’s platform operations, application deployment, cloud networking, and service-to-service communication security. 
+
+On an Enterprise DevOps team where members have unique roles and assigned responsibilities, an individual user’s interaction with Consul may be limited to a few functions and workflows. As a result, mastering every aspect of Consul’s architecture and operations is not a requirement for every member of the organization that uses it. By specializing in the Consul operations most critical to a specific role, your DevOps teams can lower the organization’s barrier to entry for using Consul and speed up its rollout for existing cloud deployments.
+
+We recommend that all new users complete the following tutorials in either the [Getting started on VMs collection](/consul/tutorials/get-started-vms) or the [Getting started on Kubernetes collection](/consul/tutorials/get-started-kubernetes):
+
+- Deploy Consul
+- Register your services to Consul
+- Securely connect your services with Consul service mesh
+- Access services in your service mesh
+- Observe service mesh traffic
+
+These tutorials guide you through the process to deploy Consul alongside a demo application, HashiCups, so that you can learn about Consul’s basic features and practice interacting with Consul through its CLI. You can complete the VMs tutorials in your web browser with an interactive lab, or you can use Terraform and your AWS credentials to deploy it to your own cloud environment. Kubernetes users can complete the tutorials on their local machine, or they can deploy it on either AWS Elastic Kubernetes Service (EKS) or Azure Kubernetes Service (AKS).
+
+## Platform operator
+
+Platform operators focus on the platform health. Their role includes installing and upgrading Consul, onboarding teams, setting up ACLs among admin partitions for the application teams, and planning service capacity. The platform operator requires the most in-depth understanding of Consul, and we encourage platform operators to take the [Consul associate certification exam](https://www.hashicorp.com/certification/consul-associate) to prepare for Consul implementations in production environments.
+
+## Application developer
+
+Application developers focus on the development and health of services and applications. Their roles include deploying the service by registering it to Consul, monitoring the service’s health, and troubleshooting service issues. Application developers require the least amount of comprehensive knowledge about Consul’s configuration options and internal operations. The application developer is most concerned with Consul’s service networking features: registering services, securing communication between services, and observing service metrics.
+
+## Network operator
+
+Network operators focus on the network infrastructure connectivity and maintenance. Their role includes configuring load balancers and on-prem to cloud connectivity, enabling communication within the organization, enabling external communications, and troubleshooting networking issues. Because networking is one of Consul’s core applications, network operators require knowledge of Consul’s internal operations and infrastructure requirements, as well as an understanding of how to configure Consul for operation in your cloud environment. 
+
+Network operators should also understand how to configure Envoy proxies that function as sidecars and gateways, monitor the metrics they emit, and implement traffic management strategies. We encourage network operators to take the [Consul associate certification exam](https://www.hashicorp.com/certification/consul-associate) to prepare for Consul implementations in production environments.
+
+## Security operator
+
+Security operators focus on security and compliance. These duties include defining security requirements, managing certificate and key rotation, and confirming services have best practices for security implemented by auditing activity logs. Security operators should understand the elements that make Consul’s service mesh secure-by-default and the requirements to implement zero-trust security in your cloud environment. Security operators should also understand how to configure tokens, roles, and policies when managing Consul’s Access Control List (ACL) system.
+
+Security operators should also be familiar with HashiCorp Vault, a secrets management offering. You can use Consul and Vault together to automate secure secret access and rotation in your environment.
