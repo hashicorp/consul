@@ -1729,7 +1729,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "manage-traffic/cluster-peering"
+            "path": "manage-traffic/cluster-peering/vm"
           },
           {
             "title": "Kubernetes",
