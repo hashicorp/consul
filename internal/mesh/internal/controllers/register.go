@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/apigateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/implicitdestinations"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshconfiguration"
 
 	"github.com/hashicorp/consul/agent/leafcert"
@@ -55,6 +56,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 
 	mgr.Register(proxyconfiguration.Controller(workloadselectionmapper.New[*pbmesh.ProxyConfiguration](pbmesh.ComputedProxyConfigurationType)))
 	mgr.Register(explicitdestinations.Controller(mapper.New()))
+	mgr.Register(implicitdestinations.Controller(deps.DefaultAllow))
 
 	mgr.Register(meshgateways.Controller())
 	mgr.Register(meshconfiguration.Controller())
