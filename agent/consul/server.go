@@ -890,33 +890,20 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// to enable RPC forwarding.
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 
-	// Start watching HCP Link resource. This creates a channel that we can use to
-	// start and stop HCP manager when appropriate. This needs to be created after
+	// Start watching HCP Link resource. This needs to be created after
 	// the GRPC services are set up in order for the resource service client to
 	// function. This uses the insecure grpc channel so that it doesn't need to
 	// present a valid ACL token.
-	//
-	// If this fails, HCP linking will not work, but to avoid crashing Consul, we log
-	// the error and continue on.
-	hcpLinkWatchCh, err := hcpctl.NewLinkWatch(
+	go hcp.RunHCPLinkWatcher(
 		&lib.StopChannelContext{StopCh: shutdownCh},
 		logger.Named("hcp-link-watcher"),
 		pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
+		s.hcpManager,
+		hcpclient.NewClient,
+		bootstrap.LoadManagementToken,
+		flat.HCP.Config,
+		flat.HCP.DataDir,
 	)
-	if err != nil {
-		s.logger.Error("HCP Link watcher failed to start. HCP Link functionality is disabled", "error", err)
-	} else {
-		go hcp.MonitorHCPLink(
-			&lib.StopChannelContext{StopCh: shutdownCh},
-			logger.Named("hcp-link-watcher"),
-			s.hcpManager,
-			hcpLinkWatchCh,
-			hcpclient.NewClient,
-			bootstrap.LoadManagementToken,
-			flat.HCP.Config,
-			flat.HCP.DataDir,
-		)
-	}
 
 	s.controllerManager = controller.NewManager(
 		// Usage of the insecure + unsafe grpc chan is required for the controller

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
-	"github.com/hashicorp/consul/internal/hcp/internal/types"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -30,10 +30,9 @@ func TestLinkWatch_Ok(t *testing.T) {
 	client := mockpbresource.NewResourceServiceClient(t)
 	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
 		Type:       pbhcp.LinkType,
-		NamePrefix: types.LinkName,
+		NamePrefix: hcpctl.LinkName,
 	}).Return(mockWatchListClient, nil)
-	linkWatchCh, err := NewLinkWatch(context.Background(), hclog.Default(), client)
-	require.NoError(t, err)
+	linkWatchCh := StartLinkWatch(context.Background(), hclog.Default(), client)
 
 	event := <-linkWatchCh
 	require.Equal(t, testWatchEvent, event)
@@ -43,18 +42,17 @@ func TestLinkWatch_Ok(t *testing.T) {
 func TestLinkWatch_ContextCanceled(t *testing.T) {
 	mockWatchListClient := mockpbresource.NewResourceService_WatchListClient(t)
 	// Recv may not be called if the context is cancelled before the `select` block
-	// within the NewLinkWatch goroutine
+	// within the StartLinkWatch goroutine
 	mockWatchListClient.EXPECT().Recv().Return(nil, errors.New("context canceled")).Maybe()
 
 	client := mockpbresource.NewResourceServiceClient(t)
 	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
 		Type:       pbhcp.LinkType,
-		NamePrefix: types.LinkName,
+		NamePrefix: hcpctl.LinkName,
 	}).Return(mockWatchListClient, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	linkWatchCh, err := NewLinkWatch(ctx, hclog.Default(), client)
-	require.NoError(t, err)
+	linkWatchCh := StartLinkWatch(ctx, hclog.Default(), client)
 
 	cancel()
 
