@@ -2996,7 +2996,8 @@ module.exports = [
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/manage-traffic/failover/virtual-services/:slug*',
-    destination: '/consul/docs/:versiontraffic/route-to-virtual-services/:slug',
+    destination:
+      '/consul/docs/:version/k8s/l7-traffic/route-to-virtual-services/:slug',
     permanent: true,
   },
   {
