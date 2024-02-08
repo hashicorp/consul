@@ -585,7 +585,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `partition` <EnterpriseAlert inline /> - This flag is used to set
   the name of the admin partition the agent belongs to. An agent can only join
   and communicate with other agents within its admin partition. Review the
-  [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for more
+  [Admin Partitions documentation](/consul/docs/segment/admin-partition) for more
   details. By default, this is an empty string, which is the `default` admin
   partition. This cannot be set on a server agent.
 
@@ -740,7 +740,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `segments` <EnterpriseAlert inline /> - (Server agents only) This is a list of nested objects
   that specifies user-defined network segments, not including the `<default>` segment, which is
-  created automatically. Refer to the [network segments documentation](/consul/docs/enterprise/network-segments/create-network-segment)for additional information.
+  created automatically. Refer to the [network segments documentation](/consul/docs/segment/network-segment/vm)for additional information.
   for more details.
 
   - `name` ((#segment_name)) - The name of the segment. Must be a string
@@ -831,7 +831,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `watches` - Watches is a list of watch specifications which
   allow an external process to be automatically invoked when a particular data view
-  is updated. Refer to  the [watch documentation](/consul/docs/dynamic-app-config/watches) for more detail.
+  is updated. Refer to  the [watch documentation](/consul/docs/dynamic-app/watches) for more detail.
   Watches can be modified when the configuration is reloaded.
 
 ## ACL Parameters
@@ -2028,7 +2028,7 @@ subsystem that provides Consul's service mesh capabilities.
     **this might make it possible for a malicious user on the network to query
     for arbitrary metrics about any server or workload in your infrastructure,
     or overload the metrics infrastructure with queries**. Refer to  [Metrics Proxy
-    Security](/consul/docs/connect/observability/ui-visualization#metrics-proxy-security)
+    Security](/consul/docs/observe/mesh/vm#metrics-proxy-security)
     for more details.
 
     </Note>
@@ -2049,10 +2049,10 @@ subsystem that provides Consul's service mesh capabilities.
       `base_url`. It defaults to `["/api/v1/query_range", "/api/v1/query"]`
       which are the endpoints required for the built-in Prometheus provider. If
       a [custom
-      provider](/consul/docs/connect/observability/ui-visualization#custom-metrics-providers)
+      provider](/consul/docs/observe/mesh/vm#custom-metrics-providers)
       is used that requires the metrics proxy, the correct allowlist must be
       specified to enable proxying to necessary endpoints. Refer to  [Path
-      Allowlist](/consul/docs/connect/observability/ui-visualization#path-allowlist)
+      Allowlist](/consul/docs/observe/mesh/vm#path-allowlist)
       for more information.
 
     - `add_headers` ((#ui_config_metrics_proxy_add_headers)) - This is an
@@ -2078,14 +2078,14 @@ subsystem that provides Consul's service mesh capabilities.
     available are listed for each template.
 
     For more information and examples refer to  [UI
-    Visualization](/consul/docs/connect/observability/ui-visualization#configuring-dashboard-urls)
+    Visualization](/consul/docs/observe/mesh/vm#configuring-dashboard-urls)
 
     The following named templates are defined:
 
     - `service` ((#ui_config_dashboard_url_templates_service)) - This is the URL
       to use when linking to the dashboard for a specific service. It is shown
       as part of the [Topology
-      Visualization](/consul/docs/connect/observability/ui-visualization).
+      Visualization](/consul/docs/observe/mesh/vm).
 
       The placeholders available are:
 

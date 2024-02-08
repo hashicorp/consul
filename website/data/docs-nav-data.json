@@ -49,8 +49,8 @@
     ]
   },
   {
-    "title": "Consul personas",
-    "path": "personas"
+    "title": "DevOps roles",
+    "path": "devops-roles"
   },
   {
     "title": "Quickstart",
@@ -1490,7 +1490,7 @@
     ]
   },
   {
-    "title": "Segment network",
+    "title": "Manage tenancy",
     "badge": {
       "text": "ENTERPRISE",
       "type": "outlined",
@@ -1502,19 +1502,46 @@
         "path": "segment"
       },
       {
-        "title": "Admin partition",
-        "path": "segment/admin-partition"
+        "title": "Admin partitions",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/admin-partition"
+          },
+          {
+            "title": "Configure partitions on Kubernetes",
+            "path": "segment/admin-partition/k8s"
+          }
+        ]
       },
       {
-        "title": "Namespace",
-        "path": "segment/namespace"
+        "title": "Namespaces",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/namespace"
+          },
+          {
+            "title": "Configure namespaces on Kubernetes",
+            "path": "segment/namespace/k8s"
+          }
+        ]
       },
       {
-        "title": "Network segment",
-        "path": "segment/network-segment"
+        "title": "Network segments",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "segment/network-segment"
+          },
+          {
+            "title": "Create network segments (VM)",
+            "path": "segment/network-segment/vm"
+          }
+        ]
       },
       {
-        "title": "Sameness group",
+        "title": "Sameness groups",
         "path": "segment/sameness-group"
       }
     ]
@@ -1742,7 +1769,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "manage-traffic/cluster-peering"
+            "path": "manage-traffic/cluster-peering/vm"
           },
           {
             "title": "Kubernetes",
@@ -1797,16 +1824,21 @@
         "path": "observe/access-log"
       },
       {
-        "title": "UI visualization",
-        "path": "observe/ui-visualization"
-      },
-      {
         "title": "Distributed tracing",
         "path": "observe/distributed-tracing"
       },
       {
-        "title": "Kubernetes metrics",
-        "path": "observe/metrics"
+        "title": "Mesh telemetry metrics",
+        "routes": [
+          {
+            "title": "Virtual Machines (VM)",
+            "path": "observe/telemetry/vm"
+          },
+          {
+            "title": "Kubernetes",
+            "path": "observe/telemetry/k8s"
+          }
+        ]
       }
     ]
   },
@@ -1818,8 +1850,21 @@
         "path": "dynamic-app"
       },
       {
-        "title": "Consul KV",
-        "path": "dynamic-app/kv"
+        "title": "Key/Value store",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "dynamic-app/kv"
+          },
+          {
+            "title": "KV store interactions",
+            "path": "dynamic-app/kv/store"
+          }
+        ]
+      },
+      {
+        "title": "Consul template",
+        "path": "dynamic-app/consul-template"
       },
       {
         "title": "Session",
@@ -1901,10 +1946,6 @@
         "href": "access/vm"
       },
       {
-        "title": "Segment network",
-        "href": "segment/vm"
-      },
-      {
         "title": "Link network segments",
         "href": "link/vm"
       },
@@ -1917,8 +1958,8 @@
         "href": "manage-traffic/vm"
       },
       {
-        "title": "Access services",
-        "href": "access/vm"
+        "title": "Observe services",
+        "href": "observe/telemetry/vm"
       }
     ]
   },
@@ -1950,10 +1991,6 @@
         "href": "access/k8s"
       },
       {
-        "title": "Segment network",
-        "href": "segment/k8s"
-      },
-      {
         "title": "Link network segments",
         "href": "link/k8s"
       },
@@ -1964,6 +2001,10 @@
       {
         "title": "Manage service traffic",
         "href": "manage-traffic/k8s"
+      },
+      {
+        "title": "Observe services",
+        "href": "observe/telemetry/k8s"
       }
     ]
   },
@@ -2269,10 +2310,6 @@
     ]
   },
   {
-    "title": "Glossary",
-    "path": "glossary"
-  },
-  {
     "title": "Configuration reference",
     "routes": [
       {
@@ -2306,6 +2343,14 @@
           {
             "title": "Rules",
             "path": "reference/acl/rule"
+          },
+          {
+            "title": "Roles",
+            "path": "reference/acl/role"
+          },
+          {
+            "title": "Policies",
+            "path": "reference/acl/policy"
           }
         ]
       },
@@ -2517,6 +2562,10 @@
         ]
       },
       {
+        "title": "Namespaces",
+        "path": "reference/namespace"
+      },
+      {
         "title": "Proxies",
         "routes": [
           {
@@ -2584,5 +2633,9 @@
         ]
       }
     ]
+  },
+  {
+    "title": "Glossary",
+    "path": "glossary"
   }
 ]

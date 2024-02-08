@@ -13,7 +13,7 @@ Cluster peering is enabled in Consul by default. For specific information about 
 
 ## Introduction
 
-Consul supports cluster peering connections between two [admin partitions](/consul/docs/enterprise/admin-partitions) _in different datacenters_. Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a default partition. Meanwhile, admin partitions _in the same datacenter_ do not require cluster peering connections because you can export services between them without generating or exchanging a peering token.
+Consul supports cluster peering connections between two [admin partitions](/consul/docs/segment/admin-partition) _in different datacenters_. Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a default partition. Meanwhile, admin partitions _in the same datacenter_ do not require cluster peering connections because you can export services between them without generating or exchanging a peering token.
 
 The following diagram describes Consul's cluster peering architecture.
 
@@ -26,7 +26,7 @@ Cluster peering leverages several components of Consul's architecture to enforce
 - A _peering token_ contains an embedded secret that securely establishes communication when shared symmetrically between datacenters. Sharing this token enables each datacenter's server agents to recognize requests from authorized peers, similar to how the [gossip encryption key secures agent LAN gossip](/consul/docs/secure-consul/encryption#gossip-encryption).
 - A _mesh gateway_ encrypts outgoing traffic, decrypts incoming traffic, and directs traffic to healthy services. Consul's service mesh features must be enabled in order to use mesh gateways. Mesh gateways support the specific admin partitions they are deployed on. Refer to [Mesh gateways](/consul/docs/connect/gateways/mesh-gateway) for more information.
 - An _exported service_ communicates with downstreams deployed in other admin partitions. They are explicitly defined in an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services).
-- A _service intention_ secures [service-to-service communication in a service mesh](/consul/docs/connect/intentions). Intentions enable identity-based access between services by exchanging TLS certificates, which the service's sidecar proxy verifies upon each request.
+- A _service intention_ secures [service-to-service communication in a service mesh](/consul/docs/secure-mesh/intentions). Intentions enable identity-based access between services by exchanging TLS certificates, which the service's sidecar proxy verifies upon each request.
 
 ### Compared with WAN federation
 
@@ -70,7 +70,7 @@ The following resources are available to help you use Consul's cluster peering f
 - [Establish cluster peering connections on Kubernetes](/consul/docs/link/cluster-peering/establish-connection/k8s)
 - [Manage cluster peering connections on Kubernetes](/consul/docs/link/cluster-peering/manage-connection/k8s)
 - [Manage L7 traffic with cluster peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/l7-traffic)
-- [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups)
+- [Create sameness groups on Kubernetes](/consul/docs/link/sameness-group)
 
 ### HCP Consul documentation
 

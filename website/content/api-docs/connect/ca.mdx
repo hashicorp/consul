@@ -151,7 +151,7 @@ $ curl \
 ## Update CA Configuration
 
 This endpoint updates the configuration for the CA. If this results in a
-new root certificate being used, the [Root Rotation](/consul/docs/connect/ca#root-certificate-rotation) process will be triggered.
+new root certificate being used, the [Root Rotation](/consul/docs/secure-mesh/certificate#root-certificate-rotation) process will be triggered.
 
 | Method | Path                        | Produces           |
 | ------ | --------------------------- | ------------------ |
@@ -171,10 +171,10 @@ The corresponding CLI command is [`consul connect ca set-config`](/consul/comman
 
 ~> **If currently using Vault CA provider:**
    If you intend to change the CA provider from Vault to another,
-   or to change the Vault provider's [`RootPKIPath`](/consul/docs/connect/ca/vault#rootpkipath),
+   or to change the Vault provider's [`RootPKIPath`](/consul/docs/secure-mesh/certificate/vault#rootpkipath),
    you must temporarily elevate the privileges of the Vault token
    or auth method in use as described in the
-   [Vault CA provider documentation](/consul/docs/connect/ca/vault#additional-vault-acl-policies-for-sensitive-operations).
+   [Vault CA provider documentation](/consul/docs/secure-mesh/certificate/vault#additional-vault-acl-policies-for-sensitive-operations).
 
 ### JSON Request Body Schema
 
@@ -182,7 +182,7 @@ The corresponding CLI command is [`consul connect ca set-config`](/consul/comman
 
 - `Config` `(map[string]string: <required>)` - The raw configuration to use
   for the chosen provider. For more information on configuring the service mesh CA
-  providers, see [Provider Config](/consul/docs/connect/ca).
+  providers, see [Provider Config](/consul/docs/secure-mesh/certificate).
 
 - `ForceWithoutCrossSigning` `(bool: false)` - Indicates that the CA change
   should be forced to complete even if the current CA doesn't support root cross-signing.
@@ -191,7 +191,7 @@ The corresponding CLI command is [`consul connect ca set-config`](/consul/comman
   until service mesh proxies and/or Consul client agents receive a new certificate
   that establishes trust with the new root.
   Do not use this field unless you are sure you need it.
-  Refer to [Forced Rotation Without Cross-Signing](/consul/docs/connect/ca#forced-rotation-without-cross-signing)
+  Refer to [Forced Rotation Without Cross-Signing](/consul/docs/secure-mesh/certificate#forced-rotation-without-cross-signing)
   for more detail.
 
 ### Sample Payload

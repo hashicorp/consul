@@ -37,11 +37,7 @@ The following resources are not covered by ACL policies:
 - The datacenter listing operation of the [Catalog API](/consul/api-docs/catalog#list-datacenters) similarly exposes the names of known Consul datacenters, and does not allow modification of any state.
 - The [service mesh CA roots endpoint](/consul/api-docs/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
 
-<Tip title="Consul Enterprise Namespace">
-
-In addition to directly-linked policies, roles, and service identities, Consul Enterprise enables ACL policies and roles to be defined in the [Namespaces definition](/consul/docs/enterprise/namespaces#namespace-definition) (Consul Enterprise 1.7.0+).
-
-</Tip>
+-> **Consul Enterprise Namespace** - In addition to directly-linked policies, roles, and service identities, Consul Enterprise enables ACL policies and roles to be defined in the [Namespaces definition](/consul/docs/segment/namespace#namespace-definition) (Consul Enterprise 1.7.0+).
 
 The following topics provide additional details about the available resources.
 
@@ -641,7 +637,7 @@ These actions may required an ACL token to complete. Use the following methods t
 
 ### Reading Imported Nodes
 
-Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/reference/config-entry/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/link/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
+Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/connect/config-entries/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/connect/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
 Read access to all imported nodes is granted when either of the following rule sets are attached to a token:
 - `service:write` is granted to any service.
 - `node:read` is granted to all nodes.
@@ -920,7 +916,7 @@ service "app" {
 
 </CodeTabs>
 
-Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements)
+Refer to [ACL requirements for intentions](/consul/docs/secure-mesh/intentions/create#acl-requirements)
 for more information about managing intentions access with service rules.
 
 ## Session Rules

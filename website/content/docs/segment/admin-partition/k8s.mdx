@@ -1,10 +1,10 @@
 ---
-page_title: Create admin partitions
+page_title: Configure partitions on Kubernetes
 description: |-
   Admin partitions define boundaries between services managed by separate teams, enabling a service mesh across k8s clusters controlled by a single Consul server. Learn about their requirements and how to deploy admin partitions on Kubernetes.
 ---
 
-# Create admin partitions
+# Configure partitions on Kubernetes
 
 <EnterpriseAlert>
 
@@ -324,8 +324,3 @@ You can log into the Consul UI to verify that the partitions appear as expected.
 You will see the `default` and `clients` partitions available in the **Admin Partition** drop-down menu.
 
 ![Partitions will appear in the Admin Partitions drop-down menu within the Consul UI.](/img/admin-partitions/consul-admin-partitions-verify-in-ui.png)
-
-## Known Limitations
-
-- Only the `default` admin partition is supported when federating multiple Consul datacenters in a WAN.
-- Admin partitions have no theoretical limit. We intend to conduct a large-scale test to identify a recommended max in the future.

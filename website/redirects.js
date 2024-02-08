@@ -48,9 +48,9 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/manage-consul/agent-rate-limit//set-global-traffic-rate-limits',
-    destination:
-      '/consul/docs/manage-consul/agent-rate-limit/set-global',
+    source:
+      '/consul/docs/manage-consul/agent-rate-limit//set-global-traffic-rate-limits',
+    destination: '/consul/docs/manage-consul/agent-rate-limit/set-global',
     permanent: true,
   },
   {
@@ -433,8 +433,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source:
-      '/consul/docs/connect/access/ingress-gateway/tls-external-service',
+    source: '/consul/docs/connect/access/ingress-gateway/tls-external-service',
     destination: '/consul/docs/access/ingress-gateway/tls-external-service',
     permanent: true,
   },

@@ -5,15 +5,15 @@ description: >-
   Consul includes a built-in tool for troubleshooting communication between services in a service mesh. Learn how to use the `consul troubleshoot` command to validate communication between upstream and downstream Envoy proxies on VM and Kubernetes deployments.
 ---
 
-# Service-to-service troubleshooting overview
+# Troubleshoot service-to-service communication
 
-This topic provides an overview of Consul’s built-in service-to-service troubleshooting capabilities. When communication between an upstream service and a downstream service in a service mesh fails, you can run the `consul troubleshoot` command to initiate a series of automated validation tests.
+This page describes the process for troubleshooting service-to-service communication in a service mesh using the `consul troubleshoot` CLI command.
 
 For more information, refer to the [`consul troubleshoot` CLI documentation](/consul/commands/troubleshoot) or the [`consul-k8s troubleshoot` CLI reference](/consul/docs/reference/k8s/consul-k8s-cli#troubleshoot).
 
 ## Introduction
 
-When communication between upstream and downstream services in a service mesh fails, you can diagnose the cause manually with one or more of Consul’s built-in features, including [health check queries](/consul/docs/register/service/vm/health-checks), [the UI topology view](/consul/docs/connect/observability/ui-visualization), and [agent telemetry metrics](/consul/docs/agent/telemetry#metrics-reference).
+When communication between upstream and downstream services in a service mesh fails, you can diagnose the cause manually with one or more of Consul’s built-in features, including [health check queries](/consul/docs/register/service/vm/health-checks), [the UI topology view](/consul/docs/observe/mesh/vm), and [agent telemetry metrics](/consul/docs/agent/telemetry#metrics-reference).
 
 The `consul troubleshoot` command performs several checks in sequence that enable you to discover issues that impede service-to-service communication. The process systematically queries the [Envoy administration interface API](https://www.envoyproxy.io/docs/envoy/latest/operations/admin) and the Consul API to determine the cause of the communication failure.
 
@@ -42,7 +42,7 @@ For more information about using Envoy proxies with Consul, refer to [Envoy prox
 
 When troubleshooting service-to-service communication issues, be aware of the following constraints:
 
-- The troubleshooting tool does not check service intentions. For more information about intentions, including precedence and match order, refer to [service mesh intentions](/consul/docs/connect/intentions).
+- The troubleshooting tool does not check service intentions. For more information about intentions, including precedence and match order, refer to [service mesh intentions](/consul/docs/secure-mesh/intentions).
 - The troubleshooting tool validates one direct connection between a downstream service and an upstream service. You must run the `consul troubleshoot` command with the Envoy ID for an individual upstream service. It does support validating multiple connections simultaneously.
 - The troubleshooting tool only validates Envoy configurations for sidecar proxies. As a result, the troubleshooting tool does not validate Envoy configurations on upstream proxies such as mesh gateways and terminating gateways.
 
@@ -55,7 +55,12 @@ Using the service-to-service troubleshooting tool is a two-step process:
 
 In deployments without transparent proxies, the identifier is the _Envoy ID for the upstream service’s sidecar proxy_. If you use transparent proxies, the identifier is the _upstream service’s IP address_. For more information about using transparent proxies, refer to [Enable transparent proxy mode](/consul/docs/connect/transparent-proxy).
 
-### Troubleshoot on VMs
+## Requirements
+
+- Consul v1.15 or later.
+- For Kubernetes, the `consul-k8s` CLI must be installed.
+
+## Troubleshoot on VMs
 
 To troubleshoot service-to-service communication issues in deployments that use VMs or bare-metal servers:
 
@@ -104,7 +109,7 @@ The output from the troubleshooting process identifies service instances accordi
 
 For more information, refer to the [`consul troubleshoot` CLI documentation](/consul/commands/troubleshoot).
 
-### Troubleshoot on Kubernetes
+## Troubleshoot on Kubernetes
 
 To troubleshoot service-to-service communication issues in deployments that use Kubernetes, retrieve the upstream information for the pod that is experiencing communication failures and use the upstream information to identify the proxy you want to perform the troubleshooting process on.
 

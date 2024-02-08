@@ -305,7 +305,7 @@ Specifies the namespace that the proxy defaults apply to. You can only specify t
 
 ### `Partition`
 
-Specifies the local admin partition that the proxy defaults apply to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+Specifies the local admin partition that the proxy defaults apply to. Refer to [admin partitions](/consul/docs/segment/admin-partition) for more information.
 
 #### Values
 
@@ -489,7 +489,7 @@ The following table describes the parameters you can define in the `AccessLogs` 
 | `DisabledListenerLogs` | Disables access logs for traffic rejected at the listener level. Rejected traffic includes connections that do not match any of Envoy's configured filters, such as Consul upstream services. Set this option to `true` if you do not want to log unknown requests that Envoy is not forwarding. | Boolean | `false` |
 | `Type` | Specifies the destination for access logs. You can specify one of the following types: <li>`stdout`</li><li>`stderr`</li><li>`file`</li> | String | None |
 | `Path` | Specifies the destination for writing access logs to file when `Type` is set to `file`. | String | None |
-| `JSONFormat` | Specifies a JSON-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `TextFormat` field concurrently. | String | [Default log format](/consul/docs/connect/observability/access-logs#default-log-format) |
+| `JSONFormat` | Specifies a JSON-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `TextFormat` field concurrently. | String | [Default log format](/consul/docs/observe/access-logs#default-log-format) |
 | `TextFormat` | Specifies a  text-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `JSONFormat` field concurrently. | String | None |
 
 </Tab>
@@ -718,7 +718,7 @@ The following table describes the parameters you can define in the `accessLogs` 
 | `disabledListenerLogs` | Disables access logs for traffic rejected at the listener level. Rejected traffic includes connections that do not match any of Envoy's configured filters, such as Consul upstream services. Set this option to `true` if you do not want to log unknown requests that Envoy is not forwarding. | Boolean | `false` |
 | `type` | Specifies the destination for access logs. You can specify one of the following types: <li>`stdout`</li><li>`stderr`</li><li>`file`</li> | String | None |
 | `path` | Specifies the destination for writing access logs to file when `type` is set to `file`. | String | None |
-| `jsonFormat` | Specifies a JSON-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `textFormat` field concurrently. | String | [Default log format](/consul/docs/connect/observability/access-logs#default-log-format) |
+| `jsonFormat` | Specifies a JSON-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `textFormat` field concurrently. | String | [Default log format](/consul/docs/observe/access-logs#default-log-format) |
 | `textFormat` | Specifies a  text-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `jsonFormat` field concurrently. | String | None |
 
 </Tab>
@@ -874,7 +874,7 @@ spec:
 
 ### Access Logs
 
-The following example enables access logs for all proxies. Refer to [access logs](/consul/docs/connect/observability/access-logs) for more detailed examples.
+The following example enables access logs for all proxies. Refer to [access logs](/consul/docs/observe/access-logs) for more detailed examples.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">

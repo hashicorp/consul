@@ -56,7 +56,7 @@ The following table describes resources in the v2 catalog, how they generally co
 | Health check | A resource for defining the health checks for a workload. | [Service instance health check](/consul/docs/register/service/vm/health-checks) | [Liveness, Readiness, and Startup Probes](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes) | Created by Kubernetes |
 | Proxy configuration | Represents a configuration for a sidecar or gateway proxy. | `Proxy` field in service definition | None | Created by Kubernetes or user CRD |
 | Destinations | Represents explicit service upstreams. When using the v1 catalog, these upstreams are configured in Helm chart as [Upstream Service annotations](/consul/docs/reference/k8s/annotation-label#consul-hashicorp-com-connect-service-upstreams) | [Proxy Configuration](/consul/docs/reference/proxy/envoy#envoy-proxy-configuration-for-service-mesh) | None | Created by Kubernetes |
-| Traffic permissions| Enables L4 traffic authorization according to workload identity instead of service identity. | [Service intentions](/consul/docs/connect/intentions) | None | Created by user CRD |
+| Traffic permissions| Enables L4 traffic authorization according to workload identity instead of service identity. | [Service intentions](/consul/docs/secure-mesh/intentions) | None | Created by user CRD |
 
 ## Resource groups
 
