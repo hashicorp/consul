@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/controllertest"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -89,11 +90,20 @@ func (suite *controllerSuite) requireCID(resource *pbresource.Resource, expected
 }
 
 func (suite *controllerSuite) createWorkloadIdentities(names []string, tenancy *pbresource.Tenancy) []*pbresource.Resource {
+	return createWorkloadIdentities(suite.T(), suite.client, names, tenancy)
+}
+
+func createWorkloadIdentities(
+	t *testing.T,
+	client *rtest.Client,
+	names []string,
+	tenancy *pbresource.Tenancy,
+) []*pbresource.Resource {
 	var rs []*pbresource.Resource
 	for _, n := range names {
 		r := rtest.Resource(pbauth.WorkloadIdentityType, n).
 			WithTenancy(tenancy).
-			Write(suite.T(), suite.client)
+			Write(t, client)
 		rs = append(rs, r)
 	}
 	return rs
@@ -203,6 +213,16 @@ type serviceFixture struct {
 }
 
 func (suite *controllerSuite) createServices(names []string, tenancy *pbresource.Tenancy, withWIDs bool) []*serviceFixture {
+	return createServices(suite.T(), suite.client, names, tenancy, withWIDs)
+}
+
+func createServices(
+	t *testing.T,
+	client *rtest.Client,
+	names []string,
+	tenancy *pbresource.Tenancy,
+	withWIDs bool,
+) []*serviceFixture {
 	var rs []*serviceFixture
 	for _, n := range names {
 		var (
@@ -253,7 +273,7 @@ func (suite *controllerSuite) createServices(names []string, tenancy *pbresource
 			}
 		}
 		r := rtest.Resource(pbcatalog.ServiceType, n).
-			WithData(suite.T(), &pbcatalog.Service{
+			WithData(t, &pbcatalog.Service{
 				Workloads: &pbcatalog.WorkloadSelector{
 					Names: workloads,
 				},
@@ -264,12 +284,12 @@ func (suite *controllerSuite) createServices(names []string, tenancy *pbresource
 			}).
 			WithTenancy(tenancy).
 			WithStatus(catalog.EndpointsStatusKey, status).
-			Write(suite.T(), suite.client)
+			Write(t, client)
 
 		var statusUpdate = func() *pbresource.Resource { return r }
 		if !withWIDs {
 			statusUpdate = func() *pbresource.Resource {
-				ctx := suite.client.Context(suite.T())
+				ctx := client.Context(t)
 
 				status := &pbresource.Status{
 					ObservedGeneration: r.Generation,
@@ -279,12 +299,12 @@ func (suite *controllerSuite) createServices(names []string, tenancy *pbresource
 						Message: strings.Join(ids, ","),
 					}},
 				}
-				resp, err := suite.client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
+				resp, err := client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
 					Id:     r.Id,
 					Key:    catalog.EndpointsStatusKey,
 					Status: status,
 				})
-				require.NoError(suite.T(), err)
+				require.NoError(t, err)
 				return resp.Resource
 			}
 		}
@@ -300,14 +320,18 @@ func (suite *controllerSuite) createServices(names []string, tenancy *pbresource
 }
 
 func (suite *controllerSuite) createComputedRoutes(svc *pbresource.Resource, decResList ...any) *types.DecodedComputedRoutes {
+	return createComputedRoutes(suite.T(), suite.client, svc, decResList...)
+}
+
+func createComputedRoutes(t *testing.T, client *rtest.Client, svc *pbresource.Resource, decResList ...any) *types.DecodedComputedRoutes {
 	resList := make([]any, 0, len(decResList)+1)
 	resList = append(resList,
-		resourcetest.MustDecode[*pbcatalog.Service](suite.T(), svc),
+		resourcetest.MustDecode[*pbcatalog.Service](t, svc),
 	)
 	resList = append(resList, decResList...)
 	crID := resource.ReplaceType(pbmesh.ComputedRoutesType, svc.Id)
-	cr := routestest.ReconcileComputedRoutes(suite.T(), suite.client, crID, resList...)
-	require.NotNil(suite.T(), cr)
+	cr := routestest.ReconcileComputedRoutes(t, client, crID, resList...)
+	require.NotNil(t, cr)
 	return cr
 }
 
@@ -1241,7 +1265,7 @@ func (suite *controllerSuite) TestMapping_WildcardNamesAndNamespaces() {
 	})
 }
 
-func (suite *controllerSuite) TestController_DefaultDeny() {
+func TestController_DefaultDeny(t *testing.T) {
 	// This test's purpose is to exercise the controller in a halfway realistic
 	// way. Generally we are trying to go through the whole lifecycle of the
 	// controller.
@@ -1249,224 +1273,232 @@ func (suite *controllerSuite) TestController_DefaultDeny() {
 	// This isn't a full integration test as that would require also executing
 	// various other controllers.
 
-	// Run the controller manager
-	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(Controller(false))
-	mgr.SetRaftLeader(true)
-	go mgr.Run(suite.ctx)
+	clientRaw := controllertest.NewControllerTestBuilder().
+		WithTenancies(resourcetest.TestTenancies()...).
+		WithResourceRegisterFns(types.Register, catalog.RegisterTypes, auth.RegisterTypes).
+		WithControllerRegisterFns(func(mgr *controller.Manager) {
+			mgr.Register(Controller(false))
+		}).
+		Run(t)
 
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		// Add some workload identities and services.
-		wi := suite.createWorkloadIdentities([]string{
-			"wi1", "wi2", "wi3",
-		}, tenancy)
-		var (
-			wi1 = wi[0]
-			wi2 = wi[1]
-			wi3 = wi[2]
+	client := rtest.NewClient(clientRaw)
 
-			// ctpID1 = resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi1.Id)
-			ctpID2 = resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi2.Id)
-			ctpID3 = resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi3.Id)
+	for _, tenancy := range resourcetest.TestTenancies() {
+		t.Run(tenancySubTestName(tenancy), func(t *testing.T) {
+			tenancy := tenancy
 
-			cidID1 = resource.ReplaceType(pbmesh.ComputedImplicitDestinationsType, wi1.Id)
-			cidID2 = resource.ReplaceType(pbmesh.ComputedImplicitDestinationsType, wi2.Id)
-			cidID3 = resource.ReplaceType(pbmesh.ComputedImplicitDestinationsType, wi3.Id)
-		)
-		svc := suite.createServices([]string{"s1", "s2", "s3"}, tenancy, true)
-		var (
-			_    = svc[0]
-			svc2 = svc[1]
-			svc3 = svc[2]
+			// Add some workload identities and services.
+			wi := createWorkloadIdentities(t, client, []string{
+				"wi1", "wi2", "wi3",
+			}, tenancy)
+			var (
+				wi1 = wi[0]
+				wi2 = wi[1]
+				wi3 = wi[2]
 
-			crID2 = resource.ReplaceType(pbmesh.ComputedRoutesType, svc2.Id)
-			crID3 = resource.ReplaceType(pbmesh.ComputedRoutesType, svc3.Id)
-		)
+				// ctpID1 = resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi1.Id)
+				ctpID2 = resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi2.Id)
+				ctpID3 = resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi3.Id)
 
-		// Wait for the empty stub resources to be created.
-		cidVersion1 := requireNewCIDVersion(suite.T(), suite.client, cidID1, "", &pbmesh.ComputedImplicitDestinations{})
-		_ = requireNewCIDVersion(suite.T(), suite.client, cidID2, "", &pbmesh.ComputedImplicitDestinations{})
-		_ = requireNewCIDVersion(suite.T(), suite.client, cidID3, "", &pbmesh.ComputedImplicitDestinations{})
+				cidID1 = resource.ReplaceType(pbmesh.ComputedImplicitDestinationsType, wi1.Id)
+				cidID2 = resource.ReplaceType(pbmesh.ComputedImplicitDestinationsType, wi2.Id)
+				cidID3 = resource.ReplaceType(pbmesh.ComputedImplicitDestinationsType, wi3.Id)
+			)
+			svc := createServices(t, client, []string{"s1", "s2", "s3"}, tenancy, true)
+			var (
+				_    = svc[0]
+				svc2 = svc[1]
+				svc3 = svc[2]
 
-		// Add some other required resources.
+				crID2 = resource.ReplaceType(pbmesh.ComputedRoutesType, svc2.Id)
+				crID3 = resource.ReplaceType(pbmesh.ComputedRoutesType, svc3.Id)
+			)
 
-		ReconcileComputedTrafficPermissions(suite.T(), suite.client, ctpID2, &pbauth.TrafficPermissions{
-			Action: pbauth.Action_ACTION_ALLOW,
-			Permissions: []*pbauth.Permission{{
-				Sources: []*pbauth.Source{{
-					IdentityName: wi1.Id.Name,
+			// Wait for the empty stub resources to be created.
+			cidVersion1 := requireNewCIDVersion(t, client, cidID1, "", &pbmesh.ComputedImplicitDestinations{})
+			_ = requireNewCIDVersion(t, client, cidID2, "", &pbmesh.ComputedImplicitDestinations{})
+			_ = requireNewCIDVersion(t, client, cidID3, "", &pbmesh.ComputedImplicitDestinations{})
+
+			// Add some other required resources.
+
+			ReconcileComputedTrafficPermissions(t, client, ctpID2, &pbauth.TrafficPermissions{
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{{
+					Sources: []*pbauth.Source{{
+						IdentityName: wi1.Id.Name,
+					}},
 				}},
-			}},
-		})
-		suite.createComputedRoutes(svc2.Resource)
-
-		suite.runStep("wi1 can reach wi2", func() {
-			cidVersion1 = requireNewCIDVersion(suite.T(), suite.client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
-				Destinations: []*pbmesh.ImplicitDestination{{
-					ServiceRef: resource.Reference(svc2.Id, ""),
-					Ports:      []string{"grpc"},
-				}},
-				BoundReferences: []*pbresource.Reference{
-					resource.Reference(ctpID2, ""),
-					resource.Reference(svc2.Id, ""),
-					resource.Reference(crID2, ""),
-				},
 			})
-		})
+			createComputedRoutes(t, client, svc2.Resource)
 
-		ReconcileComputedTrafficPermissions(suite.T(), suite.client, ctpID3, &pbauth.TrafficPermissions{
-			Action: pbauth.Action_ACTION_ALLOW,
-			Permissions: []*pbauth.Permission{{
-				Sources: []*pbauth.Source{{
-					IdentityName: wi1.Id.Name,
-				}},
-			}},
-		})
-		suite.createComputedRoutes(svc3.Resource)
-
-		suite.runStep("wi1 can reach wi2 and wi3", func() {
-			cidVersion1 = requireNewCIDVersion(suite.T(), suite.client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
-				Destinations: []*pbmesh.ImplicitDestination{
-					{
+			testutil.RunStep(t, "wi1 can reach wi2", func(t *testing.T) {
+				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
+					Destinations: []*pbmesh.ImplicitDestination{{
 						ServiceRef: resource.Reference(svc2.Id, ""),
 						Ports:      []string{"grpc"},
+					}},
+					BoundReferences: []*pbresource.Reference{
+						resource.Reference(ctpID2, ""),
+						resource.Reference(svc2.Id, ""),
+						resource.Reference(crID2, ""),
 					},
-					{
-						ServiceRef: resource.Reference(svc3.Id, ""),
-						Ports:      []string{"grpc"},
-					},
-				},
-				BoundReferences: []*pbresource.Reference{
-					resource.Reference(ctpID2, ""),
-					resource.Reference(ctpID3, ""),
-					resource.Reference(svc2.Id, ""),
-					resource.Reference(svc3.Id, ""),
-					resource.Reference(crID2, ""),
-					resource.Reference(crID3, ""),
-				},
+				})
 			})
-		})
 
-		// Remove a route.
-		suite.client.MustDelete(suite.T(), crID2)
-
-		suite.runStep("removing a ComputedRoutes should remove that service from any CID", func() {
-			cidVersion1 = requireNewCIDVersion(suite.T(), suite.client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
-				Destinations: []*pbmesh.ImplicitDestination{
-					{
-						ServiceRef: resource.Reference(svc3.Id, ""),
-						Ports:      []string{"grpc"},
-					},
-				},
-				BoundReferences: []*pbresource.Reference{
-					resource.Reference(ctpID3, ""),
-					resource.Reference(svc3.Id, ""),
-					resource.Reference(crID3, ""),
-				},
-			})
-		})
-
-		// Put it back.
-		suite.createComputedRoutes(svc2.Resource)
-
-		suite.runStep("put the ComputedRoutes back", func() {
-			cidVersion1 = requireNewCIDVersion(suite.T(), suite.client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
-				Destinations: []*pbmesh.ImplicitDestination{
-					{
-						ServiceRef: resource.Reference(svc2.Id, ""),
-						Ports:      []string{"grpc"},
-					},
-					{
-						ServiceRef: resource.Reference(svc3.Id, ""),
-						Ports:      []string{"grpc"},
-					},
-				},
-				BoundReferences: []*pbresource.Reference{
-					resource.Reference(ctpID2, ""),
-					resource.Reference(ctpID3, ""),
-					resource.Reference(svc2.Id, ""),
-					resource.Reference(svc3.Id, ""),
-					resource.Reference(crID2, ""),
-					resource.Reference(crID3, ""),
-				},
-			})
-		})
-
-		// Remove traffic access to wi3.
-		suite.client.MustDelete(suite.T(), ctpID3)
-
-		suite.runStep("removing a CTP should remove those services only exposing that WI", func() {
-			cidVersion1 = requireNewCIDVersion(suite.T(), suite.client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
-				Destinations: []*pbmesh.ImplicitDestination{
-					{
-						ServiceRef: resource.Reference(svc2.Id, ""),
-						Ports:      []string{"grpc"},
-					},
-				},
-				BoundReferences: []*pbresource.Reference{
-					resource.Reference(ctpID2, ""),
-					resource.Reference(svc2.Id, ""),
-					resource.Reference(crID2, ""),
-				},
-			})
-		})
-
-		// Edit the route on top of svc3 to also split to svc2, which will
-		// cause it to re-manifest as an implicit destination due to half of
-		// the traffic possibly going to wi3.
-		grpcRoute := rtest.Resource(pbmesh.GRPCRouteType, "grpc-route-3").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbmesh.GRPCRoute{
-				ParentRefs: []*pbmesh.ParentReference{{
-					Ref:  resource.Reference(svc3.Id, ""),
-					Port: "grpc",
+			ReconcileComputedTrafficPermissions(t, client, ctpID3, &pbauth.TrafficPermissions{
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{{
+					Sources: []*pbauth.Source{{
+						IdentityName: wi1.Id.Name,
+					}},
 				}},
-				Rules: []*pbmesh.GRPCRouteRule{{
-					BackendRefs: []*pbmesh.GRPCBackendRef{
+			})
+			createComputedRoutes(t, client, svc3.Resource)
+
+			testutil.RunStep(t, "wi1 can reach wi2 and wi3", func(t *testing.T) {
+				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
+					Destinations: []*pbmesh.ImplicitDestination{
 						{
-							BackendRef: &pbmesh.BackendReference{
-								Ref: resource.Reference(svc2.Id, ""),
-							},
-							Weight: 50,
+							ServiceRef: resource.Reference(svc2.Id, ""),
+							Ports:      []string{"grpc"},
 						},
 						{
-							BackendRef: &pbmesh.BackendReference{
-								Ref: resource.Reference(svc3.Id, ""),
-							},
-							Weight: 50,
+							ServiceRef: resource.Reference(svc3.Id, ""),
+							Ports:      []string{"grpc"},
 						},
 					},
-				}},
-			}).
-			Write(suite.T(), suite.client)
-		suite.createComputedRoutes(svc3.Resource,
-			rtest.MustDecode[*pbmesh.GRPCRoute](suite.T(), grpcRoute),
-			rtest.MustDecode[*pbcatalog.Service](suite.T(), svc2.Resource),
-		)
+					BoundReferences: []*pbresource.Reference{
+						resource.Reference(ctpID2, ""),
+						resource.Reference(ctpID3, ""),
+						resource.Reference(svc2.Id, ""),
+						resource.Reference(svc3.Id, ""),
+						resource.Reference(crID2, ""),
+						resource.Reference(crID3, ""),
+					},
+				})
+			})
 
-		suite.runStep("a workload reachable by one branch of a computed routes still is implicit", func() {
-			cidVersion1 = requireNewCIDVersion(suite.T(), suite.client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
-				Destinations: []*pbmesh.ImplicitDestination{
-					{
-						ServiceRef: resource.Reference(svc2.Id, ""),
-						Ports:      []string{"grpc"},
+			// Remove a route.
+			client.MustDelete(t, crID2)
+
+			testutil.RunStep(t, "removing a ComputedRoutes should remove that service from any CID", func(t *testing.T) {
+				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
+					Destinations: []*pbmesh.ImplicitDestination{
+						{
+							ServiceRef: resource.Reference(svc3.Id, ""),
+							Ports:      []string{"grpc"},
+						},
 					},
-					{
-						ServiceRef: resource.Reference(svc3.Id, ""),
-						Ports:      []string{"grpc"},
+					BoundReferences: []*pbresource.Reference{
+						resource.Reference(ctpID3, ""),
+						resource.Reference(svc3.Id, ""),
+						resource.Reference(crID3, ""),
 					},
-				},
-				BoundReferences: []*pbresource.Reference{
-					resource.Reference(ctpID2, ""),
-					// no contribution to ctpID3, b/c it is deleted
-					resource.Reference(svc2.Id, ""),
-					resource.Reference(svc3.Id, ""),
-					resource.Reference(crID2, ""),
-					resource.Reference(crID3, ""),
-				},
+				})
+			})
+
+			// Put it back.
+			createComputedRoutes(t, client, svc2.Resource)
+
+			testutil.RunStep(t, "put the ComputedRoutes back", func(t *testing.T) {
+				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
+					Destinations: []*pbmesh.ImplicitDestination{
+						{
+							ServiceRef: resource.Reference(svc2.Id, ""),
+							Ports:      []string{"grpc"},
+						},
+						{
+							ServiceRef: resource.Reference(svc3.Id, ""),
+							Ports:      []string{"grpc"},
+						},
+					},
+					BoundReferences: []*pbresource.Reference{
+						resource.Reference(ctpID2, ""),
+						resource.Reference(ctpID3, ""),
+						resource.Reference(svc2.Id, ""),
+						resource.Reference(svc3.Id, ""),
+						resource.Reference(crID2, ""),
+						resource.Reference(crID3, ""),
+					},
+				})
+			})
+
+			// Remove traffic access to wi3.
+			client.MustDelete(t, ctpID3)
+
+			testutil.RunStep(t, "removing a CTP should remove those services only exposing that WI", func(t *testing.T) {
+				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
+					Destinations: []*pbmesh.ImplicitDestination{
+						{
+							ServiceRef: resource.Reference(svc2.Id, ""),
+							Ports:      []string{"grpc"},
+						},
+					},
+					BoundReferences: []*pbresource.Reference{
+						resource.Reference(ctpID2, ""),
+						resource.Reference(svc2.Id, ""),
+						resource.Reference(crID2, ""),
+					},
+				})
+			})
+
+			// Edit the route on top of svc3 to also split to svc2, which will
+			// cause it to re-manifest as an implicit destination due to half of
+			// the traffic possibly going to wi3.
+			grpcRoute := rtest.Resource(pbmesh.GRPCRouteType, "grpc-route-3").
+				WithTenancy(tenancy).
+				WithData(t, &pbmesh.GRPCRoute{
+					ParentRefs: []*pbmesh.ParentReference{{
+						Ref:  resource.Reference(svc3.Id, ""),
+						Port: "grpc",
+					}},
+					Rules: []*pbmesh.GRPCRouteRule{{
+						BackendRefs: []*pbmesh.GRPCBackendRef{
+							{
+								BackendRef: &pbmesh.BackendReference{
+									Ref: resource.Reference(svc2.Id, ""),
+								},
+								Weight: 50,
+							},
+							{
+								BackendRef: &pbmesh.BackendReference{
+									Ref: resource.Reference(svc3.Id, ""),
+								},
+								Weight: 50,
+							},
+						},
+					}},
+				}).
+				Write(t, client)
+			createComputedRoutes(t, client, svc3.Resource,
+				rtest.MustDecode[*pbmesh.GRPCRoute](t, grpcRoute),
+				rtest.MustDecode[*pbcatalog.Service](t, svc2.Resource),
+			)
+
+			testutil.RunStep(t, "a workload reachable by one branch of a computed routes still is implicit", func(t *testing.T) {
+				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
+					Destinations: []*pbmesh.ImplicitDestination{
+						{
+							ServiceRef: resource.Reference(svc2.Id, ""),
+							Ports:      []string{"grpc"},
+						},
+						{
+							ServiceRef: resource.Reference(svc3.Id, ""),
+							Ports:      []string{"grpc"},
+						},
+					},
+					BoundReferences: []*pbresource.Reference{
+						resource.Reference(ctpID2, ""),
+						// no contribution to ctpID3, b/c it is deleted
+						resource.Reference(svc2.Id, ""),
+						resource.Reference(svc3.Id, ""),
+						resource.Reference(crID2, ""),
+						resource.Reference(crID3, ""),
+					},
+				})
 			})
 		})
-	})
+	}
 }
 
 func (suite *controllerSuite) runStep(name string, fn func()) {
@@ -1505,6 +1537,10 @@ func (suite *controllerSuite) runTestCaseWithTenancies(testFunc func(*pbresource
 }
 
 func (suite *controllerSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) string {
+	return tenancySubTestName(tenancy)
+}
+
+func tenancySubTestName(tenancy *pbresource.Tenancy) string {
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
 }
 
