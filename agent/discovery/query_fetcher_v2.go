@@ -116,7 +116,9 @@ func (f *V2DataFetcher) FetchEndpoints(reqContext Context, req *QueryPayload, lo
 				Namespace: resourceObj.GetId().GetTenancy().GetNamespace(),
 				Partition: resourceObj.GetId().GetTenancy().GetPartition(),
 			},
-			Weight: weight,
+			DNS: DNSConfig{
+				Weight: weight,
+			},
 		}
 		results = append(results, result)
 	}

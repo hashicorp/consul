@@ -261,7 +261,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 			},
 		},
@@ -360,7 +362,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 2,
+					DNS: DNSConfig{
+						Weight: 2,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-2", Address: "2.3.4.5"},
@@ -369,7 +373,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 3,
+					DNS: DNSConfig{
+						Weight: 3,
+					},
 				},
 			},
 		},
@@ -408,7 +414,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 2,
+					DNS: DNSConfig{
+						Weight: 2,
+					},
 				},
 			},
 		},
@@ -452,7 +460,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-2", Address: "10.0.0.2"},
@@ -461,7 +471,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-3", Address: "10.0.0.3"},
@@ -470,7 +482,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-4", Address: "10.0.0.4"},
@@ -479,7 +493,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-5", Address: "10.0.0.5"},
@@ -488,7 +504,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-6", Address: "10.0.0.6"},
@@ -497,7 +515,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-7", Address: "10.0.0.7"},
@@ -506,7 +526,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-8", Address: "10.0.0.8"},
@@ -515,7 +537,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-9", Address: "10.0.0.9"},
@@ -524,7 +548,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 				{
 					Node: &Location{Name: "consul-10", Address: "10.0.0.10"},
@@ -533,7 +559,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 			},
 			verifyShuffle: true,
@@ -572,7 +600,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: resource.DefaultNamespaceName,
 						Partition: resource.DefaultPartitionName,
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 			},
 		},
@@ -613,7 +643,9 @@ func Test_V2FetchEndpoints(t *testing.T) {
 						Namespace: "test-namespace",
 						Partition: "test-partition",
 					},
-					Weight: 1,
+					DNS: DNSConfig{
+						Weight: 1,
+					},
 				},
 			},
 		},
