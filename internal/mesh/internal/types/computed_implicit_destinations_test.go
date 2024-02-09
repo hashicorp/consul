@@ -234,6 +234,18 @@ func TestComputedImplicitDestinationsACLs(t *testing.T) {
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
+		"operator read": {
+			rules:   `operator = "read" `,
+			readOK:  DENY,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"operator write": {
+			rules:   `operator = "write" `,
+			readOK:  DENY,
+			writeOK: ALLOW,
+			listOK:  DEFAULT,
+		},
 		"workload identity w1 read": {
 			rules:   `identity "wi1" { policy = "read" }`,
 			readOK:  ALLOW,
@@ -243,7 +255,7 @@ func TestComputedImplicitDestinationsACLs(t *testing.T) {
 		"workload identity w1 write": {
 			rules:   `identity "wi1" { policy = "write" }`,
 			readOK:  ALLOW,
-			writeOK: ALLOW,
+			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
 	}
