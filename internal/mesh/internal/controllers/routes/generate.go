@@ -79,7 +79,7 @@ func compile(
 	// future we could use the others, but for now they are harmless to include
 	// in the produced resource and is beneficial from an audit/debugging
 	// perspective to know all of the inputs that produced this output.
-	boundRefCollector := NewBoundReferenceCollector()
+	boundRefCollector := resource.NewBoundReferenceCollector()
 
 	parentServiceDec := related.GetService(parentServiceID)
 	if parentServiceDec == nil {
@@ -443,7 +443,7 @@ func compileFailoverConfig(
 	related *loader.RelatedResources,
 	failoverConfig *pbcatalog.FailoverConfig,
 	targets map[string]*pbmesh.BackendTargetDetails,
-	brc *BoundReferenceCollector,
+	brc *resource.BoundReferenceCollector,
 ) *pbmesh.ComputedFailoverConfig {
 	if failoverConfig == nil {
 		return nil
@@ -524,7 +524,7 @@ func compileHTTPRouteNode(
 	res *pbresource.Resource,
 	route *pbmesh.HTTPRoute,
 	serviceGetter serviceGetter,
-	brc *BoundReferenceCollector,
+	brc *resource.BoundReferenceCollector,
 ) *inputRouteNode {
 	route = protoClone(route)
 	node := newInputRouteNode(port)
@@ -601,7 +601,7 @@ func compileGRPCRouteNode(
 	res *pbresource.Resource,
 	route *pbmesh.GRPCRoute,
 	serviceGetter serviceGetter,
-	brc *BoundReferenceCollector,
+	brc *resource.BoundReferenceCollector,
 ) *inputRouteNode {
 	route = protoClone(route)
 
@@ -671,7 +671,7 @@ func compileTCPRouteNode(
 	res *pbresource.Resource,
 	route *pbmesh.TCPRoute,
 	serviceGetter serviceGetter,
-	brc *BoundReferenceCollector,
+	brc *resource.BoundReferenceCollector,
 ) *inputRouteNode {
 	route = protoClone(route)
 
