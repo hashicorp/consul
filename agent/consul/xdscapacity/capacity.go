@@ -15,6 +15,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/channels"
 	"github.com/hashicorp/consul/lib/retry"
 )
 
@@ -72,7 +73,7 @@ type SessionLimiter interface {
 func NewController(cfg Config) *Controller {
 	return &Controller{
 		cfg:      cfg,
-		serverCh: make(chan uint32),
+		serverCh: make(chan uint32, 1),
 		doneCh:   make(chan struct{}),
 	}
 }
@@ -109,9 +110,9 @@ func (c *Controller) Run(ctx context.Context) {
 // SetServerCount updates the number of healthy servers that is used when
 // determining capacity. It is called by the autopilot delegate.
 func (c *Controller) SetServerCount(count uint32) {
-	select {
-	case c.serverCh <- count:
-	case <-c.doneCh:
+	if err := channels.DeliverLatest(count, c.serverCh); err != nil {
+		// This should not be possible since only one producer should ever exist, but log anyway.
+		c.cfg.Logger.Error("failed to deliver latest server count to xDS capacity controller")
 	}
 }
 
