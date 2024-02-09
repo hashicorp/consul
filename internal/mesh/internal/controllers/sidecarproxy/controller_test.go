@@ -678,12 +678,12 @@ func (suite *controllerTestSuite) TestController() {
 				WithData(suite.T(), &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{
 						{
-							ServiceRef: resource.Reference(api.service.Id, ""),
-							Ports:      []string{"tcp"},
+							DestinationRef:   resource.Reference(api.service.Id, ""),
+							DestinationPorts: []string{"tcp"},
 						},
 						{
-							ServiceRef: resource.Reference(suite.dbService.Id, ""),
-							Ports:      []string{"http"},
+							DestinationRef:   resource.Reference(suite.dbService.Id, ""),
+							DestinationPorts: []string{"http"},
 						},
 					},
 				}).

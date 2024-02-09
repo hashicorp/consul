@@ -126,9 +126,9 @@ func fetchComputedImplicitDestinationsData(
 	}
 
 	for _, dest := range cid.Data.GetDestinations() {
-		serviceID := resource.IDFromReference(dest.ServiceRef)
+		serviceID := resource.IDFromReference(dest.DestinationRef)
 
-		outDests, err := fetchSingleDestinationData(rt, workload.Id, mgwMode, serviceID, dest.Ports, nil)
+		outDests, err := fetchSingleDestinationData(rt, workload.Id, mgwMode, serviceID, dest.DestinationPorts, nil)
 		if err != nil {
 			return nil, err
 		} else if len(outDests) == 0 {

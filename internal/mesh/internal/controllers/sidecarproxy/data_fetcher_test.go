@@ -383,12 +383,12 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 			WithData(suite.T(), &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					{
-						ServiceRef: resource.Reference(suite.api1Service.Id, ""),
-						Ports:      []string{"tcp"},
+						DestinationRef:   resource.Reference(suite.api1Service.Id, ""),
+						DestinationPorts: []string{"tcp"},
 					},
 					{
-						ServiceRef: resource.Reference(suite.api1Service.Id, ""),
-						Ports:      []string{"tcp1", "tcp2"},
+						DestinationRef:   resource.Reference(suite.api1Service.Id, ""),
+						DestinationPorts: []string{"tcp1", "tcp2"},
 					},
 				},
 			}).

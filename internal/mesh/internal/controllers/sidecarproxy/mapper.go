@@ -53,8 +53,8 @@ var computedImplicitDestinationsByServiceIndex = indexers.RefOrIDIndex(
 
 		out := make([]*pbresource.Reference, 0, len(ced.Data.Destinations))
 		for _, dest := range ced.Data.Destinations {
-			if resource.EqualType(pbcatalog.ServiceType, dest.ServiceRef.Type) {
-				out = append(out, dest.ServiceRef)
+			if resource.EqualType(pbcatalog.ServiceType, dest.DestinationRef.Type) {
+				out = append(out, dest.DestinationRef)
 			}
 		}
 		return out
