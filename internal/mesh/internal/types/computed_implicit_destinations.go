@@ -98,5 +98,5 @@ func aclReadHookComputedImplicitDestinations(
 }
 
 func aclWriteHookComputedImplicitDestinations(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-	return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
+	return authorizer.ToAllowAuthorizer().IdentityWriteAllowed(res.Id.Name, authzContext)
 }
