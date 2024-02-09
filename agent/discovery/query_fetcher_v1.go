@@ -308,35 +308,31 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 		return nil, ECSNotGlobalError{err}
 	}
 
-	// (v2-dns) TODO: (v2-dns) get TTLS working.  They come from the database so not having
-	// TTL on the discovery result poses challenges.
+	// TODO (slackpad) - What's a safe limit we can set here? It seems like
+	// with dup filtering done at this level we need to get everything to
+	// match the previous behavior. We can optimize by pushing more filtering
+	// into the query execution, but for now I think we need to get the full
+	// response. We could also choose a large arbitrary number that will
+	// likely work in practice, like 10*maxUDPAnswerLimit which should help
+	// reduce bandwidth if there are thousands of nodes available.
+	// Determine the TTL. The parse should never fail since we vet it when
+	// the query is created, but we check anyway. If the query didn't
+	// specify a TTL then we will try to use the agent's service-specific
+	// TTL configs.
 
-	/*
-		// TODO (slackpad) - What's a safe limit we can set here? It seems like
-		// with dup filtering done at this level we need to get everything to
-		// match the previous behavior. We can optimize by pushing more filtering
-		// into the query execution, but for now I think we need to get the full
-		// response. We could also choose a large arbitrary number that will
-		// likely work in practice, like 10*maxUDPAnswerLimit which should help
-		// reduce bandwidth if there are thousands of nodes available.
-		// Determine the TTL. The parse should never fail since we vet it when
-		// the query is created, but we check anyway. If the query didn't
-		// specify a TTL then we will try to use the agent's service-specific
-		// TTL configs.
-		var ttl time.Duration
-		if out.DNS.TTL != "" {
-			var err error
-			ttl, err = time.ParseDuration(out.DNS.TTL)
-			if err != nil {
-				f.logger.Warn("Failed to parse TTL for prepared query , ignoring",
-					"ttl", out.DNS.TTL,
-					"prepared_query", req.Name,
-				)
-			}
-		} else {
-			ttl, _ = cfg.GetTTLForService(out.Service)
+	// Check is there is a TTL provided as part of the prepared query
+	var ttlOverride *uint32
+	if out.DNS.TTL != "" {
+		ttl, err := time.ParseDuration(out.DNS.TTL)
+		if err == nil {
+			ttlSec := uint32(ttl / time.Second)
+			ttlOverride = &ttlSec
 		}
-	*/
+		f.logger.Warn("Failed to parse TTL for prepared query , ignoring",
+			"ttl", out.DNS.TTL,
+			"prepared_query", req.Name,
+		)
+	}
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
@@ -345,7 +341,7 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
-	return f.buildResultsFromServiceNodes(out.Nodes, req), ECSNotGlobalError{}
+	return f.buildResultsFromServiceNodes(out.Nodes, req, ttlOverride), ECSNotGlobalError{}
 }
 
 // executePreparedQuery is used to execute a PreparedQuery against the Consul catalog.
@@ -402,7 +398,7 @@ func (f *V1DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
 }
 
 // buildResultsFromServiceNodes builds a list of results from a list of nodes.
-func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServiceNode, req *QueryPayload) []*Result {
+func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServiceNode, req *QueryPayload, ttlOverride *uint32) []*Result {
 	// Convert the service endpoints to results up to the limit
 	limit := req.Limit
 	if len(nodes) < limit || limit == 0 {
@@ -421,8 +417,11 @@ func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServic
 				Name:    n.Node.Node,
 				Address: n.Node.Address,
 			},
-			Type:       ResultTypeService,
-			Weight:     uint32(findWeight(n)),
+			Type: ResultTypeService,
+			DNS: DNSConfig{
+				TTL:    ttlOverride,
+				Weight: uint32(findWeight(n)),
+			},
 			PortNumber: uint32(f.translateServicePortFunc(n.Node.Datacenter, n.Service.Port, n.Service.TaggedAddresses)),
 			Metadata:   n.Node.Meta,
 			Tenancy: ResultTenancy{
@@ -548,7 +547,7 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
-	return f.buildResultsFromServiceNodes(out.Nodes, req), nil
+	return f.buildResultsFromServiceNodes(out.Nodes, req, nil), nil
 }
 
 // findWeight returns the weight of a service node.
