@@ -13,13 +13,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
-
 	"github.com/armon/go-radix"
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/structs"
@@ -286,11 +285,16 @@ func (r *Router) trimDomain(questionName string) string {
 }
 
 // getTTLForResult returns the TTL for a given result.
-func getTTLForResult(name string, query *discovery.Query, cfg *RouterDynamicConfig) uint32 {
+func getTTLForResult(name string, overrideTTL *uint32, query *discovery.Query, cfg *RouterDynamicConfig) uint32 {
 	// In the case we are not making a discovery query, such as addr. or arpa. lookups,
 	// use the node TTL by convention
 	if query == nil {
 		return uint32(cfg.NodeTTL / time.Second)
+	}
+
+	if overrideTTL != nil {
+		// If a result was provided with an override, use that. This is the case for some prepared queries.
+		return *overrideTTL
 	}
 
 	switch query.QueryType {
@@ -301,7 +305,7 @@ func getTTLForResult(name string, query *discovery.Query, cfg *RouterDynamicConf
 	case discovery.QueryTypeWorkload:
 		// TODO (v2-dns): we need to discuss what we want to do for workload TTLs
 		return 0
-	case discovery.QueryTypeService:
+	case discovery.QueryTypeService, discovery.QueryTypePreparedQuery:
 		ttl, ok := cfg.getTTLForService(name)
 		if ok {
 			return uint32(ttl / time.Second)
@@ -884,7 +888,9 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, req *dns.Msg, req
 	if query != nil {
 		ttlLookupName = query.QueryPayload.Name
 	}
-	ttl := getTTLForResult(ttlLookupName, query, cfg)
+
+	ttl := getTTLForResult(ttlLookupName, result.DNS.TTL, query, cfg)
+
 	qType := req.Question[0].Qtype
 
 	// TODO (v2-dns): skip records that refer to a workload/node that don't have a valid DNS name.
@@ -1278,7 +1284,7 @@ func makeSRVRecord(name, target string, result *discovery.Result, ttl uint32) *d
 			Ttl:    ttl,
 		},
 		Priority: 1,
-		Weight:   uint16(result.Weight),
+		Weight:   uint16(result.DNS.Weight),
 		Port:     uint16(result.PortNumber),
 		Target:   target,
 	}

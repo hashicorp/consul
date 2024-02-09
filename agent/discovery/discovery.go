@@ -107,11 +107,11 @@ const (
 type Result struct {
 	Service    *Location         // The name and address of the service.
 	Node       *Location         // The name and address of the node.
-	Weight     uint32            // SRV queries
 	PortName   string            // Used to generate a fgdn when a specifc port was queried
 	PortNumber uint32            // SRV queries
 	Metadata   map[string]string // Used to collect metadata into TXT Records
 	Type       ResultType        // Used to reconstruct the fqdn name of the resource
+	DNS        DNSConfig         // Used for DNS-specific configuration for this result
 
 	Tenancy ResultTenancy
 }
@@ -120,6 +120,11 @@ type Result struct {
 type Location struct {
 	Name    string
 	Address string
+}
+
+type DNSConfig struct {
+	TTL    *uint32 // deprecated: use for V1 prepared queries only
+	Weight uint32  // SRV queries
 }
 
 // ResultTenancy is used to reconstruct the fqdn name of the resource.
