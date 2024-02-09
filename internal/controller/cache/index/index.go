@@ -12,7 +12,6 @@ type Index struct {
 	name     string
 	required bool
 	indexer  MultiIndexer
-	tree     *iradix.Tree[[]*pbresource.Resource]
 }
 
 func New(name string, i Indexer, opts ...IndexOption) *Index {
@@ -36,7 +35,6 @@ func New(name string, i Indexer, opts ...IndexOption) *Index {
 	idx := &Index{
 		name:    name,
 		indexer: multiIndexer,
-		tree:    iradix.New[[]*pbresource.Resource](),
 	}
 
 	for _, opt := range opts {
@@ -50,7 +48,21 @@ func (i *Index) Name() string {
 	return i.name
 }
 
-func (i *Index) Txn() Txn {
+// IndexedData combines the Index with an radix tree for index and resource storage.
+func (i *Index) IndexedData() *IndexedData {
+	return &IndexedData{
+		Index: i,
+		tree:  iradix.New[[]*pbresource.Resource](),
+	}
+}
+
+// IndexedData is a wrapper around an Index and an radix tree for index and resource storage.
+type IndexedData struct {
+	*Index
+	tree *iradix.Tree[[]*pbresource.Resource]
+}
+
+func (i *IndexedData) Txn() Txn {
 	return &txn{
 		inner: i.tree.Txn(),
 		index: i,

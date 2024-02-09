@@ -24,7 +24,7 @@ type txnSuite struct {
 	suite.Suite
 
 	indexer *indexmock.SingleIndexer
-	index   *Index
+	index   *IndexedData
 
 	r1   *pbresource.Resource
 	r2   *pbresource.Resource
@@ -34,7 +34,7 @@ type txnSuite struct {
 
 func (suite *txnSuite) SetupTest() {
 	suite.indexer = indexmock.NewSingleIndexer(suite.T())
-	suite.index = New("test", suite.indexer, IndexRequired)
+	suite.index = New("test", suite.indexer, IndexRequired).IndexedData()
 
 	suite.r1 = testResource("r1")
 	suite.r2 = testResource("r2")
