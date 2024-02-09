@@ -6,6 +6,7 @@ package sidecarproxy
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -377,18 +378,14 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 			Name:    webWrk.Data.Identity,
 		}
 
-		// Write a CID that grants web-id-abc access to api-{1,2}-identity
+		// Write a CID that grants web-id-abc access to api-3-identity
 		resourcetest.ResourceID(cidID).
 			WithTenancy(tenancy).
 			WithData(suite.T(), &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					{
-						DestinationRef:   resource.Reference(suite.api1Service.Id, ""),
+						DestinationRef:   resource.Reference(api3Service.Id, ""),
 						DestinationPorts: []string{"tcp"},
-					},
-					{
-						DestinationRef:   resource.Reference(suite.api1Service.Id, ""),
-						DestinationPorts: []string{"tcp1", "tcp2"},
 					},
 				},
 			}).
@@ -449,32 +446,32 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 					}
 				}),
 			},
-			{
-				// implicit
-				Service: resourcetest.MustDecode[*pbcatalog.Service](suite.T(), api3Service),
-				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api3ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
-					switch {
-					case resource.ReferenceOrIDMatch(api3Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
-						details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
-							Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api3Service.Id),
-							MeshPort:  details.MeshPort,
-							RoutePort: details.BackendRef.Port,
-						}
-						details.IdentityRefs = []*pbresource.Reference{{
-							Name:    "api-3-identity",
-							Tenancy: suite.api1Service.Id.Tenancy,
-						}}
-					}
-				}),
-				VirtualIPs: []string{"192.1.1.1"},
-			},
 		}
 
 		actualDestinations, err := fetchComputedImplicitDestinationsData(
-			suite.rt, webWrk, mgwMode, existingDestinations,
+			suite.rt, webWrk, mgwMode, slices.Clone(existingDestinations),
 		)
 		require.NoError(suite.T(), err)
 
+		existingDestinations = append(existingDestinations, &intermediate.Destination{
+			// implicit
+			Service: resourcetest.MustDecode[*pbcatalog.Service](suite.T(), api3Service),
+			ComputedPortRoutes: routestest.MutateTargets(suite.T(), api3ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+				switch {
+				case resource.ReferenceOrIDMatch(api3Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api3Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
+					details.IdentityRefs = []*pbresource.Reference{{
+						Name:    "api-3-identity",
+						Tenancy: suite.api1Service.Id.Tenancy,
+					}}
+				}
+			}),
+			VirtualIPs: []string{"192.1.1.1"},
+		})
 		prototest.AssertElementsMatch(suite.T(), existingDestinations, actualDestinations)
 	})
 }
