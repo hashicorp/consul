@@ -151,13 +151,6 @@ func (suite *controllerSuite) createTrafficPermissions(
 			sources = []*pbauth.Source{{
 				IdentityName: "wi5",
 			}}
-		case "d-wi1-s-ns-default-ex-wi2":
-			destinationName = "wi1"
-			sources = []*pbauth.Source{{
-				IdentityName: "*",
-				Namespace:    "default",
-				Exclude:      []*pbauth.ExcludeSource{{IdentityName: "wi2", Namespace: "default"}},
-			}}
 		case "d-wi3-s-wild-name":
 			destinationName = "wi3"
 			sources = []*pbauth.Source{{
