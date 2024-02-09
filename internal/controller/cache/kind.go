@@ -14,16 +14,16 @@ import (
 const IDIndex = "id"
 
 type kindIndices struct {
-	mu sync.RWMutex
+	indices map[string]*index.Index
 
 	it unversionedType
 
-	indices map[string]*index.Index
+	mu sync.RWMutex
 }
 
 func newKindIndices() *kindIndices {
 	kind := &kindIndices{
-		indices: make(map[string]*index.Index),
+		indices: make(map[string]*index.Index, 1),
 	}
 
 	// add the id index

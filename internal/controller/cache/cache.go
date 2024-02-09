@@ -76,6 +76,8 @@ type cache struct {
 	queries map[string]Query
 }
 
+var _ Cache = (*cache)(nil)
+
 func New() Cache {
 	return newCache()
 }
@@ -90,12 +92,13 @@ func newCache() *cache {
 func (c *cache) ensureTypeCached(it *pbresource.Type) *kindIndices {
 	ut := unversionedType{Group: it.Group, Kind: it.Kind}
 
-	_, ok := c.kinds[ut]
+	r, ok := c.kinds[ut]
 	if !ok {
-		c.kinds[ut] = newKindIndices()
+		r = newKindIndices()
+		c.kinds[ut] = r
 	}
 
-	return c.kinds[ut]
+	return r
 }
 
 func (c *cache) AddType(it *pbresource.Type) {
