@@ -21,13 +21,8 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/resource"
 )
-
-// TBD Test Cases
-//  1. Reload the configuration (e.g. SOA)
-//  2. Something to check the token makes it through to the data fetcher
-//  3. Something case-insensitive
-//  4. Test the edns settings.
 
 type HandleTestCase struct {
 	name                         string
@@ -828,14 +823,12 @@ func Test_HandleRequest(t *testing.T) {
 					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
 					Return([]*discovery.Result{
 						{
-							Node:    &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
-							Service: &discovery.Location{Name: "service-one", Address: "server-one"},
-							Type:    discovery.ResultTypeWorkload,
+							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
+							Type: discovery.ResultTypeWorkload,
 						},
 						{
-							Node:    &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
-							Service: &discovery.Location{Name: "service-one", Address: "server-two"},
-							Type:    discovery.ResultTypeWorkload,
+							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
+							Type: discovery.ResultTypeWorkload,
 						},
 					}, nil).
 					Run(func(args mock.Arguments) {
@@ -952,14 +945,12 @@ func Test_HandleRequest(t *testing.T) {
 					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
 					Return([]*discovery.Result{
 						{
-							Node:    &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
-							Service: &discovery.Location{Name: "service-one", Address: "server-one"},
-							Type:    discovery.ResultTypeWorkload,
+							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
+							Type: discovery.ResultTypeWorkload,
 						},
 						{
-							Node:    &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
-							Service: &discovery.Location{Name: "service-two", Address: "server-two"},
-							Type:    discovery.ResultTypeWorkload,
+							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
+							Type: discovery.ResultTypeWorkload,
 						},
 					}, nil).
 					Run(func(args mock.Arguments) {
@@ -1553,6 +1544,11 @@ func Test_HandleRequest(t *testing.T) {
 							Type:    discovery.ResultTypeVirtual,
 							Service: &discovery.Location{Name: "alias", Address: "web.service.consul"},
 							Node:    &discovery.Location{Name: "web", Address: "web.service.consul"},
+							Ports: []discovery.Port{
+								{
+									Number: 1234,
+								},
+							},
 						},
 					},
 						nil).On("FetchEndpoints", mock.Anything,
@@ -1565,6 +1561,11 @@ func Test_HandleRequest(t *testing.T) {
 							Type:    discovery.ResultTypeNode,
 							Service: &discovery.Location{Name: "web", Address: "webnode"},
 							Node:    &discovery.Location{Name: "webnode", Address: "127.0.0.2"},
+							Ports: []discovery.Port{
+								{
+									Number: 1234,
+								},
+							},
 						},
 					}, nil).On("ValidateRequest", mock.Anything,
 					mock.Anything).Return(nil).On("NormalizeRequest", mock.Anything)
@@ -1591,6 +1592,7 @@ func Test_HandleRequest(t *testing.T) {
 						},
 						Target:   "web.service.consul.",
 						Priority: 1,
+						Port:     1234,
 					},
 				},
 				Extra: []dns.RR{
@@ -1606,7 +1608,6 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 		},
-		// TODO (v2-dns): add a test to make sure only 3 records are returned
 		// V2 Workload Lookup
 		{
 			name: "workload A query w/ port, returns A record",
@@ -1624,12 +1625,15 @@ func Test_HandleRequest(t *testing.T) {
 			},
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
 				result := &discovery.Result{
-					Node:       &discovery.Location{Address: "1.2.3.4"},
-					Type:       discovery.ResultTypeWorkload,
-					Tenancy:    discovery.ResultTenancy{},
-					PortName:   "api",
-					PortNumber: 5678,
-					Service:    &discovery.Location{Name: "foo"},
+					Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+					Type:    discovery.ResultTypeWorkload,
+					Tenancy: discovery.ResultTenancy{},
+					Ports: []discovery.Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+					},
 				}
 
 				fetcher.(*discovery.MockCatalogDataFetcher).
@@ -1685,10 +1689,9 @@ func Test_HandleRequest(t *testing.T) {
 			},
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
 				result := &discovery.Result{
-					Node:    &discovery.Location{Address: "1.2.3.4"},
+					Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
 					Type:    discovery.ResultTypeWorkload,
 					Tenancy: discovery.ResultTenancy{},
-					Service: &discovery.Location{Name: "foo"},
 				}
 
 				fetcher.(*discovery.MockCatalogDataFetcher).
@@ -1744,14 +1747,13 @@ func Test_HandleRequest(t *testing.T) {
 			},
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
 				result := &discovery.Result{
-					Node: &discovery.Location{Address: "1.2.3.4"},
+					Node: &discovery.Location{Name: "foo", Address: "1.2.3.4"},
 					Type: discovery.ResultTypeWorkload,
 					Tenancy: discovery.ResultTenancy{
-						Namespace:  "bar",
-						Partition:  "baz",
-						Datacenter: "dc3",
+						Namespace: "bar",
+						Partition: "baz",
+						// We currently don't set the datacenter in any of the V2 results.
 					},
-					Service: &discovery.Location{Name: "foo"},
 				}
 
 				fetcher.(*discovery.MockCatalogDataFetcher).
@@ -1785,6 +1787,901 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "foo.workload.bar.ns.baz.ap.dc3.dc.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+				},
+			},
+		},
+		{
+			name: "workload w/hostname address, ANY query (no recursor)",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "api.port.foo.workload.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				result := &discovery.Result{
+					Node:    &discovery.Location{Name: "foo", Address: "foo.example.com"},
+					Type:    discovery.ResultTypeWorkload,
+					Tenancy: discovery.ResultTenancy{},
+					Ports: []discovery.Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchWorkload", mock.Anything, mock.Anything).
+					Return(result, nil). //TODO
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+
+						require.Equal(t, "foo", req.Name)
+						require.Equal(t, "api", req.PortName)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "api.port.foo.workload.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.CNAME{
+						Hdr: dns.RR_Header{
+							Name:   "api.port.foo.workload.consul.",
+							Rrtype: dns.TypeCNAME,
+							Class:  dns.ClassINET,
+						},
+						Target: "foo.example.com.",
+					},
+				},
+			},
+		},
+		{
+			name: "workload w/hostname address, ANY query (w/ recursor)",
+			// https://datatracker.ietf.org/doc/html/rfc1034#section-3.6.2 both the CNAME and the A record should be in the answer
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "api.port.foo.workload.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				result := &discovery.Result{
+					Node:    &discovery.Location{Name: "foo", Address: "foo.example.com"},
+					Type:    discovery.ResultTypeWorkload,
+					Tenancy: discovery.ResultTenancy{},
+					Ports: []discovery.Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchWorkload", mock.Anything, mock.Anything).
+					Return(result, nil). //TODO
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+
+						require.Equal(t, "foo", req.Name)
+						require.Equal(t, "api", req.PortName)
+					})
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+				DNSDomain:    "consul",
+				DNSNodeTTL:   123 * time.Second,
+				DNSSOA: config.RuntimeSOAConfig{
+					Refresh: 1,
+					Retry:   2,
+					Expire:  3,
+					Minttl:  4,
+				},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				resp := &dns.Msg{
+					MsgHdr: dns.MsgHdr{
+						Opcode:        dns.OpcodeQuery,
+						Response:      true,
+						Authoritative: true,
+						Rcode:         dns.RcodeSuccess,
+					},
+					Question: []dns.Question{
+						{
+							Name:   "foo.example.com.",
+							Qtype:  dns.TypeA,
+							Qclass: dns.ClassINET,
+						},
+					},
+					Answer: []dns.RR{
+						&dns.A{
+							Hdr: dns.RR_Header{
+								Name:   "foo.example.com.",
+								Rrtype: dns.TypeA,
+								Class:  dns.ClassINET,
+							},
+							A: net.ParseIP("1.2.3.4"),
+						},
+					},
+				}
+				recursor.(*mockDnsRecursor).On("handle",
+					mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      true,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "api.port.foo.workload.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.CNAME{
+						Hdr: dns.RR_Header{
+							Name:   "api.port.foo.workload.consul.",
+							Rrtype: dns.TypeCNAME,
+							Class:  dns.ClassINET,
+						},
+						Target: "foo.example.com.",
+					},
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "foo.example.com.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+				},
+			},
+		},
+		{
+			name: "workload w/hostname address, CNAME query (w/ recursor)",
+			// https://datatracker.ietf.org/doc/html/rfc1034#section-3.6.2 only the CNAME should be in the answer
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "api.port.foo.workload.consul.",
+						Qtype:  dns.TypeCNAME,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				result := &discovery.Result{
+					Node:    &discovery.Location{Name: "foo", Address: "foo.example.com"},
+					Type:    discovery.ResultTypeWorkload,
+					Tenancy: discovery.ResultTenancy{},
+					Ports: []discovery.Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchWorkload", mock.Anything, mock.Anything).
+					Return(result, nil). //TODO
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+
+						require.Equal(t, "foo", req.Name)
+						require.Equal(t, "api", req.PortName)
+					})
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+				DNSDomain:    "consul",
+				DNSNodeTTL:   123 * time.Second,
+				DNSSOA: config.RuntimeSOAConfig{
+					Refresh: 1,
+					Retry:   2,
+					Expire:  3,
+					Minttl:  4,
+				},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				resp := &dns.Msg{
+					MsgHdr: dns.MsgHdr{
+						Opcode:        dns.OpcodeQuery,
+						Response:      true,
+						Authoritative: true,
+						Rcode:         dns.RcodeSuccess,
+					},
+					Question: []dns.Question{
+						{
+							Name:   "foo.example.com.",
+							Qtype:  dns.TypeA,
+							Qclass: dns.ClassINET,
+						},
+					},
+					Answer: []dns.RR{
+						&dns.A{
+							Hdr: dns.RR_Header{
+								Name:   "foo.example.com.",
+								Rrtype: dns.TypeCNAME,
+								Class:  dns.ClassINET,
+							},
+							A: net.ParseIP("1.2.3.4"),
+						},
+					},
+				}
+				recursor.(*mockDnsRecursor).On("handle",
+					mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      true,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "api.port.foo.workload.consul.",
+						Qtype:  dns.TypeCNAME,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.CNAME{
+						Hdr: dns.RR_Header{
+							Name:   "api.port.foo.workload.consul.",
+							Rrtype: dns.TypeCNAME,
+							Class:  dns.ClassINET,
+						},
+						Target: "foo.example.com.",
+					},
+					// TODO (v2-dns): this next record is wrong per the RFC
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "foo.example.com.",
+							Rrtype: dns.TypeCNAME,
+							Class:  dns.ClassINET,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+				},
+			},
+		},
+		// V2 Services
+		{
+			name: "A/AAAA Query a service and return multiple A records",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node: &discovery.Location{Name: "foo-1", Address: "10.0.0.1"},
+						Type: discovery.ResultTypeWorkload,
+						Tenancy: discovery.ResultTenancy{
+							Namespace: resource.DefaultNamespaceName,
+							Partition: resource.DefaultPartitionName,
+						},
+						Ports: []discovery.Port{
+							{
+								Name:   "api",
+								Number: 5678,
+							},
+							// Intentionally not in the mesh
+						},
+						DNS: discovery.DNSConfig{
+							Weight: 2,
+						},
+					},
+					{
+						Node: &discovery.Location{Name: "foo-2", Address: "10.0.0.2"},
+						Type: discovery.ResultTypeWorkload,
+						Tenancy: discovery.ResultTenancy{
+							Namespace: resource.DefaultNamespaceName,
+							Partition: resource.DefaultPartitionName,
+						},
+						Ports: []discovery.Port{
+							{
+								Name:   "api",
+								Number: 5678,
+							},
+							{
+								Name:   "mesh",
+								Number: 21000,
+							},
+						},
+						DNS: discovery.DNSConfig{
+							Weight: 3,
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, "foo", req.Name)
+						require.Empty(t, req.PortName)
+						require.Equal(t, discovery.LookupTypeService, reqType)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						A: net.ParseIP("10.0.0.1"),
+					},
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						A: net.ParseIP("10.0.0.2"),
+					},
+				},
+			},
+		},
+		{
+			name: "SRV Query with a multi-port service return multiple SRV records",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeSRV,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node: &discovery.Location{Name: "foo-1", Address: "10.0.0.1"},
+						Type: discovery.ResultTypeWorkload,
+						Tenancy: discovery.ResultTenancy{
+							Namespace: resource.DefaultNamespaceName,
+							Partition: resource.DefaultPartitionName,
+						},
+						Ports: []discovery.Port{
+							{
+								Name:   "api",
+								Number: 5678,
+							},
+							// Intentionally not in the mesh
+						},
+						DNS: discovery.DNSConfig{
+							Weight: 2,
+						},
+					},
+					{
+						Node: &discovery.Location{Name: "foo-2", Address: "10.0.0.2"},
+						Type: discovery.ResultTypeWorkload,
+						Tenancy: discovery.ResultTenancy{
+							Namespace: resource.DefaultNamespaceName,
+							Partition: resource.DefaultPartitionName,
+						},
+						Ports: []discovery.Port{
+							{
+								Name:   "api",
+								Number: 5678,
+							},
+							{
+								Name:   "mesh",
+								Number: 21000,
+							},
+						},
+						DNS: discovery.DNSConfig{
+							Weight: 3,
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, "foo", req.Name)
+						require.Empty(t, req.PortName)
+						require.Equal(t, discovery.LookupTypeService, reqType)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeSRV,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						Weight:   2,
+						Priority: 1,
+						Port:     5678,
+						Target:   "api.port.foo-1.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+					},
+					&dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						Weight:   3,
+						Priority: 1,
+						Port:     5678,
+						Target:   "api.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+					},
+					&dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						Weight:   3,
+						Priority: 1,
+						Port:     21000,
+						Target:   "mesh.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+					},
+				},
+				Extra: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "api.port.foo-1.workload.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						A: net.ParseIP("10.0.0.1"),
+					},
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "api.port.foo-2.workload.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						A: net.ParseIP("10.0.0.2"),
+					},
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "mesh.port.foo-2.workload.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						A: net.ParseIP("10.0.0.2"),
+					},
+				},
+			},
+		},
+		{
+			name: "SRV Query with a multi-port service where the client requests a specific port, returns SRV and A records",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "mesh.port.foo.service.consul.",
+						Qtype:  dns.TypeSRV,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node: &discovery.Location{Name: "foo-2", Address: "10.0.0.2"},
+						Type: discovery.ResultTypeWorkload,
+						Tenancy: discovery.ResultTenancy{
+							Namespace: resource.DefaultNamespaceName,
+							Partition: resource.DefaultPartitionName,
+						},
+						Ports: []discovery.Port{
+							{
+								Name:   "mesh",
+								Number: 21000,
+							},
+						},
+						DNS: discovery.DNSConfig{
+							Weight: 3,
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, "foo", req.Name)
+						require.Equal(t, "mesh", req.PortName)
+						require.Equal(t, discovery.LookupTypeService, reqType)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "mesh.port.foo.service.consul.",
+						Qtype:  dns.TypeSRV,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   "mesh.port.foo.service.consul.",
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						Weight:   3,
+						Priority: 1,
+						Port:     21000,
+						Target:   "mesh.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+					},
+				},
+				Extra: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "mesh.port.foo-2.workload.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						A: net.ParseIP("10.0.0.2"),
+					},
+				},
+			},
+		},
+		{
+			name: "SRV Query with a multi-port service that has workloads w/ hostnames (no recursors)",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeSRV,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node: &discovery.Location{Name: "foo-1", Address: "foo-1.example.com"},
+						Type: discovery.ResultTypeWorkload,
+						Tenancy: discovery.ResultTenancy{
+							Namespace: resource.DefaultNamespaceName,
+							Partition: resource.DefaultPartitionName,
+						},
+						Ports: []discovery.Port{
+							{
+								Name:   "api",
+								Number: 5678,
+							},
+							{
+								Name:   "web",
+								Number: 8080,
+							},
+						},
+						DNS: discovery.DNSConfig{
+							Weight: 2,
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, "foo", req.Name)
+						require.Empty(t, req.PortName)
+						require.Equal(t, discovery.LookupTypeService, reqType)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeSRV,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						Weight:   2,
+						Priority: 1,
+						Port:     5678,
+						Target:   "foo-1.example.com.",
+					},
+					&dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						Weight:   2,
+						Priority: 1,
+						Port:     8080,
+						Target:   "foo-1.example.com.",
+					},
+				},
+			},
+		},
+		{
+			name: "SRV Query with a multi-port service that has workloads w/ hostnames (no recursor)",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeSRV,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node: &discovery.Location{Name: "foo-1", Address: "foo-1.example.com"},
+						Type: discovery.ResultTypeWorkload,
+						Tenancy: discovery.ResultTenancy{
+							Namespace: resource.DefaultNamespaceName,
+							Partition: resource.DefaultPartitionName,
+						},
+						Ports: []discovery.Port{
+							{
+								Name:   "api",
+								Number: 5678,
+							},
+							{
+								Name:   "web",
+								Number: 8080,
+							},
+						},
+						DNS: discovery.DNSConfig{
+							Weight: 2,
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, "foo", req.Name)
+						require.Empty(t, req.PortName)
+						require.Equal(t, discovery.LookupTypeService, reqType)
+					})
+			},
+			agentConfig: &config.RuntimeConfig{
+				DNSRecursors: []string{"8.8.8.8"},
+				DNSDomain:    "consul",
+				DNSNodeTTL:   123 * time.Second,
+				DNSSOA: config.RuntimeSOAConfig{
+					Refresh: 1,
+					Retry:   2,
+					Expire:  3,
+					Minttl:  4,
+				},
+				DNSUDPAnswerLimit: maxUDPAnswerLimit,
+			},
+			configureRecursor: func(recursor dnsRecursor) {
+				resp := &dns.Msg{
+					MsgHdr: dns.MsgHdr{
+						Opcode:        dns.OpcodeQuery,
+						Response:      true,
+						Authoritative: true,
+						Rcode:         dns.RcodeSuccess,
+					},
+					Question: []dns.Question{
+						{
+							Name:   "foo-1.example.com.",
+							Qtype:  dns.TypeA,
+							Qclass: dns.ClassINET,
+						},
+					},
+					Answer: []dns.RR{
+						&dns.A{
+							Hdr: dns.RR_Header{
+								Name:   "foo-1.example.com.",
+								Rrtype: dns.TypeA,
+								Class:  dns.ClassINET,
+							},
+							A: net.ParseIP("1.2.3.4"),
+						},
+					},
+				}
+				recursor.(*mockDnsRecursor).On("handle",
+					mock.Anything, mock.Anything, mock.Anything).Return(resp, nil)
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:             dns.OpcodeQuery,
+					Response:           true,
+					Authoritative:      true,
+					RecursionAvailable: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeSRV,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						Weight:   2,
+						Priority: 1,
+						Port:     5678,
+						Target:   "foo-1.example.com.",
+					},
+					&dns.SRV{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeSRV,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						Weight:   2,
+						Priority: 1,
+						Port:     8080,
+						Target:   "foo-1.example.com.",
+					},
+				},
+				Extra: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "foo-1.example.com.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+					// TODO (v2-dns): This needs to be de-dupped
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "foo-1.example.com.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    uint32(123),
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},

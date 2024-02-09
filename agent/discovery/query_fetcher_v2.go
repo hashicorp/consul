@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -73,10 +74,12 @@ func (f *V2DataFetcher) FetchEndpoints(reqContext Context, req *QueryPayload, lo
 	configCtx := f.dynamicConfig.Load().(*v2DataFetcherDynamicConfig)
 
 	serviceEndpoints := pbcatalog.ServiceEndpoints{}
-	resourceObj, err := f.fetchResource(reqContext, *req, pbcatalog.ServiceEndpointsType, &serviceEndpoints)
+	serviceEndpointsResource, err := f.fetchResource(reqContext, *req, pbcatalog.ServiceEndpointsType, &serviceEndpoints)
 	if err != nil {
 		return nil, err
 	}
+
+	f.logger.Trace("shuffling endpoints", "name", req.Name, "endpoints", len(serviceEndpoints.Endpoints))
 
 	// Shuffle the endpoints slice
 	shuffleFunc := func(i, j int) {
@@ -91,10 +94,15 @@ func (f *V2DataFetcher) FetchEndpoints(reqContext Context, req *QueryPayload, lo
 	}
 
 	results := make([]*Result, 0, limit)
-	for idx := 0; idx < limit; idx++ {
-		endpoint := serviceEndpoints.Endpoints[idx]
+	for _, endpoint := range serviceEndpoints.Endpoints[:limit] {
 
-		// TODO (v2-dns): filter based on the port name requested
+		// First we check the endpoint first to make sure that the requested port is matched from the service.
+		// We error here because we expect all endpoints to have the same ports as the service.
+		ports := getResultPorts(req, endpoint.Ports) //assuming the logic changed in getResultPorts
+		if len(ports) == 0 {
+			f.logger.Debug("could not find matching port in endpoint", "name", req.Name, "port", req.PortName)
+			return nil, ErrNotFound
+		}
 
 		address, err := f.addressFromWorkloadAddresses(endpoint.Addresses, req.Name)
 		if err != nil {
@@ -103,6 +111,7 @@ func (f *V2DataFetcher) FetchEndpoints(reqContext Context, req *QueryPayload, lo
 
 		weight, ok := getEndpointWeight(endpoint, configCtx)
 		if !ok {
+			f.logger.Debug("endpoint filtered out because of health status", "name", req.Name, "endpoint", endpoint.GetTargetRef().GetName())
 			continue
 		}
 
@@ -111,14 +120,15 @@ func (f *V2DataFetcher) FetchEndpoints(reqContext Context, req *QueryPayload, lo
 				Address: address,
 				Name:    endpoint.GetTargetRef().GetName(),
 			},
-			Type: ResultTypeWorkload, // TODO (v2-dns): I'm not really sure if it's better to have SERVICE OR WORKLOAD here
+			Type: ResultTypeWorkload,
 			Tenancy: ResultTenancy{
-				Namespace: resourceObj.GetId().GetTenancy().GetNamespace(),
-				Partition: resourceObj.GetId().GetTenancy().GetPartition(),
+				Namespace: serviceEndpointsResource.GetId().GetTenancy().GetNamespace(),
+				Partition: serviceEndpointsResource.GetId().GetTenancy().GetPartition(),
 			},
 			DNS: DNSConfig{
 				Weight: weight,
 			},
+			Ports: ports,
 		}
 		results = append(results, result)
 	}
@@ -145,6 +155,14 @@ func (f *V2DataFetcher) FetchWorkload(reqContext Context, req *QueryPayload) (*R
 		return nil, err
 	}
 
+	// First we check the endpoint first to make sure that the requested port is matched from the service.
+	// We error here because we expect all endpoints to have the same ports as the service.
+	ports := getResultPorts(req, workload.Ports) //assuming the logic changed in getResultPorts
+	if ports == nil || len(ports) == 0 {
+		f.logger.Debug("could not find matching port in endpoint", "name", req.Name, "port", req.PortName)
+		return nil, ErrNotFound
+	}
+
 	address, err := f.addressFromWorkloadAddresses(workload.Addresses, req.Name)
 	if err != nil {
 		return nil, err
@@ -161,24 +179,10 @@ func (f *V2DataFetcher) FetchWorkload(reqContext Context, req *QueryPayload) (*R
 			Namespace: tenancy.GetNamespace(),
 			Partition: tenancy.GetPartition(),
 		},
+		Ports: ports,
 	}
 
-	if req.PortName == "" {
-		return result, nil
-	}
-
-	// If a port is specified, make sure the workload implements that port name.
-	for name, port := range workload.Ports {
-		if name == req.PortName {
-			result.PortName = req.PortName
-			result.PortNumber = port.Port
-			return result, nil
-		}
-	}
-
-	f.logger.Debug("could not find matching port for workload", "name", req.Name, "port", req.PortName)
-	// Return an ErrNotFound, which is equivalent to NXDOMAIN
-	return nil, ErrNotFound
+	return result, nil
 }
 
 // FetchPreparedQuery is used to fetch a prepared query from the V2 catalog.
@@ -283,6 +287,46 @@ func getEndpointWeight(endpoint *pbcatalog.Endpoint, configCtx *v2DataFetcherDyn
 		weight = 1
 	}
 	return weight, true
+}
+
+// getResultPorts conditionally returns ports from a map based on a query. The results are sorted by name.
+func getResultPorts(req *QueryPayload, workloadPorts map[string]*pbcatalog.WorkloadPort) []Port {
+	if len(workloadPorts) == 0 {
+		return nil
+	}
+
+	var ports []Port
+	if req.PortName != "" {
+		// Make sure the workload implements that port name.
+		if _, ok := workloadPorts[req.PortName]; !ok {
+			return nil
+		}
+		// In the case that the query asked for a specific port, we only return that port.
+		ports = []Port{
+			{
+				Name:   req.PortName,
+				Number: workloadPorts[req.PortName].Port,
+			},
+		}
+	} else {
+		// If the client didn't specify a particular port, return all the workload ports.
+		for name, port := range workloadPorts {
+			ports = append(ports, Port{
+				Name:   name,
+				Number: port.Port,
+			})
+		}
+		// Stable Sort
+		slices.SortStableFunc(ports, func(i, j Port) int {
+			if i.Name < j.Name {
+				return -1
+			} else if i.Name > j.Name {
+				return 1
+			}
+			return 0
+		})
+	}
+	return ports
 }
 
 // queryTenancyToResourceTenancy converts a QueryTenancy to a pbresource.Tenancy.

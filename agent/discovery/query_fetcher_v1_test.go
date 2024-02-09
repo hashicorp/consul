@@ -151,6 +151,11 @@ func Test_FetchEndpoints(t *testing.T) {
 			DNS: DNSConfig{
 				Weight: 1,
 			},
+			Ports: []Port{
+				{
+					Number: 0,
+				},
+			},
 		},
 	}
 
