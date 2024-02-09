@@ -898,11 +898,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		&lib.StopChannelContext{StopCh: shutdownCh},
 		logger.Named("hcp-link-watcher"),
 		pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
-		s.hcpManager,
-		hcpclient.NewClient,
-		bootstrap.LoadManagementToken,
-		flat.HCP.Config,
-		flat.HCP.DataDir,
+		hcp.HCPManagerLifecycleFn(
+			s.hcpManager,
+			hcpclient.NewClient,
+			bootstrap.LoadManagementToken,
+			flat.HCP.Config,
+			flat.HCP.DataDir,
+		),
 	)
 
 	s.controllerManager = controller.NewManager(

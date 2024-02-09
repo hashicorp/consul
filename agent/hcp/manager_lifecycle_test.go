@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -27,9 +26,11 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestMonitorHCPLink(t *testing.T) {
+func TestHCPManagerLifecycleFn(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
+
+	logger := hclog.New(&hclog.LoggerOptions{Output: io.Discard})
 
 	mockHCPClient := hcpclient.NewMockClient(t)
 	mockHcpClientFn := func(_ config.CloudConfig) (hcpclient.Client, error) {
@@ -178,8 +179,6 @@ func TestMonitorHCPLink(t *testing.T) {
 				test.applyMocksAndAssertions(t2, mgr, &link)
 			}
 
-			linkWatchCh := make(chan *pbresource.WatchEvent)
-
 			testHcpClientFn := mockHcpClientFn
 			if test.hcpClientFn != nil {
 				testHcpClientFn = test.hcpClientFn
@@ -190,16 +189,10 @@ func TestMonitorHCPLink(t *testing.T) {
 				testLoadMgmtToken = test.loadMgmtTokenFn
 			}
 
-			// Start MonitorHCPLink
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				MonitorHCPLink(
-					ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, testHcpClientFn,
-					testLoadMgmtToken, existingCfg, dataDir,
-				)
-			}()
+			updateManagerLifecycle := HCPManagerLifecycleFn(
+				mgr, testHcpClientFn,
+				testLoadMgmtToken, existingCfg, dataDir,
+			)
 
 			upsertEvent := &pbresource.WatchEvent_Upsert{
 				Resource: &pbresource.Resource{
@@ -219,22 +212,19 @@ func TestMonitorHCPLink(t *testing.T) {
 				test.mutateUpsertEvent(upsertEvent)
 			}
 
-			linkWatchCh <- &pbresource.WatchEvent{
+			// Handle upsert event
+			updateManagerLifecycle(ctx, logger, &pbresource.WatchEvent{
 				Event: &pbresource.WatchEvent_Upsert_{
 					Upsert: upsertEvent,
 				},
-			}
+			})
 
-			// Delete link, expect HCP manager to be stopped
-			linkWatchCh <- &pbresource.WatchEvent{
+			// Handle delete event. This should stop HCP manager
+			updateManagerLifecycle(ctx, logger, &pbresource.WatchEvent{
 				Event: &pbresource.WatchEvent_Delete_{
 					Delete: &pbresource.WatchEvent_Delete{},
 				},
-			}
-
-			// Wait for MonitorHCPLink to return before assertions run
-			close(linkWatchCh)
-			wg.Wait()
+			})
 
 			// Ensure hcp-config directory is removed
 			file := filepath.Join(dataDir, constants.SubDir)
