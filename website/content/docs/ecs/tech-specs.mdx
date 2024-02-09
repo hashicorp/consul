@@ -25,6 +25,9 @@ Consul on ECS supports the following environments, runtimes, and capabilities:
 - **Dataplane containers:** To manage proxies using Consul dataplane, you must use the Terraform `mesh-task` module to install Consul service mesh.
 - **Transparent proxy:** Consul on ECS 0.8.x supports transparent proxy for ECS on EC2 tasks. Transparent proxy in ECS requires the host to have `NET_ADMIN` capabilities, which ECS Fargate does not currently support. You can enable transparent proxy with the `enable_transparent_proxy` parameter in the `mesh-task` Terraform module or through `ecs_config_json`. The `enable_transparent_proxy` parameter has precedence over `ecs_config_json`.
 
+  Refer to the [`terraform-aws-consul-ecs`](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main/examples/dev-server-ec2-transparent-proxy) for an example.
+- **API Gateway:** Consul on ECS 0.8.x supports API gateway. Refer to the [`terraform-aws-consul-ecs`](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main/examples/api-gateway) for an example.
+
   Refer to the [Consul ECS GitHub repository](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main/examples/dev-server-ec2-transparent-proxy) for examples of how to use transparent proxy with Consul on ECS.
 
 ## Resource usage
