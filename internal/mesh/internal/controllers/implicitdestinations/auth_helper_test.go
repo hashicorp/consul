@@ -15,22 +15,19 @@ import (
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // TODO: do this properly and export it from internal/auth/exports.go
 // This is a crude approximation suitable for this test.
 func ReconcileComputedTrafficPermissions(
 	t *testing.T,
-	client pbresource.ResourceServiceClient,
+	client *rtest.Client,
 	id *pbresource.ID,
 	tpList ...*pbauth.TrafficPermissions,
 ) *types.DecodedComputedTrafficPermissions {
 	// TODO: allow this to take a nil client and still execute all of the proper validations etc.
 
 	require.True(t, resource.EqualType(pbauth.ComputedTrafficPermissionsType, id.GetType()))
-
-	ctx := testutil.TestContext(t)
 
 	merged := &pbauth.ComputedTrafficPermissions{}
 	added := false
@@ -50,8 +47,7 @@ func ReconcileComputedTrafficPermissions(
 			WithTenancy(id.Tenancy).
 			WithData(t, tp).
 			Write(t, client)
-		_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
-		require.NoError(t, err)
+		client.MustDelete(t, res.Id)
 
 		dec := rtest.MustDecode[*pbauth.TrafficPermissions](t, res)
 
