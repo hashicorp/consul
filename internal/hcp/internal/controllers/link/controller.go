@@ -5,6 +5,7 @@ package link
 
 import (
 	"context"
+	"crypto/tls"
 	"strings"
 
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
@@ -44,7 +45,7 @@ func LinkController(
 	hcpClientFn HCPClientFn,
 	cfg config.CloudConfig,
 	dataDir string,
-	hcpManager *hcp.Manager,
+	hcpManager hcp.Manager,
 ) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
 		// Placement is configured to each server so that the HCP manager is started
@@ -70,7 +71,7 @@ type linkReconciler struct {
 	hcpAllowV2ResourceApis bool
 	hcpClientFn            HCPClientFn
 	dataDir                string
-	hcpManager             *hcp.Manager
+	hcpManager             hcp.Manager
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
@@ -101,7 +102,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	switch {
 	case status.Code(err) == codes.NotFound:
 		rt.Logger.Trace("link has been deleted")
-		return nil
+		return cleanup(rt, r.hcpManager, r.dataDir)
 	case err != nil:
 		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
 		return err
@@ -120,8 +121,15 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	}
 
 	if resource.IsMarkedForDeletion(res) {
-		if err = cleanup(ctx, rt, res, r.dataDir); err != nil {
+		if err = cleanup(rt, r.hcpManager, r.dataDir); err != nil {
 			rt.Logger.Error("error cleaning up link resource", "error", err)
+			return err
+		}
+
+		err := ensureDeleted(ctx, rt, res)
+		if err != nil {
+			rt.Logger.Error("error deleting link resource", "error", err)
+
 			return err
 		}
 		return nil
@@ -142,11 +150,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	// 1. The HCP configuration (i.e., how to connect to HCP) is preserved
 	// 2. The Consul agent's node ID and node name are preserved
 	existingCfg := r.hcpManager.GetCloudConfig()
-	newCfg := config.CloudConfig{
-		ResourceID:   link.ResourceId,
-		ClientID:     link.ClientId,
-		ClientSecret: link.ClientSecret,
-	}
+	newCfg := CloudConfigFromLink(&link)
 	cfg := config.Merge(existingCfg, newCfg)
 	hcpClient, err := r.hcpClientFn(cfg)
 	if err != nil {
@@ -266,4 +270,23 @@ func (i *linkInitializer) Initialize(ctx context.Context, rt controller.Runtime)
 	}
 
 	return nil
+}
+
+func CloudConfigFromLink(link *pbhcp.Link) config.CloudConfig {
+	var cfg config.CloudConfig
+	if link == nil {
+		return cfg
+	}
+	cfg = config.CloudConfig{
+		ResourceID:   link.GetResourceId(),
+		ClientID:     link.GetClientId(),
+		ClientSecret: link.GetClientSecret(),
+	}
+	if link.GetHcpConfig() != nil {
+		cfg.AuthURL = link.GetHcpConfig().GetAuthUrl()
+		cfg.ScadaAddress = link.GetHcpConfig().GetScadaAddress()
+		cfg.Hostname = link.GetHcpConfig().GetApiAddress()
+		cfg.TLSConfig = &tls.Config{InsecureSkipVerify: link.GetHcpConfig().GetTlsInsecureSkipVerify()}
+	}
+	return cfg
 }

@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
@@ -18,6 +19,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -188,11 +190,34 @@ func (f *Fetcher) FetchComputedExplicitDestinationsData(
 			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
 			// Fetch ServiceEndpoints.
-			serviceEndpointsID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
+			serviceEndpointID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
+			se, err := f.FetchServiceEndpoints(ctx, serviceEndpointID)
+			if err != nil {
+				return nil, err
+			}
+
+			if se != nil {
+				routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+					Id:        se.Id,
+					MeshPort:  routeTarget.MeshPort,
+					RoutePort: routeTarget.BackendRef.Port,
+				}
+				routeTarget.ServiceEndpoints = se.Data
+				// Gather all identities.
+				var identities []*pbresource.Reference
+				for _, identity := range se.GetData().GetIdentities() {
+					identities = append(identities, &pbresource.Reference{
+						Name:    identity,
+						Tenancy: se.Resource.Id.Tenancy,
+					})
+				}
+				routeTarget.IdentityRefs = identities
+			}
 
 			// If the target service is in a different partition and the mesh gateway mode is
 			// "local" or "remote", use the ServiceEndpoints for the corresponding MeshGateway
-			// instead of the ServiceEndpoints for the target service.
+			// instead of the ServiceEndpoints for the target service. The IdentityRefs on the
+			// target will remain the same for TCP targets.
 			//
 			// TODO(nathancoleman) Consider cross-datacenter case as well
 			if routeTarget.BackendRef.Ref.Tenancy.Partition != proxyID.Tenancy.Partition {
@@ -204,39 +229,41 @@ func (f *Fetcher) FetchComputedExplicitDestinationsData(
 				switch mode {
 				case pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_LOCAL:
 					// Use ServiceEndpoints for the MeshGateway in the source service's partition
-					serviceEndpointsID = &pbresource.ID{
-						Type:    pbcatalog.ServiceEndpointsType,
-						Name:    "mesh-gateway",
-						Tenancy: proxyID.Tenancy,
+					routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id: &pbresource.ID{
+							Type:    pbcatalog.ServiceEndpointsType,
+							Name:    meshgateways.GatewayName,
+							Tenancy: proxyID.Tenancy,
+						},
+						MeshPort:  meshgateways.LANPortName,
+						RoutePort: meshgateways.LANPortName,
+					}
+
+					se, err := f.FetchServiceEndpoints(ctx, routeTarget.ServiceEndpointsRef.Id)
+					if err != nil {
+						return nil, err
+					} else if se != nil {
+						routeTarget.ServiceEndpoints = se.GetData()
 					}
 				case pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_REMOTE:
 					// Use ServiceEndpoints for the MeshGateway in the target service's partition
-					serviceEndpointsID = &pbresource.ID{
-						Type:    pbcatalog.ServiceEndpointsType,
-						Name:    "mesh-gateway",
-						Tenancy: targetServiceID.Tenancy,
+					routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id: &pbresource.ID{
+							Type:    pbcatalog.ServiceEndpointsType,
+							Name:    meshgateways.GatewayName,
+							Tenancy: targetServiceID.Tenancy,
+						},
+						MeshPort:  meshgateways.WANPortName,
+						RoutePort: meshgateways.WANPortName,
+					}
+
+					se, err := f.FetchServiceEndpoints(ctx, routeTarget.ServiceEndpointsRef.Id)
+					if err != nil {
+						return nil, err
+					} else if se != nil {
+						routeTarget.ServiceEndpoints = se.GetData()
 					}
 				}
-			}
-
-			se, err := f.FetchServiceEndpoints(ctx, serviceEndpointsID)
-			if err != nil {
-				return nil, err
-			}
-
-			if se != nil {
-				routeTarget.ServiceEndpointsId = se.Resource.Id
-				routeTarget.ServiceEndpoints = se.Data
-
-				// Gather all identities.
-				var identities []*pbresource.Reference
-				for _, identity := range se.GetData().GetIdentities() {
-					identities = append(identities, &pbresource.Reference{
-						Name:    identity,
-						Tenancy: se.Resource.Id.Tenancy,
-					})
-				}
-				routeTarget.IdentityRefs = identities
 			}
 		}
 
@@ -376,7 +403,11 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 				// Fetch ServiceEndpoints.
 				se, ok := endpointsMap[resource.NewReferenceKey(seID)]
 				if ok {
-					routeTarget.ServiceEndpointsId = se.Resource.Id
+					routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        se.Resource.Id,
+						MeshPort:  routeTarget.MeshPort,
+						RoutePort: routeTarget.BackendRef.Port,
+					}
 					routeTarget.ServiceEndpoints = se.Data
 
 					// Gather all identities.

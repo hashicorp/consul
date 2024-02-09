@@ -473,26 +473,27 @@ message WatchListRequest {
 
 // WatchEvent is emitted on the WatchList stream when a resource changes.
 message WatchEvent {
-  // Operation describes the type of event.
-  enum Operation {
-    // OPERATION_UNSPECIFIED is the default/zero value. You should not see it
-    // in practice.
-    OPERATION_UNSPECIFIED = 0;
-
-    // OPERATION_UPSERT indicates that the resource was written (i.e. created or
-    // updated). All events from the initial state-of-the-world will be upsert
-    // events.
-    OPERATION_UPSERT = 1;
-
-    // OPERATION_DELETED indicates that the resource was deleted.
-    OPERATION_DELETE = 2;
+  // Upsert indicates that the resource was written (i.e. created or
+  // updated). All events from the initial state-of-the-world will be upsert
+  // events.
+  message Upsert {
+    Resource resource = 1;
   }
 
-  // Operation describes the type of event.
-  Operation operation = 1;
+  // Delete indicates that the resource was deleted.
+  message Delete {
+    Resource resource = 1;
+  }
 
-  // Resource the event relates to.
-  Resource resource = 2;
+  // EndOfSnapshot is sent to indicate that the initial snapshot events have
+  // been sent and future events will modify that set.
+  message EndOfSnapshot {}
+
+  oneof event {
+    Upsert upsert = 1;
+    Delete delete = 2;
+    EndOfSnapshot end_of_snapshot = 3;
+  }
 }
 
 // MutateAndValidateRequest contains the parameters to the MutateAndValidate endpoint.

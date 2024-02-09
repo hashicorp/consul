@@ -226,137 +226,177 @@ func makeL7RBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
 	}
 }
 
+func translateRule(dr *pbproxystate.DestinationRule) *envoy_rbac_v3.Permission {
+	var perms []*envoy_rbac_v3.Permission
+	// paths
+	switch {
+	case dr.PathExact != "":
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+								Exact: dr.PathExact,
+							},
+						},
+					},
+				},
+			},
+		})
+	case dr.PathPrefix != "":
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
+								Prefix: dr.PathPrefix,
+							},
+						},
+					},
+				},
+			},
+		})
+	case dr.PathRegex != "":
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+								SafeRegex: response.MakeEnvoyRegexMatch(dr.PathRegex),
+							},
+						},
+					},
+				},
+			},
+		})
+	}
+
+	// methods
+	if len(dr.Methods) > 0 {
+		methodHeaderRegex := strings.Join(dr.Methods, "|")
+		eh := &envoy_route_v3.HeaderMatcher{
+			Name: ":method",
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+					},
+				},
+			},
+		}
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_Header{
+				Header: eh,
+			}})
+	}
+
+	// headers
+	for _, hdr := range dr.DestinationRuleHeader {
+		eh := &envoy_route_v3.HeaderMatcher{
+			Name: hdr.Name,
+		}
+
+		switch {
+		case hdr.Exact != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+						Exact: hdr.Exact,
+					},
+					IgnoreCase: false,
+				},
+			}
+		case hdr.Regex != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(hdr.Regex),
+					},
+					IgnoreCase: false,
+				},
+			}
+
+		case hdr.Prefix != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
+						Prefix: hdr.Prefix,
+					},
+					IgnoreCase: false,
+				},
+			}
+
+		case hdr.Suffix != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Suffix{
+						Suffix: hdr.Suffix,
+					},
+					IgnoreCase: false,
+				},
+			}
+
+		case hdr.Present:
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PresentMatch{
+				PresentMatch: true,
+			}
+		default:
+			continue // skip this impossible situation
+		}
+
+		if hdr.Invert {
+			eh.InvertMatch = true
+		}
+
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_Header{
+				Header: eh,
+			},
+		})
+	}
+	return combineAndPermissions(perms)
+}
+
 func permissionsFromDestinationRules(drs []*pbproxystate.DestinationRule) []*envoy_rbac_v3.Permission {
 	var perms []*envoy_rbac_v3.Permission
-
 	for _, dr := range drs {
-		// paths
-		switch {
-		case dr.PathExact != "":
-			perms = append(perms, &envoy_rbac_v3.Permission{
-				Rule: &envoy_rbac_v3.Permission_UrlPath{
-					UrlPath: &envoy_matcher_v3.PathMatcher{
-						Rule: &envoy_matcher_v3.PathMatcher_Path{
-							Path: &envoy_matcher_v3.StringMatcher{
-								MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-									Exact: dr.PathExact,
-								},
-							},
-						},
-					},
-				},
+		subPerms := make([]*envoy_rbac_v3.Permission, len(dr.Exclude))
+		for i, er := range dr.Exclude {
+			translated := translateRule(&pbproxystate.DestinationRule{
+				PathExact:             er.PathExact,
+				PathPrefix:            er.PathPrefix,
+				PathRegex:             er.PathRegex,
+				Methods:               er.Methods,
+				DestinationRuleHeader: er.Headers,
 			})
-		case dr.PathPrefix != "":
-			perms = append(perms, &envoy_rbac_v3.Permission{
-				Rule: &envoy_rbac_v3.Permission_UrlPath{
-					UrlPath: &envoy_matcher_v3.PathMatcher{
-						Rule: &envoy_matcher_v3.PathMatcher_Path{
-							Path: &envoy_matcher_v3.StringMatcher{
-								MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
-									Prefix: dr.PathPrefix,
-								},
-							},
-						},
-					},
-				},
-			})
-		case dr.PathRegex != "":
-			perms = append(perms, &envoy_rbac_v3.Permission{
-				Rule: &envoy_rbac_v3.Permission_UrlPath{
-					UrlPath: &envoy_matcher_v3.PathMatcher{
-						Rule: &envoy_matcher_v3.PathMatcher_Path{
-							Path: &envoy_matcher_v3.StringMatcher{
-								MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-									SafeRegex: response.MakeEnvoyRegexMatch(dr.PathRegex),
-								},
-							},
-						},
-					},
-				},
-			})
+			subPerms[i] = &envoy_rbac_v3.Permission{
+				Rule: &envoy_rbac_v3.Permission_NotRule{NotRule: translated},
+			}
 		}
-
-		// methods
-		if len(dr.Methods) > 0 {
-			methodHeaderRegex := strings.Join(dr.Methods, "|")
-			eh := &envoy_route_v3.HeaderMatcher{
-				Name: ":method",
-				HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
-					StringMatch: response.MakeEnvoyStringMatcher(methodHeaderRegex),
-				},
-			}
-			perms = append(perms, &envoy_rbac_v3.Permission{
-				Rule: &envoy_rbac_v3.Permission_Header{
-					Header: eh,
-				}})
-		}
-
-		// headers
-		for _, hdr := range dr.DestinationRuleHeader {
-			eh := &envoy_route_v3.HeaderMatcher{
-				Name: hdr.Name,
-			}
-
-			switch {
-			case hdr.Exact != "":
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
-					StringMatch: &envoy_matcher_v3.StringMatcher{
-						MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-							Exact: hdr.Exact,
-						},
-						IgnoreCase: false,
-					},
-				}
-			case hdr.Regex != "":
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
-					StringMatch: &envoy_matcher_v3.StringMatcher{
-						MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
-							SafeRegex: response.MakeEnvoyRegexMatch(hdr.Regex),
-						},
-						IgnoreCase: false,
-					},
-				}
-
-			case hdr.Prefix != "":
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
-					StringMatch: &envoy_matcher_v3.StringMatcher{
-						MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
-							Prefix: hdr.Prefix,
-						},
-						IgnoreCase: false,
-					},
-				}
-
-			case hdr.Suffix != "":
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
-					StringMatch: &envoy_matcher_v3.StringMatcher{
-						MatchPattern: &envoy_matcher_v3.StringMatcher_Suffix{
-							Suffix: hdr.Suffix,
-						},
-						IgnoreCase: false,
-					},
-				}
-
-			case hdr.Present:
-				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PresentMatch{
-					PresentMatch: true,
-				}
-			default:
-				continue // skip this impossible situation
-			}
-
-			if hdr.Invert {
-				eh.InvertMatch = true
-			}
-
-			perms = append(perms, &envoy_rbac_v3.Permission{
-				Rule: &envoy_rbac_v3.Permission_Header{
-					Header: eh,
-				},
-			})
-		}
+		subPerms = append([]*envoy_rbac_v3.Permission{translateRule(dr)}, subPerms...)
+		perms = append(perms, combineAndPermissions(subPerms))
 	}
 	return perms
+}
+
+func combineAndPermissions(perms []*envoy_rbac_v3.Permission) *envoy_rbac_v3.Permission {
+	switch len(perms) {
+	case 0:
+		return anyPermission()
+	case 1:
+		return perms[0]
+	default:
+		return &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_AndRules{
+				AndRules: &envoy_rbac_v3.Permission_Set{
+					Rules: perms,
+				},
+			},
+		}
+	}
 }
 
 func toEnvoyPrincipal(p *pbproxystate.Principal) *envoy_rbac_v3.Principal {

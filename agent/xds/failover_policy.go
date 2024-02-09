@@ -132,7 +132,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 		)
 
-		err := injectSANMatcher(commonTLSContext, spiffeIDs...)
+		err := injectSANMatcher(commonTLSContext, false, spiffeIDs...)
 		if err != nil {
 			return failoverTargets, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 		}

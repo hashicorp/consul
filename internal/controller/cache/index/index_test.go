@@ -10,23 +10,24 @@ import (
 	"github.com/hashicorp/consul/internal/controller/cache/index/indexmock"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/stretchr/testify/require"
 )
 
 type testSingleIndexer struct{}
 
 func (testSingleIndexer) FromArgs(args ...any) ([]byte, error) {
-	return ReferenceOrIDFromArgs(args)
+	return ReferenceOrIDFromArgs(args...)
 }
 
-func (testSingleIndexer) FromResource(*pbresource.Resource) (bool, []byte, error) {
-	return false, nil, nil
+func (testSingleIndexer) FromResource(res *pbresource.Resource) (bool, []byte, error) {
+	return true, IndexFromRefOrID(res.Id), nil
 }
 
 type testMultiIndexer struct{}
 
 func (testMultiIndexer) FromArgs(args ...any) ([]byte, error) {
-	return ReferenceOrIDFromArgs(args)
+	return ReferenceOrIDFromArgs(args...)
 }
 
 func (testMultiIndexer) FromResource(*pbresource.Resource) (bool, [][]byte, error) {
@@ -134,4 +135,55 @@ func TestSingleIndexWrapper(t *testing.T) {
 		require.Len(t, vals, 1)
 		require.Equal(t, []byte{1, 2, 3}, vals[0])
 	})
+}
+
+func TestIndexReuse(t *testing.T) {
+	rtype := &pbresource.Type{
+		Group:        "test",
+		GroupVersion: "v1",
+		Kind:         "fake",
+	}
+	id := resourcetest.Resource(rtype, "foo").ID()
+
+	res1 := resourcetest.ResourceID(id).Build()
+	res2 := resourcetest.ResourceID(id).WithStatus("foo", &pbresource.Status{
+		ObservedGeneration: "woo",
+	}).Build()
+
+	indexer := testSingleIndexer{}
+
+	// Verify that the indexer produces an identical index for both resources. If this
+	// isn't true then the rest of the checks we do don't actually prove that the
+	// two IndexedData objects have independent resource storage.
+	_, idx1, _ := indexer.FromResource(res1)
+	_, idx2, _ := indexer.FromResource(res2)
+	require.Equal(t, idx1, idx2)
+
+	// Create the index and two indepent indexed data storage objects
+	idx := New("test", indexer)
+	data1 := idx.IndexedData()
+	data2 := idx.IndexedData()
+
+	// Push 1 resource into each
+	txn := data1.Txn()
+	txn.Insert(res1)
+	txn.Commit()
+
+	txn = data2.Txn()
+	txn.Insert(res2)
+	txn.Commit()
+
+	// Verify that querying the first indexed data can only return the first resource
+	iter, err := data1.Txn().ListIterator(id)
+	require.NoError(t, err)
+	res := iter.Next()
+	prototest.AssertDeepEqual(t, res1, res)
+	require.Nil(t, iter.Next())
+
+	// Verify that querying the second indexed data can only return the second resource
+	iter, err = data2.Txn().ListIterator(id)
+	require.NoError(t, err)
+	res = iter.Next()
+	prototest.AssertDeepEqual(t, res2, res)
+	require.Nil(t, iter.Next())
 }

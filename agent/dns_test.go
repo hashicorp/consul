@@ -24,10 +24,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/hashicorp/serf/coordinate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -128,8 +129,7 @@ func getVersionHCL(enableV2 bool) map[string]string {
 }
 
 // Copied to agent/dns/recursor_test.go
-func TestRecursorAddr(t *testing.T) {
-	t.Parallel()
+func TestDNS_RecursorAddr(t *testing.T) {
 	addr, err := recursorAddr("8.8.8.8")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -154,7 +154,7 @@ func TestRecursorAddr(t *testing.T) {
 	}
 }
 
-func TestEncodeKVasRFC1464(t *testing.T) {
+func TestDNS_EncodeKVasRFC1464(t *testing.T) {
 	// Test cases are from rfc1464
 	type rfc1464Test struct {
 		key, value, internalForm, externalForm string
@@ -188,8 +188,7 @@ func TestDNS_Over_TCP(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -247,7 +246,7 @@ func TestDNS_EmptyAltDomain(t *testing.T) {
 	}
 }
 
-func TestDNSCycleRecursorCheck(t *testing.T) {
+func TestDNS_CycleRecursorCheck(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -290,7 +289,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 		})
 	}
 }
-func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
+func TestDNS_CycleRecursorCheckAllFail(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -335,8 +334,7 @@ func TestDNS_EDNS0(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -383,8 +381,7 @@ func TestDNS_EDNS0_ECS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -650,7 +647,7 @@ func TestDNS_SOA_Settings(t *testing.T) {
 		require.Equal(t, uint32(retry), soaRec.Retry)
 		require.Equal(t, uint32(ttl), soaRec.Hdr.Ttl)
 	}
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			// Default configuration
@@ -769,8 +766,7 @@ func TestDNS_InifiniteRecursion(t *testing.T) {
 	}
 
 	// This test should not create an infinite recursion
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -831,8 +827,7 @@ func TestDNS_NSRecords(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -874,8 +869,7 @@ func TestDNS_AltDomain_NSRecords(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, `
@@ -930,8 +924,7 @@ func TestDNS_NSRecords_IPV6(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
  		domain = "CONSUL."
@@ -974,8 +967,7 @@ func TestDNS_AltDomain_NSRecords_IPV6(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		domain = "CONSUL."
@@ -1025,6 +1017,7 @@ func TestDNS_AltDomain_NSRecords_IPV6(t *testing.T) {
 	}
 }
 
+// TODO NET-7644 - Implement service and prepared query lookup for tagged addresses
 func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1622,8 +1615,9 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 }
 
-func TestBinarySearch(t *testing.T) {
-	t.Parallel()
+// no way to run a v2 version of this test since it is calling a private function and not
+// using a test agent.
+func TestDNS_BinarySearch(t *testing.T) {
 	msgSrc := new(dns.Msg)
 	msgSrc.Compress = true
 	msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
@@ -1668,8 +1662,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -1814,6 +1807,8 @@ func TestDNS_AddressLookup(t *testing.T) {
 				require.True(t, ok)
 				require.Equal(t, aRec.A.To4().String(), answer)
 				require.Zero(t, aRec.Hdr.Ttl)
+				require.Nil(t, in.Ns)
+				require.Nil(t, in.Extra)
 			}
 		})
 	}
@@ -1882,6 +1877,11 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 				require.Nil(t, in.Answer)
 				require.NotNil(t, in.Extra)
 				require.Len(t, in.Extra, 1)
+				aRecord := in.Extra[0].(*dns.A)
+				require.Equal(t, "7f000001.addr.dc1.consul.", aRecord.Hdr.Name)
+				require.Equal(t, dns.TypeA, aRecord.Hdr.Rrtype)
+				require.Zero(t, aRecord.Hdr.Ttl)
+				require.Equal(t, "127.0.0.1", aRecord.A.String())
 			}
 		})
 	}
@@ -1979,8 +1979,7 @@ func TestDNS_NonExistentDC_Server(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1995,9 +1994,14 @@ func TestDNS_NonExistentDC_Server(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 
-			if in.Rcode != dns.RcodeNameError {
-				t.Fatalf("Expected RCode: %#v, had: %#v", dns.RcodeNameError, in.Rcode)
-			}
+			require.Equal(t, dns.RcodeNameError, in.Rcode)
+			require.Equal(t, 0, len(in.Answer))
+			require.Equal(t, 0, len(in.Extra))
+			require.Equal(t, 1, len(in.Ns))
+			soa := in.Ns[0].(*dns.SOA)
+			require.Equal(t, "consul.", soa.Hdr.Name)
+			require.Equal(t, "ns.consul.", soa.Ns)
+			require.Equal(t, "hostmaster.consul.", soa.Mbox)
 		})
 	}
 }
@@ -2010,8 +2014,7 @@ func TestDNS_NonExistentDC_RPC(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			s := NewTestAgent(t, `
 		node_name = "test-server"
@@ -2047,13 +2050,12 @@ func TestDNS_NonExistentDC_RPC(t *testing.T) {
 	}
 }
 
-func TestDNS_NonExistingLookup(t *testing.T) {
+func TestDNS_NonExistentLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2084,13 +2086,12 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	}
 }
 
-func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
+func TestDNS_NonExistentLookupEmptyAorAAAA(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2231,8 +2232,7 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		alt_domain = "test-domain."
@@ -2330,8 +2330,7 @@ func TestDNS_AltDomains_SOA(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		node_name = "test-node"
@@ -2386,8 +2385,7 @@ func TestDNS_AltDomains_Overlap(t *testing.T) {
 	// this tests the domain matching logic in DNSServer when encountering more
 	// than one potential match (i.e. ambiguous match)
 	// it should select the longer matching domain when dispatching
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		node_name = "test-node"
@@ -2437,8 +2435,7 @@ func TestDNS_AltDomain_DCName_Overlap(t *testing.T) {
 
 	// this tests the DC name overlap with the consul domain/alt-domain
 	// we should get response when DC suffix is a prefix of consul alt-domain
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		datacenter = "dc-test"
@@ -2478,8 +2475,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -2535,8 +2531,7 @@ func TestDNS_InvalidQueries(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2584,8 +2579,7 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2625,8 +2619,7 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -2670,8 +2663,7 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			req := &dns.Msg{}
@@ -2733,8 +2725,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2777,8 +2768,7 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2829,8 +2819,7 @@ func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 }
 
 func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2890,8 +2879,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 }
 
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
 
@@ -2947,8 +2935,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -3031,8 +3018,7 @@ func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -3308,8 +3294,7 @@ func TestDNS_syncExtra(t *testing.T) {
 }
 
 func TestDNS_Compression_trimUDPResponse(t *testing.T) {
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `+experimentsHCL)
@@ -3336,8 +3321,7 @@ func TestDNS_Compression_Query(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			a := NewTestAgent(t, experimentsHCL)
@@ -3669,8 +3653,7 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -3736,7 +3719,7 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 	}
 }
 
-func TestECSNotGlobalError(t *testing.T) {
+func TestDNS_ECSNotGlobalError(t *testing.T) {
 	t.Run("wrap nil", func(t *testing.T) {
 		e := ecsNotGlobalError{}
 		require.True(t, errors.Is(e, errECSNotGlobal))
@@ -3768,7 +3751,7 @@ func perfectlyRandomChoices(size int, frac float64) []bool {
 	return out
 }
 
-func TestPerfectlyRandomChoices(t *testing.T) {
+func TestDNS_PerfectlyRandomChoices(t *testing.T) {
 	count := func(got []bool) int {
 		var x int
 		for _, v := range got {
@@ -3830,7 +3813,7 @@ type testCaseParseLocality struct {
 	expectedOK          bool
 }
 
-func Test_ParseLocality(t *testing.T) {
+func TestDNS_ParseLocality(t *testing.T) {
 	testCases := getTestCasesParseLocality()
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -3848,7 +3831,7 @@ func Test_ParseLocality(t *testing.T) {
 
 }
 
-func Test_EffectiveDatacenter(t *testing.T) {
+func TestDNS_EffectiveDatacenter(t *testing.T) {
 	type testCase struct {
 		name          string
 		queryLocality queryLocality

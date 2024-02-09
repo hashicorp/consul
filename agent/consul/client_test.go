@@ -7,17 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/resource/demo"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
@@ -562,10 +557,6 @@ func newDefaultDeps(t testutil.TestingTB, c *Config) Deps {
 		RPCHoldTimeout:   c.RPCHoldTimeout,
 	}
 	connPool.SetRPCClientTimeout(c.RPCClientTimeout)
-	registry := resource.NewRegistry()
-	demo.RegisterTypes(registry)
-	mesh.RegisterTypes(registry)
-	catalog.RegisterTypes(registry)
 	return Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
@@ -585,7 +576,7 @@ func newDefaultDeps(t testutil.TestingTB, c *Config) Deps {
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
-		Registry:                 registry,
+		Registry:                 NewTypeRegistry(),
 	}
 }
 

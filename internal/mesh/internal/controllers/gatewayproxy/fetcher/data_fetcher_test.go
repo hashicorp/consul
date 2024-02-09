@@ -21,7 +21,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -69,9 +69,14 @@ func (suite *dataFetcherSuite) setupWithTenancy(tenancy *pbresource.Tenancy) {
 		).
 		Write(suite.T(), suite.client)
 
-	suite.meshGateway = resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway-1").
+	suite.meshGateway = resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway").
 		WithData(suite.T(), &pbmesh.MeshGateway{
 			GatewayClassName: "gateway-class-1",
+			Listeners: []*pbmesh.MeshGatewayListener{
+				{
+					Name: "wan",
+				},
+			},
 		}).
 		Write(suite.T(), suite.client)
 

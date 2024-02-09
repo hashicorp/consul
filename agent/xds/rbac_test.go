@@ -732,6 +732,58 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				},
 			},
 		},
+		"v2-path-excludes": {
+			intentionDefaultAllow: false,
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/",
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathPrefix: "/admin"},
+								},
+							},
+						},
+					},
+				},
+				DenyPermissions: []*pbproxystate.Permission{},
+			},
+		},
+		"v2-path-method-header-excludes": {
+			intentionDefaultAllow: false,
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/",
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{
+										PathPrefix: "/admin",
+										Methods:    []string{"POST", "DELETE"},
+										Headers: []*pbproxystate.DestinationRuleHeader{
+											{Name: "experiment", Present: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				DenyPermissions: []*pbproxystate.Permission{},
+			},
+		},
 		"v2-default-deny": {
 			intentionDefaultAllow: false,
 			v2TrafficPermissions:  &pbproxystate.TrafficPermissions{},
@@ -784,6 +836,21 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			v1Intentions: sorted(
 				testSourcePermIntention("web", permSlashPrefix),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{PathPrefix: "/"},
+						},
+					},
+				},
+				DenyPermissions: []*pbproxystate.Permission{},
+			},
 		},
 		"default-allow-path-deny": {
 			intentionDefaultAllow: true,
@@ -796,6 +863,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			v1Intentions: sorted(
 				testSourcePermIntention("web", permDenySlashPrefix),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{},
 		},
 		// ========================
 		"default-allow-deny-all-and-path-allow": {
@@ -869,6 +937,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				),
 				testSourceIntention("*", structs.IntentionActionDeny),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{},
 		},
 		// ========================
 		"default-deny-two-path-deny-and-path-allow": {
@@ -895,6 +964,26 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 					},
 				),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/",
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/admin"},
+									{PathExact: "/v1/secret"},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 		"default-allow-two-path-deny-and-path-allow": {
 			intentionDefaultAllow: true,
@@ -963,6 +1052,163 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 					},
 				),
 			),
+		},
+		"v2-single-permission-with-excludes": {
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/v1",
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+								},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+									{PathExact: "/v1/admin", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"v2-single-permission-multiple-destination-rules": {
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/v1",
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+								},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+									{PathExact: "/v1/admin", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+								},
+							},
+							{
+								PathPrefix: "/v2",
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+								},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v2/secret", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+									{PathExact: "/v2/admin", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"v2-single-permission-with-kitchen-sink-perms": {
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/v1",
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret"},
+								},
+							},
+							{
+								PathRegex: "/v[123]",
+								Methods:   []string{"GET", "HEAD", "OPTIONS"},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret"},
+									{PathExact: "/v1/admin", Methods: []string{"GET"}},
+								},
+							},
+							{
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+									{Name: "x-bar", Exact: "xyz"},
+									{Name: "x-dib", Prefix: "gaz"},
+									{Name: "x-gir", Suffix: "zim"},
+									{Name: "x-zim", Regex: "gi[rR]"},
+									{Name: "z-foo", Present: true, Invert: true},
+									{Name: "z-bar", Exact: "xyz", Invert: true},
+									{Name: "z-dib", Prefix: "gaz", Invert: true},
+									{Name: "z-gir", Suffix: "zim", Invert: true},
+									{Name: "z-zim", Regex: "gi[rR]", Invert: true},
+								},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret"},
+									{Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"v2-L4-deny-L7-allow": {
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/v1",
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+								},
+							},
+						},
+					},
+				},
+				DenyPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+					},
+				},
+			},
 		},
 		"default-allow-single-intention-with-kitchen-sink-perms": {
 			intentionDefaultAllow: true,
@@ -1114,7 +1360,6 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 						chain.Filters = filters
 						gotJSON = protoToJSON(t, chain)
 					}
-
 					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name), gotJSON), gotJSON)
 				})
 			})
@@ -1152,7 +1397,6 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 						manager.HttpFilters = filters
 						gotJSON = protoToJSON(t, manager)
 					}
-
 					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name+"--httpfilter"), gotJSON), gotJSON)
 				})
 			})

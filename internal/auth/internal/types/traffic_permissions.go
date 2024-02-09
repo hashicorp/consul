@@ -4,6 +4,8 @@
 package types
 
 import (
+	"golang.org/x/exp/slices"
+
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
@@ -115,13 +117,13 @@ var ValidateTrafficPermissions = resource.DecodeAndValidate(validateTrafficPermi
 // validator takes a traffic permission and ensures that it conforms to the actions allowed in
 // either CE or Enterprise versions of Consul
 type validator interface {
-	ValidateAction(res *DecodedTrafficPermissions) error
+	ValidateAction(data interface{ GetAction() pbauth.Action }) error
 }
 
 func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 	var merr error
 
-	err := v.ValidateAction(res)
+	err := v.ValidateAction(res.Data)
 	if err != nil {
 		merr = multierror.Append(merr, err)
 	}
@@ -133,7 +135,16 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 		})
 	}
 	// Validate permissions
-	for i, permission := range res.Data.Permissions {
+	if err := validatePermissions(res.Id, res.Data); err != nil {
+		merr = multierror.Append(merr, err)
+	}
+
+	return merr
+}
+
+func validatePermissions(id *pbresource.ID, data interface{ GetPermissions() []*pbauth.Permission }) error {
+	var merr error
+	for i, permission := range data.GetPermissions() {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "permissions",
@@ -141,11 +152,10 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
+		if err := validatePermission(permission, id, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
-
 	return merr
 }
 
@@ -246,6 +256,12 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 				}
 			}
 		}
+		if dest.IsEmpty() {
+			merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
+				Name:    "destination_rule",
+				Wrapped: errInvalidRule,
+			}))
+		}
 		if len(dest.Exclude) > 0 {
 			for e, excl := range dest.Exclude {
 				wrapExclPermRuleErr := func(err error) error {
@@ -261,6 +277,43 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 					merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
 						Name:    "exclude_permission_rule",
 						Wrapped: errInvalidPrefixValues,
+					}))
+				}
+				for eh, hdr := range excl.Headers {
+					wrapExclHeaderErr := func(err error) error {
+						return wrapDestRuleErr(resource.ErrInvalidListElement{
+							Name:    "exclude_permission_header_rules",
+							Index:   eh,
+							Wrapped: err,
+						})
+					}
+					if len(hdr.Name) == 0 {
+						merr = multierror.Append(merr, wrapExclHeaderErr(resource.ErrInvalidListElement{
+							Name:    "exclude_permission_header_rule",
+							Wrapped: errHeaderRulesInvalid,
+						}))
+					}
+				}
+				for _, m := range excl.Methods {
+					if len(dest.Methods) != 0 && !slices.Contains(dest.Methods, m) {
+						merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
+							Name:    "exclude_permission_header_rule",
+							Wrapped: errExclValuesMustBeSubset,
+						}))
+					}
+				}
+				for _, port := range excl.PortNames {
+					if len(dest.PortNames) != 0 && !slices.Contains(dest.PortNames, port) {
+						merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
+							Name:    "exclude_permission_header_rule",
+							Wrapped: errExclValuesMustBeSubset,
+						}))
+					}
+				}
+				if excl.IsEmpty() {
+					merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
+						Name:    "exclude_permission_rule",
+						Wrapped: errInvalidRule,
 					}))
 				}
 			}

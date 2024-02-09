@@ -457,7 +457,7 @@ type Server struct {
 	xdsCapacityController *xdscapacity.Controller
 
 	// hcpManager handles pushing server status updates to the HashiCorp Cloud Platform when enabled
-	hcpManager *hcp.Manager
+	hcpManager *hcp.HCPManager
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
@@ -526,7 +526,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-	if err := config.CheckACL(); err != nil {
+	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
 
@@ -608,6 +608,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 				// of a randomly generated one. This would prevent any possible insertion collision between
 				// this and the insertion that happens during the ACL initialization process (initializeACLs function)
 				return s.upsertManagementToken(name, secretId)
+			}
+			return nil
+		},
+		ManagementTokenDeleterFn: func(secretId string) error {
+			// Check the state of the server before attempting to delete the token.Otherwise,
+			// the delete will fail and log errors that do not require action from the user.
+			if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
+				return s.deleteManagementToken(secretId)
 			}
 			return nil
 		},
@@ -1000,7 +1008,6 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager)
-		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err
@@ -1036,9 +1043,11 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		})
 
 		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
+		multicluster.RegisterControllers(s.controllerManager)
+	} else {
+		shim := NewExportedServicesShim(s)
+		multicluster.RegisterCompatControllers(s.controllerManager, multicluster.DefaultCompatControllerDependencies(shim))
 	}
-
-	multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 
 	reaper.RegisterControllers(s.controllerManager)
 

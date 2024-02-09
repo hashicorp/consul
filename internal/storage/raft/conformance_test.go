@@ -42,7 +42,8 @@ func TestBackend_Conformance(t *testing.T) {
 				_, follower := newRaftCluster(t)
 				return follower
 			},
-			SupportsStronglyConsistentList: true,
+			SupportsStronglyConsistentList:    true,
+			IgnoreWatchListSnapshotOperations: true,
 		})
 	})
 }

@@ -17,7 +17,7 @@ import (
 )
 
 func TestIDIndex(t *testing.T) {
-	idx := IDIndex("test", index.IndexRequired)
+	idx := IDIndex("test", index.IndexRequired).IndexedData()
 
 	r1 := resourcetest.Resource(pbdemo.AlbumType, "foo").
 		WithTenancy(&pbresource.Tenancy{
@@ -39,7 +39,7 @@ func TestIDIndex(t *testing.T) {
 }
 
 func TestOwnerIndex(t *testing.T) {
-	idx := OwnerIndex("test", index.IndexRequired)
+	idx := OwnerIndex("test", index.IndexRequired).IndexedData()
 
 	r1 := resourcetest.Resource(pbdemo.AlbumType, "foo").
 		WithTenancy(&pbresource.Tenancy{
@@ -70,7 +70,7 @@ func TestOwnerIndex(t *testing.T) {
 func TestSingleIDOrRefIndex(t *testing.T) {
 	getRef := indexersmock.NewGetSingleRefOrID(t)
 
-	idx := SingleIDOrRefIndex("test", getRef.Execute)
+	idx := SingleIDOrRefIndex("test", getRef.Execute).IndexedData()
 
 	r1 := resourcetest.Resource(pbdemo.AlbumType, "foo").Build()
 	ref := &pbresource.Reference{

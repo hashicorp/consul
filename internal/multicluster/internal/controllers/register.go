@@ -11,10 +11,16 @@ import (
 
 type Dependencies struct {
 	ExportedServicesSamenessGroupsExpander exportedservices.ExportedServicesSamenessGroupExpander
-	ConfigEntryExports                     v1compat.AggregatedConfig
+}
+
+type CompatDependencies struct {
+	ConfigEntryExports v1compat.AggregatedConfig
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(exportedservices.Controller(deps.ExportedServicesSamenessGroupsExpander))
+}
+
+func RegisterCompat(mgr *controller.Manager, deps CompatDependencies) {
 	mgr.Register(v1compat.Controller(deps.ConfigEntryExports))
 }

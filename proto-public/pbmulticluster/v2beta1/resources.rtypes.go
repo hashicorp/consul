@@ -10,38 +10,10 @@ const (
 	GroupName = "multicluster"
 	Version   = "v2beta1"
 
-	ComputedExportedServicesKind  = "ComputedExportedServices"
-	ExportedServicesKind          = "ExportedServices"
-	NamespaceExportedServicesKind = "NamespaceExportedServices"
-	PartitionExportedServicesKind = "PartitionExportedServices"
-	SamenessGroupKind             = "SamenessGroup"
+	SamenessGroupKind = "SamenessGroup"
 )
 
 var (
-	ComputedExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ComputedExportedServicesKind,
-	}
-
-	ExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ExportedServicesKind,
-	}
-
-	NamespaceExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NamespaceExportedServicesKind,
-	}
-
-	PartitionExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         PartitionExportedServicesKind,
-	}
-
 	SamenessGroupType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,

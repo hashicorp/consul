@@ -243,6 +243,55 @@ func TestPrefixReferenceOrIDFromArgs(t *testing.T) {
 	})
 }
 
+func TestMaybePrefixReferenceOrIDFromArgs(t *testing.T) {
+	ref := &pbresource.Reference{
+		Type: &pbresource.Type{
+			Group:        "test",
+			GroupVersion: "v1",
+			Kind:         "fake",
+		},
+		Tenancy: &pbresource.Tenancy{
+			Partition: "default",
+		},
+	}
+	t.Run("invalid length", func(t *testing.T) {
+		// the second arg will cause a validation error
+		val, err := MaybePrefixReferenceOrIDFromArgs(ref, IndexQueryOptions{Prefix: false}, 3)
+		require.Nil(t, val)
+		require.Error(t, err)
+	})
+
+	t.Run("invalid type arg 1", func(t *testing.T) {
+		val, err := MaybePrefixReferenceOrIDFromArgs("string type unexpected", IndexQueryOptions{Prefix: true})
+		require.Nil(t, val)
+		require.Error(t, err)
+	})
+
+	t.Run("invalid type arg 2", func(t *testing.T) {
+		val, err := MaybePrefixReferenceOrIDFromArgs(ref, "string type unexpected")
+		require.Nil(t, val)
+		require.Error(t, err)
+	})
+
+	t.Run("ok single arg", func(t *testing.T) {
+		val, err := MaybePrefixReferenceOrIDFromArgs(ref)
+		require.NoError(t, err)
+		require.Equal(t, IndexFromRefOrID(ref), val)
+	})
+
+	t.Run("ok two args no prefix", func(t *testing.T) {
+		val, err := MaybePrefixReferenceOrIDFromArgs(ref, IndexQueryOptions{Prefix: false})
+		require.NoError(t, err)
+		require.Equal(t, IndexFromRefOrID(ref), val)
+	})
+
+	t.Run("ok two args with prefix", func(t *testing.T) {
+		val, err := MaybePrefixReferenceOrIDFromArgs(ref, IndexQueryOptions{Prefix: true})
+		require.NoError(t, err)
+		require.Equal(t, PrefixIndexFromRefOrID(ref), val)
+	})
+}
+
 func TestSingleValueFromArgs(t *testing.T) {
 	injectedError := errors.New("injected test error")
 

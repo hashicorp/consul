@@ -43,7 +43,7 @@ func TestRefOrIDIndex(t *testing.T) {
 
 	refs := indexersmock.NewRefOrIDFetcher[*pbdemo.Album, *pbresource.Reference](t)
 
-	idx := RefOrIDIndex("test", refs.Execute)
+	idx := RefOrIDIndex("test", refs.Execute).IndexedData()
 
 	refs.EXPECT().Execute(dec).
 		Return([]*pbresource.Reference{ref1, ref2}).
@@ -90,7 +90,7 @@ func TestBoundRefsIndex(t *testing.T) {
 		}).
 		Build()
 
-	idx := BoundRefsIndex[*pbmesh.ComputedRoutes]("test")
+	idx := BoundRefsIndex[*pbmesh.ComputedRoutes]("test").IndexedData()
 
 	txn := idx.Txn()
 	require.NoError(t, txn.Insert(r1))

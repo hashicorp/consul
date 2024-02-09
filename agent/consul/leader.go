@@ -635,6 +635,38 @@ func (s *Server) upsertManagementToken(name, secretID string) error {
 	return nil
 }
 
+func (s *Server) deleteManagementToken(secretId string) error {
+	state := s.fsm.State()
+
+	// Fetch the token to get its accessor ID and to verify that it's a management token
+	_, token, err := state.ACLTokenGetBySecret(nil, secretId, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get management token: %v", err)
+	}
+
+	if token == nil {
+		// token is already deleted
+		return nil
+	}
+
+	accessorID := token.AccessorID
+	if len(token.Policies) != 1 && token.Policies[0].ID != structs.ACLPolicyGlobalManagementID {
+		return fmt.Errorf("failed to delete management token: not a management token")
+	}
+
+	// Delete the token
+	req := structs.ACLTokenBatchDeleteRequest{
+		TokenIDs: []string{accessorID},
+	}
+	if _, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req); err != nil {
+		return fmt.Errorf("failed to delete management token: %v", err)
+	}
+
+	s.logger.Info("deleted ACL token", "description", token.Description)
+
+	return nil
+}
+
 func (s *Server) insertAnonymousToken() error {
 	state := s.fsm.State()
 	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
