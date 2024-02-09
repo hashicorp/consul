@@ -5,7 +5,6 @@ package hcp
 
 import (
 	"fmt"
-	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	"io"
 	"testing"
 	"time"
@@ -20,17 +19,17 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestManager_MonitorHCPLink(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
+	logger := hclog.New(&hclog.LoggerOptions{Output: io.Discard})
 
-	linkWatchCh := make(chan *pbresource.WatchEvent)
 	mgr := NewManager(
 		ManagerConfig{
 			Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
@@ -45,9 +44,9 @@ func TestManager_MonitorHCPLink(t *testing.T) {
 	}
 
 	require.False(t, mgr.isRunning())
-	go MonitorHCPLink(
-		ctx, hclog.New(&hclog.LoggerOptions{Output: io.Discard}), mgr, linkWatchCh, mockHcpClientFn, loadMgmtTokenFn,
-		config.CloudConfig{}, "",
+	updateManagerLifecycle := HCPManagerLifecycleFn(
+		mgr, mockHcpClientFn,
+		loadMgmtTokenFn, config.CloudConfig{}, "",
 	)
 
 	// Set up a link
@@ -59,7 +58,7 @@ func TestManager_MonitorHCPLink(t *testing.T) {
 	}
 	linkResource, err := anypb.New(&link)
 	require.NoError(t, err)
-	linkWatchCh <- &pbresource.WatchEvent{
+	updateManagerLifecycle(ctx, logger, &pbresource.WatchEvent{
 		Event: &pbresource.WatchEvent_Upsert_{
 			Upsert: &pbresource.WatchEvent_Upsert{
 				Resource: &pbresource.Resource{
@@ -76,14 +75,10 @@ func TestManager_MonitorHCPLink(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	// Validate that the HCP manager is started
-	retry.Run(
-		t, func(r *retry.R) {
-			require.True(r, mgr.isRunning())
-		},
-	)
+	require.True(t, mgr.isRunning())
 }
 
 func TestManager_Start(t *testing.T) {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -21,42 +22,80 @@ import (
 
 // This tests that when we get a watch event from the Recv call, we get that same event on the
 // output channel, then we
-func TestLinkWatch_Ok(t *testing.T) {
-	testWatchEvent := &pbresource.WatchEvent{}
+func TestLinkWatcher_Ok(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
 
+	testWatchEvent := &pbresource.WatchEvent{}
 	mockWatchListClient := mockpbresource.NewResourceService_WatchListClient(t)
 	mockWatchListClient.EXPECT().Recv().Return(testWatchEvent, nil)
 
+	eventCh := make(chan *pbresource.WatchEvent)
+	mockLinkHandler := func(_ context.Context, _ hclog.Logger, event *pbresource.WatchEvent) {
+		eventCh <- event
+	}
+
 	client := mockpbresource.NewResourceServiceClient(t)
 	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
 		Type:       pbhcp.LinkType,
 		NamePrefix: hcpctl.LinkName,
 	}).Return(mockWatchListClient, nil)
-	linkWatchCh := StartLinkWatch(context.Background(), hclog.Default(), client)
 
-	event := <-linkWatchCh
-	require.Equal(t, testWatchEvent, event)
+	go RunHCPLinkWatcher(ctx, hclog.Default(), client, mockLinkHandler)
+
+	// Assert that the link handler is called with the testWatchEvent
+	receivedWatchEvent := <-eventCh
+	require.Equal(t, testWatchEvent, receivedWatchEvent)
 }
 
-// This tests ensures that when the context is canceled, the linkWatchCh is closed
-func TestLinkWatch_ContextCanceled(t *testing.T) {
+func TestLinkWatcher_RecvError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Our mock WatchListClient will simulate 5 errors, then will cancel the context.
+	// We expect RunHCPLinkWatcher to attempt to create the WatchListClient 6 times (initial attempt plus 5 retries)
+	// before exiting due to context cancellation.
 	mockWatchListClient := mockpbresource.NewResourceService_WatchListClient(t)
-	// Recv may not be called if the context is cancelled before the `select` block
-	// within the StartLinkWatch goroutine
-	mockWatchListClient.EXPECT().Recv().Return(nil, errors.New("context canceled")).Maybe()
+	numFailures := 5
+	failures := 0
+	mockWatchListClient.EXPECT().Recv().RunAndReturn(func() (*pbresource.WatchEvent, error) {
+		if failures < numFailures {
+			failures++
+			return nil, errors.New("unexpectedError")
+		}
+		defer cancel()
+		return &pbresource.WatchEvent{}, nil
+	})
 
 	client := mockpbresource.NewResourceServiceClient(t)
 	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
 		Type:       pbhcp.LinkType,
 		NamePrefix: hcpctl.LinkName,
-	}).Return(mockWatchListClient, nil)
+	}).Return(mockWatchListClient, nil).Times(numFailures + 1)
 
+	RunHCPLinkWatcher(ctx, hclog.Default(), client, func(_ context.Context, _ hclog.Logger, _ *pbresource.WatchEvent) {})
+}
+
+func TestLinkWatcher_WatchListError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	linkWatchCh := StartLinkWatch(ctx, hclog.Default(), client)
 
-	cancel()
+	// Our mock WatchList will simulate 5 errors, then will cancel the context.
+	// We expect RunHCPLinkWatcher to attempt to create the WatchListClient 6 times (initial attempt plus 5 retries)
+	// before exiting due to context cancellation.
+	numFailures := 5
+	failures := 0
 
-	// Ensure the linkWatchCh is closed
-	_, ok := <-linkWatchCh
-	require.False(t, ok)
+	client := mockpbresource.NewResourceServiceClient(t)
+	client.EXPECT().WatchList(mock.Anything, &pbresource.WatchListRequest{
+		Type:       pbhcp.LinkType,
+		NamePrefix: hcpctl.LinkName,
+	}).RunAndReturn(func(_ context.Context, _ *pbresource.WatchListRequest, _ ...grpc.CallOption) (pbresource.ResourceService_WatchListClient, error) {
+		if failures < numFailures {
+			failures++
+			return nil, errors.New("unexpectedError")
+		}
+		defer cancel()
+		return mockpbresource.NewResourceService_WatchListClient(t), nil
+	}).Times(numFailures + 1)
+
+	RunHCPLinkWatcher(ctx, hclog.Default(), client, func(_ context.Context, _ hclog.Logger, _ *pbresource.WatchEvent) {})
 }

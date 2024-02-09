@@ -18,51 +18,19 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// RunHCPLinkWatcher watches the HCP Link resource and kicks off a goroutine
-// to manage the lifecycle of the HCP manager based on HCP Link events.
-//
-// StartLinkWatch will use the WatchList API in order to watch the HCP Link
-// and return a channel which will contain WatchEvents.
-// If there are any errors in doing so, it will continuously retry until successful.
-//
-// Once the channel is created, we call MonitorHCPLink which will runs continuously
-// and handles starting/stopping the HCP manager.
-func RunHCPLinkWatcher(
-	ctx context.Context, logger hclog.Logger, client pbresource.ResourceServiceClient, m Manager,
-	hcpClientFn func(cfg config.CloudConfig) (hcpclient.Client, error),
-	loadMgmtTokenFn func(
-		ctx context.Context, logger hclog.Logger, hcpClient hcpclient.Client, dataDir string,
-	) (string, error),
-	cloudConfig config.CloudConfig,
-	dataDir string,
-) {
-	hcpLinkWatchCh := StartLinkWatch(
-		ctx,
-		logger,
-		client,
-	)
-
-	MonitorHCPLink(ctx, logger, m, hcpLinkWatchCh, hcpClientFn, loadMgmtTokenFn, cloudConfig, dataDir)
-}
-
-// MonitorHCPLink monitors the status of the HCP Link and based on that, manages
-// the lifecycle of the HCP Manager. It's designed to be run in its own goroutine
-// for the life of a server agent. It should be run even if HCP is not configured
-// yet for servers. When an HCP Link is created, it will Start the Manager and
-// when an HCP Link is deleted, it will Stop the Manager.
-func MonitorHCPLink(
-	ctx context.Context,
-	logger hclog.Logger,
+// HCPManagerLifecycleFn returns a LinkEventHandler function which will appropriately
+// Start and Stop the HCP Manager based on the Link event received. If a link is upserted,
+// the HCP Manager is started, and if a link is deleted, the HCP manager is stopped.
+func HCPManagerLifecycleFn(
 	m Manager,
-	hcpLinkEventCh chan *pbresource.WatchEvent,
 	hcpClientFn func(cfg config.CloudConfig) (hcpclient.Client, error),
 	loadMgmtTokenFn func(
 		ctx context.Context, logger hclog.Logger, hcpClient hcpclient.Client, dataDir string,
 	) (string, error),
 	cloudConfig config.CloudConfig,
 	dataDir string,
-) {
-	for watchEvent := range hcpLinkEventCh {
+) LinkEventHandler {
+	return func(ctx context.Context, logger hclog.Logger, watchEvent *pbresource.WatchEvent) {
 		// This indicates that a Link was deleted
 		if watchEvent.GetDelete() != nil {
 			logger.Debug("HCP Link deleted, stopping HCP manager")
@@ -80,7 +48,7 @@ func MonitorHCPLink(
 			if err != nil {
 				logger.Error("error stopping HCP manager", "error", err)
 			}
-			continue
+			return
 		}
 
 		// This indicates that a Link was either created or updated
@@ -91,12 +59,12 @@ func MonitorHCPLink(
 			var link pbhcp.Link
 			if err := res.GetData().UnmarshalTo(&link); err != nil {
 				logger.Error("error unmarshalling link data", "error", err)
-				continue
+				return
 			}
 
 			if validated, reason := hcpctl.IsValidated(res); !validated {
 				logger.Debug("HCP Link not validated, not starting manager", "reason", reason)
-				continue
+				return
 			}
 
 			// Update the HCP manager configuration with the link values
@@ -113,7 +81,7 @@ func MonitorHCPLink(
 			hcpClient, err := hcpClientFn(mergedCfg)
 			if err != nil {
 				logger.Error("error creating HCP client", "error", err)
-				continue
+				return
 			}
 
 			// Load the management token if access is set to read-write. Read-only clusters
@@ -123,7 +91,7 @@ func MonitorHCPLink(
 				token, err = loadMgmtTokenFn(ctx, logger, hcpClient, dataDir)
 				if err != nil {
 					logger.Error("error loading management token", "error", err)
-					continue
+					return
 				}
 			}
 

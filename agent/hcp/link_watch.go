@@ -15,59 +15,54 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func StartLinkWatch(
-	ctx context.Context, logger hclog.Logger, client pbresource.ResourceServiceClient,
-) chan *pbresource.WatchEvent {
-	var watchClient pbresource.ResourceService_WatchListClient
-	watchListErrorBackoff := &retry.Waiter{
-		MinFailures: 1,
-		MinWait:     1 * time.Second,
+type LinkEventHandler = func(context.Context, hclog.Logger, *pbresource.WatchEvent)
+
+func handleLinkEvents(ctx context.Context, logger hclog.Logger, watchClient pbresource.ResourceService_WatchListClient, linkEventHandler LinkEventHandler) {
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Debug("context canceled, exiting")
+			return
+		default:
+			watchEvent, err := watchClient.Recv()
+
+			if err != nil {
+				logger.Error("error receiving link watch event", "error", err)
+				return
+			}
+
+			linkEventHandler(ctx, logger, watchEvent)
+		}
+	}
+}
+
+func RunHCPLinkWatcher(
+	ctx context.Context, logger hclog.Logger, client pbresource.ResourceServiceClient, linkEventHandler LinkEventHandler,
+) {
+	errorBackoff := &retry.Waiter{
+		MinFailures: 10,
+		MinWait:     0,
 		MaxWait:     1 * time.Minute,
 	}
 	for {
-		var err error
-		watchClient, err = client.WatchList(
-			ctx, &pbresource.WatchListRequest{
-				Type:       pbhcp.LinkType,
-				NamePrefix: hcpctl.LinkName,
-			},
-		)
-		if err != nil {
-			logger.Error("failed to create watch on Link", "error", err)
-			watchListErrorBackoff.Wait(ctx)
-			continue
-		}
-
-		break
-	}
-
-	eventCh := make(chan *pbresource.WatchEvent)
-	go func() {
-		errorBackoff := &retry.Waiter{
-			MinFailures: 1,
-			MinWait:     1 * time.Second,
-			MaxWait:     1 * time.Minute,
-		}
-		for {
-			select {
-			case <-ctx.Done():
-				logger.Debug("context canceled, exiting")
-				close(eventCh)
-				return
-			default:
-				watchEvent, err := watchClient.Recv()
-
-				if err != nil {
-					logger.Error("error receiving link watch event", "error", err)
-					errorBackoff.Wait(ctx)
-					continue
-				}
-
-				errorBackoff.Reset()
-				eventCh <- watchEvent
+		select {
+		case <-ctx.Done():
+			logger.Debug("context canceled, exiting")
+			return
+		default:
+			watchClient, err := client.WatchList(
+				ctx, &pbresource.WatchListRequest{
+					Type:       pbhcp.LinkType,
+					NamePrefix: hcpctl.LinkName,
+				},
+			)
+			if err != nil {
+				logger.Error("failed to create watch on Link", "error", err)
+				errorBackoff.Wait(ctx)
+				continue
 			}
+			errorBackoff.Reset()
+			handleLinkEvents(ctx, logger, watchClient, linkEventHandler)
 		}
-	}()
-
-	return eventCh
+	}
 }
