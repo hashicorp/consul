@@ -173,6 +173,8 @@ func mapServiceThroughDestinations(cache cache.ReadOnlyCache, svcID *pbresource.
 		return nil, err
 	}
 
+	// NOTE: ComputedExplicitDestinations are name-aligned with ProxyStateTemplates.
+	// This is different for implicit dests, as ComputedImplicitDestinations is name-aligned with WorkloadIdentity
 	reqs := make([]controller.Request, 0, len(explicitDests)+len(implicitDests))
 	reqs = append(reqs, controller.MakeRequestsFromResources(
 		pbmesh.ProxyStateTemplateType,
