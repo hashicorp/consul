@@ -7,7 +7,6 @@ package hashicorp.consul.mesh.v2beta1;
 
 import "pbcatalog/v2beta1/failover_policy.proto";
 import "pbcatalog/v2beta1/protocol.proto";
-import "pbcatalog/v2beta1/service_endpoints.proto";
 import "pbmesh/v2beta1/common.proto";
 import "pbmesh/v2beta1/destination_policy.proto";
 import "pbmesh/v2beta1/grpc_route.proto";
