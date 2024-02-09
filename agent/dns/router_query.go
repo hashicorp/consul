@@ -94,6 +94,7 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 			Namespace:     labels.Namespace,
 			Partition:     labels.Partition,
 			SamenessGroup: labels.SamenessGroup,
+			Datacenter:    reqCtx.DefaultDatacenter,
 		}, nil
 	}
 
@@ -108,8 +109,19 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 		Namespace:  labels.Namespace,
 		Partition:  labels.Partition,
 		Peer:       labels.Peer,
-		Datacenter: labels.Datacenter,
+		Datacenter: getEffectiveDatacenter(labels, reqCtx.DefaultDatacenter),
 	}, nil
+}
+
+// getEffectiveDatacenter returns the effective datacenter from the parsed labels.
+func getEffectiveDatacenter(labels *parsedLabels, defaultDC string) string {
+	switch {
+	case labels.Datacenter != "":
+		return labels.Datacenter
+	case labels.PeerOrDatacenter != "" && labels.Peer != labels.PeerOrDatacenter:
+		return labels.PeerOrDatacenter
+	}
+	return defaultDC
 }
 
 // getQueryTypePartsAndSuffixesFromDNSMessage returns the query type, the parts, and suffixes of the query name.
