@@ -1006,3 +1006,33 @@ func (msg *JWTCacheConfig) MarshalBinary() ([]byte, error) {
 func (msg *JWTCacheConfig) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ExportedServices) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ExportedServices) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ExportedServicesService) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ExportedServicesService) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ExportedServicesConsumer) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ExportedServicesConsumer) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}

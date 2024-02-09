@@ -526,7 +526,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-	if err := config.CheckACL(); err != nil {
+	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
 
@@ -1008,7 +1008,6 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager)
-		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err
@@ -1044,9 +1043,11 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		})
 
 		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
+		multicluster.RegisterControllers(s.controllerManager)
+	} else {
+		shim := NewExportedServicesShim(s)
+		multicluster.RegisterCompatControllers(s.controllerManager, multicluster.DefaultCompatControllerDependencies(shim))
 	}
-
-	multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(&V1ServiceExportsShim{s: s}))
 
 	reaper.RegisterControllers(s.controllerManager)
 

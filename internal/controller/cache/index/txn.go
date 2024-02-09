@@ -12,7 +12,7 @@ import (
 
 type txn struct {
 	inner *iradix.Txn[[]*pbresource.Resource]
-	index *Index
+	index *IndexedData
 	dirty bool
 }
 

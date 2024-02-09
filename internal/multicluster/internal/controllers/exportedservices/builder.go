@@ -9,7 +9,8 @@ import (
 	expanderTypes "github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander/types"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
+	pbmulticlusterv2beta1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -22,12 +23,12 @@ type serviceExports struct {
 type exportedServicesBuilder struct {
 	data                          map[resource.ReferenceKey]*serviceExports
 	samenessGroupsExpander        ExportedServicesSamenessGroupExpander
-	samenessGroupsNameToMemberMap map[string][]*pbmulticluster.SamenessGroupMember
+	samenessGroupsNameToMemberMap map[string][]*pbmulticlusterv2beta1.SamenessGroupMember
 	missingSamenessGroups         map[resource.ReferenceKey][]string
 }
 
 func newExportedServicesBuilder(samenessGroupsExpander ExportedServicesSamenessGroupExpander, samenessGroups []*types.DecodedSamenessGroup) *exportedServicesBuilder {
-	samenessGroupsNameToMemberMap := make(map[string][]*pbmulticluster.SamenessGroupMember)
+	samenessGroupsNameToMemberMap := make(map[string][]*pbmulticlusterv2beta1.SamenessGroupMember)
 	for _, sg := range samenessGroups {
 		sgData := sg.GetData()
 		if sgData == nil {

@@ -7,11 +7,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"flag"
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -353,7 +351,7 @@ func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, err
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{})
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{}, nil)
 	proxyUpdater := proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{})
 	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, proxyUpdater)
 	if err != nil {
@@ -2296,37 +2294,34 @@ func TestServer_addServerTLSInfo(t *testing.T) {
 	}
 }
 
-// goldenMarkdown reads and optionally writes the expected data to the goldenMarkdown file,
-// returning the contents as a string.
-func goldenMarkdown(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".md")
-	update := flag.Lookup("update").Value.(flag.Getter).Get().(bool)
-	if update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
-
 func TestServer_ControllerDependencies(t *testing.T) {
-	t.Parallel()
+	// The original goal of this test was to track controller/resource type dependencies
+	// as they change over time. However, the test is difficult to maintain and provides
+	// only limited value as we were not even performing validations on them. The Server
+	// type itself will validate that no cyclical dependencies exist so this test really
+	// only produces a visual representation of the dependencies. That comes at the expense
+	// of having to maintain the golden files. What further complicates this is that
+	// Consul Enterprise will have potentially different dependencies that don't exist
+	// in CE. Therefore if we want to maintain this test, we would need to have a separate
+	// Enterprise and CE golden files and any CE PR which causes regeneration of the golden
+	// file would require another commit in enterprise to regen the enterprise golden file
+	// even if no new enterprise watches were added.
+	//
+	// Therefore until we have a better way of managing this, the test will be skipped.
+	t.Skip("This test would be very difficult to maintain and provides limited value")
 
 	_, conf := testServerConfig(t)
 	deps := newDefaultDeps(t, conf)
-	deps.Experiments = []string{"resource-apis"}
+	deps.Experiments = []string{"resource-apis", "v2tenancy"}
 	deps.LeafCertManager = &leafcert.Manager{}
 
 	s1, err := newServerWithDeps(t, conf, deps)
 	require.NoError(t, err)
 
 	waitForLeaderEstablishment(t, s1)
-	actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
-	expected := goldenMarkdown(t, "v2-resource-dependencies", actual)
-	require.Equal(t, expected, actual)
+	// gotest.tools/v3 defines CLI flags which are incompatible wit the golden package
+	// Once we eliminate gotest.tools/v3 from usage within Consul we could uncomment this
+	// actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
+	// expected := golden.Get(t, actual, "v2-resource-dependencies")
+	// require.Equal(t, expected, actual)
 }

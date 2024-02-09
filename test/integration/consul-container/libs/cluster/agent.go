@@ -29,6 +29,7 @@ type Agent interface {
 	GetAgentName() string
 	GetPartition() string
 	GetPod() testcontainers.Container
+	GetConsulContainer() testcontainers.Container
 	Logs(context.Context) (io.ReadCloser, error)
 	ClaimAdminPort() (int, error)
 	GetConfig() Config

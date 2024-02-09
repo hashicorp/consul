@@ -10,7 +10,8 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	expanderTypes "github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander/types"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
+	pbmulticlusterv2beta1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 )
 
 type SamenessGroupExpander struct{}
@@ -23,7 +24,7 @@ func (sg *SamenessGroupExpander) List(_ context.Context, _ controller.Runtime, _
 	return nil, nil
 }
 
-func (sg *SamenessGroupExpander) Expand(consumers []*pbmulticluster.ExportedServicesConsumer, _ map[string][]*pbmulticluster.SamenessGroupMember) (*expanderTypes.ExpandedConsumers, error) {
+func (sg *SamenessGroupExpander) Expand(consumers []*pbmulticluster.ExportedServicesConsumer, _ map[string][]*pbmulticlusterv2beta1.SamenessGroupMember) (*expanderTypes.ExpandedConsumers, error) {
 	peers := make([]string, 0)
 	peersMap := make(map[string]struct{})
 	for _, c := range consumers {

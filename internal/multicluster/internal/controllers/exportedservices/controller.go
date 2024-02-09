@@ -17,7 +17,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
+	pbmulticlusterv2beta1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -30,7 +31,7 @@ type ExportedServicesSamenessGroupExpander interface {
 	// them as individual slices
 	//
 	// It also returns back the list of sameness group names that can't be resolved.
-	Expand([]*pbmulticluster.ExportedServicesConsumer, map[string][]*pbmulticluster.SamenessGroupMember) (*expanderTypes.ExpandedConsumers, error)
+	Expand([]*pbmulticluster.ExportedServicesConsumer, map[string][]*pbmulticlusterv2beta1.SamenessGroupMember) (*expanderTypes.ExpandedConsumers, error)
 
 	// List returns the list of sameness groups present in a given partition
 	List(context.Context, controller.Runtime, controller.Request) ([]*types.DecodedSamenessGroup, error)

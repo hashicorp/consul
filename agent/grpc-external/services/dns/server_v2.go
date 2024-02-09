@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/agent/discovery"
+	"github.com/hashicorp/go-hclog"
+
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/proto-public/pbdns"
 )
@@ -73,7 +73,7 @@ func (s *ServerV2) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Q
 	}
 
 	// TODO (v2-dns): parse token and other context metadata from the grpc request/metadata
-	reqCtx := discovery.Context{
+	reqCtx := agentdns.Context{
 		Token: s.TokenFunc(),
 	}
 

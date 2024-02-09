@@ -303,15 +303,16 @@ func TestSetup(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			var fn AdditionalRulesFn
 			if c.additionalRules != nil {
-				c.cfg.AddAdditionalRulesFn = func(provider Provider) {
+				fn = func(provider Provider) {
 					for _, rule := range c.additionalRules {
 						provider.AddRule(rule[0], rule[1:]...)
 					}
 				}
 			}
 
-			err := Setup(c.cfg)
+			err := SetupWithAdditionalRules(c.cfg, fn)
 			require.NoError(t, err)
 			require.Equal(t, c.expectedRules, c.cfg.IptablesProvider.Rules())
 		})

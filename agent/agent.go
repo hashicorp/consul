@@ -718,6 +718,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				Time:    a.config.GRPCKeepaliveInterval,
 				Timeout: a.config.GRPCKeepaliveTimeout,
 			},
+			nil,
 		)
 
 		if a.baseDeps.UseV2Resources() {
@@ -754,6 +755,11 @@ func (a *Agent) Start(ctx context.Context) error {
 			return fmt.Errorf("can't start agent: client agents are not supported with v2 resources")
 		}
 
+		// the conn is used to connect to the consul server agent
+		conn, err := a.baseDeps.GRPCConnPool.ClientConn(a.baseDeps.RuntimeConfig.Datacenter)
+		if err != nil {
+			return err
+		}
 		a.externalGRPCServer = external.NewServer(
 			a.logger.Named("grpc.external"),
 			metrics.Default(),
@@ -763,6 +769,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				Time:    a.config.GRPCKeepaliveInterval,
 				Timeout: a.config.GRPCKeepaliveTimeout,
 			},
+			conn,
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
@@ -804,6 +811,15 @@ func (a *Agent) Start(ctx context.Context) error {
 	intentionDefaultAllow, err := a.config.ACLResolverSettings.IsDefaultAllow()
 	if err != nil {
 		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
+	}
+
+	// If DefaultIntentionPolicy is defined, it should override
+	// the values inherited from ACLDefaultPolicy.
+	switch a.config.DefaultIntentionPolicy {
+	case "allow":
+		intentionDefaultAllow = true
+	case "deny":
+		intentionDefaultAllow = false
 	}
 
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
@@ -1104,7 +1120,7 @@ func (a *Agent) listenAndServeV2DNS() error {
 
 	// Check the catalog version and decide which implementation of the data fetcher to implement
 	if a.baseDeps.UseV2Resources() {
-		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config)
+		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config, a.delegate.ResourceServiceClient(), a.logger.Named("catalog-data-fetcher"))
 	} else {
 		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config,
 			a.AgentEnterpriseMeta(),
@@ -4740,8 +4756,8 @@ func (a *Agent) proxyDataSources(server *consul.Server) proxycfg.DataSources {
 		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.HTTPChecks = proxycfgglue.ServerHTTPChecks(deps, a.config.NodeName, proxycfgglue.CacheHTTPChecks(a.cache), a.State)
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
-		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
-		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps)
+		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps, a.config.DefaultIntentionPolicy)
+		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps, a.config.DefaultIntentionPolicy)
 		sources.InternalServiceDump = proxycfgglue.ServerInternalServiceDump(deps, proxycfgglue.CacheInternalServiceDump(a.cache))
 		sources.PeeringList = proxycfgglue.ServerPeeringList(deps)
 		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)

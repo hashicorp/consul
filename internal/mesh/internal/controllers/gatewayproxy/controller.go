@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -79,27 +79,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 
-	// TODO NET-7014 Determine what gateway controls this workload
-	// For now, we cheat by knowing the MeshGateway's name, type + tenancy ahead of time
-	gatewayID := &pbresource.ID{
-		Name:    "mesh-gateway",
-		Type:    pbmesh.MeshGatewayType,
-		Tenancy: resource.DefaultPartitionedTenancy(),
-	}
-
-	// Check if the gateway exists.
-	gateway, err := dataFetcher.FetchMeshGateway(ctx, gatewayID)
-	if err != nil {
-		rt.Logger.Error("error reading the associated gateway", "error", err)
-		return err
-	}
-	if gateway == nil {
-		// If gateway has been deleted, then return as ProxyStateTemplate should be
-		// cleaned up by the garbage collector because of the owner reference.
-		rt.Logger.Trace("gateway doesn't exist; skipping reconciliation", "gateway", gatewayID)
-		return nil
-	}
-
 	proxyStateTemplate, err := dataFetcher.FetchProxyStateTemplate(ctx, req.ID)
 	if err != nil {
 		rt.Logger.Error("error reading proxy state template", "error", err)
@@ -119,6 +98,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Type: pbmulticluster.ComputedExportedServicesType,
 	}
 
+	// This covers any incoming requests from outside my partition to services inside my partition
 	var exportedServices []*pbmulticluster.ComputedExportedService
 	dec, err := dataFetcher.FetchComputedExportedServices(ctx, exportedServicesID)
 	if err != nil {
@@ -129,13 +109,27 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		exportedServices = dec.Data.Services
 	}
 
+	// This covers any incoming requests from inside my partition to services outside my partition
+	meshGateways, err := dataFetcher.FetchMeshGateways(ctx)
+	if err != nil {
+		rt.Logger.Warn("error reading the associated mesh gateways", "error", err)
+	}
+
+	var remoteGatewayIDs []*pbresource.ID
+	for _, meshGateway := range meshGateways {
+		// If this is the mesh gateway in my local partition + datacenter, skip
+		if meshGateway.Id.Tenancy.Partition != req.ID.Tenancy.Partition {
+			remoteGatewayIDs = append(remoteGatewayIDs, meshGateway.Id)
+		}
+	}
+
 	trustDomain, err := r.getTrustDomain()
 	if err != nil {
 		rt.Logger.Error("error fetching trust domain to compute proxy state template", "error", err)
 		return err
 	}
 
-	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
+	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain, remoteGatewayIDs).Build()
 
 	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {

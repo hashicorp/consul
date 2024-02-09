@@ -9,6 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+
 	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -16,9 +20,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
 )
 
 var (
@@ -151,13 +152,25 @@ func watchListEvents(t testutil.TestingTB, events ...*pbresource.WatchEvent) pbr
 
 	// Return the events in the specified order as soon as they are requested
 	for _, event := range events {
+		evt := event
 		watchListClient.EXPECT().
 			Recv().
 			RunAndReturn(func() (*pbresource.WatchEvent, error) {
-				return event, nil
+				return evt, nil
 			}).
 			Once()
 	}
+
+	watchListClient.EXPECT().
+		Recv().
+		RunAndReturn(func() (*pbresource.WatchEvent, error) {
+			return &pbresource.WatchEvent{
+				Event: &pbresource.WatchEvent_EndOfSnapshot_{
+					EndOfSnapshot: &pbresource.WatchEvent_EndOfSnapshot{},
+				},
+			}, nil
+		}).
+		Once()
 
 	// Now that all specified events have been exhausted we loop until the test finishes
 	// and the context bound to the tests lifecycle has been cancelled. This prevents getting
@@ -194,17 +207,27 @@ func TestControllerRuntimeMemoryCloning(t *testing.T) {
 
 	// Create the v1 watch list client to be returned when the controller runner
 	// calls WatchList on the v1 testing type.
-	v1WatchListClient := watchListEvents(t, &pbresource.WatchEvent{
-		Operation: pbresource.WatchEvent_OPERATION_UPSERT,
-		Resource:  res1,
-	})
+	v1WatchListClientCreate := func() pbresource.ResourceService_WatchListClient {
+		return watchListEvents(t, &pbresource.WatchEvent{
+			Event: &pbresource.WatchEvent_Upsert_{
+				Upsert: &pbresource.WatchEvent_Upsert{
+					Resource: res1,
+				},
+			},
+		})
+	}
 
 	// Create the v2 watch list client to be returned when the controller runner
 	// calls WatchList on the v2 testing type.
-	v2WatchListClient := watchListEvents(t, nil, &pbresource.WatchEvent{
-		Operation: pbresource.WatchEvent_OPERATION_UPSERT,
-		Resource:  res2,
-	})
+	v2WatchListClientCreate := func() pbresource.ResourceService_WatchListClient {
+		return watchListEvents(t, nil, &pbresource.WatchEvent{
+			Event: &pbresource.WatchEvent_Upsert_{
+				Upsert: &pbresource.WatchEvent_Upsert{
+					Resource: res2,
+				},
+			},
+		})
+	}
 
 	// Create the mock resource service client
 	mres := mockpbresource.NewResourceServiceClient(t)
@@ -218,8 +241,10 @@ func TestControllerRuntimeMemoryCloning(t *testing.T) {
 				Namespace: storage.Wildcard,
 			},
 		}).
-		Return(v2WatchListClient, nil).
-		Once()
+		RunAndReturn(func(_ context.Context, _ *pbresource.WatchListRequest, _ ...grpc.CallOption) (pbresource.ResourceService_WatchListClient, error) {
+			return v2WatchListClientCreate(), nil
+		}).
+		Twice() // once for cache prime, once for the rest
 
 	// Setup the expectation for the controller runner to issue a WatchList
 	// request for the secondary Watch type (fake v1 type)
@@ -231,8 +256,10 @@ func TestControllerRuntimeMemoryCloning(t *testing.T) {
 				Namespace: storage.Wildcard,
 			},
 		}).
-		Return(v1WatchListClient, nil).
-		Once()
+		RunAndReturn(func(_ context.Context, _ *pbresource.WatchListRequest, _ ...grpc.CallOption) (pbresource.ResourceService_WatchListClient, error) {
+			return v1WatchListClientCreate(), nil
+		}).
+		Twice() // once for cache prime, once for the rest
 
 	// The cloning resource clients will forward actual calls onto the main resource service client.
 	// Here we are configuring the service mock to return either of the resources depending on the
@@ -292,10 +319,15 @@ func TestControllerRunnerSharedMemoryCache(t *testing.T) {
 
 	// Create the v2 watch list client to be returned when the controller runner
 	// calls WatchList on the v2 testing type.
-	v2WatchListClient := watchListEvents(t, nil, &pbresource.WatchEvent{
-		Operation: pbresource.WatchEvent_OPERATION_UPSERT,
-		Resource:  res,
-	})
+	v2WatchListClientCreate := func() pbresource.ResourceService_WatchListClient {
+		return watchListEvents(t, nil, &pbresource.WatchEvent{
+			Event: &pbresource.WatchEvent_Upsert_{
+				Upsert: &pbresource.WatchEvent_Upsert{
+					Resource: res,
+				},
+			},
+		})
+	}
 
 	// Create the mock resource service client
 	mres := mockpbresource.NewResourceServiceClient(t)
@@ -309,8 +341,10 @@ func TestControllerRunnerSharedMemoryCache(t *testing.T) {
 				Namespace: storage.Wildcard,
 			},
 		}).
-		Return(v2WatchListClient, nil).
-		Once()
+		RunAndReturn(func(_ context.Context, _ *pbresource.WatchListRequest, _ ...grpc.CallOption) (pbresource.ResourceService_WatchListClient, error) {
+			return v2WatchListClientCreate(), nil
+		}).
+		Twice() // once for cache prime, once for the rest
 
 	// The cloning resource clients will forward actual calls onto the main resource service client.
 	// Here we are configuring the service mock to return our singular resource always.
