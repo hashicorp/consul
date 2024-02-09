@@ -12,9 +12,11 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
@@ -306,6 +308,94 @@ func TestGetSourceWorkloadIdentitiesFromCTP(t *testing.T) {
 			expectExact: []*pbresource.Reference{
 				newRef("dib"),
 				newRef("gaz"),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestGetBackendServiceRefsFromComputedRoutes(t *testing.T) {
+	type testcase struct {
+		cr     *types.DecodedComputedRoutes
+		expect []*pbresource.Reference
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		got := getBackendServiceRefsFromComputedRoutes(tc.cr)
+		prototest.AssertElementsMatch(t, tc.expect, got)
+	}
+
+	tenancy := resource.DefaultNamespacedTenancy()
+
+	newRef := func(name string) *pbresource.Reference {
+		return &pbresource.Reference{
+			Type:    pbcatalog.ServiceType,
+			Tenancy: tenancy,
+			Name:    name,
+		}
+	}
+
+	cr1 := resourcetest.Resource(pbmesh.ComputedRoutesType, "cr1").
+		WithTenancy(tenancy).
+		WithData(t, &pbmesh.ComputedRoutes{
+			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+				"http": {
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						"opaque1": {
+							BackendRef: &pbmesh.BackendReference{Ref: newRef("aaa")},
+						},
+					},
+				},
+			},
+		}).
+		Build()
+
+	cr2 := resourcetest.Resource(pbmesh.ComputedRoutesType, "cr2").
+		WithTenancy(tenancy).
+		WithData(t, &pbmesh.ComputedRoutes{
+			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+				"http": {
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						"opaque1": {
+							BackendRef: &pbmesh.BackendReference{Ref: newRef("aaa")},
+						},
+						"opaque2": {
+							BackendRef: &pbmesh.BackendReference{Ref: newRef("bbb")},
+						},
+					},
+				},
+				"grpc": {
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						"opaque2": {
+							BackendRef: &pbmesh.BackendReference{Ref: newRef("bbb")},
+						},
+						"opaque3": {
+							BackendRef: &pbmesh.BackendReference{Ref: newRef("ccc")},
+						},
+					},
+				},
+			},
+		}).
+		Build()
+
+	cases := map[string]testcase{
+		"one": {
+			cr: resourcetest.MustDecode[*pbmesh.ComputedRoutes](t, cr1),
+			expect: []*pbresource.Reference{
+				newRef("aaa"),
+			},
+		},
+		"two": {
+			cr: resourcetest.MustDecode[*pbmesh.ComputedRoutes](t, cr2),
+			expect: []*pbresource.Reference{
+				newRef("aaa"),
+				newRef("bbb"),
+				newRef("ccc"),
 			},
 		},
 	}
