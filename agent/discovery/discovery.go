@@ -105,13 +105,16 @@ const (
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Service    *Location         // The name and address of the service.
-	Node       *Location         // The name and address of the node.
-	PortName   string            // Used to generate a fgdn when a specifc port was queried
-	PortNumber uint32            // SRV queries
-	Metadata   map[string]string // Used to collect metadata into TXT Records
-	Type       ResultType        // Used to reconstruct the fqdn name of the resource
-	DNS        DNSConfig         // Used for DNS-specific configuration for this result
+	Service  *Location         // The name and address of the service.
+	Node     *Location         // The name and address of the node.
+	Weight   uint32            // SRV queries
+	Metadata map[string]string // Used to collect metadata into TXT Records
+	Type     ResultType        // Used to reconstruct the fqdn name of the resource
+	DNS      DNSConfig         // Used for DNS-specific configuration for this result
+
+	// Ports include anything the node/service/workload implements. These are filtered if requested by the client.
+	// They are used in to generate the FQDN and SRV port numbers in V2 Catalog responses.
+	Ports []Port
 
 	Tenancy ResultTenancy
 }
@@ -125,6 +128,11 @@ type Location struct {
 type DNSConfig struct {
 	TTL    *uint32 // deprecated: use for V1 prepared queries only
 	Weight uint32  // SRV queries
+}
+
+type Port struct {
+	Name   string
+	Number uint32
 }
 
 // ResultTenancy is used to reconstruct the fqdn name of the resource.
