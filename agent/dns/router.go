@@ -7,12 +7,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/acl"
 	"net"
 	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/consul/acl"
 
 	"github.com/armon/go-radix"
 	"github.com/miekg/dns"
@@ -51,8 +52,9 @@ var (
 
 // Context is used augment a DNS message with Consul-specific metadata.
 type Context struct {
-	Token            string
-	DefaultPartition string
+	Token             string
+	DefaultPartition  string
+	DefaultDatacenter string
 }
 
 // RouterDynamicConfig is the dynamic configuration that can be hot-reloaded
@@ -198,46 +200,12 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context,
 	reqType := parseRequestType(req)
 	results, query, err := r.getQueryResults(req, reqCtx, reqType, qName, remoteAddress)
 
-	// incase of the wrapped ECSNotGlobalError, extract the error from it.
+	// in case of the wrapped ECSNotGlobalError, extract the error from it.
 	isECSGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
 	err = getErrorFromECSNotGlobalError(err)
-
 	if err != nil {
-		switch {
-		case errors.Is(err, errInvalidQuestion):
-			r.logger.Error("invalid question", "name", qName)
-
-			ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
-			return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, ecsGlobal)
-		case errors.Is(err, errNameNotFound):
-			r.logger.Error("name not found", "name", qName)
-
-			ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
-			return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, ecsGlobal)
-		case errors.Is(err, errNotImplemented):
-			r.logger.Error("query not implemented", "name", qName, "type", dns.Type(req.Question[0].Qtype).String())
-
-			ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
-			return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNotImplemented, ecsGlobal)
-		case errors.Is(err, discovery.ErrNotSupported):
-			r.logger.Debug("query name syntax not supported", "name", req.Question[0].Name)
-
-			ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
-			return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, ecsGlobal)
-		case errors.Is(err, discovery.ErrNotFound):
-			r.logger.Debug("query name not found", "name", req.Question[0].Name)
-
-			ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
-			return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, ecsGlobal)
-		case errors.Is(err, discovery.ErrNoData):
-			r.logger.Debug("no data available", "name", qName)
-
-			ecsGlobal := !errors.Is(err, discovery.ErrECSNotGlobal)
-			return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeSuccess, ecsGlobal)
-		default:
-			r.logger.Error("error processing discovery query", "error", err)
-			return createServerFailureResponse(req, configCtx, canRecurse(configCtx))
-		}
+		return r.generateResponseFromError(req, err, qName, configCtx, responseDomain,
+			isECSGlobal, query, canRecurse(configCtx))
 	}
 
 	// This needs the question information because it affects the serialization format.
@@ -245,7 +213,8 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context,
 	resp, err := r.serializeQueryResults(req, reqCtx, query, results, configCtx, responseDomain, remoteAddress, maxRecursionLevel)
 	if err != nil {
 		r.logger.Error("error serializing DNS results", "error", err)
-		return createServerFailureResponse(req, configCtx, false)
+		return r.generateResponseFromError(req, err, qName, configCtx, responseDomain,
+			false, query, false)
 	}
 
 	// Switch to TCP if the client is
@@ -258,6 +227,47 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context,
 
 	setEDNS(req, resp, isECSGlobal)
 	return resp
+}
+
+// generateResponseFromError generates a response from an error.
+func (r *Router) generateResponseFromError(req *dns.Msg, err error, qName string,
+	configCtx *RouterDynamicConfig, responseDomain string, isECSGlobal bool,
+	query *discovery.Query, canRecurse bool) *dns.Msg {
+	switch {
+	case errors.Is(err, errInvalidQuestion):
+		r.logger.Error("invalid question", "name", qName)
+
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, isECSGlobal)
+	case errors.Is(err, errNameNotFound):
+		r.logger.Error("name not found", "name", qName)
+
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, isECSGlobal)
+	case errors.Is(err, errNotImplemented):
+		r.logger.Error("query not implemented", "name", qName, "type", dns.Type(req.Question[0].Qtype).String())
+
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNotImplemented, isECSGlobal)
+	case errors.Is(err, discovery.ErrNotSupported):
+		r.logger.Debug("query name syntax not supported", "name", req.Question[0].Name)
+
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, isECSGlobal)
+	case errors.Is(err, discovery.ErrNotFound):
+		r.logger.Debug("query name not found", "name", req.Question[0].Name)
+
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, isECSGlobal)
+	case errors.Is(err, discovery.ErrNoData):
+		r.logger.Debug("no data available", "name", qName)
+
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeSuccess, isECSGlobal)
+	case errors.Is(err, discovery.ErrNoPathToDatacenter):
+		dc := ""
+		if query != nil {
+			dc = query.QueryPayload.Tenancy.Datacenter
+		}
+		r.logger.Debug("no path to datacenter", "datacenter", dc)
+		return createAuthoritativeResponse(req, configCtx, responseDomain, dns.RcodeNameError, isECSGlobal)
+	}
+	r.logger.Error("error processing discovery query", "error", err)
+	return createServerFailureResponse(req, configCtx, canRecurse)
 }
 
 // trimDomain trims the domain from the question name.
@@ -511,6 +521,10 @@ func (r *Router) serializeQueryResults(req *dns.Msg, reqCtx Context,
 		r.appendResultsToDNSResponse(req, reqCtx, query, resp, results, cfg, responseDomain, remoteAddress, maxRecursionLevel)
 	}
 
+	if len(resp.Answer) == 0 && len(resp.Extra) == 0 {
+		return nil, discovery.ErrNoData
+	}
+
 	return resp, nil
 }
 
@@ -575,7 +589,8 @@ func (r *Router) appendResultsToDNSResponse(req *dns.Msg, reqCtx Context,
 // defaultAgentDNSRequestContext returns a default request context based on the agent's config.
 func (r *Router) defaultAgentDNSRequestContext() Context {
 	return Context{
-		Token: r.tokenFunc(),
+		Token:             r.tokenFunc(),
+		DefaultDatacenter: r.datacenter,
 		// We don't need to specify the agent's partition here because that will be handled further down the stack
 		// in the query processor.
 	}
@@ -1064,8 +1079,19 @@ func shouldAppendTXTRecord(query *discovery.Query, cfg *RouterDynamicConfig, req
 
 // getAnswerExtrasForIP creates the dns answer and extra from IP dnsAddress pairs.
 func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
-	reqType requestType, result *discovery.Result, ttl uint32, _ string) (answer []dns.RR, extra []dns.RR) {
+	reqType requestType, result *discovery.Result, ttl uint32, domain string) (answer []dns.RR, extra []dns.RR) {
 	qType := question.Qtype
+	canReturnARecord := qType == dns.TypeSRV || qType == dns.TypeA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
+	canReturnAAAARecord := qType == dns.TypeSRV || qType == dns.TypeAAAA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
+	if reqType != requestTypeAddress {
+		switch {
+		// check IPV4
+		case addr.IsIP() && addr.IsIPV4() && !canReturnARecord,
+			// check IPV6
+			addr.IsIP() && !addr.IsIPV4() && !canReturnAAAARecord:
+			return
+		}
+	}
 
 	// Have to pass original question name here even if the system has recursed
 	// and stripped off the domain suffix.
@@ -1078,6 +1104,17 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
 			recHdrName = name
 		}
 		name = question.Name
+	}
+
+	if reqType != requestTypeAddress && qType == dns.TypeSRV {
+		if result.Type == discovery.ResultTypeService && addr.IsIP() && result.Service.
+			Address == addr.String() {
+			// encode the ip to be used in the header of the A/AAAA record
+			// as well as the target of the SRV record.
+			recHdrName = encodeIPAsFqdn(result, addr.IP(), domain)
+		}
+		srv := makeSRVRecord(name, recHdrName, result, ttl)
+		answer = append(answer, srv)
 	}
 
 	record := makeIPBasedRecord(recHdrName, addr, ttl)
@@ -1093,10 +1130,6 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
 		answer = append(answer, record)
 	}
 
-	if reqType != requestTypeAddress && qType == dns.TypeSRV {
-		srv := makeSRVRecord(name, recHdrName, result, ttl)
-		answer = append(answer, srv)
-	}
 	return
 }
 

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -90,6 +91,8 @@ func (f *V1DataFetcher) LoadConfig(config *config.RuntimeConfig) {
 		cacheMaxAge: config.DNSCacheMaxAge,
 		onlyPassing: config.DNSOnlyPassing,
 		datacenter:  config.Datacenter,
+		segmentName: config.SegmentName,
+		nodeName:    config.NodeName,
 	}
 	f.dynamicConfig.Store(dynamicConfig)
 }
@@ -142,11 +145,7 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 func (f *V1DataFetcher) FetchEndpoints(ctx Context, req *QueryPayload, lookupType LookupType) ([]*Result, error) {
 	f.logger.Debug(fmt.Sprintf("FetchEndpoints - req: %+v / lookupType: %+v", req, lookupType))
 	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
-	if lookupType == LookupTypeService {
-		return f.fetchService(ctx, req, cfg)
-	}
-
-	return nil, errors.New(fmt.Sprintf("unsupported lookup type: %s", lookupType))
+	return f.fetchService(ctx, req, cfg, lookupType)
 }
 
 // FetchVirtualIP fetches A/AAAA records for virtual IPs
@@ -341,7 +340,7 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		return nil, ECSNotGlobalError{ErrNoData}
+		return nil, ECSNotGlobalError{ErrNotFound}
 	}
 
 	// Perform a random shuffle
@@ -475,17 +474,19 @@ RPC:
 	return &out, nil
 }
 
-func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload, cfg *v1DataFetcherDynamicConfig) ([]*Result, error) {
+func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload,
+	cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
 	f.logger.Debug("fetchService", "req", req)
 	if req.Tenancy.SamenessGroup == "" {
-		return f.fetchServiceBasedOnTenancy(ctx, req, cfg)
+		return f.fetchServiceBasedOnTenancy(ctx, req, cfg, lookupType)
 	}
 
-	return f.fetchServiceFromSamenessGroup(ctx, req, cfg)
+	return f.fetchServiceFromSamenessGroup(ctx, req, cfg, lookupType)
 }
 
 // fetchServiceBasedOnTenancy is used to look up a service in the Consul catalog based on its tenancy or default tenancy.
-func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayload, cfg *v1DataFetcherDynamicConfig) ([]*Result, error) {
+func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayload,
+	cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
 	f.logger.Debug(fmt.Sprintf("fetchServiceBasedOnTenancy - req: %+v", req))
 	if req.Tenancy.SamenessGroup != "" {
 		return nil, errors.New("sameness groups are not allowed for service lookups based on tenancy")
@@ -502,8 +503,8 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 	}
 	args := structs.ServiceSpecificRequest{
 		PeerName:    req.Tenancy.Peer,
-		Connect:     false,
-		Ingress:     false,
+		Connect:     lookupType == LookupTypeConnect,
+		Ingress:     lookupType == LookupTypeIngress,
 		Datacenter:  datacenter,
 		ServiceName: req.Name,
 		ServiceTags: serviceTags,
@@ -520,12 +521,15 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 
 	out, _, err := f.rpcFuncForServiceNodes(context.TODO(), args)
 	if err != nil {
+		if strings.Contains(err.Error(), structs.ErrNoDCPath.Error()) {
+			return nil, ErrNoPathToDatacenter
+		}
 		return nil, fmt.Errorf("rpc request failed: %w", err)
 	}
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		return nil, ErrNoData
+		return nil, ErrNotFound
 	}
 
 	// Filter out any service nodes due to health checks
@@ -539,7 +543,7 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		return nil, ErrNoData
+		return nil, ErrNotFound
 	}
 
 	// Perform a random shuffle
