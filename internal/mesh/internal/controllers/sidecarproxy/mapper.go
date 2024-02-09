@@ -164,15 +164,6 @@ func mapServiceThroughDestinations(cache cache.ReadOnlyCache, svcID *pbresource.
 		return nil, err
 	}
 
-	pstMap := make(map[resource.ReferenceKey]*pbresource.ID)
-	for _, dest := range explicitDests {
-		pstID := resource.ReplaceType(pbmesh.ProxyStateTemplateType, dest.Id)
-		rk := resource.NewReferenceKey(pstID)
-		if _, ok := pstMap[rk]; !ok {
-			pstMap[rk] = pstID
-		}
-	}
-
 	implicitDests, err := cache.List(
 		pbmesh.ComputedImplicitDestinationsType,
 		computedImplicitDestinationsByServiceIndex.Name(),
