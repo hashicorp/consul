@@ -244,7 +244,7 @@ func (r *reconciler) generateComputedImplicitDestinations(rt controller.Runtime,
 
 				// TODO: populate just the ports allowed by the underlying TPs.
 				implDest := &pbmesh.ImplicitDestination{
-					ServiceRef: resource.Reference(implDestSvcRef, ""),
+					DestinationRef: resource.Reference(implDestSvcRef, ""),
 				}
 
 				implDestSvc, err := cache.GetDecoded[*pbcatalog.Service](rt.Cache, pbcatalog.ServiceType, "id", implDestSvcRef)
@@ -260,7 +260,7 @@ func (r *reconciler) generateComputedImplicitDestinations(rt controller.Runtime,
 						inMesh = true
 						continue // skip
 					}
-					implDest.Ports = append(implDest.Ports, port.TargetPort)
+					implDest.DestinationPorts = append(implDest.DestinationPorts, port.TargetPort)
 				}
 				if !inMesh {
 					continue // skip
@@ -273,7 +273,7 @@ func (r *reconciler) generateComputedImplicitDestinations(rt controller.Runtime,
 				boundRefCollector.AddRefOrID(cr.Id)
 				boundRefCollector.AddRefOrID(implDestSvcRef)
 
-				sort.Strings(implDest.Ports)
+				sort.Strings(implDest.DestinationPorts)
 
 				out.Destinations = append(out.Destinations, implDest)
 				seenDest[rk] = struct{}{}
@@ -284,7 +284,7 @@ func (r *reconciler) generateComputedImplicitDestinations(rt controller.Runtime,
 	// Ensure determinstic sort so we don't get into infinite-reconcile
 	sort.Slice(out.Destinations, func(i, j int) bool {
 		a, b := out.Destinations[i], out.Destinations[j]
-		return resource.LessReference(a.ServiceRef, b.ServiceRef)
+		return resource.LessReference(a.DestinationRef, b.DestinationRef)
 	})
 
 	out.BoundReferences = boundRefCollector.List()

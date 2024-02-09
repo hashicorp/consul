@@ -16,10 +16,9 @@ message ComputedImplicitDestinations {
   repeated hashicorp.consul.resource.Reference bound_references = 2;
 }
 
-// Destination contains a reference to a catalog service and a list of port
-// names that are allowed by TrafficPermissions.
+// ImplicitDestination contains a reference to a catalog service and a list of
+// port names that are allowed by TrafficPermissions.
 message ImplicitDestination {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
-  hashicorp.consul.resource.Reference service_ref = 1;
-  repeated string ports = 2;
+  hashicorp.consul.resource.Reference destination_ref = 1;
+  repeated string destination_ports = 2;
 }

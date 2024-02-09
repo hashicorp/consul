@@ -50,100 +50,100 @@ func TestValidateComputedImplicitDestinations(t *testing.T) {
 		"svc/nil ref": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
-					{ServiceRef: nil},
+					{DestinationRef: nil},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "service_ref" field: missing required field`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid "destination_ref" field: missing required field`,
 		},
 		"svc/bad type": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
-					{ServiceRef: newRefWithTenancy(pbcatalog.WorkloadType, "default.default", "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.WorkloadType, "default.default", "api")},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "service_ref" field: invalid "type" field: reference must have type catalog.v2beta1.Service`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid "destination_ref" field: invalid "type" field: reference must have type catalog.v2beta1.Service`,
 		},
 		"svc/nil tenancy": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
-					{ServiceRef: &pbresource.Reference{Type: pbcatalog.ServiceType, Name: "api"}},
+					{DestinationRef: &pbresource.Reference{Type: pbcatalog.ServiceType, Name: "api"}},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "service_ref" field: invalid "tenancy" field: missing required field`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid "destination_ref" field: invalid "tenancy" field: missing required field`,
 		},
 		"svc/bad dest tenancy/partition": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
-					{ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, ".bar", "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, ".bar", "api")},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "service_ref" field: invalid "tenancy" field: invalid "partition" field: cannot be empty`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid "destination_ref" field: invalid "tenancy" field: invalid "partition" field: cannot be empty`,
 		},
 		"svc/bad dest tenancy/namespace": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
-					{ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, "foo", "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo", "api")},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "service_ref" field: invalid "tenancy" field: invalid "namespace" field: cannot be empty`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid "destination_ref" field: invalid "tenancy" field: invalid "namespace" field: cannot be empty`,
 		},
 		"no ports": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					{
-						ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
+						DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid "ports" field: cannot be empty`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid "destination_ports" field: cannot be empty`,
 		},
 		"bad port/empty": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					{
-						ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
-						Ports:      []string{""},
+						DestinationRef:   newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
+						DestinationPorts: []string{""},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid element at index 0 of list "ports": cannot be empty`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid element at index 0 of list "destination_ports": cannot be empty`,
 		},
 		"bad port/no letters": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					{
-						ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
-						Ports:      []string{"1234"},
+						DestinationRef:   newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
+						DestinationPorts: []string{"1234"},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid element at index 0 of list "ports": value must be 1-15 characters`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid element at index 0 of list "destination_ports": value must be 1-15 characters`,
 		},
 		"bad port/too long": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					{
-						ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
-						Ports:      []string{strings.Repeat("a", 16)},
+						DestinationRef:   newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
+						DestinationPorts: []string{strings.Repeat("a", 16)},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "destinations": invalid element at index 0 of list "ports": value must be 1-15 characters`,
+			expectErr: `invalid element at index 0 of list "destinations": invalid element at index 0 of list "destination_ports": value must be 1-15 characters`,
 		},
 		"normal": {
 			data: &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					{
-						ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
-						Ports:      []string{"p1"},
+						DestinationRef:   newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api"),
+						DestinationPorts: []string{"p1"},
 					},
 					{
-						ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.zim", "api"),
-						Ports:      []string{"p2"},
+						DestinationRef:   newRefWithTenancy(pbcatalog.ServiceType, "foo.zim", "api"),
+						DestinationPorts: []string{"p2"},
 					},
 					{
-						ServiceRef: newRefWithTenancy(pbcatalog.ServiceType, "gir.zim", "api"),
-						Ports:      []string{"p3"},
+						DestinationRef:   newRefWithTenancy(pbcatalog.ServiceType, "gir.zim", "api"),
+						DestinationPorts: []string{"p3"},
 					},
 				},
 			},

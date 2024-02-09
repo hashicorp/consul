@@ -53,25 +53,25 @@ func validateImplicitDestination(p *pbmesh.ImplicitDestination, wrapErr func(err
 
 	wrapRefErr := func(err error) error {
 		return wrapErr(resource.ErrInvalidField{
-			Name:    "service_ref",
+			Name:    "destination_ref",
 			Wrapped: err,
 		})
 	}
 
-	if refErr := catalog.ValidateLocalServiceRefNoSection(p.ServiceRef, wrapRefErr); refErr != nil {
+	if refErr := catalog.ValidateLocalServiceRefNoSection(p.DestinationRef, wrapRefErr); refErr != nil {
 		merr = multierror.Append(merr, refErr)
 	}
 
-	if len(p.Ports) == 0 {
+	if len(p.DestinationPorts) == 0 {
 		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "ports",
+			Name:    "destination_ports",
 			Wrapped: resource.ErrEmpty,
 		}))
 	} else {
-		for i, port := range p.Ports {
+		for i, port := range p.DestinationPorts {
 			if portErr := catalog.ValidatePortName(port); portErr != nil {
 				merr = multierror.Append(merr, wrapErr(resource.ErrInvalidListElement{
-					Name:    "ports",
+					Name:    "destination_ports",
 					Index:   i,
 					Wrapped: portErr,
 				}))

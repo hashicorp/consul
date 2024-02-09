@@ -379,8 +379,8 @@ func (suite *controllerSuite) TestReconcile_CIDCreate_ReferencingResourcesExist(
 		cid := suite.client.RequireResourceExists(suite.T(), resID)
 		suite.requireCID(cid, &pbmesh.ComputedImplicitDestinations{
 			Destinations: []*pbmesh.ImplicitDestination{{
-				ServiceRef: refFromID(svc[0].Id),
-				Ports:      []string{"grpc"},
+				DestinationRef:   refFromID(svc[0].Id),
+				DestinationPorts: []string{"grpc"},
 			}},
 			BoundReferences: []*pbresource.Reference{
 				refFromID(ctpID),
@@ -521,8 +521,8 @@ func (suite *controllerSuite) testReconcile_CIDCreate_IncrementalConstruction(om
 		cid := suite.client.RequireResourceExists(suite.T(), resID)
 		suite.requireCID(cid, &pbmesh.ComputedImplicitDestinations{
 			Destinations: []*pbmesh.ImplicitDestination{{
-				ServiceRef: refFromID(svc[0].Id),
-				Ports:      []string{"grpc"},
+				DestinationRef:   refFromID(svc[0].Id),
+				DestinationPorts: []string{"grpc"},
 			}},
 			BoundReferences: []*pbresource.Reference{
 				refFromID(ctpID),
@@ -683,9 +683,9 @@ func (suite *controllerSuite) TestReconcile_CIDUpdate_Multiple_Workloads_Service
 			suite.requireCID(cid, &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					// { s1, refs: wi1 }, { s1-2, refs: wi1 }, { s11-2, refs: wi1 }
-					{ServiceRef: refFromID(svc1.Id), Ports: []string{"grpc"}},
-					{ServiceRef: refFromID(svc1_2.Id), Ports: []string{"grpc"}},
-					{ServiceRef: refFromID(svc11_2.Id), Ports: []string{"grpc"}},
+					{DestinationRef: refFromID(svc1.Id), DestinationPorts: []string{"grpc"}},
+					{DestinationRef: refFromID(svc1_2.Id), DestinationPorts: []string{"grpc"}},
+					{DestinationRef: refFromID(svc11_2.Id), DestinationPorts: []string{"grpc"}},
 				},
 				BoundReferences: []*pbresource.Reference{
 					refFromID(ctpID1),
@@ -707,10 +707,10 @@ func (suite *controllerSuite) TestReconcile_CIDUpdate_Multiple_Workloads_Service
 			suite.requireCID(cid, &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					// { s1, refs: wi1 }, { s2, refs: wi2 }, { s1-2, refs: wi1, wi2 }, { s11-2, refs: wi1, wi2 }
-					{ServiceRef: refFromID(svc1.Id), Ports: []string{"grpc"}},
-					{ServiceRef: refFromID(svc1_2.Id), Ports: []string{"grpc"}},
-					{ServiceRef: refFromID(svc11_2.Id), Ports: []string{"grpc"}},
-					{ServiceRef: refFromID(svc2.Id), Ports: []string{"grpc"}},
+					{DestinationRef: refFromID(svc1.Id), DestinationPorts: []string{"grpc"}},
+					{DestinationRef: refFromID(svc1_2.Id), DestinationPorts: []string{"grpc"}},
+					{DestinationRef: refFromID(svc11_2.Id), DestinationPorts: []string{"grpc"}},
+					{DestinationRef: refFromID(svc2.Id), DestinationPorts: []string{"grpc"}},
 				},
 				BoundReferences: []*pbresource.Reference{
 					refFromID(ctpID1),
@@ -741,8 +741,8 @@ func (suite *controllerSuite) TestReconcile_CIDUpdate_Multiple_Workloads_Service
 			suite.requireCID(cid, &pbmesh.ComputedImplicitDestinations{
 				Destinations: []*pbmesh.ImplicitDestination{
 					// { s4, refs: wi4 }, { s3, refs: wi3 }
-					{ServiceRef: refFromID(svc3.Id), Ports: []string{"grpc"}},
-					{ServiceRef: refFromID(svc4.Id), Ports: []string{"grpc"}},
+					{DestinationRef: refFromID(svc3.Id), DestinationPorts: []string{"grpc"}},
+					{DestinationRef: refFromID(svc4.Id), DestinationPorts: []string{"grpc"}},
 				},
 				BoundReferences: []*pbresource.Reference{
 					refFromID(ctpID4),
@@ -847,8 +847,8 @@ func (suite *controllerSuite) TestReconcile_CIDUpdate_TrafficPermissions_Wildcar
 				cid := suite.client.RequireResourceExists(suite.T(), cidWI)
 				suite.requireCID(cid, &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{{
-						ServiceRef: refFromID(svc3.Id),
-						Ports:      []string{"grpc"},
+						DestinationRef:   refFromID(svc3.Id),
+						DestinationPorts: []string{"grpc"},
 					}},
 					BoundReferences: []*pbresource.Reference{
 						refFromID(ctpID3),
@@ -946,8 +946,8 @@ func (suite *controllerSuite) TestReconcile_CIDUpdate_TrafficPermissions_Wildcar
 				cid := suite.client.RequireResourceExists(suite.T(), cidWI)
 				suite.requireCID(cid, &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{{
-						ServiceRef: refFromID(svc3.Id),
-						Ports:      []string{"grpc"},
+						DestinationRef:   refFromID(svc3.Id),
+						DestinationPorts: []string{"grpc"},
 					}},
 					BoundReferences: []*pbresource.Reference{
 						refFromID(ctpID3),
@@ -1334,8 +1334,8 @@ func TestController_DefaultDeny(t *testing.T) {
 			testutil.RunStep(t, "wi1 can reach wi2", func(t *testing.T) {
 				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{{
-						ServiceRef: resource.Reference(svc2.Id, ""),
-						Ports:      []string{"grpc"},
+						DestinationRef:   resource.Reference(svc2.Id, ""),
+						DestinationPorts: []string{"grpc"},
 					}},
 					BoundReferences: []*pbresource.Reference{
 						resource.Reference(ctpID2, ""),
@@ -1359,12 +1359,12 @@ func TestController_DefaultDeny(t *testing.T) {
 				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{
 						{
-							ServiceRef: resource.Reference(svc2.Id, ""),
-							Ports:      []string{"grpc"},
+							DestinationRef:   resource.Reference(svc2.Id, ""),
+							DestinationPorts: []string{"grpc"},
 						},
 						{
-							ServiceRef: resource.Reference(svc3.Id, ""),
-							Ports:      []string{"grpc"},
+							DestinationRef:   resource.Reference(svc3.Id, ""),
+							DestinationPorts: []string{"grpc"},
 						},
 					},
 					BoundReferences: []*pbresource.Reference{
@@ -1385,8 +1385,8 @@ func TestController_DefaultDeny(t *testing.T) {
 				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{
 						{
-							ServiceRef: resource.Reference(svc3.Id, ""),
-							Ports:      []string{"grpc"},
+							DestinationRef:   resource.Reference(svc3.Id, ""),
+							DestinationPorts: []string{"grpc"},
 						},
 					},
 					BoundReferences: []*pbresource.Reference{
@@ -1404,12 +1404,12 @@ func TestController_DefaultDeny(t *testing.T) {
 				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{
 						{
-							ServiceRef: resource.Reference(svc2.Id, ""),
-							Ports:      []string{"grpc"},
+							DestinationRef:   resource.Reference(svc2.Id, ""),
+							DestinationPorts: []string{"grpc"},
 						},
 						{
-							ServiceRef: resource.Reference(svc3.Id, ""),
-							Ports:      []string{"grpc"},
+							DestinationRef:   resource.Reference(svc3.Id, ""),
+							DestinationPorts: []string{"grpc"},
 						},
 					},
 					BoundReferences: []*pbresource.Reference{
@@ -1430,8 +1430,8 @@ func TestController_DefaultDeny(t *testing.T) {
 				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{
 						{
-							ServiceRef: resource.Reference(svc2.Id, ""),
-							Ports:      []string{"grpc"},
+							DestinationRef:   resource.Reference(svc2.Id, ""),
+							DestinationPorts: []string{"grpc"},
 						},
 					},
 					BoundReferences: []*pbresource.Reference{
@@ -1479,12 +1479,12 @@ func TestController_DefaultDeny(t *testing.T) {
 				cidVersion1 = requireNewCIDVersion(t, client, cidID1, cidVersion1, &pbmesh.ComputedImplicitDestinations{
 					Destinations: []*pbmesh.ImplicitDestination{
 						{
-							ServiceRef: resource.Reference(svc2.Id, ""),
-							Ports:      []string{"grpc"},
+							DestinationRef:   resource.Reference(svc2.Id, ""),
+							DestinationPorts: []string{"grpc"},
 						},
 						{
-							ServiceRef: resource.Reference(svc3.Id, ""),
-							Ports:      []string{"grpc"},
+							DestinationRef:   resource.Reference(svc3.Id, ""),
+							DestinationPorts: []string{"grpc"},
 						},
 					},
 					BoundReferences: []*pbresource.Reference{
