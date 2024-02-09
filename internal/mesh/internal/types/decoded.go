@@ -19,6 +19,8 @@ type (
 	DecodedDestinationsConfiguration  = resource.DecodedResource[*pbmesh.DestinationsConfiguration]
 	DecodedComputedRoutes             = resource.DecodedResource[*pbmesh.ComputedRoutes]
 	DecodedComputedTrafficPermissions = resource.DecodedResource[*pbauth.ComputedTrafficPermissions]
+	DecodedTrafficPermissions         = resource.DecodedResource[*pbauth.TrafficPermissions]
+	DecodedComputedFailoverPolicy     = resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]
 	DecodedFailoverPolicy             = resource.DecodedResource[*pbcatalog.FailoverPolicy]
 	DecodedService                    = resource.DecodedResource[*pbcatalog.Service]
 	DecodedServiceEndpoints           = resource.DecodedResource[*pbcatalog.ServiceEndpoints]

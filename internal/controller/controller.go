@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-hclog"
 )
 
 // DependencyMapper is called when a dependency watched via WithWatch is changed
@@ -187,6 +188,27 @@ func (ctl *Controller) buildCache() cache.Cache {
 	}
 
 	return c
+}
+
+// dryRunMapper will trigger the appropriate DependencyMapper for an update of
+// the provided type and return the requested reconciles.
+//
+// This is mainly to be used by the TestController.
+func (ctl *Controller) dryRunMapper(
+	ctx context.Context,
+	rt Runtime,
+	res *pbresource.Resource,
+) ([]Request, error) {
+	if resource.EqualType(ctl.managedTypeWatch.watchedType, res.Id.Type) {
+		return nil, nil // no-op
+	}
+
+	for _, w := range ctl.watches {
+		if resource.EqualType(w.watchedType, res.Id.Type) {
+			return w.mapper(ctx, rt, res)
+		}
+	}
+	return nil, fmt.Errorf("no mapper for type: %s", resource.TypeToString(res.Id.Type))
 }
 
 // String returns a textual description of the controller, useful for debugging.

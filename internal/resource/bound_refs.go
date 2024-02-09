@@ -1,17 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package routes
+package resource
 
 import (
 	"sort"
 
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type sectionRefKey struct {
-	resource.ReferenceKey
+	ReferenceKey
 	Section string
 }
 
@@ -36,17 +35,17 @@ func (c *BoundReferenceCollector) List() []*pbresource.Reference {
 	}
 
 	sort.Slice(out, func(i, j int) bool {
-		return resource.LessReference(out[i], out[j])
+		return LessReference(out[i], out[j])
 	})
 
 	return out
 }
 
-func (c *BoundReferenceCollector) AddRefOrID(ref resource.ReferenceOrID) {
+func (c *BoundReferenceCollector) AddRefOrID(ref ReferenceOrID) {
 	if c == nil {
 		return
 	}
-	c.AddRef(resource.ReferenceFromReferenceOrID(ref))
+	c.AddRef(ReferenceFromReferenceOrID(ref))
 }
 
 func (c *BoundReferenceCollector) AddRef(ref *pbresource.Reference) {
@@ -54,7 +53,7 @@ func (c *BoundReferenceCollector) AddRef(ref *pbresource.Reference) {
 		return
 	}
 	srk := sectionRefKey{
-		ReferenceKey: resource.NewReferenceKey(ref),
+		ReferenceKey: NewReferenceKey(ref),
 		Section:      ref.Section,
 	}
 
