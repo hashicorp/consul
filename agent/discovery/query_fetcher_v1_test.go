@@ -147,8 +147,10 @@ func Test_FetchEndpoints(t *testing.T) {
 				Name:    "service-name",
 				Address: "service-address",
 			},
-			Type:   ResultTypeService,
-			Weight: 1,
+			Type: ResultTypeService,
+			DNS: DNSConfig{
+				Weight: 1,
+			},
 		},
 	}
 

@@ -502,6 +502,9 @@ func TestDNS_ServiceLookup(t *testing.T) {
 						Service: structs.ServiceQuery{
 							Service: "db",
 						},
+						DNS: structs.QueryDNSOptions{
+							TTL: "3s",
+						},
 					},
 				}
 				if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
@@ -538,9 +541,6 @@ func TestDNS_ServiceLookup(t *testing.T) {
 				if srvRec.Target != "foo.node.dc1.consul." {
 					t.Fatalf("Bad: %#v", srvRec)
 				}
-				if srvRec.Hdr.Ttl != 0 {
-					t.Fatalf("Bad: %#v", in.Answer[0])
-				}
 
 				aRec, ok := in.Extra[0].(*dns.A)
 				if !ok {
@@ -552,9 +552,24 @@ func TestDNS_ServiceLookup(t *testing.T) {
 				if aRec.A.String() != "127.0.0.1" {
 					t.Fatalf("Bad: %#v", in.Extra[0])
 				}
-				if aRec.Hdr.Ttl != 0 {
-					t.Fatalf("Bad: %#v", in.Extra[0])
+
+				if strings.Contains(question, "query") {
+					// The query should have the TTL associated with the query registration.
+					if srvRec.Hdr.Ttl != 3 {
+						t.Fatalf("Bad: %#v", in.Answer[0])
+					}
+					if aRec.Hdr.Ttl != 3 {
+						t.Fatalf("Bad: %#v", in.Extra[0])
+					}
+				} else {
+					if srvRec.Hdr.Ttl != 0 {
+						t.Fatalf("Bad: %#v", in.Answer[0])
+					}
+					if aRec.Hdr.Ttl != 0 {
+						t.Fatalf("Bad: %#v", in.Extra[0])
+					}
 				}
+
 			}
 
 			// Lookup a non-existing service/query, we should receive an SOA.
