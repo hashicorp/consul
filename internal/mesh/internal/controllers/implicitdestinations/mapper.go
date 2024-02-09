@@ -131,16 +131,11 @@ func (m *mapAndTransformer) mapBackendWorkloadIdentityToSourceWorkloadIdentity(c
 }
 
 func (m *mapAndTransformer) transformServiceToWorkloadIdentities(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]*pbresource.Resource, error) {
-	svc, err := resource.Decode[*pbcatalog.Service](res)
-	if err != nil {
-		return nil, err
-	}
-
 	// This is deliberately thin b/c WI's have no body, and we'll pass this to
 	// another transformer immediately anyway, so it's largely an opaque
 	// carrier for the WI name string only.
 
-	wiIDs := getWorkloadIdentitiesFromService(svc)
+	wiIDs := getWorkloadIdentitiesFromService(res)
 
 	out := make([]*pbresource.Resource, 0, len(wiIDs))
 	for _, wiID := range wiIDs {

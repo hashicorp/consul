@@ -10,8 +10,10 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -28,6 +30,9 @@ func ReconcileComputedTrafficPermissions(
 	// TODO: allow this to take a nil client and still execute all of the proper validations etc.
 
 	require.True(t, resource.EqualType(pbauth.ComputedTrafficPermissionsType, id.GetType()))
+
+	registry := resource.NewRegistry()
+	auth.RegisterTypes(registry)
 
 	merged := &pbauth.ComputedTrafficPermissions{}
 	added := false
@@ -46,8 +51,8 @@ func ReconcileComputedTrafficPermissions(
 		res := rtest.Resource(pbauth.TrafficPermissionsType, name).
 			WithTenancy(id.Tenancy).
 			WithData(t, tp).
-			Write(t, client)
-		client.MustDelete(t, res.Id)
+			Build()
+		resourcetest.ValidateAndNormalize(t, registry, res)
 
 		dec := rtest.MustDecode[*pbauth.TrafficPermissions](t, res)
 
@@ -67,6 +72,17 @@ func ReconcileComputedTrafficPermissions(
 		merged.IsDefault = true
 	}
 
-	res := rtest.ResourceID(id).WithData(t, merged).Write(t, client)
+	var res *pbresource.Resource
+	if client != nil {
+		res = rtest.ResourceID(id).
+			WithData(t, merged).
+			Write(t, client)
+	} else {
+		res = rtest.ResourceID(id).
+			WithData(t, merged).
+			Build()
+		resourcetest.ValidateAndNormalize(t, registry, res)
+	}
+
 	return rtest.MustDecode[*pbauth.ComputedTrafficPermissions](t, res)
 }

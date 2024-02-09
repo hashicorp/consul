@@ -36,7 +36,7 @@ var boundRefsIndex = indexers.BoundRefsIndex[*pbmesh.ComputedImplicitDestination
 var serviceByWorkloadIdentityIndex = indexers.RefOrIDIndex(
 	"service-by-workload-identity",
 	func(svc *types.DecodedService) []*pbresource.Reference {
-		return getWorkloadIdentitiesFromService(svc)
+		return getWorkloadIdentitiesFromService(svc.Resource)
 	},
 )
 
@@ -116,8 +116,8 @@ var computedRoutesByBackendServiceIndex = indexers.RefOrIDIndex(
 	},
 )
 
-func getWorkloadIdentitiesFromService(svc *types.DecodedService) []*pbresource.Reference {
-	ids := catalog.GetBoundIdentities(svc.Resource)
+func getWorkloadIdentitiesFromService(svc *pbresource.Resource) []*pbresource.Reference {
+	ids := catalog.GetBoundIdentities(svc)
 
 	out := make([]*pbresource.Reference, 0, len(ids))
 	for _, id := range ids {
@@ -181,7 +181,18 @@ func getSourceWorkloadIdentitiesFromCTP(
 		}
 	}
 
-	return out, maps.Values(wildNameInNS), maps.Keys(wildNSInPartition)
+	var (
+		sliceWildNameInNS      []*pbresource.Tenancy
+		sliceWildNSInPartition []string
+	)
+	if len(wildNameInNS) > 0 {
+		sliceWildNameInNS = maps.Values(wildNameInNS)
+	}
+	if len(wildNSInPartition) > 0 {
+		sliceWildNSInPartition = maps.Keys(wildNSInPartition)
+	}
+
+	return out, sliceWildNameInNS, sliceWildNSInPartition
 }
 
 func getBackendServiceRefsFromComputedRoutes(cr *types.DecodedComputedRoutes) []*pbresource.Reference {
