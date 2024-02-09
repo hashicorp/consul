@@ -71,34 +71,22 @@ func ctpByWildcardSourceIndexCreator(globalDefaultAllow bool) *index.Index {
 				return true, vals, nil
 			}
 
-			for _, perm := range r.Data.AllowPermissions {
-				for _, src := range perm.Sources {
-					srcType := determineSourceType(src)
-					if srcType != sourceTypeLocal {
-						// Partition / Peer / SamenessGroup are mututally exclusive.
-						continue // Ignore these for now.
-					}
-					// It is assumed that src.Partition != "" at this point.
-
-					if src.IdentityName != "" {
-						// exact
-						continue
-					} else if src.Namespace != "" {
-						// wildcard name
-						vals = append(vals, indexFromTenantedName(tenantedName{
-							Partition: src.Partition,
-							Namespace: src.Namespace,
-							Name:      storage.Wildcard,
-						}))
-					} else {
-						// wildcard name+ns
-						vals = append(vals, indexFromTenantedName(tenantedName{
-							Partition: src.Partition,
-							Namespace: storage.Wildcard,
-							Name:      storage.Wildcard,
-						}))
-					}
-				}
+			_, wildNameInNS, wildNSInPartition := getSourceWorkloadIdentitiesFromCTP(r)
+			for _, tenancy := range wildNameInNS {
+				// wildcard name
+				vals = append(vals, indexFromTenantedName(tenantedName{
+					Partition: tenancy.Partition,
+					Namespace: tenancy.Namespace,
+					Name:      storage.Wildcard,
+				}))
+			}
+			for _, partition := range wildNSInPartition {
+				// wildcard name+ns
+				vals = append(vals, indexFromTenantedName(tenantedName{
+					Partition: partition,
+					Namespace: storage.Wildcard,
+					Name:      storage.Wildcard,
+				}))
 			}
 
 			return true, vals, nil
