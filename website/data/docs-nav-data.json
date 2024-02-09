@@ -2126,7 +2126,16 @@
       },
       {
         "title": "Run CTS",
-        "path": "cts/run"
+        "routes": [
+          {
+            "title": "Run CTS",
+            "path": "cts/run/cts"
+          },
+          {
+            "title": "Task execution details",
+            "path": "cts/run/task"
+          }
+        ]
       },
       {
         "title": "Create Terraform module",
