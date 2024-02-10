@@ -422,8 +422,10 @@ func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServic
 				TTL:    ttlOverride,
 				Weight: uint32(findWeight(n)),
 			},
-			PortNumber: uint32(f.translateServicePortFunc(n.Node.Datacenter, n.Service.Port, n.Service.TaggedAddresses)),
-			Metadata:   n.Node.Meta,
+			Ports: []Port{
+				{Number: uint32(f.translateServicePortFunc(n.Node.Datacenter, n.Service.Port, n.Service.TaggedAddresses))},
+			},
+			Metadata: n.Node.Meta,
 			Tenancy: ResultTenancy{
 				Namespace:  n.Service.NamespaceOrEmpty(),
 				Partition:  n.Service.PartitionOrEmpty(),
