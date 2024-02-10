@@ -156,6 +156,9 @@ func Test_FetchEndpoints(t *testing.T) {
 					Number: 0,
 				},
 			},
+			Tenancy: ResultTenancy{
+				PeerName: "test-peer",
+			},
 		},
 	}
 
