@@ -6,6 +6,7 @@ package dns
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"net"
 	"reflect"
 	"testing"
@@ -37,23 +38,23 @@ type HandleTestCase struct {
 	response                     *dns.Msg
 }
 
-func Test_HandleRequest(t *testing.T) {
-	soa := &dns.SOA{
-		Hdr: dns.RR_Header{
-			Name:   "consul.",
-			Rrtype: dns.TypeSOA,
-			Class:  dns.ClassINET,
-			Ttl:    4,
-		},
-		Ns:      "ns.consul.",
-		Mbox:    "hostmaster.consul.",
-		Serial:  uint32(time.Now().Unix()),
-		Refresh: 1,
-		Retry:   2,
-		Expire:  3,
-		Minttl:  4,
-	}
+var testSOA = &dns.SOA{
+	Hdr: dns.RR_Header{
+		Name:   "consul.",
+		Rrtype: dns.TypeSOA,
+		Class:  dns.ClassINET,
+		Ttl:    4,
+	},
+	Ns:      "ns.consul.",
+	Mbox:    "hostmaster.consul.",
+	Serial:  uint32(time.Now().Unix()),
+	Refresh: 1,
+	Retry:   2,
+	Expire:  3,
+	Minttl:  4,
+}
 
+func Test_HandleRequest(t *testing.T) {
 	testCases := []HandleTestCase{
 		// recursor queries
 		{
@@ -800,7 +801,17 @@ func Test_HandleRequest(t *testing.T) {
 						Qclass: dns.ClassINET,
 					},
 				},
-				Ns: []dns.RR{soa},
+				Extra: []dns.RR{
+					&dns.AAAA{
+						Hdr: dns.RR_Header{
+							Name:   "20010db800010002cafe000000001337.virtual.dc1.consul.",
+							Rrtype: dns.TypeAAAA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						AAAA: net.ParseIP("2001:db8:1:2:cafe::1337"),
+					},
+				},
 			},
 		},
 		// SOA Queries
@@ -1456,158 +1467,7 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 		},
-		// Service Lookup
-		{
-			name: "When no data is return from a query, send SOA",
-			request: &dns.Msg{
-				MsgHdr: dns.MsgHdr{
-					Opcode: dns.OpcodeQuery,
-				},
-				Question: []dns.Question{
-					{
-						Name:   "foo.service.consul.",
-						Qtype:  dns.TypeA,
-						Qclass: dns.ClassINET,
-					},
-				},
-			},
-			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
-				fetcher.(*discovery.MockCatalogDataFetcher).
-					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
-					Return(nil, discovery.ErrNoData).
-					Run(func(args mock.Arguments) {
-						req := args.Get(1).(*discovery.QueryPayload)
-						reqType := args.Get(2).(discovery.LookupType)
-
-						require.Equal(t, discovery.LookupTypeService, reqType)
-						require.Equal(t, "foo", req.Name)
-					})
-			},
-			validateAndNormalizeExpected: true,
-			response: &dns.Msg{
-				MsgHdr: dns.MsgHdr{
-					Opcode:        dns.OpcodeQuery,
-					Response:      true,
-					Authoritative: true,
-					Rcode:         dns.RcodeSuccess,
-				},
-				Compress: true,
-				Question: []dns.Question{
-					{
-						Name:   "foo.service.consul.",
-						Qtype:  dns.TypeA,
-						Qclass: dns.ClassINET,
-					},
-				},
-				Ns: []dns.RR{
-					&dns.SOA{
-						Hdr: dns.RR_Header{
-							Name:   "consul.",
-							Rrtype: dns.TypeSOA,
-							Class:  dns.ClassINET,
-							Ttl:    4,
-						},
-						Ns:      "ns.consul.",
-						Serial:  uint32(time.Now().Unix()),
-						Mbox:    "hostmaster.consul.",
-						Refresh: 1,
-						Expire:  3,
-						Retry:   2,
-						Minttl:  4,
-					},
-				},
-			},
-		},
-		{
-			// TestDNS_ExternalServiceToConsulCNAMELookup
-			name: "req type: service / question type: SRV / CNAME required: no",
-			request: &dns.Msg{
-				MsgHdr: dns.MsgHdr{
-					Opcode: dns.OpcodeQuery,
-				},
-				Question: []dns.Question{
-					{
-						Name:  "alias.service.consul.",
-						Qtype: dns.TypeSRV,
-					},
-				},
-			},
-			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
-				fetcher.(*discovery.MockCatalogDataFetcher).
-					On("FetchEndpoints", mock.Anything,
-						&discovery.QueryPayload{
-							Name:    "alias",
-							Tenancy: discovery.QueryTenancy{},
-						}, discovery.LookupTypeService).
-					Return([]*discovery.Result{
-						{
-							Type:    discovery.ResultTypeVirtual,
-							Service: &discovery.Location{Name: "alias", Address: "web.service.consul"},
-							Node:    &discovery.Location{Name: "web", Address: "web.service.consul"},
-							Ports: []discovery.Port{
-								{
-									Number: 1234,
-								},
-							},
-						},
-					},
-						nil).On("FetchEndpoints", mock.Anything,
-					&discovery.QueryPayload{
-						Name:    "web",
-						Tenancy: discovery.QueryTenancy{},
-					}, discovery.LookupTypeService).
-					Return([]*discovery.Result{
-						{
-							Type:    discovery.ResultTypeNode,
-							Service: &discovery.Location{Name: "web", Address: "webnode"},
-							Node:    &discovery.Location{Name: "webnode", Address: "127.0.0.2"},
-							Ports: []discovery.Port{
-								{
-									Number: 1234,
-								},
-							},
-						},
-					}, nil).On("ValidateRequest", mock.Anything,
-					mock.Anything).Return(nil).On("NormalizeRequest", mock.Anything)
-			},
-			response: &dns.Msg{
-				MsgHdr: dns.MsgHdr{
-					Response:      true,
-					Authoritative: true,
-				},
-				Compress: true,
-				Question: []dns.Question{
-					{
-						Name:  "alias.service.consul.",
-						Qtype: dns.TypeSRV,
-					},
-				},
-				Answer: []dns.RR{
-					&dns.SRV{
-						Hdr: dns.RR_Header{
-							Name:   "alias.service.consul.",
-							Rrtype: dns.TypeSRV,
-							Class:  dns.ClassINET,
-							Ttl:    123,
-						},
-						Target:   "web.service.consul.",
-						Priority: 1,
-						Port:     1234,
-					},
-				},
-				Extra: []dns.RR{
-					&dns.A{
-						Hdr: dns.RR_Header{
-							Name:   "web.service.consul.",
-							Rrtype: dns.TypeA,
-							Class:  dns.ClassINET,
-							Ttl:    123,
-						},
-						A: net.ParseIP("127.0.0.2"),
-					},
-				},
-			},
-		},
+		// TODO (v2-dns): add a test to make sure only 3 records are returned
 		// V2 Workload Lookup
 		{
 			name: "workload A query w/ port, returns A record",
@@ -2851,41 +2711,40 @@ func Test_HandleRequest(t *testing.T) {
 
 	testCases = append(testCases, getAdditionalTestCases(t)...)
 
-	run := func(t *testing.T, tc HandleTestCase) {
-		cdf := discovery.NewMockCatalogDataFetcher(t)
-		if tc.validateAndNormalizeExpected {
-			cdf.On("ValidateRequest", mock.Anything, mock.Anything).Return(nil)
-			cdf.On("NormalizeRequest", mock.Anything).Return()
-		}
-
-		if tc.configureDataFetcher != nil {
-			tc.configureDataFetcher(cdf)
-		}
-		cfg := buildDNSConfig(tc.agentConfig, cdf, tc.mockProcessorError)
-
-		router, err := NewRouter(cfg)
-		require.NoError(t, err)
-
-		// Replace the recursor with a mock and configure
-		router.recursor = newMockDnsRecursor(t)
-		if tc.configureRecursor != nil {
-			tc.configureRecursor(router.recursor)
-		}
-
-		ctx := tc.requestContext
-		if ctx == nil {
-			ctx = &Context{}
-		}
-		actual := router.HandleRequest(tc.request, *ctx, tc.remoteAddress)
-		require.Equal(t, tc.response, actual)
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			run(t, tc)
+			runHandleTestCases(t, tc)
 		})
 	}
+}
 
+func runHandleTestCases(t *testing.T, tc HandleTestCase) {
+	cdf := discovery.NewMockCatalogDataFetcher(t)
+	if tc.validateAndNormalizeExpected {
+		cdf.On("ValidateRequest", mock.Anything, mock.Anything).Return(nil)
+		cdf.On("NormalizeRequest", mock.Anything).Return()
+	}
+
+	if tc.configureDataFetcher != nil {
+		tc.configureDataFetcher(cdf)
+	}
+	cfg := buildDNSConfig(tc.agentConfig, cdf, tc.mockProcessorError)
+
+	router, err := NewRouter(cfg)
+	require.NoError(t, err)
+
+	// Replace the recursor with a mock and configure
+	router.recursor = newMockDnsRecursor(t)
+	if tc.configureRecursor != nil {
+		tc.configureRecursor(router.recursor)
+	}
+
+	ctx := tc.requestContext
+	if ctx == nil {
+		ctx = &Context{}
+	}
+	actual := router.HandleRequest(tc.request, *ctx, tc.remoteAddress)
+	require.Equal(t, tc.response, actual)
 }
 
 func TestRouterDynamicConfig_GetTTLForService(t *testing.T) {
@@ -2957,6 +2816,12 @@ func buildDNSConfig(agentConfig *config.RuntimeConfig, cdf discovery.CatalogData
 		Logger:    hclog.NewNullLogger(),
 		Processor: discovery.NewQueryProcessor(cdf),
 		TokenFunc: func() string { return "" },
+		TranslateServiceAddressFunc: func(dc string, address string, taggedAddresses map[string]structs.ServiceAddress, accept dnsutil.TranslateAddressAccept) string {
+			return address
+		},
+		TranslateAddressFunc: func(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string {
+			return addr
+		},
 	}
 
 	if agentConfig != nil {
