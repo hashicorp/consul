@@ -126,11 +126,13 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 
 	results = append(results, &Result{
 		Node: &Location{
-			Name:    n.Node,
-			Address: n.Address,
+			Name:            n.Node,
+			Address:         n.Address,
+			TaggedAddresses: makeTaggedAddressesFromStrings(n.TaggedAddresses),
 		},
 		Type:     ResultTypeNode,
 		Metadata: n.Meta,
+
 		Tenancy: ResultTenancy{
 			// Namespace is not required because nodes are not namespaced
 			Partition:  n.GetEnterpriseMeta().PartitionOrDefault(),
@@ -205,8 +207,9 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 			if targetIP == n.Address {
 				results = append(results, &Result{
 					Node: &Location{
-						Name:    n.Node,
-						Address: n.Address,
+						Name:            n.Node,
+						Address:         n.Address,
+						TaggedAddresses: makeTaggedAddressesFromStrings(n.TaggedAddresses),
 					},
 					Type: ResultTypeNode,
 					Tenancy: ResultTenancy{
@@ -410,12 +413,14 @@ func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServic
 		n := nodes[idx]
 		results = append(results, &Result{
 			Service: &Location{
-				Name:    n.Service.Service,
-				Address: n.Service.Address,
+				Name:            n.Service.Service,
+				Address:         n.Service.Address,
+				TaggedAddresses: makeTaggedAddressesFromServiceAddresses(n.Service.TaggedAddresses),
 			},
 			Node: &Location{
-				Name:    n.Node.Node,
-				Address: n.Node.Address,
+				Name:            n.Node.Node,
+				Address:         n.Node.Address,
+				TaggedAddresses: makeTaggedAddressesFromStrings(n.Node.TaggedAddresses),
 			},
 			Type: ResultTypeService,
 			DNS: DNSConfig{
@@ -434,6 +439,33 @@ func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServic
 		})
 	}
 	return results
+}
+
+// makeTaggedAddressesFromServiceAddresses is used to convert a map of service addresses to a map of Locations.
+func makeTaggedAddressesFromServiceAddresses(tagged map[string]structs.ServiceAddress) map[string]*TaggedAddress {
+	taggedAddresses := make(map[string]*TaggedAddress)
+	for k, v := range tagged {
+		taggedAddresses[k] = &TaggedAddress{
+			Name:    k,
+			Address: v.Address,
+			Port: Port{
+				Number: uint32(v.Port),
+			},
+		}
+	}
+	return taggedAddresses
+}
+
+// makeTaggedAddressesFromStrings is used to convert a map of strings to a map of Locations.
+func makeTaggedAddressesFromStrings(tagged map[string]string) map[string]*TaggedAddress {
+	taggedAddresses := make(map[string]*TaggedAddress)
+	for k, v := range tagged {
+		taggedAddresses[k] = &TaggedAddress{
+			Name:    k,
+			Address: v,
+		}
+	}
+	return taggedAddresses
 }
 
 // fetchNode is used to look up a node in the Consul catalog within NodeServices.

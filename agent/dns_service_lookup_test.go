@@ -1344,7 +1344,6 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it
 func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1359,7 +1358,7 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		               recursors = ["`+recursor.Addr+`"]
@@ -1673,14 +1672,12 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns):  NET-7634 - Implement WAN translation
 func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a1 := NewTestAgent(t, `
 		datacenter = "dc1"
@@ -2073,14 +2070,12 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it.
 func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -3310,7 +3305,6 @@ func checkDNSService(
 	}
 }
 
-// TODO (v2-dns): NET-7633 - implement answer limits.
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

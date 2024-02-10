@@ -140,12 +140,14 @@ func Test_FetchEndpoints(t *testing.T) {
 	expectedResults := []*Result{
 		{
 			Node: &Location{
-				Name:    "node-name",
-				Address: "node-address",
+				Name:            "node-name",
+				Address:         "node-address",
+				TaggedAddresses: map[string]*TaggedAddress{},
 			},
 			Service: &Location{
-				Name:    "service-name",
-				Address: "service-address",
+				Name:            "service-name",
+				Address:         "service-address",
+				TaggedAddresses: map[string]*TaggedAddress{},
 			},
 			Type: ResultTypeService,
 			DNS: DNSConfig{

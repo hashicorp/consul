@@ -5,6 +5,8 @@ package dns
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"net"
 
 	"github.com/miekg/dns"
@@ -36,11 +38,13 @@ type Server struct {
 
 // Config represent all the DNS configuration required to construct a DNS server.
 type Config struct {
-	AgentConfig *config.RuntimeConfig
-	EntMeta     acl.EnterpriseMeta
-	Logger      hclog.Logger
-	Processor   DiscoveryQueryProcessor
-	TokenFunc   func() string
+	AgentConfig                 *config.RuntimeConfig
+	EntMeta                     acl.EnterpriseMeta
+	Logger                      hclog.Logger
+	Processor                   DiscoveryQueryProcessor
+	TokenFunc                   func() string
+	TranslateAddressFunc        func(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string
+	TranslateServiceAddressFunc func(dc string, address string, taggedAddresses map[string]structs.ServiceAddress, accept dnsutil.TranslateAddressAccept) string
 }
 
 // NewServer creates a new DNS server.
