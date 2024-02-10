@@ -99,6 +99,11 @@ func (f *V1DataFetcher) LoadConfig(config *config.RuntimeConfig) {
 
 // FetchNodes fetches A/AAAA/CNAME
 func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, error) {
+	if req.Tenancy.Namespace != "" && req.Tenancy.Namespace != acl.DefaultNamespaceName {
+		// Nodes are not namespaced, so this is a name error
+		return nil, ErrNotFound
+	}
+
 	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
 	// Make an RPC request
 	args := &structs.NodeSpecificRequest{
@@ -430,6 +435,7 @@ func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServic
 				Namespace:  n.Service.NamespaceOrEmpty(),
 				Partition:  n.Service.PartitionOrEmpty(),
 				Datacenter: n.Node.Datacenter,
+				PeerName:   req.Tenancy.Peer,
 			},
 		})
 	}

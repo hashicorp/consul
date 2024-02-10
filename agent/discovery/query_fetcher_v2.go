@@ -62,7 +62,9 @@ func (f *V2DataFetcher) LoadConfig(config *config.RuntimeConfig) {
 
 // FetchNodes fetches A/AAAA/CNAME
 func (f *V2DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, error) {
-	return nil, nil
+	// TODO (v2-dns): NET-6623 - Implement FetchNodes
+	// Make sure that we validate that namespace is not provided here
+	return nil, fmt.Errorf("not implemented")
 }
 
 // FetchEndpoints fetches records for A/AAAA/CNAME or SRV requests for services
@@ -137,13 +139,15 @@ func (f *V2DataFetcher) FetchEndpoints(reqContext Context, req *QueryPayload, lo
 
 // FetchVirtualIP fetches A/AAAA records for virtual IPs
 func (f *V2DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result, error) {
-	return nil, nil
+	// TODO (v2-dns): NET-6624 - Implement FetchVirtualIP
+	return nil, fmt.Errorf("not implemented")
 }
 
 // FetchRecordsByIp is used for PTR requests to look up a service/node from an IP.
-// TODO (v2-dns): Validate non-nil IP
 func (f *V2DataFetcher) FetchRecordsByIp(ctx Context, ip net.IP) ([]*Result, error) {
-	return nil, nil
+	// TODO (v2-dns): NET-6795 - Implement FetchRecordsByIp
+	// Validate non-nil IP
+	return nil, fmt.Errorf("not implemented")
 }
 
 // FetchWorkload is used to fetch a single workload from the V2 catalog.
