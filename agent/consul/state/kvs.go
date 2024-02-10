@@ -260,7 +260,7 @@ func (s *Store) kvsListTxn(tx ReadTxn,
 }
 
 // KVSDelete is used to perform a shallow delete on a single key in the
-// the state store.
+// state store.
 func (s *Store) KVSDelete(idx uint64, key string, entMeta *acl.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()

@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	// TypeV1Executive represents a a C-suite executive of the company.
+	// TypeV1Executive represents a C-suite executive of the company.
 	// Used as a resource to test cluster scope.
 	TypeV1Executive = &pbresource.Type{
 		Group:        "demo",

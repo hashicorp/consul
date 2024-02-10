@@ -147,7 +147,7 @@ func (ts *nsTestSuite) TestNamespaceController_DeleteBlockedByTenantsWithFinaliz
 	require.NoError(ts.T(), err)
 
 	// The final reconcile should delete artist since it was marked for deletion and
-	// and has no finalizers. Given no more tenants, wait for namespace to be deleted.
+	// has no finalizers. Given no more tenants, wait for namespace to be deleted.
 	ts.client.WaitForDeletion(ts.T(), ns1.Id)
 }
 

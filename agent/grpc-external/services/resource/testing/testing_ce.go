@@ -22,11 +22,11 @@ import (
 )
 
 func FillEntMeta(entMeta *acl.EnterpriseMeta) {
-	// nothing to to in CE.
+	// nothing to in CE.
 }
 
 func FillAuthorizerContext(authzContext *acl.AuthorizerContext) {
-	// nothing to to in CE.
+	// nothing to in CE.
 }
 
 // initTenancy creates the builtin v2 namespace resource only. The builtin

@@ -41,7 +41,7 @@ func ServiceEndpointsController() *controller.Controller {
 			dependency.ReplaceType(pbcatalog.ServiceEndpointsType),
 			// This cache index keeps track of the relationship between WorkloadSelectors (and the workload names and prefixes
 			// they include) and Services. This allows us to efficiently find all services and service endpoints that are
-			// are affected by the change to a workload.
+			// affected by the change to a workload.
 			workloadselector.Index[*pbcatalog.Service](selectedWorkloadsIndexName)).
 		WithWatch(pbcatalog.WorkloadType,
 			// The cache index is kept on the Service type but we need to translate events for ServiceEndpoints.

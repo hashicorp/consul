@@ -271,7 +271,7 @@ func TestDNS_ServiceLookupNoMultiCNAME(t *testing.T) {
 				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 			}
 
-			// Register a second node node with the same service.
+			// Register a second node with the same service.
 			{
 				args := &structs.RegisterRequest{
 					Datacenter: "dc1",
@@ -333,7 +333,7 @@ func TestDNS_ServiceLookupPreferNoCNAME(t *testing.T) {
 				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 			}
 
-			// Register a second node node with the same service.
+			// Register a second node with the same service.
 			{
 				args := &structs.RegisterRequest{
 					Datacenter: "dc1",
@@ -398,7 +398,7 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 			}
 
-			// Register a second node node with the same service.
+			// Register a second node with the same service.
 			{
 				args := &structs.RegisterRequest{
 					Datacenter: "dc1",
@@ -417,7 +417,7 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 				}
 			}
 
-			// Register a second node node with the same service.
+			// Register a second node with the same service.
 			{
 				args := &structs.RegisterRequest{
 					Datacenter: "dc1",

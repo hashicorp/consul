@@ -17,7 +17,7 @@ type Builder struct {
 	controllerRegisterFns []func(*controller.Manager)
 }
 
-// NewControllerTestBuilder starts to build out out the necessary controller testing
+// NewControllerTestBuilder starts to build out the necessary controller testing
 // runtime for lightweight controller integration testing. This will run a single
 // in-memory resource service instance and the controller manager. Usage of this
 // builder is an easy way to ensure that all the right resource gRPC connections/clients

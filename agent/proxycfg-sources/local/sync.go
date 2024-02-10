@@ -128,7 +128,7 @@ func sync(cfg SyncConfig) {
 		// registered and once we get past here, we don't have enough context to
 		// know that so we'd need to set it here if not during registration of the
 		// proxy service. Sidecar Service in the interim can do that, but we should
-		// validate more generally that that is always true.
+		// validate more generally that is always true.
 		err := cfg.Manager.Register(id, svc, source, token, true)
 		if err != nil {
 			cfg.Logger.Error("failed to watch proxy service",

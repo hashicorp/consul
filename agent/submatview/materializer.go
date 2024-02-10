@@ -28,7 +28,7 @@ type View interface {
 	// events have been delivered yet the result should be an empty value type
 	// suitable to return to clients in case there is an empty result on the
 	// servers. The index the materialized view represents is maintained
-	// separately and passed in in case the return type needs an Index field
+	// separately and passed in case the return type needs an Index field
 	// populating. This allows implementations to not worry about maintaining
 	// indexes seen during Update.
 	Result(index uint64) interface{}

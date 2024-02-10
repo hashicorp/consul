@@ -620,7 +620,7 @@ func registerTestCatalogEntriesMap(t *testing.T, codec rpc.ClientCodec, registra
 func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token string) {
 	t.Helper()
 
-	// ingress-gateway on node edge - upstream: api
+	// ingress-gateway on node edge - upstream:
 	// api and api-proxy on node foo - transparent proxy
 	// web and web-proxy on node bar - upstream: redis
 	// web and web-proxy on node baz - transparent proxy

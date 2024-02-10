@@ -328,7 +328,7 @@ type CAConfiguration struct {
 	// msgpack when it's written through raft. For example if providers used a
 	// custom struct or even a simple `int` type, msgpack with loose type
 	// information during encode/decode and providers will end up getting back
-	// different types have have to remember to test multiple variants of state
+	// different types have to remember to test multiple variants of state
 	// handling to account for cases where it's been through msgpack or not.
 	// Keeping this as strings only forces compatibility and leaves the input
 	// Providers have to work with unambiguous - they can parse ints or other
