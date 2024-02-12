@@ -479,7 +479,7 @@ func makeMTLSTransportSocket(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.Upst
 		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
-	err := injectSANMatcher(commonTLSContext, spiffeID.URI().String())
+	err := injectSANMatcher(commonTLSContext, false, spiffeID.URI().String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 	}
@@ -894,7 +894,7 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
-				if err := injectSANMatcher(tlsContext.CommonTlsContext, mapping.SNI); err != nil {
+				if err := injectSANMatcher(tlsContext.CommonTlsContext, true, mapping.SNI); err != nil {
 					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
 				}
 			}
@@ -923,7 +923,7 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
-				if err := injectSANMatcher(tlsContext.CommonTlsContext, mapping.SNI); err != nil {
+				if err := injectSANMatcher(tlsContext.CommonTlsContext, true, mapping.SNI); err != nil {
 					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
 				}
 			}
@@ -1242,7 +1242,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 		rootPEMs,
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
-	err = injectSANMatcher(commonTLSContext, peerMeta.SpiffeID...)
+	err = injectSANMatcher(commonTLSContext, false, peerMeta.SpiffeID...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", clusterName, err)
 	}
@@ -1345,7 +1345,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
-	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
+	err = injectSANMatcher(commonTLSContext, false, spiffeIDs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 	}
@@ -1625,7 +1625,7 @@ func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *
 }
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
-func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ...string) error {
+func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, terminatingEgress bool, matchStrings ...string) error {
 	if tlsContext == nil {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext not to be nil")
 	}
@@ -1636,16 +1636,37 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 			tlsContext.ValidationContextType)
 	}
 
+	// All mesh services should match by URI
+	types := []envoy_tls_v3.SubjectAltNameMatcher_SanType{
+		envoy_tls_v3.SubjectAltNameMatcher_URI,
+	}
+	if terminatingEgress {
+		// Terminating gateways will need to match on many fields depending on user configuration,
+		// since they make egress calls outside of the cluster. Having more than one matcher behaves
+		// like an OR operation, where any match is sufficient to pass the certificate validation.
+		// To maintain backwards compatibility with the old untyped `match_subject_alt_names` behavior,
+		// we should match on all 4 enum types.
+		// https://github.com/hashicorp/consul/issues/20360
+		// https://github.com/envoyproxy/envoy/pull/18628/files#diff-cf088136dc052ddf1762fb3c96c0e8de472f3031f288e7e300558e6e72c8e129R69-R75
+		types = []envoy_tls_v3.SubjectAltNameMatcher_SanType{
+			envoy_tls_v3.SubjectAltNameMatcher_URI,
+			envoy_tls_v3.SubjectAltNameMatcher_DNS,
+			envoy_tls_v3.SubjectAltNameMatcher_EMAIL,
+			envoy_tls_v3.SubjectAltNameMatcher_IP_ADDRESS,
+		}
+	}
 	var matchers []*envoy_tls_v3.SubjectAltNameMatcher
 	for _, m := range matchStrings {
-		matchers = append(matchers, &envoy_tls_v3.SubjectAltNameMatcher{
-			SanType: envoy_tls_v3.SubjectAltNameMatcher_URI,
-			Matcher: &envoy_matcher_v3.StringMatcher{
-				MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-					Exact: m,
+		for _, t := range types {
+			matchers = append(matchers, &envoy_tls_v3.SubjectAltNameMatcher{
+				SanType: t,
+				Matcher: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+						Exact: m,
+					},
 				},
-			},
-		})
+			})
+		}
 	}
 
 	validationCtx.ValidationContext.MatchTypedSubjectAltNames = matchers

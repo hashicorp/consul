@@ -1,5 +1,9 @@
 ## 1.16.5 (January 23, 2024)
 
+KNOWN ISSUES:
+
+* connect: Consul versions 1.17.2 and 1.16.5 perform excessively strict TLS SAN verification on terminating gateways, which prevents connections outside of the mesh to upstream services. Terminating gateway users are advised to avoid deploying these Consul versions. A fix will be present in a future release of Consul 1.17.3 and 1.16.6 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
+
 SECURITY:
 
 * Update RSA key generation to use a key size of at least 2048 bits. [[GH-20112](https://github.com/hashicorp/consul/issues/20112)]
