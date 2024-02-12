@@ -32,10 +32,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcp-scada-provider/capability"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -43,6 +39,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcp-scada-provider/capability"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -6343,12 +6344,6 @@ func TestAgent_scadaProvider(t *testing.T) {
 		OverrideDeps: func(deps *BaseDeps) {
 			deps.HCP.Provider = pvd
 		},
-		Overrides: `
-cloud {
-  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100"
-  client_id = "test"
-  client_secret = "test"
-}`,
 	}
 	defer a.Shutdown()
 	require.NoError(t, a.Start(t))
