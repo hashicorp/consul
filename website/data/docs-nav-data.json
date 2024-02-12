@@ -2101,15 +2101,15 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "cts/configure/network-drivers"
+                "path": "cts/configure/network-driver"
               },
               {
                 "title": "Terraform driver",
-                "path": "cts/configure/network-drivers/terraform"
+                "path": "cts/configure/network-driver/terraform"
               },
               {
                 "title": "Terraform Cloud driver",
-                "path": "cts/configure/network-drivers/terraform-cloud",
+                "path": "cts/configure/network-driver/terraform-cloud",
                 "badge": {
                   "text": "ENTERPRISE",
                   "type": "outlined",
