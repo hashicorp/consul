@@ -1760,8 +1760,12 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 			// This is an L7 intention, so DENY.
 			authorized = false
 		}
+	} else if s.agent.config.DefaultIntentionPolicy != "" {
+		reason = "Default intention policy"
+		authorized = s.agent.config.DefaultIntentionPolicy == structs.IntentionDefaultPolicyAllow
 	} else {
 		reason = "Default behavior configured by ACLs"
+		//nolint:staticcheck
 		authorized = authz.IntentionDefaultAllow(nil) == acl.Allow
 	}
 

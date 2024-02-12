@@ -300,10 +300,7 @@ func (h *hcpProviderImpl) updateHTTPConfig(cfg config.CloudConfigurer) error {
 	if err != nil {
 		return fmt.Errorf("failed to configure telemetry HTTP client: %v", err)
 	}
-	h.httpCfg.client = client.NewHTTPClient(
-		hcpCfg.APITLSConfig(),
-		hcpCfg,
-		h.logger.Named("hcp_telemetry_client"))
+	h.httpCfg.client = client.NewHTTPClient(hcpCfg.APITLSConfig(), hcpCfg)
 
 	return nil
 }

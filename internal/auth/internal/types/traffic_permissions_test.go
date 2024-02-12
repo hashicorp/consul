@@ -42,6 +42,37 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action_ACTION_ALLOW,
 			},
 		},
+		"ok-permissions": {
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{IdentityName: "wi-1"},
+				Action:      pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								IdentityName: "wi-2",
+								Namespace:    "default",
+								Partition:    "default",
+							},
+							{
+								IdentityName: "wi-1",
+								Namespace:    "default",
+								Partition:    "ap1",
+							},
+						},
+						DestinationRules: []*pbauth.DestinationRule{
+							{
+								PathPrefix: "/",
+								Methods:    []string{"GET"},
+								Headers:    []*pbauth.DestinationRuleHeader{{Name: "X-Consul-Token", Present: false, Invert: true}},
+								PortNames:  []string{"https"},
+								Exclude:    []*pbauth.ExcludePermissionRule{{PathExact: "/admin"}},
+							},
+						},
+					},
+				},
+			},
+		},
 		"unspecified-action": {
 			// Any type other than the TrafficPermissions type would work
 			// to cause the error we are expecting
@@ -440,6 +471,82 @@ func permissionsTestCases() map[string]permissionTestCase {
 				},
 			},
 			expectErr: `invalid element at index 0 of list "destination_rule": prefix values, regex values, and explicit names must not combined`,
+		},
+		"destination-rule-empty": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "destination_rule": rules must contain path, method, header, or port fields`,
+		},
+		"destination-rule-only-empty-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{Exclude: []*pbauth.ExcludePermissionRule{{}}},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_rules": invalid element at index 0 of list "exclude_permission_rule": rules must contain path, method, header, or port fields`,
+		},
+		"destination-rule-empty-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						PathExact: "/",
+						Exclude:   []*pbauth.ExcludePermissionRule{{}},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_rules": invalid element at index 0 of list "exclude_permission_rule": rules must contain path, method, header, or port fields`,
+		},
+		"destination-rule-mismatched-ports-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						PortNames: []string{"foo"},
+						Exclude:   []*pbauth.ExcludePermissionRule{{PortNames: []string{"bar"}}},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_rules": invalid element at index 0 of list "exclude_permission_header_rule": exclude permission rules must select a subset of ports and methods defined in the destination rule`,
+		},
+		"destination-rule-ports-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						Exclude: []*pbauth.ExcludePermissionRule{{PortNames: []string{"bar"}}},
+					},
+				},
+			},
+		},
+		"destination-rule-invalid-headers-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						Headers: []*pbauth.DestinationRuleHeader{{Name: "auth"}},
+						Exclude: []*pbauth.ExcludePermissionRule{{Headers: []*pbauth.DestinationRuleHeader{{}}}},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_header_rules": invalid element at index 0 of list "exclude_permission_header_rule": header rule must contain header name`,
+		},
+		"destination-rule-mismatched-methods-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						Methods: []string{"post"},
+						Exclude: []*pbauth.ExcludePermissionRule{{Methods: []string{"patch"}}},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_rules": invalid element at index 0 of list "exclude_permission_header_rule": exclude permission rules must select a subset of ports and methods defined in the destination rule`,
 		},
 	}
 }

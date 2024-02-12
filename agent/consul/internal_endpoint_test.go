@@ -2384,14 +2384,12 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2471,6 +2469,40 @@ service "web" { policy = "read" }
 		// Can't read self, fails fast
 		require.True(t, acl.IsErrPermissionDenied(err))
 	})
+}
+
+// Tests that default intention deny policy overrides the ACL allow policy.
+// More comprehensive tests are done at the state store so this is minimal
+// coverage to be confident that the override happens.
+func TestInternal_ServiceTopology_DefaultIntentionPolicy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
+		c.DefaultIntentionPolicy = "deny"
+	})
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+
+	registerTestTopologyEntries(t, codec, TestDefaultInitialManagementToken)
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "redis",
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+	}
+	var out structs.IndexedServiceTopology
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+
+	webSN := structs.NewServiceName("web", acl.DefaultEnterpriseMeta())
+	require.False(t, out.ServiceTopology.DownstreamDecisions[webSN.String()].DefaultAllow)
 }
 
 func TestInternal_IntentionUpstreams(t *testing.T) {

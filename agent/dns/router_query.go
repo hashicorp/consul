@@ -26,9 +26,12 @@ func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain st
 
 	portName := parsePort(queryParts)
 
-	if queryType == discovery.QueryTypeWorkload && req.Question[0].Qtype == dns.TypeSRV {
+	switch {
+	case queryType == discovery.QueryTypeWorkload && req.Question[0].Qtype == dns.TypeSRV:
 		// Currently we do not support SRV records for workloads
 		return nil, errNotImplemented
+	case queryType == discovery.QueryTypeInvalid, name == "":
+		return nil, errInvalidQuestion
 	}
 
 	return &discovery.Query{
@@ -45,9 +48,13 @@ func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain st
 
 // getQueryNameAndTagFromParts returns the query name and tag from the query parts that are taken from the original dns question.
 func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []string) (string, string) {
+	n := len(queryParts)
+	if n == 0 {
+		return "", ""
+	}
+
 	switch queryType {
 	case discovery.QueryTypeService:
-		n := len(queryParts)
 		// Support RFC 2782 style syntax
 		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
 			// Grab the tag since we make nuke it if it's tcp
@@ -62,9 +69,9 @@ func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []str
 			// _name._tag.service.consul
 			return name, tag
 		}
-		return queryParts[len(queryParts)-1], ""
+		return queryParts[n-1], ""
 	}
-	return queryParts[len(queryParts)-1], ""
+	return queryParts[n-1], ""
 }
 
 // getQueryTenancy returns a discovery.QueryTenancy from a DNS message.
@@ -87,6 +94,7 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 			Namespace:     labels.Namespace,
 			Partition:     labels.Partition,
 			SamenessGroup: labels.SamenessGroup,
+			Datacenter:    reqCtx.DefaultDatacenter,
 		}, nil
 	}
 
@@ -101,8 +109,19 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 		Namespace:  labels.Namespace,
 		Partition:  labels.Partition,
 		Peer:       labels.Peer,
-		Datacenter: labels.Datacenter,
+		Datacenter: getEffectiveDatacenter(labels, reqCtx.DefaultDatacenter),
 	}, nil
+}
+
+// getEffectiveDatacenter returns the effective datacenter from the parsed labels.
+func getEffectiveDatacenter(labels *parsedLabels, defaultDC string) string {
+	switch {
+	case labels.Datacenter != "":
+		return labels.Datacenter
+	case labels.PeerOrDatacenter != "" && labels.Peer != labels.PeerOrDatacenter:
+		return labels.PeerOrDatacenter
+	}
+	return defaultDC
 }
 
 // getQueryTypePartsAndSuffixesFromDNSMessage returns the query type, the parts, and suffixes of the query name.

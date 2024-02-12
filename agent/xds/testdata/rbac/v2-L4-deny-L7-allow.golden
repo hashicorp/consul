@@ -1,0 +1,42 @@
+{
+  "filters": [
+    {
+      "name": "envoy.filters.network.rbac",
+      "typedConfig": {
+        "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+        "rules": {
+          "action": "DENY",
+          "policies": {
+            "consul-intentions-layer4": {
+              "permissions": [
+                {
+                  "any": true
+                }
+              ],
+              "principals": [
+                {
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "statPrefix": "connect_authz"
+      }
+    },
+    {
+      "name": "envoy.filters.network.rbac",
+      "typedConfig": {
+        "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+        "rules": {},
+        "statPrefix": "connect_authz"
+      }
+    }
+  ]
+}

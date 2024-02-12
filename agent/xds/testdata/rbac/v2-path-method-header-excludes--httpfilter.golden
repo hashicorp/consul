@@ -1,0 +1,69 @@
+{
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "urlPath": {
+                      "path": {
+                        "prefix": "/"
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "andRules": {
+                        "rules": [
+                          {
+                            "urlPath": {
+                              "path": {
+                                "prefix": "/admin"
+                              }
+                            }
+                          },
+                          {
+                            "header": {
+                              "name": ":method",
+                              "stringMatch": {
+                                "safeRegex": {
+                                  "regex": "POST|DELETE"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "header": {
+                              "name": "experiment",
+                              "presentMatch": true
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

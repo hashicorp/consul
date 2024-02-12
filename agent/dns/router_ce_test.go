@@ -37,7 +37,7 @@ func getAdditionalTestCases(t *testing.T) []HandleTestCase {
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
 				results := []*discovery.Result{
 					{
-						Node:    &discovery.Location{Name: "foonode", Address: "1.2.3.4"},
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
 						Type:    discovery.ResultTypeNode,
 						Service: &discovery.Location{Name: "foo", Address: "foo"},
 						Tenancy: discovery.ResultTenancy{
@@ -100,7 +100,7 @@ func getAdditionalTestCases(t *testing.T) []HandleTestCase {
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
 				results := []*discovery.Result{
 					{
-						Node:    &discovery.Location{Name: "foonode", Address: "1.2.3.4"},
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
 						Service: &discovery.Location{Name: "foo", Address: "foo"},
 						Type:    discovery.ResultTypeService,
 						Tenancy: discovery.ResultTenancy{

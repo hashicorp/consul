@@ -9,10 +9,14 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/controller/dependency"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/apigateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/mapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/resource"
@@ -23,15 +27,20 @@ import (
 )
 
 // ControllerName is the name for this controller. It's used for logging or status keys.
-const ControllerName = "consul.io/gateway-proxy"
+const (
+	ControllerName         = "consul.io/gateway-proxy"
+	GatewayKindMetadataKey = "gateway-kind"
+)
 
 // Controller is responsible for triggering reconciler for watched resources
 func Controller(cache *cache.Cache, trustDomainFetcher sidecarproxy.TrustDomainFetcher, dc string, defaultAllow bool) *controller.Controller {
 	// TODO NET-7016 Use caching functionality in NewController being implemented at time of writing
 	// TODO NET-7017 Add the host of other types we should watch
+	// TODO NET-7565: Add watch for serviceTypes across partitions
 	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmulticluster.ComputedExportedServicesType, mapper.AllMeshGatewayWorkloadsInPartition).
 		WithReconciler(&reconciler{
 			cache:          cache,
 			dc:             dc,
@@ -73,12 +82,21 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 
-	// If the workload is not for a xGateway, let the sidecarproxy reconciler handle it
-	if gatewayKind := workload.Metadata["gateway-kind"]; gatewayKind == "" {
-		rt.Logger.Trace("workload is not a gateway; skipping reconciliation", "workload", workloadID, "workloadData", workload.Data)
+	switch workload.Metadata[GatewayKindMetadataKey] {
+	case meshgateways.GatewayKind:
+		rt.Logger.Trace("workload is a mesh-gateway; reconciling", "workload", workloadID, "workloadData", workload.Data)
+		return r.reconcileMeshGatewayProxyState(ctx, dataFetcher, workload, rt, req)
+	case apigateways.GatewayKind:
+		rt.Logger.Trace("workload is a api-gateway; reconciling", "workload", workloadID, "workloadData", workload.Data)
+		// TODO: NET-735 -- implement api-gateway reconciliation
+		return nil
+	default:
+		rt.Logger.Trace("workload is not a gateway; skipping reconciliation", "workload", workloadID)
 		return nil
 	}
+}
 
+func (r *reconciler) reconcileMeshGatewayProxyState(ctx context.Context, dataFetcher *fetcher.Fetcher, workload *resource.DecodedResource[*pbcatalog.Workload], rt controller.Runtime, req controller.Request) error {
 	proxyStateTemplate, err := dataFetcher.FetchProxyStateTemplate(ctx, req.ID)
 	if err != nil {
 		rt.Logger.Error("error reading proxy state template", "error", err)
@@ -110,7 +128,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// This covers any incoming requests from inside my partition to services outside my partition
-	meshGateways, err := dataFetcher.FetchMeshGateways(ctx)
+	meshGateways, err := dataFetcher.FetchMeshGateways(ctx, &pbresource.Tenancy{
+		Partition: acl.WildcardPartitionName,
+	})
 	if err != nil {
 		rt.Logger.Warn("error reading the associated mesh gateways", "error", err)
 	}
@@ -153,6 +173,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			Data:     proxyTemplateData,
 		},
 	})
+
 	if err != nil {
 		rt.Logger.Error("error writing proxy state template", "error", err)
 		return err

@@ -198,41 +198,6 @@ func AssertEnvoyMetricAtLeast(t *testing.T, adminPort int, prefix, metric string
 	})
 }
 
-// GetEnvoyHTTPrbacFilters validates that proxy was configured with an http connection manager
-// AssertEnvoyHTTPrbacFilters validates that proxy was configured with an http connection manager
-// this assertion is currently unused current tests use http protocol
-func AssertEnvoyHTTPrbacFilters(t *testing.T, port int) {
-	var (
-		dump string
-		err  error
-	)
-	failer := func() *retry.Timer {
-		return &retry.Timer{Timeout: 30 * time.Second, Wait: 1 * time.Second}
-	}
-
-	retry.RunWith(failer(), t, func(r *retry.R) {
-		dump, _, err = GetEnvoyOutput(port, "config_dump", map[string]string{})
-		if err != nil {
-			r.Fatal("could not fetch envoy configuration")
-		}
-	})
-
-	// the steps below validate that the json result from envoy config dump configured active listeners with rbac and http filters
-	filter := `.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.filters.network.http_connection_manager") | .typed_config.http_filters | map(.name) | join(","))"`
-	results, err := utils.JQFilter(dump, filter)
-	require.NoError(t, err, "could not parse envoy configuration")
-	require.Len(t, results, 1, "static-server proxy should have been configured with two listener filters.")
-
-	var filteredResult []string
-	for _, result := range results {
-		sanitizedResult := sanitizeResult(result)
-		filteredResult = append(filteredResult, sanitizedResult...)
-	}
-	require.Contains(t, filteredResult, "envoy.filters.http.rbac")
-	assert.Contains(t, filteredResult, "envoy.filters.http.header_to_metadata")
-	assert.Contains(t, filteredResult, "envoy.filters.http.router")
-}
-
 // AssertEnvoyPresentsCertURI makes GET request to /certs endpoint and validates that
 // two certificates URI is available in the response
 func AssertEnvoyPresentsCertURI(t *testing.T, port int, serviceName string) {

@@ -1000,6 +1000,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DataDir:                                dataDir,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
+		DefaultIntentionPolicy:                 stringVal(c.DefaultIntentionPolicy),
 		DevMode:                                boolVal(b.opts.DevMode),
 		DisableAnonymousSignature:              boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                     boolVal(c.DisableCoordinates),

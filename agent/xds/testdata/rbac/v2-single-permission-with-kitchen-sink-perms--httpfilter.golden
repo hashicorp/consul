@@ -1,0 +1,226 @@
+{
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "urlPath": {
+                      "path": {
+                        "prefix": "/v1"
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "andRules": {
+                      "rules": [
+                        {
+                          "urlPath": {
+                            "path": {
+                              "safeRegex": {
+                                "regex": "/v[123]"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": ":method",
+                            "stringMatch": {
+                              "safeRegex": {
+                                "regex": "GET|HEAD|OPTIONS"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "andRules": {
+                        "rules": [
+                          {
+                            "urlPath": {
+                              "path": {
+                                "exact": "/v1/admin"
+                              }
+                            }
+                          },
+                          {
+                            "header": {
+                              "name": ":method",
+                              "stringMatch": {
+                                "safeRegex": {
+                                  "regex": "GET"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "andRules": {
+                      "rules": [
+                        {
+                          "header": {
+                            "name": "x-foo",
+                            "presentMatch": true
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "x-bar",
+                            "stringMatch": {
+                              "exact": "xyz"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "x-dib",
+                            "stringMatch": {
+                              "prefix": "gaz"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "x-gir",
+                            "stringMatch": {
+                              "suffix": "zim"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "x-zim",
+                            "stringMatch": {
+                              "safeRegex": {
+                                "regex": "gi[rR]"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "invertMatch": true,
+                            "name": "z-foo",
+                            "presentMatch": true
+                          }
+                        },
+                        {
+                          "header": {
+                            "invertMatch": true,
+                            "name": "z-bar",
+                            "stringMatch": {
+                              "exact": "xyz"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "invertMatch": true,
+                            "name": "z-dib",
+                            "stringMatch": {
+                              "prefix": "gaz"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "invertMatch": true,
+                            "name": "z-gir",
+                            "stringMatch": {
+                              "suffix": "zim"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "invertMatch": true,
+                            "name": "z-zim",
+                            "stringMatch": {
+                              "safeRegex": {
+                                "regex": "gi[rR]"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "header": {
+                        "name": "x-baz",
+                        "presentMatch": true
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

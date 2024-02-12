@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -189,6 +191,7 @@ func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type)
 		},
 	})
 	if err != nil {
+		c.handleInvalidControllerWatch(err)
 		c.logger.Error("failed to create cache priming watch", "error", err)
 		return err
 	}
@@ -196,6 +199,7 @@ func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type)
 	for {
 		event, err := wl.Recv()
 		if err != nil {
+			c.handleInvalidControllerWatch(err)
 			c.logger.Warn("error received from cache priming watch", "error", err)
 			return err
 		}
@@ -224,6 +228,7 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 		},
 	})
 	if err != nil {
+		c.handleInvalidControllerWatch(err)
 		c.logger.Error("failed to create watch", "error", err)
 		return err
 	}
@@ -231,6 +236,7 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 	for {
 		event, err := wl.Recv()
 		if err != nil {
+			c.handleInvalidControllerWatch(err)
 			c.logger.Warn("error received from watch", "error", err)
 			return err
 		}
@@ -393,6 +399,13 @@ func (c *controllerRunner) runtime(logger hclog.Logger) Runtime {
 		// ensure that resources queried via the cache get cloned so that the
 		// dependency mapper or reconciler is free to modify them.
 		Cache: cache.NewCloningReadOnlyCache(c.cache),
+	}
+}
+
+func (c *controllerRunner) handleInvalidControllerWatch(err error) {
+	st, ok := status.FromError(err)
+	if ok && st.Code() == codes.InvalidArgument {
+		panic(fmt.Sprintf("controller %s attempted to initiate an invalid watch: %q. This is a bug within the controller.", c.ctrl.name, err.Error()))
 	}
 }
 

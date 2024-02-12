@@ -21,7 +21,7 @@ func TestSink(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	s, err := sink(ctx, mockMetricsClient{}, &hcpProviderImpl{})
+	s, err := newSink(ctx, mockMetricsClient{}, &hcpProviderImpl{})
 
 	require.NotNil(t, s)
 	require.NoError(t, err)

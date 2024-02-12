@@ -12,6 +12,7 @@ func Register(r resource.Registry) {
 	RegisterComputedProxyConfiguration(r)
 	RegisterDestinations(r)
 	RegisterComputedExplicitDestinations(r)
+	RegisterComputedImplicitDestinations(r)
 	RegisterProxyStateTemplate(r)
 	RegisterHTTPRoute(r)
 	RegisterTCPRoute(r)
@@ -19,7 +20,8 @@ func Register(r resource.Registry) {
 	RegisterDestinationPolicy(r)
 	RegisterComputedRoutes(r)
 	RegisterMeshGateway(r)
+	RegisterAPIGateway(r)
 	RegisterMeshConfiguration(r)
 	// todo (v2): uncomment once we implement it.
-	//RegisterDestinationsConfiguration(r)
+	// RegisterDestinationsConfiguration(r)
 }

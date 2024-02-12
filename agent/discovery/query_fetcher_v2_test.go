@@ -5,6 +5,7 @@ package discovery
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -21,6 +22,10 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
+var (
+	unknownErr = errors.New("I don't feel so good")
+)
+
 // Test_FetchService tests the FetchService method in scenarios where the RPC
 // call succeeds and fails.
 func Test_FetchWorkload(t *testing.T) {
@@ -28,8 +33,6 @@ func Test_FetchWorkload(t *testing.T) {
 	rc := &config.RuntimeConfig{
 		DNSOnlyPassing: false,
 	}
-
-	unknownErr := errors.New("I don't feel so good")
 
 	tests := []struct {
 		name                string
@@ -48,7 +51,7 @@ func Test_FetchWorkload(t *testing.T) {
 				Token: "test-token",
 			},
 			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
-				result := getTestWorkloadResponse(t, "", "")
+				result := getTestWorkloadResponse(t, "foo-1234", "", "")
 				mockClient.Read(mock.Anything, mock.Anything).
 					Return(result, nil).
 					Once().
@@ -60,6 +63,16 @@ func Test_FetchWorkload(t *testing.T) {
 			expectedResult: &Result{
 				Node: &Location{Name: "foo-1234", Address: "1.2.3.4"},
 				Type: ResultTypeWorkload,
+				Ports: []Port{
+					{
+						Name:   "api",
+						Number: 5678,
+					},
+					{
+						Name:   "mesh",
+						Number: 21000,
+					},
+				},
 				Tenancy: ResultTenancy{
 					Namespace: resource.DefaultNamespaceName,
 					Partition: resource.DefaultPartitionName,
@@ -76,7 +89,7 @@ func Test_FetchWorkload(t *testing.T) {
 				Token: "test-token",
 			},
 			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
-				input := getTestWorkloadResponse(t, "", "")
+				input := getTestWorkloadResponse(t, "foo-1234", "", "")
 				mockClient.Read(mock.Anything, mock.Anything).
 					Return(nil, status.Error(codes.NotFound, "not found")).
 					Once().
@@ -97,7 +110,7 @@ func Test_FetchWorkload(t *testing.T) {
 				Token: "test-token",
 			},
 			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
-				input := getTestWorkloadResponse(t, "", "")
+				input := getTestWorkloadResponse(t, "foo-1234", "", "")
 				mockClient.Read(mock.Anything, mock.Anything).
 					Return(nil, unknownErr).
 					Once().
@@ -119,7 +132,7 @@ func Test_FetchWorkload(t *testing.T) {
 				Token: "test-token",
 			},
 			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
-				result := getTestWorkloadResponse(t, "", "")
+				result := getTestWorkloadResponse(t, "foo-1234", "", "")
 				mockClient.Read(mock.Anything, mock.Anything).
 					Return(result, nil).
 					Once().
@@ -129,10 +142,14 @@ func Test_FetchWorkload(t *testing.T) {
 					})
 			},
 			expectedResult: &Result{
-				Node:       &Location{Name: "foo-1234", Address: "1.2.3.4"},
-				Type:       ResultTypeWorkload,
-				PortName:   "api",
-				PortNumber: 5678,
+				Node: &Location{Name: "foo-1234", Address: "1.2.3.4"},
+				Type: ResultTypeWorkload,
+				Ports: []Port{
+					{
+						Name:   "api",
+						Number: 5678,
+					},
+				},
 				Tenancy: ResultTenancy{
 					Namespace: resource.DefaultNamespaceName,
 					Partition: resource.DefaultPartitionName,
@@ -150,7 +167,7 @@ func Test_FetchWorkload(t *testing.T) {
 				Token: "test-token",
 			},
 			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
-				result := getTestWorkloadResponse(t, "", "")
+				result := getTestWorkloadResponse(t, "foo-1234", "", "")
 				mockClient.Read(mock.Anything, mock.Anything).
 					Return(result, nil).
 					Once().
@@ -175,7 +192,7 @@ func Test_FetchWorkload(t *testing.T) {
 				Token: "test-token",
 			},
 			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
-				result := getTestWorkloadResponse(t, "test-namespace", "test-partition")
+				result := getTestWorkloadResponse(t, "foo-1234", "test-namespace", "test-partition")
 				mockClient.Read(mock.Anything, mock.Anything).
 					Return(result, nil).
 					Once().
@@ -189,6 +206,16 @@ func Test_FetchWorkload(t *testing.T) {
 			expectedResult: &Result{
 				Node: &Location{Name: "foo-1234", Address: "1.2.3.4"},
 				Type: ResultTypeWorkload,
+				Ports: []Port{
+					{
+						Name:   "api",
+						Number: 5678,
+					},
+					{
+						Name:   "mesh",
+						Number: 21000,
+					},
+				},
 				Tenancy: ResultTenancy{
 					Namespace: "test-namespace",
 					Partition: "test-partition",
@@ -215,17 +242,530 @@ func Test_FetchWorkload(t *testing.T) {
 	}
 }
 
-func getTestWorkloadResponse(t *testing.T, nsOverride string, partitionOverride string) *pbresource.ReadResponse {
+// Test_V2FetchEndpoints the FetchService method in scenarios where the RPC
+// call succeeds and fails.
+func Test_V2FetchEndpoints(t *testing.T) {
+
+	tests := []struct {
+		name                string
+		queryPayload        *QueryPayload
+		context             Context
+		configureMockClient func(mockClient *mockpbresource.ResourceServiceClient_Expecter)
+		rc                  *config.RuntimeConfig
+		expectedResult      []*Result
+		expectedErr         error
+		verifyShuffle       bool
+	}{
+		{
+			name: "FetchEndpoints returns result",
+			queryPayload: &QueryPayload{
+				Name: "consul",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+				endpoints := []*pbcatalog.Endpoint{
+					makeEndpoint("consul-1", "1.2.3.4", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+				}
+
+				serviceEndpoints := getTestEndpointsResponse(t, "", "", endpoints...)
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(serviceEndpoints, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, serviceEndpoints.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedResult: []*Result{
+				{
+					Node: &Location{Name: "consul-1", Address: "1.2.3.4"},
+					Type: ResultTypeWorkload,
+					Ports: []Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+						{
+							Name:   "mesh",
+							Number: 21000,
+						},
+					},
+					Tenancy: ResultTenancy{
+						Namespace: resource.DefaultNamespaceName,
+						Partition: resource.DefaultPartitionName,
+					},
+					DNS: DNSConfig{
+						Weight: 1,
+					},
+				},
+			},
+		},
+		{
+			name: "FetchEndpoints returns empty result with no endpoints",
+			queryPayload: &QueryPayload{
+				Name: "consul",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+
+				result := getTestEndpointsResponse(t, "", "")
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(result, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, result.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedResult: []*Result{},
+		},
+		{
+			name: "FetchEndpoints returns a name error when the ServiceEndpoint does not exist",
+			queryPayload: &QueryPayload{
+				Name: "consul",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+
+				result := getTestEndpointsResponse(t, "", "")
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(nil, status.Error(codes.NotFound, "not found")).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, result.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedErr: ErrNotFound,
+		},
+		{
+			name: "FetchEndpoints encounters a resource client error",
+			queryPayload: &QueryPayload{
+				Name: "consul",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+
+				result := getTestEndpointsResponse(t, "", "")
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(nil, unknownErr).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, result.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedErr: unknownErr,
+		},
+		{
+			name: "FetchEndpoints always filters out critical endpoints; DNS weights applied correctly",
+			queryPayload: &QueryPayload{
+				Name: "consul",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+				results := []*pbcatalog.Endpoint{
+					makeEndpoint("consul-1", "1.2.3.4", pbcatalog.Health_HEALTH_PASSING, 2, 3),
+					makeEndpoint("consul-2", "2.3.4.5", pbcatalog.Health_HEALTH_WARNING, 2, 3),
+					makeEndpoint("consul-3", "3.4.5.6", pbcatalog.Health_HEALTH_CRITICAL, 2, 3),
+				}
+
+				result := getTestEndpointsResponse(t, "", "", results...)
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(result, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, result.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedResult: []*Result{
+				{
+					Node: &Location{Name: "consul-1", Address: "1.2.3.4"},
+					Type: ResultTypeWorkload,
+					Tenancy: ResultTenancy{
+						Namespace: resource.DefaultNamespaceName,
+						Partition: resource.DefaultPartitionName,
+					},
+					DNS: DNSConfig{
+						Weight: 2,
+					},
+					Ports: []Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+						{
+							Name:   "mesh",
+							Number: 21000,
+						},
+					},
+				},
+				{
+					Node: &Location{Name: "consul-2", Address: "2.3.4.5"},
+					Type: ResultTypeWorkload,
+					Tenancy: ResultTenancy{
+						Namespace: resource.DefaultNamespaceName,
+						Partition: resource.DefaultPartitionName,
+					},
+					DNS: DNSConfig{
+						Weight: 3,
+					},
+					Ports: []Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+						{
+							Name:   "mesh",
+							Number: 21000,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "FetchEndpoints filters out warning endpoints when DNSOnlyPassing is true",
+			queryPayload: &QueryPayload{
+				Name: "consul",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+				results := []*pbcatalog.Endpoint{
+					makeEndpoint("consul-1", "1.2.3.4", pbcatalog.Health_HEALTH_PASSING, 2, 3),
+					makeEndpoint("consul-2", "2.3.4.5", pbcatalog.Health_HEALTH_WARNING, 2, 3),
+					makeEndpoint("consul-3", "3.4.5.6", pbcatalog.Health_HEALTH_CRITICAL, 2, 3),
+				}
+
+				result := getTestEndpointsResponse(t, "", "", results...)
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(result, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, result.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			rc: &config.RuntimeConfig{
+				DNSOnlyPassing: true,
+			},
+			expectedResult: []*Result{
+				{
+					Node: &Location{Name: "consul-1", Address: "1.2.3.4"},
+					Type: ResultTypeWorkload,
+					Tenancy: ResultTenancy{
+						Namespace: resource.DefaultNamespaceName,
+						Partition: resource.DefaultPartitionName,
+					},
+					DNS: DNSConfig{
+						Weight: 2,
+					},
+					Ports: []Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+						{
+							Name:   "mesh",
+							Number: 21000,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "FetchEndpoints shuffles the results",
+			queryPayload: &QueryPayload{
+				Name: "consul",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+				results := []*pbcatalog.Endpoint{
+					// use a set of 10 elements, the odds of getting the same result are 1 in 3628800
+					makeEndpoint("consul-1", "10.0.0.1", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-2", "10.0.0.2", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-3", "10.0.0.3", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-4", "10.0.0.4", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-5", "10.0.0.5", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-6", "10.0.0.6", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-7", "10.0.0.7", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-8", "10.0.0.8", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-9", "10.0.0.9", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-10", "10.0.0.10", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+				}
+
+				result := getTestEndpointsResponse(t, "", "", results...)
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(result, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, result.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedResult: func() []*Result {
+				results := make([]*Result, 0, 10)
+
+				for i := 0; i < 10; i++ {
+					name := fmt.Sprintf("consul-%d", i+1)
+					address := fmt.Sprintf("10.0.0.%d", i+1)
+					result := &Result{
+						Node: &Location{Name: name, Address: address},
+						Type: ResultTypeWorkload,
+						Tenancy: ResultTenancy{
+							Namespace: resource.DefaultNamespaceName,
+							Partition: resource.DefaultPartitionName,
+						},
+						Ports: []Port{
+							{
+								Name:   "api",
+								Number: 5678,
+							},
+							{
+								Name:   "mesh",
+								Number: 21000,
+							},
+						},
+						DNS: DNSConfig{
+							Weight: 1,
+						},
+					}
+					results = append(results, result)
+				}
+				return results
+			}(),
+			verifyShuffle: true,
+		},
+		{
+			name: "FetchEndpoints returns only the specified limit",
+			queryPayload: &QueryPayload{
+				Name:  "consul",
+				Limit: 1,
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+				results := []*pbcatalog.Endpoint{
+					// intentionally all the same to make this easier to verify
+					makeEndpoint("consul-1", "10.0.0.1", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-1", "10.0.0.1", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+					makeEndpoint("consul-1", "10.0.0.1", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+				}
+
+				result := getTestEndpointsResponse(t, "", "", results...)
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(result, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, result.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedResult: []*Result{
+				{
+					Node: &Location{Name: "consul-1", Address: "10.0.0.1"},
+					Type: ResultTypeWorkload,
+					Tenancy: ResultTenancy{
+						Namespace: resource.DefaultNamespaceName,
+						Partition: resource.DefaultPartitionName,
+					},
+					DNS: DNSConfig{
+						Weight: 1,
+					},
+					Ports: []Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+						{
+							Name:   "mesh",
+							Number: 21000,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "FetchEndpoints returns results with non-default tenancy",
+			queryPayload: &QueryPayload{
+				Name: "consul",
+				Tenancy: QueryTenancy{
+					Namespace: "test-namespace",
+					Partition: "test-partition",
+				},
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+				results := []*pbcatalog.Endpoint{
+					// intentionally all the same to make this easier to verify
+					makeEndpoint("consul-1", "10.0.0.1", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+				}
+
+				result := getTestEndpointsResponse(t, "test-namespace", "test-partition", results...)
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(result, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, result.GetResource().GetId().GetName(), req.Id.Name)
+						require.Equal(t, result.GetResource().GetId().GetTenancy().GetNamespace(), req.Id.Tenancy.Namespace)
+						require.Equal(t, result.GetResource().GetId().GetTenancy().GetPartition(), req.Id.Tenancy.Partition)
+					})
+			},
+			expectedResult: []*Result{
+				{
+					Node: &Location{Name: "consul-1", Address: "10.0.0.1"},
+					Type: ResultTypeWorkload,
+					Tenancy: ResultTenancy{
+						Namespace: "test-namespace",
+						Partition: "test-partition",
+					},
+					DNS: DNSConfig{
+						Weight: 1,
+					},
+					Ports: []Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+						{
+							Name:   "mesh",
+							Number: 21000,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "FetchEndpoints returns only a specific port if is one requested",
+			queryPayload: &QueryPayload{
+				Name:     "consul",
+				PortName: "api",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+				endpoints := []*pbcatalog.Endpoint{
+					makeEndpoint("consul-1", "10.0.0.1", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+				}
+
+				serviceEndpoints := getTestEndpointsResponse(t, "", "", endpoints...)
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(serviceEndpoints, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, serviceEndpoints.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedResult: []*Result{
+				{
+					Node: &Location{Name: "consul-1", Address: "10.0.0.1"},
+					Type: ResultTypeWorkload,
+					Ports: []Port{
+						{
+							Name:   "api",
+							Number: 5678,
+						},
+						// No mesh port this time
+					},
+					Tenancy: ResultTenancy{
+						Namespace: resource.DefaultNamespaceName,
+						Partition: resource.DefaultPartitionName,
+					},
+					DNS: DNSConfig{
+						Weight: 1,
+					},
+				},
+			},
+		},
+		{
+			name: "FetchEndpoints returns a name error when a service doesn't implement the requested port",
+			queryPayload: &QueryPayload{
+				Name:     "consul",
+				PortName: "banana",
+			},
+			context: Context{
+				Token: "test-token",
+			},
+			configureMockClient: func(mockClient *mockpbresource.ResourceServiceClient_Expecter) {
+				endpoints := []*pbcatalog.Endpoint{
+					makeEndpoint("consul-1", "10.0.0.1", pbcatalog.Health_HEALTH_PASSING, 0, 0),
+				}
+
+				serviceEndpoints := getTestEndpointsResponse(t, "", "", endpoints...)
+				mockClient.Read(mock.Anything, mock.Anything).
+					Return(serviceEndpoints, nil).
+					Once().
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(*pbresource.ReadRequest)
+						require.Equal(t, serviceEndpoints.GetResource().GetId().GetName(), req.Id.Name)
+					})
+			},
+			expectedErr: ErrNotFound,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			logger := testutil.Logger(t)
+
+			client := mockpbresource.NewResourceServiceClient(t)
+			mockClient := client.EXPECT()
+			tc.configureMockClient(mockClient)
+
+			if tc.rc == nil {
+				tc.rc = &config.RuntimeConfig{
+					DNSOnlyPassing: false,
+				}
+			}
+
+			df := NewV2DataFetcher(tc.rc, client, logger)
+
+			result, err := df.FetchEndpoints(tc.context, tc.queryPayload, LookupTypeService)
+			require.True(t, errors.Is(err, tc.expectedErr))
+
+			if tc.verifyShuffle {
+				require.NotEqualf(t, tc.expectedResult, result, "expected result to be shuffled. There is a small probability that it shuffled back to the original order. In that case, you may want to play the lottery.")
+			}
+
+			require.ElementsMatchf(t, tc.expectedResult, result, "elements of results should match")
+		})
+	}
+}
+
+func getTestWorkloadResponse(t *testing.T, name string, nsOverride string, partitionOverride string) *pbresource.ReadResponse {
 	workload := &pbcatalog.Workload{
 		Addresses: []*pbcatalog.WorkloadAddress{
 			{
 				Host:  "1.2.3.4",
-				Ports: []string{"api"},
+				Ports: []string{"api", "mesh"},
 			},
 		},
 		Ports: map[string]*pbcatalog.WorkloadPort{
 			"api": {
 				Port: 5678,
+			},
+			"mesh": {
+				Port: 21000,
 			},
 		},
 		Identity: "test-identity",
@@ -237,9 +777,72 @@ func getTestWorkloadResponse(t *testing.T, nsOverride string, partitionOverride 
 	resp := &pbresource.ReadResponse{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
-				Name:    "foo-1234",
+				Name:    name,
 				Type:    pbcatalog.WorkloadType,
-				Tenancy: resource.DefaultNamespacedTenancy(), // TODO (v2-dns): tenancy
+				Tenancy: resource.DefaultNamespacedTenancy(),
+			},
+			Data: data,
+		},
+	}
+
+	if nsOverride != "" {
+		resp.Resource.Id.Tenancy.Namespace = nsOverride
+	}
+	if partitionOverride != "" {
+		resp.Resource.Id.Tenancy.Partition = partitionOverride
+	}
+
+	return resp
+}
+
+func makeEndpoint(name string, address string, health pbcatalog.Health, weightPassing, weightWarning uint32) *pbcatalog.Endpoint {
+	endpoint := &pbcatalog.Endpoint{
+		Addresses: []*pbcatalog.WorkloadAddress{
+			{
+				Host:  address,
+				Ports: []string{"api"},
+			},
+		},
+		Ports: map[string]*pbcatalog.WorkloadPort{
+			"api": {
+				Port: 5678,
+			},
+			"mesh": {
+				Port: 21000,
+			},
+		},
+		HealthStatus: health,
+		TargetRef: &pbresource.ID{
+			Name: name,
+		},
+	}
+
+	if weightPassing > 0 || weightWarning > 0 {
+		endpoint.Dns = &pbcatalog.DNSPolicy{
+			Weights: &pbcatalog.Weights{
+				Passing: weightPassing,
+				Warning: weightWarning,
+			},
+		}
+	}
+
+	return endpoint
+}
+
+func getTestEndpointsResponse(t *testing.T, nsOverride string, partitionOverride string, endpoints ...*pbcatalog.Endpoint) *pbresource.ReadResponse {
+	serviceEndpoints := &pbcatalog.ServiceEndpoints{
+		Endpoints: endpoints,
+	}
+
+	data, err := anypb.New(serviceEndpoints)
+	require.NoError(t, err)
+
+	resp := &pbresource.ReadResponse{
+		Resource: &pbresource.Resource{
+			Id: &pbresource.ID{
+				Name:    "consul",
+				Type:    pbcatalog.ServiceType,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 			},
 			Data: data,
 		},

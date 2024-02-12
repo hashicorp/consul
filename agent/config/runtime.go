@@ -272,7 +272,7 @@ type RuntimeConfig struct {
 	// Records returned in the ANSWER section of a DNS response for UDP
 	// responses without EDNS support (limited to 512 bytes).
 	// This parameter is deprecated, if you want to limit the number of
-	// records returned by A or AAAA questions, please use DNSARecordLimit
+	// records returned by A or AAAA questions, please use TestDNS_ServiceLookup_Randomize
 	// instead.
 	//
 	// hcl: dns_config { udp_answer_limit = int }
@@ -563,6 +563,15 @@ type RuntimeConfig struct {
 	// hcl: data_dir = string
 	// flag: -data-dir string
 	DataDir string
+
+	// DefaultIntentionPolicy is used to define a default intention action for all
+	// sources and destinations. Possible values are "allow", "deny", or "" (blank).
+	// For compatibility, falls back to ACLResolverSettings.ACLDefaultPolicy (which
+	// itself has a default of "allow") if left blank. Future versions of Consul
+	// will default this field to "deny" to be secure by default.
+	//
+	// hcl: default_intention_policy = string
+	DefaultIntentionPolicy string
 
 	// DefaultQueryTime is the amount of time a blocking query will wait before
 	// Consul will force a response. This value can be overridden by the 'wait'
