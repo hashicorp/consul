@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/controller/dependency"
+	"github.com/hashicorp/consul/internal/mesh/internal/meshindexes"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
@@ -135,7 +136,7 @@ func (m *mapAndTransformer) transformServiceToWorkloadIdentities(ctx context.Con
 	// another transformer immediately anyway, so it's largely an opaque
 	// carrier for the WI name string only.
 
-	wiIDs := getWorkloadIdentitiesFromService(res)
+	wiIDs := meshindexes.GetWorkloadIdentitiesFromService(res)
 
 	out := make([]*pbresource.Resource, 0, len(wiIDs))
 	for _, wiID := range wiIDs {
@@ -154,7 +155,7 @@ func (m *mapAndTransformer) transformComputedRoutesToBackendServiceRefs(ctx cont
 		return nil, err
 	}
 
-	svcRefs := getBackendServiceRefsFromComputedRoutes(cr)
+	svcRefs := meshindexes.GetBackendServiceRefsFromComputedRoutes(cr)
 
 	out := make([]*pbresource.Resource, 0, len(svcRefs))
 	for _, svcRef := range svcRefs {
