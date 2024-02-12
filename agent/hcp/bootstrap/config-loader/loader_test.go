@@ -13,13 +13,15 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/bootstrap"
+	"github.com/hashicorp/consul/agent/hcp/bootstrap/constants"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBootstrapConfigLoader(t *testing.T) {
@@ -274,7 +276,7 @@ func TestLoadConfig_Persistence(t *testing.T) {
 
 			// New clusters should have received and persisted the whole suite of config.
 			verifyFn: func(t *testing.T, rc *config.RuntimeConfig) {
-				dir := filepath.Join(rc.DataDir, bootstrap.SubDir)
+				dir := filepath.Join(rc.DataDir, constants.SubDir)
 
 				entries, err := os.ReadDir(dir)
 				require.NoError(t, err)
@@ -310,7 +312,7 @@ func TestLoadConfig_Persistence(t *testing.T) {
 
 			// Existing clusters should have only received and persisted the management token.
 			verifyFn: func(t *testing.T, rc *config.RuntimeConfig) {
-				dir := filepath.Join(rc.DataDir, bootstrap.SubDir)
+				dir := filepath.Join(rc.DataDir, constants.SubDir)
 
 				entries, err := os.ReadDir(dir)
 				require.NoError(t, err)
@@ -347,7 +349,7 @@ func TestValidatePersistedConfig(t *testing.T) {
 		require.NoError(t, err)
 		t.Cleanup(func() { os.RemoveAll(dataDir) })
 
-		dir := filepath.Join(dataDir, bootstrap.SubDir)
+		dir := filepath.Join(dataDir, constants.SubDir)
 		require.NoError(t, lib.EnsurePath(dir, true))
 
 		if tc.configContents != "" {
