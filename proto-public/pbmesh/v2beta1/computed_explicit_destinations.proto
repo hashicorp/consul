@@ -7,10 +7,15 @@ package hashicorp.consul.mesh.v2beta1;
 
 import "pbmesh/v2beta1/destinations.proto";
 import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
 
 message ComputedExplicitDestinations {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
   // destinations is the list of explicit destinations to define for the selected workloads.
   repeated Destination destinations = 1;
+
+  // BoundReferences is a slice of mixed type references of resources that were
+  // involved in the formulation of this resource.
+  repeated hashicorp.consul.resource.Reference bound_references = 2;
 }

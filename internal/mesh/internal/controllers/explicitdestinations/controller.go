@@ -11,9 +11,11 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
+	"github.com/hashicorp/consul/internal/controller/cache/indexers"
 	"github.com/hashicorp/consul/internal/controller/dependency"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -23,21 +25,64 @@ import (
 
 const ControllerName = "consul.io/explicit-mapper-controller"
 
-func Controller(mapper *mapper.Mapper) *controller.Controller {
-	if mapper == nil {
-		panic("mapper is required")
-	}
+var (
+	boundRefsIndex = indexers.BoundRefsIndex[*pbmesh.ComputedExplicitDestinations]("bound-references")
 
-	return controller.NewController(ControllerName, pbmesh.ComputedExplicitDestinationsType).
-		WithWatch(pbmesh.DestinationsType, mapper.MapDestinations).
-		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ComputedExplicitDestinationsType)).
-		WithWatch(pbcatalog.ServiceType, mapper.MapService).
-		WithWatch(pbmesh.ComputedRoutesType, mapper.MapComputedRoute).
-		WithReconciler(&reconciler{mapper: mapper})
+	destBySelectorIndex = workloadselector.Index[*pbmesh.Destinations]("dest-by-selector")
+
+	destByService = indexers.RefOrIDIndex(
+		"dest-by-service",
+		func(cr *types.DecodedDestinations) []*pbresource.Reference {
+			out := make([]*pbresource.Reference, 0, len(cr.Data.Destinations))
+			for _, dest := range cr.Data.Destinations {
+				if dest.DestinationRef != nil && types.IsServiceType(dest.DestinationRef.GetType()) {
+					out = append(out, dest.DestinationRef)
+				}
+			}
+			return out
+		},
+	)
+)
+
+func Controller() *controller.Controller {
+	boundRefsMapper := dependency.CacheListMapper(pbmesh.ComputedExplicitDestinationsType, boundRefsIndex.Name())
+
+	return controller.NewController(ControllerName,
+		pbmesh.ComputedExplicitDestinationsType,
+		boundRefsIndex,
+	).
+		WithWatch(pbmesh.DestinationsType,
+			dependency.MultiMapper(
+				boundRefsMapper,
+				dependency.WrapAndReplaceType(
+					pbmesh.ComputedExplicitDestinationsType,
+					workloadselector.MapSelectorToWorkloads[*pbmesh.Destinations],
+				),
+			),
+			destBySelectorIndex,
+			destByService,
+		).
+		WithWatch(pbcatalog.WorkloadType,
+			dependency.ReplaceType(pbmesh.ComputedExplicitDestinationsType),
+		).
+		WithWatch(pbcatalog.ServiceType,
+			dependency.WrapAndReplaceType(
+				pbmesh.ComputedExplicitDestinationsType,
+				dependency.CacheListMapper(pbmesh.DestinationsType, destByService.Name()),
+			),
+		).
+		WithWatch(pbmesh.ComputedRoutesType,
+			dependency.WrapAndReplaceType(
+				pbmesh.ComputedExplicitDestinationsType,
+				dependency.CacheListMapper(pbmesh.DestinationsType, destByService.Name(),
+					dependency.ReplaceCacheIDType(pbcatalog.ServiceType),
+				),
+			),
+		).
+		WithReconciler(&reconciler{})
 }
 
 type reconciler struct {
-	mapper *mapper.Mapper
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -52,17 +97,16 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// If workload is not found, the decoded resource will be nil.
-	if workload == nil || workload.GetResource() == nil || workload.GetData() == nil {
+	if workload == nil {
 		// When workload is not there, we don't need to manually delete the resource
 		// because it is owned by the workload. In this case, we skip reconcile
 		// because there's nothing for us to do.
 		rt.Logger.Trace("the corresponding workload does not exist", "id", workloadID)
-		r.mapper.UntrackComputedExplicitDestinations(req.ID)
 		return nil
 	}
 
 	// Get existing ComputedExplicitDestinations resource (if any).
-	ced, err := resource.GetDecodedResource[*pbmesh.ComputedExplicitDestinations](ctx, rt.Client, req.ID)
+	ced, err := cache.GetDecoded[*pbmesh.ComputedExplicitDestinations](rt.Cache, pbmesh.ComputedExplicitDestinationsType, "id", req.ID)
 	if err != nil {
 		rt.Logger.Error("error fetching ComputedExplicitDestinations", "error", err)
 		return err
@@ -72,7 +116,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	// as for non-mesh workloads there should be no mapper.
 	if !workload.GetData().IsMeshEnabled() {
 		rt.Logger.Trace("workload is not on the mesh, skipping reconcile and deleting any corresponding ComputedDestinations", "id", workloadID)
-		r.mapper.UntrackComputedExplicitDestinations(req.ID)
 
 		// Delete CED only if it exists.
 		if ced != nil {
@@ -90,39 +133,35 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// Now get any mapper that we have in the cache that have selectors matching the name
 	// of this CD (name-aligned with workload).
-	destinationIDs := r.mapper.DestinationsForWorkload(req.ID)
-	rt.Logger.Trace("cached destinations IDs", "ids", destinationIDs)
-
-	decodedDestinations, err := r.fetchDestinations(ctx, rt.Client, destinationIDs, workload)
+	decodedDestinations, err := r.fetchDestinations(ctx, rt, workload)
 	if err != nil {
 		rt.Logger.Error("error fetching mapper", "error", err)
 		return err
 	}
 
-	if len(decodedDestinations) > 0 {
-		r.mapper.TrackDestinations(req.ID, decodedDestinations)
-	} else {
-		r.mapper.UntrackComputedExplicitDestinations(req.ID)
-	}
-
 	conflicts := findConflicts(decodedDestinations)
 
-	newComputedDestinationsData := &pbmesh.ComputedExplicitDestinations{}
+	var (
+		newComputedDestinationsData = &pbmesh.ComputedExplicitDestinations{}
+		brc                         = resource.NewBoundReferenceCollector()
+	)
 	for _, dst := range decodedDestinations {
 		updatedStatus := &pbresource.Status{
 			ObservedGeneration: dst.GetResource().GetGeneration(),
 		}
 
-		// First check if this resource has a conflict. If it does, update status and don't include it in the computed resource.
+		// First check if this resource has a conflict. If it does, update
+		// status and don't include it in the computed resource.
 		if _, ok := conflicts[resource.NewReferenceKey(dst.GetResource().GetId())]; ok {
 			rt.Logger.Trace("skipping this Destinations resource because it has conflicts with others", "id", dst.GetResource().GetId())
 			updatedStatus.Conditions = append(updatedStatus.Conditions, ConditionConflictFound(workload.GetResource().GetId()))
 		} else {
-			valid, cond := validate(ctx, rt.Client, dst)
+			valid, cond := validate(ctx, rt, dst)
 
 			// Only add it to computed mapper if its mapper are valid.
 			if valid {
 				newComputedDestinationsData.Destinations = append(newComputedDestinationsData.Destinations, dst.GetData().GetDestinations()...)
+				brc.AddRefOrID(dst.Id)
 			} else {
 				rt.Logger.Trace("Destinations is not valid", "condition", cond)
 			}
@@ -166,6 +205,8 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 
+	newComputedDestinationsData.BoundReferences = brc.List()
+
 	// Lastly, write the resource.
 	if ced == nil || !proto.Equal(ced.GetData(), newComputedDestinationsData) {
 		rt.Logger.Trace("writing new ComputedExplicitDestinations")
@@ -195,21 +236,19 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 func validate(
 	ctx context.Context,
-	client pbresource.ResourceServiceClient,
-	destinations *types.DecodedDestinations) (bool, *pbresource.Condition) {
+	rt controller.Runtime,
+	destinations *types.DecodedDestinations,
+) (bool, *pbresource.Condition) {
 	for _, dest := range destinations.GetData().GetDestinations() {
 		serviceRef := resource.ReferenceToString(dest.DestinationRef)
 
 		// Fetch and validate service.
-		service, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, client, resource.IDFromReference(dest.DestinationRef))
+		service, err := cache.GetDecoded[*pbcatalog.Service](rt.Cache, pbcatalog.ServiceType, "id", dest.DestinationRef)
 		if err != nil {
 			return false, ConditionDestinationServiceReadError(serviceRef)
-		}
-		if service == nil {
+		} else if service == nil {
 			return false, ConditionDestinationServiceNotFound(serviceRef)
-		}
-
-		if !service.GetData().IsMeshEnabled() {
+		} else if !service.GetData().IsMeshEnabled() {
 			return false, ConditionMeshProtocolNotFound(serviceRef)
 		}
 
@@ -220,11 +259,11 @@ func validate(
 
 		// Fetch and validate computed routes for service.
 		serviceID := resource.IDFromReference(dest.DestinationRef)
-		cr, err := resource.GetDecodedResource[*pbmesh.ComputedRoutes](ctx, client, resource.ReplaceType(pbmesh.ComputedRoutesType, serviceID))
+		crID := resource.ReplaceType(pbmesh.ComputedRoutesType, serviceID)
+		cr, err := cache.GetDecoded[*pbmesh.ComputedRoutes](rt.Cache, pbmesh.ComputedRoutesType, "id", crID)
 		if err != nil {
 			return false, ConditionDestinationComputedRoutesReadErr(serviceRef)
-		}
-		if cr == nil {
+		} else if cr == nil {
 			return false, ConditionDestinationComputedRoutesNotFound(serviceRef)
 		}
 
@@ -241,27 +280,30 @@ func validate(
 
 func (r *reconciler) fetchDestinations(
 	ctx context.Context,
-	client pbresource.ResourceServiceClient,
-	destinationIDs []*pbresource.ID,
+	rt controller.Runtime,
 	workload *types.DecodedWorkload,
 ) ([]*types.DecodedDestinations, error) {
+	dests, err := cache.ParentsDecoded[*pbmesh.Destinations](
+		rt.Cache,
+		pbmesh.DestinationsType,
+		destBySelectorIndex.Name(),
+		workload.Id,
+	)
+	if err != nil {
+		rt.Logger.Error("error fetching destinations", "error", err)
+		return nil, err
+	}
+
 	// Sort all configs alphabetically.
-	sort.Slice(destinationIDs, func(i, j int) bool {
-		return destinationIDs[i].GetName() < destinationIDs[j].GetName()
+	sort.Slice(dests, func(i, j int) bool {
+		return dests[i].GetId().GetName() < dests[j].GetId().GetName()
 	})
 
-	var decoded []*types.DecodedDestinations
-	for _, id := range destinationIDs {
-		res, err := resource.GetDecodedResource[*pbmesh.Destinations](ctx, client, id)
-		if err != nil {
-			return nil, err
-		}
-		if res == nil || res.GetResource() == nil || res.GetData() == nil {
-			// If resource is not found, we should untrack it.
-			r.mapper.UntrackDestinations(id)
-			continue
-		}
-
+	var (
+		kept []*types.DecodedDestinations
+		ids  = make([]*pbresource.ID, 0, len(dests))
+	)
+	for _, res := range dests {
 		if res.Data.Workloads.Filter != "" {
 			match, err := resource.FilterMatchesResourceMetadata(workload.Resource, res.Data.Workloads.Filter)
 			if err != nil {
@@ -272,18 +314,22 @@ func (r *reconciler) fetchDestinations(
 			}
 		}
 
-		decoded = append(decoded, res)
+		ids = append(ids, res.Id)
+		kept = append(kept, res)
 	}
+	rt.Logger.Trace("cached destinations IDs", "ids", ids)
 
-	return decoded, nil
+	return kept, nil
 }
 
-// Find conflicts finds any resources where listen addresses of the destinations are conflicting.
-// It will record both resources as conflicting in the resulting map.
+// Find conflicts finds any resources where listen addresses of the
+// destinations are conflicting. It will record both resources as conflicting
+// in the resulting map.
 func findConflicts(destinations []*types.DecodedDestinations) map[resource.ReferenceKey]struct{} {
-	addresses := make(map[string]*pbresource.ID)
-	duplicates := make(map[resource.ReferenceKey]struct{})
-
+	var (
+		addresses  = make(map[string]*pbresource.ID)
+		duplicates = make(map[resource.ReferenceKey]struct{})
+	)
 	for _, decDestinations := range destinations {
 		for _, dst := range decDestinations.GetData().GetDestinations() {
 			var address string

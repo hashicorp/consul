@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/apigateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/implicitdestinations"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshconfiguration"
@@ -52,7 +51,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(routes.Controller())
 
 	mgr.Register(proxyconfiguration.Controller())
-	mgr.Register(explicitdestinations.Controller(mapper.New()))
+	mgr.Register(explicitdestinations.Controller())
 	mgr.Register(implicitdestinations.Controller(deps.DefaultAllow))
 
 	mgr.Register(meshgateways.Controller())
