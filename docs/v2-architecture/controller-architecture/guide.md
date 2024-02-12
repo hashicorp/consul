@@ -491,7 +491,3 @@ client.Write(ctx, &pbresource.WriteRequest{
 	},
 })
 ```
-
-## Testing
-
-Now that you have created your controller its time to test it. The types of tests each controller should have and boiler plat for test files is documented [here](./testing.md)

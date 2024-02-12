@@ -228,6 +228,7 @@ func TestDNS_EmptyAltDomain(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -250,6 +251,7 @@ func TestDNS_CycleRecursorCheck(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	// Start a DNS recursor that returns a SERVFAIL
 	server1 := makeRecursor(t, dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeServerFailure},
@@ -292,6 +294,7 @@ func TestDNS_CycleRecursorCheckAllFail(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	// Start 3 DNS recursors that returns a REFUSED status
 	server1 := makeRecursor(t, dns.Msg{
 		MsgHdr: dns.MsgHdr{Rcode: dns.RcodeRefused},
@@ -476,6 +479,7 @@ func TestDNS_ReverseLookup(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -523,6 +527,7 @@ func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
@@ -572,6 +577,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -619,6 +625,7 @@ func TestDNS_SOA_Settings(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	testSoaWithConfig := func(config string, ttl, expire, refresh, retry uint) {
 		a := NewTestAgent(t, config)
 		defer a.Shutdown()
@@ -659,6 +666,8 @@ func TestDNS_VirtualIPLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
@@ -1467,6 +1476,7 @@ func TestDNS_Recurse(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{
 		Answer: []dns.RR{dnsA("apple.com", "1.2.3.4")},
 	})
@@ -1503,6 +1513,8 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	recursor := makeRecursor(t, dns.Msg{
 		MsgHdr: dns.MsgHdr{Truncated: true},
@@ -1544,6 +1556,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	serverClientTimeout := 3 * time.Second
 	testClientTimeout := serverClientTimeout + 5*time.Second
 
@@ -1762,6 +1775,7 @@ func TestDNS_AddressLookup(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -1801,6 +1815,7 @@ func TestDNS_AddressLookupANY(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -1836,6 +1851,7 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -1872,6 +1888,7 @@ func TestDNS_AddressLookupIPV6(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -1920,6 +1937,7 @@ func TestDNS_AddressLookupIPV6InvalidType(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
@@ -3052,6 +3070,7 @@ func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
 }
 
 func TestDNS_syncExtra(t *testing.T) {
+	t.Parallel()
 	resp := &dns.Msg{
 		Answer: []dns.RR{
 			// These two are on the same host so the redundant extra
@@ -3397,6 +3416,7 @@ func TestDNS_Compression_ReverseLookup(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
@@ -3457,6 +3477,7 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	recursor := makeRecursor(t, dns.Msg{
 		Answer: []dns.RR{dnsA("apple.com", "1.2.3.4")},
 	})
@@ -3512,6 +3533,8 @@ func TestDNS_V1ConfigReload(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	a := NewTestAgent(t, `
 		recursors = ["8.8.8.8:53"]

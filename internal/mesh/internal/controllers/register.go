@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/apigateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy"
@@ -59,5 +58,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(meshgateways.Controller())
 	mgr.Register(meshconfiguration.Controller())
 
-	mgr.Register(apigateways.Controller())
+	// This controller is currently configured to watch types which aren't registered and produces infinite
+	// errors because of this. Once the watched types are in place we should uncomment this.
+	// mgr.Register(apigateways.Controller())
 }

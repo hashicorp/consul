@@ -402,7 +402,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   </CodeTabs>
 
-- `cache` configuration for client agents. When an `?index` query parameter is specified but '?cached' is not appended in a [streaming backend call](/consul/api-docs/features/blocking#streaming-backend), Consul bypasses these configuration values. The configurable values are the following:
+- `cache` configuration for client agents. The configurable values are the following:
 
   - `entry_fetch_max_burst` The size of the token bucket used to recharge the rate-limit per
     cache entry. The default value is 2 and means that when cache has not been updated
@@ -2153,7 +2153,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
       will not make use of TLS for outgoing connections. This applies to clients
       and servers as both will make outgoing connections. This setting does not
       apply to the gRPC interface as Consul makes no outgoing connections on this
-      interface.
+      interface. When set to true for the HTTPS interface, this parameter applies to [watches](/consul/docs/dynamic-app-config/watches), which operate by making HTTPS requests to the local agent.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
     the gRPC interface you must define a port via [`ports.grpc_tls`](#grpc_tls_port).

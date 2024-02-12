@@ -32,5 +32,4 @@ type (
 	DecodedProxyStateTemplate         = resource.DecodedResource[*pbmesh.ProxyStateTemplate]
 	DecodedMeshGateway                = resource.DecodedResource[*pbmesh.MeshGateway]
 	DecodedComputedExportedServices   = resource.DecodedResource[*pbmulticluster.ComputedExportedServices]
-	DecodedAPIGateway                 = resource.DecodedResource[*pbmesh.APIGateway]
 )

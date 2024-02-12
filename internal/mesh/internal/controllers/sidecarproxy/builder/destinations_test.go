@@ -172,9 +172,9 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			Build()
 		resourcetest.ValidateAndNormalize(t, registry, api1HTTPRoute)
 
-		api1FailoverPolicy := resourcetest.Resource(pbcatalog.ComputedFailoverPolicyType, "api-1").
+		api1FailoverPolicy := resourcetest.Resource(pbcatalog.FailoverPolicyType, "api-1").
 			WithTenancy(tenancy).
-			WithData(t, &pbcatalog.ComputedFailoverPolicy{
+			WithData(t, &pbcatalog.FailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{{
@@ -261,7 +261,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			resourcetest.MustDecode[*pbmesh.DestinationPolicy](t, api1DestPolicy),
 			resourcetest.MustDecode[*pbmesh.HTTPRoute](t, api1HTTPRoute),
 			resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCPRoute),
-			resourcetest.MustDecode[*pbcatalog.ComputedFailoverPolicy](t, api1FailoverPolicy),
+			resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, api1FailoverPolicy),
 			resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCP2Route),
 		)
 		require.NotNil(t, api1ComputedRoutes)

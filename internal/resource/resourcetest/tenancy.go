@@ -27,12 +27,6 @@ func TestTenancies() []*pbresource.Tenancy {
 	return tenancies
 }
 
-func ToPartitionScoped(t *pbresource.Tenancy) *pbresource.Tenancy {
-	return &pbresource.Tenancy{
-		Partition: t.Partition,
-	}
-}
-
 // Tenancy constructs a pbresource.Tenancy from a concise string representation
 // suitable for use in unit tests.
 //

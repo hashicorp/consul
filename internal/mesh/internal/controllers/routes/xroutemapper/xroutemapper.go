@@ -16,13 +16,13 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type ResolveComputedFailoverServiceDestinations func(context.Context, controller.Runtime, *pbresource.ID) ([]*pbresource.ID, error)
+type ResolveFailoverServiceDestinations func(context.Context, controller.Runtime, *pbresource.ID) ([]*pbresource.ID, error)
 
 // Mapper tracks the following relationships:
 //
-// - xRoute                 <-> ParentRef Service
-// - xRoute                 <-> BackendRef Service
-// - ComputedFailoverPolicy <-> DestRef Service
+// - xRoute         <-> ParentRef Service
+// - xRoute         <-> BackendRef Service
+// - FailoverPolicy <-> DestRef Service
 //
 // It is the job of the controller, loader, and mapper to keep the mappings up
 // to date whenever new data is loaded. Notably because the dep mapper events
@@ -40,11 +40,11 @@ type Mapper struct {
 	grpcRouteBackendMapper *bimapper.Mapper
 	tcpRouteBackendMapper  *bimapper.Mapper
 
-	resolveComputedFailoverServiceDestinations ResolveComputedFailoverServiceDestinations
+	resolveFailoverServiceDestinations ResolveFailoverServiceDestinations
 }
 
 // New creates a new Mapper.
-func New(resolver ResolveComputedFailoverServiceDestinations) *Mapper {
+func New(resolver ResolveFailoverServiceDestinations) *Mapper {
 	if resolver == nil {
 		panic("must specify a ResolveFailoverServiceDestinations callback")
 	}
@@ -59,7 +59,7 @@ func New(resolver ResolveComputedFailoverServiceDestinations) *Mapper {
 		grpcRouteBackendMapper: bimapper.New(pbmesh.GRPCRouteType, pbcatalog.ServiceType),
 		tcpRouteBackendMapper:  bimapper.New(pbmesh.TCPRouteType, pbcatalog.ServiceType),
 
-		resolveComputedFailoverServiceDestinations: resolver,
+		resolveFailoverServiceDestinations: resolver,
 	}
 }
 
@@ -235,7 +235,7 @@ func (m *Mapper) MapService(
 	// 2. xRoute[parentRef=OUTPUT_EVENT; backendRef=SOMETHING], FailoverPolicy[name=SOMETHING, destRef=INPUT_EVENT]
 
 	// (case 2) First find all failover policies that have a reference to our input service.
-	effectiveServiceIDs, err := m.resolveComputedFailoverServiceDestinations(ctx, rt, res.Id)
+	effectiveServiceIDs, err := m.resolveFailoverServiceDestinations(ctx, rt, res.Id)
 	if err != nil {
 		return nil, err
 	}

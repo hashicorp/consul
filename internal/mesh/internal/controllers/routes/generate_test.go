@@ -96,12 +96,12 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			return rtest.MustDecode[*pbmesh.DestinationPolicy](t, policy)
 		}
 
-		newFailPolicy := func(name string, data *pbcatalog.ComputedFailoverPolicy) *types.DecodedComputedFailoverPolicy {
-			policy := rtest.Resource(pbcatalog.ComputedFailoverPolicyType, name).
+		newFailPolicy := func(name string, data *pbcatalog.FailoverPolicy) *types.DecodedFailoverPolicy {
+			policy := rtest.Resource(pbcatalog.FailoverPolicyType, name).
 				WithTenancy(tenancy).
 				WithData(t, data).Build()
 			rtest.ValidateAndNormalize(t, registry, policy)
-			return rtest.MustDecode[*pbcatalog.ComputedFailoverPolicy](t, policy)
+			return rtest.MustDecode[*pbcatalog.FailoverPolicy](t, policy)
 		}
 
 		backendName := func(name, port string) string {
@@ -1606,17 +1606,10 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			failoverPolicy := &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: barServiceRef},  // port is not supported in non-ported config
+						{Ref: barServiceRef},
 						{Ref: deadServiceRef}, // no service
 					},
 				},
-			}
-
-			simplifiedFailoverPolicy := catalog.SimplifyFailoverPolicy(fooServiceData, failoverPolicy)
-
-			computedFailoverPolicy := &pbcatalog.ComputedFailoverPolicy{
-				PortConfigs:     simplifiedFailoverPolicy.PortConfigs,
-				BoundReferences: []*pbresource.Reference{barServiceRef},
 			}
 			portFailoverConfig := &pbmesh.ComputedFailoverConfig{
 				Destinations: []*pbmesh.ComputedFailoverDestination{
@@ -1632,7 +1625,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 					newService("foo", fooServiceData),
 					newService("bar", barServiceData),
 					newHTTPRoute("api-http-route1", httpRoute1),
-					newFailPolicy("foo", computedFailoverPolicy),
+					newFailPolicy("foo", failoverPolicy),
 				)
 
 			expect := []*ComputedRoutesResult{{
@@ -1640,7 +1633,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				OwnerID: apiServiceID,
 				Data: &pbmesh.ComputedRoutes{
 					BoundReferences: []*pbresource.Reference{
-						newRef(pbcatalog.ComputedFailoverPolicyType, "foo", tenancy),
+						newRef(pbcatalog.FailoverPolicyType, "foo", tenancy),
 						apiServiceRef,
 						barServiceRef,
 						fooServiceRef,
@@ -1867,17 +1860,9 @@ func TestGenerateComputedRoutes(t *testing.T) {
 										},
 									},
 								}
-
-								simplifiedFailoverPolicy := catalog.SimplifyFailoverPolicy(fooServiceData, failoverPolicy)
-
-								computedFailoverPolicy := &pbcatalog.ComputedFailoverPolicy{
-									PortConfigs:     simplifiedFailoverPolicy.PortConfigs,
-									BoundReferences: []*pbresource.Reference{barServiceRef},
-								}
-
 								// Test ported config if used in test case
 								if configKeyPortFoo != "" {
-									failoverPolicy := &pbcatalog.FailoverPolicy{
+									failoverPolicy = &pbcatalog.FailoverPolicy{
 										PortConfigs: map[string]*pbcatalog.FailoverConfig{
 											configKeyPortFoo: {
 												Destinations: []*pbcatalog.FailoverDestination{
@@ -1886,13 +1871,6 @@ func TestGenerateComputedRoutes(t *testing.T) {
 												},
 											},
 										},
-									}
-
-									simplifiedFailoverPolicy = catalog.SimplifyFailoverPolicy(fooServiceData, failoverPolicy)
-
-									computedFailoverPolicy = &pbcatalog.ComputedFailoverPolicy{
-										PortConfigs:     simplifiedFailoverPolicy.PortConfigs,
-										BoundReferences: []*pbresource.Reference{barServiceRef},
 									}
 								}
 								expectedPortFailoverConfig := &pbmesh.ComputedFailoverConfig{
@@ -1909,7 +1887,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 										newService("foo", fooServiceData),
 										newService("bar", barServiceData),
 										newHTTPRoute("api-http-route1", httpRoute1),
-										newFailPolicy("foo", computedFailoverPolicy),
+										newFailPolicy("foo", failoverPolicy),
 									)
 
 								// Same result as non-virtual-port variant of test
@@ -1918,7 +1896,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 									OwnerID: apiServiceID,
 									Data: &pbmesh.ComputedRoutes{
 										BoundReferences: []*pbresource.Reference{
-											newRef(pbcatalog.ComputedFailoverPolicyType, "foo", tenancy),
+											newRef(pbcatalog.FailoverPolicyType, "foo", tenancy),
 											apiServiceRef,
 											barServiceRef,
 											fooServiceRef,

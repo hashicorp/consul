@@ -22,11 +22,11 @@ import (
 )
 
 const (
-	computedFailoverDestRefsIndexName = "destination-refs"
+	failoverDestRefsIndexName = "destination-refs"
 )
 
-func resolveComputedFailoverDestRefs(_ context.Context, rt controller.Runtime, id *pbresource.ID) ([]*pbresource.ID, error) {
-	iter, err := rt.Cache.ListIterator(pbcatalog.ComputedFailoverPolicyType, computedFailoverDestRefsIndexName, id)
+func resolveFailoverDestRefs(_ context.Context, rt controller.Runtime, id *pbresource.ID) ([]*pbresource.ID, error) {
+	iter, err := rt.Cache.ListIterator(pbcatalog.FailoverPolicyType, failoverDestRefsIndexName, id)
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +40,11 @@ func resolveComputedFailoverDestRefs(_ context.Context, rt controller.Runtime, i
 }
 
 func Controller() *controller.Controller {
-	computedFailoverDestRefsIndex := indexers.RefOrIDIndex(computedFailoverDestRefsIndexName, func(dec *resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]) []*pbresource.Reference {
+	failoverDestRefsIndex := indexers.RefOrIDIndex(failoverDestRefsIndexName, func(dec *resource.DecodedResource[*pbcatalog.FailoverPolicy]) []*pbresource.Reference {
 		return dec.Data.GetUnderlyingDestinationRefs()
 	})
 
-	mapper := xroutemapper.New(resolveComputedFailoverDestRefs)
+	mapper := xroutemapper.New(resolveFailoverDestRefs)
 
 	r := &routesReconciler{
 		mapper: mapper,
@@ -54,7 +54,7 @@ func Controller() *controller.Controller {
 		WithWatch(pbmesh.GRPCRouteType, mapper.MapGRPCRoute).
 		WithWatch(pbmesh.TCPRouteType, mapper.MapTCPRoute).
 		WithWatch(pbmesh.DestinationPolicyType, mapper.MapServiceNameAligned).
-		WithWatch(pbcatalog.ComputedFailoverPolicyType, mapper.MapServiceNameAligned, computedFailoverDestRefsIndex).
+		WithWatch(pbcatalog.FailoverPolicyType, mapper.MapServiceNameAligned, failoverDestRefsIndex).
 		WithWatch(pbcatalog.ServiceType, mapper.MapService).
 		WithReconciler(r)
 }

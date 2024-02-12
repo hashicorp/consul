@@ -21,6 +21,7 @@ type trafficPermissionsBuilder struct {
 	denyPermissions    []*pbauth.Permission
 	sgExpander         expander.SamenessGroupExpander
 	sgMap              map[string][]*pbmulticluster.SamenessGroupMember
+	brc                *resource.BoundReferenceCollector
 }
 
 type missingSamenessGroupReferences struct {
@@ -28,7 +29,10 @@ type missingSamenessGroupReferences struct {
 	samenessGroups []string
 }
 
-func newTrafficPermissionsBuilder(expander expander.SamenessGroupExpander, sgMap map[string][]*pbmulticluster.SamenessGroupMember) *trafficPermissionsBuilder {
+func newTrafficPermissionsBuilder(
+	expander expander.SamenessGroupExpander,
+	sgMap map[string][]*pbmulticluster.SamenessGroupMember,
+	brc *resource.BoundReferenceCollector) *trafficPermissionsBuilder {
 	return &trafficPermissionsBuilder{
 		sgMap:              sgMap,
 		missing:            make(map[resource.ReferenceKey]missingSamenessGroupReferences),
@@ -36,12 +40,15 @@ func newTrafficPermissionsBuilder(expander expander.SamenessGroupExpander, sgMap
 		sgExpander:         expander,
 		allowedPermissions: make([]*pbauth.Permission, 0),
 		denyPermissions:    make([]*pbauth.Permission, 0),
+		brc:                brc,
 	}
 }
 
 // track will use all associated XTrafficPermissions to create new ComputedTrafficPermissions samenessGroupsForTrafficPermission
 func track[S types.XTrafficPermissions](tpb *trafficPermissionsBuilder, xtp *resource.DecodedResource[S]) {
-	permissions, missingSamenessGroups := tpb.sgExpander.Expand(xtp.Data, tpb.sgMap)
+	tpb.brc.AddRefOrID(xtp.Id)
+
+	missingSamenessGroups := tpb.sgExpander.Expand(xtp.Data, tpb.sgMap)
 
 	if len(missingSamenessGroups) > 0 {
 		tpb.missing[resource.NewReferenceKey(xtp.Id)] = missingSamenessGroupReferences{
@@ -53,9 +60,9 @@ func track[S types.XTrafficPermissions](tpb *trafficPermissionsBuilder, xtp *res
 	tpb.isDefault = false
 
 	if xtp.Data.GetAction() == pbauth.Action_ACTION_ALLOW {
-		tpb.allowedPermissions = append(tpb.allowedPermissions, permissions...)
+		tpb.allowedPermissions = append(tpb.allowedPermissions, xtp.Data.GetPermissions()...)
 	} else {
-		tpb.denyPermissions = append(tpb.denyPermissions, permissions...)
+		tpb.denyPermissions = append(tpb.denyPermissions, xtp.Data.GetPermissions()...)
 	}
 }
 
@@ -64,6 +71,7 @@ func (tpb *trafficPermissionsBuilder) build() (*pbauth.ComputedTrafficPermission
 		AllowPermissions: tpb.allowedPermissions,
 		DenyPermissions:  tpb.denyPermissions,
 		IsDefault:        tpb.isDefault,
+		BoundReferences:  tpb.brc.List(),
 	}, tpb.missing
 }
 

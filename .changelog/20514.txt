@@ -1,3 +1,0 @@
-```release-note:bug
-hcp: fix error logs when failing to push metrics
-```

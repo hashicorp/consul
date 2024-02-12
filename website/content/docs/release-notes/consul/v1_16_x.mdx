@@ -72,11 +72,6 @@ For more detailed information, please refer to the [upgrade details page](/consu
 
 The following issues are known to exist in the v1.16.x releases:
 
-- v1.16.5 - Excessively strict TLS SAN verification is performed by terminating gateways,
-    which prevents connections outside of the mesh to upstream services. Terminating gateway
-    users are advised to avoid deploying these Consul versions. A fix will be present in a future
-    release of Consul 1.16.6 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
-
 - v1.16.0 - v1.16.1 may have issues when a snapshot restore is performed
     and the servers are hosting xDS streams. When this bug triggers, it
     will cause Envoy to incorrectly populate upstream endpoints. It is

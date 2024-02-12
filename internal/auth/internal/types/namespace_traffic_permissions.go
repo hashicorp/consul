@@ -41,7 +41,7 @@ var ValidateNamespaceTrafficPermissions = resource.DecodeAndValidate(validateNam
 func validateNamespaceTrafficPermissions(res *DecodedNamespaceTrafficPermissions) error {
 	var merr error
 
-	if err := v.ValidateAction(res.Data); err != nil {
+	if err := validateAction(res.Data); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 	if err := validatePermissions(res.Id, res.Data); err != nil {
