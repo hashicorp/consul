@@ -7,6 +7,7 @@ package hashicorp.consul.mesh.v2beta1;
 
 import "pbmesh/v2beta1/proxy_configuration.proto";
 import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
 
 message ComputedProxyConfiguration {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
@@ -18,4 +19,8 @@ message ComputedProxyConfiguration {
   // bootstrap_config is the configuration that requires proxies
   // to be restarted to be applied.
   BootstrapConfig bootstrap_config = 3;
+
+  // BoundReferences is a slice of mixed type references of resources that were
+  // involved in the formulation of this resource.
+  repeated hashicorp.consul.resource.Reference bound_references = 4;
 }

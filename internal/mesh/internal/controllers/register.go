@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds"
-	"github.com/hashicorp/consul/internal/mesh/internal/mappers/workloadselectionmapper"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -52,7 +51,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 
 	mgr.Register(routes.Controller())
 
-	mgr.Register(proxyconfiguration.Controller(workloadselectionmapper.New[*pbmesh.ProxyConfiguration](pbmesh.ComputedProxyConfigurationType)))
+	mgr.Register(proxyconfiguration.Controller())
 	mgr.Register(explicitdestinations.Controller(mapper.New()))
 	mgr.Register(implicitdestinations.Controller(deps.DefaultAllow))
 
