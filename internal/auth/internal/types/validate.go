@@ -5,6 +5,7 @@ package types
 
 import (
 	"github.com/hashicorp/go-multierror"
+	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
@@ -119,6 +120,12 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 				}
 			}
 		}
+		if dest.IsEmpty() {
+			merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
+				Name:    "destination_rule",
+				Wrapped: errInvalidRule,
+			}))
+		}
 		if len(dest.Exclude) > 0 {
 			for e, excl := range dest.Exclude {
 				wrapExclPermRuleErr := func(err error) error {
@@ -134,6 +141,43 @@ func validatePermission(p *pbauth.Permission, id *pbresource.ID, wrapErr func(er
 					merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
 						Name:    "exclude_permission_rule",
 						Wrapped: errInvalidPrefixValues,
+					}))
+				}
+				for eh, hdr := range excl.Headers {
+					wrapExclHeaderErr := func(err error) error {
+						return wrapDestRuleErr(resource.ErrInvalidListElement{
+							Name:    "exclude_permission_header_rules",
+							Index:   eh,
+							Wrapped: err,
+						})
+					}
+					if len(hdr.Name) == 0 {
+						merr = multierror.Append(merr, wrapExclHeaderErr(resource.ErrInvalidListElement{
+							Name:    "exclude_permission_header_rule",
+							Wrapped: errHeaderRulesInvalid,
+						}))
+					}
+				}
+				for _, m := range excl.Methods {
+					if len(dest.Methods) != 0 && !slices.Contains(dest.Methods, m) {
+						merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
+							Name:    "exclude_permission_header_rule",
+							Wrapped: errExclValuesMustBeSubset,
+						}))
+					}
+				}
+				for _, port := range excl.PortNames {
+					if len(dest.PortNames) != 0 && !slices.Contains(dest.PortNames, port) {
+						merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
+							Name:    "exclude_permission_header_rule",
+							Wrapped: errExclValuesMustBeSubset,
+						}))
+					}
+				}
+				if excl.IsEmpty() {
+					merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
+						Name:    "exclude_permission_rule",
+						Wrapped: errInvalidRule,
 					}))
 				}
 			}
