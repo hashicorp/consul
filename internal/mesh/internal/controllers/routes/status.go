@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	StatusKey               = "consul.io/routes-controller"
 	StatusConditionAccepted = "accepted"
 
 	// conditions on xRoutes

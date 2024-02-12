@@ -6,7 +6,6 @@ package routes
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -16,7 +15,7 @@ import (
 
 // ValidateXRouteReferences examines all of the ParentRefs and BackendRefs of
 // xRoutes provided and issues status conditions if anything is unacceptable.
-func ValidateXRouteReferences(related *loader.RelatedResources, pending PendingStatuses) {
+func ValidateXRouteReferences(related *RelatedResources, pending PendingStatuses) {
 	related.WalkRoutes(func(
 		rk resource.ReferenceKey,
 		res *pbresource.Resource,

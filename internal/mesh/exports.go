@@ -16,7 +16,7 @@ var (
 	// Controller statuses.
 
 	// Routes controller
-	RoutesStatusKey                                                = routes.StatusKey
+	RoutesStatusKey                                                = routes.ControllerID
 	RoutesStatusConditionAccepted                                  = routes.StatusConditionAccepted
 	RoutesStatusConditionAcceptedMissingParentRefReason            = routes.MissingParentRefReason
 	RoutesStatusConditionAcceptedMissingBackendRefReason           = routes.MissingBackendRefReason
