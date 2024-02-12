@@ -13,8 +13,8 @@ This topic provides overview information about the application layer traffic man
 
 Consul service mesh allows you to divide application layer traffic between different subsets of service instances. You can leverage L7 traffic management capabilities to perform complex processes, such as configuring backup services for failover scenarios, canary and A-B testing, blue-green deployments, and soft multi-tenancy in which production, QA, and staging environments share compute resources. L7 traffic management with Consul service mesh allows you to designate groups of service instances in the Consul catalog smaller than all instances of single service and configure when that subset should receive traffic.
 
-You cannot manage L7 traffic with the [built-in proxy](/consul/docs/connect/proxies/built-in),
-[native proxies](/consul/docs/connect/native), or some [Envoy proxy escape hatches](/consul/docs/connect/proxies/envoy#escape-hatch-overrides).
+You cannot manage L7 traffic with the [built-in proxy](/consul/docs/reference/proxy/built-in),
+[native proxies](/consul/docs/connect/native), or some [Envoy proxy escape hatches](/consul/docs/reference/proxy/envoy#escape-hatch-overrides).
 
 ## Discovery chain
 
@@ -32,13 +32,13 @@ The Consul UI shows discovery chain stages in the **Routing** tab of the **Servi
 
 You can define how Consul manages each stage of the discovery chain in a Consul _configuration entry_. [Configuration entries](/consul/docs/connect/config-entries) modify the default behavior of the Consul service mesh.   
 
-When managing L7 traffic with cluster peering, there are additional configuration requirements to resolve peers in the discovery chain. Refer to [Cluster peering L7 traffic management](/consul/docs/connect/cluster-peering/usage/peering-traffic-management) for more information.
+When managing L7 traffic with cluster peering, there are additional configuration requirements to resolve peers in the discovery chain. Refer to [Cluster peering L7 traffic management](/consul/docs/link/cluster-peering/usage/peering-traffic-management) for more information.
 
 ### Routing
 
 The first stage of the discovery chain is the service router. Routers intercept traffic according to a set of L7 attributes, such as path prefixes and HTTP headers, and route the traffic to a different service or service subset.
 
-Apply a [service router configuration entry](/consul/docs/connect/config-entries/service-router) to implement a router. Service router configuration entries can only reference service splitter or service resolver configuration entries.
+Apply a [service router configuration entry](/consul/docs/reference/config-entry/service-router) to implement a router. Service router configuration entries can only reference service splitter or service resolver configuration entries.
 
 ![screenshot of service router in the UI](/img/l7-routing/Router.png)
 
@@ -46,7 +46,7 @@ Apply a [service router configuration entry](/consul/docs/connect/config-entries
 
 The second stage of the discovery chain is the service splitter. Service splitters split incoming requests and route them to different services or service subsets. Splitters enable staged canary rollouts, versioned releases, and similar use cases.
 
-Apply a [service splitter configuration entry](/consul/docs/connect/config-entries/service-splitter) to implement a splitter. Service splitters configuration entries can only reference other service splitters or service resolver configuration entries.
+Apply a [service splitter configuration entry](/consul/docs/reference/config-entry/service-splitter) to implement a splitter. Service splitters configuration entries can only reference other service splitters or service resolver configuration entries.
 
 ![screenshot of service splitter in the UI](/img/l7-routing/Splitter.png)
 
@@ -70,7 +70,7 @@ The third stage of the discovery chain is the service resolver. Service resolver
 - Route traffic to specific Consul datacenters.
 - Create virtual services that route traffic to instances of the actual service in specific Consul datacenters.
 
-Apply a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver) to implement a resolver. Service resolver configuration entries can only reference other service resolvers.
+Apply a [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver) to implement a resolver. Service resolver configuration entries can only reference other service resolvers.
 
 
 ![screenshot of service resolver in the UI](/img/l7-routing/Resolver.png)

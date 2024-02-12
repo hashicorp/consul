@@ -7,15 +7,15 @@ description: >-
 
 # Define services
 
-This topic describes how to define services so that they can be discovered by other services. Refer to [Services Overview](/consul/docs/services/services) for additional information.
+This topic describes how to define services so that they can be discovered by other services. Refer to [Services Overview](/consul/docs/register) for additional information.
 
 ## Overview
 
-You must tell Consul about the services deployed to your network if you want them to be discoverable. You can define services in a configuration file or send the service definition parameters as a payload to the `/agent/service/register` API endpoint. Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for details about how to register services with Consul.
+You must tell Consul about the services deployed to your network if you want them to be discoverable. You can define services in a configuration file or send the service definition parameters as a payload to the `/agent/service/register` API endpoint. Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for details about how to register services with Consul.
 
 You can define multiple services individually using `service` blocks or group multiple services into the same `services` configuration block. Refer to [Define multiple services in a single file](#define-multiple-services-in-a-single-file) for additional information.
 
-If Consul service mesh is enabled in your network, you can use the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults) to specify default global values for services. The configuration entry lets you define common service parameter, such as upstreams, namespaces, and partitions. Refer to [Define service defaults](#define-service-defaults) for additional information.
+If Consul service mesh is enabled in your network, you can use the [service defaults configuration entry](/consul/docs/reference/config-entry/service-default) to specify default global values for services. The configuration entry lets you define common service parameter, such as upstreams, namespaces, and partitions. Refer to [Define service defaults](#define-service-defaults) for additional information.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ Service configurations must also contain and present an ACL token to perform ant
 On Consul Enterprise, you can register services with specific namespaces if the services' ACL tokens are scoped to the namespace. Services registered with a service definition do not inherit the namespace associated with the ACL token specified in the `token` field. The `namespace` and the `token` parameters must be included in the service definition for the service to be registered to the namespace that the ACL token is scoped to.
 
 ## Define a service
-Create a file for your service configurations and add a `service` block. The `service` block contains the parameters that configure various aspects of the service, including how it is discovered by other services in the network. The only required parameter is `name`. Refer to [Service Definition Reference](/consul/docs/services/configuration/services-configuration-reference) for details about the configuration options.
+Create a file for your service configurations and add a `service` block. The `service` block contains the parameters that configure various aspects of the service, including how it is discovered by other services in the network. The only required parameter is `name`. Refer to [Service Definition Reference](/consul/docs/reference/service) for details about the configuration options.
 
 For Kubernetes environments, you can enable the  [`connectInject`](/consul/docs/k8s/connect#installation-and-configuration) configuration in your Consul Helm chart so that Consul automatically adds a sidecar to each of your pods. Consul uses the Kubernetes `Service` definition as a reference.
 
@@ -116,16 +116,16 @@ service {
 
 ### Health checks
 
-You can add a `check` or `checks` block to your service configuration to define one or more health checks that monitor the health of your services. Refer to [Define Health Checks](/consul/docs/services/usage/checks) for additional information.
+You can add a `check` or `checks` block to your service configuration to define one or more health checks that monitor the health of your services. Refer to [Define Health Checks](/consul/docs/register/service/vm/health-checks) for additional information.
 
 ### Register a service
 
-You can register your service using the [`consul services` command](/consul/commands/services) or by calling the [`/agent/services` API endpoint](/consul/api-docs/agent/service). Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for details.
+You can register your service using the [`consul services` command](/consul/commands/services) or by calling the [`/agent/services` API endpoint](/consul/api-docs/agent/service). Refer to [Register Services and Health Checks](/consul/docs/register/service/vm) for details.
 
 ## Define service defaults
-If Consul service mesh is enabled in your network, you can define default values for services in your mesh by creating and applying a `service-defaults` configuration entry containing. Refer to [Service Mesh Configuration Overview](/consul/docs/connect/configuration) for additional information.
+If Consul service mesh is enabled in your network, you can define default values for services in your mesh by creating and applying a `service-defaults` configuration entry containing. Refer to [Service Mesh Configuration Overview](/consul/docs/connect/configuration-entries) for additional information.
 
-Create a file for the configuration entry and specify the required fields. If you are authoring `service-defaults` in HCL or JSON, the `Kind` and `Name` fields are required. On Kubernetes, the `apiVersion`, `kind`, and `metadata.name` fields are required. Refer to [Service Defaults Reference](/consul/docs/connect/config-entries/service-defaults) for details about the configuration options.
+Create a file for the configuration entry and specify the required fields. If you are authoring `service-defaults` in HCL or JSON, the `Kind` and `Name` fields are required. On Kubernetes, the `apiVersion`, `kind`, and `metadata.name` fields are required. Refer to [Service Defaults Reference](/consul/docs/reference/config-entry/service-default) for details about the configuration options.
 
 If you use Consul Enterprise, you can also specify the `Namespace` and `Partition` fields to apply the configuration to services in a specific namespace or partition. For Kubernetes environments, the configuration entry is always created in the same partition as the Kubernetes cluster.
 
@@ -429,7 +429,7 @@ service {
 
 This configuration only applies to the locally registered service. Nodes that register the same service apply the `enable_tag_override` and other service configurations independently. The tags for a service registered on one node update are not affected by operations performed on services with the same name registered on other nodes.
 
-Refer to [`enable_tag_override`](/consul/docs/services/configuration/services-configuration-reference#enable_tag_override) for additional configuration information.
+Refer to [`enable_tag_override`](/consul/docs/reference/service#enable_tag_override) for additional configuration information.
 
 ## Services in service mesh environments
 
@@ -441,4 +441,4 @@ You can register services to function as service mesh or sidecar proxies so that
 
 ### Define services in Kubernetes
 
-You can enable the services running in Kubernetes and Consul to sync automatically. Doing so ensures that Kubernetes services are available to Consul agents and services in Consul can be available as first-class Kubernetes services. Refer to [Service Sync for Consul on Kubernetes](/consul/docs/k8s/service-sync) for details.
+You can enable the services running in Kubernetes and Consul to sync automatically. Doing so ensures that Kubernetes services are available to Consul agents and services in Consul can be available as first-class Kubernetes services. Refer to [Service Sync for Consul on Kubernetes](/consul/docs/register/service/k8s/service-sync) for details.

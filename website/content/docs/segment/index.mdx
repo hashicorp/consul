@@ -2,7 +2,61 @@
 layout: docs
 page_title: Segment service mesh
 description: >-
-  Consul documentation provides reference material for all features and options available in Consul.
+  This topic provides an overview of Consul's multi-tenancy features, including admin partitions, namespaces, network segmwents, and sameness groups. 
 ---
 
-# Segment service mesh
+# Segment network for datacenter multi-tenancy
+
+This topic provides an overview of Consul's multi-tenancy features. A single Consul datacenter can support multiple teams and organizations by restricting resources, service traffic, and user access to a combination of admin partitions, namespaces, networking segments, and sameness groups.
+
+Consul Community Edition supports the `default` partition and `default` namespace, but does not support multi-tenancy. For more information, refer to [Consul Enterprise](/consul/docs/enterprise).
+
+## Introduction
+
+In large enterprise organizations, configuring, deploying, securing, and managing separate Consul datacenters for each team or project can be an impractical and resource-intensive solution. Consul Enterprise users can implement multi-tenant configurations of Consul server clusters so that teams can share a set of Consul servers. This arrangement can lower deployment costs while maintaining network security and preventing conflicts in resource names.
+
+The two main elements in Consul's multi-tenancy support are _admin partitions_ and _namespaces_. Consul namespaces are distinct from Kubernetes Namespaces, but you can configure Consul to mirror existing Kubernetes Namespaces. Consul also supports multi-tenancy configurations for networks that are segmented according to firewalls, and enables operators to manage a set of admin partitions and namespaces using sameness groups.
+
+## Admin partitions
+
+@include 'feature/admin-partition.mdx'
+
+## Namespaces
+
+@include 'feature/namespace.mdx'
+
+## Network segments
+
+@include 'feature/network-segment.mdx'
+
+## Sameness groups
+
+@include 'feature/sameness-group.mdx'
+
+## Tutorials
+
+To get started with the features described on this page, refer to the following tutorials:
+
+- [Multi-Tenancy with Administrative Partitions](/consul/tutorials/enterprise/consul-admin-partitions?utm_source=docs)
+- [Multi Cluster Applications with Consul Enterprise Admin Partitions](/consul/tutorials/kubernetes/kubernetes-admin-partitions?utm_source=docs)
+- [Setup secure namespaces](/consul/tutorials/namespaces/namespaces-secure-shared-access)
+- [Register and discover services within namespaces](/consul/tutorials/namespaces/namespaces-share-datacenter-access)
+
+## Runtime-specific usage documentation
+
+For runtime-specific guidance, refer to the following pages:
+
+- [Configure partitions on Kubernetes](/consul/segment/admin-partition/k8s)
+- [Use Consul and Kubernetes namespaces](/consul/segment/namespace/k8s)
+- [Create network segments on virtual machines (VMs)](/consul/segment/namespace/vm)
+
+## Reference documentation
+
+For reference material related to Consul's multi-tenancy capabilities, refer to the following pages:
+
+- [Namespace reference](/consul/docs/reference/namespace)
+- [Sameness group configuration entry](/reference/config-entry/sameness-group)
+
+## Constraints, limitations, and troubleshooting
+
+@include 'limitations/segment.mdx'

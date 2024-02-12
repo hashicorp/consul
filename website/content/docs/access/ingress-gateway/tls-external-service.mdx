@@ -210,7 +210,7 @@ Create an ingress gateway configuration entry that enables the gateway to use ce
     - [`Listeners.Protocol`](/consul/docs/reference/config-entry/ingress-gateway#listeners-protocol): The default protocol is `tcp`, but you must specify the protocol used by the services you want to allow traffic from.
     - [`Listeners.Services`](/consul/docs/reference/config-entry/ingress-gateway#listeners-services): The `Services` field contains the services that you want to expose to upstream services. The field contains several options and sub-configurations that enable granular control over ingress traffic, such as health check and TLS configurations.
 
-For Consul Enterprise service meshes, you may also need to configure the [`Partition`](/consul/docs/reference/config-entry/ingress-gateway#partition) and [`Namespace`](/consul/docs/connect/config-entries/ingress-gateway#namespace) fields for the gateway and for each exposed service.
+For Consul Enterprise service meshes, you may also need to configure the [`Partition`](/consul/docs/reference/config-entry/ingress-gateway#partition) and [`Namespace`](/consul/docs/reference/config-entry/ingress-gateway#namespace) fields for the gateway and for each exposed service.
 
 Refer to [Ingress gateway configuration entry reference](/consul/docs/reference/config-entry/ingress-gateway) for details about the supported parameters.
 

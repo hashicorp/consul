@@ -21,7 +21,7 @@ The Lambda Envoy extension has the following arguments:
 | `InvocationMode` | `boolean` | `false`  | Determines if Consul configures the Lambda to be invoked using the `synchronous` or `asynchronous` [invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html). |
 | `PayloadPassthrough` | `string` | `synchronous` | Determines if the body Envoy receives is converted to JSON or directly passed to Lambda. |
 
-Unlike [manual lambda registration](/consul/docs/lambda/registration/manual#supported-meta-fields), the Envoy extension infers the region from the ARN.
+Unlike [manual lambda registration](/consul/docs/register/service/lambda/manual#supported-meta-fields), the Envoy extension infers the region from the ARN.
 
 ## Workflow
 
@@ -87,7 +87,7 @@ spec:
 </CodeBlockConfig>
 </CodeTabs>
 
-For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions). 
+For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/reference/config-entry/service-default#envoyextensions). 
 
 <Note> You can only enable the Lambda extension through `service-defaults`. </Note>
 

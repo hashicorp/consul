@@ -7,7 +7,7 @@ description: >-
 
 # Configure and deploy sidecar proxies
 
-This topic describes how to create, register, and start sidecar proxy services in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxies) for additional information about how proxies enable Consul's functions and operations. For information about deploying service mesh proxies, refer to [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies).
+This topic describes how to create, register, and start sidecar proxy services in Consul. Refer to [Service mesh proxies overview](/consul/docs/connect/proxy) for additional information about how proxies enable Consul's functions and operations. For information about deploying service mesh proxies, refer to [Deploy service mesh proxies](/consul/docs/deploy/service-mesh/deploy-proxy).
 
 ## Overview
 
@@ -23,16 +23,16 @@ You can attach a sidecar proxy to a service you want to deploy to your mesh:
 
 ## Requirements
 
-If ACLs are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token) for additional information.
+If ACLs are enabled and you want to configure global Envoy settings in the [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults), you must present a token with `operator:write` permissions. Refer to [Create a service token](/consul/docs/secure-consul/acl/token/service-token) for additional information.
 
 ## Configure global Envoy passthrough settings
 
-If you want to define global passthrough settings for all Envoy proxies, create a proxy defaults configuration entry and specify default settings, such as access log configuration. [Service defaults configuration entries](/consul/docs/connect/config-entries/service-defaults) override proxy defaults and individual service configurations override both configuration entries.
+If you want to define global passthrough settings for all Envoy proxies, create a proxy defaults configuration entry and specify default settings, such as access log configuration. [Service defaults configuration entries](/consul/docs/reference/config-entry/service-default) override proxy defaults and individual service configurations override both configuration entries.
 
 1. Create a proxy defaults configuration entry and specify the following parameters:
    - `Kind`: Must be set to `proxy-defaults`
    - `Name`: Must be set to `global`
-1. Configure any additional settings you want to apply to all proxies. Refer to [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for details about all settings available in the configuraiton entry. 
+1. Configure any additional settings you want to apply to all proxies. Refer to [Proxy defaults configuration entry reference](/consul/docs/reference/config-entry/proxy-defaults) for details about all settings available in the configuraiton entry. 
 1. Apply the configuration by either calling the [`/config` API endpoint](/consul/api-docs/config) or running the [`consul config write` CLI command](/consul/commands/config/write). The following example writes a proxy defaults configuration entry from a local HCL file using the CLI:
 
 ```shell-session
@@ -46,7 +46,7 @@ Create a service definition and configure the following fields:
 1. `name`: Specify a name for the service you want to attach a sidecar proxy to in the `name` field. This field is required for all services you want to register in Consul.  
 1. `port`: Specify a port number where other services registered with Consul can discover and connect to the service in the `port` field. This field is required for all services you want to register in Consul.
 1. `connect`: Set the `connect` field to `{ sidecar_service: {} }`. The `{ sidecar_service: {} }` value is a macro that applies a set of default configurations that enable you to quickly implement a sidecar. Refer to [Sidecar service defaults](#sidecar-service-defaults) for additional information.
-1. Configure any additional options for your service. Refer to [Services configuration reference](/consul/docs/services/configuration/services-configuration-reference) for details. 
+1. Configure any additional options for your service. Refer to [Services configuration reference](/consul/docs/reference/service) for details. 
 
 In the following example, a service named `web` is configured with a sidecar proxy:
 
@@ -166,7 +166,7 @@ Provide the service definition to the Consul agent to register your proxy servic
 - Use the `consul services register` command to register the proxy service with a running Consul agent.
 - Call the `/agent/service/register` HTTP API endpoint to register the proxy service with a running Consul agent.
 
-Refer to [Register services and health checks](/consul/docs/services/usage/register-services-checks) for instructions.
+Refer to [Register services and health checks](/consul/docs/register/service/vm) for instructions.
 
 In the following example, the `consul services register` command registers a proxy service stored in `proxy.hcl`:
 
@@ -184,7 +184,7 @@ The following example command starts an Envoy sidecar proxy for the `web` servic
 $ consul connect envoy -sidecar-for=web
 ```
 
-For details about operating an Envoy proxy in Consul, refer to [](/consul/docs/connect/proxies/envoy)  
+For details about operating an Envoy proxy in Consul, refer to [](/consul/docs/reference/proxy/envoy)  
 
 ## Configuration reference
 
@@ -207,12 +207,12 @@ proxy.
 - `tags` - Defaults to the tags of the parent service.
 - `meta` - Defaults to the service metadata of the parent service.
 - `port` - Defaults to being auto-assigned from a configurable
-  range specified by [`sidecar_min_port`](/consul/docs/agent/config/config-files#sidecar_min_port)
-  and [`sidecar_max_port`](/consul/docs/agent/config/config-files#sidecar_max_port).
+  range specified by [`sidecar_min_port`](/consul/docs/reference/agent#sidecar_min_port)
+  and [`sidecar_max_port`](/consul/docs/reference/agent#sidecar_max_port).
 - `kind` - Defaults to `connect-proxy`. This value cannot be overridden.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
-  check](/consul/docs/services/usage/checks#alias-checks) for the parent service. If either
+  check](/consul/docs/register/service/vm/health-checks#alias-checks) for the parent service. If either
   `check` or `checks` fields are set, only the provided checks are registered.
 - `proxy.destination_service_name` - Defaults to the parent service name.
 - `proxy.destination_service_id` - Defaults to the parent service ID.
@@ -222,9 +222,9 @@ proxy.
 ### Example with overwritten configurations
 
 In the following example, the `sidecar_service` macro sets baselines configurations for the proxy, but the [proxy
-upstreams](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
+upstreams](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference)
 and [built-in proxy
-configuration](/consul/docs/connect/proxies/built-in) fields contain custom values:  
+configuration](/consul/docs/reference/proxy/built-in) fields contain custom values:  
 
 ```json
 {

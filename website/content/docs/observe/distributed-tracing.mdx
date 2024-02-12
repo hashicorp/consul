@@ -145,16 +145,16 @@ spec:
 
 </CodeTabs>
 
--> **NOTE:** This example uses a [proxy defaults](/consul/docs/connect/config-entries/proxy-defaults) configuration entry, which applies to all proxies,
+-> **NOTE:** This example uses a [proxy defaults](/consul/docs/reference/config-entry/proxy-defaults) configuration entry, which applies to all proxies,
 but you can also apply the configuration in the
-[`proxy` block of your service configuration](/consul/docs/connect/proxies/proxy-config-reference#proxy-parameters). The proxy service registration is not supported on Kubernetes.
+[`proxy` block of your service configuration](/consul/docs/reference/proxy/connect-proxy#proxy-parameters). The proxy service registration is not supported on Kubernetes.
 
 Within the config there are two keys you need to customize:
 
-1. [`envoy_tracing_json`](/consul/docs/connect/proxies/envoy#envoy_tracing_json): Sets the tracing configuration for your specific tracing type.
+1. [`envoy_tracing_json`](/consul/docs/reference/proxy/envoy#envoy_tracing_json): Sets the tracing configuration for your specific tracing type.
    See the [Envoy tracers documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/trace/trace) for your
    specific collector's configuration. This configuration will reference the cluster name defined in `envoy_extra_static_clusters_json`.
-1. [`envoy_extra_static_clusters_json`](/consul/docs/connect/proxies/envoy#envoy_extra_static_clusters_json): Defines the address
+1. [`envoy_extra_static_clusters_json`](/consul/docs/reference/proxy/envoy#envoy_extra_static_clusters_json): Defines the address
    of your tracing collector where Envoy will send its spans. In this example the URL was `collector-url:9411`.
 
 ## Applying the configuration

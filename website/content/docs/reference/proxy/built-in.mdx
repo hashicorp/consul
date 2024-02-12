@@ -7,9 +7,13 @@ description: >-
 
 # Built-in proxy configuration reference
 
-~> **Note:** The built-in proxy is not supported for production deployments. It does not
+<Note>
+  
+The built-in proxy is not supported for production deployments. It does not
 support many of Consul's service mesh features, and is not under active development.
-The [Envoy proxy](/consul/docs/connect/proxies/envoy) should be used for production deployments.
+The [Envoy proxy](/consul/docs/reference/proxy/envoy) should be used for production deployments.
+
+</Note>
 
 Consul comes with a built-in L4 proxy for testing and development with Consul
 service mesh.
@@ -54,8 +58,8 @@ All fields are optional with a reasonable default.
 
 - `bind_port` - The port the proxy will bind its _public_
   mTLS listener to. If not provided, the agent will assign a random port from its
-  configured proxy port range specified by [`sidecar_min_port`](/consul/docs/agent/config/config-files#sidecar_min_port)
-  and [`sidecar_max_port`](/consul/docs/agent/config/config-files#sidecar_max_port).
+  configured proxy port range specified by [`sidecar_min_port`](/consul/docs/reference/agent#sidecar_min_port)
+  and [`sidecar_max_port`](/consul/docs/reference/agent#sidecar_max_port).
 
 - `local_service_address`- The `[address]:port`
   that the proxy should use to connect to the local application instance. By default
@@ -77,7 +81,7 @@ All fields are optional with a reasonable default.
 - `upstreams`- **Deprecated** Upstreams are now specified
   in the `connect.proxy` definition. Upstreams specified in the opaque config map
   here will continue to work for compatibility but it's strongly recommended that
-  you move to using the higher level [upstream configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
+  you move to using the higher level [upstream configuration](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference).
 
 ## Proxy Upstream Config Key Reference
 

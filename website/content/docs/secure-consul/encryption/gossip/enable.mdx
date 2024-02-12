@@ -1,0 +1,79 @@
+---
+layout: docs
+page_title: Enable gossip communication
+description: >-
+  Consul encrypts communication between agents in the LAN gossip pool. Learn how to generate a gossip encryption key and distribute it to agents in a Consul datacenter.
+---
+
+# Enable gossip communication
+
+This page describes how to enable gossip encryption for Consul. Gossip encryption is used to encrypt all communication between Consul agents in the LAN gossip pool. This pool includes communication between servers, between clients, and between servers and clients.
+
+This page provides instructions for enabling gossip encryption for new Consul datacenters. If you are adding gossip encryption to an existing Consul datacenter, refer to [Enable gossip encryption for existing datacenters](/consul/docs/secure-consul/encryption/gossip/existing).
+
+## Workflow
+
+The following steps describe the general workflow for enabling gossip encryption for new Consul datacenters:
+
+1. Generate an encryption key.
+1. Start the Consul agent with the encryption key.
+
+## Generate an encryption key
+
+The encryption key must be 32-bytes and base64 encoded. Consul provides the [`consul keygen`](/consul/commands/keygen) command to generate a cryptographically suitable key.
+
+```shell-session
+$ consul keygen
+pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
+```
+
+## Start the Consul agent with the encryption key
+
+Add the encryption key to your Consul agent configuration file. The following example sets the [`encrypt`](/consul/docs/reference/agent#encrypt) to the newly generated encrypt key.
+
+<CodeTabs>
+<CodeBlockConfig filename="/etc/consul.d/consul.hcl" highlight="5" lineNumbers>
+
+```hcl
+data_dir = "/opt/consul"
+log_level = "INFO"
+node_name = "bulldog"
+server = true
+encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig filename="/etc/consul.d/consul.json" highlight="6" lineNumbers>
+
+```json
+{
+  "data_dir": "/opt/consul",
+  "log_level": "INFO",
+  "node_name": "bulldog",
+  "server": true,
+  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+Alternatively, you can set the encrypt key in a separate configuration file with only the `encrypt` field, since the Consul agent can merge multiple configuration files.
+
+Start the Consul agent and pass the configuration directory that includes agent configuration with the encryption key.
+
+```shell-session
+$ consul agent -config-dir=/etc/consul.d/
+==> Starting Consul agent...
+## ...
+         Node name: 'bulldog'
+        Datacenter: 'dc1' (Segment: '<all>')
+            Server: true (Bootstrap: false)
+       Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: -1, gRPC: 8502, DNS: 8600)
+      Cluster Addr: 127.0.0.1 (LAN: 8301, WAN: 8302)
+           Encrypt: Gossip: true, TLS-Outgoing: false, TLS-Incoming: false, Auto-Encrypt-TLS: false
+```
+
+If encryption is enabled, the output of [`consul agent`](/consul/commands/agent) includes `"Encrypt: true":`
+
+All server and client agents within a Consul cluster must share the same encryption key to send and receive cluster information. If you join multiple datacenters in a WAN-federated deployment, you must use the same encryption key in all of the federated datacenters.

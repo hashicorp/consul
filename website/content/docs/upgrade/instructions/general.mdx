@@ -12,7 +12,7 @@ description: >-
 
 This document describes some best practices that you should follow when
 upgrading Consul. Some versions also have steps that are specific to that
-version, so make sure you also review the [upgrade instructions](/consul/docs/upgrading/instructions)
+version, so make sure you also review the [upgrade instructions](/consul/docs/upgrade/instructions)
 for the version you are on.
 
 ## Download the New Version
@@ -39,7 +39,7 @@ Docker containers are available at these locations:
 <Tab heading="Kubernetes">
 
 If you are using Kubernetes, then please review our documentation for
-[Upgrading Consul on Kubernetes](/consul/docs/k8s/upgrade).
+[Upgrading Consul on Kubernetes](/consul/docs/upgrade/k8s).
 
 </Tab>
 </Tabs>
@@ -74,7 +74,7 @@ this snapshot somewhere safe. More documentation on snapshot usage is available 
 - [consul.io/commands/snapshot](/consul/commands/snapshot)
 - [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore)
 
-**2.** Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
+**2.** Temporarily modify your Consul configuration so that its [log_level](/consul/docsreference-cli/agent#_log_level)
 is set to `debug`. After doing this, issue the following command on your servers to
 reload the configuration:
 
@@ -177,7 +177,7 @@ then the following options for further assistance are available:
 When contacting Hashicorp Support, please include the following information in your ticket:
 
 - Consul version you were upgrading FROM and TO.
-- [Debug level logs](/consul/docs/agent/config/cli-flags#_log_level) from all servers in the cluster
+- [Debug level logs](/consul/docsreference-cli/agent#_log_level) from all servers in the cluster
   that you are having trouble with. These should include logs from prior to the upgrade attempt
   up through the current time. If your logs were not set at debug level prior to the
   upgrade, please include those logs as well. Also, update your config to use debug logs,

@@ -7,7 +7,7 @@ description: >-
 
 # API gateway configuration entry reference
 
-This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
+This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/reference/k8s/api-gateway/gateway).
 
 ## Introduction
 
@@ -211,7 +211,7 @@ such as applying a configuration entry to a specific cluster.
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to the configuration entry.
 
 #### Values
 
@@ -220,7 +220,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to appl
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) to apply to the configuration entry.
 
 #### Values
 
@@ -383,7 +383,7 @@ The list of references to inline certificates that the listener uses for TLS ter
 
 ### `Listeners[].TLS.Certificates[].Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the certificate can be found.
+Specifies the Enterprise [namespace](/consul/docs/segment/namespace) where the certificate can be found.
 
 #### Values
 
@@ -392,7 +392,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where t
 
 ### `Listeners[].TLS.Certificates[].Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the certificate can be found.
+Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) where the certificate can be found.
 
 #### Values
 
@@ -490,7 +490,7 @@ Listeners = [
         name = "listener-one"
         port     = 9001
         protocol = "http"
-        # override and default are backed by the same type of data structure, see the following section for more on how they interact
+        # override and default are backed by the same type of data structure, refer to  the following section for more on how they interact
         override = {
             JWT = {
                 Providers = [

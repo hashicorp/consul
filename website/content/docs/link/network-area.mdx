@@ -15,7 +15,7 @@ description: >-
 
 One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote a low coupling of datacenters so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other datacenters. This means each datacenter runs independently, each having a dedicated group of servers and a private LAN gossip pool.
 
-This tutorial covers the advanced form of federating Consul datacenters using the new network areas capability added in Consul Enterprise version 0.8.0. For the basic form of federation available in the open source version of Consul, check the [basic federation tutorial](/consul/tutorials/networking/federation-gossip-wan) for more details.
+This tutorial covers the advanced form of federating Consul datacenters using the new network areas capability added in Consul Enterprise version 0.8.0. For the basic form of federation available in the open source version of Consul, check the [basic federation tutorial](/consul/docs/link/wan-federation/create) for more details.
 
 ## Configure advanced federation
 
@@ -145,7 +145,7 @@ consul.service.dc2.consul. 0	IN	TXT	"consul-network-segment="
 
 There are a few networking requirements that must be satisfied for this to work. First, all server nodes must be able to talk to each other via their server RPC ports (8300/tcp). If service discovery is to be used across datacenters, the network must be able to route traffic between IP addresses across regions as well. Usually, this means that all datacenters must be connected using a VPN or other tunneling mechanism. Consul does not handle VPN or NAT traversal for you.
 
-The [`translate_wan_addrs`](/consul/docs/agent/config/config-files#translate_wan_addrs) configuration provides a basic address rewriting capability.
+The [`translate_wan_addrs`](/consul/docs/reference/agent#translate_wan_addrs) configuration provides a basic address rewriting capability.
 
 ## Network area overview
 
@@ -162,7 +162,7 @@ The following can be used to manage network areas:
 
 ### Network areas and the WAN gossip pool
 
-Networks areas can be used alongside the Consul's WAN gossip federation model and the WAN gossip pool. This helps ease migration, and datacenters like the [primary datacenter](/consul/docs/agent/config/config-files#primary_datacenter) are more easily managed via the WAN because they need to be available to all Consul datacenters.
+Networks areas can be used alongside the Consul's WAN gossip federation model and the WAN gossip pool. This helps ease migration, and datacenters like the [primary datacenter](/consul/docs/reference/agent#primary_datacenter) are more easily managed via the WAN because they need to be available to all Consul datacenters.
 
 A peer datacenter can be connected via the WAN gossip pool and a network area at the same time, and RPC requests will be forwarded as long as servers are available in either.
 
@@ -202,7 +202,7 @@ beb39435-43e8-5979-7c11-b5e011e04f51  server.dc2  10.20.10.12:8300  left    1.6.
 
 Network areas are the suggested approach when your architecture layout does not permit a full mesh connectivity between all servers across datacenters. Due to the same connectivity constraints, some of the latest Consul functionalities do not have full compatibility with network areas.
 
-In case you are trying to setup ACL replication using the [1.4 ACL system](/consul/docs/security/acl) or enabling Consul service mesh with CA replication, we recommend you to use WAN gossip federation to leverage all Consul's latest functionalities.
+In case you are trying to setup ACL replication using the [1.4 ACL system](/consul/docs/secure-consul/acl) or enabling Consul service mesh with CA replication, we recommend you to use WAN gossip federation to leverage all Consul's latest functionalities.
 
 Future version of Consul will gradually integrate all functionalities into network areas.
 

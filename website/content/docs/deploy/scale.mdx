@@ -29,11 +29,11 @@ To make service-to-service communication resilient against outages and failures,
 - Runtime platform instances, such as Kubernetes clusters
 - Consul datacenters
 
-In the event that any individual domain experiences a failure, service failover ensures that healthy instances in other domains remain discoverable. Consul automatically provides service failover between instances within a single [admin partition](/consul/docs/enterprise/admin-partitions) or datacenter.
+In the event that any individual domain experiences a failure, service failover ensures that healthy instances in other domains remain discoverable. Consul automatically provides service failover between instances within a single [admin partition](/consul/docs/segment/admin-partition) or datacenter.
 
 Service failover across Consul datacenters must be configured in the datacenters before you can use it. Use one of the following methods to configure failover across datacenters:
 
-- **If you are using Consul service mesh**: Implement failover using [service-resolver configuration entries](/consul/docs/connect/config-entries/service-resolver#failover).
+- **If you are using Consul service mesh**: Implement failover using [service-resolver configuration entries](/consul/docs/reference/config-entry/service-resolver#failover).
 - **If you are using Consul service discovery without service mesh**: Implement [geo-redundant failover using prepared queries](/consul/tutorials/developer-discovery/automate-geo-failover).
 
 ### Control plane resiliency
@@ -65,7 +65,7 @@ For most use cases, a limit of 5,000 agents is appropriate. When the `consul.ser
 
 In Kubernetes, even though it is possible to deploy Consul agents inside pods alongside services running in the same pod, this unsupported deployment pattern has known performance issues at scale. At large volumes, pod registration and deregistration in Kubernetes causes gossip instability that can lead to cascading failures as services are marked unhealthy, resulting in further cluster churn.
 
-In Consul v1.14 and higher, Consul on Kubernetes does not need to run client agents on every node in a cluster for service discovery and service mesh. This deployment configuration lowers Consul’s resource usage in the data plane, but requires additional resources in the control plane to process [xDS resources](/consul/docs/agent/config/config-files#xds-server-parameters). To learn more, refer to [simplified service mesh with Consul Dataplane](/consul/docs/connect/dataplane).
+In Consul v1.14 and higher, Consul on Kubernetes does not need to run client agents on every node in a cluster for service discovery and service mesh. This deployment configuration lowers Consul’s resource usage in the data plane, but requires additional resources in the control plane to process [xDS resources](/consul/docs/reference/agent#xds-server-parameters). To learn more, refer to [simplified service mesh with Consul Dataplane](/consul/docs/connect/dataplane).
 
 **If you use Kubernetes and Consul as a backend for Vault**: Use Vault’s integrated storage backend instead of Consul. A runtime dependency conflict prevents Consul dataplanes from being compatible with Vault. If you need to use Consul v1.14 and higher as a backend for Vault in your Kubernetes deployment, create a separate Consul datacenter that is not federated or peered to your other Consul servers. You can size this datacenter according to your needs and use it exclusively for backend storage for Vault.
 
@@ -82,7 +82,7 @@ Consul servers can be deployed on a few different runtimes:
 - **Kubernetes (Self-managed)**. To get started with Consul on Kubernetes, refer to the [Deploy Consul on Kubernetes tutorial](/consul/tutorials/get-started-kubernetes/kubernetes-gs-deploy).
 - **Other container environments, including Docker, Rancher, and Mesos (Self-managed)**.
 
-When operating Consul at scale, self-managed VM or bare metal server deployments offer the most flexibility. Some Consul Enterprise features that can enhance fault tolerance and read scalability, such as [redundancy zones](/consul/docs/enterprise/redundancy) and [read replicas](/consul/docs/enterprise/read-scale), are not available to server agents on Kubernetes runtimes. To learn more, refer to [Consul Enterprise feature availability by runtime](/consul/docs/enterprise#feature-availability-by-runtime).
+When operating Consul at scale, self-managed VM or bare metal server deployments offer the most flexibility. Some Consul Enterprise features that can enhance fault tolerance and read scalability, such as [redundancy zones](/consul/docs/manage-consul/redundancy-zones) and [read replicas](/consul/docs/manage-consul/read-replicas), are not available to server agents on Kubernetes runtimes. To learn more, refer to [Consul Enterprise feature availability by runtime](/consul/docs/enterprise#feature-availability-by-runtime).
 
 ### Number of Consul servers
 
@@ -94,7 +94,7 @@ Determining the number of Consul servers to deploy on your network has two key c
 Fault tolerance should determine your initial decision for how many Consul server agents to deploy. Our recommendation for the number of servers to deploy depends on whether you have access to Consul Enterprise redundancy zones:
 
 - **With redundancy zones**: Deploy 6 Consul servers across 3 availability zones. This deployment provides the performance of a 3 server deployment with the fault tolerance of a 7 server deployment.
-- **Without redundancy zones**: Deploy 5 Consul servers across 3 availability zones. All 5 servers should be voting servers, not [read replicas](/consul/docs/enterprise/read-scale).
+- **Without redundancy zones**: Deploy 5 Consul servers across 3 availability zones. All 5 servers should be voting servers, not [read replicas](/consul/docs/manage-consul/read-replicas).
 
 For more details, refer to [Improving Consul Resilience](/consul/docs/architecture/improving-consul-resilience).
 
@@ -110,7 +110,7 @@ Consul's agents use network sockets for gossip communication with the other node
 
 Auto scaling groups (ASGs) are infrastructure associations in cloud providers used to ensure a specific number of replicas are available for a deployment. When using ASGs for Consul servers, there are specific requirements and processes for bootstrapping Raft and maintaining quorum.
 
-We recommend using the [`bootstrap-expect` command-line flag](/consul/docs/agent/config/cli-flags#_bootstrap_expect) during cluster creation. However, if you spawn new servers to add to a cluster or upgrade servers, do not configure them to automatically bootstrap. If `bootstrap-expect` is set on these replicas, it is possible for them to create a separate Raft system, which causes a _split brain_ and leads to errors and general cluster instability.
+We recommend using the [`bootstrap-expect` command-line flag](/consul/docsreference-cli/agent#_bootstrap_expect) during cluster creation. However, if you spawn new servers to add to a cluster or upgrade servers, do not configure them to automatically bootstrap. If `bootstrap-expect` is set on these replicas, it is possible for them to create a separate Raft system, which causes a _split brain_ and leads to errors and general cluster instability.
 
 #### NUMA architecture awareness
 
@@ -126,7 +126,7 @@ We strongly recommend using [stale consistency mode for DNS lookups](/consul/api
 
 We also recommend that you do not configure [`dns_config.max_stale` to limit the staleness of DNS responses](/consul/api-docs/features/consistency#limiting-staleness-advanced-usage), as it may result in a prolonged outage if your Consul servers become overloaded. If bounded result consistency is required by a service, consider modifying the service to use consistent service discovery HTTP API queries instead of DNS lookups.
 
-Avoid using [`dns_config.use_cache`](/consul/docs/agent/config/config-files#dns_use_cache) when operating Consul at scale. Because the Consul agent cache allocates memory for each requested route and each allocation can live up to 3 days, severe memory issues may occur. To implement DNS caching, we instead recommend that you [configure TTLs for services and nodes](/consul/tutorials/networking/dns-caching#ttl) to enable the DNS client to cache responses from Consul.
+Avoid using [`dns_config.use_cache`](/consul/docs/reference/agent#dns_use_cache) when operating Consul at scale. Because the Consul agent cache allocates memory for each requested route and each allocation can live up to 3 days, severe memory issues may occur. To implement DNS caching, we instead recommend that you [configure TTLs for services and nodes](/consul/tutorials/networking/dns-caching#ttl) to enable the DNS client to cache responses from Consul.
 
 #### HTTP API
 
@@ -150,7 +150,7 @@ Depending on your needs, choose one of the following strategies to mitigate serv
 
 - The fastest mitigation strategy is to vertically scale servers. However, this strategy increases compute costs and does not scale indefinitely.
 - The most effective long term mitigation strategy is to use [stale consistency mode](/consul/api-docs/features/consistency#stale) for as many read requests as possible. In Consul v1.12 and higher, operators can use the [`consul.rpc.server.call` metric](/consul/docs/agent/telemetry#server-workload) to identify the most frequent type of read requests made to the Consul servers. Cross reference the results with each endpoint’s [HTTP API documentation](/consul/api-docs) and use stale consistency for endpoints that support it.
-- If most read requests already use stale consistency mode and you still need to reduce your request load, add more non-voting servers to your deployment. You can use either [redundancy zones](/consul/docs/enterprise/redundancy) or [read replicas](/consul/docs/enterprise/read-scale) to scale reads without impacting write latency. We recommend adding more servers to redundancy zones because they improve both fault tolerance and stale read scalability.
+- If most read requests already use stale consistency mode and you still need to reduce your request load, add more non-voting servers to your deployment. You can use either [redundancy zones](/consul/docs/manage-consul/redundancy-zones) or [read replicas](/consul/docs/manage-consul/read-replicas) to scale reads without impacting write latency. We recommend adding more servers to redundancy zones because they improve both fault tolerance and stale read scalability.
 - In Consul v1.14 and higher, servers handle Envoy XDS streams for [Consul Dataplane deployments](/consul/docs/connect/dataplane) in stale consistency mode. As a result, server consistency mode is not configurable. Use the `consul.xds.server.*` metrics to identify issues related to XDS streams.
 
 ### Write-heavy workload sources and solutions
@@ -161,7 +161,7 @@ As a starting point, you should make sure your hardware meets the requirements f
 
 If you use network storage, such as AWS EBS, we recommend provisioned I/O volumes. While general purpose volumes function properly, their burstable IOps make it harder to capacity plan. A small peak in writes may not trigger alerts, but as usage grows you may reach a point where the burst limit runs out and workload performance worsens.
 
-For more information, refer to the [server performance read/write tuning](/consul/docs/install/performance#read-write-tuning).
+For more information, refer to the [server performance read/write tuning](/consul/docs/deploy/server/vm/requirements#read-write-tuning).
 
 ### Raft database performance sources and solutions
 
@@ -189,14 +189,14 @@ To figure out if a Consul server’s disk performance issues are the result of B
 - Use the [`consul.raft.leader.dispatchLog` metric](/consul/docs/agent/telemetry#server-health) to get information about how long it takes to write a batch of logs to disk.
 - In Consul v1.13 and higher, you can use [Raft thread saturation metrics](/consul/docs/agent/telemetry#raft-thread-saturation) to figure out if Raft is experiencing back pressure and is unable to accept new work due disk limitations.
 
-In Consul v1.11 and higher, you can prevent BoltDB from writing the freelist to disk by setting [`raftboltdb.NoFreelistSync`](/consul/docs/agent/config/config-files#NoFreelistSync) to `true`. This setting causes BoltDB to retain the freelist in memory instead. However, be aware that when BoltDB restarts, it needs to scan the database file to manually create the freelist. Small delays in startup may occur. On a fast disk, we measured these delays at the order of tens of seconds for a raft.db file that was 5GiB in size with only 250MiB of used pages.
+In Consul v1.11 and higher, you can prevent BoltDB from writing the freelist to disk by setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent#NoFreelistSync) to `true`. This setting causes BoltDB to retain the freelist in memory instead. However, be aware that when BoltDB restarts, it needs to scan the database file to manually create the freelist. Small delays in startup may occur. On a fast disk, we measured these delays at the order of tens of seconds for a raft.db file that was 5GiB in size with only 250MiB of used pages.
 
-In general, set [`raftboltdb.NoFreelistSync`](/consul/docs/agent/config/config-files#NoFreelistSync) to `true` to produce the following effects:
+In general, set [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent#NoFreelistSync) to `true` to produce the following effects:
 
 - Reduce the amount of data written to disk
 - Increase the amount of time it takes to load the raft.db file on startup
 
-We recommend operators optimize networks according to their individual concerns. For example, if your server runs into disk performance issues but Consul servers do not restart often, setting [`raftboltdb.NoFreelistSync`](/consul/docs/agent/config/config-files#NoFreelistSync) to `true` may solve your problems. However, the same action causes issues for deployments with large database files and frequent server restarts.
+We recommend operators optimize networks according to their individual concerns. For example, if your server runs into disk performance issues but Consul servers do not restart often, setting [`raftboltdb.NoFreelistSync`](/consul/docs/reference/agent#NoFreelistSync) to `true` may solve your problems. However, the same action causes issues for deployments with large database files and frequent server restarts.
 
 #### Raft snapshots
 
@@ -210,7 +210,7 @@ When the leader takes snapshot B at index 199, it truncates the logs that accumu
 
 Because the new server restored snapshot A, the new server has a current index of 99. It requests logs 100 to 150 because index 150 was the current index when it started the replication restore process. At this point, the leader recognizes that it only has logs 200 and higher, and does not have logs for indexes 100 to 150. The leader determines that the new server’s state is stale and starts the process over by sending the new server the latest snapshot, snapshot B.
 
-Consul keeps a configurable number of [Raft trailing logs](/consul/docs/agent/config/config-files#raft_trailing_logs) to prevent the snapshot install loop from repeating. The trailing logs are the last logs that went into the snapshot, and the new server can more easily catch up to the current state using these logs. The default Raft trailing logs configuration value is suitable for most deployments.
+Consul keeps a configurable number of [Raft trailing logs](/consul/docs/reference/agent#raft_trailing_logs) to prevent the snapshot install loop from repeating. The trailing logs are the last logs that went into the snapshot, and the new server can more easily catch up to the current state using these logs. The default Raft trailing logs configuration value is suitable for most deployments.
 
 In Consul v1.10 and higher, operators can try to prevent a snapshot install loop by monitoring and comparing Consul servers’ `consul.raft.rpc.installSnapshot` and `consul.raft.leader.oldestLogAge` timing metrics. Monitor these metrics for the following situations:
 
@@ -232,11 +232,11 @@ Several factors influence Consul performance at scale when used primarily for it
 - The overall number of registered service instances
 - The use of [stale reads](/consul/api-docs/features/consistency#consul-dns-queries) for DNS queries
 - The number of entities, such as Consul client agents or dataplane components, that are monitoring Consul for changes in a service's instances, including registration and health status. When any service change occurs, all of those entities incur a computational cost because they must process the state change and reconcile it with previously known data for the service. In addition, the Consul server agents also incur a computational cost when sending these updates.
-- Number of [watches](/consul/docs/dynamic-app-config/watches) monitoring for changes to a service.
+- Number of [watches](/consul/docs/dynamic-app/watches) monitoring for changes to a service.
 - Rate of catalog updates, which is affected by the following events:
     - A service instance’s health check status changes
     - A service instance’s node loses connectivity to Consul servers
-    - The contents of the [service definition file](/consul/docs/services/configuration/services-configuration-reference) changes
+    - The contents of the [service definition file](/consul/docs/reference/service) changes
     - Service instances are registered or deregistered
     - Orchestrators such as Kubernetes or Nomad move a service to a new node
 
@@ -257,7 +257,7 @@ Consul ESM enables health checks and monitoring for external services. When usin
 Because Consul’s service mesh uses service discovery subsystems, service mesh performance is also optimized by deploying multiple small clusters with consistent numbers of service instances and watches. Service mesh performance is influenced by the following additional factors:
 
 - The [transparent proxy](/consul/docs/connect/transparent-proxy) feature causes client agents to listen for service instance updates across all services instead of a subset. To prevent performance issues, we recommend that you do not use the permissive intention, `default: allow`, with the transparent proxy feature. When combined, every service instance update propagates to every proxy, which causes additional server load.
-- When you use the [built-in service mesh CA provider](/consul/docs/connect/ca/consul#built-in-ca), Consul leaders are responsible for signing certificates used for mTLS across the service mesh. The impact on CPU utilization depends on the total number of service instances and configured certificate TTLs. You can use the [CA provider configuration options](/consul/docs/agent/config/config-files#common-ca-config-options) to control the number of requests a server processes. We recommend adjusting [`csr_max_concurrent`](/consul/docs/agent/config/config-files#ca_csr_max_concurrent) and [`csr_max_per_second`](/consul/docs/agent/config/config-files#ca_csr_max_concurrent) to suit your environment.
+- When you use the [built-in service mesh CA provider](/consul/docs/secure-mesh/certificate/built-in#built-in-ca), Consul leaders are responsible for signing certificates used for mTLS across the service mesh. The impact on CPU utilization depends on the total number of service instances and configured certificate TTLs. You can use the [CA provider configuration options](/consul/docs/reference/agent#common-ca-config-options) to control the number of requests a server processes. We recommend adjusting [`csr_max_concurrent`](/consul/docs/reference/agent#ca_csr_max_concurrent) and [`csr_max_per_second`](/consul/docs/reference/agent#ca_csr_max_concurrent) to suit your environment.
 
 ### K/V store
 

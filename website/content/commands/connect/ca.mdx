@@ -13,7 +13,7 @@ Command: `consul connect ca`
 This command is used to interact with Consul service mesh's Certificate Authority
 managed by the connect subsystem.
 It can be used to view or modify the current CA configuration. Refer to the
-[service mesh CA documentation](/consul/docs/connect/ca) for more information.
+[service mesh CA documentation](/consul/docs/secure-mesh/certificate) for more information.
 
 ```text
 Usage: consul connect ca <subcommand> [options] [args]
@@ -75,7 +75,7 @@ The output looks like this:
 ## set-config
 
 Modifies the current CA configuration. If this results in a new root certificate
-being used, the [Root Rotation](/consul/docs/connect/ca#root-certificate-rotation) process
+being used, the [Root Rotation](/consul/docs/secure-mesh/certificate#root-certificate-rotation) process
 will be triggered.
 
 The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
@@ -100,10 +100,10 @@ The return code will indicate success or failure.
 
 ~> **If currently using Vault CA provider:**
    If you intend to change the CA provider from Vault to another,
-   or to change the Vault provider's [`RootPKIPath`](/consul/docs/connect/ca/vault#rootpkipath),
+   or to change the Vault provider's [`RootPKIPath`](/consul/docs/secure-mesh/certificate/vault#rootpkipath),
    you must temporarily elevate the privileges of the Vault token
    or auth method in use as described in the
-   [Vault CA provider documentation](/consul/docs/connect/ca/vault#additional-vault-acl-policies-for-sensitive-operations).
+   [Vault CA provider documentation](/consul/docs/secure-mesh/certificate/vault#additional-vault-acl-policies-for-sensitive-operations).
 
 #### Command Options
 
@@ -118,7 +118,7 @@ The return code will indicate success or failure.
   until service mesh proxies and/or Consul client agents receive a new certificate
   that establishes trust with the new root.
   Do not use this flag unless you are sure you need it.
-  Refer to [Forced Rotation Without Cross-Signing](/consul/docs/connect/ca#forced-rotation-without-cross-signing)
+  Refer to [Forced Rotation Without Cross-Signing](/consul/docs/secure-mesh/certificate#forced-rotation-without-cross-signing)
   for more detail.
 
 #### API Options

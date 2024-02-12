@@ -74,8 +74,8 @@ Each HTTP API endpoint documents its support for the three read consistency mode
 ~> **Scaling read requests**: The most effective way to increase read scalability
 is to convert non-`stale` reads to `stale` reads. If most requests are already
 `stale` reads and additional load reduction is desired, use Consul Enterprise
-[redundancy zones](/consul/docs/enterprise/redundancy) or
-[read replicas](/consul/docs/enterprise/read-scale)
+[redundancy zones](/consul/docs/manage-consul/redundancy-zones) or
+[read replicas](/consul/docs/manage-consul/read-replicas)
 to spread `stale` reads across additional, _non-voting_ Consul servers.
 Non-voting servers enhance read scalability without increasing the number
 of voting servers; adding more then 5 voting servers is not recommended because
@@ -111,7 +111,7 @@ When making a request across federated Consul datacenters, requests are forwarde
 a local server to any remote server. Once in the remote datacenter, the request path
 is the same as a [local request with the same consistency mode](#intra-datacenter-request-behavior).
 The following diagrams show the cross-datacenter request paths when Consul servers in datacenters are
-[federated either directly or via mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+[federated either directly or via mesh gateways](/consul/docs/link/mesh-gateway/enable).
 
 <Tabs>
 <Tab heading="Traditional WAN federation">

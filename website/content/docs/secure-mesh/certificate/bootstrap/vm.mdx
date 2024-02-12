@@ -8,7 +8,7 @@ description: >-
 # Bootstrap certificate authority on virtual machines (VM)
 
 Consul service mesh comes with a built-in Certificate Authority (CA) that will
-bootstrap by default when you first [enable](/consul/docs/agent/config/config-files#connect_enabled) Consul service mesh on your servers.
+bootstrap by default when you first [enable](/consul/docs/reference/agent#connect_enabled) Consul service mesh on your servers.
 
 To use the built-in CA, enable it in the server's configuration.
 
@@ -26,9 +26,9 @@ bootstrap a new CA and generate it's own private key which is written to the
 Raft state.
 
 Alternatively, an external private key can be provided via the [CA
-configuration](/consul/docs/connect/ca/consul#specifying-a-custom-private-key-and-root-certificate).
+configuration](/consul/docs/secure-mesh/certificate/built-in#specifying-a-custom-private-key-and-root-certificate).
 
 ~> External CAs: Consul has been designed with a pluggable CA component so external CAs can be
 integrated. For production workloads we recommend using [Vault or another external
-CA](/consul/docs/connect/ca/vault) once
+CA](/consul/docs/secure-mesh/certificate/vault) once
 available such that the root key is not stored within Consul state at all.

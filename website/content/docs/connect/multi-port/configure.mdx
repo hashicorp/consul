@@ -24,13 +24,13 @@ The following minimum versions are required:
 - `consul-k8s` CLI v1.3.0 or `hashicorp/consul` Helm chart release v1.3.0
 - `consul-dataplanes` v1.3.0
 
-To install or update the `consul-k8s CLI`, refer to [install the latest version](/consul/docs/k8s/installation/install-cli#install-the-latest-version) or [upgrade the CLI](/consul/docs/k8s/upgrade/upgrade-cli#upgrade-the-cli). 
+To install or update the `consul-k8s CLI`, refer to [install the latest version](/consul/docs/k8s/installation/install-cli#install-the-latest-version) or [upgrade the CLI](/consul/docs/upgrade/k8s/consul-k8s#upgrade-the-cli). 
 
-The required version of Consul dataplanes deploy automatically when using the latest version of `consul-k8s`. Dataplane version is configured manually when you [modify `imageConsulDataplane`](/consul/docs/k8s/helm#v-global-imageconsuldataplane) in the Helm chart.
+The required version of Consul dataplanes deploy automatically when using the latest version of `consul-k8s`. Dataplane version is configured manually when you [modify `imageConsulDataplane`](/consul/docs/reference/k8s/helm#v-global-imageconsuldataplane) in the Helm chart.
 
-For more information about upgrading Helm charts, refer to [Upgrade Helm chart version](/consul/docs/k8s/upgrade#upgrade-helm-chart-version).
+For more information about upgrading Helm charts, refer to [Upgrade Helm chart version](/consul/docs/upgrade/k8s#upgrade-helm-chart-version).
 
-There are additional requirements for service mesh proxies in transparent proxy mode. This mode enables queries through Kube DNS instead of Consul DNS over permissive mTLS settings. For more information about the steps to configure global settings and enable permissive mTLS mode before registering a service, refer to the [onboard services in transparent mode workflow](/consul/docs/k8s/connect/onboarding-tproxy-mode#workflow).
+There are additional requirements for service mesh proxies in transparent proxy mode. This mode enables queries through Kube DNS instead of Consul DNS over permissive mTLS settings. For more information about the steps to configure global settings and enable permissive mTLS mode before registering a service, refer to the [onboard services in transparent mode workflow](/consul/docs/register/external/permissive-mtls#workflow).
 
 ## Enable the v2 catalog
 
@@ -464,7 +464,7 @@ After applying traffic permissions and validating service-to-service communicati
 
 Refer to the following pages for more information:
 
-- [Split traffic between services](/consul/docs/k8s/multiport/traffic-split)
-- [gRPC route example: route traffic by matching header](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header)
-- [HTTP route example: route traffic by matching header](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header)
-- [HTTP route example: route traffic by matching header and query parameter](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header-and-query-parameter)
+- [Split traffic between services](/consul/docs/connect/multi-port/traffic-split)
+- [gRPC route example: route traffic by matching header](/consul/docs/reference/resource/httproute#route-traffic-by-matching-header)
+- [HTTP route example: route traffic by matching header](/consul/docs/reference/resource/httproute#route-traffic-by-matching-header)
+- [HTTP route example: route traffic by matching header and query parameter](/consul/docs/reference/resource/httproute#route-traffic-by-matching-header-and-query-parameter)

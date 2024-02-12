@@ -11,20 +11,20 @@ This topic describes how to create and manage service intentions, which are conf
 
 ## Overview
 
-You can create single intentions or create them in batches using the Consul API, CLI, or UI. You can also define a service intention configuration entry that sets default intentions for all services in the mesh. Refer to [Service intentions overview](/consul/docs/connect/intentions/) for additional background information about intentions.
+You can create single intentions or create them in batches using the Consul API, CLI, or UI. You can also define a service intention configuration entry that sets default intentions for all services in the mesh. Refer to [Service intentions overview](/consul/docs/secure-mesh/intentions/) for additional background information about intentions.
 
 ## Requirements
 
 - At least two services must be registered in the datacenter.
-- TLS must be enabled to enforce L4 intentions. Refer to [Encryption](/consul/docs/security/encryption) for additional information.
+- TLS must be enabled to enforce L4 intentions. Refer to [Encryption](/consul/docs/secure-consul/encryption) for additional information.
 
 ### ACL requirements
 
 Consul grants permissions for creating and managing intentions based on the destination, not the source. When ACLs are enabled, services and operators must present a token linked to a policy that grants read and write permissions to the destination service.
 
-Consul implicitly grants `intentions:read` permissions to destination services when they are configured with `service:read` or `service:write` permissions. This is so that the services can allow or deny inbound connections when they attempt to join the service mesh. Refer to [Service rules](/consul/docs/security/acl/acl-rules#service-rules) for additional information about configuring ACLs for intentions.
+Consul implicitly grants `intentions:read` permissions to destination services when they are configured with `service:read` or `service:write` permissions. This is so that the services can allow or deny inbound connections when they attempt to join the service mesh. Refer to [Service rules](/consul/docs/secure-consul/acl/rules#service-rules) for additional information about configuring ACLs for intentions.
 
-The default ACL policy configuration determines the default behavior for intentions. If the policy is set to `deny`, then all connections or requests are denied and you must enable them explicitly. Refer to [`default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) for details.
+The default ACL policy configuration determines the default behavior for intentions. If the policy is set to `deny`, then all connections or requests are denied and you must enable them explicitly. Refer to [`default_policy`](/consul/docs/reference/agent#acl_default_policy) for details.
 
 ## Create an intention
 
@@ -76,7 +76,7 @@ For L7 intentions, specify the `Permissions` in the request payload to configure
 
 </CodeBlockConfig>
 
-The `Permissions` object specifies a list of permissions for L7 traffic sources. The list contains one or more actions and a set of match criteria for each action. Refer to the [`Sources[].Permissions[]` parameter](/consul/docs/connect/config-entries/service-intentions#sources-permissions) in the service intentions configuration entry reference for configuration details.
+The `Permissions` object specifies a list of permissions for L7 traffic sources. The list contains one or more actions and a set of match criteria for each action. Refer to the [`Sources[].Permissions[]` parameter](/consul/docs/reference/config-entry/service-intention#sources-permissions) in the service intentions configuration entry reference for configuration details.
 
 To apply the intention, call the endpoint and pass the configuration file containing the attributes to the endpoint:
 
@@ -99,7 +99,7 @@ The following example creates an intention that allows `web` service instances t
 $ consul intention create -allow web db
 ```
 
-You can use the asterisk (`*`) wildcard to specify multiple destination services. Refer to [Precedence and match order](/consul/docs/connect/intentions/create-manage-intentions#precedence-and-match-order) for additional information.
+You can use the asterisk (`*`) wildcard to specify multiple destination services. Refer to [Precedence and match order](/consul/docs/secure-mesh/intentions/create#precedence-and-match-order) for additional information.
 
 ### Consul UI
 
@@ -121,7 +121,7 @@ You can use the Consul UI to configure L7 permissions.
 
 1. Click **Add permission** to open the permission editor.
 1. Enable the **Allow** or **Deny** option.
-1. You can specify a path, request method, and request headers to match. All criteria must be satisfied for Consul to enforce the permission. Refer to the [`Sources[].Permissions[]` parameter](/consul/docs/connect/config-entries/service-intentions#sources-permissions) in the service intentions configuration entry reference for information about the available configuration fields.
+1. You can specify a path, request method, and request headers to match. All criteria must be satisfied for Consul to enforce the permission. Refer to the [`Sources[].Permissions[]` parameter](/consul/docs/reference/config-entry/service-intention#sources-permissions) in the service intentions configuration entry reference for information about the available configuration fields.
 1. Click **Save**.
 
 Repeat the procedure as necessary to create additional permissions.
@@ -138,35 +138,35 @@ Configure the following fields:
 
 <Tab heading="HCL" group="hcl">
 
-- [`Kind`](/consul/docs/connect/config-entries/service-intentions#kind): Declares the type of configuration entry. Must be set to `service-intentions`.
-- [`Name`](/consul/docs/connect/config-entries/service-intentions#kind): Specifies the name of the destination service for intentions defined in the configuration entry. You can use a wildcard character (*) to set L4 intentions for all services that are not protected by specific intentions. Wildcards are not supported for L7 intentions.
-- [`Sources`](/consul/docs/connect/config-entries/service-intentions#sources): Specifies an unordered list of all intention sources and the authorizations granted to those sources. Consul stores and evaluates the list in reverse order sorted by intention precedence.
-- [`Sources.Action`](/consul/docs/connect/config-entries/service-intentions#sources-action) or [`Sources.Permissions`](/consul/docs/connect/config-entries/service-intentions#sources-permissions): For L4 intentions, set the `Action` field to "allow" or "deny" so that Consul can enforce intentions that match the source service. For L7 intentions, configure the `Permissions` settings, which define a set of application-aware attributes for dynamically matching incoming requests. The `Actions` and `Permissions` settings are mutually exclusive.
+- [`Kind`](/consul/docs/reference/config-entry/service-intention#kind): Declares the type of configuration entry. Must be set to `service-intentions`.
+- [`Name`](/consul/docs/reference/config-entry/service-intention#kind): Specifies the name of the destination service for intentions defined in the configuration entry. You can use a wildcard character (*) to set L4 intentions for all services that are not protected by specific intentions. Wildcards are not supported for L7 intentions.
+- [`Sources`](/consul/docs/reference/config-entry/service-intention#sources): Specifies an unordered list of all intention sources and the authorizations granted to those sources. Consul stores and evaluates the list in reverse order sorted by intention precedence.
+- [`Sources.Action`](/consul/docs/reference/config-entry/service-intention#sources-action) or [`Sources.Permissions`](/consul/docs/reference/config-entry/service-intention#sources-permissions): For L4 intentions, set the `Action` field to "allow" or "deny" so that Consul can enforce intentions that match the source service. For L7 intentions, configure the `Permissions` settings, which define a set of application-aware attributes for dynamically matching incoming requests. The `Actions` and `Permissions` settings are mutually exclusive.
 
 </Tab>
 
 <Tab heading="YAML" group="yaml">
 
-- [`apiVersion`](/consul/docs/connect/config-entries/service-intentions#apiversion): Specifies the Consul API version. Must be set to `consul.hashicorp.com/v1alpha1`.
-- [`kind`](/consul/docs/connect/config-entries/service-intentions#kind): Declares the type of configuration entry. Must be set to `ServiceIntentions`.
-- [`spec.destination.name`](/consul/docs/connect/config-entries/service-intentions#spec-destination-name): Specifies the name of the destination service for intentions defined in the configuration entry. You can use a wildcard character (*) to set L4 intentions for all services that are not protected by specific intentions. Wildcards are not supported for L7 intentions.
-- [`spec.sources`](/consul/docs/connect/config-entries/service-intentions#spec-sources): Specifies an unordered list of all intention sources and the authorizations granted to those sources. Consul stores and evaluates the list in reverse order sorted by intention precedence.
-- [`spec.sources.action`](/consul/docs/connect/config-entries/service-intentions#spec-sources-action) or [`spec.sources.permissions`](/consul/docs/connect/config-entries/service-intentions#spec-sources-permissions): For L4 intentions, set the `action` field to "allow" or "deny" so that Consul can enforce intentions that match the source service. For L7 intentions, configure the `permissions` settings, which define a set of application-aware attributes for dynamically matching incoming requests. The `actions` and `permissions` settings are mutually exclusive.
+- [`apiVersion`](/consul/docs/reference/config-entry/service-intention#apiversion): Specifies the Consul API version. Must be set to `consul.hashicorp.com/v1alpha1`.
+- [`kind`](/consul/docs/reference/config-entry/service-intention#kind): Declares the type of configuration entry. Must be set to `ServiceIntentions`.
+- [`spec.destination.name`](/consul/docs/reference/config-entry/service-intention#spec-destination-name): Specifies the name of the destination service for intentions defined in the configuration entry. You can use a wildcard character (*) to set L4 intentions for all services that are not protected by specific intentions. Wildcards are not supported for L7 intentions.
+- [`spec.sources`](/consul/docs/reference/config-entry/service-intention#spec-sources): Specifies an unordered list of all intention sources and the authorizations granted to those sources. Consul stores and evaluates the list in reverse order sorted by intention precedence.
+- [`spec.sources.action`](/consul/docs/reference/config-entry/service-intention#spec-sources-action) or [`spec.sources.permissions`](/consul/docs/reference/config-entry/service-intention#spec-sources-permissions): For L4 intentions, set the `action` field to "allow" or "deny" so that Consul can enforce intentions that match the source service. For L7 intentions, configure the `permissions` settings, which define a set of application-aware attributes for dynamically matching incoming requests. The `actions` and `permissions` settings are mutually exclusive.
 
 </Tab>
 
 </Tabs>
 
-Refer to the [service intentions configuration entry](/consul/docs/connect/config-entries/service-intentions) reference documentation for details about all configuration options.
+Refer to the [service intentions configuration entry](/consul/docs/reference/config-entry/service-intention) reference documentation for details about all configuration options.
 
-Refer to the [example service intentions configurations](/consul/docs/connect/config-entries/service-intentions#examples) for additional guidance.
+Refer to the [example service intentions configurations](/consul/docs/reference/config-entry/service-intention#examples) for additional guidance.
 
 #### Interaction with other configuration entries
 
 L7 intentions defined in a configuration entry are restricted to destination services
 configured with an HTTP-based protocol as defined in a corresponding
-[service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults)
-or globally in a [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults).
+[service defaults configuration entry](/consul/docs/reference/config-entry/service-default)
+or globally in a [proxy defaults configuration entry](/consul/docs/reference/config-entry/proxy-defaults).
 
 ### Apply the service intentions configuration entry
 

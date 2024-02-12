@@ -9,7 +9,7 @@ description: The /discovery-chain endpoints are for interacting with the discove
 -> **1.6.0+:** The discovery chain API is available in Consul versions 1.6.0 and newer.
 
 ~> This is a low-level API primarily targeted at developers building external
-[service mesh proxy integrations](/consul/docs/connect/proxies/integrate). Future
+[service mesh proxy integrations](/consul/docs/integrate/proxy). Future
 high-level proxy integration APIs may obviate the need for this API over time.
 
 The `/discovery-chain` endpoint returns the compiled [discovery
@@ -17,7 +17,7 @@ chain](/consul/docs/connect/manage-traffic/discovery-chain) for a service.
 
 This will fetch all related [configuration
 entries](/consul/docs/agent/config-entries) and render them into a form suitable
-for use by a [service mesh proxy](/consul/docs/connect/proxies) implementation. This
+for use by a [service mesh proxy](/consul/docs/connect/proxy) implementation. This
 is a key component of [L7 Traffic
 Management](/consul/docs/connect/manage-traffic).
 
@@ -58,7 +58,7 @@ The table below shows this endpoint's support for
   compilation. This will default to the datacenter of the agent being queried.
 
   This value comes from the `datacenter` parameter in an [upstream
-  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
+  configuration](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the source namespace you use as the basis of compilation.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
@@ -66,14 +66,14 @@ The table below shows this endpoint's support for
 ### JSON Request Body Schema
 
 - `OverrideConnectTimeout` `(duration: 0s)` - Overrides the final [connect
-  timeout](/consul/docs/connect/config-entries/service-resolver#connecttimeout) for
+  timeout](/consul/docs/reference/config-entry/service-resolver#connecttimeout) for
   any service resolved in the compiled chain.
 
   This value comes from the `connect_timeout_ms` key in the opaque `config` field of the [upstream
-  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
+  configuration](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference).
 
 - `OverrideProtocol` `(string: "")` - Overrides the final
-  [protocol](/consul/docs/connect/config-entries/service-defaults#protocol) used in
+  [protocol](/consul/docs/reference/config-entry/service-default#protocol) used in
   the compiled discovery chain.
 
   If the chain ordinarily would be TCP and an L7 protocol is passed here the
@@ -82,15 +82,15 @@ The table below shows this endpoint's support for
   Splitters.
 
   This value comes from the `protocol` key in an opaque `config` field of the [upstream
-  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
+  configuration](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference).
 
 - `OverrideMeshGateway` `(MeshGatewayConfig: <optional>)` - Overrides the final
-  [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
+  [mesh gateway configuration](/consul/docs/link/mesh-gateway/#connect-proxy-configuration)
   for this any service resolved in the compiled chain.
 
   This value comes from the `mesh_gateway` parameter in either the [proxy
-  configuration](/consul/docs/connect/proxies/proxy-config-reference#proxy-parameters) or [upstream
-  configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference)
+  configuration](/consul/docs/reference/proxy/connect-proxy#proxy-parameters) or [upstream
+  configuration](/consul/docs/reference/proxy/connect-proxy#upstream-configuration-reference)
   If both parameters are configured, Consul uses the value defined on the upstream.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.

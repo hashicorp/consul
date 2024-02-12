@@ -1,0 +1,62 @@
+---
+page_title: Using Consul and Kubernetes namespaces
+description: |-
+  Namespaces reduce operational challenges in large deployments. Learn how to define a namespace so that multiple users or teams can access and use the same datacenter without impacting each other.
+---
+
+# Using Consul and Kubernetes namespaces
+
+Consul Enterprise 1.7+ supports Consul namespaces. When Kubernetes pods are registered
+into Consul, you can control which Consul namespace they are registered into.
+
+There are three options available:
+
+1.  **Single Destination Namespace** – Register all Kubernetes pods, regardless of namespace,
+    into the same Consul namespace.
+
+    This can be configured with:
+
+    ```yaml
+    global:
+      enableConsulNamespaces: true
+
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        consulDestinationNamespace: 'my-consul-ns'
+    ```
+
+    -> **NOTE:** If the destination namespace does not exist we will create it.
+
+1.  **Mirror Namespaces** - Register each Kubernetes pod into a Consul namespace with the same name as its Kubernetes namespace.
+    For example, pod `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `ns-1`.
+    If a mirrored namespace does not exist in Consul, it will be created.
+
+    This can be configured with:
+
+    ```yaml
+    global:
+      enableConsulNamespaces: true
+
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        mirroringK8S: true
+    ```
+
+1.  **Mirror Namespaces With Prefix** - Register each Kubernetes pod into a Consul namespace with the same name as its Kubernetes
+    namespace **with a prefix**.
+    For example, given a prefix `k8s-`, pod `foo` in Kubernetes namespace `ns-1` will be synced to the Consul namespace `k8s-ns-1`.
+
+    This can be configured with:
+
+    ```yaml
+    global:
+      enableConsulNamespaces: true
+
+    connectInject:
+      enabled: true
+      consulNamespaces:
+        mirroringK8S: true
+        mirroringK8SPrefix: 'k8s-'
+    ```

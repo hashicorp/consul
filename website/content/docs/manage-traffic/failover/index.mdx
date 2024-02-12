@@ -33,7 +33,7 @@ Although cluster peering connections support the [`Failover` field of the prepar
 
 You can implement a service resolver configuration entry and specify a pool of failover service instances that other services can exchange messages with when the primary service becomes unhealthy or unreachable. We recommend adopting this strategy as a minimum baseline when implementing Consul service mesh and layering additional failover strategies to build resilience into your application network. 
 
-Refer to the [`Failover` configuration ](/consul/docs/connect/config-entries/service-resolver#failover) for examples of how to configure failover services in the service resolver configuration entry on both VMs and Kubernetes deployments.
+Refer to the [`Failover` configuration ](/consul/docs/reference/config-entry/service-resolver#failover) for examples of how to configure failover services in the service resolver configuration entry on both VMs and Kubernetes deployments.
 
 ### Failover configuration for WAN-federated datacenters
 
