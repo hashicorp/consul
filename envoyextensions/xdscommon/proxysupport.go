@@ -14,7 +14,7 @@ import "strings"
 var EnvoyVersions = []string{
 	"1.28.0",
 	"1.27.2",
-	"1.26.6",
+	"1.26.7",
 	"1.25.11",
 }
 
