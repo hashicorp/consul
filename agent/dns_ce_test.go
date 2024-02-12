@@ -17,13 +17,12 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-// TODO(v2-dns): NET-7910 - Fix ENT and CE variants of DNS v1 compatibility tests
 func TestDNS_CE_PeeredServices(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true } ` + experimentsHCL})
 			defer a.Shutdown()
