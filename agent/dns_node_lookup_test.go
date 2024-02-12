@@ -14,15 +14,12 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-// TODO (v2-dns): Failing on "lookup a non-existing node, we should receive a SOA"
-// it is coming back empty.
 func TestDNS_NodeLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()

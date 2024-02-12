@@ -70,6 +70,24 @@ func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []str
 			return name, tag
 		}
 		return queryParts[n-1], ""
+	case discovery.QueryTypePreparedQuery:
+		name := ""
+
+		// If the first and last DNS query parts begin with _, this is an RFC 2782 style SRV lookup.
+		// This allows for prepared query names to include "." (for backwards compatibility).
+		// Otherwise, this is a standard prepared query lookup.
+		if n >= 2 && strings.HasPrefix(queryParts[0], "_") && strings.HasPrefix(queryParts[n-1], "_") {
+			// The last DNS query part is the protocol field (ignored).
+			// All prior parts are the prepared query name or ID.
+			name = strings.Join(queryParts[:n-1], ".")
+
+			// Strip leading underscore
+			name = name[1:]
+		} else {
+			// Allow a "." in the query name, just join all the parts.
+			name = strings.Join(queryParts, ".")
+		}
+		return name, ""
 	}
 	return queryParts[n-1], ""
 }

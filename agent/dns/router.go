@@ -107,7 +107,9 @@ type Router struct {
 	datacenter string
 	logger     hclog.Logger
 
-	tokenFunc func() string
+	tokenFunc                   func() string
+	translateAddressFunc        func(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string
+	translateServiceAddressFunc func(dc string, address string, taggedAddresses map[string]structs.ServiceAddress, accept dnsutil.TranslateAddressAccept) string
 
 	// dynamicConfig stores the config as an atomic value (for hot-reloading).
 	// It is always of type *RouterDynamicConfig
@@ -127,13 +129,15 @@ func NewRouter(cfg Config) (*Router, error) {
 	logger := cfg.Logger.Named(logging.DNS)
 
 	router := &Router{
-		processor:  cfg.Processor,
-		recursor:   newRecursor(logger),
-		domain:     domain,
-		altDomain:  altDomain,
-		datacenter: cfg.AgentConfig.Datacenter,
-		logger:     logger,
-		tokenFunc:  cfg.TokenFunc,
+		processor:                   cfg.Processor,
+		recursor:                    newRecursor(logger),
+		domain:                      domain,
+		altDomain:                   altDomain,
+		datacenter:                  cfg.AgentConfig.Datacenter,
+		logger:                      logger,
+		tokenFunc:                   cfg.TokenFunc,
+		translateAddressFunc:        cfg.TranslateAddressFunc,
+		translateServiceAddressFunc: cfg.TranslateServiceAddressFunc,
 	}
 
 	if err := router.ReloadConfig(cfg.AgentConfig); err != nil {
@@ -526,9 +530,6 @@ func (r *Router) serializeQueryResults(req *dns.Msg, reqCtx Context,
 
 				// The datacenter should be empty during translation if it is a peering lookup.
 				// This should be fine because we should always prefer the WAN address.
-				//serviceAddress := d.agent.TranslateServiceAddress(lookup.Datacenter, node.Service.Address, node.Service.TaggedAddresses, TranslateAddressAcceptAny)
-				//servicePort := d.agent.TranslateServicePort(lookup.Datacenter, node.Service.Port, node.Service.TaggedAddresses)
-				//tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, serviceAddress, servicePort)
 
 				// TODO (v2-dns): this needs a clean up so we're not assuming this everywhere.
 				address := ""
@@ -554,11 +555,33 @@ func (r *Router) serializeQueryResults(req *dns.Msg, reqCtx Context,
 		r.appendResultsToDNSResponse(req, reqCtx, query, resp, results, cfg, responseDomain, remoteAddress, maxRecursionLevel)
 	}
 
-	if len(resp.Answer) == 0 && len(resp.Extra) == 0 {
+	if query != nil && query.QueryType != discovery.QueryTypeVirtual &&
+		len(resp.Answer) == 0 && len(resp.Extra) == 0 {
 		return nil, discovery.ErrNoData
 	}
 
 	return resp, nil
+}
+
+// getServiceAddressMapFromLocationMap converts a map of Location to a map of ServiceAddress.
+func getServiceAddressMapFromLocationMap(taggedAddresses map[string]*discovery.TaggedAddress) map[string]structs.ServiceAddress {
+	taggedServiceAddresses := make(map[string]structs.ServiceAddress, len(taggedAddresses))
+	for k, v := range taggedAddresses {
+		taggedServiceAddresses[k] = structs.ServiceAddress{
+			Address: v.Address,
+			Port:    int(v.Port.Number),
+		}
+	}
+	return taggedServiceAddresses
+}
+
+// getStringAddressMapFromTaggedAddressMap converts a map of Location to a map of string.
+func getStringAddressMapFromTaggedAddressMap(taggedAddresses map[string]*discovery.TaggedAddress) map[string]string {
+	taggedServiceAddresses := make(map[string]string, len(taggedAddresses))
+	for k, v := range taggedAddresses {
+		taggedServiceAddresses[k] = v.Address
+	}
+	return taggedServiceAddresses
 }
 
 // appendResultsToDNSResponse builds dns message from the discovery results and
@@ -906,15 +929,7 @@ func buildAddressResults(req *dns.Msg) ([]*discovery.Result, error) {
 func (r *Router) getAnswerExtraAndNs(result *discovery.Result, port discovery.Port, req *dns.Msg, reqCtx Context,
 	query *discovery.Query, cfg *RouterDynamicConfig, domain string, remoteAddress net.Addr,
 	maxRecursionLevel int) (answer []dns.RR, extra []dns.RR, ns []dns.RR) {
-
-	serviceAddress := newDNSAddress("")
-	if result.Service != nil {
-		serviceAddress = newDNSAddress(result.Service.Address)
-	}
-	nodeAddress := newDNSAddress("")
-	if result.Node != nil {
-		nodeAddress = newDNSAddress(result.Node.Address)
-	}
+	serviceAddress, nodeAddress := r.getServiceAndNodeAddresses(result, req)
 	qName := req.Question[0].Name
 	ttlLookupName := qName
 	if query != nil {
@@ -981,6 +996,35 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, port discovery.Po
 	answer = append(answer, a...)
 	extra = append(extra, e...)
 	return
+}
+
+// getServiceAndNodeAddresses returns the service and node addresses from a discovery result.
+func (r *Router) getServiceAndNodeAddresses(result *discovery.Result, req *dns.Msg) (*dnsAddress, *dnsAddress) {
+	addrTranslate := dnsutil.TranslateAddressAcceptDomain
+	if req.Question[0].Qtype == dns.TypeA {
+		addrTranslate |= dnsutil.TranslateAddressAcceptIPv4
+	} else if req.Question[0].Qtype == dns.TypeAAAA {
+		addrTranslate |= dnsutil.TranslateAddressAcceptIPv6
+	} else {
+		addrTranslate |= dnsutil.TranslateAddressAcceptAny
+	}
+
+	// The datacenter should be empty during translation if it is a peering lookup.
+	// This should be fine because we should always prefer the WAN address.
+	serviceAddress := newDNSAddress("")
+	if result.Service != nil {
+		sa := r.translateServiceAddressFunc(result.Tenancy.Datacenter,
+			result.Service.Address, getServiceAddressMapFromLocationMap(result.Service.TaggedAddresses),
+			addrTranslate)
+		serviceAddress = newDNSAddress(sa)
+	}
+	nodeAddress := newDNSAddress("")
+	if result.Node != nil {
+		na := r.translateAddressFunc(result.Tenancy.Datacenter, result.Node.Address,
+			getStringAddressMapFromTaggedAddressMap(result.Node.TaggedAddresses), addrTranslate)
+		nodeAddress = newDNSAddress(na)
+	}
+	return serviceAddress, nodeAddress
 }
 
 // getAnswerExtrasForAddressAndTarget creates the dns answer and extra from nodeAddress and serviceAddress dnsAddress pairs.
@@ -1119,7 +1163,7 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
 	qType := question.Qtype
 	canReturnARecord := qType == dns.TypeSRV || qType == dns.TypeA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
 	canReturnAAAARecord := qType == dns.TypeSRV || qType == dns.TypeAAAA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
-	if reqType != requestTypeAddress {
+	if reqType != requestTypeAddress && result.Type != discovery.ResultTypeVirtual {
 		switch {
 		// check IPV4
 		case addr.IsIP() && addr.IsIPV4() && !canReturnARecord,
@@ -1143,8 +1187,7 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
 	}
 
 	if reqType != requestTypeAddress && qType == dns.TypeSRV {
-		if result.Type == discovery.ResultTypeService && addr.IsIP() && result.Service.
-			Address == addr.String() {
+		if result.Type == discovery.ResultTypeService && addr.IsIP() && result.Node.Address != addr.String() {
 			// encode the ip to be used in the header of the A/AAAA record
 			// as well as the target of the SRV record.
 			recHdrName = encodeIPAsFqdn(result, addr.IP(), domain)
