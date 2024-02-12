@@ -14,6 +14,7 @@ import { BlockingEventSource as RealEventSource } from 'consul-ui/utils/dom/even
 import { ACCESS_LEVEL } from 'consul-ui/components/link-to-hcp-modal';
 
 const modalSelector = '[data-test-link-to-hcp-modal]';
+const modalNoACLsAlertSelector = '[data-test-link-to-hcp-modal-no-acls-alert]';
 const modalOptionReadOnlySelector = '#accessMode-readonly';
 const modalOptionReadOnlyErrorSelector = '[data-test-link-to-hcp-modal-access-level-options-error]';
 const modalGenerateTokenCardSelector = '[data-test-link-to-hcp-modal-generate-token-card]';
@@ -89,6 +90,8 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
                                      @partition="-" />`);
 
     assert.dom(modalSelector).exists({ count: 1 });
+    assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).doesNotExist();
+
     // select read-only
     await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
 
@@ -185,6 +188,7 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
                                      @partition="-" />`);
 
     assert.dom(modalSelector).exists({ count: 1 });
+    assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).doesNotExist();
     // select read-only
     await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
 
@@ -211,6 +215,7 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
                                      @partition="-" />`);
 
     assert.dom(modalSelector).exists({ count: 1 });
+    assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).isVisible();
     // select read-only
     await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
 
