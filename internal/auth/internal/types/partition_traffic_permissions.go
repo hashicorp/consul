@@ -4,10 +4,11 @@
 package types
 
 import (
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
-	"github.com/hashicorp/go-multierror"
 )
 
 type DecodedPartitionTrafficPermissions = resource.DecodedResource[*pbauth.PartitionTrafficPermissions]
@@ -23,7 +24,7 @@ func RegisterPartitionTrafficPermissions(r resource.Registry) {
 		},
 		Validate: ValidatePartitionTrafficPermissions,
 		Mutate:   MutatePartitionTrafficPermissions,
-		Scope:    resource.ScopePartition,
+		Scope:    resource.ScopeCluster,
 	})
 }
 
@@ -40,7 +41,7 @@ var ValidatePartitionTrafficPermissions = resource.DecodeAndValidate(validatePar
 func validatePartitionTrafficPermissions(res *DecodedPartitionTrafficPermissions) error {
 	var merr error
 
-	if err := v.ValidateAction(res.Data); err != nil {
+	if err := validateAction(res.Data); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 	if err := validatePermissions(res.Id, res.Data); err != nil {
