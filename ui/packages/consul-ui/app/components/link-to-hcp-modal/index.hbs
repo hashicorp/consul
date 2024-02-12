@@ -10,6 +10,12 @@
       Link to HCP Consul Central
     </M.Header>
     <M.Body>
+      {{#if (not (can "read acls"))}}
+        <Hds::Alert class="link-to-hcp-modal__no-acls-alert" @type="inline" @color="critical" data-test-link-to-hcp-modal-no-acls-alert as |A|>
+          <A.Title>ACLs are disabled on this cluster.</A.Title>
+          <A.Description>The cluster can only be linked with read/write access.</A.Description>
+        </Hds::Alert>
+      {{/if}}
       <Hds::Form::Radio::Group data-test-link-to-hcp-modal-access-level-options @layout="vertical" @name="accessMode" as
                                |G|>
         <G.Legend>Select cluster access mode before linking</G.Legend>
