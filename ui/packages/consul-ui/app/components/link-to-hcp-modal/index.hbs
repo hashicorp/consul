@@ -33,8 +33,11 @@
             with the “builtin/global-read-only” policy in the next step.
           </F.HelperText>
         </G.Radio::Field>
+        {{#if (and this.isReadOnlyAccessLevelSelected (not (can "read acls")))}}
+          <G.Error data-test-link-to-hcp-modal-access-level-options-error>ACLs are disabled on this cluster and are required for read-only access.</G.Error>
+        {{/if}}
       </Hds::Form::Radio::Group>
-      {{#if (and this.isReadOnlyAccessLevelSelected (can "create tokens"))}}
+      {{#if (and this.isReadOnlyAccessLevelSelected (can "read acls") (can "create tokens"))}}
         <div class="link-to-hcp-modal__generate-token">
           {{#if  globalReadonlyPolicy.data}}
             <p class="hds-typography-display-100 hds-font-weight-medium font-family-sans-display">
