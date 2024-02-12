@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
 	"github.com/miekg/dns"
 
@@ -46,8 +47,6 @@ var (
 
 	trailingSpacesRE = regexp.MustCompile(" +$")
 )
-
-// TODO (v2-dns): metrics
 
 // Context is used augment a DNS message with Consul-specific metadata.
 type Context struct {
@@ -105,6 +104,7 @@ type Router struct {
 	domain     string
 	altDomain  string
 	datacenter string
+	nodeName   string
 	logger     hclog.Logger
 
 	tokenFunc                   func() string
@@ -124,8 +124,6 @@ func NewRouter(cfg Config) (*Router, error) {
 	domain := dns.CanonicalName(cfg.AgentConfig.DNSDomain)
 	altDomain := dns.CanonicalName(cfg.AgentConfig.DNSAltDomain)
 
-	// TODO (v2-dns): need to figure out tenancy information here in a way that work for V2 and V1
-
 	logger := cfg.Logger.Named(logging.DNS)
 
 	router := &Router{
@@ -135,6 +133,7 @@ func NewRouter(cfg Config) (*Router, error) {
 		altDomain:                   altDomain,
 		datacenter:                  cfg.AgentConfig.Datacenter,
 		logger:                      logger,
+		nodeName:                    cfg.AgentConfig.NodeName,
 		tokenFunc:                   cfg.TokenFunc,
 		translateAddressFunc:        cfg.TranslateAddressFunc,
 		translateServiceAddressFunc: cfg.TranslateServiceAddressFunc,
@@ -148,21 +147,6 @@ func NewRouter(cfg Config) (*Router, error) {
 
 // HandleRequest is used to process an individual DNS request. It returns a message in success or fail cases.
 func (r *Router) HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.Addr) *dns.Msg {
-	return r.handleRequestRecursively(req, reqCtx, remoteAddress, maxRecursionLevelDefault)
-}
-
-// getErrorFromECSNotGlobalError returns the underlying error from an ECSNotGlobalError, if it exists.
-func getErrorFromECSNotGlobalError(err error) error {
-	if errors.Is(err, discovery.ErrECSNotGlobal) {
-		return err.(discovery.ECSNotGlobalError).Unwrap()
-	}
-	return err
-}
-
-// handleRequestRecursively is used to process an individual DNS request. It will recurse as needed
-// a maximum number of times and returns a message in success or fail cases.
-func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context,
-	remoteAddress net.Addr, maxRecursionLevel int) *dns.Msg {
 	configCtx := r.dynamicConfig.Load().(*RouterDynamicConfig)
 
 	r.logger.Trace("received request", "question", req.Question[0].Name, "type", dns.Type(req.Question[0].Qtype).String())
@@ -175,6 +159,45 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context,
 		}
 		return createServerFailureResponse(req, configCtx, false)
 	}
+
+	defer func(s time.Time, q dns.Question) {
+		metrics.MeasureSinceWithLabels([]string{"dns", "query"}, s,
+			[]metrics.Label{
+				{Name: "node", Value: r.nodeName},
+				{Name: "type", Value: dns.Type(q.Qtype).String()},
+			})
+
+		r.logger.Debug("request served from client",
+			"name", q.Name,
+			"type", dns.Type(q.Qtype).String(),
+			"class", dns.Class(q.Qclass).String(),
+			"latency", time.Since(s).String(),
+			"client", remoteAddress.String(),
+			"client_network", remoteAddress.Network(),
+		)
+	}(time.Now(), req.Question[0])
+
+	return r.handleRequestRecursively(req, reqCtx, configCtx, remoteAddress, maxRecursionLevelDefault)
+}
+
+// getErrorFromECSNotGlobalError returns the underlying error from an ECSNotGlobalError, if it exists.
+func getErrorFromECSNotGlobalError(err error) error {
+	if errors.Is(err, discovery.ErrECSNotGlobal) {
+		return err.(discovery.ECSNotGlobalError).Unwrap()
+	}
+	return err
+}
+
+// handleRequestRecursively is used to process an individual DNS request. It will recurse as needed
+// a maximum number of times and returns a message in success or fail cases.
+func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context, configCtx *RouterDynamicConfig,
+	remoteAddress net.Addr, maxRecursionLevel int) *dns.Msg {
+
+	r.logger.Trace(
+		"received request",
+		"question", req.Question[0].Name,
+		"type", dns.Type(req.Question[0].Qtype).String(),
+		"recursion_remaining", maxRecursionLevel)
 
 	responseDomain, needRecurse := r.parseDomain(req.Question[0].Name)
 	if needRecurse && !canRecurse(configCtx) {
@@ -655,7 +678,7 @@ func (r *Router) defaultAgentDNSRequestContext() Context {
 }
 
 // resolveCNAME is used to recursively resolve CNAME records
-func (r *Router) resolveCNAME(cfg *RouterDynamicConfig, name string, reqCtx Context,
+func (r *Router) resolveCNAME(cfgContext *RouterDynamicConfig, name string, reqCtx Context,
 	remoteAddress net.Addr, maxRecursionLevel int) []dns.RR {
 	// If the CNAME record points to a Consul address, resolve it internally
 	// Convert query to lowercase because DNS is case-insensitive; d.domain and
@@ -670,13 +693,13 @@ func (r *Router) resolveCNAME(cfg *RouterDynamicConfig, name string, reqCtx Cont
 
 		req.SetQuestion(name, dns.TypeANY)
 		// TODO: handle error response
-		resp := r.handleRequestRecursively(req, reqCtx, nil, maxRecursionLevel-1)
+		resp := r.handleRequestRecursively(req, reqCtx, cfgContext, nil, maxRecursionLevel-1)
 
 		return resp.Answer
 	}
 
 	// Do nothing if we don't have a recursor
-	if !canRecurse(cfg) {
+	if !canRecurse(cfgContext) {
 		return nil
 	}
 
@@ -685,7 +708,7 @@ func (r *Router) resolveCNAME(cfg *RouterDynamicConfig, name string, reqCtx Cont
 	m.SetQuestion(name, dns.TypeA)
 
 	// Make a DNS lookup request
-	recursorResponse, err := r.recursor.handle(m, cfg, remoteAddress)
+	recursorResponse, err := r.recursor.handle(m, cfgContext, remoteAddress)
 	if err == nil {
 		return recursorResponse.Answer
 	}

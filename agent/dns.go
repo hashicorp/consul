@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/armon/go-radix"
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
@@ -32,24 +31,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 )
-
-var DNSCounters = []prometheus.CounterDefinition{
-	{
-		Name: []string{"dns", "stale_queries"},
-		Help: "Increments when an agent serves a query within the allowed stale threshold.",
-	},
-}
-
-var DNSSummaries = []prometheus.SummaryDefinition{
-	{
-		Name: []string{"dns", "ptr_query"},
-		Help: "Measures the time spent handling a reverse DNS query for the given node.",
-	},
-	{
-		Name: []string{"dns", "domain_query"},
-		Help: "Measures the time spent handling a domain query for the given node.",
-	},
-}
 
 const (
 	// UDP can fit ~25 A records in a 512B response, and ~14 AAAA
@@ -406,8 +387,17 @@ func (d *DNSServer) getResponseDomain(questionName string) string {
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
+		// V1 DNS-style metrics
 		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+
+		// V2 DNS-style metrics for forward compatibility
+		metrics.MeasureSinceWithLabels([]string{"dns", "query"}, s,
+			[]metrics.Label{
+				{Name: "node", Value: d.agent.config.NodeName},
+				{Name: "type", Value: dns.Type(dns.TypePTR).String()},
+			})
+
 		d.logger.Debug("request served from client",
 			"question", q,
 			"latency", time.Since(s).String(),
@@ -519,12 +509,21 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
+		// V1 DNS-style metrics
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+
+		// V2 DNS-style metrics for forward compatibility
+		metrics.MeasureSinceWithLabels([]string{"dns", "query"}, s,
+			[]metrics.Label{
+				{Name: "node", Value: d.agent.config.NodeName},
+				{Name: "type", Value: dns.Type(q.Qtype).String()},
+			})
+
 		d.logger.Debug("request served from client",
 			"name", q.Name,
-			"type", dns.Type(q.Qtype),
-			"class", dns.Class(q.Qclass),
+			"type", dns.Type(q.Qtype).String(),
+			"class", dns.Class(q.Qclass).String(),
 			"latency", time.Since(s).String(),
 			"client", resp.RemoteAddr().String(),
 			"client_network", resp.RemoteAddr().Network(),
