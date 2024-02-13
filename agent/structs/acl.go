@@ -1399,7 +1399,7 @@ type ACLTokenListResponse struct {
 
 // ACLTokenBatchGetRequest is used for reading multiple tokens, this is
 // different from the token list request in that only tokens with the
-// the requested ids are returned
+// requested ids are returned
 type ACLTokenBatchGetRequest struct {
 	AccessorIDs []string // List of accessor ids to fetch
 	Datacenter  string   // The datacenter to perform the request within

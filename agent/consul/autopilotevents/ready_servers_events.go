@@ -228,7 +228,7 @@ func (r *ReadyServersEventPublisher) autopilotStateToReadyServers(state *autopil
 	for _, srv := range state.Servers {
 		if IsServerReady(srv) {
 			// autopilot information contains addresses in the <host>:<port> form. We only care about the
-			// the host so we parse it out here and discard the port.
+			// host so we parse it out here and discard the port.
 			host, err := extractHost(string(srv.Server.Address))
 			if err != nil || host == "" {
 

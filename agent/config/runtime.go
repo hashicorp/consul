@@ -1432,7 +1432,7 @@ type RuntimeConfig struct {
 	TLS tlsutil.Config
 
 	// TaggedAddresses are used to publish a set of addresses for
-	// for a node, which can be used by the remote agent. We currently
+	// a node, which can be used by the remote agent. We currently
 	// populate only the "wan" tag based on the SerfWan advertise address,
 	// but this structure is here for possible future features with other
 	// user-defined tags. The "wan" tag will be used by remote agents if

@@ -231,7 +231,7 @@ func (s *Server) legacyIntentionMigrationInSecondaryDC(ctx context.Context) erro
 	// (2) If the primary has finished migration, we have to wait until our own
 	// config entry replication catches up.
 	//
-	// (3) After config entry replication catches up we should zero out own own
+	// (3) After config entry replication catches up we should zero out own
 	// legacy intentions memdb table.
 
 	loopCtx, loopCancel := context.WithCancel(ctx)

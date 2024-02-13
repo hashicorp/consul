@@ -12,6 +12,7 @@ import (
 )
 
 func migrateIntentionsToConfigEntries(ixns structs.Intentions) []*structs.ServiceIntentionsConfigEntry {
+	//nolint:dupword
 	// Remove any intention in CE that happened to have used a non-default
 	// namespace.
 	//

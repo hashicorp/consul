@@ -2066,6 +2066,7 @@ type CheckServiceNode struct {
 }
 
 func (csn *CheckServiceNode) BestAddress(wan bool) (uint64, string, int) {
+	//nolint:dupword
 	// TODO (mesh-gateway) needs a test
 	// best address
 	// wan

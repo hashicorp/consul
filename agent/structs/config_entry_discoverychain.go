@@ -1157,7 +1157,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			}
 
 			if subset != "*" && !isSubset(subset) {
-				return fmt.Errorf(errorPrefix + "not a valid subset subset")
+				return fmt.Errorf(errorPrefix + "not a valid subset")
 			}
 
 			if f.isEmpty() {

@@ -629,7 +629,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 					ResponseNonce: "2",
 					Error: &pbstatus.Status{
 						Code:    int32(code.Code_UNAVAILABLE),
-						Message: "bad bad not good",
+						Message: "bad not good",
 					},
 				},
 			},
@@ -639,7 +639,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 		err := client.Send(nack)
 		require.NoError(t, err)
 
-		lastNackMsg = "client peer was unable to apply resource: bad bad not good"
+		lastNackMsg = "client peer was unable to apply resource: bad not good"
 
 		expect := Status{
 			Connected:        true,

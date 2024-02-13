@@ -266,7 +266,7 @@ func vetIfDeleteRelated(input, existing *pbresource.Resource, tenancyMarkedForDe
 		}
 	}
 
-	// Block no-op writes writes to resource that already has a deletion timestamp. The
+	// Block no-op writes to resource that already has a deletion timestamp. The
 	// only valid writes should be removal of finalizers.
 	if inputMarked && existingMarked {
 		deleteRelated = deleteRelated || true

@@ -371,7 +371,7 @@ func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {
 
 func mustGetEndOfSnapshot(t *testing.T, ch <-chan resourceOrError) {
 	event := mustGetResource(t, ch)
-	require.NotNil(t, event.GetEndOfSnapshot(), "expected EndOfSnapshot but got got event %T", event.GetEvent())
+	require.NotNil(t, event.GetEndOfSnapshot(), "expected EndOfSnapshot but got event %T", event.GetEvent())
 }
 
 func mustGetResource(t *testing.T, ch <-chan resourceOrError) *pbresource.WatchEvent {

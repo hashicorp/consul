@@ -633,7 +633,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	// validate the first node. Note that this test relies on stable
 	// iteration through the memdb index and the fact that node2 has
 	// a name of "baz" so it should be indexed before node1 with a
-	// name of "foo". If memdb our our indexing changes this is likely
+	// name of "foo". If memdb our indexing changes this is likely
 	// to break.
 	require.Equal(t, node2.ID, nodes[0].ID)
 	require.Equal(t, "baz", nodes[0].Node)

@@ -547,7 +547,7 @@ func (suite *getWorkloadHealthTestSuite) addHealthStatuses(workload *pbresource.
 	// In order to exercise the behavior to ensure that the ordering a health status is
 	// seen doesn't matter this is strategically naming health status so that they will be
 	// returned in an order with the most precedent status being in the middle of the list.
-	// This will ensure that statuses seen later can override a previous status that that
+	// This will ensure that statuses seen later can override a previous status that
 	// status seen later do not override if they would lower the overall status such as
 	// going from critical -> warning.
 	healthStatuses := []pbcatalog.Health{

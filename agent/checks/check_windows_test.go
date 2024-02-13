@@ -91,7 +91,7 @@ func TestCheck_OSService(t *testing.T) {
 			returnsSCMgrDisconnectError: nil,
 			returnsServiceState:         svc.Running,
 		}, api.HealthWarning},
-		{"should be in warning state for for any state that's not Running, Paused or Stopped when there's an error closing the service handle", args{
+		{"should be in warning state for any state that's not Running, Paused or Stopped when there's an error closing the service handle", args{
 			returnsOpenSCManagerError:   nil,
 			returnsOpenServiceError:     nil,
 			returnsServiceQueryError:    nil,
@@ -99,7 +99,7 @@ func TestCheck_OSService(t *testing.T) {
 			returnsSCMgrDisconnectError: nil,
 			returnsServiceState:         svc.StartPending,
 		}, api.HealthWarning},
-		{"should be in warning state for for any state that's not Running, Paused or Stopped when there's an error disconnecting from SCManager", args{
+		{"should be in warning state for any state that's not Running, Paused or Stopped when there's an error disconnecting from SCManager", args{
 			returnsOpenSCManagerError:   nil,
 			returnsOpenServiceError:     nil,
 			returnsServiceQueryError:    nil,

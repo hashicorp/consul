@@ -62,7 +62,7 @@ func defaultTLSConfig() *tls.Config {
 		MinVersion: tls.VersionTLS12,
 		ClientAuth: tls.RequireAndVerifyClientCert,
 		// We don't have access to go internals that decide if AES hardware
-		// acceleration is available in order to prefer CHA CHA if not. So let's
+		// acceleration is available in order to prefer CHA if not. So let's
 		// just always prefer AES for now. We can look into doing something uglier
 		// later like using an external lib for AES checking if it seems important.
 		// https://github.com/golang/go/blob/df91b8044dbe790c69c16058330f545be069cc1f/src/crypto/tls/common.go#L919:14

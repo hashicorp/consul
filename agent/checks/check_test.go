@@ -1018,7 +1018,7 @@ func TestStatusHandlerWarningAndCriticalThresholdsTheSameSetsCritical(t *testing
 	// Set the initial status to passing after a single success
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
-	// Status should remain passing after FAIL FAIL sequence
+	// Status should remain passing after FAIL sequence
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 
@@ -1035,6 +1035,7 @@ func TestStatusHandlerWarningAndCriticalThresholdsTheSameSetsCritical(t *testing
 		require.Equal(r, api.HealthCritical, notif.State(cid))
 	})
 
+	//nolint:dupword
 	// Passing after consecutive PASS PASS sequence
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
@@ -1055,6 +1056,7 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 	// Set the initial status to passing after a single success.
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
+	//nolint:dupword
 	// Status should remain passing after a FAIL FAIL sequence.
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
@@ -1071,7 +1073,7 @@ func TestStatusHandlerMaintainWarningStatusWhenCheckIsFlapping(t *testing.T) {
 		require.Equal(r, 2, notif.Updates(cid))
 		require.Equal(r, api.HealthWarning, notif.State(cid))
 	})
-
+	//nolint:dupword
 	// Status should remain passing after PASS FAIL FAIL FAIL PASS FAIL FAIL FAIL PASS sequence.
 	// Although we have 6 FAILS, they are not consecutive.
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")

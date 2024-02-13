@@ -1986,7 +1986,7 @@ node_name = "` + a.Config.NodeName + `"
 		sleepDur := time.Duration(idx+1) * 500 * time.Millisecond
 		time.Sleep(sleepDur)
 		logf(a2, "re-registering checks and services after a delay of %v", sleepDur)
-		for i := 0; i < 20; i++ { // RACE RACE RACE!
+		for i := 0; i < 20; i++ { // RACE!
 			registerServicesAndChecks(t, a2)
 			time.Sleep(50 * time.Millisecond)
 		}

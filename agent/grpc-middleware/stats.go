@@ -128,7 +128,7 @@ func NewActiveStreamCounter(m *metrics.Metrics, labels []metrics.Label) *activeS
 }
 
 // GRPCCountingStreamInterceptor is a grpc.ServerStreamInterceptor that emits a
-// a metric of the count of open streams.
+// metric of the count of open streams.
 func (i *activeStreamCounter) Intercept(
 	srv interface{},
 	ss grpc.ServerStream,
