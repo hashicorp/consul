@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/auth/internal/controllers/trafficpermissions/expander"
 	"github.com/hashicorp/consul/internal/auth/internal/mappers/trafficpermissionsmapper"
 	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/controllertest"
 	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -52,13 +52,16 @@ func (suite *controllerSuite) SetupTest() {
 	suite.isEnterprise = versiontest.IsEnterprise()
 	suite.tenancies = resourcetest.TestTenancies()
 	suite.ctx = testutil.TestContext(suite.T())
-	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, multicluster.RegisterTypes).
-		WithTenancies(append(suite.tenancies, suite.bazTenancy)...).
-		Run(suite.T())
+
 	// TODO: a lot of the fields below should be consolidated to controller only
 	suite.mapper = trafficpermissionsmapper.New()
 	suite.sgExpander = expander.GetSamenessGroupExpander()
+	client := controllertest.NewControllerTestBuilder().
+		WithResourceRegisterFns(types.Register, multicluster.RegisterTypes).
+		WithTenancies(append(suite.tenancies, suite.bazTenancy)...).
+		WithControllerRegisterFns(func(mgr *controller.Manager) {
+			mgr.Register(Controller(suite.mapper, suite.sgExpander))
+		}).Run(suite.T())
 	suite.ctl = controller.NewTestController(
 		Controller(suite.mapper, suite.sgExpander),
 		client,
@@ -708,6 +711,91 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		require.NoError(suite.T(), err)
 		require.Empty(suite.T(), rsp.Resources)
 	})
+}
+
+// 1. Create ALLOW traffic permission granting foo -> bar
+// 2. Observe reconciler write CTP for bar listing source foo
+// 3. User updates TP from step 1 to instead grant foo -> baz
+// 4. Observe reconciler update CTP for bar to list source baz
+// 5. (must) Observe reconciler update CTP for bar to default (no permissions)
+func TestController_OrphanedTrafficPermissions(t *testing.T) {
+	client := rtest.NewClient(
+		controllertest.NewControllerTestBuilder().
+			WithTenancies(resourcetest.TestTenancies()...).
+			WithResourceRegisterFns(types.Register, multicluster.RegisterTypes).
+			WithControllerRegisterFns(func(mgr *controller.Manager) {
+				mgr.Register(Controller(trafficpermissionsmapper.New(), expander.GetSamenessGroupExpander()))
+			}).
+			Run(t),
+	)
+
+	for _, tenancy := range resourcetest.TestTenancies() {
+		t.Run(fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition), func(t *testing.T) {
+			// Create the workload identities
+			foo := rtest.Resource(pbauth.WorkloadIdentityType, "foo").WithTenancy(tenancy).Write(t, client)
+			bar := rtest.Resource(pbauth.WorkloadIdentityType, "bar").WithTenancy(tenancy).Write(t, client)
+			baz := rtest.Resource(pbauth.WorkloadIdentityType, "baz").WithTenancy(tenancy).Write(t, client)
+
+			// Make the CTP IDs for reference
+			fooCTPID := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, foo.Id)
+			barCTPID := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, bar.Id)
+			bazCTPID := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, baz.Id)
+
+			// Create foo -> bar traffic permissions
+			fooToBarData := &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "bar",
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								IdentityName: "foo",
+								Namespace:    tenancy.Namespace,
+								Partition:    tenancy.Partition,
+							},
+						},
+					},
+				},
+			}
+			_ = rtest.Resource(pbauth.TrafficPermissionsType, "tp").
+				WithTenancy(tenancy).
+				WithData(t, fooToBarData).
+				Write(t, client)
+
+			// Check that CTP for foo exists
+			_ = client.WaitForResourceExists(t, fooCTPID)
+
+			// CTP for bar should list source foo and therefore is not default
+			barCTP := client.WaitForResourceExists(t, barCTPID)
+			decodedBarCTP := resourcetest.MustDecode[*pbauth.ComputedTrafficPermissions](t, barCTP)
+			require.False(t, decodedBarCTP.Data.IsDefault)
+
+			// CTP for baz should be default
+			bazCTP := client.WaitForResourceExists(t, bazCTPID)
+			decodedBazCTP := resourcetest.MustDecode[*pbauth.ComputedTrafficPermissions](t, bazCTP)
+			require.True(t, decodedBazCTP.Data.IsDefault)
+
+			// Mutate fooToBar to change destination from bar to baz.
+			// The CTP for bar no longer has references and should be reset on reconcile.
+			fooToBarData.Destination.IdentityName = "baz"
+			_ = rtest.Resource(pbauth.TrafficPermissionsType, "tp").
+				WithTenancy(tenancy).
+				WithData(t, fooToBarData).
+				Write(t, client)
+
+			// Ensure that the CTP for bar is reverted to default
+			barCTP = client.WaitForNewVersion(t, barCTPID, barCTP.Version)
+			decodedBarCTP = resourcetest.MustDecode[*pbauth.ComputedTrafficPermissions](t, barCTP)
+			require.True(t, decodedBarCTP.Data.IsDefault)
+
+			// Ensure that the CTP for baz is no longer default
+			bazCTP = client.WaitForNewVersion(t, bazCTPID, bazCTP.Version)
+			decodedBazCTP = resourcetest.MustDecode[*pbauth.ComputedTrafficPermissions](t, bazCTP)
+			require.False(t, decodedBazCTP.Data.IsDefault)
+		})
+	}
 }
 
 func (suite *controllerSuite) TestControllerBasic() {
