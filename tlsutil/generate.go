@@ -200,6 +200,65 @@ func GenerateCert(opts CertOpts) (string, string, error) {
 	return buf.String(), pk, nil
 }
 
+// RenewCert generates a new certificate for agent TLS (not to be confused with Connect TLS)
+// By Reading the certificate details and private key from input files
+func RenewCert(opts CertOpts) (string, string, error) {
+	parent, err := parseCert(opts.CA)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse CA: %w", err)
+	}
+
+	signee, pk, err := GeneratePrivateKey()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate private key: %w", err)
+	}
+
+	id, err := keyID(signee.Public())
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get keyID from public key: %w", err)
+	}
+
+	sn := opts.Serial
+	if sn == nil {
+		var err error
+		sn, err = GenerateSerialNumber()
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	template := x509.Certificate{
+		SerialNumber:          sn,
+		Subject:               pkix.Name{CommonName: opts.Name},
+		BasicConstraintsValid: true,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           opts.ExtKeyUsage,
+		IsCA:                  false,
+		NotAfter:              time.Now().AddDate(0, 0, opts.Days),
+		NotBefore:             time.Now(),
+		SubjectKeyId:          id,
+		DNSNames:              opts.DNSNames,
+		IPAddresses:           opts.IPAddresses,
+	}
+	if opts.IsCA {
+		template.IsCA = true
+		template.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature
+	}
+
+	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, signee.Public(), opts.Signer)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create certificate: %w", err)
+	}
+
+	var buf bytes.Buffer
+	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
+	if err != nil {
+		return "", "", fmt.Errorf("error encoding private key: %s", err)
+	}
+
+	return buf.String(), pk, nil
+}
+
 // KeyId returns a x509 KeyId from the given signing key.
 func keyID(raw interface{}) ([]byte, error) {
 	switch raw.(type) {
