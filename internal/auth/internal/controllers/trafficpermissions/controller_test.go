@@ -149,12 +149,9 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 	suite.Run("trafperms and namespace trafperms exist", func() {
 		suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 			t := suite.T()
-			// Workload identity ID == CTP ID
-			wi1ID := &pbresource.ID{
-				Name:    "wi1",
-				Type:    pbauth.ComputedTrafficPermissionsType,
-				Tenancy: tenancy,
-			}
+			// Create the workload identity to be referenced
+			wi := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").WithTenancy(tenancy).Write(t, suite.client)
+			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
 			perm1 := &pbauth.Permission{
 				Sources: []*pbauth.Source{
 					{
@@ -174,7 +171,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			suite.requireTrafficPermissionsTracking(tp1, wi1ID)
+			suite.requireTrafficPermissionsTracking(tp1, id)
 			nsPerm1 := &pbauth.Permission{
 				Sources: []*pbauth.Source{
 					{
@@ -192,10 +189,6 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			// create the workload identity to reference
-			wi := rtest.ResourceID(wi1ID).Write(t, suite.client)
-			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi1ID)
-
 			err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 			require.NoError(t, err)
 
@@ -208,6 +201,10 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 	suite.Run("only namespace trafperms exist", func() {
 		suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 			t := suite.T()
+
+			// create the workload identity to reference
+			wi := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").WithTenancy(tenancy).Write(t, suite.client)
+			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
 			// Write allow namespace trafperms
 			nsPerm1 := &pbauth.Permission{
 				Sources: []*pbauth.Source{
@@ -226,10 +223,6 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			// create the workload identity to reference
-			wi := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").WithTenancy(tenancy).Write(t, suite.client)
-			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
-
 			require.NoError(t, suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id}))
 
 			// Ensure that the CTP was created
@@ -241,6 +234,10 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 	suite.Run("only partition trafperms exist", func() {
 		suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 			t := suite.T()
+			// create the workload identity to reference
+			wi := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").WithTenancy(tenancy).Write(t, suite.client)
+			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
+
 			// Write allow partition trafperms
 			ptPerm1 := &pbauth.Permission{
 				Sources: []*pbauth.Source{
@@ -259,10 +256,6 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 				WithTenancy(&pbresource.Tenancy{Partition: tenancy.GetPartition()}).
 				Write(t, suite.client)
 
-			// create the workload identity to reference
-			wi := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").WithTenancy(tenancy).Write(t, suite.client)
-			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
-
 			require.NoError(t, suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id}))
 
 			// Ensure that the CTP was created
@@ -274,12 +267,11 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 	suite.Run("trafperms and partition trafperms exist", func() {
 		suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 			t := suite.T()
-			// Workload identity ID == CTP ID
-			wi1ID := &pbresource.ID{
-				Name:    "wi1",
-				Type:    pbauth.ComputedTrafficPermissionsType,
-				Tenancy: tenancy,
-			}
+
+			// create the workload identity to reference
+			wi := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").WithTenancy(tenancy).Write(t, suite.client)
+			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
+
 			perm1 := &pbauth.Permission{
 				Sources: []*pbauth.Source{
 					{
@@ -299,7 +291,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			suite.requireTrafficPermissionsTracking(tp1, wi1ID)
+			suite.requireTrafficPermissionsTracking(tp1, id)
 			ptPerm1 := &pbauth.Permission{
 				Sources: []*pbauth.Source{
 					{
@@ -317,10 +309,6 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 				WithTenancy(&pbresource.Tenancy{Partition: tenancy.GetPartition()}).
 				Write(t, suite.client)
 
-			// create the workload identity that they reference
-			wi := rtest.ResourceID(wi1ID).Write(t, suite.client)
-			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi1ID)
-
 			err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 			require.NoError(t, err)
 
@@ -333,12 +321,11 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 	suite.Run("trafperms, partition and namespace trafperms exist", func() {
 		suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 			t := suite.T()
-			// Workload identity ID == CTP ID
-			wi1ID := &pbresource.ID{
-				Name:    "wi1",
-				Type:    pbauth.ComputedTrafficPermissionsType,
-				Tenancy: tenancy,
-			}
+
+			// create the workload identity to reference
+			wi := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").WithTenancy(tenancy).Write(t, suite.client)
+			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
+
 			perm1 := &pbauth.Permission{
 				Sources: []*pbauth.Source{
 					{
@@ -358,7 +345,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 				WithTenancy(tenancy).
 				Write(t, suite.client)
 
-			suite.requireTrafficPermissionsTracking(tp1, wi1ID)
+			suite.requireTrafficPermissionsTracking(tp1, id)
 			nsPerm1 := &pbauth.Permission{
 				Sources: []*pbauth.Source{
 					{
@@ -392,10 +379,6 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 				}).
 				WithTenancy(&pbresource.Tenancy{Partition: tenancy.GetPartition()}).
 				Write(t, suite.client)
-
-			// create the workload identity that they reference
-			wi := rtest.ResourceID(wi1ID).Write(t, suite.client)
-			id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi1ID)
 
 			err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 			require.NoError(t, err)

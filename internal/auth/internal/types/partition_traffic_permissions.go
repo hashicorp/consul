@@ -24,7 +24,7 @@ func RegisterPartitionTrafficPermissions(r resource.Registry) {
 		},
 		Validate: ValidatePartitionTrafficPermissions,
 		Mutate:   MutatePartitionTrafficPermissions,
-		Scope:    resource.ScopeCluster,
+		Scope:    resource.ScopePartition,
 	})
 }
 

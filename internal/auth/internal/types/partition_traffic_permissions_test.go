@@ -36,7 +36,7 @@ func TestValidatePartitionTrafficPermissions_Permissions(t *testing.T) {
 			}
 
 			res := resourcetest.Resource(pbauth.PartitionTrafficPermissionsType, "ptp").
-				WithTenancy(resource.DefaultClusteredTenancy()).
+				WithTenancy(resource.DefaultPartitionedTenancy()).
 				WithData(t, tp).
 				Build()
 
@@ -57,7 +57,7 @@ func TestMutatePartitionTrafficPermissions(t *testing.T) {
 	run := func(t *testing.T, tc mutationTestCase) {
 		tenancy := tc.tenancy
 		if tenancy == nil {
-			tenancy = resource.DefaultClusteredTenancy()
+			tenancy = resource.DefaultPartitionedTenancy()
 		}
 		res := resourcetest.Resource(pbauth.NamespaceTrafficPermissionsType, "ntp").
 			WithTenancy(tenancy).
