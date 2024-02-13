@@ -2134,7 +2134,8 @@ specially crafted certificate signed by the CA can be used to gain full access t
       will not make use of TLS for outgoing connections. This applies to clients
       and servers as both will make outgoing connections. This setting does not
       apply to the gRPC interface as Consul makes no outgoing connections on this
-      interface.
+      interface. If set to true for the HTTPS interface, this will apply to [watches](/consul/docs/dynamic-app-config/watches)
+      because internally watches are implemented by making HTTPS requests to the local agent.
 
   - `grpc` ((#tls_grpc)) Provides settings for the gRPC/xDS interface. To enable
     the gRPC interface you must define a port via [`ports.grpc_tls`](#grpc_tls_port).
