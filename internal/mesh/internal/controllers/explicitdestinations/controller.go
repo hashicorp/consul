@@ -133,7 +133,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// Now get any mapper that we have in the cache that have selectors matching the name
 	// of this CD (name-aligned with workload).
-	decodedDestinations, err := r.fetchDestinations(ctx, rt, workload)
+	decodedDestinations, err := r.fetchDestinations(rt, workload)
 	if err != nil {
 		rt.Logger.Error("error fetching mapper", "error", err)
 		return err
@@ -156,7 +156,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			rt.Logger.Trace("skipping this Destinations resource because it has conflicts with others", "id", dst.GetResource().GetId())
 			updatedStatus.Conditions = append(updatedStatus.Conditions, ConditionConflictFound(workload.GetResource().GetId()))
 		} else {
-			valid, cond := validate(ctx, rt, dst)
+			valid, cond := validate(rt, dst)
 
 			// Only add it to computed mapper if its mapper are valid.
 			if valid {
@@ -234,11 +234,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	return nil
 }
 
-func validate(
-	ctx context.Context,
-	rt controller.Runtime,
-	destinations *types.DecodedDestinations,
-) (bool, *pbresource.Condition) {
+func validate(rt controller.Runtime, destinations *types.DecodedDestinations) (bool, *pbresource.Condition) {
 	for _, dest := range destinations.GetData().GetDestinations() {
 		serviceRef := resource.ReferenceToString(dest.DestinationRef)
 
@@ -278,11 +274,7 @@ func validate(
 	return true, ConditionDestinationsAccepted()
 }
 
-func (r *reconciler) fetchDestinations(
-	ctx context.Context,
-	rt controller.Runtime,
-	workload *types.DecodedWorkload,
-) ([]*types.DecodedDestinations, error) {
+func (r *reconciler) fetchDestinations(rt controller.Runtime, workload *types.DecodedWorkload) ([]*types.DecodedDestinations, error) {
 	dests, err := cache.ParentsDecoded[*pbmesh.Destinations](
 		rt.Cache,
 		pbmesh.DestinationsType,
