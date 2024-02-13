@@ -6,11 +6,12 @@ package dns
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/internal/dnsutil"
 	"net"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/internal/dnsutil"
 
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/mock"
@@ -2743,7 +2744,15 @@ func runHandleTestCases(t *testing.T, tc HandleTestCase) {
 	if ctx == nil {
 		ctx = &Context{}
 	}
-	actual := router.HandleRequest(tc.request, *ctx, tc.remoteAddress)
+
+	var remoteAddress net.Addr
+	if tc.remoteAddress != nil {
+		remoteAddress = tc.remoteAddress
+	} else {
+		remoteAddress = &net.UDPAddr{}
+	}
+
+	actual := router.HandleRequest(tc.request, *ctx, remoteAddress)
 	require.Equal(t, tc.response, actual)
 }
 
