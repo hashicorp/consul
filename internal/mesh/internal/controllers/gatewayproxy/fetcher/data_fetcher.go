@@ -40,6 +40,46 @@ func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*typ
 	return dec, nil
 }
 
+// FetchAPIGateway fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a APIGateway type.
+func (f *Fetcher) FetchAPIGateway(ctx context.Context, id *pbresource.ID) (*types.DecodedAPIGateway, error) {
+	assertResourceType(pbmesh.APIGatewayType, id.Type)
+
+	dec, err := resource.GetDecodedResource[*pbmesh.APIGateway](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return dec, nil
+}
+
+// FetchAllTCPRoutes fetches all the tcp routes.
+// TODO: in the future this will not be necessary as we'll use the computed gateway routes.
+func (f *Fetcher) FetchAllTCPRoutes(ctx context.Context, tenancy *pbresource.Tenancy) ([]*types.DecodedTCPRoute, error) {
+	dec, err := resource.ListDecodedResource[*pbmesh.TCPRoute](ctx, f.client, &pbresource.ListRequest{
+		Type:    pbmesh.TCPRouteType,
+		Tenancy: tenancy,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return dec, nil
+}
+
+// FetchTCPRoute fetches all the tcp routes.
+// TODO: in the future this will not be necessary as we'll use the computed gateway routes.
+func (f *Fetcher) FetchTCPRoute(ctx context.Context, id *pbresource.ID) (*types.DecodedTCPRoute, error) {
+	assertResourceType(pbmesh.TCPRouteType, id.Type)
+
+	dec, err := resource.GetDecodedResource[*pbmesh.TCPRoute](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return dec, nil
+}
+
 // FetchMeshGateways fetches all MeshGateway resources known to the local server.
 func (f *Fetcher) FetchMeshGateways(ctx context.Context, tenancy *pbresource.Tenancy) ([]*types.DecodedMeshGateway, error) {
 	dec, err := resource.ListDecodedResource[*pbmesh.MeshGateway](ctx, f.client, &pbresource.ListRequest{

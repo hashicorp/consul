@@ -1,4 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
+//
 // SPDX-License-Identifier: BUSL-1.1
 
 package gatewayproxy
@@ -40,6 +41,7 @@ func Controller(trustDomainFetcher sidecarproxy.TrustDomainFetcher, dc string, d
 		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmulticluster.ComputedExportedServicesType, mapper.AllMeshGatewayWorkloadsInPartition).
+		WithWatch(pbmesh.TCPRouteType, mapper.APIGatewaysInParentRefs).
 		WithReconciler(&reconciler{
 			dc:             dc,
 			defaultAllow:   defaultAllow,
@@ -85,12 +87,120 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return r.reconcileMeshGatewayProxyState(ctx, dataFetcher, workload, rt, req)
 	case apigateways.GatewayKind:
 		rt.Logger.Trace("workload is a api-gateway; reconciling", "workload", workloadID, "workloadData", workload.Data)
-		// TODO: NET-735 -- implement api-gateway reconciliation
-		return nil
+		return r.reconcileAPIGatewayProxyState(ctx, dataFetcher, workload, rt, req)
 	default:
 		rt.Logger.Trace("workload is not a gateway; skipping reconciliation", "workload", workloadID)
 		return nil
 	}
+}
+
+func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetcher *fetcher.Fetcher, workload *resource.DecodedResource[*pbcatalog.Workload], rt controller.Runtime, req controller.Request) error {
+	proxyStateTemplate, err := dataFetcher.FetchProxyStateTemplate(ctx, req.ID)
+	if err != nil {
+		rt.Logger.Error("error reading proxy state template", "error", err)
+		return nil
+	}
+
+	if proxyStateTemplate == nil {
+		req.ID.Uid = ""
+		rt.Logger.Trace("proxy state template for this gateway doesn't yet exist; generating a new one")
+	}
+
+	gwID := &pbresource.ID{
+		Name:    workload.Data.Identity,
+		Type:    pbmesh.APIGatewayType,
+		Tenancy: workload.Id.Tenancy,
+	}
+
+	apiGateway, err := dataFetcher.FetchAPIGateway(ctx, gwID)
+	if err != nil {
+		rt.Logger.Error("error reading the associated api gateway", "error", err)
+		return err
+	}
+
+	if apiGateway == nil {
+		rt.Logger.Trace("api gateway doesn't exist; skipping reconciliation", "apiGatewayID", gwID)
+		return nil
+	}
+
+	allTCPRoutes, err := dataFetcher.FetchAllTCPRoutes(ctx, req.ID.Tenancy)
+	if err != nil {
+		rt.Logger.Error("error reading the associated tcp routes", "error", err)
+		return err
+	}
+
+	if len(allTCPRoutes) == 0 {
+		rt.Logger.Trace("no tcp routes found for this gateway; skipping reconciliation", "apiGatewayID", gwID)
+		return nil
+	}
+
+	services := make([]*pbcatalog.Service, 0)
+
+	referencedTCPRoutes := make([]*pbmesh.TCPRoute, 0)
+	for _, tcpRoute := range allTCPRoutes {
+		for _, parentRef := range tcpRoute.Data.ParentRefs {
+			if parentRef.Ref.Name == apiGateway.Id.Name {
+				referencedTCPRoutes = append(referencedTCPRoutes, tcpRoute.Data)
+				for _, rule := range tcpRoute.Data.Rules {
+					for _, backendRef := range rule.BackendRefs {
+						service, err := dataFetcher.FetchService(ctx, resource.IDFromReference(backendRef.BackendRef.Ref))
+						if err != nil {
+							rt.Logger.Error("error reading the associated service", "error", err)
+							return err
+						}
+
+						if service == nil {
+							rt.Logger.Error("service was nil", "serviceID", resource.IDFromReference(backendRef.BackendRef.Ref))
+							return nil
+						}
+						services = append(services, service.Data)
+					}
+				}
+			}
+		}
+	}
+
+	trustDomain, err := r.getTrustDomain()
+	if err != nil {
+		rt.Logger.Error("error fetching trust domain to compute proxy state template", "error", err)
+		return err
+	}
+
+	gw := apiGateway.Data
+
+	newPST := builder.NewAPIGWProxyStateTemplateBuilder(workload, services, referencedTCPRoutes, gw, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
+
+	proxyTemplateData, err := anypb.New(newPST)
+	if err != nil {
+		rt.Logger.Error("error creating proxy state template data", "error", err)
+		return err
+	}
+	rt.Logger.Trace("updating proxy state template")
+
+	// If we're not creating a new PST and the generated one matches the existing one, nothing to do
+	if proxyStateTemplate != nil && proto.Equal(proxyStateTemplate.Data, newPST) {
+		rt.Logger.Trace("no changes to existing proxy state template")
+		return nil
+	}
+
+	// Write the created/updated ProxyStateTemplate with MeshGateway owner
+	_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
+		Resource: &pbresource.Resource{
+			Id:       req.ID,
+			Metadata: map[string]string{"gateway-kind": workload.Metadata["gateway-kind"]},
+			Owner:    workload.Resource.Id,
+			Data:     proxyTemplateData,
+		},
+	})
+
+	if err != nil {
+		rt.Logger.Error("error writing proxy state template", "error", err)
+		return err
+	}
+
+	return nil
+
+	return nil
 }
 
 func (r *reconciler) reconcileMeshGatewayProxyState(ctx context.Context, dataFetcher *fetcher.Fetcher, workload *resource.DecodedResource[*pbcatalog.Workload], rt controller.Runtime, req controller.Request) error {
@@ -146,7 +256,7 @@ func (r *reconciler) reconcileMeshGatewayProxyState(ctx context.Context, dataFet
 		return err
 	}
 
-	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain, remoteGatewayIDs).Build()
+	newPST := builder.NewMeshGWProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain, remoteGatewayIDs).Build()
 
 	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {

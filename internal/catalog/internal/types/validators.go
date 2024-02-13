@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -355,7 +356,7 @@ func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(er
 		return wrapErr(resource.ErrMissing)
 	}
 
-	if !resource.EqualType(ref.Type, pbcatalog.ServiceType) {
+	if !resource.EqualType(ref.Type, pbcatalog.ServiceType) && !resource.EqualType(ref.Type, pbmesh.APIGatewayType) {
 		return wrapErr(resource.ErrInvalidField{
 			Name: "type",
 			Wrapped: resource.ErrInvalidReferenceType{
