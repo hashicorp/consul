@@ -47,6 +47,7 @@ func (r *testReconciler) setResponse(err error) {
 func (r *testReconciler) step() {
 	r.stepChan <- struct{}{}
 }
+
 func (r *testReconciler) stepFor(duration time.Duration) {
 	select {
 	case r.stepChan <- struct{}{}:

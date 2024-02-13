@@ -11,8 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -380,7 +381,7 @@ func (c *controller) reconcileHandler(ctx context.Context, req Request) {
 		var requeueAfter RequeueAfterError
 		if errors.As(err, &requeueAfter) {
 			c.work.Forget(req)
-			c.work.AddAfter(req, time.Duration(requeueAfter))
+			c.work.AddAfter(req, time.Duration(requeueAfter), false)
 			return
 		}
 
