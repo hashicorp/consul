@@ -477,6 +477,54 @@ func (barInitializer) Initialize(ctx context.Context, rt controller.Runtime) err
 }
 ```
 
+### Finalizer
+
+A finalizer allows a controller to execute teardown logic before a
+resource is deleted. This can be useful to perform cleanup or block
+deletion until certain conditions are met.
+
+Finalizers are encoded as keys within a resource's metadata map. It
+is the responsibility of each controller that adds a finalizer to a
+resource to remove the finalizer when it is marked for deletion.
+Once a resource has no finalizers present, it is deleted by the
+resource service.
+
+When the `Delete` endpoint is called on a resource with one or more
+finalizers, the resource is marked for deletion by adding an immutable
+`deletionTimestamp` key to the resource's metadata map. The resource is
+now effectively frozen and will only accept subsequent `Write`s
+that remove finalizers. `WriteStatus` is still allowed.
+
+The `resource` package API can be used to manage finalizers and
+check whether a resource has been marked for deletion. You would
+typically use this API within the logic of your controller's
+`Reconcile` method to either put a finalizer in place or perform
+cleanup and then remove a finalizer. Don't forget to `Write` your
+changes once you add or remove finalizers.
+
+```Go
+package resource
+
+// IsMarkedForDeletion returns true if a resource has been marked for deletion,
+// false otherwise.
+func IsMarkedForDeletion(res *pbresource.Resource) bool { ... }
+
+// HasFinalizers returns true if a resource has one or more finalizers, false otherwise.
+func HasFinalizers(res *pbresource.Resource) bool { ... }
+
+// HasFinalizer returns true if a resource has a given finalizer, false otherwise.
+func HasFinalizer(res *pbresource.Resource, finalizer string) bool { ... }
+
+// AddFinalizer adds a finalizer to the given resource.
+func AddFinalizer(res *pbresource.Resource, finalizer string) { ... }
+
+// RemoveFinalizer removes a finalizer from the given resource.
+func RemoveFinalizer(res *pbresource.Resource, finalizer string) { ... }
+
+// GetFinalizers returns the set of finalizers for the given resource.
+func GetFinalizers(res *pbresource.Resource) mapset.Set[string] { ... }
+```
+
 ## Ownership & Cascading Deletion
 
 The resource service implements a lightweight `1:N` ownership model where, on
