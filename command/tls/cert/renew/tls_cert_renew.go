@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package create
+package renew
 
 import (
 	"crypto/x509"
@@ -29,6 +29,9 @@ type cmd struct {
 	flags       *flag.FlagSet
 	ca          string
 	key         string
+	existingkey string //Path to existing ****key.pem file for which the cert has to be renewed
+	//Path to existing ****cert.pem file is not required, as CA cert file is being read and
+	//assuming existing cert file *****cert.pem file was created by same CA (self-signed).
 	server      bool
 	client      bool
 	cli         bool
@@ -46,6 +49,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.ca, "ca", "#DOMAIN#-agent-ca.pem", "Provide path to the ca. Defaults to #DOMAIN#-agent-ca.pem.")
 	c.flags.StringVar(&c.key, "key", "#DOMAIN#-agent-ca-key.pem", "Provide path to the key. Defaults to #DOMAIN#-agent-ca-key.pem.")
+	c.flags.StringVar(&c.existingkey, "key", "#DOMAIN#-agent-#-key.pem", "Provide path to the existing key. Defaults to #DOMAIN#-agent-#-key.pem.")
 	c.flags.BoolVar(&c.server, "server", false, "Generate server certificate.")
 	c.flags.BoolVar(&c.client, "client", false, "Generate client certificate.")
 	c.flags.StringVar(&c.node, "node", "", "When generating a server cert and this is set an additional dns name is included of the form <node>.server.<datacenter>.<domain>.")
@@ -74,6 +78,10 @@ func (c *cmd) Run(args []string) int {
 	}
 	if c.key == "" {
 		c.UI.Error("Please provide the key")
+		return 1
+	}
+	if c.existingkey == "" {
+		c.UI.Error("Please provide the existingkey")
 		return 1
 	}
 
@@ -135,14 +143,14 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var pkFileName, certFileName string
+	var certFileName string
 	max := 10000
 	for i := 0; i <= max; i++ {
 		tmpCert := fmt.Sprintf("%s-%d.pem", prefix, i)
 		tmpPk := fmt.Sprintf("%s-%d-key.pem", prefix, i)
 		if tls.FileDoesNotExist(tmpCert) && tls.FileDoesNotExist(tmpPk) {
 			certFileName = tmpCert
-			pkFileName = tmpPk
+			// pkFileName = tmpPk
 			break
 		}
 		if i == max {
@@ -163,6 +171,11 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error reading CA key: %s", err))
 		return 1
 	}
+	existingkey, err := os.ReadFile(c.existingkey)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error reading existing key: %s", err))
+		return 1
+	}
 
 	if c.server {
 		c.UI.Info(
@@ -179,10 +192,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	pub, priv, err := tlsutil.RenewCert(tlsutil.CertOpts{
+	pub, err := tlsutil.RenewCert(tlsutil.CertOpts{
 		Signer: signer, CA: string(cert), Name: name, Days: c.days,
 		DNSNames: DNSNames, IPAddresses: IPAddresses, ExtKeyUsage: extKeyUsage,
-	})
+	}, existingkey)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
@@ -199,11 +212,11 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.UI.Output("==> Saved " + certFileName)
 
-	if err := file.WriteAtomicWithPerms(pkFileName, []byte(priv), 0755, 0600); err != nil {
-		c.UI.Error(err.Error())
-		return 1
-	}
-	c.UI.Output("==> Saved " + pkFileName)
+	// if err := file.WriteAtomicWithPerms(pkFileName, []byte(priv), 0755, 0600); err != nil {
+	// 	c.UI.Error(err.Error())
+	// 	return 1
+	// }
+	// c.UI.Output("==> Saved " + pkFileName)
 
 	return 0
 }

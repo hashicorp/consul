@@ -202,20 +202,21 @@ func GenerateCert(opts CertOpts) (string, string, error) {
 
 // RenewCert generates a new certificate for agent TLS (not to be confused with Connect TLS)
 // By Reading the certificate details and private key from input files
-func RenewCert(opts CertOpts) (string, string, error) {
+func RenewCert(opts CertOpts, existingkey []byte) (string, error) {
 	parent, err := parseCert(opts.CA)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to parse CA: %w", err)
+		return "", fmt.Errorf("failed to parse CA: %w", err)
 	}
 
-	signee, pk, err := GeneratePrivateKey()
+	keyBlock, _ := pem.Decode(existingkey)
+	existingPrivateKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate private key: %w", err)
+		return "", fmt.Errorf("error parsing existing private key: %w", err)
 	}
 
-	id, err := keyID(signee.Public())
+	id, err := keyID(existingPrivateKey.Public())
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get keyID from public key: %w", err)
+		return "", fmt.Errorf("failed to get keyID from public key: %w", err)
 	}
 
 	sn := opts.Serial
@@ -223,7 +224,7 @@ func RenewCert(opts CertOpts) (string, string, error) {
 		var err error
 		sn, err = GenerateSerialNumber()
 		if err != nil {
-			return "", "", err
+			return "", err
 		}
 	}
 
@@ -245,18 +246,18 @@ func RenewCert(opts CertOpts) (string, string, error) {
 		template.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature
 	}
 
-	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, signee.Public(), opts.Signer)
+	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, existingPrivateKey.Public(), opts.Signer)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create certificate: %w", err)
+		return "", fmt.Errorf("failed to create certificate: %w", err)
 	}
 
 	var buf bytes.Buffer
 	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
 	if err != nil {
-		return "", "", fmt.Errorf("error encoding private key: %s", err)
+		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	return buf.String(), pk, nil
+	return buf.String(), nil
 }
 
 // KeyId returns a x509 KeyId from the given signing key.
