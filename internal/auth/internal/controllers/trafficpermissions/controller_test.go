@@ -722,7 +722,7 @@ func TestController_OrphanedTrafficPermissions(t *testing.T) {
 	client := rtest.NewClient(
 		controllertest.NewControllerTestBuilder().
 			WithTenancies(resourcetest.TestTenancies()...).
-			WithResourceRegisterFns(types.Register).
+			WithResourceRegisterFns(types.Register, multicluster.RegisterTypes).
 			WithControllerRegisterFns(func(mgr *controller.Manager) {
 				mgr.Register(Controller(trafficpermissionsmapper.New(), expander.GetSamenessGroupExpander()))
 			}).
