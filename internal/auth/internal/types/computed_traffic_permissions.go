@@ -67,6 +67,5 @@ func aclReadHookComputedTrafficPermissions(authorizer acl.Authorizer, authzConte
 }
 
 func aclWriteHookComputedTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-	// users should not be writing computed resources
-	return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
+	return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(res.Id.Name, authzContext)
 }
