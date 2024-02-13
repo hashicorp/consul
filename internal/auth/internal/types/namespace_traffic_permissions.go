@@ -24,7 +24,7 @@ func RegisterNamespaceTrafficPermissions(r resource.Registry) {
 		},
 		Validate: ValidateNamespaceTrafficPermissions,
 		Mutate:   MutateNamespaceTrafficPermissions,
-		Scope:    resource.ScopePartition,
+		Scope:    resource.ScopeNamespace,
 	})
 }
 
