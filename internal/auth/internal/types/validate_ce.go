@@ -12,18 +12,9 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 )
 
-var v validator = &actionValidator{}
-
-type actionValidator struct{}
-
-func (v *actionValidator) ValidateAction(data interface{ GetAction() pbauth.Action }) error {
-	// enumcover:pbauth.Action
+func validateAction(data interface{ GetAction() pbauth.Action }) error {
 	switch data.GetAction() {
 	case pbauth.Action_ACTION_ALLOW:
-	case pbauth.Action_ACTION_UNSPECIFIED:
-		fallthrough
-	case pbauth.Action_ACTION_DENY:
-		fallthrough
 	default:
 		return resource.ErrInvalidField{
 			Name:    "data.action",
@@ -32,5 +23,3 @@ func (v *actionValidator) ValidateAction(data interface{ GetAction() pbauth.Acti
 	}
 	return nil
 }
-
-var _ validator = (*actionValidator)(nil)
