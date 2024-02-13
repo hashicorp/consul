@@ -20,7 +20,6 @@ const (
 	DestinationsConfigurationKind    = "DestinationsConfiguration"
 	GRPCRouteKind                    = "GRPCRoute"
 	HTTPRouteKind                    = "HTTPRoute"
-	ImplicitDestinationKind          = "ImplicitDestination"
 	MeshConfigurationKind            = "MeshConfiguration"
 	MeshGatewayKind                  = "MeshGateway"
 	ProxyConfigurationKind           = "ProxyConfiguration"
@@ -87,12 +86,6 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         HTTPRouteKind,
-	}
-
-	ImplicitDestinationType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ImplicitDestinationKind,
 	}
 
 	MeshConfigurationType = &pbresource.Type{
