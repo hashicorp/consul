@@ -734,7 +734,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 
 // 1. Create ALLOW traffic permission granting foo -> bar
 // 2. Observe reconciler write CTP for bar listing source foo
-// 3. User updates TP from step 1 to instead grand foo -> baz
+// 3. User updates TP from step 1 to instead grant foo -> baz
 // 4. Observe reconciler update CTP for bar to list source baz
 // 5. (must) Observe reconciler update CTP for bar to default (no permissions)
 func TestController_OrphanedTrafficPermissions(t *testing.T) {
