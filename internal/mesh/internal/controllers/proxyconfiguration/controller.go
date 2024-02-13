@@ -102,7 +102,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 
-	proxyCfgs, brc, err := r.fetchProxyConfigs(ctx, rt, workload)
+	proxyCfgs, brc, err := r.fetchProxyConfigs(rt, workload)
 	if err != nil {
 		rt.Logger.Error("error fetching proxy configurations", "error", err)
 		return err
@@ -169,7 +169,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 }
 
 func (r *reconciler) fetchProxyConfigs(
-	ctx context.Context,
 	rt controller.Runtime,
 	workload *types.DecodedWorkload,
 ) ([]*types.DecodedProxyConfiguration, *resource.BoundReferenceCollector, error) {
