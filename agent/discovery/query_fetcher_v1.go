@@ -160,7 +160,7 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 
 // FetchEndpoints fetches records for A/AAAA/CNAME or SRV requests for services
 func (f *V1DataFetcher) FetchEndpoints(ctx Context, req *QueryPayload, lookupType LookupType) ([]*Result, error) {
-	f.logger.Debug(fmt.Sprintf("FetchEndpoints - req: %+v / lookupType: %+v", req, lookupType))
+	f.logger.Trace(fmt.Sprintf("FetchEndpoints - req: %+v / lookupType: %+v", req, lookupType))
 	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
 	return f.fetchService(ctx, req, cfg, lookupType)
 }
@@ -525,7 +525,7 @@ RPC:
 
 func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload,
 	cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
-	f.logger.Debug("fetchService", "req", req)
+	f.logger.Trace("fetchService", "req", req)
 	if req.Tenancy.SamenessGroup == "" {
 		return f.fetchServiceBasedOnTenancy(ctx, req, cfg, lookupType)
 	}
@@ -536,7 +536,7 @@ func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload,
 // fetchServiceBasedOnTenancy is used to look up a service in the Consul catalog based on its tenancy or default tenancy.
 func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayload,
 	cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
-	f.logger.Debug(fmt.Sprintf("fetchServiceBasedOnTenancy - req: %+v", req))
+	f.logger.Trace(fmt.Sprintf("fetchServiceBasedOnTenancy - req: %+v", req))
 	if req.Tenancy.SamenessGroup != "" {
 		return nil, errors.New("sameness groups are not allowed for service lookups based on tenancy")
 	}

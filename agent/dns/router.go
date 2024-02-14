@@ -167,7 +167,7 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.A
 				{Name: "type", Value: dns.Type(q.Qtype).String()},
 			})
 
-		r.logger.Debug("request served from client",
+		r.logger.Trace("request served from client",
 			"name", q.Name,
 			"type", dns.Type(q.Qtype).String(),
 			"class", dns.Class(q.Qclass).String(),
@@ -681,18 +681,18 @@ func (r *Router) defaultAgentDNSRequestContext() Context {
 func (r *Router) resolveCNAME(cfgContext *RouterDynamicConfig, name string, reqCtx Context,
 	remoteAddress net.Addr, maxRecursionLevel int) []dns.RR {
 	// If the CNAME record points to a Consul address, resolve it internally
-	// Convert query to lowercase because DNS is case-insensitive; d.domain and
-	// d.altDomain are already converted
+	// Convert query to lowercase because DNS is case-insensitive; r.domain and
+	// r.altDomain are already converted
 
 	if ln := strings.ToLower(name); strings.HasSuffix(ln, "."+r.domain) || strings.HasSuffix(ln, "."+r.altDomain) {
 		if maxRecursionLevel < 1 {
-			//d.logger.Error("Infinite recursion detected for name, won't perform any CNAME resolution.", "name", name)
+			r.logger.Error("Infinite recursion detected for name, won't perform any CNAME resolution.", "name", name)
 			return nil
 		}
 		req := &dns.Msg{}
 
 		req.SetQuestion(name, dns.TypeANY)
-		// TODO: handle error response
+		// TODO: handle error response (this is a comment from the V1 DNS Server)
 		resp := r.handleRequestRecursively(req, reqCtx, cfgContext, nil, maxRecursionLevel-1)
 
 		return resp.Answer
