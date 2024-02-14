@@ -2983,7 +2983,7 @@ func Test_HandleRequest(t *testing.T) {
 				},
 				Question: []dns.Question{
 					{
-						Name:   "foo.query.consul.",
+						Name:   "foo.query.dc1.cluster.consul.",
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
@@ -3024,6 +3024,7 @@ func Test_HandleRequest(t *testing.T) {
 					Run(func(args mock.Arguments) {
 						req := args.Get(1).(*discovery.QueryPayload)
 						require.Equal(t, "foo", req.Name)
+						require.Equal(t, "dc1", req.Tenancy.Datacenter)
 					})
 			},
 			validateAndNormalizeExpected: true,
@@ -3036,7 +3037,7 @@ func Test_HandleRequest(t *testing.T) {
 				Compress: true,
 				Question: []dns.Question{
 					{
-						Name:   "foo.query.consul.",
+						Name:   "foo.query.dc1.cluster.consul.",
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
@@ -3044,7 +3045,7 @@ func Test_HandleRequest(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "foo.query.consul.",
+							Name:   "foo.query.dc1.cluster.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    1,
