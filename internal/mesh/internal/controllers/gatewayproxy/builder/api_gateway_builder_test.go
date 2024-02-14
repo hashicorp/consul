@@ -50,6 +50,7 @@ type apiGatewayStateTemplateBuilderSuite struct {
 
 	workload              *types.DecodedWorkload
 	computedConfiguration *meshv2beta1.ComputedGatewayConfiguration
+	certificates          []*types.DecodedInlineCertificate
 
 	tenancies []*pbresource.Tenancy
 }
@@ -83,12 +84,32 @@ func (suite *apiGatewayStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbre
 					Port:     23,
 					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
 				},
+				"tcp-secure": {
+					Port:     423,
+					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+				},
 			},
 		},
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
 				Name:    "test",
 				Tenancy: tenancy,
+			},
+		},
+	}
+
+	suite.certificates = []*types.DecodedInlineCertificate{
+		{
+			Data: &pbmesh.InlineCertificate{
+				PublicKey:  "FAKE_PUBKEY",
+				PrivateKey: "FAKE_PRIKEY",
+			},
+			Resource: &pbresource.Resource{
+				Id: &pbresource.ID{
+					Type:    pbmesh.InlineCertificateType,
+					Tenancy: tenancy,
+					Name:    "certificate",
+				},
 			},
 		},
 	}
@@ -116,6 +137,7 @@ func (suite *apiGatewayStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbre
 									Tenancy: tenancy,
 									Name:    "test",
 								},
+								Port: "tcp",
 							},
 							Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
 							Targets: map[string]*pbmesh.BackendTargetDetails{
@@ -166,6 +188,69 @@ func (suite *apiGatewayStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbre
 					},
 				},
 			},
+			"tcp-secure": &pbmesh.ComputedGatewayListener{
+				Port: 423,
+				TlsParameters: &pbproxystate.TLSParameters{
+					MinVersion: pbproxystate.TLSVersion_TLS_VERSION_1_0,
+				},
+				Certificate: &pbresource.Reference{
+					Type:    pbmesh.InlineCertificateType,
+					Tenancy: tenancy,
+					Name:    "certificate",
+				},
+				HostnameConfigs: map[string]*pbmesh.ComputedHostnameRoutes{
+					"*": &pbmesh.ComputedHostnameRoutes{
+						Certificate: &pbresource.Reference{
+							Type:    pbmesh.InlineCertificateType,
+							Tenancy: tenancy,
+							Name:    "certificate",
+						},
+						Routes: &pbmesh.ComputedPortRoutes{
+							Config: &pbmesh.ComputedPortRoutes_Tcp{
+								Tcp: &pbmesh.ComputedTCPRoute{
+									Rules: []*pbmesh.ComputedTCPRouteRule{
+										{BackendRefs: []*pbmesh.ComputedTCPBackendRef{
+											{BackendTarget: "backend-v3"},
+										}},
+									},
+								},
+							},
+							ParentRef: &pbmesh.ParentReference{
+								Ref: &pbresource.Reference{
+									Type:    pbmesh.APIGatewayType,
+									Tenancy: tenancy,
+									Name:    "test",
+								},
+								Port: "tcp-secure",
+							},
+							Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+							Targets: map[string]*pbmesh.BackendTargetDetails{
+								"backend-v3": &pbmesh.BackendTargetDetails{
+									Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+									DestinationConfig: &pbmesh.DestinationConfig{},
+									ServiceEndpointsRef: &pbproxystate.EndpointRef{
+										Id: &pbresource.ID{
+											Name:    "backend-v3",
+											Type:    pbcatalog.ServiceEndpointsType,
+											Tenancy: tenancy,
+										},
+										RoutePort: "target",
+										MeshPort:  "mesh",
+									},
+									BackendRef: &pbmesh.BackendReference{
+										Ref: &pbresource.Reference{
+											Tenancy: tenancy,
+											Name:    "backend-v3",
+										},
+										Port:       "target",
+										Datacenter: "dc1",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -175,7 +260,7 @@ func (suite *apiGatewayStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_
 		t := suite.T()
 
 		logger := testutil.Logger(t)
-		builder := NewAPIGWProxyStateTemplateBuilder(suite.workload, suite.computedConfiguration, logger, fetcher.New(suite.client), "dc1", "domain")
+		builder := NewAPIGWProxyStateTemplateBuilder(suite.workload, suite.computedConfiguration, suite.certificates, logger, fetcher.New(suite.client), "dc1", "domain")
 
 		actual := protoToJSON(t, builder.Build())
 		expected := golden.Get(t, actual, "api-"+tenancy.Partition+"-"+tenancy.Namespace+".golden")

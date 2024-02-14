@@ -33,4 +33,5 @@ type (
 	DecodedMeshGateway                = resource.DecodedResource[*pbmesh.MeshGateway]
 	DecodedComputedExportedServices   = resource.DecodedResource[*pbmulticluster.ComputedExportedServices]
 	DecodedAPIGateway                 = resource.DecodedResource[*pbmesh.APIGateway]
+	DecodedInlineCertificate          = resource.DecodedResource[*pbmesh.InlineCertificate]
 )
