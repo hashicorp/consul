@@ -525,6 +525,25 @@ func RemoveFinalizer(res *pbresource.Resource, finalizer string) { ... }
 func GetFinalizers(res *pbresource.Resource) mapset.Set[string] { ... }
 ```
 
+Example flow in a controller's `Reconcile` method
+```Go
+const finalizer = "consul.io/bar-finalizer"
+
+func (barReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
+    ...
+    // Check if resource is marked for deletion. If yes, perform cleanup, remove finalizer, and Write the resource
+	if resource.IsMarkedForDeletion(res) {
+        // Perform some cleanup...
+		return EnsureFinalizerRemoved(ctx, rt, res, finalizer)
+	}
+
+    // Check if resource has finalizer. If not, add it and Write the resource
+	if err = EnsureHasFinalizer(ctx, rt, res, finalizer); err != nil {
+		return err
+	}
+}
+```
+
 ## Ownership & Cascading Deletion
 
 The resource service implements a lightweight `1:N` ownership model where, on
