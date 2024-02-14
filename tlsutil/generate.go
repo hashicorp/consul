@@ -209,7 +209,7 @@ func RenewCert(opts CertOpts, existingkey []byte) (string, error) {
 	}
 
 	keyBlock, _ := pem.Decode(existingkey)
-	existingPrivateKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	existingPrivateKey, err := x509.ParseECPrivateKey(keyBlock.Bytes)
 	if err != nil {
 		return "", fmt.Errorf("error parsing existing private key: %w", err)
 	}

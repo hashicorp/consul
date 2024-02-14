@@ -49,7 +49,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.ca, "ca", "#DOMAIN#-agent-ca.pem", "Provide path to the ca. Defaults to #DOMAIN#-agent-ca.pem.")
 	c.flags.StringVar(&c.key, "key", "#DOMAIN#-agent-ca-key.pem", "Provide path to the key. Defaults to #DOMAIN#-agent-ca-key.pem.")
-	c.flags.StringVar(&c.existingkey, "key", "#DOMAIN#-agent-#-key.pem", "Provide path to the existing key. Defaults to #DOMAIN#-agent-#-key.pem.")
+	c.flags.StringVar(&c.existingkey, "existingkey", "", "Provide path to the existing key like #DOMAIN#-agent-#-key.pem.")
 	c.flags.BoolVar(&c.server, "server", false, "Generate server certificate.")
 	c.flags.BoolVar(&c.client, "client", false, "Generate client certificate.")
 	c.flags.StringVar(&c.node, "node", "", "When generating a server cert and this is set an additional dns name is included of the form <node>.server.<datacenter>.<domain>.")
@@ -80,10 +80,6 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("Please provide the key")
 		return 1
 	}
-	if c.existingkey == "" {
-		c.UI.Error("Please provide the existingkey")
-		return 1
-	}
 
 	if !((c.server && !c.client && !c.cli) ||
 		(!c.server && c.client && !c.cli) ||
@@ -94,6 +90,11 @@ func (c *cmd) Run(args []string) int {
 
 	if c.node != "" && !c.server {
 		c.UI.Error("-node requires -server")
+		return 1
+	}
+
+	if c.existingkey == "" {
+		c.UI.Error("Please provide the existingkey like #DOMAIN#-agent-#-key.pem.")
 		return 1
 	}
 
