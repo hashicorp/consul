@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/mesh/internal/proxytarget"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/protoutil"
 	"github.com/hashicorp/consul/internal/resource"
@@ -99,8 +99,7 @@ func (b *Builder) buildDestination(
 	}
 
 	var (
-		useRDS                bool
-		needsNullRouteCluster bool
+		useRDS bool
 	)
 	switch config := cpr.Config.(type) {
 	case *pbmesh.ComputedPortRoutes_Http:
@@ -113,11 +112,6 @@ func (b *Builder) buildDestination(
 
 		var proxyRouteRules []*pbproxystate.RouteRule
 		for _, routeRule := range route.Rules {
-			for _, backendRef := range routeRule.BackendRefs {
-				if backendRef.BackendTarget == types.NullRouteBackend {
-					needsNullRouteCluster = true
-				}
-			}
 			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
 			headerMutations := applyRouteFilters(destConfig, routeRule.Filters)
 			applyLoadBalancerPolicy(destConfig, cpr, routeRule.BackendRefs)
@@ -155,11 +149,6 @@ func (b *Builder) buildDestination(
 
 		var proxyRouteRules []*pbproxystate.RouteRule
 		for _, routeRule := range route.Rules {
-			for _, backendRef := range routeRule.BackendRefs {
-				if backendRef.BackendTarget == types.NullRouteBackend {
-					needsNullRouteCluster = true
-				}
-			}
 			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
 			headerMutations := applyRouteFilters(destConfig, routeRule.Filters)
 			applyLoadBalancerPolicy(destConfig, cpr, routeRule.BackendRefs)
@@ -205,12 +194,6 @@ func (b *Builder) buildDestination(
 		// dynamic routes instead.
 
 		routeRule := route.Rules[0]
-
-		for _, backendRef := range routeRule.BackendRefs {
-			if backendRef.BackendTarget == types.NullRouteBackend {
-				needsNullRouteCluster = true
-			}
-		}
 
 		switch len(routeRule.BackendRefs) {
 		case 0:
@@ -265,80 +248,13 @@ func (b *Builder) buildDestination(
 		lb.buildListener()
 	}
 
-	if needsNullRouteCluster {
-		b.addNullRouteCluster()
+	clusters, endpoints := proxytarget.ClustersAndEndpoints(destination.ComputedPortRoutes, b.trustDomain, b.proxyStateTemplate.ProxyState.Identity.Name, defaultDC)
+
+	for name, cluster := range clusters {
+		b.proxyStateTemplate.ProxyState.Clusters[name] = cluster
 	}
-
-	for _, details := range targets {
-		// NOTE: we only emit clusters for DIRECT targets here. The others will
-		// be folded into one or more aggregate clusters somehow.
-		if details.Type != pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT {
-			continue
-		}
-
-		connectTimeout := details.DestinationConfig.ConnectTimeout
-		loadBalancer := details.DestinationConfig.LoadBalancer
-
-		// NOTE: we collect both DIRECT and INDIRECT target information here.
-		dc := defaultDC(details.BackendRef.Datacenter)
-		portName := details.BackendRef.Port
-
-		sni := DestinationSNI(
-			details.BackendRef.Ref,
-			dc,
-			b.trustDomain,
-		)
-		clusterName := fmt.Sprintf("%s.%s", portName, sni)
-
-		egName := ""
-		if details.FailoverConfig != nil {
-			egName = fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, 0, clusterName)
-		}
-		egBase := b.newClusterEndpointGroup(egName, sni, portName, details.IdentityRefs, connectTimeout, loadBalancer)
-
-		var endpointGroups []*pbproxystate.EndpointGroup
-
-		// Original target is the first (or only) target.
-		endpointGroups = append(endpointGroups, egBase)
-		b.proxyStateTemplate.RequiredEndpoints[clusterName] = details.ServiceEndpointsRef
-
-		if details.FailoverConfig != nil {
-			failover := details.FailoverConfig
-			// TODO(v2): handle other forms of failover (regions/locality/etc)
-
-			for i, dest := range failover.Destinations {
-				if dest.BackendTarget == types.NullRouteBackend {
-					continue // not possible
-				}
-				destDetails, ok := targets[dest.BackendTarget]
-				if !ok {
-					continue // not possible
-				}
-
-				destConnectTimeout := destDetails.DestinationConfig.ConnectTimeout
-				destLoadBalancer := destDetails.DestinationConfig.LoadBalancer
-
-				destDC := defaultDC(destDetails.BackendRef.Datacenter)
-				destPortName := destDetails.BackendRef.Port
-
-				destSNI := DestinationSNI(
-					destDetails.BackendRef.Ref,
-					destDC,
-					b.trustDomain,
-				)
-
-				// index 0 was already given to non-fail original
-				failoverGroupIndex := i + 1
-				destClusterName := fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, failoverGroupIndex, clusterName)
-
-				egDest := b.newClusterEndpointGroup(destClusterName, destSNI, destPortName, destDetails.IdentityRefs, destConnectTimeout, destLoadBalancer)
-
-				endpointGroups = append(endpointGroups, egDest)
-				b.proxyStateTemplate.RequiredEndpoints[destClusterName] = destDetails.ServiceEndpointsRef
-			}
-		}
-
-		b.addCluster(clusterName, endpointGroups, connectTimeout, pbproxystate.Protocol(effectiveProtocol))
+	for name, endpoint := range endpoints {
+		b.proxyStateTemplate.RequiredEndpoints[name] = endpoint
 	}
 
 	return b

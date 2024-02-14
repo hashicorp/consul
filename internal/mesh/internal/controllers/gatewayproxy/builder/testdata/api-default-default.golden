@@ -1,0 +1,100 @@
+{
+  "proxyState": {
+    "clusters": {
+      "target.backend-v1.default.dc1.internal.domain": {
+        "altStatName": "target.backend-v1.default.dc1.internal.domain",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~target"
+              ],
+              "outboundMesh": {
+                "identityKey": "test",
+                "sni": "backend-v1.default.dc1.internal.domain",
+                "validationContext": {
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "target.backend-v1.default.dc1.internal.domain",
+        "protocol": "PROTOCOL_TCP"
+      },
+      "target.backend-v2.default.dc1.internal.domain": {
+        "altStatName": "target.backend-v2.default.dc1.internal.domain",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~target"
+              ],
+              "outboundMesh": {
+                "identityKey": "test",
+                "sni": "backend-v2.default.dc1.internal.domain",
+                "validationContext": {
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "target.backend-v2.default.dc1.internal.domain",
+        "protocol": "PROTOCOL_TCP"
+      }
+    },
+    "identity": {
+      "name": "test",
+      "tenancy": {
+        "namespace": "default",
+        "partition": "default"
+      },
+      "type": {
+        "group": "auth",
+        "groupVersion": "v2beta1",
+        "kind": "WorkloadIdentity"
+      }
+    }
+  },
+  "requiredEndpoints": {
+    "target.backend-v1.default.dc1.internal.domain": {
+      "id": {
+        "name": "backend-v1",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "meshPort": "mesh",
+      "routePort": "target"
+    },
+    "target.backend-v2.default.dc1.internal.domain": {
+      "id": {
+        "name": "backend-v2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "meshPort": "mesh",
+      "routePort": "target"
+    }
+  }
+}
