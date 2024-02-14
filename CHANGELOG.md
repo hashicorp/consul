@@ -1,3 +1,22 @@
+## 1.15.10 (February 13, 2023)
+
+SECURITY:
+
+* mesh: Update Envoy versions to 1.28.1, 1.27.3, and 1.26.7 to address [CVE-2024-23324](https://github.com/envoyproxy/envoy/security/advisories/GHSA-gq3v-vvhj-96j6), [CVE-2024-23325](https://github.com/envoyproxy/envoy/security/advisories/GHSA-5m7c-mrwr-pm26), [CVE-2024-23322](https://github.com/envoyproxy/envoy/security/advisories/GHSA-6p83-mfmh-qv38), [CVE-2024-23323](https://github.com/envoyproxy/envoy/security/advisories/GHSA-x278-4w4x-r7ch), [CVE-2024-23327](https://github.com/envoyproxy/envoy/security/advisories/GHSA-4h5x-x9vh-m29j), and [CVE-2023-44487](https://github.com/envoyproxy/envoy/security/advisories/GHSA-jhv4-f7mr-xx76) [[GH-20590](https://github.com/hashicorp/consul/issues/20590)]
+
+IMPROVEMENTS:
+
+* ProxyCfg: avoid setting a watch on `Internal.ServiceDump` when mesh gateway is not used. [[GH-20168](https://github.com/hashicorp/consul/issues/20168)]
+* ProxyCfg: only return the nodes list when querying the `Internal.ServiceDump` watch from proxycfg [[GH-20168](https://github.com/hashicorp/consul/issues/20168)]
+* Upgrade to use Go 1.21.7. [[GH-20545](https://github.com/hashicorp/consul/issues/20545)]
+* mesh: update supported envoy version 1.28.0 in addition to 1.27.2, 1.26.6 to support LTS release [[GH-20323](https://github.com/hashicorp/consul/issues/20323)]
+
+BUG FIXES:
+
+* audit-logs: **(Enterprise Only)** Fixes non ASCII characters in audit logs because of gzip. [[GH-20345](https://github.com/hashicorp/consul/issues/20345)]
+* connect: Fix issue where re-persisting existing proxy-defaults using `http` protocol fails with a protocol-mismatch error. [[GH-20481](https://github.com/hashicorp/consul/issues/20481)]
+* connect: Remove code coupling where the xDS capacity controller could negatively affect raft autopilot performance. [[GH-20511](https://github.com/hashicorp/consul/issues/20511)]
+
 ## 1.15.9 (January 23, 2023)
 
 SECURITY:
