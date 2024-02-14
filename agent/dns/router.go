@@ -167,7 +167,7 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.A
 				{Name: "type", Value: dns.Type(q.Qtype).String()},
 			})
 
-		r.logger.Debug("request served from client",
+		r.logger.Trace("request served from client",
 			"name", q.Name,
 			"type", dns.Type(q.Qtype).String(),
 			"class", dns.Class(q.Qclass).String(),
@@ -681,18 +681,18 @@ func (r *Router) defaultAgentDNSRequestContext() Context {
 func (r *Router) resolveCNAME(cfgContext *RouterDynamicConfig, name string, reqCtx Context,
 	remoteAddress net.Addr, maxRecursionLevel int) []dns.RR {
 	// If the CNAME record points to a Consul address, resolve it internally
-	// Convert query to lowercase because DNS is case-insensitive; d.domain and
-	// d.altDomain are already converted
+	// Convert query to lowercase because DNS is case-insensitive; r.domain and
+	// r.altDomain are already converted
 
 	if ln := strings.ToLower(name); strings.HasSuffix(ln, "."+r.domain) || strings.HasSuffix(ln, "."+r.altDomain) {
 		if maxRecursionLevel < 1 {
-			//d.logger.Error("Infinite recursion detected for name, won't perform any CNAME resolution.", "name", name)
+			r.logger.Error("Infinite recursion detected for name, won't perform any CNAME resolution.", "name", name)
 			return nil
 		}
 		req := &dns.Msg{}
 
 		req.SetQuestion(name, dns.TypeANY)
-		// TODO: handle error response
+		// TODO: handle error response (this is a comment from the V1 DNS Server)
 		resp := r.handleRequestRecursively(req, reqCtx, cfgContext, nil, maxRecursionLevel-1)
 
 		return resp.Answer
@@ -1425,4 +1425,45 @@ func makeTXTRecord(name string, result *discovery.Result, ttl uint32) []dns.RR {
 		})
 	}
 	return extra
+}
+
+// canonicalNameForResult returns the canonical name for a discovery result.
+func canonicalNameForResult(resultType discovery.ResultType, target, domain string,
+	tenancy discovery.ResultTenancy, portName string) string {
+	switch resultType {
+	case discovery.ResultTypeService:
+		if tenancy.Namespace != "" {
+			return fmt.Sprintf("%s.%s.%s.%s.%s", target, "service", tenancy.Namespace, tenancy.Datacenter, domain)
+		}
+		return fmt.Sprintf("%s.%s.%s.%s", target, "service", tenancy.Datacenter, domain)
+	case discovery.ResultTypeNode:
+		if tenancy.PeerName != "" && tenancy.Partition != "" {
+			// We must return a more-specific DNS name for peering so
+			// that there is no ambiguity with lookups.
+			// Nodes are always registered in the default namespace, so
+			// the `.ns` qualifier is not required.
+			return fmt.Sprintf("%s.node.%s.peer.%s.ap.%s",
+				target,
+				tenancy.PeerName,
+				tenancy.Partition,
+				domain)
+		}
+		if tenancy.PeerName != "" {
+			// We must return a more-specific DNS name for peering so
+			// that there is no ambiguity with lookups.
+			return fmt.Sprintf("%s.node.%s.peer.%s",
+				target,
+				tenancy.PeerName,
+				domain)
+		}
+		// Return a simpler format for non-peering nodes.
+		return fmt.Sprintf("%s.node.%s.%s", target, tenancy.Datacenter, domain)
+	case discovery.ResultTypeWorkload:
+		// TODO (v2-dns): it doesn't appear this is being used to return a result. Need to investigate and refactor
+		if portName != "" {
+			return fmt.Sprintf("%s.port.%s.workload.%s.ns.%s.ap.%s", portName, target, tenancy.Namespace, tenancy.Partition, domain)
+		}
+		return fmt.Sprintf("%s.workload.%s.ns.%s.ap.%s", target, tenancy.Namespace, tenancy.Partition, domain)
+	}
+	return ""
 }

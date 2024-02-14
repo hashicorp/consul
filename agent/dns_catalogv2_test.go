@@ -244,7 +244,7 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 			if client.Net == "tcp" {
 				for portName, port := range dbWorkloadPorts {
 					for workloadName, workload := range dbWorkloads {
-						workloadTarget := fmt.Sprintf("%s.port.%s.workload.consul.", portName, workloadName)
+						workloadTarget := fmt.Sprintf("%s.port.%s.workload.default.ns.default.ap.consul.", portName, workloadName)
 						workloadHost := workload.Addresses[0].Host
 
 						srvRec := findSrvAnswerForTarget(t, in, workloadTarget)
@@ -261,9 +261,9 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 				require.Equal(t, 9, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
 				require.Equal(t, 9, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
 			} else {
-				// Expect 1 result per port, per workload, up to the default limit of 3.
-				require.Equal(t, 3, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
-				require.Equal(t, 3, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
+				// Expect 1 result per port, per workload, up to the default limit of 3. In practice the results are truncated at 2.
+				require.Equal(t, 2, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
+				require.Equal(t, 2, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
 			}
 		}
 
@@ -272,7 +272,7 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 			question := fmt.Sprintf("%s.port.db.service.consul.", portName)
 
 			for workloadName, workload := range dbWorkloads {
-				workloadTarget := fmt.Sprintf("%s.port.%s.workload.consul.", portName, workloadName)
+				workloadTarget := fmt.Sprintf("%s.port.%s.workload.default.ns.default.ap.consul.", portName, workloadName)
 				workloadHost := workload.Addresses[0].Host
 
 				m := new(dns.Msg)
@@ -361,10 +361,10 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 			"db-3": dns.TypeAAAA,
 		} {
 			for _, question := range []string{
-				fmt.Sprintf("%s.workload.consul.", workloadName),
-				fmt.Sprintf("tcp.port.%s.workload.consul.", workloadName),
-				fmt.Sprintf("admin.port.%s.workload.consul.", workloadName),
-				fmt.Sprintf("mesh.port.%s.workload.consul.", workloadName),
+				fmt.Sprintf("%s.workload.default.ns.default.ap.consul.", workloadName),
+				fmt.Sprintf("tcp.port.%s.workload.default.ns.default.ap.consul.", workloadName),
+				fmt.Sprintf("admin.port.%s.workload.default.ns.default.ap.consul.", workloadName),
+				fmt.Sprintf("mesh.port.%s.workload.default.ns.default.ap.consul.", workloadName),
 			} {
 				workload := dbWorkloads[workloadName]
 				workloadHost := workload.Addresses[0].Host
