@@ -1,6 +1,17 @@
 {
   "proxyState": {
     "clusters": {
+      "null_route_cluster": {
+        "endpointGroup": {
+          "static": {
+            "config": {
+              "connectTimeout": "10s"
+            }
+          }
+        },
+        "name": "null_route_cluster",
+        "protocol": "PROTOCOL_TCP"
+      },
       "target.backend-v1.default.dc1.internal.domain": {
         "altStatName": "target.backend-v1.default.dc1.internal.domain",
         "endpointGroup": {
@@ -61,7 +72,51 @@
         "groupVersion": "v2beta1",
         "kind": "WorkloadIdentity"
       }
-    }
+    },
+    "listeners": [
+      {
+        "capabilities": [
+          "CAPABILITY_L4_TLS_INSPECTION"
+        ],
+        "defaultRouter": {
+          "l4": {
+            "cluster": {
+              "name": "null_route_cluster"
+            }
+          }
+        },
+        "direction": "DIRECTION_INBOUND",
+        "hostPort": {
+          "host": "127.0.0.1",
+          "port": 23
+        },
+        "name": "tcp",
+        "routers": [
+          {
+            "l4": {
+              "statPrefix": "upstream.",
+              "weightedClusters": {
+                "clusters": [
+                  {
+                    "name": "backend-v1.default.dc1.internal.domain",
+                    "weight": 3
+                  },
+                  {
+                    "name": "backend-v2.default.dc1.internal.domain",
+                    "weight": 1
+                  }
+                ]
+              }
+            },
+            "match": {
+              "serverNames": [
+                "*"
+              ]
+            }
+          }
+        ]
+      }
+    ]
   },
   "requiredEndpoints": {
     "target.backend-v1.default.dc1.internal.domain": {

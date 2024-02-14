@@ -96,6 +96,7 @@ func (suite *apiGatewayStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbre
 	suite.computedConfiguration = &pbmesh.ComputedGatewayConfiguration{
 		ListenerConfigs: map[string]*pbmesh.ComputedGatewayListener{
 			"tcp": &pbmesh.ComputedGatewayListener{
+				Port: 23,
 				HostnameConfigs: map[string]*pbmesh.ComputedHostnameRoutes{
 					"*": &pbmesh.ComputedHostnameRoutes{
 						Routes: &pbmesh.ComputedPortRoutes{
