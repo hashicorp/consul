@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/proxytarget"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	meshv2beta1 "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -26,15 +27,25 @@ type apiGWProxyStateTemplateBuilder struct {
 	dataFetcher *fetcher.Fetcher
 	dc          string
 	computed    *meshv2beta1.ComputedGatewayConfiguration
+	certs       []*types.DecodedInlineCertificate
 	logger      hclog.Logger
 	trustDomain string
 }
 
-func NewAPIGWProxyStateTemplateBuilder(workload *types.DecodedWorkload, configuration *meshv2beta1.ComputedGatewayConfiguration, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string) *apiGWProxyStateTemplateBuilder {
+func NewAPIGWProxyStateTemplateBuilder(
+	workload *types.DecodedWorkload,
+	configuration *meshv2beta1.ComputedGatewayConfiguration,
+	certs []*types.DecodedInlineCertificate,
+	logger hclog.Logger,
+	dataFetcher *fetcher.Fetcher,
+	dc,
+	trustDomain string,
+) *apiGWProxyStateTemplateBuilder {
 	return &apiGWProxyStateTemplateBuilder{
 		workload:    workload,
 		dataFetcher: dataFetcher,
 		computed:    configuration,
+		certs:       certs,
 		dc:          dc,
 		logger:      logger,
 		trustDomain: trustDomain,
@@ -121,7 +132,7 @@ func makeInboundListener(
 			ConnectionTls: &pbproxystate.TransportSocket_InboundNonMesh{
 				InboundNonMesh: &pbproxystate.InboundNonMeshTLS{
 					Identity: &pbproxystate.InboundNonMeshTLS_LeafKey{
-						LeafKey: certificate.String(),
+						LeafKey: resource.NewReferenceKey(certificate).String(),
 					},
 				},
 			},
@@ -169,7 +180,7 @@ func makeL4RouterForDirect(
 			ConnectionTls: &pbproxystate.TransportSocket_InboundNonMesh{
 				InboundNonMesh: &pbproxystate.InboundNonMeshTLS{
 					Identity: &pbproxystate.InboundNonMeshTLS_LeafKey{
-						LeafKey: certificate.String(),
+						LeafKey: resource.NewReferenceKey(certificate).String(),
 					},
 				},
 			},
@@ -212,7 +223,7 @@ func makeL4RouterForSplit(
 			ConnectionTls: &pbproxystate.TransportSocket_InboundNonMesh{
 				InboundNonMesh: &pbproxystate.InboundNonMeshTLS{
 					Identity: &pbproxystate.InboundNonMeshTLS_LeafKey{
-						LeafKey: certificate.String(),
+						LeafKey: resource.NewReferenceKey(certificate).String(),
 					},
 				},
 			},
@@ -319,7 +330,17 @@ func (b *apiGWProxyStateTemplateBuilder) listenersAndRoutes() ([]*pbproxystate.L
 }
 
 func (b *apiGWProxyStateTemplateBuilder) certificates() map[string]*pbproxystate.LeafCertificate {
-	return make(map[string]*pbproxystate.LeafCertificate)
+	certificates := map[string]*pbproxystate.LeafCertificate{}
+
+	for _, certificate := range b.certs {
+		key := resource.NewReferenceKey(resource.Reference(certificate.Id, "")).String()
+		certificates[key] = &pbproxystate.LeafCertificate{
+			Cert: certificate.Data.PublicKey,
+			Key:  certificate.Data.PrivateKey,
+		}
+	}
+
+	return certificates
 }
 
 func (b *apiGWProxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {

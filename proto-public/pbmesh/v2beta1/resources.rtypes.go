@@ -21,6 +21,7 @@ const (
 	DestinationsConfigurationKind    = "DestinationsConfiguration"
 	GRPCRouteKind                    = "GRPCRoute"
 	HTTPRouteKind                    = "HTTPRoute"
+	InlineCertificateKind            = "InlineCertificate"
 	MeshConfigurationKind            = "MeshConfiguration"
 	MeshGatewayKind                  = "MeshGateway"
 	ProxyConfigurationKind           = "ProxyConfiguration"
@@ -93,6 +94,12 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         HTTPRouteKind,
+	}
+
+	InlineCertificateType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         InlineCertificateKind,
 	}
 
 	MeshConfigurationType = &pbresource.Type{

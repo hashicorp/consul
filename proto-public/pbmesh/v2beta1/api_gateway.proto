@@ -52,3 +52,15 @@ message APIGatewayTLSConfiguration {
   // TLSParameters contains optional configuration for running TLS termination.
   optional pbproxystate.TLSParameters tls_parameters = 2;
 }
+
+
+// InlineCertificate specifies a certificate written directly into Consul's
+// store.
+message InlineCertificate {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
+  // PublicKey is the public key component of a certificate.
+  string PublicKey = 1;
+  // PrivateKey is the private key component of a certificate.
+  string PrivateKey = 2;
+}

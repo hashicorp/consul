@@ -38,6 +38,17 @@ func (this *APIGatewayTLSConfiguration) UnmarshalJSON(b []byte) error {
 	return ApiGatewayUnmarshaler.Unmarshal(b, this)
 }
 
+// MarshalJSON is a custom marshaler for InlineCertificate
+func (this *InlineCertificate) MarshalJSON() ([]byte, error) {
+	str, err := ApiGatewayMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for InlineCertificate
+func (this *InlineCertificate) UnmarshalJSON(b []byte) error {
+	return ApiGatewayUnmarshaler.Unmarshal(b, this)
+}
+
 var (
 	ApiGatewayMarshaler   = &protojson.MarshalOptions{}
 	ApiGatewayUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

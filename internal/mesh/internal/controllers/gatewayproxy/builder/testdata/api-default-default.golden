@@ -59,6 +59,30 @@
         },
         "name": "target.backend-v2.default.dc1.internal.domain",
         "protocol": "PROTOCOL_TCP"
+      },
+      "target.backend-v3.default.dc1.internal.domain": {
+        "altStatName": "target.backend-v3.default.dc1.internal.domain",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~target"
+              ],
+              "outboundMesh": {
+                "identityKey": "test",
+                "sni": "backend-v3.default.dc1.internal.domain",
+                "validationContext": {
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "target.backend-v3.default.dc1.internal.domain",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {
@@ -71,6 +95,12 @@
         "group": "auth",
         "groupVersion": "v2beta1",
         "kind": "WorkloadIdentity"
+      }
+    },
+    "leafCertificates": {
+      "mesh.v2beta1.InlineCertificate/default.default/certificate": {
+        "cert": "FAKE_PUBKEY",
+        "key": "FAKE_PRIKEY"
       }
     },
     "listeners": [
@@ -115,6 +145,55 @@
             }
           }
         ]
+      },
+      {
+        "capabilities": [
+          "CAPABILITY_L4_TLS_INSPECTION"
+        ],
+        "defaultRouter": {
+          "inboundTls": {
+            "inboundNonMesh": {
+              "leafKey": "mesh.v2beta1.InlineCertificate/default.default/certificate"
+            },
+            "tlsParameters": {
+              "minVersion": "TLS_VERSION_1_0"
+            }
+          },
+          "l4": {
+            "cluster": {
+              "name": "null_route_cluster"
+            }
+          }
+        },
+        "direction": "DIRECTION_INBOUND",
+        "hostPort": {
+          "host": "127.0.0.1",
+          "port": 423
+        },
+        "name": "tcp-secure",
+        "routers": [
+          {
+            "inboundTls": {
+              "inboundNonMesh": {
+                "leafKey": "mesh.v2beta1.InlineCertificate/default.default/certificate"
+              },
+              "tlsParameters": {
+                "minVersion": "TLS_VERSION_1_0"
+              }
+            },
+            "l4": {
+              "cluster": {
+                "name": "backend-v3.default.dc1.internal.domain"
+              },
+              "statPrefix": "upstream.backend-v3.default.dc1.internal.domain"
+            },
+            "match": {
+              "serverNames": [
+                "*"
+              ]
+            }
+          }
+        ]
       }
     ]
   },
@@ -138,6 +217,22 @@
     "target.backend-v2.default.dc1.internal.domain": {
       "id": {
         "name": "backend-v2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "meshPort": "mesh",
+      "routePort": "target"
+    },
+    "target.backend-v3.default.dc1.internal.domain": {
+      "id": {
+        "name": "backend-v3",
         "tenancy": {
           "namespace": "default",
           "partition": "default"
