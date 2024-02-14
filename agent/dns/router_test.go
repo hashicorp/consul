@@ -1874,6 +1874,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "api.port.foo.workload.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -1932,6 +1933,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "foo.workload.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -1994,6 +1996,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "foo.workload.bar.ns.baz.ap.dc3.dc.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -2058,6 +2061,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "api.port.foo.workload.consul.",
 							Rrtype: dns.TypeCNAME,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						Target: "foo.example.com.",
 					},
@@ -2165,6 +2169,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "api.port.foo.workload.consul.",
 							Rrtype: dns.TypeCNAME,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						Target: "foo.example.com.",
 					},
@@ -2173,6 +2178,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "foo.example.com.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -2280,15 +2286,17 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "api.port.foo.workload.consul.",
 							Rrtype: dns.TypeCNAME,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						Target: "foo.example.com.",
 					},
-					// TODO (v2-dns): this next record is wrong per the RFC
+					// TODO (v2-dns): this next record is wrong per the RFC-1034 mentioned in the comment above (NET-8060)
 					&dns.A{
 						Hdr: dns.RR_Header{
 							Name:   "foo.example.com.",
 							Rrtype: dns.TypeCNAME,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -2383,7 +2391,7 @@ func Test_HandleRequest(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "foo.service.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+							Name:   "foo.service.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2882,7 +2890,7 @@ func Test_HandleRequest(t *testing.T) {
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
-					// TODO (v2-dns): This needs to be de-dupped
+					// TODO (v2-dns): This needs to be de-duplicated (NET-8064)
 					&dns.A{
 						Hdr: dns.RR_Header{
 							Name:   "foo-1.example.com.",

@@ -3623,7 +3623,7 @@ func TestDNS_V1ConfigReload(t *testing.T) {
 
 }
 
-// TODO (v2-dns) add a test for checking the V2 DNS Server reloads the config
+// TODO (v2-dns) add a test for checking the V2 DNS Server reloads the config (NET-8056)
 
 func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 	if testing.Short() {

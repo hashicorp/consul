@@ -57,16 +57,15 @@ type Context struct {
 
 // RouterDynamicConfig is the dynamic configuration that can be hot-reloaded
 type RouterDynamicConfig struct {
-	ARecordLimit          int
-	DisableCompression    bool
-	EnableDefaultFailover bool // TODO (v2-dns): plumbing required for this new V2 setting. This is the agent configured default
-	EnableTruncate        bool
-	NodeMetaTXT           bool
-	NodeTTL               time.Duration
-	Recursors             []string
-	RecursorTimeout       time.Duration
-	RecursorStrategy      structs.RecursorStrategy
-	SOAConfig             SOAConfig
+	ARecordLimit       int
+	DisableCompression bool
+	EnableTruncate     bool
+	NodeMetaTXT        bool
+	NodeTTL            time.Duration
+	Recursors          []string
+	RecursorTimeout    time.Duration
+	RecursorStrategy   structs.RecursorStrategy
+	SOAConfig          SOAConfig
 	// TTLRadix sets service TTLs by prefix, eg: "database-*"
 	TTLRadix *radix.Tree
 	// TTLStrict sets TTLs to service by full name match. It Has higher priority than TTLRadix
@@ -331,13 +330,6 @@ func getTTLForResult(name string, overrideTTL *uint32, query *discovery.Query, c
 	}
 
 	switch query.QueryType {
-	// TODO (v2-dns): currently have to do this related to the results type being changed to node whe
-	// the v1 data fetcher encounters a blank service address and uses the node address instead.
-	// we will revisiting this when look at modifying the discovery result struct to
-	// possibly include additional metadata like the node address.
-	case discovery.QueryTypeWorkload:
-		// TODO (v2-dns): we need to discuss what we want to do for workload TTLs
-		return 0
 	case discovery.QueryTypeService, discovery.QueryTypePreparedQuery:
 		ttl, ok := cfg.getTTLForService(name)
 		if ok {
@@ -554,7 +546,6 @@ func (r *Router) serializeQueryResults(req *dns.Msg, reqCtx Context,
 				// The datacenter should be empty during translation if it is a peering lookup.
 				// This should be fine because we should always prefer the WAN address.
 
-				// TODO (v2-dns): this needs a clean up so we're not assuming this everywhere.
 				address := ""
 				if result.Service != nil {
 					address = result.Service.Address
@@ -982,22 +973,20 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, port discovery.Po
 		}
 		answer = append(answer, ptr)
 	case qType == dns.TypeNS:
-		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
 		resultType := result.Type
 		target := result.Node.Name
 		if parseRequestType(req) == requestTypeConsul && resultType == discovery.ResultTypeService {
 			resultType = discovery.ResultTypeNode
 		}
 		fqdn := canonicalNameForResult(resultType, target, domain, result.Tenancy, port.Name)
-		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
+		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl)
 
 		answer = append(answer, makeNSRecord(domain, fqdn, ttl))
 		extra = append(extra, extraRecord)
 	case qType == dns.TypeSOA:
-		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
 		// to be returned in the result.
 		fqdn := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, port.Name)
-		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
+		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl)
 
 		ns = append(ns, makeNSRecord(domain, fqdn, ttl))
 		extra = append(extra, extraRecord)
