@@ -52,6 +52,17 @@ var (
 	ErrSemaphoreConflict = fmt.Errorf("Existing key does not match semaphore use")
 )
 
+// ErrSemaphoreLimitConflict is returned if we attempt to acquire the semaphore with
+// conflicted limit value
+type ErrSemaphoreLimitConflict struct {
+	Lock  int
+	Local int
+}
+
+func (e *ErrSemaphoreLimitConflict) Error() string {
+	return fmt.Sprintf("semaphore limit conflict (lock: %d, local: %d)", e.Lock, e.Local)
+}
+
 // Semaphore is used to implement a distributed semaphore
 // using the Consul KV primitives.
 type Semaphore struct {
@@ -233,8 +244,10 @@ WAIT:
 
 	// Verify we agree with the limit
 	if lock.Limit != s.opts.Limit {
-		return nil, fmt.Errorf("semaphore limit conflict (lock: %d, local: %d)",
-			lock.Limit, s.opts.Limit)
+		return nil, &ErrSemaphoreLimitConflict{
+			Lock:  lock.Limit,
+			Local: s.opts.Limit,
+		}
 	}
 
 	// Prune the dead holders
