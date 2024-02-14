@@ -199,8 +199,6 @@ func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetc
 	}
 
 	return nil
-
-	return nil
 }
 
 func (r *reconciler) reconcileMeshGatewayProxyState(ctx context.Context, dataFetcher *fetcher.Fetcher, workload *resource.DecodedResource[*pbcatalog.Workload], rt controller.Runtime, req controller.Request) error {

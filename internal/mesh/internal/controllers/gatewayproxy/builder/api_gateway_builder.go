@@ -4,7 +4,11 @@
 package builder
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -49,10 +53,24 @@ func (b *apiGWProxyStateTemplateBuilder) identity() *pbresource.Reference {
 
 func (b *apiGWProxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 	// TODO NET-7985
-	return []*pbproxystate.Listener{b.listener("default", b.workload.Data.Addresses[0], b.workload.Data.Ports["listener-one"].Port, pbproxystate.Direction_DIRECTION_INBOUND, b.routers())}
+	var listeners []*pbproxystate.Listener
+
+	address := b.workload.Data.Addresses[0]
+	for idx, portName := range address.Ports {
+
+		workloadPort, ok := b.workload.Data.Ports[portName]
+		if !ok {
+			b.logger.Trace("port does not exist for workload", "port name", portName)
+			continue
+		}
+		listeners = append(listeners, b.listener(fmt.Sprintf("default-%d", idx), address, workloadPort.Port, pbproxystate.Direction_DIRECTION_INBOUND, b.routers()))
+	}
+
+	b.logger.Trace("listeners for apigw pst", "listeners", listeners)
+	return listeners
 }
 
-func (b *apiGWProxyStateTemplateBuilder) listener(name string, address *pbcatalog.WorkloadAddress, port uint32, direction pbproxystate.Direction, routers []*pbproxystate.Router) *pbproxystate.Listener {
+func (b *apiGWProxyStateTemplateBuilder) listener(name string, address *pbcatalog.WorkloadAddress, port uint32, _ pbproxystate.Direction, routers []*pbproxystate.Router) *pbproxystate.Listener {
 	// TODO NET-7985
 	return &pbproxystate.Listener{
 		Name:      name,
@@ -84,6 +102,23 @@ func (b *apiGWProxyStateTemplateBuilder) listener(name string, address *pbcatalo
 
 func (b *apiGWProxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster {
 	clusters := map[string]*pbproxystate.Cluster{}
+
+	// Add null route cluster for any unmatched traffic
+	clusters[nullRouteClusterName] = &pbproxystate.Cluster{
+		Name: nullRouteClusterName,
+		Group: &pbproxystate.Cluster_EndpointGroup{
+			EndpointGroup: &pbproxystate.EndpointGroup{
+				Group: &pbproxystate.EndpointGroup_Static{
+					Static: &pbproxystate.StaticEndpointGroup{
+						Config: &pbproxystate.StaticEndpointGroupConfig{
+							ConnectTimeout: durationpb.New(10 * time.Second),
+						},
+					},
+				},
+			},
+		},
+		Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
+	}
 
 	// TODO NET-7984
 	return clusters

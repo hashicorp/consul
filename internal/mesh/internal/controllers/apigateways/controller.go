@@ -66,15 +66,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		TargetPort: LANPortName,
 	})
 
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
-	fmt.Println("ports")
-	fmt.Println(ports)
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
-
 	service := &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{
 			Prefixes: []string{req.ID.Name},
