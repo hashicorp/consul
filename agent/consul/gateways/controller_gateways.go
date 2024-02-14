@@ -540,7 +540,8 @@ func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, updat
 		logger:  logger,
 		updater: updater,
 	}
-	reconciler.controller = controller.New(publisher, reconciler)
+	reconciler.controller = controller.New(publisher, reconciler).
+		WithLogger(logger.With("controller", "apiGatewayController"))
 	return reconciler.controller.Subscribe(
 		&stream.SubscribeRequest{
 			Topic:   state.EventTopicAPIGateway,
