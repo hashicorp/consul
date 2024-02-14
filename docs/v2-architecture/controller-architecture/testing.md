@@ -36,7 +36,7 @@ import (
 )
 
 func TestReconcile(t *testing.T) {
-	rtest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	rtest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		suite.Run(t, &reconcileSuite{tenancy: tenancy})
 	})
 }

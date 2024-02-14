@@ -16,7 +16,7 @@ import (
 )
 
 func TestBuildLocalApp_Multiport(t *testing.T) {
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		cases := map[string]struct {
 			workload *pbcatalog.Workload
 		}{
@@ -169,5 +169,5 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 				require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 			})
 		}
-	}, t)
+	})
 }

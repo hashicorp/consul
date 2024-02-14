@@ -4,21 +4,21 @@
 package builder
 
 import (
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // This file contains tests only for error and edge cases cases. The happy case is tested in local_app_test.go
 
 func TestBuildExposePaths_NilChecks(t *testing.T) {
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		testutil.RunStep(t, "proxy cfg is nil", func(t *testing.T) {
 			b := New(testProxyStateTemplateID(tenancy), testIdentityRef(tenancy), "foo.consul", "dc1", true, nil)
 			require.NotPanics(t, func() {
@@ -41,11 +41,11 @@ func TestBuildExposePaths_NilChecks(t *testing.T) {
 				b.buildExposePaths(nil)
 			})
 		})
-	}, t)
+	})
 }
 
 func TestBuildExposePaths_NoExternalMeshWorkloadAddress(t *testing.T) {
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		workload := &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "1.1.1.1", External: true},
@@ -73,11 +73,11 @@ func TestBuildExposePaths_NoExternalMeshWorkloadAddress(t *testing.T) {
 		b := New(testProxyStateTemplateID(tenancy), testIdentityRef(tenancy), "foo.consul", "dc1", true, proxycfg)
 		b.buildExposePaths(workload)
 		require.Empty(t, b.proxyStateTemplate.ProxyState.Listeners)
-	}, t)
+	})
 }
 
 func TestBuildExposePaths_InvalidProtocol(t *testing.T) {
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		workload := &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "1.1.1.1"},
@@ -107,5 +107,5 @@ func TestBuildExposePaths_InvalidProtocol(t *testing.T) {
 		require.PanicsWithValue(t, "unsupported expose paths protocol", func() {
 			b.buildExposePaths(workload)
 		})
-	}, t)
+	})
 }

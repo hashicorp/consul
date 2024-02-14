@@ -63,7 +63,7 @@ type controllerTestSuite struct {
 
 func TestFindDuplicates(t *testing.T) {
 	// Create some conflicting destinations.
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		dest1 := &pbmesh.Destinations{
 			Workloads: &pbcatalog.WorkloadSelector{
 				Names: []string{"foo"},
@@ -187,7 +187,7 @@ func TestFindDuplicates(t *testing.T) {
 		require.Contains(t, duplicates, resource.NewReferenceKey(dest3Res.Id))
 		require.Contains(t, duplicates, resource.NewReferenceKey(dest4Res.Id))
 		require.NotContains(t, duplicates, resource.NewReferenceKey(nonConflictingDestRes.Id))
-	}, t)
+	})
 }
 
 func (suite *controllerTestSuite) SetupTest() {
