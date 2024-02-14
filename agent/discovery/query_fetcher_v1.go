@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -28,6 +29,15 @@ const (
 	// Increment a counter when requests staler than this are served
 	staleCounterThreshold = 5 * time.Second
 )
+
+// DNSCounters pre-registers the staleness metric.
+// This value is used by both the V1 and V2 DNS (V1 Catalog-only) servers.
+var DNSCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"dns", "stale_queries"},
+		Help: "Increments when an agent serves a query within the allowed stale threshold.",
+	},
+}
 
 // v1DataFetcherDynamicConfig is used to store the dynamic configuration of the V1 data fetcher.
 type v1DataFetcherDynamicConfig struct {

@@ -4,6 +4,9 @@
  */
 
 .link-to-hcp-modal {
+  &__no-acls-alert {
+    margin-bottom: 16px;
+  }
   &__generate-token {
     display: flex;
     flex-direction: column;

@@ -10,19 +10,13 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/auth/internal/controllers/trafficpermissions/expander"
-	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/controller/cache/index"
-	"github.com/hashicorp/consul/internal/controller/cache/indexers"
 	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	TenancyIndexName = "tenancy"
 )
 
 // TrafficPermissionsMapper is used to map a watch event for a TrafficPermissions resource and translate
@@ -51,6 +45,8 @@ func Controller(mapper TrafficPermissionsMapper, sgExpander expander.SamenessGro
 	}
 
 	samenessGroupIndex := GetSamenessGroupIndex()
+
+	boundRefsMapper := dependency.CacheListMapper(pbauth.ComputedTrafficPermissionsType, BoundRefsIndexName)
 
 	// Maps incoming PartitionTrafficPermissions to ComputedTrafficPermissions requests by prefix searching
 	// the CTP's tenancy.
@@ -91,29 +87,20 @@ func Controller(mapper TrafficPermissionsMapper, sgExpander expander.SamenessGro
 		return reqs, nil
 	}
 
-	ctrl := controller.NewController(StatusKey, pbauth.ComputedTrafficPermissionsType).
-		WithWatch(pbauth.WorkloadIdentityType, dependency.ReplaceType(pbauth.ComputedTrafficPermissionsType)).
-		WithWatch(pbauth.TrafficPermissionsType, mapper.MapTrafficPermissions, samenessGroupIndex).
-		WithWatch(pbauth.PartitionTrafficPermissionsType, ptpToCtpMapper,
-			indexers.DecodedSingleIndexer(
-				TenancyIndexName,
-				index.SingleValueFromArgs(func(t *pbresource.Tenancy) ([]byte, error) {
-					return index.IndexFromTenancy(t), nil
-				}),
-				func(r *types.DecodedPartitionTrafficPermissions) (bool, []byte, error) {
-					return true, index.IndexFromTenancy(r.Id.Tenancy), nil
-				},
-			)).
-		WithWatch(pbauth.NamespaceTrafficPermissionsType, ntpToCtpMapper,
-			indexers.DecodedSingleIndexer(
-				TenancyIndexName,
-				index.SingleValueFromArgs(func(t *pbresource.Tenancy) ([]byte, error) {
-					return index.IndexFromTenancy(t), nil
-				}),
-				func(r *types.DecodedNamespaceTrafficPermissions) (bool, []byte, error) {
-					return true, index.IndexFromTenancy(r.Id.Tenancy), nil
-				},
-			)).
+	ctrl := controller.NewController(StatusKey,
+		pbauth.ComputedTrafficPermissionsType,
+		boundRefsIndex).
+		WithWatch(pbauth.WorkloadIdentityType,
+			dependency.ReplaceType(pbauth.ComputedTrafficPermissionsType)).
+		WithWatch(pbauth.TrafficPermissionsType,
+			dependency.MultiMapper(boundRefsMapper, mapper.MapTrafficPermissions),
+			samenessGroupIndex).
+		WithWatch(pbauth.PartitionTrafficPermissionsType,
+			dependency.MultiMapper(boundRefsMapper, ptpToCtpMapper),
+			indexPtpByTenancy()).
+		WithWatch(pbauth.NamespaceTrafficPermissionsType,
+			dependency.MultiMapper(boundRefsMapper, ntpToCtpMapper),
+			indexNtpByTenancy()).
 		WithReconciler(&reconciler{mapper: mapper, sgExpander: sgExpander})
 
 	return registerEnterpriseControllerWatchers(ctrl)
@@ -124,10 +111,22 @@ type reconciler struct {
 	sgExpander expander.SamenessGroupExpander
 }
 
-// Reconcile will reconcile one ComputedTrafficPermission (CTP) in response to some event.
+// Reconcile will reconcile one ComputedTrafficPermissions (CTP) in response to some event.
 // Events include adding, modifying or deleting a WorkloadIdentity or TrafficPermission or SamenessGroupType.
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
+
+	// The bound reference collector is supposed to aggregate all
+	// references to resources that influence the production of
+	// a ComputedTrafficPermissions resource.
+	//
+	// We only add a reference to the collector if the following are ALL true:
+	//
+	// - We load the resource for some reason.
+	// - The resource is found.
+	// - We decided to use the information in that resource to produce
+	//   ComputedTrafficPermissions.
+	brc := resource.NewBoundReferenceCollector()
 
 	ctpID := req.ID
 	oldCTPData, err := resource.GetDecodedResource[*pbauth.ComputedTrafficPermissions](ctx, rt.Client, ctpID)
@@ -171,13 +170,12 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	sgMap, err := r.sgExpander.List(ctx, rt, req)
-
 	if err != nil {
 		rt.Logger.Error("error retrieving sameness groups", err.Error())
 		return err
 	}
 
-	trafficPermissionBuilder := newTrafficPermissionsBuilder(r.sgExpander, sgMap)
+	trafficPermissionBuilder := newTrafficPermissionsBuilder(r.sgExpander, sgMap, brc)
 	var tpResources []*pbresource.Resource
 
 	// Part 2: Recompute a CTP from TP create / modify / delete, or create a new CTP from existing TPs:
