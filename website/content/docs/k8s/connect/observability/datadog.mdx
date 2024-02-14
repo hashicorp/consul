@@ -2,7 +2,7 @@
 layout: docs
 page_title: Configure Datadog Metrics Collection for Consul on Kubernetes
 description: >-
-  Enable Consul Monitoring via Datadog using the `metrics.datadog` helm annotation.
+  Enable Consul Monitoring via Datadog using the `metrics.datadog` helm value override options.
 ---
 
 # Datadog Integration for Consul on Kubernetes
@@ -12,43 +12,11 @@ The Helm chart includes automated configuration options in order to integrate wi
 ### Datadog Metrics Integration Methods
 
 <Highlight>
-  Choose <strong><em>one</em></strong> integration method from the three described below that best suites the intent for metrics collection. <strong><a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a></strong>, <strong><a href="https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes">DogStatsD</a></strong>, and <strong><a href="https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2">Openmetrics Prometheus</a></strong> methods of integration are <strong><em>mutually exclusive</em></strong>.
+  Choose <strong><em>one</em></strong> integration method from the three described below that best suites the intent for metrics collection. <strong><a href="https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes">DogStatsD</a></strong>, <strong><a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a></strong>, and <strong><a href="https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2">Openmetrics Prometheus</a></strong> methods of integration are <strong><em>mutually exclusive</em></strong>.
   <br/><br/>
-  <strong>Reasoning:</strong> <em>The consul-k8s helm chart automated configuration implements Datadog's <a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a> method using the <a href="https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/data/conf.yaml.example#L59"><code>use_prometheus_endpoint</code></a> configuration parameter. <strong>DogstatsD</strong>, <strong>Consul Integration</strong>, and <strong>Openmetrics Prometheus</strong> Metrics by design share the same <a href="https://docs.datadoghq.com/integrations/consul/?tab=host#data-collected">metric name</a> syntax for collection, and would therefore cause a conflict.
+  <strong>Reasoning:</strong> <em>The consul-k8s helm chart automated configuration implements Datadog's <a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a> method using the <a href="https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/data/conf.yaml.example#L59"><code>use_prometheus_endpoint</code></a> configuration parameter. <strong>DogstatsD</strong>, <strong>Consul Integration</strong>, and <strong>Openmetrics Prometheus</strong> Metrics <strong><em>by design</em></strong> share the same <a href="https://docs.datadoghq.com/integrations/consul/?tab=host#data-collected">metric name</a> syntax for collection, and would therefore cause a conflict.
     The <a href="https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/consul.py#L55-L61">consul.py</a> integration source code, as well as the <a href="https://github.com/hashicorp/consul-k8s/blob/4cac70496788f50354f96e9331003fcf338f419c/charts/consul/templates/_helpers.tpl#L595-L598">consul-k8s helm chart</a> prohibit the enablement of more that one integration at a time.</em>
 </Highlight>
-
-
-
-## Consul Metrics Integration Checks
-
-  <CodeBlockConfig heading={"Datadog Consul Checks"}>
-
-  ```yaml
-  metrics:
-    enabled: true
-    enableAgentMetrics: true
-    datadog:
-      enabled: true
-      namespace: "datadog"
-  ```
-
-  </CodeBlockConfig>
-
-  | Consul Component | Description                                      | API Endpoint(s)                                                      |
-  |------------------|--------------------------------------------------|----------------------------------------------------------------------|
-  | Agent            | Agent Metadata (i.e., version)                   | `/v1/agent/self`                                                     |
-  | Metrics          | Prometheus formatted metrics                     | `/v1/agent/metrics`                                                  |
-  | Serf             | Events and Membership Flaps                      | `/v1/health/service/consul` `/v1/agent/self`                         |
-  | Raft             | Monitors Raft peer information                   | `/v1/status/leader` `/v1/status/peers`                               |
-  | Catalog Services | Service Health Status and Node Count             | `/v1/catalog/services` `/v1/health/state/any`                        |
-  | Catalog Nodes    | Node Service Count and Health Status             | `/v1/health/state/any` `/v1/health/service/<service>`                |
-  | Consul Latency   | Consul LAN + WAN Coordinate Latency Calculations | `/v1/agent/self` `/v1/coordinate/nodes` `/v1/coordinate/datacenters` |
-
-
-### Metrics Data Collected
-
-Review the Datadog Documentation for the full description of Metrics data collected by the official Consul integration [here](https://docs.datadoghq.com/integrations/consul/?tab=host#data-collected).
 
 ## Consul Server Agent DogstatsD Metrics Collection
 
@@ -70,19 +38,39 @@ Review the Datadog Documentation for the full description of Metrics data collec
 
   </CodeBlockConfig>
 
-  <CodeBlockConfig heading={"DogstatsD (UDP)"}>
+  <CodeBlockConfig heading={"DogstatsD (UDP - KubeDNS)"}>
 
   ```yaml
   metrics:
     enabled: true
     enableAgentMetrics: true
-      datadog:
+    datadog:
+      enabled: true
+      namespace: "datadog"
+      dogstatsd:
         enabled: true
-        namespace: "datadog"
-        dogstatsd:
-          enabled: true
-          socketTransportType: "UDP"
-          dogstatsdAddr: "datadog.datadog.svc.cluster.local"
+        socketTransportType: "UDP"
+        # Set `dogstatsdPort` to `0` (default) to omit port number append to address.
+        dogstatsdPort: 0
+        dogstatsdAddr: "datadog.datadog.svc.cluster.local"
+  ```
+
+  </CodeBlockConfig>
+
+  <CodeBlockConfig heading={"DogstatsD (UDP - IP:Port)"}>
+
+  ```yaml
+  metrics:
+    enabled: true
+    enableAgentMetrics: true
+    datadog:
+      enabled: true
+      namespace: "datadog"
+      dogstatsd:
+        enabled: true
+        socketTransportType: "UDP"
+        dogstatsdPort: 8125
+        dogstatsdAddr: "172.20.180.10"
   ```
 
   </CodeBlockConfig>
@@ -90,6 +78,36 @@ Review the Datadog Documentation for the full description of Metrics data collec
 
   - Collects DogstatsD formatted metrics pertaining to Consul Serf Membership, Raft, DNS Performance, Agent Telemetry, and much more.
   - Enables configuring DogstatsD metric collection using one of either `UDP` or `Unix Domain Socket configuration`
+
+## Datadog Official Consul Integration Checks
+
+  <CodeBlockConfig heading={"Datadog Consul Checks"}>
+
+  ```yaml
+  metrics:
+    enabled: true
+    enableAgentMetrics: true
+    datadog:
+      enabled: true
+      namespace: "datadog"
+  ```
+
+  </CodeBlockConfig>
+
+  | Consul Component | Description                                         | API Endpoint(s)                                                      |
+  |------------------|-----------------------------------------------------|----------------------------------------------------------------------|
+  | Agent            | Agent Metadata (i.e., version)                      | `/v1/agent/self`                                                     |
+  | Metrics          | Prometheus formatted metrics                        | `/v1/agent/metrics`                                                  |
+  | Serf             | Events and Membership Flaps                         | `/v1/health/service/consul` `/v1/agent/self`                         |
+  | Raft             | Monitors Raft peer information and leader elections | `/v1/status/leader` `/v1/status/peers`                               |
+  | Catalog Services | Service Health Status and Node Count                | `/v1/catalog/services` `/v1/health/state/any`                        |
+  | Catalog Nodes    | Node Service Count and Health Status                | `/v1/health/state/any` `/v1/health/service/<service>`                |
+  | Consul Latency   | Consul LAN + WAN Coordinate Latency Calculations    | `/v1/agent/self` `/v1/coordinate/nodes` `/v1/coordinate/datacenters` |
+
+
+### Metrics Data Collected
+
+Review the Datadog Documentation for the full description of Metrics data collected by the official Consul integration [here](https://docs.datadoghq.com/integrations/consul/?tab=host#data-collected).
 
 ## Consul Server Openmetrics Prometheus Metrics Collection
 
