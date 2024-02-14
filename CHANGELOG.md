@@ -1,3 +1,30 @@
+## 1.17.3 (February 13, 2024)
+
+SECURITY:
+
+* mesh: Update Envoy versions to 1.27.3 and 1.26.7 to address [CVE-2024-23324](https://github.com/envoyproxy/envoy/security/advisories/GHSA-gq3v-vvhj-96j6), [CVE-2024-23325](https://github.com/envoyproxy/envoy/security/advisories/GHSA-5m7c-mrwr-pm26), [CVE-2024-23322](https://github.com/envoyproxy/envoy/security/advisories/GHSA-6p83-mfmh-qv38), [CVE-2024-23323](https://github.com/envoyproxy/envoy/security/advisories/GHSA-x278-4w4x-r7ch), [CVE-2024-23327](https://github.com/envoyproxy/envoy/security/advisories/GHSA-4h5x-x9vh-m29j), and [CVE-2023-44487](https://github.com/envoyproxy/envoy/security/advisories/GHSA-jhv4-f7mr-xx76) [[GH-20587](https://github.com/hashicorp/consul/issues/20587)]
+
+FEATURES:
+
+* cli: Adds new command `exported-services` to list all services exported and their consumers. Refer to the [CLI docs](https://developer.hashicorp.com/consul/commands/exported-services) for more information. [[GH-20331](https://github.com/hashicorp/consul/issues/20331)]
+
+IMPROVEMENTS:
+
+* ProxyCfg: avoid setting a watch on `Internal.ServiceDump` when mesh gateway is not used. [[GH-20168](https://github.com/hashicorp/consul/issues/20168)]
+* ProxyCfg: only return the nodes list when querying the `Internal.ServiceDump` watch from proxycfg [[GH-20168](https://github.com/hashicorp/consul/issues/20168)]
+* Upgrade to use Go 1.21.7. [[GH-20545](https://github.com/hashicorp/consul/issues/20545)]
+* api: add a new api(/v1/exported-services) to list all the exported service and their consumers. [[GH-20015](https://github.com/hashicorp/consul/issues/20015)]
+* connect: Add `CaseInsensitive` flag to service-routers that allows paths and path prefixes to ignore URL upper and lower casing. [[GH-19647](https://github.com/hashicorp/consul/issues/19647)]
+
+BUG FIXES:
+
+* audit-logs: **(Enterprise Only)** Fixes non ASCII characters in audit logs because of gzip. [[GH-20345](https://github.com/hashicorp/consul/issues/20345)]
+* connect: Fix issue where re-persisting existing proxy-defaults using `http` protocol fails with a protocol-mismatch error. [[GH-20481](https://github.com/hashicorp/consul/issues/20481)]
+* connect: Fix regression with SAN matching on terminating gateways [GH-20360](https://github.com/hashicorp/consul/issues/20360) [[GH-20417](https://github.com/hashicorp/consul/issues/20417)]
+* connect: Remove code coupling where the xDS capacity controller could negatively affect raft autopilot performance. [[GH-20511](https://github.com/hashicorp/consul/issues/20511)]
+* logging: add /api prefix to v2 resource endpoint logs [[GH-20352](https://github.com/hashicorp/consul/issues/20352)]
+* mesh: Fix bug where envoy extensions could not be configured with "permissive" mTLS mode. Note that envoy extensions currently do not apply to non-mTLS traffic in permissive mode. [[GH-20406](https://github.com/hashicorp/consul/issues/20406)]
+
 ## 1.17.2 (January 23, 2024)
 
 KNOWN ISSUES:
