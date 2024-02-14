@@ -303,9 +303,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	// for new data. To prevent that inconsistency we refresh the topics while holding
 	// the lock which ensures that any subscriptions to topics for FSM generated events
 	if c.deps.Publisher != nil {
-		c.deps.Publisher.RefreshTopic(state.EventTopicServiceHealth)
-		c.deps.Publisher.RefreshTopic(state.EventTopicServiceHealthConnect)
-		c.deps.Publisher.RefreshTopic(state.EventTopicCARoots)
+		c.deps.Publisher.RefreshAllTopics()
 	}
 	c.stateLock.Unlock()
 
