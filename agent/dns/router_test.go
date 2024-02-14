@@ -1468,7 +1468,322 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 		},
-		// TODO (v2-dns): add a test to make sure only 3 records are returned
+		{
+			name: "[ENT] PTR Lookup for node w/ peer name in default partition, query type is ANY",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Type:    discovery.ResultTypeNode,
+						Service: &discovery.Location{Name: "foo-web", Address: "foo"},
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+							PeerName:   "peer1",
+							Partition:  "default",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.node.peer1.peer.default.ap.consul.",
+					},
+				},
+			},
+		},
+		{
+			name: "[ENT] PTR Lookup for service in default namespace, query type is PTR",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Type:    discovery.ResultTypeService,
+						Service: &discovery.Location{Name: "foo", Address: "foo"},
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+							Namespace:  "default",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.service.default.dc2.consul.",
+					},
+				},
+			},
+		},
+		{
+			name: "[ENT] PTR Lookup for service in a non-default namespace, query type is PTR",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo-node", Address: "1.2.3.4"},
+						Type:    discovery.ResultTypeService,
+						Service: &discovery.Location{Name: "foo", Address: "foo"},
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+							Namespace:  "bar",
+							Partition:  "baz",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.service.bar.dc2.consul.",
+					},
+				},
+			},
+		},
+		{
+			name: "[CE] PTR Lookup for node w/ peer name, query type is ANY",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Type:    discovery.ResultTypeNode,
+						Service: &discovery.Location{Name: "foo", Address: "foo"},
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+							PeerName:   "peer1",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.node.peer1.peer.consul.",
+					},
+				},
+			},
+		},
+		{
+			name: "[CE] PTR Lookup for service, query type is PTR",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Service: &discovery.Location{Name: "foo", Address: "foo"},
+						Type:    discovery.ResultTypeService,
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.service.dc2.consul.",
+					},
+				},
+			},
+		},
 		// V2 Workload Lookup
 		{
 			name: "workload A query w/ port, returns A record",
@@ -2709,8 +3024,6 @@ func Test_HandleRequest(t *testing.T) {
 			},
 		},
 	}
-
-	testCases = append(testCases, getAdditionalTestCases(t)...)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

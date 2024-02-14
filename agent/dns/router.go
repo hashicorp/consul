@@ -1426,3 +1426,44 @@ func makeTXTRecord(name string, result *discovery.Result, ttl uint32) []dns.RR {
 	}
 	return extra
 }
+
+// canonicalNameForResult returns the canonical name for a discovery result.
+func canonicalNameForResult(resultType discovery.ResultType, target, domain string,
+	tenancy discovery.ResultTenancy, portName string) string {
+	switch resultType {
+	case discovery.ResultTypeService:
+		if tenancy.Namespace != "" {
+			return fmt.Sprintf("%s.%s.%s.%s.%s", target, "service", tenancy.Namespace, tenancy.Datacenter, domain)
+		}
+		return fmt.Sprintf("%s.%s.%s.%s", target, "service", tenancy.Datacenter, domain)
+	case discovery.ResultTypeNode:
+		if tenancy.PeerName != "" && tenancy.Partition != "" {
+			// We must return a more-specific DNS name for peering so
+			// that there is no ambiguity with lookups.
+			// Nodes are always registered in the default namespace, so
+			// the `.ns` qualifier is not required.
+			return fmt.Sprintf("%s.node.%s.peer.%s.ap.%s",
+				target,
+				tenancy.PeerName,
+				tenancy.Partition,
+				domain)
+		}
+		if tenancy.PeerName != "" {
+			// We must return a more-specific DNS name for peering so
+			// that there is no ambiguity with lookups.
+			return fmt.Sprintf("%s.node.%s.peer.%s",
+				target,
+				tenancy.PeerName,
+				domain)
+		}
+		// Return a simpler format for non-peering nodes.
+		return fmt.Sprintf("%s.node.%s.%s", target, tenancy.Datacenter, domain)
+	case discovery.ResultTypeWorkload:
+		// TODO (v2-dns): it doesn't appear this is being used to return a result. Need to investigate and refactor
+		if portName != "" {
+			return fmt.Sprintf("%s.port.%s.workload.%s", portName, target, domain)
+		}
+		return fmt.Sprintf("%s.workload.%s", target, domain)
+	}
+	return ""
+}
