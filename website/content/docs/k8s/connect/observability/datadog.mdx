@@ -9,7 +9,11 @@ description: >-
 
 The Helm chart includes automated configuration options in order to integrate with Datadog.
 
-### Datadog Metrics Integration Methods
+## Datadog Metrics Integration Methods
+
+- DogstatsD
+- Datadog Checks: Official Consul Integration
+- Openmetrics Prometheus
 
 <Highlight>
   Choose <strong><em>one</em></strong> integration method from the three described below that best suites the intent for metrics collection. <strong><a href="https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes">DogStatsD</a></strong>, <strong><a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a></strong>, and <strong><a href="https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2">Openmetrics Prometheus</a></strong> methods of integration are <strong><em>mutually exclusive</em></strong>.
@@ -18,7 +22,7 @@ The Helm chart includes automated configuration options in order to integrate wi
     The <a href="https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/consul.py#L55-L61">consul.py</a> integration source code, as well as the <a href="https://github.com/hashicorp/consul-k8s/blob/4cac70496788f50354f96e9331003fcf338f419c/charts/consul/templates/_helpers.tpl#L595-L598">consul-k8s helm chart</a> prohibit the enablement of more that one integration at a time.</em>
 </Highlight>
 
-## Consul Server Agent DogstatsD Metrics Collection
+### DogstatsD: Consul Server Agent Metrics Collection
 
 <Tabs>
   <CodeBlockConfig heading={"DogstatsD (UDS)"}>
@@ -76,10 +80,12 @@ The Helm chart includes automated configuration options in order to integrate wi
   </CodeBlockConfig>
 </Tabs>
 
+#### Metrics Data Collected
+
   - Collects DogstatsD formatted metrics pertaining to Consul Serf Membership, Raft, DNS Performance, Agent Telemetry, and much more.
   - Enables configuring DogstatsD metric collection using one of either `UDP` or `Unix Domain Socket configuration`
 
-## Datadog Official Consul Integration Checks
+### Datadog Checks: (Official Consul Integration)
 
   <CodeBlockConfig heading={"Datadog Consul Checks"}>
 
@@ -105,11 +111,13 @@ The Helm chart includes automated configuration options in order to integrate wi
   | Consul Latency   | Consul LAN + WAN Coordinate Latency Calculations    | `/v1/agent/self` `/v1/coordinate/nodes` `/v1/coordinate/datacenters` |
 
 
-### Metrics Data Collected
+#### Metrics Data Collected
 
-Review the Datadog Documentation for the full description of Metrics data collected by the official Consul integration [here](https://docs.datadoghq.com/integrations/consul/?tab=host#data-collected).
+The list of Consul's Prometheus metrics scraped and mapped by this method are listed in the latest [metrics.py](https://github.com/DataDog/integrations-core/blob/master/consul/datadog_checks/consul/metrics.py) of the integration source code.
 
-## Consul Server Openmetrics Prometheus Metrics Collection
+Review the [Datadog Documentation](https://docs.datadoghq.com/integrations/consul/?tab=containerized#data-collected) for the full description of Metrics data collected.
+
+### Openmetrics Prometheus: Consul Server Agent Metrics Collection (Advanced)
 
   <CodeBlockConfig heading={"OpenMetrics Prometheus"}>
 
@@ -126,4 +134,24 @@ Review the Datadog Documentation for the full description of Metrics data collec
 
   </CodeBlockConfig>
 
+This method of integration is useful for cases where Prometheus enabled scrapes are desired, and further customization of the collected data is desired.
+
+By default, all metrics pulled using this method will scrape Consul metrics using the `/v1/agent/metrics?format=prometheus` API query, and are considered to be **_custom metrics_**.
+
+Use of this method will map to Datadog as described in [Mapping Prometheus Metrics to Datadog Metrics](https://docs.datadoghq.com/integrations/guide/prometheus-metrics/?tab=latestversion).
+
+| OpenMetrics Metric Type | Datadog Metric Type                |
+|-------------------------|------------------------------------|
+| `Gauge`                 | `gauge`                            |
+| `Counter`               | `count`                            |
+| Histogram: `_count `    | `count.count`                      |
+| Histogram: `_sum`       | `count.sum`                        |
+| Histogram: `_bucket`    | `count.bucket` \|\| `distribution` |
+| Summary: `_count`       | `count.count`                      |
+| Summary: `_sum`         | `count.sum`                        |
+| Summary: `sample`       | `gauge.quantile`                   |
+
+#### Metrics Data Collected
+
   - Collects Consul related metrics via the `/v1/agent/metrics` API endpoint leveraging the `prometheus` query parameter.
+  - Default configuration, uses wildcard `".*"` to collect all metrics emitted from the endpoint.
