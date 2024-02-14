@@ -8,10 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/discovery"
 )
 
 func Test_HandleRequest_ServiceQuestions(t *testing.T) {
@@ -158,8 +159,6 @@ func Test_HandleRequest_ServiceQuestions(t *testing.T) {
 			},
 		},
 	}
-
-	testCases = append(testCases, getAdditionalTestCases(t)...)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
