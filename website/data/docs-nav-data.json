@@ -1408,6 +1408,10 @@
               {
                 "title": "Metrics",
                 "path": "k8s/connect/observability/metrics"
+              },
+              {
+                "title": "Datadog",
+                "path": "k8s/connect/observability/datadog"
               }
             ]
           }
