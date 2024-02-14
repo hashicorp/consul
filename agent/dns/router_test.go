@@ -837,10 +837,18 @@ func Test_HandleRequest(t *testing.T) {
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 					}, nil).
 					Run(func(args mock.Arguments) {
@@ -892,7 +900,7 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.consul.",
+						Ns: "server-one.workload.default.ns.default.ap.consul.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -901,13 +909,13 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.consul.",
+						Ns: "server-two.workload.default.ns.default.ap.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.consul.",
+							Name:   "server-one.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -916,7 +924,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.consul.",
+							Name:   "server-two.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -959,11 +967,18 @@ func Test_HandleRequest(t *testing.T) {
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
 							Type: discovery.ResultTypeWorkload,
-						},
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							}},
 					}, nil).
 					Run(func(args mock.Arguments) {
 						req := args.Get(1).(*discovery.QueryPayload)
@@ -1014,7 +1029,7 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.testdomain.",
+						Ns: "server-one.workload.default.ns.default.ap.testdomain.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -1023,13 +1038,13 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.testdomain.",
+						Ns: "server-two.workload.default.ns.default.ap.testdomain.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.testdomain.",
+							Name:   "server-one.workload.default.ns.default.ap.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1038,7 +1053,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.testdomain.",
+							Name:   "server-two.workload.default.ns.default.ap.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1070,10 +1085,18 @@ func Test_HandleRequest(t *testing.T) {
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 					}, nil).
 					Run(func(args mock.Arguments) {
@@ -1108,7 +1131,7 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.consul.", // TODO (v2-dns): this format needs to be consistent with other workloads
+						Ns: "server-one.workload.default.ns.default.ap.consul.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -1117,13 +1140,13 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.consul.",
+						Ns: "server-two.workload.default.ns.default.ap.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.consul.",
+							Name:   "server-one.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1132,7 +1155,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.consul.",
+							Name:   "server-two.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1175,10 +1198,18 @@ func Test_HandleRequest(t *testing.T) {
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 					}, nil).
 					Run(func(args mock.Arguments) {
@@ -1213,7 +1244,7 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.testdomain.",
+						Ns: "server-one.workload.default.ns.default.ap.testdomain.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -1222,13 +1253,13 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.testdomain.",
+						Ns: "server-two.workload.default.ns.default.ap.testdomain.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.testdomain.",
+							Name:   "server-one.workload.default.ns.default.ap.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1237,7 +1268,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.testdomain.",
+							Name:   "server-two.workload.default.ns.default.ap.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -2466,7 +2497,7 @@ func Test_HandleRequest(t *testing.T) {
 						Weight:   2,
 						Priority: 1,
 						Port:     5678,
-						Target:   "api.port.foo-1.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+						Target:   "api.port.foo-1.workload.default.ns.default.ap.consul.",
 					},
 					&dns.SRV{
 						Hdr: dns.RR_Header{
@@ -2478,7 +2509,7 @@ func Test_HandleRequest(t *testing.T) {
 						Weight:   3,
 						Priority: 1,
 						Port:     5678,
-						Target:   "api.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+						Target:   "api.port.foo-2.workload.default.ns.default.ap.consul.",
 					},
 					&dns.SRV{
 						Hdr: dns.RR_Header{
@@ -2490,13 +2521,13 @@ func Test_HandleRequest(t *testing.T) {
 						Weight:   3,
 						Priority: 1,
 						Port:     21000,
-						Target:   "mesh.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+						Target:   "mesh.port.foo-2.workload.default.ns.default.ap.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "api.port.foo-1.workload.consul.",
+							Name:   "api.port.foo-1.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2505,7 +2536,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "api.port.foo-2.workload.consul.",
+							Name:   "api.port.foo-2.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2514,7 +2545,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "mesh.port.foo-2.workload.consul.",
+							Name:   "mesh.port.foo-2.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2597,13 +2628,13 @@ func Test_HandleRequest(t *testing.T) {
 						Weight:   3,
 						Priority: 1,
 						Port:     21000,
-						Target:   "mesh.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+						Target:   "mesh.port.foo-2.workload.default.ns.default.ap.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "mesh.port.foo-2.workload.consul.",
+							Name:   "mesh.port.foo-2.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),

@@ -1461,9 +1461,9 @@ func canonicalNameForResult(resultType discovery.ResultType, target, domain stri
 	case discovery.ResultTypeWorkload:
 		// TODO (v2-dns): it doesn't appear this is being used to return a result. Need to investigate and refactor
 		if portName != "" {
-			return fmt.Sprintf("%s.port.%s.workload.%s", portName, target, domain)
+			return fmt.Sprintf("%s.port.%s.workload.%s.ns.%s.ap.%s", portName, target, tenancy.Namespace, tenancy.Partition, domain)
 		}
-		return fmt.Sprintf("%s.workload.%s", target, domain)
+		return fmt.Sprintf("%s.workload.%s.ns.%s.ap.%s", target, tenancy.Namespace, tenancy.Partition, domain)
 	}
 	return ""
 }
