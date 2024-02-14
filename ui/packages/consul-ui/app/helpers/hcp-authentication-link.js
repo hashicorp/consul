@@ -18,17 +18,12 @@ export const HCP_PREFIX =
   'https://portal.cloud.hashicorp.com/services/consul/clusters/self-managed/link-existing';
 export default class hcpAuthenticationLink extends Helper {
   @service('env') env;
-  compute([resourceId, accessMode], hash) {
+  compute([datacenterName, accessMode]) {
     let url = new URL(HCP_PREFIX);
     const clusterVersion = this.env.var('CONSUL_VERSION');
 
-    // if resourceId is empty, we still might want the user to get to the HCP sign-in page
-    if (resourceId) {
-      // Array looks like: ["organization", organizationId, "project", projectId, "hashicorp.consul.global-network-manager.cluster", "Cluster Id"]
-      const [, , , , , clusterName] = resourceId.split('/');
-      if (clusterName) {
-        url.searchParams.append('cluster_name', clusterName);
-      }
+    if (datacenterName) {
+      url.searchParams.append('cluster_name', datacenterName);
     }
 
     if (clusterVersion) {

@@ -8,7 +8,6 @@ import { tracked } from '@glimmer/tracking';
 
 export default class HcpLinkModalService extends Service {
   @tracked isModalVisible = false;
-  @tracked resourceId = null;
 
   show(hcpLinkData) {
     this.isModalVisible = true;
@@ -16,8 +15,5 @@ export default class HcpLinkModalService extends Service {
 
   hide() {
     this.isModalVisible = false;
-  }
-  setResourceId(resourceId) {
-    this.resourceId = resourceId;
   }
 }

@@ -97,7 +97,7 @@
                      @icon="external-link"
                      @iconPosition="trailing"
                      data-test-link-to-hcp-modal-next-button
-                     @href={{hcp-authentication-link this.hcpLinkModal.resourceId this.accessLevel}}
+                     @href={{hcp-authentication-link @dc this.accessLevel}}
         />
         <Hds::Button type="button" @text="Cancel" @color="secondary"
                      data-test-link-to-hcp-modal-cancel-button
