@@ -12,6 +12,7 @@ const (
 
 	APIGatewayKind                   = "APIGateway"
 	ComputedExplicitDestinationsKind = "ComputedExplicitDestinations"
+	ComputedGatewayRoutesKind        = "ComputedGatewayRoutes"
 	ComputedImplicitDestinationsKind = "ComputedImplicitDestinations"
 	ComputedProxyConfigurationKind   = "ComputedProxyConfiguration"
 	ComputedRoutesKind               = "ComputedRoutes"
@@ -38,6 +39,12 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         ComputedExplicitDestinationsKind,
+	}
+
+	ComputedGatewayRoutesType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ComputedGatewayRoutesKind,
 	}
 
 	ComputedImplicitDestinationsType = &pbresource.Type{
