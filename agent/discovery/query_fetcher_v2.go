@@ -224,7 +224,7 @@ func (f *V2DataFetcher) fetchResource(reqContext Context, req QueryPayload, kind
 		},
 	}
 
-	f.logger.Debug("fetching "+kind.String(), "name", req.Name)
+	f.logger.Trace("fetching "+kind.String(), "name", req.Name)
 	resourceCtx := metadata.AppendToOutgoingContext(context.Background(), "x-consul-token", reqContext.Token)
 
 	// If the service is not found, return nil and an error equivalent to NXDOMAIN

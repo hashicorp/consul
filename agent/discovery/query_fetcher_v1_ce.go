@@ -30,7 +30,7 @@ func queryTenancyToEntMeta(_ QueryTenancy) acl.EnterpriseMeta {
 
 // fetchServiceFromSamenessGroup fetches a service from a sameness group.
 func (f *V1DataFetcher) fetchServiceFromSamenessGroup(ctx Context, req *QueryPayload, cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
-	f.logger.Debug(fmt.Sprintf("fetchServiceFromSamenessGroup - req: %+v", req))
+	f.logger.Trace(fmt.Sprintf("fetchServiceFromSamenessGroup - req: %+v", req))
 	if req.Tenancy.SamenessGroup == "" {
 		return nil, errors.New("sameness groups must be provided for service lookups")
 	}
