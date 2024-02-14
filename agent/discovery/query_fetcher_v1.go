@@ -58,7 +58,6 @@ type v1DataFetcherDynamicConfig struct {
 
 // V1DataFetcher is used to fetch data from the V1 catalog.
 type V1DataFetcher struct {
-	// TODO(v2-dns): store this in the config.
 	defaultEnterpriseMeta acl.EnterpriseMeta
 	dynamicConfig         atomic.Value
 	logger                hclog.Logger
@@ -275,7 +274,7 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 	}
 
 	// nothing found locally, recurse
-	// TODO: (v2-dns) implement recursion
+	// TODO: (v2-dns) implement recursion (NET-7883)
 	//d.handleRecurse(resp, req)
 
 	return nil, fmt.Errorf("unhandled error in FetchRecordsByIp")

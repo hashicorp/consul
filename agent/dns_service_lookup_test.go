@@ -1989,7 +1989,7 @@ func TestDNS_ServiceLookup_CaseInsensitive(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it
+// V2 DNS: we have deprecated support for service tags w/ periods
 func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
