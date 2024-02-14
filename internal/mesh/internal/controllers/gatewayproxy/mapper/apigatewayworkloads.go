@@ -5,6 +5,7 @@ package mapper
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
@@ -14,23 +15,26 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// AllMeshGatewayWorkloadsInPartition returns one controller.Request for each Workload
-// selected by a MeshGateway in the partition of the Resource.
-var AllMeshGatewayWorkloadsInPartition = func(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+var APIGatewaysInParentRefs = func(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	fetcher := fetcher.New(rt.Client)
 
-	gateways, err := fetcher.FetchMeshGateways(ctx, &pbresource.Tenancy{
-		Partition: res.Id.Tenancy.Partition,
-	})
+	requests := make([]controller.Request, 0)
+
+	route, err := fetcher.FetchTCPRoute(ctx, res.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	var requests []controller.Request
+	if route == nil {
+		return nil, nil
+	}
 
-	for _, gateway := range gateways {
-		endpointsID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, gateway.Id)
+	for _, parentRef := range route.Data.GetParentRefs() {
+		if !resource.EqualType(parentRef.Ref.Type, pbmesh.APIGatewayType) {
+			return nil, fmt.Errorf("parent reference type %s is not supported", parentRef.Ref.Type)
+		}
 
+		endpointsID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, resource.IDFromReference(parentRef.Ref))
 		endpoints, err := fetcher.FetchServiceEndpoints(ctx, endpointsID)
 		if err != nil {
 			continue

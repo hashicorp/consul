@@ -20,7 +20,6 @@ import (
 const (
 	ControllerName = "consul.io/api-gateway"
 	GatewayKind    = "api-gateway"
-	LANPortName    = "mesh"
 )
 
 func Controller() *controller.Controller {
@@ -51,7 +50,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	apigw := decodedAPIGateway.Data
 
-	ports := make([]*pbcatalog.ServicePort, 0, len(apigw.Listeners)+1)
+	ports := make([]*pbcatalog.ServicePort, 0, len(apigw.Listeners))
 
 	for _, listener := range apigw.Listeners {
 		ports = append(ports, &pbcatalog.ServicePort{
@@ -60,11 +59,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			VirtualPort: listener.Port,
 		})
 	}
-
-	ports = append(ports, &pbcatalog.ServicePort{
-		Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
-		TargetPort: LANPortName,
-	})
 
 	service := &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{

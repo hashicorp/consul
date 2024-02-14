@@ -130,8 +130,7 @@ func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetc
 	}
 
 	if len(allTCPRoutes) == 0 {
-		rt.Logger.Trace("no tcp routes found for this gateway; skipping reconciliation", "apiGatewayID", gwID)
-		return nil
+		rt.Logger.Trace("no tcp routes found for this gateway", "apiGatewayID", gwID)
 	}
 
 	services := make([]*pbcatalog.Service, 0)
