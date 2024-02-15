@@ -212,16 +212,11 @@ Usage: consul tls cert renew [options]
 
   Renew existing certificate
 
-  $ consul tls cert renew -server
+  $ consul tls cert renew -existingcert=dc1-server-consul-0.pem -existingkey=dc1-server-consul-0-key.pem
   ==> WARNING: Server Certificates grants authority to become a
       server and access all state in the cluster including root keys
       and all ACL tokens. Do not distribute them to production hosts
       that are not server nodes. Store them as securely as CA keys.
   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-  ==> Saved dc1-server-consul-0.pem
-  ==> Saved dc1-server-consul-0-key.pem
-  $ consul tls cert create -client
-  ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-  ==> Saved dc1-client-consul-0.pem
-  ==> Saved dc1-client-consul-0-key.pem
+  ==> Saved dc1-server-consul-1.pem
 `
