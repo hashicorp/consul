@@ -27,6 +27,12 @@ export default class LinkToHcpModalComponent extends Component {
   isGeneratingToken = false;
   AccessLevel = ACCESS_LEVEL;
 
+  constructor(args, owner) {
+    super(...arguments);
+    // it is needed for .lookup to not flakey in tests
+    this.hideModal = this.hcpLinkModal.hide.bind(this.hcpLinkModal);
+  }
+
   get isReadOnlyAccessLevelSelected() {
     return this.accessLevel === this.AccessLevel.GLOBALREADONLY;
   }
@@ -34,10 +40,6 @@ export default class LinkToHcpModalComponent extends Component {
   get isTokenGenerated() {
     return this.token && this.token.length > 0;
   }
-
-  deactivateModal = () => {
-    this.hcpLinkModal.hide();
-  };
 
   onGenerateTokenClicked = (policy) => {
     this.isGeneratingToken = true;
@@ -54,11 +56,11 @@ export default class LinkToHcpModalComponent extends Component {
   };
 
   @action
-  onCancel() {
-    this.deactivateModal();
-  }
-  @action
   onAccessModeChanged({ target }) {
     this.accessLevel = target.value;
+  }
+  @action
+  deactivateModal() {
+    this.hideModal();
   }
 }

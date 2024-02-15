@@ -101,7 +101,7 @@
         />
         <Hds::Button type="button" @text="Cancel" @color="secondary"
                      data-test-link-to-hcp-modal-cancel-button
-          {{on "click" (fn this.deactivateModal)}}
+          {{on "click" F.close}}
         />
       </Hds::ButtonSet>
     </M.Footer>
