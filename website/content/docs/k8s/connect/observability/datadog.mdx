@@ -16,13 +16,15 @@ The Helm chart includes automated configuration options in order to integrate wi
 - [Openmetrics Prometheus](#openmetrics-prometheus)
 
 <Highlight>
-  Choose <strong><em>one</em></strong> integration method from the three described below that best suites the intent for metrics collection. <strong><a href="https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes">DogStatsD</a></strong>, <strong><a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a></strong>, and <strong><a href="https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2">Openmetrics Prometheus</a></strong> methods of integration are <strong><em>mutually exclusive</em></strong>.
+  Users should choose <strong><em>one</em></strong> integration method from the three described below that best suites the intent for metrics collection. <strong><a href="https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes">DogStatsD</a></strong>, <strong><a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a></strong>, and <strong><a href="https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2">Openmetrics Prometheus</a></strong> methods of integration are <strong><em>mutually exclusive</em></strong>.
   <br/><br/>
   <strong>Reasoning:</strong> <em>The consul-k8s helm chart automated configuration implements Datadog's <a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a> method using the <a href="https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/data/conf.yaml.example#L59"><code>use_prometheus_endpoint</code></a> configuration parameter. <strong>DogstatsD</strong>, <strong>Consul Integration</strong>, and <strong>Openmetrics Prometheus</strong> Metrics <strong><em>by design</em></strong> share the same <a href="https://docs.datadoghq.com/integrations/consul/?tab=host#data-collected">metric name</a> syntax for collection, and would therefore cause a conflict.
     The <a href="https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/consul.py#L55-L61">consul.py</a> integration source code, as well as the <a href="https://github.com/hashicorp/consul-k8s/blob/4cac70496788f50354f96e9331003fcf338f419c/charts/consul/templates/_helpers.tpl#L595-L598">consul-k8s helm chart</a> prohibit the enablement of more that one integration at a time.</em>
 </Highlight>
 
 ## DogstatsD
+
+
 
 <Tabs>
   <CodeBlockConfig heading={"DogstatsD (UDS)"}>
@@ -82,16 +84,44 @@ The Helm chart includes automated configuration options in order to integrate wi
 
 This integration method accomplishes metrics collection by leveraging either [Unix Domain Sockets](https://docs.datadoghq.com/developers/dogstatsd/unix_socket/?tab=kubernetes) (**UDS**) or [User Datagram Protocol](https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes#agent) (**UDP**) transport.
 
- | Transport | Advantages                                                                                                                                                                                                                           | Disadvantages                                                                                                                                                                                                                                                                                                                                                           | Description                                                                                                                             |
- |-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
- | UDS       | <ul><li>No IP or DNS resolution requirement for Datadog Agent</li><li>Improved network performance</li><li>Packet error handling</li><li>Automatic container ID tagging</li></ul>                                                    | <ul><li>Requires <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment</li></ul>                                                                                                                                                                                                                                       | Transmits DogstatsD Metrics via: <ul><li>Unix Domain Socket</li></ul>                                                                   |
- | UDP       | <ul><li>Does <strong><em>not</em></strong> require <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment</li><li>Similar `IP:Port` configuration as Virtual Machine hosts</li></ul> | <ul><li>(**_Hostport_**) Requires a networking provider that adheres to the CNI specification, such as Calico, Canal, or Flannel.</li><li>(**_Hostport_**) Requires port to be exposed on host using `hostNetwork`</li><li>(**_Hostport_**) Requires firewall access controls to permit access</li><li>(**_Hostport_**) Network Namespace sharing is required</li></ul> | Transmits DogstatsD Metrics via: <ul><li>Container host port</li><strong><em>or</em></strong><li>Kubernetes Service `IP:Port`</li></ul> |
-
-#### Metrics Data Collected
-
-  - Collects DogstatsD formatted metrics pertaining to Consul Serf Membership, Raft, DNS Performance, Agent Telemetry, and much more.
-  - Enables configuring DogstatsD metric collection using one of either `UDP` or `Unix Domain Socket configuration`
-
+<Tabs>
+  <Tab heading={"UDS"}>
+    <table>
+      <thead>
+      <tr>
+        <th>Advantages</th>
+        <th>Disadvantages</th>
+        <th>Packet Delivery</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>No IP or DNS resolution requirement for Datadog Agent<br/><br/>Improved network performance<br/><br/>Packet error handling<br/><br/>Automatic container ID tagging</td>
+        <td>Requires <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment</td>
+        <td>Unix Domain Socket File</td>
+      </tr>
+      </tbody>
+    </table>
+  </Tab>
+  <Tab heading={"UDP"}>
+    <table>
+      <thead>
+      <tr>
+        <th>Advantages</th>
+        <th>Disadvantages</th>
+        <th>Packet Delivery</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>Does <strong>not</strong> require <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment<br/><br/>Similar <code>IP:Port</code> configuration as Virtual Machine hosts</td>
+        <td>(<strong><em>Hostport</em></strong>) Requires a networking provider that adheres to the CNI specification, such as Calico, Canal, or Flannel.<br/><br/>(<strong><em>Hostport</em></strong>) Requires port to be exposed on host using <code>hostNetwork</code><br/><br/>(<strong><em>Hostport</em></strong>) Requires firewall access controls to permit access<br/><br/>(<strong><em>Hostport</em></strong>) Network Namespace sharing is required</td>
+        <td>Kubernetes Service <code>IP:Port</code><br/><br/> <strong>or</strong> <br/><br/>Container host port</td>
+      </tr>
+      </tbody>
+    </table>
+  </Tab>
+</Tabs>
 
 #### Verifying DogstatsD Metric Collection
 
@@ -150,7 +180,9 @@ This integration method accomplishes metrics collection by leveraging either [Un
 </Tabs>
 
 
+#### Metrics Data Collected
 
+  - Full list of metrics sent via DogstatsD consists of those listed in the [Agent Telemetry](https://developer.hashicorp.com/consul/docs/agent/telemetry) documentation.
 
 
 ## Datadog Checks: Official Consul Integration
