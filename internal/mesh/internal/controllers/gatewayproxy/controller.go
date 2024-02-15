@@ -1,5 +1,4 @@
 // Copyright (c) HashiCorp, Inc.
-//
 // SPDX-License-Identifier: BUSL-1.1
 
 package gatewayproxy
@@ -135,11 +134,11 @@ func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetc
 
 	services := make([]*pbcatalog.Service, 0)
 
-	referencedTCPRoutes := make([]*pbmesh.TCPRoute, 0)
+	tcpRoutesReferencingGateway := make([]*pbmesh.TCPRoute, 0)
 	for _, tcpRoute := range allTCPRoutes {
 		for _, parentRef := range tcpRoute.Data.ParentRefs {
-			if parentRef.Ref.Name == apiGateway.Id.Name {
-				referencedTCPRoutes = append(referencedTCPRoutes, tcpRoute.Data)
+			if resource.EqualReference(parentRef.Ref, resource.ReferenceFromReferenceOrID(apiGateway.Id)) {
+				tcpRoutesReferencingGateway = append(tcpRoutesReferencingGateway, tcpRoute.Data)
 				for _, rule := range tcpRoute.Data.Rules {
 					for _, backendRef := range rule.BackendRefs {
 						service, err := dataFetcher.FetchService(ctx, resource.IDFromReference(backendRef.BackendRef.Ref))
@@ -167,20 +166,21 @@ func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetc
 
 	gw := apiGateway.Data
 
-	newPST := builder.NewAPIGWProxyStateTemplateBuilder(workload, services, referencedTCPRoutes, gw, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
+	newPST := builder.NewAPIGWProxyStateTemplateBuilder(workload, services, tcpRoutesReferencingGateway, gw, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
 
 	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {
 		rt.Logger.Error("error creating proxy state template data", "error", err)
 		return err
 	}
-	rt.Logger.Trace("updating proxy state template")
 
 	// If we're not creating a new PST and the generated one matches the existing one, nothing to do
 	if proxyStateTemplate != nil && proto.Equal(proxyStateTemplate.Data, newPST) {
 		rt.Logger.Trace("no changes to existing proxy state template")
 		return nil
 	}
+
+	rt.Logger.Trace("updating proxy state template")
 
 	// Write the created/updated ProxyStateTemplate with Workload as owner
 	_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
@@ -260,13 +260,14 @@ func (r *reconciler) reconcileMeshGatewayProxyState(ctx context.Context, dataFet
 		rt.Logger.Error("error creating proxy state template data", "error", err)
 		return err
 	}
-	rt.Logger.Trace("updating proxy state template")
 
 	// If we're not creating a new PST and the generated one matches the existing one, nothing to do
 	if proxyStateTemplate != nil && proto.Equal(proxyStateTemplate.Data, newPST) {
 		rt.Logger.Trace("no changes to existing proxy state template")
 		return nil
 	}
+
+	rt.Logger.Trace("updating proxy state template")
 
 	// Write the created/updated ProxyStateTemplate with MeshGateway owner
 	_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{

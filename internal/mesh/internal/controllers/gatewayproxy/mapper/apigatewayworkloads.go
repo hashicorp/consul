@@ -5,7 +5,6 @@ package mapper
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
@@ -31,7 +30,8 @@ var APIGatewaysInParentRefs = func(ctx context.Context, rt controller.Runtime, r
 
 	for _, parentRef := range route.Data.GetParentRefs() {
 		if !resource.EqualType(parentRef.Ref.Type, pbmesh.APIGatewayType) {
-			return nil, fmt.Errorf("parent reference type %s is not supported", parentRef.Ref.Type)
+			rt.Logger.Trace("parent reference type is not supported", "type", parentRef.Ref.Type)
+			continue
 		}
 
 		endpointsID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, resource.IDFromReference(parentRef.Ref))
