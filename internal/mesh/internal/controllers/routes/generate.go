@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -26,7 +25,7 @@ import (
 //
 // This should not internally generate, nor return any errors.
 func GenerateComputedRoutes(
-	related *loader.RelatedResources,
+	related *RelatedResources,
 	pending PendingStatuses,
 ) []*ComputedRoutesResult {
 	out := make([]*ComputedRoutesResult, 0, len(related.ComputedRoutesList))
@@ -46,7 +45,7 @@ type ComputedRoutesResult struct {
 }
 
 func compile(
-	related *loader.RelatedResources,
+	related *RelatedResources,
 	computedRoutesID *pbresource.ID,
 	pending PendingStatuses,
 ) *ComputedRoutesResult {
@@ -438,7 +437,7 @@ func compile(
 }
 
 func compileFailoverConfig(
-	related *loader.RelatedResources,
+	related *RelatedResources,
 	failoverConfig *pbcatalog.FailoverConfig,
 	targets map[string]*pbmesh.BackendTargetDetails,
 	brc *resource.BoundReferenceCollector,

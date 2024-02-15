@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package loader
+package routes
 
 import (
 	"fmt"
@@ -46,9 +46,7 @@ func (r *RelatedResources) AddComputedRoutesIDs(list ...*pbresource.ID) *Related
 }
 
 func (r *RelatedResources) AddComputedRoutesID(id *pbresource.ID) *RelatedResources {
-	if !resource.EqualType(id.Type, pbmesh.ComputedRoutesType) {
-		panic(fmt.Sprintf("expected *mesh.ComputedRoutes, not %s", resource.TypeToString(id.Type)))
-	}
+	assertResourceType(pbmesh.ComputedRoutesType, id.Type)
 	r.ComputedRoutesList = append(r.ComputedRoutesList, id)
 	return r
 }
@@ -93,29 +91,35 @@ func (r *RelatedResources) AddResource(res any) {
 }
 
 func (r *RelatedResources) AddHTTPRoute(dec *types.DecodedHTTPRoute) {
+	assertResourceType(pbmesh.HTTPRouteType, dec.Id.Type)
 	r.addRouteSetEntries(dec.Resource, dec.Data)
 	addResource(dec.Resource.Id, dec, r.HTTPRoutes)
 }
 
 func (r *RelatedResources) AddGRPCRoute(dec *types.DecodedGRPCRoute) {
+	assertResourceType(pbmesh.GRPCRouteType, dec.Id.Type)
 	r.addRouteSetEntries(dec.Resource, dec.Data)
 	addResource(dec.Resource.Id, dec, r.GRPCRoutes)
 }
 
 func (r *RelatedResources) AddTCPRoute(dec *types.DecodedTCPRoute) {
+	assertResourceType(pbmesh.TCPRouteType, dec.Id.Type)
 	r.addRouteSetEntries(dec.Resource, dec.Data)
 	addResource(dec.Resource.Id, dec, r.TCPRoutes)
 }
 
 func (r *RelatedResources) AddDestinationPolicy(dec *types.DecodedDestinationPolicy) {
+	assertResourceType(pbmesh.DestinationPolicyType, dec.Id.Type)
 	addResource(dec.Resource.Id, dec, r.DestinationPolicies)
 }
 
 func (r *RelatedResources) AddService(dec *types.DecodedService) {
+	assertResourceType(pbcatalog.ServiceType, dec.Id.Type)
 	addResource(dec.Resource.Id, dec, r.Services)
 }
 
 func (r *RelatedResources) AddComputedFailoverPolicy(dec *types.DecodedComputedFailoverPolicy) {
+	assertResourceType(pbcatalog.ComputedFailoverPolicyType, dec.Id.Type)
 	addResource(dec.Resource.Id, dec, r.ComputedFailoverPolicies)
 }
 
@@ -167,9 +171,7 @@ func (r *RelatedResources) WalkRoutes(fn RouteWalkFunc) {
 }
 
 func (r *RelatedResources) WalkRoutesForParentRef(parentRef *pbresource.Reference, fn RouteWalkFunc) {
-	if !resource.EqualType(parentRef.Type, pbcatalog.ServiceType) {
-		panic(fmt.Sprintf("expected *catalog.Service, not %s", resource.TypeToString(parentRef.Type)))
-	}
+	assertResourceType(pbcatalog.ServiceType, parentRef.Type)
 	routeMap := r.RoutesByParentRef[resource.NewReferenceKey(parentRef)]
 	if len(routeMap) == 0 {
 		return
@@ -192,10 +194,12 @@ func (r *RelatedResources) WalkRoutesForParentRef(parentRef *pbresource.Referenc
 }
 
 func (r *RelatedResources) GetService(ref resource.ReferenceOrID) *types.DecodedService {
+	assertResourceType(pbcatalog.ServiceType, ref.GetType())
 	return r.Services[resource.NewReferenceKey(ref)]
 }
 
 func (r *RelatedResources) GetComputedFailoverPolicy(ref resource.ReferenceOrID) *types.DecodedComputedFailoverPolicy {
+	assertResourceType(pbcatalog.ComputedFailoverPolicyType, ref.GetType())
 	return r.ComputedFailoverPolicies[resource.NewReferenceKey(ref)]
 }
 
@@ -209,6 +213,7 @@ func (r *RelatedResources) GetComputedFailoverPolicyForService(ref resource.Refe
 }
 
 func (r *RelatedResources) GetDestinationPolicy(ref resource.ReferenceOrID) *types.DecodedDestinationPolicy {
+	assertResourceType(pbmesh.DestinationPolicyType, ref.GetType())
 	return r.DestinationPolicies[resource.NewReferenceKey(ref)]
 }
 

@@ -457,9 +457,9 @@ func (suite *controllerSuite) TestController() {
 
 			lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
 
-			suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionXRouteOK)
-			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
-			suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, tcpRoute1ID, ControllerID, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, httpRoute1ID, ControllerID, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, grpcRoute1ID, ControllerID, ConditionXRouteOK)
 		})
 
 		// Add another route, with a bad mapping.
@@ -701,15 +701,15 @@ func (suite *controllerSuite) TestController() {
 
 			lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
 
-			suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionXRouteOK)
-			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
-			suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, tcpRoute1ID, ControllerID, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, httpRoute1ID, ControllerID, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, grpcRoute1ID, ControllerID, ConditionXRouteOK)
 
-			suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, tcpRoute2ID, ControllerID,
 				ConditionMissingBackendRef(newRef(pbcatalog.ServiceType, "bar", barServiceRef.Tenancy)))
-			suite.client.WaitForStatusCondition(t, httpRoute2ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, httpRoute2ID, ControllerID,
 				ConditionMissingBackendRef(newRef(pbcatalog.ServiceType, "bar", barServiceRef.Tenancy)))
-			suite.client.WaitForStatusCondition(t, grpcRoute2ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, grpcRoute2ID, ControllerID,
 				ConditionMissingBackendRef(newRef(pbcatalog.ServiceType, "bar", barServiceRef.Tenancy)))
 		})
 
@@ -914,15 +914,15 @@ func (suite *controllerSuite) TestController() {
 
 			lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
 
-			suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionXRouteOK)
-			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
-			suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, tcpRoute1ID, ControllerID, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, httpRoute1ID, ControllerID, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, grpcRoute1ID, ControllerID, ConditionXRouteOK)
 
-			suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, tcpRoute2ID, ControllerID,
 				ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy), "http", pbmesh.HTTPRouteType))
-			suite.client.WaitForStatusCondition(t, httpRoute2ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, httpRoute2ID, ControllerID,
 				ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy), "grpc", pbmesh.GRPCRouteType))
-			suite.client.WaitForStatusCondition(t, grpcRoute2ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, grpcRoute2ID, ControllerID,
 				ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy), "tcp", pbmesh.TCPRouteType))
 		})
 
@@ -1087,15 +1087,15 @@ func (suite *controllerSuite) TestController() {
 				},
 			}
 
-			suite.client.WaitForStatusConditions(t, grpcRoute1ID, StatusKey,
+			suite.client.WaitForStatusConditions(t, grpcRoute1ID, ControllerID,
 				ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy), "http", pbmesh.HTTPRouteType),
 				ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy), "http2", pbmesh.HTTPRouteType),
 				ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy), "tcp", pbmesh.TCPRouteType))
 
 			lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, "" /*no change*/, expect)
 
-			suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey, ConditionXRouteOK)
-			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, tcpRoute1ID, ControllerID, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, httpRoute1ID, ControllerID, ConditionXRouteOK)
 
 		})
 
@@ -1121,11 +1121,11 @@ func (suite *controllerSuite) TestController() {
 		testutil.RunStep(suite.T(), "entire generated resource is deleted", func(t *testing.T) {
 			suite.client.WaitForDeletion(t, computedRoutesID)
 
-			suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, tcpRoute1ID, ControllerID,
 				ConditionParentRefOutsideMesh(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy)))
-			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, httpRoute1ID, ControllerID,
 				ConditionParentRefOutsideMesh(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy)))
-			suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey,
+			suite.client.WaitForStatusCondition(t, grpcRoute1ID, ControllerID,
 				ConditionParentRefOutsideMesh(newRef(pbcatalog.ServiceType, "api", apiServiceRef.Tenancy)))
 		})
 
@@ -1270,7 +1270,7 @@ func (suite *controllerSuite) TestController() {
 			fooLastVersion = requireNewComputedRoutesVersion(t, suite.client, fooComputedRoutesID, fooLastVersion, expectFoo)
 			barLastVersion = requireNewComputedRoutesVersion(t, suite.client, barComputedRoutesID, barLastVersion, expectBar)
 
-			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, httpRoute1ID, ControllerID, ConditionXRouteOK)
 		})
 
 		// Remove bar parent
@@ -1326,7 +1326,7 @@ func (suite *controllerSuite) TestController() {
 
 			barLastVersion = requireNewComputedRoutesVersion(t, suite.client, barComputedRoutesID, barLastVersion, expectBar)
 
-			suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
+			suite.client.WaitForStatusCondition(t, httpRoute1ID, ControllerID, ConditionXRouteOK)
 
 			resourcesToDelete := []*pbresource.ID{
 				apiService.Id,

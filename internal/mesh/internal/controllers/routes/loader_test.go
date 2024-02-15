@@ -1,24 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package loader
+package routes
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/hashicorp/go-hclog"
-
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/controller/cache"
-	"github.com/hashicorp/consul/internal/controller/cache/indexers"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -30,58 +24,22 @@ import (
 )
 
 func TestLoadResourcesForComputedRoutes(t *testing.T) {
-	// temporarily creating the cache here until we can get rid of the xroutemapper object entirely. Its not super clean to hack together a cache for usage in this func
-	// but its better than alternatives and this should be relatively short lived.
-	testCache := cache.New()
-	testCache.AddIndex(pbcatalog.ComputedFailoverPolicyType, indexers.RefOrIDIndex("dest-refs", func(res *resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]) []*pbresource.Reference {
-		return res.Data.GetUnderlyingDestinationRefs()
-	}))
-
-	ctx := testutil.TestContext(t)
 	rclient := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(types.Register, catalog.RegisterTypes).
 		Run(t)
-	rt := controller.Runtime{
-		Client: cache.NewCachedClient(testCache, rclient),
-		Logger: testutil.Logger(t),
-	}
 
+	ctl := controller.NewTestController(Controller(), rclient).
+		WithLogger(testutil.Logger(t))
+	rt := ctl.Runtime()
 	client := rtest.NewClient(rt.Client)
 
-	loggerFor := func(id *pbresource.ID) hclog.Logger {
-		return rt.Logger.With("resource-id", id)
-	}
-
-	mapper := xroutemapper.New(func(_ context.Context, rt controller.Runtime, id *pbresource.ID) ([]*pbresource.ID, error) {
-		iter, err := rt.Cache.ListIterator(pbcatalog.ComputedFailoverPolicyType, "dest-refs", id)
-		if err != nil {
-			return nil, err
-		}
-
-		var resolved []*pbresource.ID
-		for res := iter.Next(); res != nil; res = iter.Next() {
-			resolved = append(resolved, resource.ReplaceType(pbcatalog.ServiceType, res.Id))
-		}
-
-		return resolved, nil
-	})
-
-	deleteRes := func(id *pbresource.ID, untrack bool) {
-		client.MustDelete(t, id)
-		if untrack {
-			switch {
-			case types.IsRouteType(id.Type):
-				mapper.UntrackXRoute(id)
-			}
-		}
-	}
+	tenancy := resource.DefaultNamespacedTenancy()
 
 	writeHTTP := func(name string, data *pbmesh.HTTPRoute) *types.DecodedHTTPRoute {
 		res := rtest.Resource(pbmesh.HTTPRouteType, name).
-			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithTenancy(tenancy).
 			WithData(t, data).
 			Write(t, client)
-		mapper.TrackXRoute(res.Id, data)
 		dec, err := resource.Decode[*pbmesh.HTTPRoute](res)
 		require.NoError(t, err)
 		return dec
@@ -89,31 +47,27 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeGRPC := func(name string, data *pbmesh.GRPCRoute) *types.DecodedGRPCRoute {
 		res := rtest.Resource(pbmesh.GRPCRouteType, name).
-			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithTenancy(tenancy).
 			WithData(t, data).
 			Write(t, client)
-		mapper.TrackXRoute(res.Id, data)
 		dec, err := resource.Decode[*pbmesh.GRPCRoute](res)
 		require.NoError(t, err)
 		return dec
 	}
-	_ = writeGRPC // TODO
 
 	writeTCP := func(name string, data *pbmesh.TCPRoute) *types.DecodedTCPRoute {
 		res := rtest.Resource(pbmesh.TCPRouteType, name).
-			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithTenancy(tenancy).
 			WithData(t, data).
 			Write(t, client)
-		mapper.TrackXRoute(res.Id, data)
 		dec, err := resource.Decode[*pbmesh.TCPRoute](res)
 		require.NoError(t, err)
 		return dec
 	}
-	_ = writeTCP // TODO
 
 	writeDestPolicy := func(name string, data *pbmesh.DestinationPolicy) *types.DecodedDestinationPolicy {
 		res := rtest.Resource(pbmesh.DestinationPolicyType, name).
-			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithTenancy(tenancy).
 			WithData(t, data).
 			Write(t, client)
 		dec, err := resource.Decode[*pbmesh.DestinationPolicy](res)
@@ -123,7 +77,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeFailover := func(name string, data *pbcatalog.ComputedFailoverPolicy) *types.DecodedComputedFailoverPolicy {
 		res := rtest.Resource(pbcatalog.ComputedFailoverPolicyType, name).
-			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithTenancy(tenancy).
 			WithData(t, data).
 			Write(t, client)
 		dec, err := resource.Decode[*pbcatalog.ComputedFailoverPolicy](res)
@@ -133,7 +87,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	writeService := func(name string, data *pbcatalog.Service) *types.DecodedService {
 		res := rtest.Resource(pbcatalog.ServiceType, name).
-			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithTenancy(tenancy).
 			WithData(t, data).
 			Write(t, client)
 		dec, err := resource.Decode[*pbcatalog.Service](res)
@@ -175,17 +129,17 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 
 	apiRoutesID := &pbresource.ID{
 		Type:    pbmesh.ComputedRoutesType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
+		Tenancy: tenancy,
 		Name:    "api",
 	}
 	adminRoutesID := &pbresource.ID{
 		Type:    pbmesh.ComputedRoutesType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
+		Tenancy: tenancy,
 		Name:    "admin",
 	}
 
 	testutil.RunStep(t, "only service", func(t *testing.T) {
-		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
+		out, err := LoadResourcesForComputedRoutes(rt.Cache, apiRoutesID)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, NewRelatedResources().AddResources(
@@ -197,13 +151,13 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	// Write one silly http route
 	route1 := writeHTTP("api-route1", &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{{
-			Ref: newRef(pbcatalog.ServiceType, "api"),
+			Ref: newRef(pbcatalog.ServiceType, "api", tenancy),
 			// all ports
 		}},
 	})
 
 	testutil.RunStep(t, "one silly route", func(t *testing.T) {
-		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
+		out, err := LoadResourcesForComputedRoutes(rt.Cache, apiRoutesID)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, NewRelatedResources().AddResources(
@@ -218,20 +172,20 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	// add a second route that is more interesting and is TCP
 	route2 := writeTCP("api-route2", &pbmesh.TCPRoute{
 		ParentRefs: []*pbmesh.ParentReference{{
-			Ref: newRef(pbcatalog.ServiceType, "api"),
+			Ref: newRef(pbcatalog.ServiceType, "api", tenancy),
 			// all ports
 		}},
 		Rules: []*pbmesh.TCPRouteRule{{
 			BackendRefs: []*pbmesh.TCPBackendRef{
 				{
 					BackendRef: &pbmesh.BackendReference{
-						Ref: newRef(pbcatalog.ServiceType, "foo"),
+						Ref: newRef(pbcatalog.ServiceType, "foo", tenancy),
 					},
 					Weight: 30,
 				},
 				{
 					BackendRef: &pbmesh.BackendReference{
-						Ref: newRef(pbcatalog.ServiceType, "bar"),
+						Ref: newRef(pbcatalog.ServiceType, "bar", tenancy),
 					},
 					Weight: 70,
 				},
@@ -240,7 +194,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "two routes", func(t *testing.T) {
-		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
+		out, err := LoadResourcesForComputedRoutes(rt.Cache, apiRoutesID)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, NewRelatedResources().AddResources(
@@ -260,18 +214,18 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	route1 = writeHTTP("api-route1", &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
 			{
-				Ref: newRef(pbcatalog.ServiceType, "api"),
+				Ref: newRef(pbcatalog.ServiceType, "api", tenancy),
 				// all ports
 			},
 			{
-				Ref: newRef(pbcatalog.ServiceType, "admin"),
+				Ref: newRef(pbcatalog.ServiceType, "admin", tenancy),
 				// all ports
 			},
 		},
 	})
 
 	testutil.RunStep(t, "two overlapping computed routes resources", func(t *testing.T) {
-		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
+		out, err := LoadResourcesForComputedRoutes(rt.Cache, apiRoutesID)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, NewRelatedResources().AddResources(
@@ -294,18 +248,18 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	route3 := writeGRPC("api-route3", &pbmesh.GRPCRoute{
 		ParentRefs: []*pbmesh.ParentReference{
 			{
-				Ref: newRef(pbcatalog.ServiceType, "api"),
+				Ref: newRef(pbcatalog.ServiceType, "api", tenancy),
 				// all ports
 			},
 			{
-				Ref: newRef(pbcatalog.ServiceType, "admin"),
+				Ref: newRef(pbcatalog.ServiceType, "admin", tenancy),
 				// all ports
 			},
 		},
 	})
 
 	testutil.RunStep(t, "three overlapping computed routes resources", func(t *testing.T) {
-		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
+		out, err := LoadResourcesForComputedRoutes(rt.Cache, apiRoutesID)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, NewRelatedResources().AddResources(
@@ -326,13 +280,12 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 		), out.RoutesByParentRef)
 	})
 
-	// We untrack the first, but we let the third one be a dangling reference
-	// so that the loader has to fix it up.
-	deleteRes(route1.Resource.Id, true)
-	deleteRes(route3.Resource.Id, false)
+	// We untrack the first and third.
+	client.MustDelete(t, route1.Resource.Id)
+	client.MustDelete(t, route3.Resource.Id)
 
 	testutil.RunStep(t, "delete first and third route", func(t *testing.T) {
-		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
+		out, err := LoadResourcesForComputedRoutes(rt.Cache, apiRoutesID)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, NewRelatedResources().AddResources(
@@ -351,17 +304,17 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 			"http": {
 				Destinations: []*pbcatalog.FailoverDestination{
 					{
-						Ref:  newRef(pbcatalog.ServiceType, "admin"),
+						Ref:  newRef(pbcatalog.ServiceType, "admin", tenancy),
 						Port: "http",
 					},
 				},
 			},
 		},
-		BoundReferences: []*pbresource.Reference{newRef(pbcatalog.ServiceType, "admin")},
+		BoundReferences: []*pbresource.Reference{newRef(pbcatalog.ServiceType, "admin", tenancy)},
 	})
 
 	testutil.RunStep(t, "add a failover", func(t *testing.T) {
-		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
+		out, err := LoadResourcesForComputedRoutes(rt.Cache, apiRoutesID)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, NewRelatedResources().AddResources(
@@ -393,7 +346,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "add a dest policy", func(t *testing.T) {
-		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
+		out, err := LoadResourcesForComputedRoutes(rt.Cache, apiRoutesID)
 		require.NoError(t, err)
 
 		prototest.AssertDeepEqual(t, NewRelatedResources().AddResources(
@@ -410,12 +363,6 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 			apiSvc, route2,
 		), out.RoutesByParentRef)
 	})
-}
-
-func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).
-		WithTenancy(resource.DefaultNamespacedTenancy()).
-		Reference("")
 }
 
 type resourceGetter interface {

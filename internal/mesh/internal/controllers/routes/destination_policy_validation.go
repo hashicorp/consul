@@ -4,7 +4,6 @@
 package routes
 
 import (
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -13,7 +12,7 @@ import (
 
 // ValidateDestinationPolicyPorts examines the ported configs of the policies provided
 // and issues status conditions if anything is unacceptable.
-func ValidateDestinationPolicyPorts(related *loader.RelatedResources, pending PendingStatuses) {
+func ValidateDestinationPolicyPorts(related *RelatedResources, pending PendingStatuses) {
 	for rk, destPolicy := range related.DestinationPolicies {
 		conditions := computeNewDestPolicyPortConditions(related, rk, destPolicy)
 		pending.AddConditions(rk, destPolicy.Resource, conditions)

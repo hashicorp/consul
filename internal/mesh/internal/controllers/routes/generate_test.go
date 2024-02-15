@@ -12,14 +12,12 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-
 	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
@@ -32,7 +30,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 	for _, tenancy := range rtest.TestTenancies() {
 		run := func(
 			t *testing.T,
-			related *loader.RelatedResources,
+			related *RelatedResources,
 			expect []*ComputedRoutesResult,
 			expectPending PendingStatuses,
 		) {
@@ -134,11 +132,11 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		)
 
 		t.Run("none", func(t *testing.T) {
-			run(t, loader.NewRelatedResources(), nil, nil)
+			run(t, NewRelatedResources(), nil, nil)
 		})
 
 		t.Run("no aligned service", func(t *testing.T) {
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID)
 			expect := []*ComputedRoutesResult{
 				{
@@ -150,7 +148,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		})
 
 		t.Run("aligned service not in mesh", func(t *testing.T) {
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(newService("api", &pbcatalog.Service{
 					Workloads: &pbcatalog.WorkloadSelector{
@@ -168,7 +166,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		})
 
 		t.Run("aligned service in mesh but no actual ports", func(t *testing.T) {
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(newService("api", &pbcatalog.Service{
 					Workloads: &pbcatalog.WorkloadSelector{
@@ -196,7 +194,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(newService("api", apiServiceData))
 
@@ -251,7 +249,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 					},
 				}
 
-				related := loader.NewRelatedResources().
+				related := NewRelatedResources().
 					AddComputedRoutesIDs(apiComputedRoutesID).
 					AddResources(newService("api", apiServiceData))
 
@@ -309,7 +307,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(newService("api", apiServiceData))
 
@@ -411,7 +409,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				}},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -588,7 +586,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				}},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -686,7 +684,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			fooSvc := newService("foo", fooServiceData)
 			apiHTTPRoute1 := newHTTPRoute("api-http-route1", httpRoute1)
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID). // deliberately skip adding 'foo' here to exercise the bug
 				AddResources(apiSvc, fooSvc, apiHTTPRoute1)
 
@@ -776,7 +774,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				}},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -878,7 +876,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			// api-http-route < api-tcp-route
 			tcpRoute.Resource.Generation = httpRoute.Resource.Generation
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -1013,7 +1011,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				}},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -1128,7 +1126,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				}},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -1205,7 +1203,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 					}},
 				}
 
-				related := loader.NewRelatedResources().
+				related := NewRelatedResources().
 					AddComputedRoutesIDs(apiComputedRoutesID).
 					AddResources(
 						newService("api", apiServiceData),
@@ -1270,7 +1268,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 					}},
 				}
 
-				related := loader.NewRelatedResources().
+				related := NewRelatedResources().
 					AddComputedRoutesIDs(apiComputedRoutesID).
 					AddResources(
 						newService("api", apiServiceData),
@@ -1335,7 +1333,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 					}},
 				}
 
-				related := loader.NewRelatedResources().
+				related := NewRelatedResources().
 					AddComputedRoutesIDs(apiComputedRoutesID).
 					AddResources(
 						newService("api", apiServiceData),
@@ -1404,7 +1402,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				}},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -1499,7 +1497,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				ConnectTimeout: durationpb.New(55 * time.Second),
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -1625,7 +1623,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				},
 			}
 
-			related := loader.NewRelatedResources().
+			related := NewRelatedResources().
 				AddComputedRoutesIDs(apiComputedRoutesID).
 				AddResources(
 					newService("api", apiServiceData),
@@ -1744,7 +1742,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 								ConnectTimeout: durationpb.New(55 * time.Second),
 							}
 
-							related := loader.NewRelatedResources().
+							related := NewRelatedResources().
 								AddComputedRoutesIDs(apiComputedRoutesID).
 								AddResources(
 									newService("api", apiServiceData),
@@ -1902,7 +1900,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 									},
 								}
 
-								related := loader.NewRelatedResources().
+								related := NewRelatedResources().
 									AddComputedRoutesIDs(apiComputedRoutesID).
 									AddResources(
 										newService("api", apiServiceData),

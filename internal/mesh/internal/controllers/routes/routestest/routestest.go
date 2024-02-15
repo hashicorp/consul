@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -68,7 +67,7 @@ func makeComputedRoutes(
 ) *types.DecodedComputedRoutes {
 	t.Helper()
 
-	related := loader.NewRelatedResources().
+	related := routes.NewRelatedResources().
 		AddComputedRoutesID(id).
 		AddResources(decResList...)
 

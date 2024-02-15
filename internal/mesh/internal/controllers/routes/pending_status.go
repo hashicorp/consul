@@ -31,7 +31,7 @@ func (p PendingStatuses) AddConditions(
 		state = &PendingResourceStatusUpdate{
 			ID:         res.Id,
 			Generation: res.Generation,
-			CurrStatus: res.Status[StatusKey],
+			CurrStatus: res.Status[ControllerID],
 		}
 		p[rk] = state
 	}
@@ -69,7 +69,7 @@ func UpdatePendingStatuses(
 		} else {
 			_, err := rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
 				Id:     state.ID,
-				Key:    StatusKey,
+				Key:    ControllerID,
 				Status: newStatus,
 			})
 
