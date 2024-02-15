@@ -632,8 +632,7 @@ func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
 			expectErr: true,
 		},
 		"secondary server v2dns": {
-			hcl:       secondary + `experiments = ["v2dns"]`,
-			expectErr: true,
+			hcl: secondary + `experiments = ["v2dns"]`,
 		},
 		"secondary server v2tenancy": {
 			hcl:       secondary + `experiments = ["v2tenancy"]`,
