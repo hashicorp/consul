@@ -621,41 +621,6 @@
     ]
   },
   {
-    "title": "Monitor Consul",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "monitor-consul"
-      },
-      {
-        "title": "Agent telemetry",
-        "path": "monitor-consul/telemetry"
-      },
-      {
-        "title": "Consul logs",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "monitor-consul/log"
-          },
-          {
-            "title": "Log agent behavior",
-            "path": "monitor-consul/log/agent-behavior"
-          },
-          {
-            "title": "Log HTTP API request (Audit log)",
-            "badge": {
-              "text": "ENTERPRISE",
-              "type": "outlined",
-              "color": "neutral"
-            },
-            "path": "monitor-consul/log/audit-log"
-          }
-        ]
-      }
-    ]
-  },
-  {
     "title": "Manage Consul",
     "routes": [
       {
@@ -663,8 +628,34 @@
         "path": "manage-consul"
       },
       {
-        "title": "Snapshot",
-        "path": "manage-consul/snapshot"
+        "title": "Agent rate limit",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "manage-consul/agent-rate-limit"
+          },
+          {
+            "title": "Initialize rate limit settings",
+            "path": "manage-consul/agent-rate-limit/initialize"
+          },
+          {
+            "title": "Monitor traffic rate limits",
+            "path": "manage-consul/agent-rate-limit/monitor"
+          },
+          {
+            "title": "Set global traffic rate limit",
+            "path": "manage-consul/agent-rate-limit/set-global"
+          },
+          {
+            "title": "Limit traffic rates from source IP address",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "manage-consul/agent-rate-limit/source-ip-address"
+          }
+        ]
       },
       {
         "title": "Automated backups",
@@ -694,32 +685,41 @@
         "path": "manage-consul/read-replica"
       },
       {
-        "title": "Agent rate limit",
+        "title": "Snapshot",
+        "path": "manage-consul/snapshot"
+      }
+    ]
+  },
+  {
+    "title": "Monitor Consul",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "monitor-consul"
+      },
+      {
+        "title": "Agent telemetry",
+        "path": "monitor-consul/telemetry"
+      },
+      {
+        "title": "Consul logs",
         "routes": [
           {
             "title": "Overview",
-            "path": "manage-consul/agent-rate-limit"
+            "path": "monitor-consul/log"
           },
           {
-            "title": "Initialize rate limit settings",
-            "path": "manage-consul/agent-rate-limit/initialize"
+            "title": "Log agent behavior",
+            "path": "monitor-consul/log/agent-behavior"
           },
           {
-            "title": "Monitor traffic rate limits",
-            "path": "manage-consul/agent-rate-limit/monitor"
-          },
-          {
-            "title": "Set global traffic rate limit",
-            "path": "manage-consul/agent-rate-limit/set-global"
-          },
-          {
-            "title": "Limit traffic rates from source IP address",
+            "title": "Log HTTP API request (Audit log)",
             "badge": {
               "text": "ENTERPRISE",
               "type": "outlined",
               "color": "neutral"
             },
-            "path": "manage-consul/agent-rate-limit/source-ip-address"
+            "path": "monitor-consul/log/audit-log"
           }
         ]
       }
