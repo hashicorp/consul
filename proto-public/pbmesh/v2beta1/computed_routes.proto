@@ -13,7 +13,6 @@ import "pbmesh/v2beta1/grpc_route.proto";
 import "pbmesh/v2beta1/http_route.proto";
 import "pbmesh/v2beta1/http_route_retries.proto";
 import "pbmesh/v2beta1/http_route_timeouts.proto";
-import "pbmesh/v2beta1/pbproxystate/references.proto";
 import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
