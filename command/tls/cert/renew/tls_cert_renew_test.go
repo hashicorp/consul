@@ -37,27 +37,15 @@ func TestTlsCertRenewCommand_InvalidArgs(t *testing.T) {
 
 	cases := map[string]testcase{
 		"no args (ca/key inferred)": {[]string{},
-			"Please provide either -server, -client, or -cli"},
+			"Please provide the existingcert like #DOMAIN#-agent-#.pem that has to be renewed."},
 		"no ca": {[]string{"-ca", "", "-key", ""},
 			"Please provide the ca"},
 		"no key": {[]string{"-ca", "foo.pem", "-key", ""},
 			"Please provide the key"},
-		"no existingkey": {[]string{"-server", "-existingkey", ""},
+		"no existingcert": {[]string{"-existingcert", ""},
+			"Please provide the existingcert like #DOMAIN#-agent-#.pem that has to be renewed."},
+		"no existingkey": {[]string{"-existingcert", "foo.pem", "-existingkey", ""},
 			"Please provide the existingkey like #DOMAIN#-agent-#-key.pem."},
-
-		"server+client+cli": {[]string{"-server", "-client", "-cli"},
-			"Please provide either -server, -client, or -cli"},
-		"server+client": {[]string{"-server", "-client"},
-			"Please provide either -server, -client, or -cli"},
-		"server+cli": {[]string{"-server", "-cli"},
-			"Please provide either -server, -client, or -cli"},
-		"client+cli": {[]string{"-client", "-cli"},
-			"Please provide either -server, -client, or -cli"},
-
-		"client+node": {[]string{"-client", "-node", "foo"},
-			"-node requires -server"},
-		"cli+node": {[]string{"-cli", "-node", "foo"},
-			"-node requires -server"},
 	}
 
 	for name, tc := range cases {
@@ -78,7 +66,7 @@ func TestTlsCertRenewCommand_InvalidArgs(t *testing.T) {
 }
 
 func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
-	testDir := testutil.TempDir(t, "tls")
+	testDir := testutil.TempDir(t, "tlsrenew")
 
 	defer switchToTempDir(t, testDir)()
 
@@ -87,14 +75,15 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 	createCA(t, "nomad")
 
 	// Setup Certs that will be renewed
-	createCert(t, "dc1", "consul", "server", "0")
-	createCert(t, "dc2", "nomad", "server", "0")
-	createCert(t, "dc1", "consul", "client", "0")
-	createCert(t, "dc1", "consul", "client", "1")
-	createCert(t, "dc2", "nomad", "client", "0")
-	createCert(t, "dc1", "consul", "cli", "0")
-	createCert(t, "dc1", "consul", "cli", "1")
-	createCert(t, "dc2", "nomad", "cli", "0")
+	createCert(t, "dc1", "consul", "server", "0", "")
+	createCert(t, "dc1", "consul", "server", "1", "mysrv")
+	createCert(t, "dc2", "nomad", "server", "0", "")
+	createCert(t, "dc1", "consul", "client", "0", "")
+	createCert(t, "dc1", "consul", "client", "1", "")
+	createCert(t, "dc2", "nomad", "client", "0", "")
+	createCert(t, "dc1", "consul", "cli", "0", "")
+	createCert(t, "dc1", "consul", "cli", "1", "")
+	createCert(t, "dc2", "nomad", "cli", "0", "")
 
 	type testcase struct {
 		name           string
@@ -110,8 +99,8 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 	cases := []testcase{
 		{"server0",
 			"server",
-			[]string{"-server", "-existingkey", "dc1-server-consul-0-key.pem"},
-			"dc1-server-consul-1.pem",
+			[]string{"-existingcert", "dc1-server-consul-0.pem", "-existingkey", "dc1-server-consul-0-key.pem"},
+			"dc1-server-consul-2.pem",
 			"server.dc1.consul",
 			[]string{
 				"server.dc1.consul",
@@ -121,8 +110,8 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 		},
 		{"server1-with-node",
 			"server",
-			[]string{"-server", "-node", "mysrv", "-existingkey", "dc1-server-consul-0-key.pem"},
-			"dc1-server-consul-2.pem",
+			[]string{"-existingcert", "dc1-server-consul-1.pem", "-existingkey", "dc1-server-consul-1-key.pem"},
+			"dc1-server-consul-3.pem",
 			"server.dc1.consul",
 			[]string{
 				"mysrv.server.dc1.consul",
@@ -133,7 +122,7 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 		},
 		{"server0-dc2-altdomain",
 			"server",
-			[]string{"-server", "-dc", "dc2", "-domain", "nomad", "-existingkey", "dc2-server-nomad-0-key.pem"},
+			[]string{"-existingcert", "dc2-server-nomad-0.pem", "-existingkey", "dc2-server-nomad-0-key.pem"},
 			"dc2-server-nomad-1.pem",
 			"server.dc2.nomad",
 			[]string{
@@ -144,7 +133,7 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 		},
 		{"client0",
 			"client",
-			[]string{"-client", "-existingkey", "dc1-client-consul-0-key.pem"},
+			[]string{"-existingcert", "dc1-client-consul-0.pem", "-existingkey", "dc1-client-consul-0-key.pem"},
 			"dc1-client-consul-2.pem",
 			"client.dc1.consul",
 			[]string{
@@ -155,7 +144,7 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 		},
 		{"client1",
 			"client",
-			[]string{"-client", "-existingkey", "dc1-client-consul-1-key.pem"},
+			[]string{"-existingcert", "dc1-client-consul-1.pem", "-existingkey", "dc1-client-consul-1-key.pem"},
 			"dc1-client-consul-3.pem",
 			"client.dc1.consul",
 			[]string{
@@ -166,7 +155,7 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 		},
 		{"client0-dc2-altdomain",
 			"client",
-			[]string{"-client", "-dc", "dc2", "-domain", "nomad", "-existingkey", "dc2-client-nomad-0-key.pem"},
+			[]string{"-existingcert", "dc2-client-nomad-0.pem", "-existingkey", "dc2-client-nomad-0-key.pem"},
 			"dc2-client-nomad-1.pem",
 			"client.dc2.nomad",
 			[]string{
@@ -177,7 +166,7 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 		},
 		{"cli0",
 			"cli",
-			[]string{"-cli", "-existingkey", "dc1-cli-consul-0-key.pem"},
+			[]string{"-existingcert", "dc1-cli-consul-0.pem", "-existingkey", "dc1-cli-consul-0-key.pem"},
 			"dc1-cli-consul-2.pem",
 			"cli.dc1.consul",
 			[]string{
@@ -188,7 +177,7 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 		},
 		{"cli1",
 			"cli",
-			[]string{"-cli", "-existingkey", "dc1-cli-consul-1-key.pem"},
+			[]string{"-existingcert", "dc1-cli-consul-1.pem", "-existingkey", "dc1-cli-consul-1-key.pem"},
 			"dc1-cli-consul-3.pem",
 			"cli.dc1.consul",
 			[]string{
@@ -199,7 +188,7 @@ func TestTlsCertRenewCommand_fileCreate(t *testing.T) {
 		},
 		{"cli0-dc2-altdomain",
 			"cli",
-			[]string{"-cli", "-dc", "dc2", "-domain", "nomad", "-existingkey", "dc2-cli-nomad-0-key.pem"},
+			[]string{"-existingcert", "dc2-cli-nomad-0.pem", "-existingkey", "dc2-cli-nomad-0-key.pem"},
 			"dc2-cli-nomad-1.pem",
 			"cli.dc2.nomad",
 			[]string{
@@ -245,30 +234,14 @@ func expectFiles(t *testing.T, certPath string) *x509.Certificate {
 	t.Helper()
 
 	require.FileExists(t, certPath)
-	// require.FileExists(t, keyPath)
-
-	// fi, err := os.Stat(keyPath)
-	// if err != nil {
-	// 	t.Fatal("should not happen", err)
-	// }
-	// if want, have := fs.FileMode(0600), fi.Mode().Perm(); want != have {
-	// 	t.Fatalf("private key file %s: permissions: want: %o; have: %o", keyPath, want, have)
-	// }
 
 	certData, err := os.ReadFile(certPath)
 	require.NoError(t, err)
-	// keyData, err := os.ReadFile(keyPath)
-	// require.NoError(t, err)
 
 	cert, err := connect.ParseCert(string(certData))
 	require.NoError(t, err)
 	require.NotNil(t, cert)
 
-	// signer, err := connect.ParseSigner(string(keyData))
-	// require.NoError(t, err)
-	// require.NotNil(t, signer)
-
-	// return cert, signer
 	return cert
 }
 
@@ -288,14 +261,14 @@ func createCA(t *testing.T, domain string) {
 	require.FileExists(t, "consul-agent-ca.pem")
 }
 
-func createCert(t *testing.T, dc string, domain string, agent string, num string) {
+func createCert(t *testing.T, dc string, domain string, agent string, num string, node string) {
 	t.Helper()
 
 	ui := cli.NewMockUi()
 	caCmd := certCreate.New(ui)
 
 	args := []string{
-		"-" + agent, "-dc=" + dc, "-domain=" + domain, "-ca=" + domain + "-agent-ca.pem", "-key=" + domain + "-agent-ca-key.pem",
+		"-" + agent, "-dc=" + dc, "-domain=" + domain, "-ca=" + domain + "-agent-ca.pem", "-key=" + domain + "-agent-ca-key.pem", "-node=" + node,
 	}
 
 	require.Equal(t, 0, caCmd.Run(args))

@@ -4,13 +4,13 @@
 package renew
 
 import (
-	"crypto/x509"
 	"flag"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/tls"
 	"github.com/hashicorp/consul/lib/file"
@@ -25,24 +25,16 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI          cli.Ui
-	flags       *flag.FlagSet
-	ca          string
-	key         string
-	existingkey string //Path to existing ****key.pem file for which the cert has to be renewed
-	//Path to existing ****cert.pem file is not required, as CA cert file is being read and
-	//assuming existing cert file *****cert.pem file was created by same CA (self-signed).
-	server      bool
-	client      bool
-	cli         bool
-	dc          string
-	days        int
-	domain      string
-	help        string
-	node        string
-	dnsnames    flags.AppendSliceValue
-	ipaddresses flags.AppendSliceValue
-	prefix      string
+	UI           cli.Ui
+	flags        *flag.FlagSet
+	ca           string
+	key          string
+	existingcert string //Path to existing ****cert.pem file that has to be renewed
+	existingkey  string //Path to key file of the existingcert has to be renewed
+	days         int
+	help         string
+	dnsnames     flags.AppendSliceValue
+	ipaddresses  flags.AppendSliceValue
 }
 
 func (c *cmd) init() {
@@ -50,13 +42,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.ca, "ca", "#DOMAIN#-agent-ca.pem", "Provide path to the ca. Defaults to #DOMAIN#-agent-ca.pem.")
 	c.flags.StringVar(&c.key, "key", "#DOMAIN#-agent-ca-key.pem", "Provide path to the key. Defaults to #DOMAIN#-agent-ca-key.pem.")
 	c.flags.StringVar(&c.existingkey, "existingkey", "", "Provide path to the existing key like #DOMAIN#-agent-#-key.pem.")
-	c.flags.BoolVar(&c.server, "server", false, "Generate server certificate.")
-	c.flags.BoolVar(&c.client, "client", false, "Generate client certificate.")
-	c.flags.StringVar(&c.node, "node", "", "When generating a server cert and this is set an additional dns name is included of the form <node>.server.<datacenter>.<domain>.")
-	c.flags.BoolVar(&c.cli, "cli", false, "Generate cli certificate.")
+	c.flags.StringVar(&c.existingcert, "existingcert", "", "Provide path to the existing cert like #DOMAIN#-agent-#.pem that has to be renewed.")
 	c.flags.IntVar(&c.days, "days", 365, "Provide number of days the certificate is valid for from now on. Defaults to 1 year.")
-	c.flags.StringVar(&c.dc, "dc", "dc1", "Provide the datacenter. Matters only for -server certificates. Defaults to dc1.")
-	c.flags.StringVar(&c.domain, "domain", "consul", "Provide the domain. Matters only for -server certificates.")
 	c.flags.Var(&c.dnsnames, "additional-dnsname", "Provide an additional dnsname for Subject Alternative Names. "+
 		"localhost is always included. This flag may be provided multiple times.")
 	c.flags.Var(&c.ipaddresses, "additional-ipaddress", "Provide an additional ipaddress for Subject Alternative Names. "+
@@ -81,68 +68,64 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if !((c.server && !c.client && !c.cli) ||
-		(!c.server && c.client && !c.cli) ||
-		(!c.server && !c.client && c.cli)) {
-		c.UI.Error("Please provide either -server, -client, or -cli")
+	if c.existingcert == "" {
+		c.UI.Error("Please provide the existingcert like #DOMAIN#-agent-#.pem that has to be renewed.")
 		return 1
 	}
-
-	if c.node != "" && !c.server {
-		c.UI.Error("-node requires -server")
-		return 1
-	}
-
 	if c.existingkey == "" {
 		c.UI.Error("Please provide the existingkey like #DOMAIN#-agent-#-key.pem.")
 		return 1
 	}
 
+	certData, err := os.ReadFile(c.existingcert)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error reading existing Cert file: %s", err))
+		return 1
+	}
+	existingCert, err := connect.ParseCert(string(certData))
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error parsing existing Cert file: %s", err))
+		return 1
+	}
+
 	var DNSNames []string
 	var IPAddresses []net.IP
-	var extKeyUsage []x509.ExtKeyUsage
 	var name, prefix string
 
+	DNSNames = append(DNSNames, existingCert.DNSNames...)
 	for _, d := range c.dnsnames {
 		if len(d) > 0 {
 			DNSNames = append(DNSNames, strings.TrimSpace(d))
 		}
 	}
 
+	IPAddresses = append(IPAddresses, existingCert.IPAddresses...)
 	for _, i := range c.ipaddresses {
 		if len(i) > 0 {
 			IPAddresses = append(IPAddresses, net.ParseIP(strings.TrimSpace(i)))
 		}
 	}
 
-	if c.server {
-		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
-
-		if c.node != "" {
-			nodeName := fmt.Sprintf("%s.server.%s.%s", c.node, c.dc, c.domain)
-			DNSNames = append(DNSNames, nodeName)
-		}
-		DNSNames = append(DNSNames, name)
-		DNSNames = append(DNSNames, "localhost")
-
-		IPAddresses = append(IPAddresses, net.ParseIP("127.0.0.1"))
-		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
-		prefix = fmt.Sprintf("%s-server-%s", c.dc, c.domain)
-
-	} else if c.client {
-		name = fmt.Sprintf("client.%s.%s", c.dc, c.domain)
-		DNSNames = append(DNSNames, []string{name, "localhost"}...)
-		IPAddresses = append(IPAddresses, net.ParseIP("127.0.0.1"))
-		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
-		prefix = fmt.Sprintf("%s-client-%s", c.dc, c.domain)
-	} else if c.cli {
-		name = fmt.Sprintf("cli.%s.%s", c.dc, c.domain)
-		DNSNames = []string{name, "localhost"}
-		prefix = fmt.Sprintf("%s-cli-%s", c.dc, c.domain)
-	} else {
+	name = existingCert.Subject.CommonName
+	parts := strings.Split(name, ".")
+	agent := parts[0]
+	var dc string
+	var domain string
+	if agent != "server" && agent != "client" && agent != "cli" {
 		c.UI.Error("Neither client, cli nor server - should not happen")
 		return 1
 	}
+	if len(parts) > 1 {
+		dc = parts[1]
+	} else {
+		dc = "dc1"
+	}
+	if len(parts) > 2 {
+		domain = parts[2]
+	} else {
+		domain = "consul"
+	}
+	prefix = fmt.Sprintf("%s-%s-%s", dc, agent, domain)
 
 	var certFileName string
 	max := 10000
@@ -151,7 +134,6 @@ func (c *cmd) Run(args []string) int {
 		tmpPk := fmt.Sprintf("%s-%d-key.pem", prefix, i)
 		if tls.FileDoesNotExist(tmpCert) && tls.FileDoesNotExist(tmpPk) {
 			certFileName = tmpCert
-			// pkFileName = tmpPk
 			break
 		}
 		if i == max {
@@ -160,8 +142,8 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	caFile := strings.Replace(c.ca, "#DOMAIN#", c.domain, 1)
-	keyFile := strings.Replace(c.key, "#DOMAIN#", c.domain, 1)
+	caFile := strings.Replace(c.ca, "#DOMAIN#", domain, 1)
+	keyFile := strings.Replace(c.key, "#DOMAIN#", domain, 1)
 	cert, err := os.ReadFile(caFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading CA: %s", err))
@@ -178,7 +160,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.server {
+	if agent == "server" {
 		c.UI.Info(
 			`==> WARNING: Server Certificates grants authority to become a
     server and access all state in the cluster including root keys
@@ -195,7 +177,7 @@ func (c *cmd) Run(args []string) int {
 
 	pub, err := tlsutil.RenewCert(tlsutil.CertOpts{
 		Signer: signer, CA: string(cert), Name: name, Days: c.days,
-		DNSNames: DNSNames, IPAddresses: IPAddresses, ExtKeyUsage: extKeyUsage,
+		DNSNames: DNSNames, IPAddresses: IPAddresses, ExtKeyUsage: existingCert.ExtKeyUsage,
 	}, existingkey)
 	if err != nil {
 		c.UI.Error(err.Error())
@@ -212,12 +194,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	c.UI.Output("==> Saved " + certFileName)
-
-	// if err := file.WriteAtomicWithPerms(pkFileName, []byte(priv), 0755, 0600); err != nil {
-	// 	c.UI.Error(err.Error())
-	// 	return 1
-	// }
-	// c.UI.Output("==> Saved " + pkFileName)
 
 	return 0
 }
