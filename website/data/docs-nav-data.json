@@ -1148,11 +1148,11 @@
       },
       {
         "title": "Static lookups",
-        "path": "discover/dns/static-query"
+        "path": "discover/static-query"
       },
       {
         "title": "Dynamic lookups with prepared queries",
-        "path": "discover/dns/prepared-query"
+        "path": "discover/prepared-query"
       },
       {
         "title": "Virtual machine (VM)",
