@@ -14,7 +14,9 @@ import { BlockingEventSource as RealEventSource } from 'consul-ui/utils/dom/even
 import { ACCESS_LEVEL } from 'consul-ui/components/link-to-hcp-modal';
 
 const modalSelector = '[data-test-link-to-hcp-modal]';
+const modalNoACLsAlertSelector = '[data-test-link-to-hcp-modal-no-acls-alert]';
 const modalOptionReadOnlySelector = '#accessMode-readonly';
+const modalOptionReadOnlyErrorSelector = '[data-test-link-to-hcp-modal-access-level-options-error]';
 const modalGenerateTokenCardSelector = '[data-test-link-to-hcp-modal-generate-token-card]';
 const modalGenerateTokenCardValueSelector =
   '[data-test-link-to-hcp-modal-generate-token-card-value]';
@@ -25,8 +27,6 @@ const modalGenerateTokenMissedPolicyAlertSelector =
   '[data-test-link-to-hcp-modal-missed-policy-alert]';
 const modalNextButtonSelector = '[data-test-link-to-hcp-modal-next-button]';
 const modalCancelButtonSelector = '[data-test-link-to-hcp-modal-cancel-button]';
-const resourceId =
-  'organization/b4432207-bb9c-438e-a160-b98923efa979/project/4b09958c-fa91-43ab-8029-eb28d8cee9d4/hashicorp.consul.global-network-manager.cluster/test-from-api';
 
 module('Integration | Component | link-to-hcp-modal', function (hooks) {
   let originalClipboardWriteText;
@@ -60,13 +60,15 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
           if (permission === 'create tokens') {
             return true;
           }
+          if (permission === 'read acls') {
+            return true;
+          }
         }
       }
     );
     this.owner.register(
       'service:hcp-link-modal',
       class Stub extends Service {
-        resourceId = resourceId;
         hide = hideModal;
       }
     );
@@ -85,6 +87,8 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
                                      @partition="-" />`);
 
     assert.dom(modalSelector).exists({ count: 1 });
+    assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).doesNotExist();
+
     // select read-only
     await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
 
@@ -181,6 +185,7 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
                                      @partition="-" />`);
 
     assert.dom(modalSelector).exists({ count: 1 });
+    assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).doesNotExist();
     // select read-only
     await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
 
@@ -188,5 +193,32 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
     assert.dom(`${modalSelector} ${modalGenerateTokenButtonSelector}`).doesNotExist();
     // Missed policy alert is visible
     assert.dom(`${modalSelector} ${modalGenerateTokenMissedPolicyAlertSelector}`).isVisible();
+  });
+
+  test('it shows an error wher read-only selected and acls are disabled', async function (assert) {
+    this.owner.register(
+      'service:abilities',
+      class Stub extends Service {
+        can(permission) {
+          if (permission === 'read acls') {
+            return false;
+          }
+        }
+      }
+    );
+
+    await render(hbs`<LinkToHcpModal @dc="dc-1"
+                                     @nspace="default"
+                                     @partition="-" />`);
+
+    assert.dom(modalSelector).exists({ count: 1 });
+    assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).isVisible();
+    // select read-only
+    await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
+
+    // when read-only selected and no policy, it doesn't show the generate token button
+    assert.dom(`${modalSelector} ${modalGenerateTokenButtonSelector}`).doesNotExist();
+    // No acls enabled error is presented
+    assert.dom(`${modalSelector} ${modalOptionReadOnlyErrorSelector}`).isVisible();
   });
 });

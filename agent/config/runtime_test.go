@@ -2329,7 +2329,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Cloud = hcpconfig.CloudConfig{
-				// ID is only populated from env if not populated from other sources.
 				ResourceID: "env-id",
 				NodeName:   "thehostname",
 				NodeID:     "",
@@ -2371,8 +2370,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Cloud = hcpconfig.CloudConfig{
-				// ID is only populated from env if not populated from other sources.
-				ResourceID: "file-id",
+				ResourceID: "env-id",
 				NodeName:   "thehostname",
 			}
 

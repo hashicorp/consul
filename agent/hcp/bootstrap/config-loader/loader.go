@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/hcp/bootstrap"
+	"github.com/hashicorp/consul/agent/hcp/bootstrap/constants"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 )
 
@@ -161,7 +162,7 @@ func finalizeRuntimeConfig(rc *config.RuntimeConfig, cfg *bootstrap.RawBootstrap
 // validatePersistedConfig attempts to load persisted config to check for errors and basic validity.
 // Errors here will raise issues like referencing unsupported config fields.
 func validatePersistedConfig(dataDir string) error {
-	filename := filepath.Join(dataDir, bootstrap.SubDir, bootstrap.ConfigFileName)
+	filename := filepath.Join(dataDir, constants.SubDir, bootstrap.ConfigFileName)
 	_, err := config.Load(config.LoadOpts{
 		ConfigFiles: []string{filename},
 		HCL: []string{

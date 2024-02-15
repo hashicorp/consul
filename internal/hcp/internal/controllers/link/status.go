@@ -18,44 +18,63 @@ import (
 const (
 	StatusKey = "consul.io/hcp/link"
 
-	StatusLinked                         = "linked"
-	LinkedReason                         = "SUCCESS"
-	FailedReason                         = "FAILED"
-	DisabledReasonV2ResourcesUnsupported = "DISABLED_V2_RESOURCES_UNSUPPORTED"
-	UnauthorizedReason                   = "UNAUTHORIZED"
-	ForbiddenReason                      = "FORBIDDEN"
+	// Statuses
+	StatusLinked    = "linked"
+	StatusValidated = "validated"
+
+	LinkedSuccessReason                              = "SUCCESS"
+	LinkedFailedReason                               = "FAILED"
+	LinkedDisabledReasonV2ResourcesUnsupportedReason = "DISABLED_V2_RESOURCES_UNSUPPORTED"
+	LinkedUnauthorizedReason                         = "UNAUTHORIZED"
+	LinkedForbiddenReason                            = "FORBIDDEN"
+	ValidatedSuccessReason                           = "SUCCESS"
+	ValidatedFailedV2ResourcesReason                 = "V2_RESOURCES_UNSUPPORTED"
 
 	LinkedMessageFormat                = "Successfully linked to cluster '%s'"
 	FailedMessage                      = "Failed to link to HCP due to unexpected error"
 	DisabledResourceAPIsEnabledMessage = "Link is disabled because resource-apis are enabled"
 	UnauthorizedMessage                = "Access denied, check client_id and client_secret"
 	ForbiddenMessage                   = "Access denied, check the resource_id"
+	ValidatedSuccessMessage            = "Successfully validated link"
+	ValidatedFailedV2ResourcesMessage  = "Link is disabled because resource-apis are enabled"
 )
 
 var (
 	ConditionDisabled = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  DisabledReasonV2ResourcesUnsupported,
+		Reason:  LinkedDisabledReasonV2ResourcesUnsupportedReason,
 		Message: DisabledResourceAPIsEnabledMessage,
 	}
 	ConditionFailed = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  FailedReason,
+		Reason:  LinkedFailedReason,
 		Message: FailedMessage,
 	}
 	ConditionUnauthorized = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  UnauthorizedReason,
+		Reason:  LinkedUnauthorizedReason,
 		Message: UnauthorizedMessage,
 	}
 	ConditionForbidden = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  ForbiddenReason,
+		Reason:  LinkedForbiddenReason,
 		Message: ForbiddenMessage,
+	}
+	ConditionValidatedSuccess = &pbresource.Condition{
+		Type:    StatusValidated,
+		State:   pbresource.Condition_STATE_TRUE,
+		Reason:  ValidatedSuccessReason,
+		Message: ValidatedSuccessMessage,
+	}
+	ConditionValidatedFailed = &pbresource.Condition{
+		Type:    StatusValidated,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  ValidatedFailedV2ResourcesReason,
+		Message: ValidatedFailedV2ResourcesMessage,
 	}
 )
 
@@ -63,7 +82,7 @@ func ConditionLinked(resourceId string) *pbresource.Condition {
 	return &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_TRUE,
-		Reason:  LinkedReason,
+		Reason:  LinkedSuccessReason,
 		Message: fmt.Sprintf(LinkedMessageFormat, resourceId),
 	}
 }
@@ -72,39 +91,39 @@ func writeStatusIfNotEqual(ctx context.Context, rt controller.Runtime, res *pbre
 	if resource.EqualStatus(res.Status[StatusKey], status, false) {
 		return nil
 	}
-	_, err := rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-		Id:     res.Id,
-		Key:    StatusKey,
-		Status: status,
-	})
+	_, err := rt.Client.WriteStatus(
+		ctx, &pbresource.WriteStatusRequest{
+			Id:     res.Id,
+			Key:    StatusKey,
+			Status: status,
+		},
+	)
+	if err != nil {
+		rt.Logger.Error("error writing link status", "error", err)
+	}
 	return err
 }
 
-func linkingFailed(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, err error) error {
-	var condition *pbresource.Condition
+func linkingFailedCondition(err error) *pbresource.Condition {
 	switch {
 	case errors.Is(err, client.ErrUnauthorized):
-		condition = ConditionUnauthorized
+		return ConditionUnauthorized
 	case errors.Is(err, client.ErrForbidden):
-		condition = ConditionForbidden
+		return ConditionForbidden
 	default:
-		condition = ConditionFailed
+		return ConditionFailed
 	}
-	newStatus := &pbresource.Status{
-		ObservedGeneration: res.Generation,
-		Conditions:         []*pbresource.Condition{condition},
-	}
-
-	writeErr := writeStatusIfNotEqual(ctx, rt, res, newStatus)
-	if writeErr != nil {
-		rt.Logger.Error("error writing status", "error", writeErr)
-		return writeErr
-	}
-
-	return nil
 }
 
 func IsLinked(res *pbresource.Resource) (linked bool, reason string) {
+	return isConditionTrue(res, StatusLinked)
+}
+
+func IsValidated(res *pbresource.Resource) (linked bool, reason string) {
+	return isConditionTrue(res, StatusValidated)
+}
+
+func isConditionTrue(res *pbresource.Resource, statusType string) (bool, string) {
 	if !resource.EqualType(res.GetId().GetType(), pbhcp.LinkType) {
 		return false, "resource is not hcp.Link type"
 	}
@@ -115,9 +134,9 @@ func IsLinked(res *pbresource.Resource) (linked bool, reason string) {
 	}
 
 	for _, cond := range linkStatus.GetConditions() {
-		if cond.Type == StatusLinked && cond.GetState() == pbresource.Condition_STATE_TRUE {
+		if cond.Type == statusType && cond.GetState() == pbresource.Condition_STATE_TRUE {
 			return true, ""
 		}
 	}
-	return false, "link status does not include positive linked condition"
+	return false, fmt.Sprintf("link status does not include positive %s condition", statusType)
 }

@@ -6,9 +6,9 @@ package implicitdestinations
 import (
 	"golang.org/x/exp/maps"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/controller/cache/indexers"
+	"github.com/hashicorp/consul/internal/mesh/internal/meshindexes"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
@@ -33,12 +33,7 @@ import (
 var boundRefsIndex = indexers.BoundRefsIndex[*pbmesh.ComputedImplicitDestinations]("bound-references")
 
 // Cache: reverse SVC[*] => WI[*]
-var serviceByWorkloadIdentityIndex = indexers.RefOrIDIndex(
-	"service-by-workload-identity",
-	func(svc *types.DecodedService) []*pbresource.Reference {
-		return getWorkloadIdentitiesFromService(svc.Resource)
-	},
-)
+var serviceByWorkloadIdentityIndex = meshindexes.ServiceByWorkloadIdentityIndex()
 
 // Cache: reverse CTP => WI[source]
 var ctpBySourceWorkloadIdentityIndex = indexers.RefOrIDIndex(
@@ -109,26 +104,7 @@ func indexFromTenantedName(tn tenantedName) []byte {
 }
 
 // Cache: reverse CR => SVC[backend]
-var computedRoutesByBackendServiceIndex = indexers.RefOrIDIndex(
-	"computed-routes-by-backend-service",
-	func(cr *types.DecodedComputedRoutes) []*pbresource.Reference {
-		return getBackendServiceRefsFromComputedRoutes(cr)
-	},
-)
-
-func getWorkloadIdentitiesFromService(svc *pbresource.Resource) []*pbresource.Reference {
-	ids := catalog.GetBoundIdentities(svc)
-
-	out := make([]*pbresource.Reference, 0, len(ids))
-	for _, id := range ids {
-		out = append(out, &pbresource.Reference{
-			Type:    pbauth.WorkloadIdentityType,
-			Name:    id,
-			Tenancy: svc.Id.Tenancy,
-		})
-	}
-	return out
-}
+var computedRoutesByBackendServiceIndex = meshindexes.ComputedRoutesByBackendServiceIndex()
 
 func getSourceWorkloadIdentitiesFromCTP(
 	ctp *types.DecodedComputedTrafficPermissions,
@@ -193,24 +169,6 @@ func getSourceWorkloadIdentitiesFromCTP(
 	}
 
 	return out, sliceWildNameInNS, sliceWildNSInPartition
-}
-
-func getBackendServiceRefsFromComputedRoutes(cr *types.DecodedComputedRoutes) []*pbresource.Reference {
-	var (
-		out  []*pbresource.Reference
-		seen = make(map[resource.ReferenceKey]struct{})
-	)
-	for _, pc := range cr.Data.PortedConfigs {
-		for _, target := range pc.Targets {
-			ref := target.BackendRef.Ref
-			rk := resource.NewReferenceKey(ref)
-			if _, ok := seen[rk]; !ok {
-				out = append(out, ref)
-				seen[rk] = struct{}{}
-			}
-		}
-	}
-	return out
 }
 
 type sourceType int

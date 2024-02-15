@@ -5,6 +5,8 @@ package apigateways
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/apigateways/fetcher"
@@ -67,6 +69,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	serviceData, err := anypb.New(service)
 	if err != nil {
+		rt.Logger.Trace("error creating the serviceData", "apigatewayID", req.ID, "error", err)
 		return err
 	}
 
@@ -81,14 +84,16 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	})
 
 	if err != nil {
+		rt.Logger.Trace("error writing the service", "apigatewayID", req.ID, "error", err)
 		return err
 	}
 
+	rt.Logger.Trace("successfully reconciled APIGateway", "apigatewayID", req.ID)
 	return nil
 }
 
 func listenerProtocolToCatalogProtocol(listenerProtocol string) pbcatalog.Protocol {
-	switch listenerProtocol {
+	switch strings.ToLower(listenerProtocol) {
 	case "http":
 		return pbcatalog.Protocol_PROTOCOL_HTTP
 	case "tcp":
@@ -96,6 +101,6 @@ func listenerProtocolToCatalogProtocol(listenerProtocol string) pbcatalog.Protoc
 	case "grpc":
 		return pbcatalog.Protocol_PROTOCOL_GRPC
 	default:
-		panic("this is a programmer error, the only available protocols are tcp/http/grpc")
+		panic(fmt.Sprintf("this is a programmer error, the only available protocols are tcp/http/grpc. You provided: %q", listenerProtocol))
 	}
 }
