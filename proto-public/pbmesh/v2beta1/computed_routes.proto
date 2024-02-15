@@ -130,15 +130,19 @@ message BackendTargetDetails {
   BackendReference backend_ref = 2;
 
   string mesh_port = 3;
+  string route_port = 25;
+
   ComputedFailoverConfig failover_config = 4;
   DestinationConfig destination_config = 5;
 
   reserved 6 to 20; // leaving a gap between computed and retroactively added fields.
 
-  // ServiceEndpointsRef is not populated naturally and the field exists only for downstream consumers.
-  pbproxystate.EndpointRef service_endpoints_ref = 24;
+  // ServiceEndpointsID is not populated naturally and the field exists only for
+  // downstream consumers.
+  hashicorp.consul.resource.ID service_endpoints_id = 21;
 
   reserved 22; // formerly ServiceEndpoints, never marshaled
+  reserved 24; // formerly ServiceEndpointsRef, never marshalled
 
   // IdentityRefs are not populated naturally and the field exists only for
   // downstream consumers.
