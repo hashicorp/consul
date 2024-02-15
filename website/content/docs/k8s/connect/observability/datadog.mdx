@@ -24,10 +24,18 @@ The Helm chart includes automated configuration options in order to integrate wi
 
 ## DogstatsD
 
+This method of implementation leverages the [hashicorp/go-metrics DogstatsD client library](https://github.com/hashicorp/go-metrics/tree/master/datadog) to manage metrics collection.
+Metrics are aggregated and sent via UDP or UDS transports to a Datadog Agent that runs on the same Kube Node as the Consul servers.
 
+Enabling this method of metrics collection allows Consul to control the delivery of metrics traffic directly to a Datadog agent rather
+than a Datadog agent attempting to reach Consul and scrape the `/v1/agent/metrics` API endpoint.
+
+This is accomplished by updating each server agent's configuration telemetry stanza.
 
 <Tabs>
   <CodeBlockConfig heading={"DogstatsD (UDS)"}>
+
+  Consul Helm Chart Overrides
 
   ```yaml
   metrics:
@@ -42,9 +50,21 @@ The Helm chart includes automated configuration options in order to integrate wi
         dogstatsdAddr: "/var/run/datadog/dsd.socket"
   ```
 
+  Resulting server agent telemetry configuration
+
+  ```json
+  {
+    "telemetry": {
+      "dogstatsd_addr": "unix:///var/run/datadog/dsd.socket"
+    }
+  }
+  ```
+
   </CodeBlockConfig>
 
   <CodeBlockConfig heading={"DogstatsD (UDP:KubeService)"}>
+
+  Consul Helm Chart Overrides
 
   ```yaml
   metrics:
@@ -56,14 +76,25 @@ The Helm chart includes automated configuration options in order to integrate wi
       dogstatsd:
         enabled: true
         socketTransportType: "UDP"
-        # Set `dogstatsdPort` to `0` (default) to omit port number append to address.
-        dogstatsdPort: 0
+        dogstatsdPort: 0          # Set `dogstatsdPort` to `0` (default) to omit port number append to address.
         dogstatsdAddr: "datadog-agent.datadog.svc.cluster.local"
+  ```
+
+  Resulting server agent telemetry configuration
+
+  ```json
+  {
+    "telemetry": {
+      "dogstatsd_addr": "datadog-agent.datadog.svc.cluster.local"
+    }
+  }
   ```
 
   </CodeBlockConfig>
 
   <CodeBlockConfig heading={"DogstatsD (UDP: hostPort)"}>
+
+  Consul Helm Chart Overrides
 
   ```yaml
   metrics:
@@ -77,6 +108,16 @@ The Helm chart includes automated configuration options in order to integrate wi
         socketTransportType: "UDP"
         dogstatsdPort: 8125
         dogstatsdAddr: "172.20.180.10"
+  ```
+
+  Resulting server agent telemetry configuration
+
+  ```json
+  {
+    "telemetry": {
+      "dogstatsd_addr": "172.20.180.10:8125",
+    }
+  }
   ```
 
   </CodeBlockConfig>
@@ -187,6 +228,7 @@ This integration method accomplishes metrics collection by leveraging either [Un
 
 ## Datadog Checks: Official Consul Integration
 
+
   <CodeBlockConfig heading={"Datadog Consul Checks"}>
 
   ```yaml
@@ -214,6 +256,8 @@ This integration method accomplishes metrics collection by leveraging either [Un
 #### Metrics Data Collected
 
 The list of Consul's Prometheus metrics scraped and mapped by this method are listed in the latest [metrics.py](https://github.com/DataDog/integrations-core/blob/master/consul/datadog_checks/consul/metrics.py) of the integration source code.
+
+To understand how Consul Latency metrics are calculated, review the [Consul Network Coordinates](https://developer.hashicorp.com/consul/docs/architecture/coordinates) documentation.
 
 Review the [Datadog Documentation](https://docs.datadoghq.com/integrations/consul/?tab=containerized#data-collected) for the full description of Metrics data collected.
 
@@ -255,4 +299,4 @@ Use of this method will map to Datadog as described in [Mapping Prometheus Metri
 #### Metrics Data Collected
 
   - Collects Consul related metrics via the `/v1/agent/metrics` API endpoint leveraging the `prometheus` query parameter.
-  - Default configuration, uses wildcard `".*"` to collect all metrics emitted from the endpoint.
+  - Default configuration, uses a wildcard `".*"` to collect all metrics emitted from the endpoint, therefore the list of metrics scraped consists of those listed in the [Agent Telemetry](https://developer.hashicorp.com/consul/docs/agent/telemetry) documentation.
