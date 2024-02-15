@@ -32,6 +32,8 @@ than a Datadog agent attempting to reach Consul and scrape the `/v1/agent/metric
 
 This is accomplished by updating each server agent's configuration telemetry stanza.
 
+### Helm Chart Configuration
+
 <Tabs>
   <CodeBlockConfig heading={"DogstatsD (UDS)"}>
 
@@ -124,6 +126,9 @@ This is accomplished by updating each server agent's configuration telemetry sta
 </Tabs>
 
 This integration method accomplishes metrics collection by leveraging either [Unix Domain Sockets](https://docs.datadoghq.com/developers/dogstatsd/unix_socket/?tab=kubernetes) (**UDS**) or [User Datagram Protocol](https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes#agent) (**UDP**) transport.
+Practitioners who manage their Kubernetes infrastructure and/or service-mesh should take into account the implications outlined in the table below.
+
+### UDS/UDP Advantages and Disadvantages
 
 <Tabs>
   <Tab heading={"UDS"}>
@@ -137,8 +142,8 @@ This integration method accomplishes metrics collection by leveraging either [Un
       </thead>
       <tbody>
       <tr>
-        <td>No IP or DNS resolution requirement for Datadog Agent<br/><br/>Improved network performance<br/><br/>Packet error handling<br/><br/>Automatic container ID tagging</td>
-        <td>Requires <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment</td>
+        <td>No IP or DNS resolution requirement for Datadog Agent<br/><br/>Improved network performance<br/><br/>Higher throughput capacity<br/><br/>Packet error handling<br/><br/>Automatic container ID tagging</td>
+        <td>Requires <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment<br/><br/>Datadog Agent must run on every host you send metrics from</td>
         <td>Unix Domain Socket File</td>
       </tr>
       </tbody>
@@ -155,8 +160,8 @@ This integration method accomplishes metrics collection by leveraging either [Un
       </thead>
       <tbody>
       <tr>
-        <td>Does <strong>not</strong> require <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment<br/><br/>Similar <code>IP:Port</code> configuration as Virtual Machine hosts</td>
-        <td>(<strong><em>Hostport</em></strong>) Requires a networking provider that adheres to the CNI specification, such as Calico, Canal, or Flannel.<br/><br/>(<strong><em>Hostport</em></strong>) Requires port to be exposed on host using <code>hostNetwork</code><br/><br/>(<strong><em>Hostport</em></strong>) Requires firewall access controls to permit access<br/><br/>(<strong><em>Hostport</em></strong>) Network Namespace sharing is required</td>
+        <td>Does <strong>not</strong> require <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment<br/><br/>(<strong><em>KubeDNS</em></strong>) Does <strong>not</strong> require Hostport exposure if accessible from cluster<br/><br/>Similar <code>IP:Port</code> configuration as Virtual Machine hosts</td>
+        <td><strong>No</strong> packet error handling<br/><br/>(<strong><em>Hostport</em></strong>) Requires a networking provider that adheres to the CNI specification, such as Calico, Canal, or Flannel.<br/><br/>(<strong><em>Hostport</em></strong>) Requires port to be exposed on host using <code>hostNetwork</code><br/><br/>(<strong><em>Hostport</em></strong>) Requires firewall access controls to permit access<br/><br/>(<strong><em>Hostport</em></strong>) Network Namespace sharing is required</td>
         <td>Kubernetes Service <code>IP:Port</code><br/><br/> <strong>or</strong> <br/><br/>Container host port</td>
       </tr>
       </tbody>
@@ -166,9 +171,16 @@ This integration method accomplishes metrics collection by leveraging either [Un
 
 #### Verifying DogstatsD Metric Collection
 
- | Datadog Agent Command | Pod           | Container |
- |-----------------------|---------------|-----------|
- | `$ agent status`      | datadog-agent | agent     |
+To confirm you're Datadog agent is receiving traffic, the `status` subcommand can be ran from the Datadog Agent expecting to receive DogstatsD traffic from Consul.
+
+There should be an increase in either UDP or UDS traffic packet counts from the resultant output after the configuration has been properly established.
+
+
+ | Transport   | Command                                                                    | Pod           | Container | Example Output                                                                                 |
+ |:------------|----------------------------------------------------------------------------|---------------|-----------|------------------------------------------------------------------------------------------------|
+ | `UDP`/`UDS` | `agent status`                                                             | datadog-agent | agent     | See below.                                                                                     |
+ | `UDP`       | `netstat -nup \| grep "<dd_agent_or_pod_hostIP>:8125.*ESTABLISHED"`        | consul-server | consul    | `udp        0      0 127.0.0.1:53874         127.0.0.1:8125          ESTABLISHED 23176/consul` |
+ | `UDS`       | `nc -U -u -w1 /var/run/datadog/dsd.socket` _(update socket path as req'd)_ | consul-server | consul    | `Bound on /tmp/nc-IjJkoG/recv.sock`                                                            |
 
 <Tabs>
   <CodeBlockConfig heading={"UDP"}>
@@ -228,6 +240,27 @@ This integration method accomplishes metrics collection by leveraging either [Un
 
 ## Datadog Checks: Official Consul Integration
 
+The Datadog Agent package includes official third-party integrations for built-in availability upon agent deployment.
+
+The Consul Integration Datadog checks provided some additional metric verification checks that leverage Consul's built-in feature-set, and help monitor Consul
+during normal operation beyond that of Consul's available metrics.
+
+See the below table for an outline of the features added by the official integration.
+
+### Additional Integration Checks Performed
+
+| Consul Component | Description                                         | API Endpoint(s)                                                      |
+|------------------|-----------------------------------------------------|----------------------------------------------------------------------|
+| Agent            | Agent Metadata (i.e., version)                      | `/v1/agent/self`                                                     |
+| Metrics          | Prometheus formatted metrics                        | `/v1/agent/metrics`                                                  |
+| Serf             | Events and Membership Flaps                         | `/v1/health/service/consul` `/v1/agent/self`                         |
+| Raft             | Monitors Raft peer information and leader elections | `/v1/status/leader` `/v1/status/peers`                               |
+| Catalog Services | Service Health Status and Node Count                | `/v1/catalog/services` `/v1/health/state/any`                        |
+| Catalog Nodes    | Node Service Count and Health Status                | `/v1/health/state/any` `/v1/health/service/<service>`                |
+| Consul Latency   | Consul LAN + WAN Coordinate Latency Calculations    | `/v1/agent/self` `/v1/coordinate/nodes` `/v1/coordinate/datacenters` |
+
+
+### Helm Chart Configuration
 
   <CodeBlockConfig heading={"Datadog Consul Checks"}>
 
@@ -242,15 +275,7 @@ This integration method accomplishes metrics collection by leveraging either [Un
 
   </CodeBlockConfig>
 
-  | Consul Component | Description                                         | API Endpoint(s)                                                      |
-  |------------------|-----------------------------------------------------|----------------------------------------------------------------------|
-  | Agent            | Agent Metadata (i.e., version)                      | `/v1/agent/self`                                                     |
-  | Metrics          | Prometheus formatted metrics                        | `/v1/agent/metrics`                                                  |
-  | Serf             | Events and Membership Flaps                         | `/v1/health/service/consul` `/v1/agent/self`                         |
-  | Raft             | Monitors Raft peer information and leader elections | `/v1/status/leader` `/v1/status/peers`                               |
-  | Catalog Services | Service Health Status and Node Count                | `/v1/catalog/services` `/v1/health/state/any`                        |
-  | Catalog Nodes    | Node Service Count and Health Status                | `/v1/health/state/any` `/v1/health/service/<service>`                |
-  | Consul Latency   | Consul LAN + WAN Coordinate Latency Calculations    | `/v1/agent/self` `/v1/coordinate/nodes` `/v1/coordinate/datacenters` |
+
 
 
 #### Metrics Data Collected
@@ -262,6 +287,8 @@ To understand how Consul Latency metrics are calculated, review the [Consul Netw
 Review the [Datadog Documentation](https://docs.datadoghq.com/integrations/consul/?tab=containerized#data-collected) for the full description of Metrics data collected.
 
 ## Openmetrics Prometheus
+
+### Helm Chart Configuration
 
   <CodeBlockConfig heading={"OpenMetrics Prometheus"}>
 
