@@ -45,7 +45,7 @@
       </Hds::Form::Radio::Group>
       {{#if (and this.isReadOnlyAccessLevelSelected (can "read acls") (can "create tokens"))}}
         <div class="link-to-hcp-modal__generate-token">
-          {{#if  globalReadonlyPolicy.data}}
+          {{#if  (and globalReadonlyPolicy globalReadonlyPolicy.data)}}
             <p class="hds-typography-display-100 hds-font-weight-medium font-family-sans-display">
               Generate a read-only ACL token now (preferred) or copy an existing token’s secret ID
             </p>
@@ -101,7 +101,7 @@
         />
         <Hds::Button type="button" @text="Cancel" @color="secondary"
                      data-test-link-to-hcp-modal-cancel-button
-          {{on "click" F.close}}
+          {{on "click" (fn this.deactivateModal)}}
         />
       </Hds::ButtonSet>
     </M.Footer>

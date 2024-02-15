@@ -9,7 +9,7 @@ import { tracked } from '@glimmer/tracking';
 export default class HcpLinkModalService extends Service {
   @tracked isModalVisible = false;
 
-  show(hcpLinkData) {
+  show() {
     this.isModalVisible = true;
   }
 
