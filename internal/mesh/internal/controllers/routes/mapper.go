@@ -21,33 +21,41 @@ func MapHTTPRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Re
 	if !types.IsHTTPRouteType(res.Id.Type) {
 		return nil, fmt.Errorf("type is not a http route type: %s", res.Id.Type)
 	}
-	return dependency.MapDecoded(mapXRoute[*pbmesh.HTTPRoute])(ctx, rt, res)
+	return mapHTTPRoute(ctx, rt, res)
 }
+
+var mapHTTPRoute = dependency.MapDecoded(mapXRoute[*pbmesh.HTTPRoute])
 
 func MapGRPCRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	if !types.IsGRPCRouteType(res.Id.Type) {
 		return nil, fmt.Errorf("type is not a grpc route type: %s", res.Id.Type)
 	}
-	return dependency.MapDecoded(mapXRoute[*pbmesh.GRPCRoute])(ctx, rt, res)
+	return mapGRPCRoute(ctx, rt, res)
 }
+
+var mapGRPCRoute = dependency.MapDecoded(mapXRoute[*pbmesh.GRPCRoute])
 
 func MapTCPRoute(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	if !types.IsTCPRouteType(res.Id.Type) {
 		return nil, fmt.Errorf("type is not a tcp route type: %s", res.Id.Type)
 	}
-	return dependency.MapDecoded(mapXRoute[*pbmesh.TCPRoute])(ctx, rt, res)
+	return mapTCPRoute(ctx, rt, res)
 }
+
+var mapTCPRoute = dependency.MapDecoded(mapXRoute[*pbmesh.TCPRoute])
 
 func mapXRoute[T types.XRouteData](_ context.Context, _ controller.Runtime, xr *resource.DecodedResource[T]) ([]controller.Request, error) {
 	refs := parentRefSliceToRefSlice(xr.Data.GetParentRefs())
 	return controller.MakeRequests(pbmesh.ComputedRoutesType, refs), nil
 }
 
-func MapServiceNameAligned(
+var MapServiceNameAligned = dependency.MapperWithTransform(mapService, transformNameAlignedService)
+
+func transformNameAlignedService(
 	ctx context.Context,
 	rt controller.Runtime,
 	res *pbresource.Resource,
-) ([]controller.Request, error) {
+) ([]*pbresource.Resource, error) {
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
 	svcID := resource.ReplaceType(pbcatalog.ServiceType, res.Id)
@@ -62,23 +70,25 @@ func MapServiceNameAligned(
 	// addition to the stuff we want.
 	//
 	// This is not a correctness-problem.
-	return MapService(ctx, rt, svc)
+	return []*pbresource.Resource{svc}, nil
 }
+
+var mapService = dependency.MultiMapper(
+	dependency.ReplaceType(pbmesh.ComputedRoutesType), // TODO: may be unnecessary
+	dependency.MapperWithTransform(
+		// (2) find xRoutes with the provided service as a backend; and enumerate all parent refs
+		mapBackendServiceToComputedRoutes,
+		// (1) find failover policies that include this as a destination; also include itself
+		transformServiceToBackendServices,
+	),
+)
 
 func MapService(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	if !types.IsServiceType(res.Id.Type) {
 		return nil, fmt.Errorf("type is not a service type: %s", res.Id.Type)
 	}
 
-	return dependency.MultiMapper(
-		dependency.ReplaceType(pbmesh.ComputedRoutesType), // TODO: may be unnecessary
-		dependency.MapperWithTransform(
-			// (2) find xRoutes with the provided service as a backend; and enumerate all parent refs
-			mapBackendServiceToComputedRoutes,
-			// (1) find failover policies that include this as a destination; also include itself
-			transformServiceToBackendServices,
-		),
-	)(ctx, rt, res)
+	return mapService(ctx, rt, res)
 }
 
 func appendParentsFromIteratorAsComputedRoutes[T types.XRouteData](out []controller.Request, iter cache.DecodedResourceIterator[T]) ([]controller.Request, error) {
