@@ -40,7 +40,7 @@ func (n *NodeLeaf[T]) getValue() interface{} {
 	return n.value
 }
 
-func (n *NodeLeaf[T]) setValue(value interface{}) {
+func (n *NodeLeaf[T]) setValue(value T) {
 	n.value = value
 }
 
