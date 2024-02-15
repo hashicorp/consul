@@ -984,7 +984,6 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, port discovery.Po
 		answer = append(answer, makeNSRecord(domain, fqdn, ttl))
 		extra = append(extra, extraRecord)
 	case qType == dns.TypeSOA:
-		// to be returned in the result.
 		fqdn := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, port.Name)
 		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl)
 
