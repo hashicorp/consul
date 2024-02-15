@@ -1538,7 +1538,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs',
+    source: '/consul/docs/nia/api/status',
     destination: '/consul/docs/reference/cts/api/status',
     permanent: true,
   },
@@ -3554,7 +3554,7 @@ module.exports = [
   {
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/reference/cts/api/status/:slug*',
-    destination: '/consul/docs/:version/:slug',
+    destination: '/consul/docs/:version/nia/api/status/:slug',
     permanent: true,
   },
   {
