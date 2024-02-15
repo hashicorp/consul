@@ -50,8 +50,10 @@ type Deps struct {
 	EnterpriseDeps
 }
 
-// UseV2DNS returns true if "v2-dns" is present in the Experiments
-// array of the agent config. It is assumed if the v2 resource APIs are enabled.
+// UseV2DNS returns true if "v2dns" is present in the Experiments
+// array of the agent config. V2 DNS refers to the refactored implementation of Consul's DNS server.
+// It can handle either the v1 or v2 Catalog APIs.
+// It is enabled automatically if the v2 resource APIs are enabled.
 func (d Deps) UseV2DNS() bool {
 	if stringslice.Contains(d.Experiments, V2DNSExperimentName) || d.UseV2Resources() {
 		return true
