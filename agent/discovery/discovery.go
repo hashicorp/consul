@@ -20,7 +20,6 @@ var (
 
 // ECSNotGlobalError may be used to wrap an error or nil, to indicate that the
 // EDNS client subnet source scope is not global.
-// TODO (v2-dns): prepared queries errors are wrapped by this
 type ECSNotGlobalError struct {
 	error
 }
