@@ -45,6 +45,12 @@ type Controller struct {
 	logger           hclog.Logger
 	startCb          RuntimeCallback
 	stopCb           RuntimeCallback
+	// forceReconcileEvery is the time to wait after a successful reconciliation
+	// before forcing a reconciliation. The net result is a reconciliation of
+	// the managed type on a regular interval. This ensures that the state of the
+	// world is continually reconciled, hence correct in the face of missed events
+	// or other issues.
+	forceReconcileEvery time.Duration
 }
 
 type RuntimeCallback func(context.Context, Runtime)
@@ -53,7 +59,7 @@ type RuntimeCallback func(context.Context, Runtime)
 // Extra cache indexes may be provided as well and these indexes will be automatically managed.
 // Typically, further calls to other builder methods will be needed to fully configure
 // the controller such as using WithReconcile to define the the code that will be called
-// when the managed resource needs reconcilation.
+// when the managed resource needs reconciliation.
 func NewController(name string, managedType *pbresource.Type, indexes ...*index.Index) *Controller {
 	w := &watch{
 		watchedType: managedType,
@@ -65,10 +71,11 @@ func NewController(name string, managedType *pbresource.Type, indexes ...*index.
 	}
 
 	return &Controller{
-		name:             name,
-		managedTypeWatch: w,
-		watches:          make(map[string]*watch),
-		queries:          make(map[string]cache.Query),
+		name:                name,
+		managedTypeWatch:    w,
+		watches:             make(map[string]*watch),
+		queries:             make(map[string]cache.Query),
+		forceReconcileEvery: 8 * time.Hour,
 	}
 }
 
@@ -167,6 +174,15 @@ func (ctl *Controller) WithBackoff(base, max time.Duration) *Controller {
 // per cluster) is the most appropriate and you shouldn't need to override it.
 func (ctl *Controller) WithPlacement(placement Placement) *Controller {
 	ctl.placement = placement
+	return ctl
+}
+
+// WithForceReconcileEvery controls how often a resource gets periodically reconciled
+// to ensure that the state of the world is correct (8 hours is the default).
+// This exists for tests only and should not be customized by controller authors!
+func (ctl *Controller) WithForceReconcileEvery(duration time.Duration) *Controller {
+	ctl.logger.Warn("WithForceReconcileEvery is for testing only and should not be set by controllers")
+	ctl.forceReconcileEvery = duration
 	return ctl
 }
 

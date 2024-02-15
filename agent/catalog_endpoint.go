@@ -13,6 +13,7 @@ import (
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 )
 
 var CatalogCounters = []prometheus.CounterDefinition{
@@ -257,7 +258,7 @@ RETRY_ONCE:
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
-	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, TranslateAddressAcceptAny)
+	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, dnsutil.TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.Nodes == nil {
@@ -403,7 +404,7 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 	}
 
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
-	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes, TranslateAddressAcceptAny)
+	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes, dnsutil.TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.ServiceNodes == nil {
@@ -457,7 +458,7 @@ RETRY_ONCE:
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 	if out.NodeServices != nil {
-		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices, TranslateAddressAcceptAny)
+		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices, dnsutil.TranslateAddressAcceptAny)
 	}
 
 	// TODO: The NodeServices object in IndexedNodeServices is a pointer to
@@ -521,7 +522,7 @@ RETRY_ONCE:
 		goto RETRY_ONCE
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
-	s.agent.TranslateAddresses(args.Datacenter, &out.NodeServices, TranslateAddressAcceptAny)
+	s.agent.TranslateAddresses(args.Datacenter, &out.NodeServices, dnsutil.TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	for _, s := range out.NodeServices.Services {

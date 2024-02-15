@@ -18,17 +18,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/hcp/bootstrap/constants"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/retry"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
 )
 
 const (
-	SubDir = "hcp-config"
-
 	CAFileName      = "server-tls-cas.pem"
 	CertFileName    = "server-tls-cert.pem"
 	ConfigFileName  = "server-config.json"
@@ -128,7 +128,7 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.Boot
 	}
 
 	// Create subdir if it's not already there.
-	dir := filepath.Join(dataDir, SubDir)
+	dir := filepath.Join(dataDir, constants.SubDir)
 	if err := lib.EnsurePath(dir, true); err != nil {
 		return "", fmt.Errorf("failed to ensure directory %q: %w", dir, err)
 	}
@@ -273,7 +273,7 @@ func LoadPersistedBootstrapConfig(dataDir string, ui UI) (*RawBootstrapConfig, b
 		return nil, false
 	}
 
-	dir := filepath.Join(dataDir, SubDir)
+	dir := filepath.Join(dataDir, constants.SubDir)
 
 	_, err := os.Stat(filepath.Join(dir, SuccessFileName))
 	if os.IsNotExist(err) {
@@ -309,7 +309,7 @@ func LoadPersistedBootstrapConfig(dataDir string, ui UI) (*RawBootstrapConfig, b
 }
 
 func loadBootstrapConfigJSON(dataDir string) (string, error) {
-	filename := filepath.Join(dataDir, SubDir, ConfigFileName)
+	filename := filepath.Join(dataDir, constants.SubDir, ConfigFileName)
 
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -461,7 +461,7 @@ func ValidateTLSCerts(cert, key string, caCerts []string) error {
 // LoadManagementToken returns the management token, either by loading it from the persisted
 // token config file or by fetching it from HCP if the token file does not exist.
 func LoadManagementToken(ctx context.Context, logger hclog.Logger, client hcpclient.Client, dataDir string) (string, error) {
-	hcpCfgDir := filepath.Join(dataDir, SubDir)
+	hcpCfgDir := filepath.Join(dataDir, constants.SubDir)
 	token, err := loadManagementToken(hcpCfgDir)
 
 	if err != nil {

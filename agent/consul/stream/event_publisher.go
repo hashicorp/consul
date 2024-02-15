@@ -144,6 +144,21 @@ func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supp
 	return nil
 }
 
+func (e *EventPublisher) RefreshAllTopics() {
+	topics := make(map[Topic]struct{})
+
+	e.lock.Lock()
+	for topic := range e.snapshotHandlers {
+		topics[topic] = struct{}{}
+		e.forceEvictByTopicLocked(topic)
+	}
+	e.lock.Unlock()
+
+	for topic := range topics {
+		e.subscriptions.closeAllByTopic(topic)
+	}
+}
+
 func (e *EventPublisher) RefreshTopic(topic Topic) error {
 	e.lock.Lock()
 	_, found := e.snapshotHandlers[topic]
@@ -153,7 +168,9 @@ func (e *EventPublisher) RefreshTopic(topic Topic) error {
 		return fmt.Errorf("topic %s is not registered", topic)
 	}
 
-	e.forceEvictByTopic(topic)
+	e.lock.Lock()
+	e.forceEvictByTopicLocked(topic)
+	e.lock.Unlock()
 	e.subscriptions.closeAllByTopic(topic)
 
 	return nil
@@ -444,14 +461,12 @@ func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *ev
 	})
 }
 
-// forceEvictByTopic will remove all entries from the snapshot cache for a given topic.
-// This method should be called while holding the publishers lock.
-func (e *EventPublisher) forceEvictByTopic(topic Topic) {
-	e.lock.Lock()
+// forceEvictByTopicLocked will remove all entries from the snapshot cache for a given topic.
+// This method should be called while holding the EventPublisher's lock.
+func (e *EventPublisher) forceEvictByTopicLocked(topic Topic) {
 	for key := range e.snapCache {
 		if key.Topic == topic.String() {
 			delete(e.snapCache, key)
 		}
 	}
-	e.lock.Unlock()
 }

@@ -266,6 +266,158 @@ func waitForAtomicBoolValue(t testutil.TestingTB, actual *atomic.Bool, expected 
 	})
 }
 
+func TestController_WithForceReconcileEvery_UpsertSuccess(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	// Given a controller
+	// When the controller reconciles a resource due to an upsert and succeeds
+	// Then the controller manager should scheduled a forced reconcile after forceReconcileEvery
+	rec := newTestReconciler()
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+
+	// Create sizeable gap between reconcile #1 and forced reconcile #2 to ensure the delay occurs
+	forceReconcileEvery := 5 * time.Second
+	ctrl := controller.
+		NewController("artist", pbdemov2.ArtistType).
+		WithLogger(testutil.Logger(t)).
+		WithForceReconcileEvery(forceReconcileEvery).
+		WithReconciler(rec)
+
+	mgr := controller.NewManager(client, testutil.Logger(t))
+	mgr.Register(ctrl)
+	mgr.SetRaftLeader(true)
+	go mgr.Run(testContext(t))
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	// Verify reconcile #1 happens immediately
+	_, req := rec.waitFor(t, time.Second)
+	prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+
+	// Verify no reconciles occur between reconcile #1 and forced reconcile #2.
+	// Remove a second for max jitter (20% of 5s) and one more second to be safe.
+	rec.expectNoRequest(t, forceReconcileEvery-time.Second-time.Second)
+
+	// Verify forced reconcile #2 occurred (forceReconcileEvery - 1s - 1s + 3s > forceReconcileEvery)
+	_, req = rec.waitFor(t, time.Second*3)
+	prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+}
+
+func TestController_WithForceReconcileEvery_SkipOnReconcileError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	// Given a controller configured with a forceReconcileEvery duration
+	// When the controller reconciles a resource due to an upsert and returns an error
+	// Then the controller manager should not schedule a forced reconcile and allow
+	//      the existing error handling to schedule a rate-limited retry
+	rec := newTestReconciler()
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+
+	// Large enough gap to test for a period of no-reconciles
+	forceReconcileEvery := 5 * time.Second
+	ctrl := controller.
+		NewController("artist", pbdemov2.ArtistType).
+		WithLogger(testutil.Logger(t)).
+		WithForceReconcileEvery(forceReconcileEvery).
+		WithReconciler(rec)
+
+	mgr := controller.NewManager(client, testutil.Logger(t))
+	mgr.Register(ctrl)
+	mgr.SetRaftLeader(true)
+	go mgr.Run(testContext(t))
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	// Setup reconcile #1 to fail
+	rec.failNext(errors.New("reconcile #1 error"))
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	// Observe failed reconcile #1
+	_, req := rec.wait(t)
+	prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+
+	// Observe successful (rate-limited retry) reconcile #2. By not failNext'ing it,
+	// we're expecting it now'ish.
+	_, req = rec.wait(t)
+	prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+
+	// Observe no forced reconcile for gap after last successful reconcile
+	// -1s for 20% jitter reduction
+	// -1s for just to be safe
+	rec.expectNoRequest(t, forceReconcileEvery-time.Second-time.Second)
+
+	// Finally observe forced reconcile #3 up to 1 sec past (5-1-1+3) accumulated forceReconcileEvery delay
+	_, req = rec.waitFor(t, 3*time.Second)
+	prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+}
+
+func TestController_WithForceReconcileEvery_SkipOnDelete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+	// Given a controller configured with a forceReconcileEvery duration
+	// When the controller reconciles a resource due to a delete and succeeds
+	// Then the controller manager should not schedule a forced reconcile
+	rec := newTestReconciler()
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+
+	// Large enough gap to test for a period of no-reconciles
+	forceReconcileEvery := 5 * time.Second
+	ctrl := controller.
+		NewController("artist", pbdemov2.ArtistType).
+		WithLogger(testutil.Logger(t)).
+		WithForceReconcileEvery(forceReconcileEvery).
+		WithReconciler(rec)
+
+	mgr := controller.NewManager(client, testutil.Logger(t))
+	mgr.Register(ctrl)
+	mgr.SetRaftLeader(true)
+	go mgr.Run(testContext(t))
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	// Account for reconcile #1 due to initial write
+	_, req := rec.wait(t)
+	prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+
+	// Perform a delete
+	_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: rsp.Resource.Id})
+	require.NoError(t, err)
+
+	// Account for the reconcile #2 due to the delete
+	_, req = rec.wait(t)
+
+	// Account for the deferred forced reconcile #3 from the original write event since deferred
+	// reconciles don't seem to be de-duped against non-deferred reconciles.
+	_, req = rec.waitFor(t, forceReconcileEvery)
+
+	// Verify no further reconciles occur
+	rec.expectNoRequest(t, forceReconcileEvery)
+}
+
 func TestController_Placement(t *testing.T) {
 	t.Parallel()
 
@@ -493,8 +645,13 @@ func (r *testReconciler) Reconcile(_ context.Context, rt controller.Runtime, req
 	}
 }
 
-func (r *testReconciler) failNext(err error) { r.errors <- err }
-func (r *testReconciler) panicNext(p any)    { r.panics <- p }
+func (r *testReconciler) failNext(err error) {
+	r.errors <- err
+}
+
+func (r *testReconciler) panicNext(p any) {
+	r.panics <- p
+}
 
 func (r *testReconciler) expectNoRequest(t *testing.T, duration time.Duration) {
 	t.Helper()
@@ -509,12 +666,17 @@ func (r *testReconciler) expectNoRequest(t *testing.T, duration time.Duration) {
 
 func (r *testReconciler) wait(t *testing.T) (controller.Runtime, controller.Request) {
 	t.Helper()
+	return r.waitFor(t, 500*time.Millisecond)
+}
+
+func (r *testReconciler) waitFor(t *testing.T, duration time.Duration) (controller.Runtime, controller.Request) {
+	t.Helper()
 
 	var args requestArgs
 	select {
 	case args = <-r.calls:
-	case <-time.After(500 * time.Millisecond):
-		t.Fatal("Reconcile was not called after 500ms")
+	case <-time.After(duration):
+		t.Fatalf("Reconcile was not called after %v", duration)
 	}
 	return args.rt, args.req
 }

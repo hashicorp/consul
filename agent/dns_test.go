@@ -1008,13 +1008,12 @@ func TestDNS_AltDomain_NSRecords_IPV6(t *testing.T) {
 	}
 }
 
-// TODO NET-7644 - Implement service and prepared query lookup for tagged addresses
 func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1222,7 +1221,7 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1356,7 +1355,7 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
 	}
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2149,25 +2148,27 @@ func TestDNS_NonExistentLookupEmptyAorAAAA(t *testing.T) {
 				"webv4.query.consul.",
 			}
 			for _, question := range questions {
-				m := new(dns.Msg)
-				m.SetQuestion(question, dns.TypeAAAA)
+				t.Run(question, func(t *testing.T) {
+					m := new(dns.Msg)
+					m.SetQuestion(question, dns.TypeAAAA)
 
-				c := new(dns.Client)
-				in, _, err := c.Exchange(m, a.DNSAddr())
-				if err != nil {
-					t.Fatalf("err: %v", err)
-				}
+					c := new(dns.Client)
+					in, _, err := c.Exchange(m, a.DNSAddr())
+					if err != nil {
+						t.Fatalf("err: %v", err)
+					}
 
-				require.Len(t, in.Ns, 1)
-				soaRec, ok := in.Ns[0].(*dns.SOA)
-				if !ok {
-					t.Fatalf("Bad: %#v", in.Ns[0])
-				}
-				if soaRec.Hdr.Ttl != 0 {
-					t.Fatalf("Bad: %#v", in.Ns[0])
-				}
+					require.Len(t, in.Ns, 1)
+					soaRec, ok := in.Ns[0].(*dns.SOA)
+					if !ok {
+						t.Fatalf("Bad: %#v", in.Ns[0])
+					}
+					if soaRec.Hdr.Ttl != 0 {
+						t.Fatalf("Bad: %#v", in.Ns[0])
+					}
 
-				require.Equal(t, dns.RcodeSuccess, in.Rcode)
+					require.Equal(t, dns.RcodeSuccess, in.Rcode)
+				})
 			}
 
 			// Check for ipv4 records on ipv6-only service directly and via the
@@ -2177,30 +2178,32 @@ func TestDNS_NonExistentLookupEmptyAorAAAA(t *testing.T) {
 				"webv6.query.consul.",
 			}
 			for _, question := range questions {
-				m := new(dns.Msg)
-				m.SetQuestion(question, dns.TypeA)
+				t.Run(question, func(t *testing.T) {
+					m := new(dns.Msg)
+					m.SetQuestion(question, dns.TypeA)
 
-				c := new(dns.Client)
-				in, _, err := c.Exchange(m, a.DNSAddr())
-				if err != nil {
-					t.Fatalf("err: %v", err)
-				}
+					c := new(dns.Client)
+					in, _, err := c.Exchange(m, a.DNSAddr())
+					if err != nil {
+						t.Fatalf("err: %v", err)
+					}
 
-				if len(in.Ns) != 1 {
-					t.Fatalf("Bad: %#v", in)
-				}
+					if len(in.Ns) != 1 {
+						t.Fatalf("Bad: %#v", in)
+					}
 
-				soaRec, ok := in.Ns[0].(*dns.SOA)
-				if !ok {
-					t.Fatalf("Bad: %#v", in.Ns[0])
-				}
-				if soaRec.Hdr.Ttl != 0 {
-					t.Fatalf("Bad: %#v", in.Ns[0])
-				}
+					soaRec, ok := in.Ns[0].(*dns.SOA)
+					if !ok {
+						t.Fatalf("Bad: %#v", in.Ns[0])
+					}
+					if soaRec.Hdr.Ttl != 0 {
+						t.Fatalf("Bad: %#v", in.Ns[0])
+					}
 
-				if in.Rcode != dns.RcodeSuccess {
-					t.Fatalf("Bad: %#v", in)
-				}
+					if in.Rcode != dns.RcodeSuccess {
+						t.Fatalf("Bad: %#v", in)
+					}
+				})
 			}
 		})
 	}
@@ -3620,7 +3623,7 @@ func TestDNS_V1ConfigReload(t *testing.T) {
 
 }
 
-// TODO (v2-dns) add a test for checking the V2 DNS Server reloads the config
+// TODO (v2-dns) add a test for checking the V2 DNS Server reloads the config (NET-8056)
 
 func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 	if testing.Short() {

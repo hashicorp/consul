@@ -72,7 +72,7 @@ func (s *ServerV2) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Q
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failure decoding dns request: %s", err.Error()))
 	}
 
-	// TODO (v2-dns): parse token and other context metadata from the grpc request/metadata
+	// TODO (v2-dns): parse token and other context metadata from the grpc request/metadata (NET-7885)
 	reqCtx := agentdns.Context{
 		Token: s.TokenFunc(),
 	}

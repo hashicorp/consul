@@ -136,12 +136,6 @@ func validateComputedRoutes(res *DecodedComputedRoutes) error {
 					Wrapped: fmt.Errorf("field should be empty"),
 				}))
 			}
-			if target.ServiceEndpoints != nil {
-				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
-					Name:    "service_endpoints",
-					Wrapped: fmt.Errorf("field should be empty"),
-				}))
-			}
 			if len(target.IdentityRefs) > 0 {
 				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
 					Name:    "identity_refs",

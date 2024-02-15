@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/dnsutil"
 )
 
 const (
@@ -243,7 +244,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Translate addresses after filtering so we don't waste effort.
-	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, TranslateAddressAcceptAny)
+	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, dnsutil.TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.Nodes == nil {

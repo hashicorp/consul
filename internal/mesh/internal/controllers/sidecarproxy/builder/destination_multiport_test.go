@@ -161,7 +161,6 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			virtualIPs []string,
 		) []*intermediate.Destination {
 			svcDec := resourcetest.MustDecode[*pbcatalog.Service](t, svc)
-			seDec := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](t, endpoints)
 
 			var out []*intermediate.Destination
 			for _, port := range svcDec.Data.Ports {
@@ -180,7 +179,6 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 								MeshPort:  details.MeshPort,
 								RoutePort: details.BackendRef.Port,
 							}
-							details.ServiceEndpoints = seDec.Data
 							details.IdentityRefs = identities
 						}
 					}),

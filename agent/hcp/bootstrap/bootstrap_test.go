@@ -11,15 +11,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
+
+	"github.com/hashicorp/consul/agent/hcp/bootstrap/constants"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_loadPersistedBootstrapConfig(t *testing.T) {
@@ -37,7 +40,7 @@ func Test_loadPersistedBootstrapConfig(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		dataDir := testutil.TempDir(t, "load-bootstrap-cfg")
 
-		dir := filepath.Join(dataDir, SubDir)
+		dir := filepath.Join(dataDir, constants.SubDir)
 
 		// Do some common setup as if we received config from HCP and persisted it to disk.
 		require.NoError(t, lib.EnsurePath(dir, true))
@@ -264,7 +267,7 @@ func TestLoadManagementToken(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		dataDir := testutil.TempDir(t, "load-management-token")
 
-		hcpCfgDir := filepath.Join(dataDir, SubDir)
+		hcpCfgDir := filepath.Join(dataDir, constants.SubDir)
 		if !tc.skipHCPConfigDir {
 			err := os.Mkdir(hcpCfgDir, 0755)
 			require.NoError(t, err)
