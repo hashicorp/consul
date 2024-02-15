@@ -30,9 +30,20 @@ func (t *RadixTree[T]) Search(key []byte) T {
 }
 
 func (t *RadixTree[T]) Minimum() *NodeLeaf[T] {
-	return minimum[T](*t.root)
+	return minimum[T](t.root)
 }
 
 func (t *RadixTree[T]) Maximum() *NodeLeaf[T] {
-	return maximum[T](*t.root)
+	return maximum[T](t.root)
+}
+
+func (t *RadixTree[T]) Delete(key []byte) T {
+	var nilT T
+	l := recursiveDelete[T](t.root, &t.root, getTreeKey(key), 0)
+	if l != nil {
+		t.size--
+		old := l.value
+		return old
+	}
+	return nilT
 }

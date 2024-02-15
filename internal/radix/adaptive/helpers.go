@@ -130,7 +130,7 @@ func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, dept
 			copy(node.getPartial()[:], node.getPartial()[prefixDiff+1:min(MaxPrefixLen, int(node.getPartialLen())+prefixDiff+1)])
 		} else {
 			node.setPartialLen(node.getPartialLen() - uint32(prefixDiff+1))
-			l := minimum[T](node)
+			l := minimum[T](&node)
 			addChild4[T](newNode4, ref, l.key[depth+prefixDiff], node)
 			copy(node.getPartial()[:], l.key[depth+prefixDiff+1:depth+prefixDiff+1+min(MaxPrefixLen, int(node.getPartialLen()))])
 		}
@@ -360,7 +360,7 @@ func prefixMismatch[T any](n Node[T], key []byte, keyLen, depth int) int {
 	// If the prefix is short we can avoid finding a leaf
 	if n.getPartialLen() > MaxPrefixLen {
 		// Prefix is longer than what we've checked, find a leaf
-		l := minimum(n)
+		l := minimum(&n)
 		maxCmp = min(int(l.keyLen), keyLen) - depth
 		for ; idx < maxCmp; idx++ {
 			if l.key[idx+depth] != key[depth+idx] {
@@ -372,38 +372,39 @@ func prefixMismatch[T any](n Node[T], key []byte, keyLen, depth int) int {
 }
 
 // minimum finds the minimum leaf under a node.
-func minimum[T any](n Node[T]) *NodeLeaf[T] {
+func minimum[T any](n *Node[T]) *NodeLeaf[T] {
 	// Handle base cases
 	if n == nil {
 		return nil
 	}
-	if isLeaf[T](n) {
-		return n.(*NodeLeaf[T])
+	node := *n
+	if isLeaf[T](node) {
+		return node.(*NodeLeaf[T])
 	}
 
 	var idx int
-	switch n.getArtNodeType() {
+	switch node.getArtNodeType() {
 	case NODE4:
-		return minimum[T](*(n.(*Node4[T])).children[0])
+		return minimum[T](node.(*Node4[T]).children[0])
 	case NODE16:
-		return minimum[T](*(n.(*Node16[T])).children[0])
+		return minimum[T](node.(*Node16[T]).children[0])
 	case NODE48:
 		idx = 0
-		node := n.(*Node48[T])
+		node := node.(*Node48[T])
 		for idx < 256 && node.children[idx] == nil {
 			idx++
 		}
 		if idx < 256 {
-			return minimum[T](*node.children[idx])
+			return minimum[T](node.children[idx])
 		}
 	case NODE256:
-		node := n.(*Node256[T])
+		node := node.(*Node256[T])
 		idx = 0
 		for idx < 256 && node.children[idx] == nil {
 			idx++
 		}
 		if idx < 256 {
-			return minimum[T](*node.children[idx])
+			return minimum[T](node.children[idx])
 		}
 	default:
 		panic("Unknown node type")
@@ -412,38 +413,40 @@ func minimum[T any](n Node[T]) *NodeLeaf[T] {
 }
 
 // maximum finds the maximum leaf under a node.
-func maximum[T any](n Node[T]) *NodeLeaf[T] {
+func maximum[T any](n *Node[T]) *NodeLeaf[T] {
 	// Handle base cases
 	if n == nil {
 		return nil
 	}
-	if isLeaf[T](n) {
-		return n.(*NodeLeaf[T])
-	}
 
+	node := *n
+
+	if isLeaf[T](node) {
+		return node.(*NodeLeaf[T])
+	}
 	var idx int
-	switch n.getArtNodeType() {
+	switch node.getArtNodeType() {
 	case NODE4:
-		return maximum[T](*n.(*Node4[T]).children[n.getNumChildren()-1])
+		return maximum[T](node.(*Node4[T]).children[node.getNumChildren()-1])
 	case NODE16:
-		return maximum[T](*n.(*Node16[T]).children[n.getNumChildren()-1])
+		return maximum[T](node.(*Node16[T]).children[node.getNumChildren()-1])
 	case NODE48:
-		node := n.(*Node48[T])
+		node := node.(*Node48[T])
 		idx = 255
-		for idx >= 0 && *node.children[idx] == nil {
-			idx--
-		}
-		if idx >= 0 {
-			return maximum[T](*node.children[idx])
-		}
-	case NODE256:
-		idx = 255
-		node := n.(*Node256[T])
 		for idx >= 0 && node.children[idx] == nil {
 			idx--
 		}
 		if idx >= 0 {
-			return maximum[T](*node.children[idx])
+			return maximum[T](node.children[idx])
+		}
+	case NODE256:
+		idx = 255
+		node := node.(*Node256[T])
+		for idx >= 0 && node.children[idx] == nil {
+			idx--
+		}
+		if idx >= 0 {
+			return maximum[T](node.children[idx])
 		}
 	default:
 		panic("Unknown node type")
@@ -507,4 +510,182 @@ func getTreeKey(key []byte) []byte {
 	newKey := make([]byte, keyLen)
 	copy(newKey, key)
 	return newKey
+}
+
+func recursiveDelete[T any](n *Node[T], ref **Node[T], key []byte, depth int) *NodeLeaf[T] {
+	keyLen := len(key)
+	// Search terminated
+	if n == nil {
+		return nil
+	}
+	node := *n
+	// Handle hitting a leaf node
+	if isLeaf[T](node) {
+		l := node.(*NodeLeaf[T])
+		if leafMatches[T](l, key, keyLen) == 0 {
+			*ref = nil
+			return l
+		}
+		return nil
+	}
+
+	// Bail if the prefix does not match
+	if node.getPartialLen() > 0 {
+		prefixLen := checkPrefix[T](node, key, keyLen, depth)
+		if prefixLen != min(MaxPrefixLen, int(node.getPartialLen())) {
+			return nil
+		}
+		depth += int(node.getPartialLen())
+	}
+
+	// Find child node
+	child := findChild[T](node, key[depth])
+	if child == nil {
+		return nil
+	}
+
+	// If the child is a leaf, delete from this node
+	if isLeaf(**child) {
+		nodeChild := **child
+		l := nodeChild.(*NodeLeaf[T])
+		if leafMatches[T](l, key, keyLen) == 0 {
+			removeChild[T](node, ref, key[depth], child)
+			return l
+		}
+		return nil
+	}
+
+	// Recurse
+	return recursiveDelete[T](*child, child, key, depth+1)
+}
+
+func removeChild[T any](n Node[T], ref **Node[T], c byte, l **Node[T]) {
+	switch n.getArtNodeType() {
+	case NODE4:
+		removeChild4[T](n.(*Node4[T]), ref, l)
+	case NODE16:
+		removeChild16[T](n.(*Node16[T]), ref, l)
+	case NODE48:
+		removeChild48[T](n.(*Node48[T]), ref, c)
+	case NODE256:
+		removeChild256[T](n.(*Node256[T]), ref, c)
+	default:
+		panic("invalid node type")
+	}
+}
+
+func removeChild4[T any](n *Node4[T], ref **Node[T], l **Node[T]) {
+	pos := -1
+	for i, node := range n.children {
+		if node == *l {
+			pos = i
+			break
+		}
+	}
+	if pos == -1 {
+		return // Child node not found
+	}
+
+	node := *n
+	copy(n.keys[pos:], n.keys[pos+1:])
+	copy(n.children[pos:], n.children[pos+1:])
+	node.numChildren--
+
+	// Remove nodes with only a single child
+	if node.numChildren == 1 {
+		child := *n.children[0]
+		// Is not leaf
+		if !child.isLeaf() {
+			// Concatenate the prefixes
+			prefix := int(node.getPartialLen())
+			if prefix < MaxPrefixLen {
+				n.partial[prefix] = n.keys[0]
+				prefix++
+			}
+			if prefix < MaxPrefixLen {
+				subPrefix := min(int(child.getPartialLen()), MaxPrefixLen-prefix)
+				copy(node.getPartial()[prefix:], child.getPartial()[:subPrefix])
+				prefix += subPrefix
+			}
+
+			// Store the prefix in the child
+			copy(child.getPartial(), node.partial[:min(prefix, MaxPrefixLen)])
+			child.setPartialLen(child.getPartialLen() + node.getPartialLen() + 1)
+		}
+		*ref = &child
+	}
+}
+
+func removeChild16[T any](n *Node16[T], ref **Node[T], l **Node[T]) {
+	pos := -1
+	for i, node := range n.children {
+		if node == *l {
+			pos = i
+			break
+		}
+	}
+	if pos == -1 {
+		return // Child node not found
+	}
+
+	node := *n
+	copy(n.keys[pos:], n.keys[pos+1:])
+	copy(n.children[pos:], n.children[pos+1:])
+	node.numChildren--
+
+	if node.numChildren == 3 {
+		newNode := allocNode[T](NODE4)
+		*ref = &newNode
+		node4 := newNode.(*Node4[T])
+		copyHeader[T](newNode, n)
+		copy(node4.keys[:], node.keys[:4])
+		copy(node4.children[:], node.children[:4])
+	}
+}
+
+func removeChild48[T any](n *Node48[T], ref **Node[T], c uint8) {
+	pos := n.keys[c]
+	n.keys[c] = 0
+	n.children[pos-1] = nil
+	n.numChildren--
+
+	if n.numChildren == 12 {
+		newNode := allocNode[T](NODE16)
+		*ref = &newNode
+		node16 := newNode.(*Node16[T])
+		copyHeader[T](newNode, n)
+
+		child := 0
+		for i := 0; i < 256; i++ {
+			pos = n.keys[i]
+			if pos != 0 {
+				node16.keys[child] = byte(i)
+				node16.children[child] = n.children[pos-1]
+				child++
+			}
+		}
+	}
+}
+
+func removeChild256[T any](n *Node256[T], ref **Node[T], c uint8) {
+	n.children[c] = nil
+	n.numChildren--
+
+	// Resize to a node48 on underflow, not immediately to prevent
+	// trashing if we sit on the 48/49 boundary
+	if n.numChildren == 37 {
+		newNode := allocNode[T](NODE48)
+		*ref = &newNode
+		node48 := newNode.(*Node48[T])
+		copyHeader[T](newNode, n)
+
+		pos := 0
+		for i := 0; i < 256; i++ {
+			if n.children[i] != nil {
+				node48.children[pos] = n.children[i]
+				node48.keys[i] = byte(pos + 1)
+				pos++
+			}
+		}
+	}
 }

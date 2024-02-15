@@ -9,6 +9,7 @@ import (
 )
 
 func TestARTree_InsertAndSearchWords(t *testing.T) {
+	t.Parallel()
 
 	art := NewAdaptiveRadixTree[int]()
 
@@ -33,9 +34,7 @@ func TestARTree_InsertAndSearchWords(t *testing.T) {
 	lineNumber = 1
 	for _, line := range lines {
 		lineNumberFetched := art.Search([]byte(line))
-		if lineNumberFetched != lineNumber {
-			t.Fatal("lineNumberFetched != lineNumber")
-		}
+		require.Equal(t, lineNumberFetched, lineNumber)
 		lineNumber += 1
 	}
 
@@ -46,6 +45,7 @@ func TestARTree_InsertAndSearchWords(t *testing.T) {
 }
 
 func TestARTree_InsertAndSearchUUID(t *testing.T) {
+	t.Parallel()
 
 	art := NewAdaptiveRadixTree[int]()
 
@@ -70,9 +70,7 @@ func TestARTree_InsertAndSearchUUID(t *testing.T) {
 	lineNumber = 1
 	for _, line := range lines {
 		lineNumberFetched := art.Search([]byte(line))
-		if lineNumberFetched != lineNumber {
-			t.Fatal("lineNumberFetched != lineNumber")
-		}
+		require.Equal(t, lineNumberFetched, lineNumber)
 		lineNumber += 1
 	}
 
@@ -84,6 +82,7 @@ func TestARTree_InsertAndSearchUUID(t *testing.T) {
 }
 
 func TestARTree_InsertVeryLongKey(t *testing.T) {
+	t.Parallel()
 
 	key1 := []byte{16, 0, 0, 0, 7, 10, 0, 0, 0, 2, 17, 10, 0, 0, 0, 120, 10, 0, 0, 0, 120, 10, 0,
 		0, 0, 216, 10, 0, 0, 0, 202, 10, 0, 0, 0, 194, 10, 0, 0, 0, 224, 10, 0, 0, 0,
@@ -130,4 +129,43 @@ func TestARTree_InsertVeryLongKey(t *testing.T) {
 
 	art.Insert(key2, string(key2))
 	require.Equal(t, art.size, uint64(2))
+}
+
+func TestARTree_InsertSearchAndDelete(t *testing.T) {
+	t.Parallel()
+
+	art := NewAdaptiveRadixTree[int]()
+
+	file, err := os.Open("test-text/words.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	var lines []string
+
+	scanner := bufio.NewScanner(file)
+	// optionally, resize scanner's capacity for lines over 64K, see next example
+	lineNumber := 1
+	for scanner.Scan() {
+		art.Insert(scanner.Bytes(), lineNumber)
+		lineNumber += 1
+		lines = append(lines, scanner.Text())
+	}
+
+	// optionally, resize scanner's capacity for lines over 64K, see next example
+	lineNumber = 1
+	for _, line := range lines {
+		lineNumberFetched := art.Search([]byte(line))
+		require.Equal(t, lineNumberFetched, lineNumber)
+		val := art.Delete([]byte(line))
+		require.Equal(t, val, lineNumber)
+		lineNumber += 1
+		require.Equal(t, art.size, uint64(len(lines)-lineNumber+1))
+	}
+
+	artLeafMin := art.Minimum()
+	artLeafMax := art.Maximum()
+	require.Equal(t, (*NodeLeaf[int])(nil), artLeafMin)
+	require.Equal(t, (*NodeLeaf[int])(nil), artLeafMax)
 }
