@@ -182,7 +182,7 @@ func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetc
 		return nil
 	}
 
-	// Write the created/updated ProxyStateTemplate with MeshGateway owner
+	// Write the created/updated ProxyStateTemplate with Workload as owner
 	_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id:       req.ID,
