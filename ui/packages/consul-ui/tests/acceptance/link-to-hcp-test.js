@@ -60,8 +60,5 @@ module('Acceptance | link to hcp', function (hooks) {
 
     // link to HCP modal appears
     assert.dom(linkToHcpModalSelector).isVisible('Link to HCP modal is visible');
-
-    // Click on the cancel button
-    await click(`${linkToHcpModalSelector} ${linkToHcpModalCancelButtonSelector}`);
   });
 });
