@@ -22,7 +22,6 @@ export default class LinkToHcpBannerComponent extends Component {
   }
   @action
   onClusterLink() {
-    this.hcpLinkModal.setResourceId(this.args.linkData?.resourceId);
     this.hcpLinkModal.show();
   }
 }

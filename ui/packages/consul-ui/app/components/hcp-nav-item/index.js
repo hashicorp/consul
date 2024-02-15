@@ -52,7 +52,6 @@ export default class HcpLinkItemComponent extends Component {
 
   @action
   onLinkToConsulCentral() {
-    this.hcpLinkModal.setResourceId(this.args.linkData?.resourceId);
     this.hcpLinkModal.show();
   }
 }
