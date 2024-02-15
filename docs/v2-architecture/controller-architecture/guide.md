@@ -530,15 +530,15 @@ Example flow in a controller's `Reconcile` method
 const finalizer = "consul.io/bar-finalizer"
 
 func (barReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
-    ...
-    // Check if resource is marked for deletion. If yes, perform cleanup, remove finalizer, and Write the resource
+	...
+	// Check if resource is marked for deletion. If yes, perform cleanup, remove finalizer, and Write the resource
 	if resource.IsMarkedForDeletion(res) {
-        // Perform some cleanup...
+		// Perform some cleanup...
 		return EnsureFinalizerRemoved(ctx, rt, res, finalizer)
 	}
 
-    // Check if resource has finalizer. If not, add it and Write the resource
-	if err = EnsureHasFinalizer(ctx, rt, res, finalizer); err != nil {
+	// Check if resource has finalizer. If not, add it and Write the resource
+	if err := EnsureHasFinalizer(ctx, rt, res, finalizer); err != nil {
 		return err
 	}
 }
