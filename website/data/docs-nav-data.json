@@ -1147,6 +1147,10 @@
         ]
       },
       {
+        "title": "Load balancing",
+        "path": "discover/load-balancer"
+      },
+      {
         "title": "Static lookups",
         "path": "discover/static-query"
       },
