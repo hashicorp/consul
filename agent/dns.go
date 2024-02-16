@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/armon/go-radix"
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
@@ -26,29 +25,12 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	dnsutil "github.com/hashicorp/consul/internal/dnsutil"
 	libdns "github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 )
-
-var DNSCounters = []prometheus.CounterDefinition{
-	{
-		Name: []string{"dns", "stale_queries"},
-		Help: "Increments when an agent serves a query within the allowed stale threshold.",
-	},
-}
-
-var DNSSummaries = []prometheus.SummaryDefinition{
-	{
-		Name: []string{"dns", "ptr_query"},
-		Help: "Measures the time spent handling a reverse DNS query for the given node.",
-	},
-	{
-		Name: []string{"dns", "domain_query"},
-		Help: "Measures the time spent handling a domain query for the given node.",
-	},
-}
 
 const (
 	// UDP can fit ~25 A records in a 512B response, and ~14 AAAA
@@ -405,8 +387,17 @@ func (d *DNSServer) getResponseDomain(questionName string) string {
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
+		// V1 DNS-style metrics
 		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+
+		// V2 DNS-style metrics for forward compatibility
+		metrics.MeasureSinceWithLabels([]string{"dns", "query"}, s,
+			[]metrics.Label{
+				{Name: "node", Value: d.agent.config.NodeName},
+				{Name: "type", Value: dns.Type(dns.TypePTR).String()},
+			})
+
 		d.logger.Debug("request served from client",
 			"question", q,
 			"latency", time.Since(s).String(),
@@ -518,12 +509,21 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
+		// V1 DNS-style metrics
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+
+		// V2 DNS-style metrics for forward compatibility
+		metrics.MeasureSinceWithLabels([]string{"dns", "query"}, s,
+			[]metrics.Label{
+				{Name: "node", Value: d.agent.config.NodeName},
+				{Name: "type", Value: dns.Type(q.Qtype).String()},
+			})
+
 		d.logger.Debug("request served from client",
 			"name", q.Name,
-			"type", dns.Type(q.Qtype),
-			"class", dns.Class(q.Qclass),
+			"type", dns.Type(q.Qtype).String(),
+			"class", dns.Class(q.Qclass).String(),
 			"latency", time.Since(s).String(),
 			"client", resp.RemoteAddr().String(),
 			"client_network", resp.RemoteAddr().Network(),
@@ -1801,13 +1801,13 @@ func makeARecord(qType uint16, ip net.IP, ttl time.Duration) dns.RR {
 // In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the node IP
 // Otherwise it will return a IN A record
 func (d *DNSServer) makeRecordFromNode(node *structs.Node, qType uint16, qName string, ttl time.Duration, maxRecursionLevel int) []dns.RR {
-	addrTranslate := TranslateAddressAcceptDomain
+	addrTranslate := dnsutil.TranslateAddressAcceptDomain
 	if qType == dns.TypeA {
-		addrTranslate |= TranslateAddressAcceptIPv4
+		addrTranslate |= dnsutil.TranslateAddressAcceptIPv4
 	} else if qType == dns.TypeAAAA {
-		addrTranslate |= TranslateAddressAcceptIPv6
+		addrTranslate |= dnsutil.TranslateAddressAcceptIPv6
 	} else {
-		addrTranslate |= TranslateAddressAcceptAny
+		addrTranslate |= dnsutil.TranslateAddressAcceptAny
 	}
 
 	addr := d.agent.TranslateAddress(node.Datacenter, node.Address, node.TaggedAddresses, addrTranslate)
@@ -1973,13 +1973,13 @@ MORE_REC:
 
 // Craft dns records from a CheckServiceNode struct
 func (d *DNSServer) makeNodeServiceRecords(lookup serviceLookup, node structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsConfig, maxRecursionLevel int) ([]dns.RR, []dns.RR) {
-	addrTranslate := TranslateAddressAcceptDomain
+	addrTranslate := dnsutil.TranslateAddressAcceptDomain
 	if req.Question[0].Qtype == dns.TypeA {
-		addrTranslate |= TranslateAddressAcceptIPv4
+		addrTranslate |= dnsutil.TranslateAddressAcceptIPv4
 	} else if req.Question[0].Qtype == dns.TypeAAAA {
-		addrTranslate |= TranslateAddressAcceptIPv6
+		addrTranslate |= dnsutil.TranslateAddressAcceptIPv6
 	} else {
-		addrTranslate |= TranslateAddressAcceptAny
+		addrTranslate |= dnsutil.TranslateAddressAcceptAny
 	}
 
 	// The datacenter should be empty during translation if it is a peering lookup.
@@ -2055,7 +2055,7 @@ func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsConfig, lookup service
 
 		// The datacenter should be empty during translation if it is a peering lookup.
 		// This should be fine because we should always prefer the WAN address.
-		serviceAddress := d.agent.TranslateServiceAddress(lookup.Datacenter, node.Service.Address, node.Service.TaggedAddresses, TranslateAddressAcceptAny)
+		serviceAddress := d.agent.TranslateServiceAddress(lookup.Datacenter, node.Service.Address, node.Service.TaggedAddresses, dnsutil.TranslateAddressAcceptAny)
 		servicePort := d.agent.TranslateServicePort(lookup.Datacenter, node.Service.Port, node.Service.TaggedAddresses)
 		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, serviceAddress, servicePort)
 		if _, ok := handled[tuple]; ok {

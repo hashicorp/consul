@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -188,8 +187,7 @@ func (suite *proxyStateTemplateBuilderSuite) setupWithTenancy(tenancy *pbresourc
 
 func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_BuildForPeeredExportedServices() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		c := cache.New()
-		f := fetcher.New(suite.client, c)
+		f := fetcher.New(suite.client)
 		dc := "dc"
 		trustDomain := "trustDomain"
 		logger := testutil.Logger(suite.T())

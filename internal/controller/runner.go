@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -66,34 +67,34 @@ func newControllerRunner(c *Controller, client pbresource.ResourceServiceClient,
 	}
 }
 
-func (c *controllerRunner) run(ctx context.Context) error {
-	c.logger.Debug("controller running")
-	defer c.logger.Debug("controller stopping")
+func (cr *controllerRunner) run(ctx context.Context) error {
+	cr.logger.Debug("controller running")
+	defer cr.logger.Debug("controller stopping")
 
 	// Initialize the controller if required
-	if c.ctrl.initializer != nil {
-		c.logger.Debug("controller initializing")
-		err := c.ctrl.initializer.Initialize(ctx, c.runtime(c.logger))
+	if cr.ctrl.initializer != nil {
+		cr.logger.Debug("controller initializing")
+		err := cr.ctrl.initializer.Initialize(ctx, cr.runtime(cr.logger))
 		if err != nil {
 			return err
 		}
-		c.logger.Debug("controller initialized")
+		cr.logger.Debug("controller initialized")
 	}
 
-	c.cache = c.ctrl.buildCache()
+	cr.cache = cr.ctrl.buildCache()
 	defer func() {
 		// once no longer running we should nil out the cache
 		// so that we don't hold pointers to resources which may
 		// become out of date in the future.
-		c.cache = nil
+		cr.cache = nil
 	}()
 
-	if c.ctrl.startCb != nil {
-		c.ctrl.startCb(ctx, c.runtime(c.logger))
+	if cr.ctrl.startCb != nil {
+		cr.ctrl.startCb(ctx, cr.runtime(cr.logger))
 	}
 
-	if c.ctrl.stopCb != nil {
-		defer c.ctrl.stopCb(ctx, c.runtime(c.logger))
+	if cr.ctrl.stopCb != nil {
+		defer cr.ctrl.stopCb(ctx, cr.runtime(cr.logger))
 	}
 
 	// Before we launch the reconciler or the dependency mappers, ensure the
@@ -102,76 +103,76 @@ func (c *controllerRunner) run(ctx context.Context) error {
 	// Without doing this the cache is unsafe for general use without causing
 	// reconcile regressions in certain cases.
 	{
-		c.logger.Debug("priming caches")
+		cr.logger.Debug("priming caches")
 		primeGroup, primeGroupCtx := errgroup.WithContext(ctx)
 		// Managed Type Events
 		primeGroup.Go(func() error {
-			return c.primeCache(primeGroupCtx, c.ctrl.managedTypeWatch.watchedType)
+			return cr.primeCache(primeGroupCtx, cr.ctrl.managedTypeWatch.watchedType)
 		})
-		for _, w := range c.ctrl.watches {
+		for _, w := range cr.ctrl.watches {
 			watcher := w
 			// Watched Type Events
 			primeGroup.Go(func() error {
-				return c.primeCache(primeGroupCtx, watcher.watchedType)
+				return cr.primeCache(primeGroupCtx, watcher.watchedType)
 			})
 		}
 
 		if err := primeGroup.Wait(); err != nil {
 			return err
 		}
-		c.logger.Debug("priming caches complete")
+		cr.logger.Debug("priming caches complete")
 	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
-	recQueue := runQueue[Request](groupCtx, c.ctrl)
+	recQueue := runQueue[Request](groupCtx, cr.ctrl)
 
-	// Managed Type Events → Reconciliation Queue
+	// Managed Type Events → Managed Type Reconciliation Queue
 	group.Go(func() error {
-		return c.watch(groupCtx, c.ctrl.managedTypeWatch.watchedType, func(res *pbresource.Resource) {
+		return cr.watch(groupCtx, cr.ctrl.managedTypeWatch.watchedType, func(res *pbresource.Resource) {
 			recQueue.Add(Request{ID: res.Id})
 		})
 	})
 
-	for _, w := range c.ctrl.watches {
-		mapQueue := runQueue[mapperRequest](groupCtx, c.ctrl)
+	for _, w := range cr.ctrl.watches {
+		mapQueue := runQueue[mapperRequest](groupCtx, cr.ctrl)
 		watcher := w
 
-		// Watched Type Events → Mapper Queue
+		// Watched Type Events → Watched Type Mapper Queue
 		group.Go(func() error {
-			return c.watch(groupCtx, watcher.watchedType, func(res *pbresource.Resource) {
+			return cr.watch(groupCtx, watcher.watchedType, func(res *pbresource.Resource) {
 				mapQueue.Add(mapperRequest{res: res})
 			})
 		})
 
-		// Mapper Queue → Mapper → Reconciliation Queue
+		// Watched Type Mapper Queue → Watched Type Mapper → Managed Type Reconciliation Queue
 		group.Go(func() error {
-			return c.runMapper(groupCtx, watcher, mapQueue, recQueue, func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error) {
+			return cr.runMapper(groupCtx, watcher, mapQueue, recQueue, func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error) {
 				return watcher.mapper(ctx, runtime, itemType.(mapperRequest).res)
 			})
 		})
 	}
 
-	for _, cw := range c.ctrl.customWatches {
-		customMapQueue := runQueue[Event](groupCtx, c.ctrl)
+	for _, cw := range cr.ctrl.customWatches {
+		customMapQueue := runQueue[Event](groupCtx, cr.ctrl)
 		watcher := cw
-		// Custom Events → Mapper Queue
+		// Custom Events → Custom Mapper Queue
 		group.Go(func() error {
 			return watcher.source.Watch(groupCtx, func(e Event) {
 				customMapQueue.Add(e)
 			})
 		})
 
-		// Mapper Queue → Mapper → Reconciliation Queue
+		// Custom Mapper Queue → Custom Dependency Mapper → Managed Type Reconciliation Queue
 		group.Go(func() error {
-			return c.runCustomMapper(groupCtx, watcher, customMapQueue, recQueue, func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error) {
+			return cr.runCustomMapper(groupCtx, watcher, customMapQueue, recQueue, func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error) {
 				return watcher.mapper(ctx, runtime, itemType.(Event))
 			})
 		})
 	}
 
-	// Reconciliation Queue → Reconciler
+	// Managed Type Reconciliation Queue → Reconciler
 	group.Go(func() error {
-		return c.runReconciler(groupCtx, recQueue)
+		return cr.runReconciler(groupCtx, recQueue)
 	})
 
 	return group.Wait()
@@ -182,8 +183,8 @@ func runQueue[T queue.ItemType](ctx context.Context, ctrl *Controller) queue.Wor
 	return queue.RunWorkQueue[T](ctx, base, max)
 }
 
-func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type) error {
-	wl, err := c.watchClient.WatchList(ctx, &pbresource.WatchListRequest{
+func (cr *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type) error {
+	wl, err := cr.watchClient.WatchList(ctx, &pbresource.WatchListRequest{
 		Type: typ,
 		Tenancy: &pbresource.Tenancy{
 			Partition: storage.Wildcard,
@@ -191,36 +192,36 @@ func (c *controllerRunner) primeCache(ctx context.Context, typ *pbresource.Type)
 		},
 	})
 	if err != nil {
-		c.handleInvalidControllerWatch(err)
-		c.logger.Error("failed to create cache priming watch", "error", err)
+		cr.handleInvalidControllerWatch(err)
+		cr.logger.Error("failed to create cache priming watch", "error", err)
 		return err
 	}
 
 	for {
 		event, err := wl.Recv()
 		if err != nil {
-			c.handleInvalidControllerWatch(err)
-			c.logger.Warn("error received from cache priming watch", "error", err)
+			cr.handleInvalidControllerWatch(err)
+			cr.logger.Warn("error received from cache priming watch", "error", err)
 			return err
 		}
 
 		switch {
 		case event.GetUpsert() != nil:
-			c.cache.Insert(event.GetUpsert().Resource)
+			cr.cache.Insert(event.GetUpsert().Resource)
 		case event.GetDelete() != nil:
-			c.cache.Delete(event.GetDelete().Resource)
+			cr.cache.Delete(event.GetDelete().Resource)
 		case event.GetEndOfSnapshot() != nil:
 			// This concludes the initial snapshot. The cache is primed.
 			return nil
 		default:
-			c.logger.Warn("skipping unexpected event type", "type", hclog.Fmt("%T", event.GetEvent()))
+			cr.logger.Warn("skipping unexpected event type", "type", hclog.Fmt("%T", event.GetEvent()))
 			continue
 		}
 	}
 }
 
-func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {
-	wl, err := c.watchClient.WatchList(ctx, &pbresource.WatchListRequest{
+func (cr *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {
+	wl, err := cr.watchClient.WatchList(ctx, &pbresource.WatchListRequest{
 		Type: typ,
 		Tenancy: &pbresource.Tenancy{
 			Partition: storage.Wildcard,
@@ -228,35 +229,35 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 		},
 	})
 	if err != nil {
-		c.handleInvalidControllerWatch(err)
-		c.logger.Error("failed to create watch", "error", err)
+		cr.handleInvalidControllerWatch(err)
+		cr.logger.Error("failed to create watch", "error", err)
 		return err
 	}
 
 	for {
 		event, err := wl.Recv()
 		if err != nil {
-			c.handleInvalidControllerWatch(err)
-			c.logger.Warn("error received from watch", "error", err)
+			cr.handleInvalidControllerWatch(err)
+			cr.logger.Warn("error received from watch", "error", err)
 			return err
 		}
 
 		// Keep the cache up to date. There main reason to do this here is
-		// to ensure that any mapper/reconciliation queue deduping wont
+		// to ensure that any mapper/reconciliation queue deduping won't
 		// hide events from being observed and updating the cache state.
 		// Therefore we should do this before any queueing.
 		var resource *pbresource.Resource
 		switch {
 		case event.GetUpsert() != nil:
 			resource = event.GetUpsert().GetResource()
-			c.cache.Insert(resource)
+			cr.cache.Insert(resource)
 		case event.GetDelete() != nil:
 			resource = event.GetDelete().GetResource()
-			c.cache.Delete(resource)
+			cr.cache.Delete(resource)
 		case event.GetEndOfSnapshot() != nil:
 			continue // ignore
 		default:
-			c.logger.Warn("skipping unexpected event type", "type", hclog.Fmt("%T", event.GetEvent()))
+			cr.logger.Warn("skipping unexpected event type", "type", hclog.Fmt("%T", event.GetEvent()))
 			continue
 		}
 
@@ -272,14 +273,14 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 	}
 }
 
-func (c *controllerRunner) runMapper(
+func (cr *controllerRunner) runMapper(
 	ctx context.Context,
 	w *watch,
 	from queue.WorkQueue[mapperRequest],
 	to queue.WorkQueue[Request],
 	mapper func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error),
 ) error {
-	logger := c.logger.With("watched_resource_type", resource.ToGVK(w.watchedType))
+	logger := cr.logger.With("watched_resource_type", resource.ToGVK(w.watchedType))
 
 	for {
 		item, shutdown := from.Get()
@@ -287,7 +288,7 @@ func (c *controllerRunner) runMapper(
 			return nil
 		}
 
-		if err := c.doMap(ctx, mapper, to, item, logger); err != nil {
+		if err := cr.doMap(ctx, mapper, to, item, logger); err != nil {
 			from.AddRateLimited(item)
 			from.Done(item)
 			continue
@@ -298,14 +299,14 @@ func (c *controllerRunner) runMapper(
 	}
 }
 
-func (c *controllerRunner) runCustomMapper(
+func (cr *controllerRunner) runCustomMapper(
 	ctx context.Context,
 	cw customWatch,
 	from queue.WorkQueue[Event],
 	to queue.WorkQueue[Request],
 	mapper func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error),
 ) error {
-	logger := c.logger.With("watched_event", cw.source)
+	logger := cr.logger.With("watched_event", cw.source)
 
 	for {
 		item, shutdown := from.Get()
@@ -313,7 +314,7 @@ func (c *controllerRunner) runCustomMapper(
 			return nil
 		}
 
-		if err := c.doMap(ctx, mapper, to, item, logger); err != nil {
+		if err := cr.doMap(ctx, mapper, to, item, logger); err != nil {
 			from.AddRateLimited(item)
 			from.Done(item)
 			continue
@@ -324,20 +325,20 @@ func (c *controllerRunner) runCustomMapper(
 	}
 }
 
-func (c *controllerRunner) doMap(ctx context.Context, mapper func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error), to queue.WorkQueue[Request], item queue.ItemType, logger hclog.Logger) error {
+func (cr *controllerRunner) doMap(ctx context.Context, mapper func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error), to queue.WorkQueue[Request], item queue.ItemType, logger hclog.Logger) error {
 	var reqs []Request
-	if err := c.handlePanic(func() error {
+	if err := cr.handlePanic(func() error {
 		var err error
-		reqs, err = mapper(ctx, c.runtime(logger.With("map-request-key", item.Key())), item)
+		reqs, err = mapper(ctx, cr.runtime(logger.With("map-request-key", item.Key())), item)
 		return err
 	}); err != nil {
 		return err
 	}
 
 	for _, r := range reqs {
-		if !resource.EqualType(r.ID.Type, c.ctrl.managedTypeWatch.watchedType) {
+		if !resource.EqualType(r.ID.Type, cr.ctrl.managedTypeWatch.watchedType) {
 			logger.Error("dependency mapper returned request for a resource of the wrong type",
-				"type_expected", resource.ToGVK(c.ctrl.managedTypeWatch.watchedType),
+				"type_expected", resource.ToGVK(cr.ctrl.managedTypeWatch.watchedType),
 				"type_got", resource.ToGVK(r.ID.Type),
 			)
 			continue
@@ -347,24 +348,62 @@ func (c *controllerRunner) doMap(ctx context.Context, mapper func(ctx context.Co
 	return nil
 }
 
-func (c *controllerRunner) runReconciler(ctx context.Context, queue queue.WorkQueue[Request]) error {
+// maybeScheduleForcedReconcile makes sure that a "reconcile the world" happens periodically for the
+// controller's managed type.
+func (cr *controllerRunner) maybeScheduleForcedReconcile(queue queue.WorkQueue[Request], req Request) {
+	// In order to periodically "reconcile the world", we schedule a deferred reconcile request
+	// (aka forced reconcile) minus a sizeable random jitter to avoid a thundering herd.
+	//
+	// A few notes on how this integrates with existing non-"reconcile the world" requests:
+	//
+	// 1. Successful reconciles result in a new deferred "reconcile the world" request being scheduled.
+	//    The net effect is that the managed type will be continually reconciled regardless of any updates.
+	// 2. Failed reconciles are re-queued with a rate limit and get added to the deferred reconcile queue.
+	//    Any existing deferred "reconcile the world" request will be replaced by the rate-limited deferred
+	//    request.
+	// 3. An existing deferred "reconcile the world" request can't be removed on the successful reconcile
+	//    of a delete operation. We rely on controller idempotency to eventually process the deferred request
+	//    as a no-op.
+	_, err := cr.runtimeClient.Read(context.Background(), &pbresource.ReadRequest{Id: req.ID})
+	switch {
+	case err != nil && status.Code(err) == codes.NotFound:
+		// Resource was deleted -> nothing to force reconcile so do nothing
+		return
+	default:
+		// Reconcile of resource upsert was successful or we had an unexpected
+		// error. In either case, we should schedule a forced reconcile for completeness.
+		scheduleAt := reduceByRandomJitter(cr.ctrl.forceReconcileEvery)
+		queue.AddAfter(req, scheduleAt, true)
+	}
+}
+
+// reduceByRandomJitter returns a duration reduced by a random amount up to 20%.
+func reduceByRandomJitter(d time.Duration) time.Duration {
+	percent := rand.Float64() * 0.2
+	reduction := time.Duration(float64(d) * percent)
+	return d - reduction
+}
+
+func (cr *controllerRunner) runReconciler(ctx context.Context, queue queue.WorkQueue[Request]) error {
 	for {
 		req, shutdown := queue.Get()
 		if shutdown {
 			return nil
 		}
 
-		c.logger.Trace("handling request", "request", req)
-		err := c.handlePanic(func() error {
-			return c.ctrl.reconciler.Reconcile(ctx, c.runtime(c.logger.With("resource-id", req.ID.String())), req)
+		cr.logger.Trace("handling request", "request", req)
+		err := cr.handlePanic(func() error {
+			return cr.ctrl.reconciler.Reconcile(ctx, cr.runtime(cr.logger.With("resource-id", req.ID.String())), req)
 		})
 		if err == nil {
 			queue.Forget(req)
+			cr.maybeScheduleForcedReconcile(queue, req)
 		} else {
+			cr.logger.Trace("post-processing reconcile failure")
 			var requeueAfter RequeueAfterError
 			if errors.As(err, &requeueAfter) {
 				queue.Forget(req)
-				queue.AddAfter(req, time.Duration(requeueAfter))
+				queue.AddAfter(req, time.Duration(requeueAfter), false)
 			} else {
 				queue.AddRateLimited(req)
 			}
@@ -373,11 +412,11 @@ func (c *controllerRunner) runReconciler(ctx context.Context, queue queue.WorkQu
 	}
 }
 
-func (c *controllerRunner) handlePanic(fn func() error) (err error) {
+func (cr *controllerRunner) handlePanic(fn func() error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			stack := hclog.Stacktrace()
-			c.logger.Error("controller panic",
+			cr.logger.Error("controller panic",
 				"panic", r,
 				"stack", stack,
 			)
@@ -389,27 +428,30 @@ func (c *controllerRunner) handlePanic(fn func() error) (err error) {
 	return fn()
 }
 
-func (c *controllerRunner) runtime(logger hclog.Logger) Runtime {
+func (cr *controllerRunner) runtime(logger hclog.Logger) Runtime {
 	return Runtime{
 		// dependency mappers and controllers are always given the cloning client
 		// so that they do not have to care about mutating values that they read
 		// through the client.
-		Client: c.runtimeClient,
+		Client: cr.runtimeClient,
 		Logger: logger,
 		// ensure that resources queried via the cache get cloned so that the
 		// dependency mapper or reconciler is free to modify them.
-		Cache: cache.NewCloningReadOnlyCache(c.cache),
+		Cache: cache.NewCloningReadOnlyCache(cr.cache),
 	}
 }
 
-func (c *controllerRunner) handleInvalidControllerWatch(err error) {
+func (cr *controllerRunner) handleInvalidControllerWatch(err error) {
 	st, ok := status.FromError(err)
 	if ok && st.Code() == codes.InvalidArgument {
-		panic(fmt.Sprintf("controller %s attempted to initiate an invalid watch: %q. This is a bug within the controller.", c.ctrl.name, err.Error()))
+		panic(fmt.Sprintf("controller %s attempted to initiate an invalid watch: %q. This is a bug within the controller.", cr.ctrl.name, err.Error()))
 	}
 }
 
-type mapperRequest struct{ res *pbresource.Resource }
+type mapperRequest struct {
+	// res is the resource that was watched and is being mapped.
+	res *pbresource.Resource
+}
 
 // Key satisfies the queue.ItemType interface. It returns a string which will be
 // used to de-duplicate requests in the queue.

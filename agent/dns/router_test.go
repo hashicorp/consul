@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/internal/dnsutil"
+
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -37,23 +39,23 @@ type HandleTestCase struct {
 	response                     *dns.Msg
 }
 
-func Test_HandleRequest(t *testing.T) {
-	soa := &dns.SOA{
-		Hdr: dns.RR_Header{
-			Name:   "consul.",
-			Rrtype: dns.TypeSOA,
-			Class:  dns.ClassINET,
-			Ttl:    4,
-		},
-		Ns:      "ns.consul.",
-		Mbox:    "hostmaster.consul.",
-		Serial:  uint32(time.Now().Unix()),
-		Refresh: 1,
-		Retry:   2,
-		Expire:  3,
-		Minttl:  4,
-	}
+var testSOA = &dns.SOA{
+	Hdr: dns.RR_Header{
+		Name:   "consul.",
+		Rrtype: dns.TypeSOA,
+		Class:  dns.ClassINET,
+		Ttl:    4,
+	},
+	Ns:      "ns.consul.",
+	Mbox:    "hostmaster.consul.",
+	Serial:  uint32(time.Now().Unix()),
+	Refresh: 1,
+	Retry:   2,
+	Expire:  3,
+	Minttl:  4,
+}
 
+func Test_HandleRequest(t *testing.T) {
 	testCases := []HandleTestCase{
 		// recursor queries
 		{
@@ -800,7 +802,17 @@ func Test_HandleRequest(t *testing.T) {
 						Qclass: dns.ClassINET,
 					},
 				},
-				Ns: []dns.RR{soa},
+				Extra: []dns.RR{
+					&dns.AAAA{
+						Hdr: dns.RR_Header{
+							Name:   "20010db800010002cafe000000001337.virtual.dc1.consul.",
+							Rrtype: dns.TypeAAAA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						AAAA: net.ParseIP("2001:db8:1:2:cafe::1337"),
+					},
+				},
 			},
 		},
 		// SOA Queries
@@ -825,10 +837,18 @@ func Test_HandleRequest(t *testing.T) {
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 					}, nil).
 					Run(func(args mock.Arguments) {
@@ -880,7 +900,7 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.consul.",
+						Ns: "server-one.workload.default.ns.default.ap.consul.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -889,13 +909,13 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.consul.",
+						Ns: "server-two.workload.default.ns.default.ap.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.consul.",
+							Name:   "server-one.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -904,7 +924,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.consul.",
+							Name:   "server-two.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -947,11 +967,18 @@ func Test_HandleRequest(t *testing.T) {
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
 							Type: discovery.ResultTypeWorkload,
-						},
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							}},
 					}, nil).
 					Run(func(args mock.Arguments) {
 						req := args.Get(1).(*discovery.QueryPayload)
@@ -1002,7 +1029,7 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.testdomain.",
+						Ns: "server-one.workload.default.ns.default.ap.testdomain.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -1011,13 +1038,13 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.testdomain.",
+						Ns: "server-two.workload.default.ns.default.ap.testdomain.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.testdomain.",
+							Name:   "server-one.workload.default.ns.default.ap.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1026,7 +1053,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.testdomain.",
+							Name:   "server-two.workload.default.ns.default.ap.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1058,10 +1085,18 @@ func Test_HandleRequest(t *testing.T) {
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 					}, nil).
 					Run(func(args mock.Arguments) {
@@ -1096,7 +1131,7 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.consul.", // TODO (v2-dns): this format needs to be consistent with other workloads
+						Ns: "server-one.workload.default.ns.default.ap.consul.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -1105,13 +1140,13 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.consul.",
+						Ns: "server-two.workload.default.ns.default.ap.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.consul.",
+							Name:   "server-one.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1120,7 +1155,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.consul.",
+							Name:   "server-two.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1163,10 +1198,18 @@ func Test_HandleRequest(t *testing.T) {
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
 							Type: discovery.ResultTypeWorkload,
+							Tenancy: discovery.ResultTenancy{
+								Namespace: resource.DefaultNamespaceName,
+								Partition: resource.DefaultPartitionName,
+							},
 						},
 					}, nil).
 					Run(func(args mock.Arguments) {
@@ -1201,7 +1244,7 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.testdomain.",
+						Ns: "server-one.workload.default.ns.default.ap.testdomain.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -1210,13 +1253,13 @@ func Test_HandleRequest(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.testdomain.",
+						Ns: "server-two.workload.default.ns.default.ap.testdomain.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.testdomain.",
+							Name:   "server-one.workload.default.ns.default.ap.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1225,7 +1268,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.testdomain.",
+							Name:   "server-two.workload.default.ns.default.ap.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -1456,154 +1499,318 @@ func Test_HandleRequest(t *testing.T) {
 				},
 			},
 		},
-		// Service Lookup
 		{
-			name: "When no data is return from a query, send SOA",
+			name: "[ENT] PTR Lookup for node w/ peer name in default partition, query type is ANY",
 			request: &dns.Msg{
 				MsgHdr: dns.MsgHdr{
 					Opcode: dns.OpcodeQuery,
 				},
 				Question: []dns.Question{
 					{
-						Name:   "foo.service.consul.",
-						Qtype:  dns.TypeA,
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypeANY,
 						Qclass: dns.ClassINET,
 					},
 				},
 			},
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
-				fetcher.(*discovery.MockCatalogDataFetcher).
-					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
-					Return(nil, discovery.ErrNoData).
-					Run(func(args mock.Arguments) {
-						req := args.Get(1).(*discovery.QueryPayload)
-						reqType := args.Get(2).(discovery.LookupType)
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Type:    discovery.ResultTypeNode,
+						Service: &discovery.Location{Name: "foo-web", Address: "foo"},
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+							PeerName:   "peer1",
+							Partition:  "default",
+						},
+					},
+				}
 
-						require.Equal(t, discovery.LookupTypeService, reqType)
-						require.Equal(t, "foo", req.Name)
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
 					})
 			},
-			validateAndNormalizeExpected: true,
 			response: &dns.Msg{
 				MsgHdr: dns.MsgHdr{
 					Opcode:        dns.OpcodeQuery,
 					Response:      true,
 					Authoritative: true,
-					Rcode:         dns.RcodeSuccess,
 				},
 				Compress: true,
 				Question: []dns.Question{
 					{
-						Name:   "foo.service.consul.",
-						Qtype:  dns.TypeA,
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypeANY,
 						Qclass: dns.ClassINET,
 					},
 				},
-				Ns: []dns.RR{
-					&dns.SOA{
+				Answer: []dns.RR{
+					&dns.PTR{
 						Hdr: dns.RR_Header{
-							Name:   "consul.",
-							Rrtype: dns.TypeSOA,
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
 							Class:  dns.ClassINET,
-							Ttl:    4,
 						},
-						Ns:      "ns.consul.",
-						Serial:  uint32(time.Now().Unix()),
-						Mbox:    "hostmaster.consul.",
-						Refresh: 1,
-						Expire:  3,
-						Retry:   2,
-						Minttl:  4,
+						Ptr: "foo.node.peer1.peer.default.ap.consul.",
 					},
 				},
 			},
 		},
 		{
-			// TestDNS_ExternalServiceToConsulCNAMELookup
-			name: "req type: service / question type: SRV / CNAME required: no",
+			name: "[ENT] PTR Lookup for service in default namespace, query type is PTR",
 			request: &dns.Msg{
 				MsgHdr: dns.MsgHdr{
 					Opcode: dns.OpcodeQuery,
 				},
 				Question: []dns.Question{
 					{
-						Name:  "alias.service.consul.",
-						Qtype: dns.TypeSRV,
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
 					},
 				},
 			},
 			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
-				fetcher.(*discovery.MockCatalogDataFetcher).
-					On("FetchEndpoints", mock.Anything,
-						&discovery.QueryPayload{
-							Name:    "alias",
-							Tenancy: discovery.QueryTenancy{},
-						}, discovery.LookupTypeService).
-					Return([]*discovery.Result{
-						{
-							Type:    discovery.ResultTypeVirtual,
-							Service: &discovery.Location{Name: "alias", Address: "web.service.consul"},
-							Node:    &discovery.Location{Name: "web", Address: "web.service.consul"},
-							Ports: []discovery.Port{
-								{
-									Number: 1234,
-								},
-							},
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Type:    discovery.ResultTypeService,
+						Service: &discovery.Location{Name: "foo", Address: "foo"},
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+							Namespace:  "default",
 						},
 					},
-						nil).On("FetchEndpoints", mock.Anything,
-					&discovery.QueryPayload{
-						Name:    "web",
-						Tenancy: discovery.QueryTenancy{},
-					}, discovery.LookupTypeService).
-					Return([]*discovery.Result{
-						{
-							Type:    discovery.ResultTypeNode,
-							Service: &discovery.Location{Name: "web", Address: "webnode"},
-							Node:    &discovery.Location{Name: "webnode", Address: "127.0.0.2"},
-							Ports: []discovery.Port{
-								{
-									Number: 1234,
-								},
-							},
-						},
-					}, nil).On("ValidateRequest", mock.Anything,
-					mock.Anything).Return(nil).On("NormalizeRequest", mock.Anything)
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
 			},
 			response: &dns.Msg{
 				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
 					Response:      true,
 					Authoritative: true,
 				},
 				Compress: true,
 				Question: []dns.Question{
 					{
-						Name:  "alias.service.consul.",
-						Qtype: dns.TypeSRV,
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
 					},
 				},
 				Answer: []dns.RR{
-					&dns.SRV{
+					&dns.PTR{
 						Hdr: dns.RR_Header{
-							Name:   "alias.service.consul.",
-							Rrtype: dns.TypeSRV,
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
 							Class:  dns.ClassINET,
-							Ttl:    123,
 						},
-						Target:   "web.service.consul.",
-						Priority: 1,
-						Port:     1234,
+						Ptr: "foo.service.default.dc2.consul.",
 					},
 				},
-				Extra: []dns.RR{
-					&dns.A{
-						Hdr: dns.RR_Header{
-							Name:   "web.service.consul.",
-							Rrtype: dns.TypeA,
-							Class:  dns.ClassINET,
-							Ttl:    123,
+			},
+		},
+		{
+			name: "[ENT] PTR Lookup for service in a non-default namespace, query type is PTR",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo-node", Address: "1.2.3.4"},
+						Type:    discovery.ResultTypeService,
+						Service: &discovery.Location{Name: "foo", Address: "foo"},
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+							Namespace:  "bar",
+							Partition:  "baz",
 						},
-						A: net.ParseIP("127.0.0.2"),
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.service.bar.dc2.consul.",
+					},
+				},
+			},
+		},
+		{
+			name: "[CE] PTR Lookup for node w/ peer name, query type is ANY",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Type:    discovery.ResultTypeNode,
+						Service: &discovery.Location{Name: "foo", Address: "foo"},
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+							PeerName:   "peer1",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypeANY,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.node.peer1.peer.consul.",
+					},
+				},
+			},
+		},
+		{
+			name: "[CE] PTR Lookup for service, query type is PTR",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				results := []*discovery.Result{
+					{
+						Node:    &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Service: &discovery.Location{Name: "foo", Address: "foo"},
+						Type:    discovery.ResultTypeService,
+						Tenancy: discovery.ResultTenancy{
+							Datacenter: "dc2",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchRecordsByIp", mock.Anything, mock.Anything).
+					Return(results, nil).
+					Run(func(args mock.Arguments) {
+						req := args.Get(1).(net.IP)
+
+						require.NotNil(t, req)
+						require.Equal(t, "1.2.3.4", req.String())
+					})
+			},
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "4.3.2.1.in-addr.arpa.",
+						Qtype:  dns.TypePTR,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.PTR{
+						Hdr: dns.RR_Header{
+							Name:   "4.3.2.1.in-addr.arpa.",
+							Rrtype: dns.TypePTR,
+							Class:  dns.ClassINET,
+						},
+						Ptr: "foo.service.dc2.consul.",
 					},
 				},
 			},
@@ -1667,6 +1874,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "api.port.foo.workload.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -1725,6 +1933,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "foo.workload.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -1787,6 +1996,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "foo.workload.bar.ns.baz.ap.dc3.dc.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -1851,6 +2061,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "api.port.foo.workload.consul.",
 							Rrtype: dns.TypeCNAME,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						Target: "foo.example.com.",
 					},
@@ -1958,6 +2169,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "api.port.foo.workload.consul.",
 							Rrtype: dns.TypeCNAME,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						Target: "foo.example.com.",
 					},
@@ -1966,6 +2178,7 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "foo.example.com.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -2073,15 +2286,17 @@ func Test_HandleRequest(t *testing.T) {
 							Name:   "api.port.foo.workload.consul.",
 							Rrtype: dns.TypeCNAME,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						Target: "foo.example.com.",
 					},
-					// TODO (v2-dns): this next record is wrong per the RFC
+					// TODO (v2-dns): this next record is wrong per the RFC-1034 mentioned in the comment above (NET-8060)
 					&dns.A{
 						Hdr: dns.RR_Header{
 							Name:   "foo.example.com.",
 							Rrtype: dns.TypeCNAME,
 							Class:  dns.ClassINET,
+							Ttl:    123,
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
@@ -2176,7 +2391,7 @@ func Test_HandleRequest(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "foo.service.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+							Name:   "foo.service.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2290,7 +2505,7 @@ func Test_HandleRequest(t *testing.T) {
 						Weight:   2,
 						Priority: 1,
 						Port:     5678,
-						Target:   "api.port.foo-1.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+						Target:   "api.port.foo-1.workload.default.ns.default.ap.consul.",
 					},
 					&dns.SRV{
 						Hdr: dns.RR_Header{
@@ -2302,7 +2517,7 @@ func Test_HandleRequest(t *testing.T) {
 						Weight:   3,
 						Priority: 1,
 						Port:     5678,
-						Target:   "api.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+						Target:   "api.port.foo-2.workload.default.ns.default.ap.consul.",
 					},
 					&dns.SRV{
 						Hdr: dns.RR_Header{
@@ -2314,13 +2529,13 @@ func Test_HandleRequest(t *testing.T) {
 						Weight:   3,
 						Priority: 1,
 						Port:     21000,
-						Target:   "mesh.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+						Target:   "mesh.port.foo-2.workload.default.ns.default.ap.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "api.port.foo-1.workload.consul.",
+							Name:   "api.port.foo-1.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2329,7 +2544,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "api.port.foo-2.workload.consul.",
+							Name:   "api.port.foo-2.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2338,7 +2553,7 @@ func Test_HandleRequest(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "mesh.port.foo-2.workload.consul.",
+							Name:   "mesh.port.foo-2.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2421,13 +2636,13 @@ func Test_HandleRequest(t *testing.T) {
 						Weight:   3,
 						Priority: 1,
 						Port:     21000,
-						Target:   "mesh.port.foo-2.workload.consul.", // TODO (v2-dns): verify this shouldn't include tenancy for workloads
+						Target:   "mesh.port.foo-2.workload.default.ns.default.ap.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "mesh.port.foo-2.workload.consul.",
+							Name:   "mesh.port.foo-2.workload.default.ns.default.ap.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    uint32(123),
@@ -2675,7 +2890,7 @@ func Test_HandleRequest(t *testing.T) {
 						},
 						A: net.ParseIP("1.2.3.4"),
 					},
-					// TODO (v2-dns): This needs to be de-dupped
+					// TODO (v2-dns): This needs to be de-duplicated (NET-8064)
 					&dns.A{
 						Hdr: dns.RR_Header{
 							Name:   "foo-1.example.com.",
@@ -2776,7 +2991,7 @@ func Test_HandleRequest(t *testing.T) {
 				},
 				Question: []dns.Question{
 					{
-						Name:   "foo.query.consul.",
+						Name:   "foo.query.dc1.cluster.consul.",
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
@@ -2817,6 +3032,7 @@ func Test_HandleRequest(t *testing.T) {
 					Run(func(args mock.Arguments) {
 						req := args.Get(1).(*discovery.QueryPayload)
 						require.Equal(t, "foo", req.Name)
+						require.Equal(t, "dc1", req.Tenancy.Datacenter)
 					})
 			},
 			validateAndNormalizeExpected: true,
@@ -2829,7 +3045,7 @@ func Test_HandleRequest(t *testing.T) {
 				Compress: true,
 				Question: []dns.Question{
 					{
-						Name:   "foo.query.consul.",
+						Name:   "foo.query.dc1.cluster.consul.",
 						Qtype:  dns.TypeA,
 						Qclass: dns.ClassINET,
 					},
@@ -2837,7 +3053,7 @@ func Test_HandleRequest(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "foo.query.consul.",
+							Name:   "foo.query.dc1.cluster.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    1,
@@ -2849,43 +3065,48 @@ func Test_HandleRequest(t *testing.T) {
 		},
 	}
 
-	testCases = append(testCases, getAdditionalTestCases(t)...)
-
-	run := func(t *testing.T, tc HandleTestCase) {
-		cdf := discovery.NewMockCatalogDataFetcher(t)
-		if tc.validateAndNormalizeExpected {
-			cdf.On("ValidateRequest", mock.Anything, mock.Anything).Return(nil)
-			cdf.On("NormalizeRequest", mock.Anything).Return()
-		}
-
-		if tc.configureDataFetcher != nil {
-			tc.configureDataFetcher(cdf)
-		}
-		cfg := buildDNSConfig(tc.agentConfig, cdf, tc.mockProcessorError)
-
-		router, err := NewRouter(cfg)
-		require.NoError(t, err)
-
-		// Replace the recursor with a mock and configure
-		router.recursor = newMockDnsRecursor(t)
-		if tc.configureRecursor != nil {
-			tc.configureRecursor(router.recursor)
-		}
-
-		ctx := tc.requestContext
-		if ctx == nil {
-			ctx = &Context{}
-		}
-		actual := router.HandleRequest(tc.request, *ctx, tc.remoteAddress)
-		require.Equal(t, tc.response, actual)
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			run(t, tc)
+			runHandleTestCases(t, tc)
 		})
 	}
+}
 
+func runHandleTestCases(t *testing.T, tc HandleTestCase) {
+	cdf := discovery.NewMockCatalogDataFetcher(t)
+	if tc.validateAndNormalizeExpected {
+		cdf.On("ValidateRequest", mock.Anything, mock.Anything).Return(nil)
+		cdf.On("NormalizeRequest", mock.Anything).Return()
+	}
+
+	if tc.configureDataFetcher != nil {
+		tc.configureDataFetcher(cdf)
+	}
+	cfg := buildDNSConfig(tc.agentConfig, cdf, tc.mockProcessorError)
+
+	router, err := NewRouter(cfg)
+	require.NoError(t, err)
+
+	// Replace the recursor with a mock and configure
+	router.recursor = newMockDnsRecursor(t)
+	if tc.configureRecursor != nil {
+		tc.configureRecursor(router.recursor)
+	}
+
+	ctx := tc.requestContext
+	if ctx == nil {
+		ctx = &Context{}
+	}
+
+	var remoteAddress net.Addr
+	if tc.remoteAddress != nil {
+		remoteAddress = tc.remoteAddress
+	} else {
+		remoteAddress = &net.UDPAddr{}
+	}
+
+	actual := router.HandleRequest(tc.request, *ctx, remoteAddress)
+	require.Equal(t, tc.response, actual)
 }
 
 func TestRouterDynamicConfig_GetTTLForService(t *testing.T) {
@@ -2957,6 +3178,12 @@ func buildDNSConfig(agentConfig *config.RuntimeConfig, cdf discovery.CatalogData
 		Logger:    hclog.NewNullLogger(),
 		Processor: discovery.NewQueryProcessor(cdf),
 		TokenFunc: func() string { return "" },
+		TranslateServiceAddressFunc: func(dc string, address string, taggedAddresses map[string]structs.ServiceAddress, accept dnsutil.TranslateAddressAccept) string {
+			return address
+		},
+		TranslateAddressFunc: func(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string {
+			return addr
+		},
 	}
 
 	if agentConfig != nil {

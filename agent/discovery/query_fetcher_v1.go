@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -28,6 +29,15 @@ const (
 	// Increment a counter when requests staler than this are served
 	staleCounterThreshold = 5 * time.Second
 )
+
+// DNSCounters pre-registers the staleness metric.
+// This value is used by both the V1 and V2 DNS (V1 Catalog-only) servers.
+var DNSCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"dns", "stale_queries"},
+		Help: "Increments when an agent serves a query within the allowed stale threshold.",
+	},
+}
 
 // v1DataFetcherDynamicConfig is used to store the dynamic configuration of the V1 data fetcher.
 type v1DataFetcherDynamicConfig struct {
@@ -48,7 +58,6 @@ type v1DataFetcherDynamicConfig struct {
 
 // V1DataFetcher is used to fetch data from the V1 catalog.
 type V1DataFetcher struct {
-	// TODO(v2-dns): store this in the config.
 	defaultEnterpriseMeta acl.EnterpriseMeta
 	dynamicConfig         atomic.Value
 	logger                hclog.Logger
@@ -99,6 +108,11 @@ func (f *V1DataFetcher) LoadConfig(config *config.RuntimeConfig) {
 
 // FetchNodes fetches A/AAAA/CNAME
 func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, error) {
+	if req.Tenancy.Namespace != "" && req.Tenancy.Namespace != acl.DefaultNamespaceName {
+		// Nodes are not namespaced, so this is a name error
+		return nil, ErrNotFound
+	}
+
 	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
 	// Make an RPC request
 	args := &structs.NodeSpecificRequest{
@@ -126,11 +140,13 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 
 	results = append(results, &Result{
 		Node: &Location{
-			Name:    n.Node,
-			Address: n.Address,
+			Name:            n.Node,
+			Address:         n.Address,
+			TaggedAddresses: makeTaggedAddressesFromStrings(n.TaggedAddresses),
 		},
 		Type:     ResultTypeNode,
 		Metadata: n.Meta,
+
 		Tenancy: ResultTenancy{
 			// Namespace is not required because nodes are not namespaced
 			Partition:  n.GetEnterpriseMeta().PartitionOrDefault(),
@@ -143,7 +159,7 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 
 // FetchEndpoints fetches records for A/AAAA/CNAME or SRV requests for services
 func (f *V1DataFetcher) FetchEndpoints(ctx Context, req *QueryPayload, lookupType LookupType) ([]*Result, error) {
-	f.logger.Debug(fmt.Sprintf("FetchEndpoints - req: %+v / lookupType: %+v", req, lookupType))
+	f.logger.Trace(fmt.Sprintf("FetchEndpoints - req: %+v / lookupType: %+v", req, lookupType))
 	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
 	return f.fetchService(ctx, req, cfg, lookupType)
 }
@@ -205,8 +221,9 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 			if targetIP == n.Address {
 				results = append(results, &Result{
 					Node: &Location{
-						Name:    n.Node,
-						Address: n.Address,
+						Name:            n.Node,
+						Address:         n.Address,
+						TaggedAddresses: makeTaggedAddressesFromStrings(n.TaggedAddresses),
 					},
 					Type: ResultTypeNode,
 					Tenancy: ResultTenancy{
@@ -257,7 +274,7 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 	}
 
 	// nothing found locally, recurse
-	// TODO: (v2-dns) implement recursion
+	// TODO: (v2-dns) implement recursion (NET-7883)
 	//d.handleRecurse(resp, req)
 
 	return nil, fmt.Errorf("unhandled error in FetchRecordsByIp")
@@ -410,12 +427,14 @@ func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServic
 		n := nodes[idx]
 		results = append(results, &Result{
 			Service: &Location{
-				Name:    n.Service.Service,
-				Address: n.Service.Address,
+				Name:            n.Service.Service,
+				Address:         n.Service.Address,
+				TaggedAddresses: makeTaggedAddressesFromServiceAddresses(n.Service.TaggedAddresses),
 			},
 			Node: &Location{
-				Name:    n.Node.Node,
-				Address: n.Node.Address,
+				Name:            n.Node.Node,
+				Address:         n.Node.Address,
+				TaggedAddresses: makeTaggedAddressesFromStrings(n.Node.TaggedAddresses),
 			},
 			Type: ResultTypeService,
 			DNS: DNSConfig{
@@ -430,10 +449,38 @@ func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServic
 				Namespace:  n.Service.NamespaceOrEmpty(),
 				Partition:  n.Service.PartitionOrEmpty(),
 				Datacenter: n.Node.Datacenter,
+				PeerName:   req.Tenancy.Peer,
 			},
 		})
 	}
 	return results
+}
+
+// makeTaggedAddressesFromServiceAddresses is used to convert a map of service addresses to a map of Locations.
+func makeTaggedAddressesFromServiceAddresses(tagged map[string]structs.ServiceAddress) map[string]*TaggedAddress {
+	taggedAddresses := make(map[string]*TaggedAddress)
+	for k, v := range tagged {
+		taggedAddresses[k] = &TaggedAddress{
+			Name:    k,
+			Address: v.Address,
+			Port: Port{
+				Number: uint32(v.Port),
+			},
+		}
+	}
+	return taggedAddresses
+}
+
+// makeTaggedAddressesFromStrings is used to convert a map of strings to a map of Locations.
+func makeTaggedAddressesFromStrings(tagged map[string]string) map[string]*TaggedAddress {
+	taggedAddresses := make(map[string]*TaggedAddress)
+	for k, v := range tagged {
+		taggedAddresses[k] = &TaggedAddress{
+			Name:    k,
+			Address: v,
+		}
+	}
+	return taggedAddresses
 }
 
 // fetchNode is used to look up a node in the Consul catalog within NodeServices.
@@ -477,7 +524,7 @@ RPC:
 
 func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload,
 	cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
-	f.logger.Debug("fetchService", "req", req)
+	f.logger.Trace("fetchService", "req", req)
 	if req.Tenancy.SamenessGroup == "" {
 		return f.fetchServiceBasedOnTenancy(ctx, req, cfg, lookupType)
 	}
@@ -488,7 +535,7 @@ func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload,
 // fetchServiceBasedOnTenancy is used to look up a service in the Consul catalog based on its tenancy or default tenancy.
 func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayload,
 	cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
-	f.logger.Debug(fmt.Sprintf("fetchServiceBasedOnTenancy - req: %+v", req))
+	f.logger.Trace(fmt.Sprintf("fetchServiceBasedOnTenancy - req: %+v", req))
 	if req.Tenancy.SamenessGroup != "" {
 		return nil, errors.New("sameness groups are not allowed for service lookups based on tenancy")
 	}

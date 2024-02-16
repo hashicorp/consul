@@ -1140,11 +1140,13 @@ func (a *Agent) listenAndServeV2DNS() error {
 
 	// create server
 	cfg := dns.Config{
-		AgentConfig: a.config,
-		EntMeta:     *a.AgentEnterpriseMeta(),
-		Logger:      a.logger,
-		Processor:   processor,
-		TokenFunc:   a.getTokenFunc(),
+		AgentConfig:                 a.config,
+		EntMeta:                     *a.AgentEnterpriseMeta(),
+		Logger:                      a.logger,
+		Processor:                   processor,
+		TokenFunc:                   a.getTokenFunc(),
+		TranslateAddressFunc:        a.TranslateAddress,
+		TranslateServiceAddressFunc: a.TranslateServiceAddress,
 	}
 
 	for _, addr := range a.config.DNSAddrs {

@@ -81,6 +81,11 @@ func (suite *apigatewayControllerSuite) TestReconciler_Reconcile() {
 						TargetPort:  "tcp-listener",
 						Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
 					},
+					{
+						VirtualPort: 8081,
+						TargetPort:  "tcp-upper",
+						Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+					},
 				},
 			}
 			req := controller.Request{ID: id}
@@ -139,6 +144,11 @@ func (suite *apigatewayControllerSuite) setupSuiteWithTenancy(tenancy *pbresourc
 					Name:     "tcp-listener",
 					Port:     8080,
 					Protocol: "tcp",
+				},
+				{
+					Name:     "tcp-upper",
+					Port:     8081,
+					Protocol: "TCP",
 				},
 			},
 		}).

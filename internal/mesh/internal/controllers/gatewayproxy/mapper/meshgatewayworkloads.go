@@ -17,7 +17,7 @@ import (
 // AllMeshGatewayWorkloadsInPartition returns one controller.Request for each Workload
 // selected by a MeshGateway in the partition of the Resource.
 var AllMeshGatewayWorkloadsInPartition = func(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	fetcher := fetcher.New(rt.Client, nil)
+	fetcher := fetcher.New(rt.Client)
 
 	gateways, err := fetcher.FetchMeshGateways(ctx, &pbresource.Tenancy{
 		Partition: res.Id.Tenancy.Partition,

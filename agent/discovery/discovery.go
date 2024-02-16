@@ -20,7 +20,6 @@ var (
 
 // ECSNotGlobalError may be used to wrap an error or nil, to indicate that the
 // EDNS client subnet source scope is not global.
-// TODO (v2-dns): prepared queries errors are wrapped by this
 type ECSNotGlobalError struct {
 	error
 }
@@ -119,10 +118,18 @@ type Result struct {
 	Tenancy ResultTenancy
 }
 
-// Location is used to represent a service, node, or workload.
-type Location struct {
+// TaggedAddress is used to represent a tagged address.
+type TaggedAddress struct {
 	Name    string
 	Address string
+	Port    Port
+}
+
+// Location is used to represent a service, node, or workload.
+type Location struct {
+	Name            string
+	Address         string
+	TaggedAddresses map[string]*TaggedAddress // Used to collect tagged addresses into A/AAAA Records
 }
 
 type DNSConfig struct {
