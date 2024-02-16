@@ -343,7 +343,7 @@ func copyHeader[T any](dest, src Node[T]) {
 }
 
 // addChild256 adds a child node to a node256.
-func addChild256[T any](n *Node256[T], ref **Node[T], c byte, child Node[T]) {
+func addChild256[T any](n *Node256[T], _ **Node[T], c byte, child Node[T]) {
 	n.numChildren++
 	n.children[c] = &child
 }
