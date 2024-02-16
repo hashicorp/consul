@@ -210,21 +210,6 @@ func longestCommonPrefix[T any](l1, l2 *NodeLeaf[T], depth int) int {
 	return idx
 }
 
-// find longest common prefix between two byte array
-func longestCommonPrefixBytes(l1, l2 []byte) int {
-	maxCmp := len(l2)
-	if len(l1) < len(l2) {
-		maxCmp = len(l1)
-	}
-	var idx int
-	for idx = 0; idx < maxCmp; idx++ {
-		if l1[idx] != l2[idx] {
-			return idx
-		}
-	}
-	return idx
-}
-
 // addChild adds a child node to the parent node.
 func addChild[T any](n Node[T], ref **Node[T], c byte, child Node[T]) {
 	switch n.getArtNodeType() {
