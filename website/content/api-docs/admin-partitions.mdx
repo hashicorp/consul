@@ -128,6 +128,8 @@ This endpoint updates a partition description and has the following characterist
 
 - `Description` `(string: "")` - Free form partition description.
 
+- `DisableGossip` `(bool: false)` - Disable gossip support for this partition. When set to `true` this will save on CPU and network resources on the servers but client agents will be unable to join the partition.
+
 ### Sample Payload
 
 ```json
@@ -237,6 +239,7 @@ $ curl --header "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
   {
     "Name": "na-west",
     "Description": "North America West Partition",
+    "DisableGossip": true,
     "CreateIndex": 55,
     "ModifyIndex": 55
   }
