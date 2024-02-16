@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package adaptive
 
 // PathIterator is used to iterate over a set of nodes from the root
