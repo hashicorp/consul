@@ -360,14 +360,7 @@ func (s *Server) registerResourceServiceServer(typeRegistry resource.Registry, r
 	}
 
 	// Create the Resource Service Server
-	srv := resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:      typeRegistry,
-		Backend:       s.storageBackend,
-		ACLResolver:   resolver,
-		Logger:        s.loggers.Named(logging.GRPCAPI).Named(logging.Resource),
-		TenancyBridge: tenancyBridge,
-		UseV2Tenancy:  s.useV2Tenancy,
-	})
+	srv := resourcegrpc.NewServer(s.newResourceServiceConfig(typeRegistry, resolver, tenancyBridge))
 
 	// Register the server to all the desired interfaces
 	for _, reg := range registrars {
