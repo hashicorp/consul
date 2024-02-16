@@ -130,44 +130,32 @@ Practitioners who manage their Kubernetes infrastructure and/or service-mesh sho
 
 ### UDS/UDP Advantages and Disadvantages
 
-<Tabs>
-  <Tab heading={"UDS"}>
-    <table>
-      <thead>
-      <tr>
-        <th>Advantages</th>
-        <th>Disadvantages</th>
-        <th>Packet Delivery</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <td>No IP or DNS resolution requirement for Datadog Agent<br/><br/>Improved network performance<br/><br/>Higher throughput capacity<br/><br/>Packet error handling<br/><br/>Automatic container ID tagging</td>
-        <td>Requires <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment<br/><br/>Datadog Agent must run on every host you send metrics from</td>
-        <td>Unix Domain Socket File</td>
-      </tr>
-      </tbody>
-    </table>
-  </Tab>
-  <Tab heading={"UDP"}>
-    <table>
-      <thead>
-      <tr>
-        <th>Advantages</th>
-        <th>Disadvantages</th>
-        <th>Packet Delivery</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <td>Does <strong>not</strong> require <a href="https://kubernetes.io/docs/concepts/storage/volumes/#hostpath">hostPath</a> Volume attachment<br/><br/>(<strong><em>KubeDNS</em></strong>) Does <strong>not</strong> require Hostport exposure if accessible from cluster<br/><br/>Similar <code>IP:Port</code> configuration as Virtual Machine hosts</td>
-        <td><strong>No</strong> packet error handling<br/><br/>(<strong><em>Hostport</em></strong>) Requires a networking provider that adheres to the CNI specification, such as Calico, Canal, or Flannel.<br/><br/>(<strong><em>Hostport</em></strong>) Requires port to be exposed on host using <code>hostNetwork</code><br/><br/>(<strong><em>Hostport</em></strong>) Requires firewall access controls to permit access<br/><br/>(<strong><em>Hostport</em></strong>) Network Namespace sharing is required</td>
-        <td>Kubernetes Service <code>IP:Port</code><br/><br/> <strong>or</strong> <br/><br/>Container host port</td>
-      </tr>
-      </tbody>
-    </table>
-  </Tab>
-</Tabs>
+## UDS
+
+**Packet Transport**: Unix Domain Socket File
+
+| Advantages                                            | Disadvantages                                                                                        |
+|-------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| No IP or DNS resolution requirement for Datadog Agent | Requires [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) Volume attachment |
+| Improved network performance                          | Datadog Agent must run on every host you send metrics from                                           |
+| Higher throughput capacity                            |                                                                                                      |
+| Packet error handling                                 |                                                                                                      |
+| Automatic container ID tagging                        |                                                                                                      |
+
+## UDP
+
+**Packet Transport**:
+  * Kubernetes Service `IP:Port`
+  * Container Host Port
+
+| Advantages                                                                                                       | Disadvantages                                                                                                             |
+|------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| Does **not** require [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) Volume attachment | **No** packet error handling                                                                                              |
+| (**_KubeDNS_**) Does **not** require Hostport exposure if accessible from cluster                                | (**_Hostport_**) Requires a networking provider that adheres to the CNI specification, such as Calico, Canal, or Flannel. |
+| Similar `IP:Port` configuration as Virtual Machine hosts                                                         | (**_Hostport_**) Requires port to be exposed on host using `hostNetwork`                                                  |
+|                                                                                                                  | (**_Hostport_**) Requires firewall access controls to permit access                                                       |
+|                                                                                                                  | (**_Hostport_**) Network Namespace sharing is required                                                                    |
+
 
 #### Verifying DogstatsD Metric Collection
 
