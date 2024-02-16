@@ -1528,18 +1528,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs',
-    destination: '/consul/docs/reference/cts',
-    permanent: true,
-  },
-  {
     source: '/consul/docs/nia/api',
     destination: '/consul/docs/reference/cts/api',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs',
-    destination: '/consul/docs/reference/cts/api/status',
     permanent: true,
   },
   {
@@ -3537,12 +3527,6 @@ module.exports = [
     source:
       '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/reference/ecs/server-json/:slug*',
     destination: '/consul/docs/:version/ecs/reference/consul-server-json/:slug',
-    permanent: true,
-  },
-  {
-    source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/reference/cts/:slug*',
-    destination: '/consul/docs/:version/:slug',
     permanent: true,
   },
   {
