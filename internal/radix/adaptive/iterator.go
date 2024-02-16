@@ -89,16 +89,14 @@ func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 	// Start from the root node
 	prefix := getTreeKey(prefixKey)
 
+	i.stack = nil
 	node := i.root
 	depth := 0
 
 	for node != nil {
 		// Check if the node matches the prefix
-		if bytes.HasPrefix(node.getPartial(), prefix) {
-			i.root = node
-			i.depth = depth
-			return
-		}
+		i.stack = []Node[T]{node}
+		i.root = node
 
 		if node.isLeaf() {
 			return
@@ -107,7 +105,7 @@ func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 		// Determine the child index to proceed based on the next byte of the prefix
 		if node.getPartialLen() > 0 {
 			// If the node has a prefix, compare it with the prefix
-			mismatchIdx := prefixMismatch(node, prefix, len(prefix), depth)
+			mismatchIdx := prefixMismatch[T](node, prefix, len(prefix), depth)
 			if mismatchIdx < int(node.getPartialLen()) {
 				// If there's a mismatch, set the node to nil to break the loop
 				node = nil
@@ -126,7 +124,7 @@ func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 
 		// Move to the next level in the tree
 		node = **child
-		i.root = node
 		depth++
 	}
+
 }
