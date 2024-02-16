@@ -15,12 +15,10 @@ The Helm chart includes automated configuration options in order to integrate wi
 - [Datadog Checks: Official Consul Integration](#datadog-checks-official-consul-integration)
 - [Openmetrics Prometheus](#openmetrics-prometheus)
 
-<Highlight>
-  Users should choose <strong><em>one</em></strong> integration method from the three described below that best suites the intent for metrics collection. <strong><a href="https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes">DogStatsD</a></strong>, <strong><a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a></strong>, and <strong><a href="https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2">Openmetrics Prometheus</a></strong> methods of integration are <strong><em>mutually exclusive</em></strong>.
-  <br/><br/>
-  <strong>Reasoning:</strong> <em>The consul-k8s helm chart automated configuration implements Datadog's <a href="https://docs.datadoghq.com/integrations/consul/?tab=containerized">Consul Integration</a> method using the <a href="https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/data/conf.yaml.example#L59"><code>use_prometheus_endpoint</code></a> configuration parameter. <strong>DogstatsD</strong>, <strong>Consul Integration</strong>, and <strong>Openmetrics Prometheus</strong> Metrics <strong><em>by design</em></strong> share the same <a href="https://docs.datadoghq.com/integrations/consul/?tab=host#data-collected">metric name</a> syntax for collection, and would therefore cause a conflict.
-    The <a href="https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/consul.py#L55-L61">consul.py</a> integration source code, as well as the <a href="https://github.com/hashicorp/consul-k8s/blob/4cac70496788f50354f96e9331003fcf338f419c/charts/consul/templates/_helpers.tpl#L595-L598">consul-k8s helm chart</a> prohibit the enablement of more that one integration at a time.</em>
-</Highlight>
+Users should choose **_one_** integration method from the three described below that best suites the intent for metrics collection. **[DogStatsD](https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes)**, **[Consul Integration](https://docs.datadoghq.com/integrations/consul/?tab=containerized)**, and **[Openmetrics Prometheus](https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2)** methods of integration are **_mutually exclusive_**.
+
+**Reasoning:** _The consul-k8s helm chart automated configuration implements Datadog's [Consul Integration](https://docs.datadoghq.com/integrations/consul/?tab=containerized) method using the [`use_prometheus_endpoint`](https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/data/conf.yaml.example#L59) configuration parameter. **DogstatsD**, **Consul Integration**, and **Openmetrics Prometheus** Metrics **by design** share the same [metric name](https://docs.datadoghq.com/integrations/consul/?tab=host#data-collected) syntax for collection, and would therefore cause a conflict. The [consul.py](https://github.com/DataDog/integrations-core/blob/07c04c5e9465ba1f3e0198830896d05923e81283/consul/datadog_checks/consul/consul.py#L55-L61) integration source code, as well as the [consul-k8s helm chart](https://github.com/hashicorp/consul-k8s/blob/4cac70496788f50354f96e9331003fcf338f419c/charts/consul/templates/_helpers.tpl#L595-L598) prohibit the enablement of more that one integration at a time._
+
 
 ## DogstatsD
 
@@ -78,7 +76,8 @@ This is accomplished by updating each server agent's configuration telemetry sta
       dogstatsd:
         enabled: true
         socketTransportType: "UDP"
-        dogstatsdPort: 0          # Set `dogstatsdPort` to `0` (default) to omit port number append to address.
+        # Set `dogstatsdPort` to `0` (default) to omit port number append to address.
+        dogstatsdPort: 0
         dogstatsdAddr: "datadog-agent.datadog.svc.cluster.local"
   ```
 
@@ -125,12 +124,12 @@ This is accomplished by updating each server agent's configuration telemetry sta
   </CodeBlockConfig>
 </Tabs>
 
-This integration method accomplishes metrics collection by leveraging either [Unix Domain Sockets](https://docs.datadoghq.com/developers/dogstatsd/unix_socket/?tab=kubernetes) (**UDS**) or [User Datagram Protocol](https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes#agent) (**UDP**) transport.
-Practitioners who manage their Kubernetes infrastructure and/or service-mesh should take into account the implications outlined in the table below.
-
 ### UDS/UDP Advantages and Disadvantages
 
-## UDS
+This integration method accomplishes metrics collection by leveraging either [Unix Domain Sockets](https://docs.datadoghq.com/developers/dogstatsd/unix_socket/?tab=kubernetes) (**UDS**) or [User Datagram Protocol](https://docs.datadoghq.com/developers/dogstatsd/?tab=kubernetes#agent) (**UDP**) transport.
+Practitioners who manage their Kubernetes infrastructure and/or service-mesh should take into account the implications outlined in the tables below.
+
+#### UDS
 
 **Packet Transport**: Unix Domain Socket File
 
@@ -142,11 +141,11 @@ Practitioners who manage their Kubernetes infrastructure and/or service-mesh sho
 | Packet error handling                                 |                                                                                                      |
 | Automatic container ID tagging                        |                                                                                                      |
 
-## UDP
+#### UDP
 
 **Packet Transport**:
-  * Kubernetes Service `IP:Port`
-  * Container Host Port
+   * Kubernetes Service `IP:Port`
+   * Container Host Port
 
 | Advantages                                                                                                       | Disadvantages                                                                                                             |
 |------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
@@ -164,11 +163,10 @@ To confirm you're Datadog agent is receiving traffic, the `status` subcommand ca
 There should be an increase in either UDP or UDS traffic packet counts from the resultant output after the configuration has been properly established.
 
 
- | Transport   | Command                                                                    | Pod           | Container | Example Output                                                                                 |
- |:------------|----------------------------------------------------------------------------|---------------|-----------|------------------------------------------------------------------------------------------------|
- | `UDP`/`UDS` | `agent status`                                                             | datadog-agent | agent     | See below.                                                                                     |
- | `UDP`       | `netstat -nup \| grep "<dd_agent_or_pod_hostIP>:8125.*ESTABLISHED"`        | consul-server | consul    | `udp        0      0 127.0.0.1:53874         127.0.0.1:8125          ESTABLISHED 23176/consul` |
- | `UDS`       | `nc -U -u -w1 /var/run/datadog/dsd.socket` _(update socket path as req'd)_ | consul-server | consul    | `Bound on /tmp/nc-IjJkoG/recv.sock`                                                            |
+ | Transport      | Command                                                                    | Pod           | Container |
+ |:---------------|----------------------------------------------------------------------------|---------------|-----------|
+ | `UDP`\|\|`UDS` | `agent status`                                                             | datadog-agent | agent     |
+
 
 <Tabs>
   <CodeBlockConfig heading={"UDP"}>
@@ -220,6 +218,65 @@ There should be an increase in either UDP or UDS traffic packet counts from the 
   </CodeBlockConfig>
 </Tabs>
 
+Traffic verification can also be accomplished using the `netstat` command line utility from a consul-server expected to be submitting
+metrics data to Datadog.
+
+<Note>
+  Using <code>netstat</code> requires privileged container permissions to install <code>open-bsd</code> networking tools on the consul-server for testing.
+</Note>
+
+| Transport        | Command   | Pod           | Container |
+|:-----------------|-----------|---------------|-----------|
+| `UDP` \|\| `UDS` | `netstat` | consul-server | consul    |
+
+<Tabs>
+  <CodeBlockConfig heading={"UDP"}>
+
+  ```shell
+  $ netstat -nup | grep "172.28.13.12:8125.*ESTABLISHED
+  udp        0      0 127.0.0.1:53874         127.0.0.1:8125          ESTABLISHED 23176/consul
+  ```
+
+  </CodeBlockConfig>
+
+  <CodeBlockConfig heading={"UDS"}>
+
+  ```shell
+  $ netstat -x
+  Active UNIX domain sockets (w/o servers)
+  Proto RefCnt Flags       Type       State         I-Node Path
+  unix  2      [ ]         DGRAM      CONNECTED     15952473
+  unix  2      [ ]         DGRAM                    15652537 @9d10c
+  ```
+
+  </CodeBlockConfig>
+
+</Tabs>
+
+UDS provides the additional capability for verification by sending a test metrics packet to the Unix Socket configured.
+
+<Note>
+  Using <code>netcat</code> (nc) requires privileged container permissions to install <code>open-bsd</code> networking tools on the consul-server for testing.
+</Note>
+
+| Transport | Command | Pod           | Container |
+|:----------|---------|---------------|-----------|
+| `UDS`     | `nc`    | consul-server | consul    |
+
+<CodeBlockConfig heading={"UDS"}>
+
+  ```shell
+  $ echo -n "custom.metric.name:1|c" | nc -U -u -w1 /var/run/datadog/dsd.socket
+  Bound on /tmp/nc-IjJkoG/recv.sock
+  ```
+
+</CodeBlockConfig>
+
+#### Use Case
+
+DogstatsD integration provides full-scope metrics collection from Consul, and minimizes access control configuration requirements as traffic
+flow is outbound (toward the Datadog Agent) as opposed to inbound (toward the `/v1/agent/metrics/` API endpoint).
+
 
 #### Metrics Data Collected
 
@@ -233,7 +290,22 @@ The Datadog Agent package includes official third-party integrations for built-i
 The Consul Integration Datadog checks provided some additional metric verification checks that leverage Consul's built-in feature-set, and help monitor Consul
 during normal operation beyond that of Consul's available metrics.
 
-See the below table for an outline of the features added by the official integration.
+See the below [table](#additional-integration-checks-performed) for an outline of the features added by the official integration.
+
+### Helm Chart Configuration
+
+<CodeBlockConfig heading={"Datadog Consul Checks"}>
+
+  ```yaml
+  metrics:
+    enabled: true
+    enableAgentMetrics: true
+    datadog:
+      enabled: true
+      namespace: "datadog"
+  ```
+
+</CodeBlockConfig>
 
 ### Additional Integration Checks Performed
 
@@ -247,24 +319,9 @@ See the below table for an outline of the features added by the official integra
 | Catalog Nodes    | Node Service Count and Health Status                | `/v1/health/state/any` `/v1/health/service/<service>`                |
 | Consul Latency   | Consul LAN + WAN Coordinate Latency Calculations    | `/v1/agent/self` `/v1/coordinate/nodes` `/v1/coordinate/datacenters` |
 
+#### Use Case
 
-### Helm Chart Configuration
-
-  <CodeBlockConfig heading={"Datadog Consul Checks"}>
-
-  ```yaml
-  metrics:
-    enabled: true
-    enableAgentMetrics: true
-    datadog:
-      enabled: true
-      namespace: "datadog"
-  ```
-
-  </CodeBlockConfig>
-
-
-
+This integration is primarily for basic Consul monitoring with focus on the service discovery.
 
 #### Metrics Data Collected
 
@@ -276,31 +333,76 @@ Review the [Datadog Documentation](https://docs.datadoghq.com/integrations/consu
 
 ## Openmetrics Prometheus
 
+For Datadog agents at or above v6.5.0, OpenMetrics and Prometheus checks are available to scrape Kubernetes application Prometheus endpoints.
+
+This method implements the collection via Openmetrics as that is fully supported for Prometheus text format and is accomplished using pod annotations as demonstrated below.
+
+<Note>
+  Enabling OpenMetrics collection via Datadog <strong><em>by design</em></strong> removes the <code>prometheus.io/path</code> and <code>prometheus.io/port</code> annotations from the consul-server statefulset deployment to allow Datadog
+  to scrape the agent's metrics API endpoint using either RPC TLS and Consul ACLs as necessary.
+</Note>
+
 ### Helm Chart Configuration
 
+<Tabs>
   <CodeBlockConfig heading={"OpenMetrics Prometheus"}>
 
+  Consul Helm Chart Overrides
+
   ```yaml
-  metrics:
-    enabled: true
-    enableAgentMetrics: true
-    datadog:
+  global:
+    tls:
       enabled: true
-      namespace: "datadog"
-      openMetricsPrometheus:
+      enableAutoEncrypt: true
+    acls:
+      manageSystemACLs: true
+    metrics:
+      enabled: true
+      enableAgentMetrics: true
+      datadog:
         enabled: true
+        namespace: "datadog"
+        openMetricsPrometheus:
+          enabled: true
+  ```
+
+  Consul `server-statefulset.yaml` annotations
+
+  ```yaml
+  ad.datadoghq.com/consul.checks: |
+    {
+      "openmetrics": {
+        "init_config": {},
+        "instances": [
+          {
+            "openmetrics_endpoint": "https://consul-server.consul.svc:8501/v1/agent/metrics?format=prometheus",
+            "tls_cert": "/etc/datadog-agent/conf.d/consul.d/certs/tls.crt",
+            "tls_private_key": "/etc/datadog-agent/conf.d/consul.d/certs/tls.key",
+            "tls_ca_cert": "/etc/datadog-agent/conf.d/consul.d/ca/tls.crt",
+            "headers": {
+              "X-Consul-Token": "ENC[k8s_secret@consul/consul-datadog-agent-metrics-acl-token/token]"
+            },
+            "namespace": "consul",
+            "metrics": [ ".*" ]
+          }
+        ]
+      }
+    }
   ```
 
   </CodeBlockConfig>
+</Tabs>
+
+#### Use Case
 
 This method of integration is useful for cases where Prometheus enabled scrapes are desired, and further customization of the collected data is desired.
 
 By default, all metrics pulled using this method will scrape Consul metrics using the `/v1/agent/metrics?format=prometheus` API query, and are considered to be **_custom metrics_**.
 
-Use of this method will map to Datadog as described in [Mapping Prometheus Metrics to Datadog Metrics](https://docs.datadoghq.com/integrations/guide/prometheus-metrics/?tab=latestversion) and summarized below.
+Use of this method will map to Datadog as described in [Mapping Prometheus Metrics to Datadog Metrics](https://docs.datadoghq.com/integrations/guide/prometheus-metrics/?tab=latestversion) and is summarized in the table below.
 
-| OpenMetrics Metric Type | Datadog Metric Type                |
-|-------------------------|------------------------------------|
+| OpenMetrics metric type | Datadog metric type                |
+|:------------------------|:-----------------------------------|
 | `Gauge`                 | `gauge`                            |
 | `Counter`               | `count`                            |
 | Histogram: `_count `    | `count.count`                      |
@@ -313,5 +415,6 @@ Use of this method will map to Datadog as described in [Mapping Prometheus Metri
 
 #### Metrics Data Collected
 
-  - Collects Consul related metrics via the `/v1/agent/metrics` API endpoint leveraging the `prometheus` query parameter.
-  - Default configuration, uses a wildcard `".*"` to collect all metrics emitted from the endpoint, therefore the list of metrics scraped consists of those listed in the [Agent Telemetry](https://developer.hashicorp.com/consul/docs/agent/telemetry) documentation.
+The integration, by default, uses a wildcard (`".*"`) to collect **_all_** metrics emitted from the `/v1/agent/metrics` endpoint.
+
+Please refer to the [Agent Telemetry](https://developer.hashicorp.com/consul/docs/agent/telemetry) documentation for a full list and desription of the metrics data collected.
