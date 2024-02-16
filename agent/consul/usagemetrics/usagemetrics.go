@@ -226,7 +226,7 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	u.emitPeeringUsage(peeringUsage)
 
-	_, serviceUsage, err := state.ServiceUsage(nil)
+	_, serviceUsage, err := state.ServiceUsage(nil, true)
 	if err != nil {
 		u.logger.Warn("failed to retrieve services from state store", "error", err)
 	}
