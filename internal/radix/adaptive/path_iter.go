@@ -93,6 +93,7 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 			if node4.children[itr] != nil {
 				key, value, found := i.recursiveForEachChildren(node4.children[itr])
 				if found {
+					i.currentCh = itr
 					return key, value, true
 				}
 			}
@@ -105,6 +106,7 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node16.children[itr])
 				if found {
+					i.currentCh = itr
 					return key, value, true
 				}
 			}
@@ -117,6 +119,7 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node48.children[itr])
 				if found {
+					i.currentCh = itr
 					return key, value, true
 				}
 			}
@@ -129,6 +132,7 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node256.children[itr])
 				if found {
+					i.currentCh = itr
 					return key, value, true
 				}
 			}
