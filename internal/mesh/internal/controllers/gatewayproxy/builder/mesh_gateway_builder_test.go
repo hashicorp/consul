@@ -197,7 +197,7 @@ func (suite *proxyStateTemplateBuilderSuite) TestProxyStateTemplateBuilder_Build
 			"without address ports": suite.workloadWithOutAddressPorts,
 		} {
 			testutil.RunStep(suite.T(), name, func(t *testing.T) {
-				builder := NewProxyStateTemplateBuilder(workload, suite.exportedServicesPeerData.Data.Services, logger, f, dc, trustDomain, nil)
+				builder := NewMeshGWProxyStateTemplateBuilder(workload, suite.exportedServicesPeerData.Data.Services, logger, f, dc, trustDomain, nil)
 				expectedProxyStateTemplate := &pbmesh.ProxyStateTemplate{
 					ProxyState: &pbmesh.ProxyState{
 						Identity: &pbresource.Reference{
