@@ -546,6 +546,12 @@ Use these links to navigate to a particular top-level stanza.
     - `enableAgentMetrics` ((#v-global-metrics-enableagentmetrics)) (`boolean: false`) - Configures consul agent metrics. Only applicable if
       `global.metrics.enabled` is true.
 
+    - `disableAgentHostName` ((#v-global-metrics-disableagenthostname)) (`boolean: false`) - Set to true to stop prepending the machine's hostname to gauge-type metrics. Default is false.
+      Only applicable if `global.metrics.enabled` and `global.metrics.enableAgentMetrics` is true.
+
+    - `enableHostMetrics` ((#v-global-metrics-enablehostmetrics)) (`boolean: false`) - Configures consul agent underlying host metrics. Only applicable if
+      Only applicable if `global.metrics.enabled` and `global.metrics.enableAgentMetrics` is true.
+
     - `agentMetricsRetentionTime` ((#v-global-metrics-agentmetricsretentiontime)) (`string: 1m`) - Configures the retention time for metrics in Consul clients and
       servers. This must be greater than 0 for Consul clients and servers
       to expose any metrics at all.
@@ -557,6 +563,120 @@ Use these links to navigate to a particular top-level stanza.
 
     - `enableTelemetryCollector` ((#v-global-metrics-enabletelemetrycollector)) (`boolean: false`) - Configures the Helm chart’s components to forward envoy metrics for the Consul service mesh to the
       consul-telemetry-collector. This includes gateway metrics and sidecar metrics.
+
+    - `prefixFilter` ((#v-global-metrics-prefixfilter)) - This configures the list of filter rules to apply for allowing/blocking
+      metrics by prefix in the following format:
+
+      A leading "+" will enable any metrics with the given prefix, and a leading "-" will block them.
+      If there is overlap between two rules, the more specific rule will take precedence.
+      Blocking will take priority if the same prefix is listed multiple times.
+
+      - allowList:
+
+      - `allowList` ((#v-global-metrics-prefixfilter-allowlist)) (`array<string>: []`)
+
+      - `blockList` ((#v-global-metrics-prefixfilter-blocklist)) (`array<string>: []`)
+
+    - `datadog` ((#v-global-metrics-datadog)) - Configures consul integration configurations for datadog on kubernetes.
+      Only applicable if `global.metrics.enabled` and `global.metrics.enableAgentMetrics` is true.
+
+      - `enabled` ((#v-global-metrics-datadog-enabled)) (`boolean: false`) - Enables datadog [Consul Autodiscovery Integration](https://docs.datadoghq.com/integrations/consul/?tab=containerized#metric-collection)
+        by configuring the required `ad.datadoghq.com/consul.checks` annotation. The following _Consul_ agent metrics/health statuses
+        are monitored by Datadog unless monitoring via OpenMetrics (Prometheus) or DogStatsD:
+          - Serf events and member flaps
+          - The Raft protocol
+          - DNS performance
+          - API Endpoints scraped:
+            - `/v1/agent/metrics?format=prometheus`
+            - `/v1/agent/self`
+            - `/v1/status/leader`
+            - `/v1/status/peers`
+            - `/v1/catalog/services`
+            - `/v1/health/service`
+            - `/v1/health/state/any`
+            - `/v1/coordinate/datacenters`
+            - `/v1/coordinate/nodes`
+
+        Setting either `global.metrics.datadog.otlp.enabled=true` or `global.metrics.datadog.dogstatsd.enabled=true` disables the above checks
+        in lieu of metrics data collection via DogStatsD or by a customer OpenMetrics (Prometheus) collection endpoint.
+
+        ~> **Note:** If you have a [dogstatsd_mapper_profile](https://docs.datadoghq.com/integrations/consul/?tab=host#dogstatsd) configured for Consul
+        residing on either your Datadog NodeAgent or ClusterAgent the default Consul agent metrics/health status checks will fail. If you do not desire
+        to utilize DogStatsD metrics emission from Consul, remove this configuration file, and restart your Datadog agent to permit the checks to run.
+
+      - `openMetricsPrometheus` ((#v-global-metrics-datadog-openmetricsprometheus)) - Configures Kubernetes Prometheus/OpenMetrics auto-discovery annotations for use with Datadog.
+        This configuration is less common and more for advanced usage with custom metrics monitoring
+        configurations. See https://docs.datadoghq.com/containers/kubernetes/prometheus/?tab=kubernetesadv2 for more details
+        surround further configuration.
+
+        - `enabled` ((#v-global-metrics-datadog-openmetricsprometheus-enabled)) (`boolean: false`)
+
+      - `otlp` ((#v-global-metrics-datadog-otlp))
+
+        - `enabled` ((#v-global-metrics-datadog-otlp-enabled)) (`boolean: false`) - Enables forwarding of Consul's Telemetry Collector OTLP metrics for
+          ingestion by Datadog Agent.
+
+        - `protocol` ((#v-global-metrics-datadog-otlp-protocol)) (`string: "http"`) - Protocol used for DataDog Endpoint OTLP ingestion.
+
+          Valid protocol options are one of either:
+
+            - "http": will forward to DataDog HTTP OTLP Node Agent Endpoint default - "0.0.0.0:4318"
+            - "grpc": will forward to DataDog gRPC OTLP Node Agent Endpoint default - "0.0.0.0:4317"
+
+      - `dogstatsd` ((#v-global-metrics-datadog-dogstatsd)) - Configuration settings for DogStatsD metrics aggregation service
+        that is bundled with the Datadog Agent.
+        DogStatsD implements the StatsD protocol and adds a few Datadog-specific extensions:
+        - Histogram metric type
+        - Service checks
+        - Events
+        - Tagging
+
+        - `enabled` ((#v-global-metrics-datadog-dogstatsd-enabled)) (`boolean: false`)
+
+        - `socketTransportType` ((#v-global-metrics-datadog-dogstatsd-sockettransporttype)) (`string: "UDS"`) - Sets the socket transport type for dogstatsd:
+           - "UDS" (Unix Domain Socket): prefixes `unix://` to URL and appends path to socket (i.e., "unix:///var/run/datadog/dsd.socket")
+             If set, this will create the required [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) mount for
+             managing [DogStatsD with Unix Domain Socket on Kubernetes](https://docs.datadoghq.com/developers/dogstatsd/unix_socket/?tab=kubernetes).
+             The volume is mounted using the `DirectoryOrCreate` type, thereby setting `0755` permissions with the same kubelet group ownership.
+
+           Applies the following `volumes` and `volumeMounts` to the consul-server stateful set consul containers:
+
+          ```yaml
+          volumes:
+            - name: dsdsocket
+              hostPath:
+                path: /var/run/datadog
+                type: DirectoryOrCreate
+          volumeMounts:
+            - name: dsdsocket
+              mountPath: /var/run/datadog
+              readOnly: true
+          ```
+           - "UDP" (User Datagram Protocol): assigns address to use `hostname/IP:Port` formatted URL for UDP transport to hostIP based
+              dogstatsd sink (i.e., 127.0.0.1:8125). HostIP of Datadog agent must be reachable and known to Consul server emitting metrics.
+
+        - `dogstatsdAddr` ((#v-global-metrics-datadog-dogstatsd-dogstatsdaddr)) (`string: "/var/run/datadog/dsd.socket"`) - Sets URL path for dogstatsd:
+
+          Can be either a path to unix domain socket or an IP Address or Hostname that's reachable from the
+          consul-server service, server containers. When using "UDS" the path will be appended. When using "UDP"
+          the path will be prepended to the specified `dogstatsdPort`.
+
+        - `dogstatsdPort` ((#v-global-metrics-datadog-dogstatsd-dogstatsdport)) (`integer: 0`) - Configures IP based dogstatsd designated port that will be appended to "UDP" based transport socket IP/Hostname URL.
+
+          If using a kubernetes service based address (i.e., datadog.default.svc.cluster.local), set this to 0 to
+          mitigate appending a port value to the dogstatsd address field. Resultant address would be "datadog.default.svc.cluster.local" with
+          default port setting, while appending a non-zero port would result in "172.10.23.6:8125" with a dogstatsdAddr value
+          of "172.10.23.6".
+
+        - `dogstatsdTags` ((#v-global-metrics-datadog-dogstatsd-dogstatsdtags)) (`array<string>: ["source:consul","consul_service:consul-server"]`) - Configures datadog [autodiscovery](https://docs.datadoghq.com/containers/kubernetes/log/?tab=operator#autodiscovery)
+          style [log integration](https://docs.datadoghq.com/integrations/consul/?tab=containerized#log-collection)
+          configuration for Consul.
+
+          The default settings should handle most Consul Kubernetes deployment schemes. The resultant annotation
+          will reside on the consul-server statefulset as autodiscovery annotations.
+          (i.e., ad.datadoghq.com/consul.logs: ["source:consul","consul_service:consul-server", ""])
+
+      - `namespace` ((#v-global-metrics-datadog-namespace)) (`string: "default"`) - Namespace
 
   - `imageConsulDataplane` ((#v-global-imageconsuldataplane)) (`string: hashicorp/consul-dataplane:<latest supported version>`) - The name (and tag) of the consul-dataplane Docker image used for the
     connect-injected sidecar proxies and mesh, terminating, and ingress gateways.
@@ -766,6 +886,10 @@ Use these links to navigate to a particular top-level stanza.
     setting will only enable usage of the feature. Consul will automatically initialize
     a new CA and set of certificates. Additional service mesh settings can be configured
     by setting the `server.extraConfig` value or by applying [configuration entries](/consul/docs/connect/config-entries).
+
+  - `enableAgentDebug` ((#v-server-enableagentdebug)) (`boolean: false`) - When set to true, enables Consul to report additional debugging information, including runtime profiling (pprof) data.
+    This setting is only required for clusters without ACL enabled. Sets `enable_debug` in server agent config to `true`.
+    If you change this setting, you must restart the agent for the change to take effect. Default is false.
 
   - `serviceAccount` ((#v-server-serviceaccount))
 
@@ -2173,8 +2297,11 @@ Use these links to navigate to a particular top-level stanza.
 
       - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
 
-    - `defaultStartupFailureSeconds` ((#v-connectinject-sidecarproxy-defaultstartupfailureseconds)) (`integer: 0`) - Enables a startup probe that polls the Envoy sidecar health every second. When a container fails health checks consecutively for this period of time during startup, K8s restarts the container according to its [`restartPolicy`](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy). A value of `0` disables the probe.
-    - `defaultLivenessFailureSeconds` ((#v-connectinject-sidecarproxy-defaultlivenessfailureseconds)) (`integer: 0`) - Enables a liveness probe that polls the Envoy sidecar health every second. When a container fails health checks  for this period of time, K8s restarts the container according to its [`restartPolicy`](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy). A value of `0` disables the probe.
+    - `defaultStartupFailureSeconds` ((#v-connectinject-sidecarproxy-defaultstartupfailureseconds)) (`integer: 0`) - Configures how long the k8s startup probe will wait before the proxy is considered to be unhealthy and the container is restarted.
+      A value of zero disables the probe.
+
+    - `defaultLivenessFailureSeconds` ((#v-connectinject-sidecarproxy-defaultlivenessfailureseconds)) (`integer: 0`) - Configures how long the k8s liveness probe will wait before the proxy is considered to be unhealthy and the container is restarted.
+      A value of zero disables the probe.
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
     won't be set for the initContainer. The defaults are optimized for developer instances of
