@@ -410,7 +410,7 @@ func (s *Store) PeeringUsage() (uint64, PeeringUsage, error) {
 
 // ServiceUsage returns the latest seen Raft index, a compiled set of service
 // usage data, and any errors.
-func (s *Store) ServiceUsage(ws memdb.WatchSet) (uint64, structs.ServiceUsage, error) {
+func (s *Store) ServiceUsage(ws memdb.WatchSet, tenantUsage bool) (uint64, structs.ServiceUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
@@ -450,6 +450,12 @@ func (s *Store) ServiceUsage(ws memdb.WatchSet) (uint64, structs.ServiceUsage, e
 		BillableServiceInstances: billableServiceInstances.Count,
 		Nodes:                    nodes.Count,
 	}
+
+	// Unless we need to gather per-tenant usage go ahead and return what we have
+	if !tenantUsage {
+		return serviceInstances.Index, usage, nil
+	}
+
 	results, err := compileEnterpriseServiceUsage(ws, tx, usage)
 	if err != nil {
 		return 0, structs.ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
