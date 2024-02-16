@@ -17,17 +17,15 @@ type Iterator[T any] struct {
 
 func (i *Iterator[T]) Next() ([]byte, T, bool) {
 	var zero T
-	// If the iterator or current node is nil, or the prefix doesn't match, return false
-	if i.root == nil || !bytes.HasPrefix(i.root.getPartial(), i.path) {
+
+	if len(i.stack) == 0 {
 		return nil, zero, false
 	}
 
 	// Iterate through the stack until it's empty
 	for len(i.stack) > 0 {
-		// Pop the top node from the stack
-		node := i.stack[len(i.stack)-1]
-		i.stack = i.stack[:len(i.stack)-1]
-
+		node := i.stack[0]
+		i.stack = i.stack[1:]
 		currentNode := node.(Node[T])
 
 		switch currentNode.getArtNodeType() {
@@ -36,54 +34,50 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 			return leafCh.key, leafCh.value, true
 		case NODE4:
 			node4 := currentNode.(*Node4[T])
-			for itr := 0; itr < int(node4.getNumChildren()); itr++ {
+			for itr := int(node4.getNumChildren()) - 1; itr >= 0; itr-- {
 				child := (*node4.children[itr]).(Node[T])
-				if child.isLeaf() {
-					leafCh := child.(*NodeLeaf[T])
-					return leafCh.key, leafCh.value, true
-				}
 				// If the child's partial key matches the prefix, push it onto the stack
 				if bytes.HasPrefix(child.getPartial(), i.path) {
-					i.stack = append(i.stack, (child).(Node[T]))
+					newStack := make([]Node[T], len(i.stack)+1)
+					copy(newStack[1:], i.stack)
+					newStack[0] = child
+					i.stack = newStack
 				}
 			}
 		case NODE16:
 			node16 := currentNode.(*Node16[T])
-			for itr := 0; itr < int(node16.getNumChildren()); itr++ {
+			for itr := int(node16.getNumChildren()) - 1; itr >= 0; itr-- {
 				child := (*node16.children[itr]).(Node[T])
-				if child.isLeaf() {
-					leafCh := child.(*NodeLeaf[T])
-					return leafCh.key, leafCh.value, true
-				}
 				// If the child's partial key matches the prefix, push it onto the stack
 				if bytes.HasPrefix(child.getPartial(), i.path) {
-					i.stack = append(i.stack, (child).(Node[T]))
+					newStack := make([]Node[T], len(i.stack)+1)
+					copy(newStack[1:], i.stack)
+					newStack[0] = child
+					i.stack = newStack
 				}
 			}
 		case NODE48:
 			node48 := currentNode.(*Node48[T])
-			for itr := 0; itr < int(node48.getNumChildren()); itr++ {
+			for itr := int(node48.getNumChildren()) - 1; itr >= 0; itr-- {
 				child := (*node48.children[itr]).(Node[T])
-				if child.isLeaf() {
-					leafCh := child.(*NodeLeaf[T])
-					return leafCh.key, leafCh.value, true
-				}
 				// If the child's partial key matches the prefix, push it onto the stack
 				if bytes.HasPrefix(child.getPartial(), i.path) {
-					i.stack = append(i.stack, (child).(Node[T]))
+					newStack := make([]Node[T], len(i.stack)+1)
+					copy(newStack[1:], i.stack)
+					newStack[0] = child
+					i.stack = newStack
 				}
 			}
 		case NODE256:
 			node256 := currentNode.(*Node256[T])
-			for itr := 0; itr < int(node256.getNumChildren()); itr++ {
+			for itr := int(node256.getNumChildren()) - 1; itr >= 0; itr-- {
 				child := (*node256.children[itr]).(Node[T])
-				if child.isLeaf() {
-					leafCh := child.(*NodeLeaf[T])
-					return leafCh.key, leafCh.value, true
-				}
 				// If the child's partial key matches the prefix, push it onto the stack
 				if bytes.HasPrefix(child.getPartial(), i.path) {
-					i.stack = append(i.stack, (child).(Node[T]))
+					newStack := make([]Node[T], len(i.stack)+1)
+					copy(newStack[1:], i.stack)
+					newStack[0] = child
+					i.stack = newStack
 				}
 			}
 		}
@@ -135,7 +129,4 @@ func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 		i.root = node
 		depth++
 	}
-	// If no node matches the prefix, set the iterator to nil
-	i.root = nil
-	i.depth = 0
 }
