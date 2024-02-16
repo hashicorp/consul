@@ -13,4 +13,7 @@ type Node[T any] interface {
 	getPartial() []byte
 	setPartial([]byte)
 	isLeaf() bool
+	Iterator() *Iterator[T]
+	PathIterator([]byte) *PathIterator[T]
+	matchPrefix([]byte) bool
 }

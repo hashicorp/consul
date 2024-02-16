@@ -8,8 +8,11 @@ import (
 	"math/bits"
 )
 
-func iterativeSearch[T any](t *RadixTree[T], key []byte) T {
+func iterativeSearch[T any](t *RadixTree[T], key []byte) (T, bool) {
 	var zero T
+	if t.root == nil {
+		return zero, false
+	}
 	keyLen := len(key)
 	var child **Node[T]
 	n := *t.root
@@ -24,30 +27,30 @@ func iterativeSearch[T any](t *RadixTree[T], key []byte) T {
 			}
 			// Check if the expanded path matches
 			if leafMatches[T](leaf, key, keyLen) == 0 {
-				return leaf.value
+				return leaf.value, true
 			}
-			return zero
+			return zero, false
 		}
 
 		// Bail if the prefix does not match
 		if n.getPartialLen() > 0 {
 			prefixLen := checkPrefix[T](n, key, keyLen, depth)
 			if prefixLen != min(MaxPrefixLen, int(n.getPartialLen())) {
-				return zero
+				return zero, false
 			}
 			depth += int(n.getPartialLen())
 		}
 
 		// Recursively search
 		child = findChild[T](n, key[depth])
-		if child != nil {
+		if child != nil && *child != nil && **child != nil {
 			n = **child
 		} else {
 			n = nil
 		}
 		depth++
 	}
-	return zero
+	return zero, false
 }
 
 func checkPrefix[T any](n Node[T], key []byte, keyLen, depth int) int {
@@ -762,21 +765,4 @@ func recursiveIter[T any](n *Node[T], cb func(key []byte, value T)) int {
 		panic("Unknown node type")
 	}
 	return 0
-}
-
-func matchDeep[T any](node *Node[T], depth uint32, key []byte) int /* mismatch index*/ {
-	mismatchIdx := prefixMismatch[T](*node, key, len(key), int(depth))
-	if mismatchIdx < MaxPrefixLen {
-		return mismatchIdx
-	}
-
-	leaf := minimum[T](node)
-	limit := min(len(leaf.getKey()), len(key)) - int(depth)
-	for ; mismatchIdx < limit; mismatchIdx++ {
-		if leaf.key[mismatchIdx+int(depth)] != key[mismatchIdx+int(depth)] {
-			break
-		}
-	}
-
-	return mismatchIdx
 }

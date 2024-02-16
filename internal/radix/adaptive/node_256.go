@@ -46,3 +46,20 @@ func (n *Node256[T]) setPartial(partial []byte) {
 func (n *Node256[T]) isLeaf() bool {
 	return false
 }
+
+// Iterator is used to return an iterator at
+// the given node to walk the tree
+func (n *Node256[T]) Iterator() *Iterator[T] {
+	stack := make([]Node[T], 0)
+	stack = append(stack, n)
+	return &Iterator[T]{stack: stack, root: n}
+}
+
+func (n *Node256[T]) PathIterator(path []byte) *PathIterator[T] {
+	return &PathIterator[T]{parent: n, path: path}
+}
+
+func (n *Node256[T]) matchPrefix(_ []byte) bool {
+	// No partial keys in NODE256, always match
+	return true
+}

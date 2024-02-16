@@ -3,6 +3,8 @@
 
 package adaptive
 
+import "bytes"
+
 type Node16[T any] struct {
 	partialLen  uint32
 	artNodeType uint8
@@ -46,4 +48,20 @@ func (n *Node16[T]) setPartial(partial []byte) {
 
 func (n *Node16[T]) isLeaf() bool {
 	return false
+}
+
+// Iterator is used to return an iterator at
+// the given node to walk the tree
+func (n *Node16[T]) Iterator() *Iterator[T] {
+	stack := make([]Node[T], 0)
+	stack = append(stack, n)
+	return &Iterator[T]{stack: stack, root: n}
+}
+
+func (n *Node16[T]) PathIterator(path []byte) *PathIterator[T] {
+	return &PathIterator[T]{parent: n, path: path}
+}
+
+func (n *Node16[T]) matchPrefix(prefix []byte) bool {
+	return bytes.HasPrefix(n.partial, prefix)
 }

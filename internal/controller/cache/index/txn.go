@@ -4,14 +4,13 @@
 package index
 
 import (
-	iradix "github.com/hashicorp/go-immutable-radix/v2"
-
+	"github.com/hashicorp/consul/internal/radix/adaptive"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type txn struct {
-	inner *iradix.Txn[[]*pbresource.Resource]
+	inner *adaptive.Txn[[]*pbresource.Resource]
 	index *IndexedData
 	dirty bool
 }
@@ -167,7 +166,5 @@ func (t *txn) deleteOne(idxVal []byte, r *pbresource.Resource) bool {
 }
 
 func (t *txn) Commit() {
-	if t.dirty {
-		t.index.tree = t.inner.Commit()
-	}
+	//TODO
 }

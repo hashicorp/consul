@@ -74,10 +74,32 @@ func (n *NodeLeaf[T]) setPartial(partial []byte) {
 	// no-op
 }
 
+func (l *NodeLeaf[T]) prefixContainsMatch(key []byte) bool {
+	if key == nil || len(l.key)-1 > len(key) {
+		return false
+	}
+
+	return bytes.Compare(key[:len(l.key)-1], l.key[:len(l.key)-1]) == 0
+}
+
 func (l *NodeLeaf[T]) prefixMatch(key []byte) bool {
 	if key == nil || len(l.key)-1 > len(key) {
 		return false
 	}
 
 	return bytes.Compare(key[:len(l.key)-1], l.key[:len(l.key)-1]) == 0
+}
+
+func (n *NodeLeaf[T]) Iterator() *Iterator[T] {
+	stack := make([]Node[T], 0)
+	stack = append(stack, n)
+	return &Iterator[T]{stack: stack, root: n}
+}
+
+func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
+	return &PathIterator[T]{parent: n, path: path}
+}
+
+func (n *NodeLeaf[T]) matchPrefix(prefix []byte) bool {
+	return bytes.HasPrefix(n.key, prefix)
 }
