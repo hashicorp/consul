@@ -395,9 +395,9 @@ This method implements the collection via Openmetrics as that is fully supported
 
 #### Use Case
 
-This method of integration is useful for cases where Prometheus enabled scrapes are desired, and further customization of the collected data is desired.
+This method of integration is useful for Prometheus-enabled scrapes with further customization of the collected data.
 
-By default, all metrics pulled using this method will scrape Consul metrics using the `/v1/agent/metrics?format=prometheus` API query, and are considered to be **_custom metrics_**.
+By default, all metrics pulled using this method scrape Consul metrics using the `/v1/agent/metrics?format=prometheus` API query, and are considered to be custom metrics.
 
 Use of this method maps to Datadog as described in [Mapping Prometheus Metrics to Datadog Metrics](https://docs.datadoghq.com/integrations/guide/prometheus-metrics/?tab=latestversion). The following table summarizing how these metrics map to each other.
 
