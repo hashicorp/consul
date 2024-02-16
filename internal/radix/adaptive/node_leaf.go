@@ -1,5 +1,7 @@
 package adaptive
 
+import "bytes"
+
 type NodeLeaf[T any] struct {
 	value       T
 	keyLen      uint32
@@ -67,4 +69,12 @@ func (n *NodeLeaf[T]) getPartial() []byte {
 
 func (n *NodeLeaf[T]) setPartial(partial []byte) {
 	// no-op
+}
+
+func (l *NodeLeaf[T]) prefixMatch(key []byte) bool {
+	if key == nil || len(l.key)-1 > len(key) {
+		return false
+	}
+
+	return bytes.Compare(key[:len(l.key)-1], l.key[:len(l.key)-1]) == 0
 }

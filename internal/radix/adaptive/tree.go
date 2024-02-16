@@ -12,6 +12,10 @@ type RadixTree[T any] struct {
 	size uint64
 }
 
+func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
+	return &PathIterator[T]{parent: t.root, path: path}
+}
+
 func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
 	return &RadixTree[T]{root: nil, size: 0}
 }
@@ -38,12 +42,12 @@ func (t *RadixTree[T]) Maximum() *NodeLeaf[T] {
 }
 
 func (t *RadixTree[T]) Delete(key []byte) T {
-	var nilT T
+	var zero T
 	l := recursiveDelete[T](t.root, &t.root, getTreeKey(key), 0)
 	if l != nil {
 		t.size--
 		old := l.value
 		return old
 	}
-	return nilT
+	return zero
 }
