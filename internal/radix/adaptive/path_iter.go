@@ -60,7 +60,7 @@ func (i *PathIterator[T]) Iterate() {
 		}
 		depth += int(parent.getPartialLen())
 	}
-	next := findChild(parent, i.path[depth])
+	next := findChild[T](parent, i.path[depth])
 	if next == nil {
 		i.parent = nil
 		i.currentCh = 0

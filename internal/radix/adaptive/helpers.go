@@ -560,7 +560,7 @@ func recursiveDelete[T any](n *Node[T], ref **Node[T], key []byte, depth int) *N
 	}
 
 	// If the child is a leaf, delete from this node
-	if isLeaf(**child) {
+	if isLeaf[T](**child) {
 		nodeChild := **child
 		l := nodeChild.(*NodeLeaf[T])
 		if leafMatches[T](l, key, keyLen) == 0 {
@@ -711,7 +711,7 @@ func recursiveIter[T any](n *Node[T], cb func(key []byte, value T)) int {
 		return 0
 	}
 	node := *n
-	if isLeaf(node) {
+	if isLeaf[T](node) {
 		l := node.(*NodeLeaf[T])
 		cb(l.key, l.value)
 		return 0
