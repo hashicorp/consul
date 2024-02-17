@@ -43,20 +43,20 @@ func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 	return nil, zero, false
 }
 
-func (i *PathIterator[T]) Iterate() {
+func (i *PathIterator[T]) Iterate() bool {
 	depth := i.depth
 	if i.parent == nil {
-		return
+		return false
 	}
 	parent := i.parent
 	if parent.getNumChildren() > i.currentCh {
 		i.currentCh++
-		return
+		return false
 	}
 	if parent.getPartialLen() > 0 {
 		prefixLen := checkPrefix[T](parent, i.path, len(i.path), i.depth)
 		if prefixLen != min(MaxPrefixLen, int(parent.getPartialLen())) {
-			return
+			return false
 		}
 		depth += int(parent.getPartialLen())
 	}
@@ -64,12 +64,13 @@ func (i *PathIterator[T]) Iterate() {
 	if next == nil {
 		i.parent = nil
 		i.currentCh = 0
-		return
+		return false
 	}
 	i.parent = **next
 	i.currentCh = 0
 	depth++
 	i.depth = depth
+	return true
 }
 
 func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
@@ -82,8 +83,12 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 	parent := i.parent
 
 	if parent.getNumChildren() == i.currentCh {
-		i.Iterate()
-		return i.Next()
+		shouldContinue := i.Iterate()
+		if shouldContinue {
+			return i.Next()
+		} else {
+			return nil, zero, false
+		}
 	}
 
 	switch parent.getArtNodeType() {
