@@ -49,8 +49,25 @@ func (i *PathIterator[T]) Iterate() {
 		return
 	}
 	parent := i.parent
+	if parent == nil {
+		return
+	}
 	if parent.getNumChildren() > i.currentCh {
 		i.currentCh++
+		child := parent.getChild(int(i.currentCh))
+		if child == nil {
+			i.Iterate()
+			return
+		}
+		childNode := (*child).(Node[T])
+		if child == nil {
+			i.Iterate()
+			return
+		} else {
+			if !childNode.matchPrefix(i.path) {
+				i.Iterate()
+			}
+		}
 		return
 	}
 	if parent.getPartialLen() > 0 {
@@ -64,6 +81,7 @@ func (i *PathIterator[T]) Iterate() {
 	if next == nil {
 		i.parent = nil
 		i.currentCh = 0
+		i.depth = depth
 		return
 	}
 	i.parent = **next

@@ -74,3 +74,7 @@ func (n *Node48[T]) matchPrefix(prefix []byte) bool {
 	}
 	return false
 }
+
+func (n *Node48[T]) getChild(index int) *Node[T] {
+	return n.children[index]
+}

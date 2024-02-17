@@ -103,3 +103,7 @@ func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
 func (n *NodeLeaf[T]) matchPrefix(prefix []byte) bool {
 	return bytes.HasPrefix(n.key, prefix)
 }
+
+func (n *NodeLeaf[T]) getChild(index int) *Node[T] {
+	return nil
+}

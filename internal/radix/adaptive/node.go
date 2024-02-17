@@ -16,4 +16,5 @@ type Node[T any] interface {
 	Iterator() *Iterator[T]
 	PathIterator([]byte) *PathIterator[T]
 	matchPrefix([]byte) bool
+	getChild(int) *Node[T]
 }

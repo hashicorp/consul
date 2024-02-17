@@ -65,3 +65,7 @@ func (n *Node16[T]) PathIterator(path []byte) *PathIterator[T] {
 func (n *Node16[T]) matchPrefix(prefix []byte) bool {
 	return bytes.HasPrefix(n.partial, prefix)
 }
+
+func (n *Node16[T]) getChild(index int) *Node[T] {
+	return n.children[index]
+}

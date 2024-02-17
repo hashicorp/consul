@@ -63,3 +63,7 @@ func (n *Node256[T]) matchPrefix(_ []byte) bool {
 	// No partial keys in NODE256, always match
 	return true
 }
+
+func (n *Node256[T]) getChild(index int) *Node[T] {
+	return n.children[index]
+}
