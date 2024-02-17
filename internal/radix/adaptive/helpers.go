@@ -550,6 +550,9 @@ func getTreeKey(key []byte) []byte {
 
 func getKey(key []byte) []byte {
 	keyLen := len(key)
+	if keyLen == 0 {
+		return nil
+	}
 	newKey := make([]byte, keyLen-1)
 	copy(newKey, key)
 	return newKey

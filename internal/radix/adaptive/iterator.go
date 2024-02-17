@@ -36,6 +36,10 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 		case NODE4:
 			node4 := currentNode.(*Node4[T])
 			for itr := int(node4.getNumChildren()) - 1; itr >= 0; itr-- {
+				nodeCh := node4.children[itr]
+				if nodeCh == nil {
+					continue
+				}
 				child := (*node4.children[itr]).(Node[T])
 				newStack := make([]Node[T], len(i.stack)+1)
 				copy(newStack[1:], i.stack)
@@ -45,6 +49,10 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 		case NODE16:
 			node16 := currentNode.(*Node16[T])
 			for itr := int(node16.getNumChildren()) - 1; itr >= 0; itr-- {
+				nodeCh := node16.children[itr]
+				if nodeCh == nil {
+					continue
+				}
 				child := (*node16.children[itr]).(Node[T])
 				newStack := make([]Node[T], len(i.stack)+1)
 				copy(newStack[1:], i.stack)
@@ -54,6 +62,10 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 		case NODE48:
 			node48 := currentNode.(*Node48[T])
 			for itr := int(node48.getNumChildren()) - 1; itr >= 0; itr-- {
+				nodeCh := node48.children[itr]
+				if nodeCh == nil {
+					continue
+				}
 				child := (*node48.children[itr]).(Node[T])
 				newStack := make([]Node[T], len(i.stack)+1)
 				copy(newStack[1:], i.stack)
@@ -63,6 +75,10 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 		case NODE256:
 			node256 := currentNode.(*Node256[T])
 			for itr := int(node256.getNumChildren()) - 1; itr >= 0; itr-- {
+				nodeCh := node256.children[itr]
+				if nodeCh == nil {
+					continue
+				}
 				child := (*node256.children[itr]).(Node[T])
 				newStack := make([]Node[T], len(i.stack)+1)
 				copy(newStack[1:], i.stack)
