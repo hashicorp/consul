@@ -128,7 +128,7 @@ func (t *Txn[T]) Delete(key []byte) T {
 
 func (t *Txn[T]) Root() Node[T] {
 	if t.root == nil {
-		return nil
+		return &NodeLeaf[T]{}
 	}
 	return *t.root
 }

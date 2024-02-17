@@ -32,7 +32,7 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 			if !leafCh.matchPrefix(i.path) {
 				continue
 			}
-			return leafCh.key, leafCh.value, true
+			return getKey(leafCh.key), leafCh.value, true
 		case NODE4:
 			node4 := currentNode.(*Node4[T])
 			for itr := int(node4.getNumChildren()) - 1; itr >= 0; itr-- {
