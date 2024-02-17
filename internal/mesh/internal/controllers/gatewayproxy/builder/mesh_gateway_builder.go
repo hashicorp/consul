@@ -28,7 +28,7 @@ const (
 	nullRouteClusterName = "null_route_cluster"
 )
 
-type proxyStateTemplateBuilder struct {
+type meshGWProxyStateTemplateBuilder struct {
 	workload         *types.DecodedWorkload
 	dataFetcher      *fetcher.Fetcher
 	dc               string
@@ -38,8 +38,8 @@ type proxyStateTemplateBuilder struct {
 	remoteGatewayIDs []*pbresource.ID
 }
 
-func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices []*pbmulticluster.ComputedExportedService, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string, remoteGatewayIDs []*pbresource.ID) *proxyStateTemplateBuilder {
-	return &proxyStateTemplateBuilder{
+func NewMeshGWProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices []*pbmulticluster.ComputedExportedService, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string, remoteGatewayIDs []*pbresource.ID) *meshGWProxyStateTemplateBuilder {
+	return &meshGWProxyStateTemplateBuilder{
 		workload:         workload,
 		dataFetcher:      dataFetcher,
 		dc:               dc,
@@ -50,7 +50,7 @@ func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServi
 	}
 }
 
-func (b *proxyStateTemplateBuilder) identity() *pbresource.Reference {
+func (b *meshGWProxyStateTemplateBuilder) identity() *pbresource.Reference {
 	return &pbresource.Reference{
 		Name:    b.workload.Data.Identity,
 		Tenancy: b.workload.Id.Tenancy,
@@ -58,7 +58,7 @@ func (b *proxyStateTemplateBuilder) identity() *pbresource.Reference {
 	}
 }
 
-func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
+func (b *meshGWProxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 	var listeners []*pbproxystate.Listener
 	var address *pbcatalog.WorkloadAddress
 
@@ -107,7 +107,7 @@ func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 // meshListener constructs a pbproxystate.Listener that receives outgoing
 // traffic from the local partition where the mesh gateway mode is "local". This
 // traffic will be sent to a mesh gateway in a remote partition.
-func (b *proxyStateTemplateBuilder) meshListener(address *pbcatalog.WorkloadAddress, port uint32) *pbproxystate.Listener {
+func (b *meshGWProxyStateTemplateBuilder) meshListener(address *pbcatalog.WorkloadAddress, port uint32) *pbproxystate.Listener {
 	return b.listener("mesh_listener", address, port, pbproxystate.Direction_DIRECTION_OUTBOUND, b.meshRouters())
 }
 
@@ -115,11 +115,11 @@ func (b *proxyStateTemplateBuilder) meshListener(address *pbcatalog.WorkloadAddr
 // traffic from the public internet, either from a mesh gateway in a remote partition
 // where the mesh gateway mode is "local" or from a service in a remote partition
 // where the mesh gateway mode is "remote".
-func (b *proxyStateTemplateBuilder) wanListener(address *pbcatalog.WorkloadAddress, port uint32) *pbproxystate.Listener {
+func (b *meshGWProxyStateTemplateBuilder) wanListener(address *pbcatalog.WorkloadAddress, port uint32) *pbproxystate.Listener {
 	return b.listener("wan_listener", address, port, pbproxystate.Direction_DIRECTION_INBOUND, b.wanRouters())
 }
 
-func (b *proxyStateTemplateBuilder) listener(name string, address *pbcatalog.WorkloadAddress, port uint32, direction pbproxystate.Direction, routers []*pbproxystate.Router) *pbproxystate.Listener {
+func (b *meshGWProxyStateTemplateBuilder) listener(name string, address *pbcatalog.WorkloadAddress, port uint32, direction pbproxystate.Direction, routers []*pbproxystate.Router) *pbproxystate.Listener {
 	return &pbproxystate.Listener{
 		Name:      name,
 		Direction: direction,
@@ -152,7 +152,7 @@ func (b *proxyStateTemplateBuilder) listener(name string, address *pbcatalog.Wor
 // a pbproxystate.Router matching the partition + datacenter of the SNI to the target
 // cluster. Traffic flowing through this router originates in the local partition where
 // the mesh gateway mode is "local".
-func (b *proxyStateTemplateBuilder) meshRouters() []*pbproxystate.Router {
+func (b *meshGWProxyStateTemplateBuilder) meshRouters() []*pbproxystate.Router {
 	var routers []*pbproxystate.Router
 
 	for _, remoteGatewayID := range b.remoteGatewayIDs {
@@ -192,7 +192,7 @@ func (b *proxyStateTemplateBuilder) meshRouters() []*pbproxystate.Router {
 // a pbproxystate.Router matching the SNI to the target cluster. Traffic flowing through this
 // router originates from a mesh gateway in a remote partition where the mesh gateway mode is
 // "local" or from a service in a remote partition where the mesh gateway mode is "remote".
-func (b *proxyStateTemplateBuilder) wanRouters() []*pbproxystate.Router {
+func (b *meshGWProxyStateTemplateBuilder) wanRouters() []*pbproxystate.Router {
 	var routers []*pbproxystate.Router
 
 	for _, exportedService := range b.exportedServices {
@@ -235,7 +235,7 @@ func (b *proxyStateTemplateBuilder) wanRouters() []*pbproxystate.Router {
 	return routers
 }
 
-func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster {
+func (b *meshGWProxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster {
 	clusters := map[string]*pbproxystate.Cluster{}
 
 	// Clusters handling incoming traffic from a remote partition
@@ -316,12 +316,12 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 	return clusters
 }
 
-func (b *proxyStateTemplateBuilder) routes() map[string]*pbproxystate.Route {
+func (b *meshGWProxyStateTemplateBuilder) routes() map[string]*pbproxystate.Route {
 	// TODO NET-6428
 	return nil
 }
 
-func (b *proxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
+func (b *meshGWProxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
 	return &meshv2beta1.ProxyStateTemplate{
 		ProxyState: &meshv2beta1.ProxyState{
 			Identity:  b.identity(),
@@ -337,7 +337,7 @@ func (b *proxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
 
 // requiredEndpoints loops through the consumers for each exported service
 // and adds a pbproxystate.EndpointRef to be hydrated for each cluster.
-func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate.EndpointRef {
+func (b *meshGWProxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate.EndpointRef {
 	requiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 
 	// Endpoints for clusters handling incoming traffic from another partition
@@ -399,11 +399,11 @@ func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate
 // clusterNameForExportedService generates a cluster name for a given service
 // that is being exported from the local partition to a remote partition. This
 // partition may reside in the same datacenter or in a remote datacenter.
-func (b *proxyStateTemplateBuilder) clusterNameForExportedService(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer, port string) string {
+func (b *meshGWProxyStateTemplateBuilder) clusterNameForExportedService(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer, port string) string {
 	return fmt.Sprintf("%s.%s", port, b.sniForExportedService(serviceRef, consumer))
 }
 
-func (b *proxyStateTemplateBuilder) sniForExportedService(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer) string {
+func (b *meshGWProxyStateTemplateBuilder) sniForExportedService(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer) string {
 	switch consumer.Tenancy.(type) {
 	case *pbmulticluster.ComputedExportedServiceConsumer_Partition:
 		return connect.ServiceSNI(serviceRef.Name, "", serviceRef.Tenancy.Namespace, serviceRef.Tenancy.Partition, b.dc, b.trustDomain)
@@ -417,7 +417,7 @@ func (b *proxyStateTemplateBuilder) sniForExportedService(serviceRef *pbresource
 // clusterNameForRemoteGateway generates a cluster name for a given remote mesh
 // gateway. This will be used to route traffic from the local partition to the mesh
 // gateway for a remote partition.
-func (b *proxyStateTemplateBuilder) clusterNameForRemoteGateway(remoteGatewayID *pbresource.ID) string {
+func (b *meshGWProxyStateTemplateBuilder) clusterNameForRemoteGateway(remoteGatewayID *pbresource.ID) string {
 	return connect.GatewaySNI(b.dc, remoteGatewayID.Tenancy.Partition, b.trustDomain)
 }
 
