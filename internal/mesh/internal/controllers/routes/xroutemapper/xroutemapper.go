@@ -197,6 +197,13 @@ func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *
 
 	route := dec.Data
 
+	// we should ignore xRoutes that have a parentRef to an APIGateway
+	for _, ref := range route.GetParentRefs() {
+		if resource.EqualType(pbmesh.APIGatewayType, ref.Ref.Type) {
+			return nil, nil
+		}
+	}
+
 	m.TrackXRoute(res.Id, route)
 
 	refs := parentRefSliceToRefSlice(route.GetParentRefs())
