@@ -101,7 +101,9 @@ func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
 }
 
 func (n *NodeLeaf[T]) matchPrefix(prefix []byte) bool {
-	return bytes.HasPrefix(n.key, prefix)
+	actualKey := n.key[:len(n.key)-1]
+	actualPrefix := prefix[:len(prefix)-1]
+	return bytes.HasPrefix(actualKey, actualPrefix)
 }
 
 func (n *NodeLeaf[T]) getChild(index int) *Node[T] {

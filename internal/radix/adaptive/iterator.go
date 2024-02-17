@@ -29,6 +29,9 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 		switch currentNode.getArtNodeType() {
 		case LEAF:
 			leafCh := currentNode.(*NodeLeaf[T])
+			if !leafCh.matchPrefix(i.path) {
+				continue
+			}
 			return leafCh.key, leafCh.value, true
 		case NODE4:
 			node4 := currentNode.(*Node4[T])
@@ -74,6 +77,8 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 	// Start from the root node
 	prefix := getTreeKey(prefixKey)
+
+	i.path = prefix
 
 	i.stack = nil
 	node := i.root
