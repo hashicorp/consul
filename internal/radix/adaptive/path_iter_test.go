@@ -32,38 +32,38 @@ func TestPathIterator(t *testing.T) {
 		out []string
 	}
 	cases := []exp{
-		//{
-		//	"f",
-		//	[]string{},
-		//},
-		//{
-		//	"foo",
-		//	[]string{"foo"},
-		//},
-		//{
-		//	"foo/",
-		//	[]string{"foo"},
-		//},
-		//{
-		//	"foo/ba",
-		//	[]string{"foo"},
-		//},
+		{
+			"f",
+			[]string{},
+		},
+		{
+			"foo",
+			[]string{"foo"},
+		},
+		{
+			"foo/",
+			[]string{"foo"},
+		},
+		{
+			"foo/ba",
+			[]string{"foo"},
+		},
 		{
 			"foo/bar",
 			[]string{"foo", "foo/bar"},
 		},
-		//{
-		//	"foo/bar/baz",
-		//	[]string{"foo", "foo/bar", "foo/bar/baz"},
-		//},
-		//{
-		//	"foo/bar/bazoo",
-		//	[]string{"foo", "foo/bar", "foo/bar/baz"},
-		//},
-		//{
-		//	"z",
-		//	[]string{},
-		//},
+		{
+			"foo/bar/baz",
+			[]string{"foo", "foo/bar", "foo/bar/baz"},
+		},
+		{
+			"foo/bar/bazoo",
+			[]string{"foo", "foo/bar", "foo/bar/baz"},
+		},
+		{
+			"z",
+			[]string{},
+		},
 	}
 
 	for _, test := range cases {

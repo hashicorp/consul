@@ -41,103 +41,57 @@ func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 			continue
 		case NODE4:
 			node4 := currentNode.(*Node4[T])
-			vis := [4]bool{}
-			for {
-				indx := getMinKeyIndexNode4(node4.keys, vis)
-				if indx == -1 || indx >= 16 {
-					break
-				}
-				vis[indx] = true
-				nodeCh := node4.children[indx]
+			for itr := 3; itr >= 0; itr-- {
+				nodeCh := node4.children[itr]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node4.children[indx]).(Node[T])
-				i.stack = append(i.stack, child)
+				child := (*node4.children[itr]).(Node[T])
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE16:
 			node16 := currentNode.(*Node16[T])
-			vis := [16]bool{}
-			for {
-				indx := getMinKeyIndexNode16(node16.keys, vis)
-				if indx == -1 || indx >= 16 {
-					break
-				}
-				vis[indx] = true
-				nodeCh := node16.children[indx]
+			for itr := 15; itr >= 0; itr-- {
+				nodeCh := node16.children[itr]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node16.children[indx]).(Node[T])
-				i.stack = append(i.stack, child)
+				child := (*nodeCh).(Node[T])
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE48:
 			node48 := currentNode.(*Node48[T])
-			vis := [256]bool{}
-			for {
-				indx := getMinKeyIndexNode48(node48.keys, vis)
-				if indx == -1 {
-					break
-				}
-				vis[indx] = true
-				nodeCh := node48.children[node48.keys[indx]]
+			for itr := 47; itr >= 0; itr-- {
+				nodeCh := node48.children[itr]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node48.children[node48.keys[indx]]).(Node[T])
-				i.stack = append(i.stack, child)
+				child := (*nodeCh).(Node[T])
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE256:
 			node256 := currentNode.(*Node256[T])
-			for itr := int(node256.getNumChildren()) - 1; itr >= 0; itr-- {
+			for itr := 255; itr >= 0; itr-- {
 				nodeCh := node256.children[itr]
 				if nodeCh == nil {
 					continue
 				}
 				child := (*node256.children[itr]).(Node[T])
-				i.stack = append(i.stack, child)
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		}
 	}
 	return nil, zero, false
-}
-
-func getMinKeyIndexNode4(keys [4]byte, vis [4]bool) int {
-	minV := byte(255)
-	indx := -1
-	for i := 0; i < 4; i++ {
-		if keys[i] != 0 && minV > keys[i] && !vis[i] {
-			minV = keys[i]
-			indx = i
-		}
-	}
-	return indx
-}
-
-func getMinKeyIndexNode16(keys [16]byte, vis [16]bool) int {
-	minV := byte(255)
-	indx := -1
-	for i := 0; i < 16; i++ {
-		if keys[i] != 0 && minV > keys[i] && !vis[i] {
-			minV = keys[i]
-			indx = i
-		}
-	}
-	return indx
-}
-
-func getMinKeyIndexNode48(keys [256]byte, vis [256]bool) int {
-	return getMinKeyIndexNode256(keys, vis)
-}
-
-func getMinKeyIndexNode256(keys [256]byte, vis [256]bool) int {
-	minV := byte(255)
-	indx := -1
-	for i := 0; i < 256; i++ {
-		if keys[i] != 0 && minV > keys[i] && !vis[i] {
-			minV = keys[i]
-			indx = i
-		}
-	}
-	return indx
 }
