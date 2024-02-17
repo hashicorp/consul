@@ -16,8 +16,9 @@ const NODE48 = 3
 const NODE256 = 4
 
 type RadixTree[T any] struct {
-	root *Node[T]
-	size uint64
+	root  *Node[T]
+	size  uint64
+	mutex *sync.RWMutex
 }
 
 func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
@@ -26,10 +27,12 @@ func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
 
 func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
 	nodeLeaf := allocNode[T](LEAF)
-	return &RadixTree[T]{root: &nodeLeaf, size: 0}
+	return &RadixTree[T]{root: &nodeLeaf, size: 0, mutex: &sync.RWMutex{}}
 }
 
 func (t *RadixTree[T]) Insert(key []byte, value T) T {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	var old int
 	oldVal := recursiveInsert[T](t.root, &t.root, getTreeKey(key), value, 0, &old)
 	if old == 0 {
@@ -52,6 +55,8 @@ func (t *RadixTree[T]) Maximum() *NodeLeaf[T] {
 }
 
 func (t *RadixTree[T]) Delete(key []byte) T {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	var zero T
 	l := recursiveDelete[T](t.root, &t.root, getTreeKey(key), 0)
 	if t.root == nil {
@@ -86,18 +91,15 @@ type Txn[T any] struct {
 	writable *simplelru.LRU[*Node[T], any]
 
 	tree *RadixTree[T]
-
-	mutex *sync.RWMutex
 }
 
 // Txn starts a new transaction that can be used to mutate the tree
 func (t *RadixTree[T]) Txn() *Txn[T] {
 	txn := &Txn[T]{
-		root:  t.root,
-		snap:  t.root,
-		size:  t.size,
-		tree:  t,
-		mutex: &sync.RWMutex{},
+		root: t.root,
+		snap: t.root,
+		size: t.size,
+		tree: t,
 	}
 	return txn
 }
@@ -110,8 +112,6 @@ func (t *Txn[T]) Get(k []byte) (T, bool) {
 }
 
 func (t *Txn[T]) Insert(key []byte, value T) T {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
 	oldVal := t.tree.Insert(key, value)
 	t.root = t.tree.root
 	t.size = t.tree.size
@@ -119,8 +119,6 @@ func (t *Txn[T]) Insert(key []byte, value T) T {
 }
 
 func (t *Txn[T]) Delete(key []byte) T {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
 	oldVal := t.tree.Delete(key)
 	t.root = t.tree.root
 	t.size = t.tree.size
