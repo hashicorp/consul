@@ -35,42 +35,50 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 			return getKey(leafCh.key), leafCh.value, true
 		case NODE4:
 			node4 := currentNode.(*Node4[T])
-			for itr := int(node4.getNumChildren()) - 1; itr >= 0; itr-- {
-				nodeCh := node4.children[itr]
+			vis := [4]bool{}
+			for {
+				indx := getMinKeyIndexNode4(node4.keys, vis)
+				if indx == -1 || indx >= 16 {
+					break
+				}
+				vis[indx] = true
+				nodeCh := node4.children[indx]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node4.children[itr]).(Node[T])
-				newStack := make([]Node[T], len(i.stack)+1)
-				copy(newStack[1:], i.stack)
-				newStack[0] = child
-				i.stack = newStack
+				child := (*node4.children[indx]).(Node[T])
+				i.stack = append(i.stack, child)
 			}
 		case NODE16:
 			node16 := currentNode.(*Node16[T])
-			for itr := int(node16.getNumChildren()) - 1; itr >= 0; itr-- {
-				nodeCh := node16.children[itr]
+			vis := [16]bool{}
+			for {
+				indx := getMinKeyIndexNode16(node16.keys, vis)
+				if indx == -1 {
+					break
+				}
+				vis[indx] = true
+				nodeCh := node16.children[indx]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node16.children[itr]).(Node[T])
-				newStack := make([]Node[T], len(i.stack)+1)
-				copy(newStack[1:], i.stack)
-				newStack[0] = child
-				i.stack = newStack
+				child := (*node16.children[indx]).(Node[T])
+				i.stack = append(i.stack, child)
 			}
 		case NODE48:
 			node48 := currentNode.(*Node48[T])
-			for itr := int(node48.getNumChildren()) - 1; itr >= 0; itr-- {
-				nodeCh := node48.children[itr]
+			vis := [256]bool{}
+			for {
+				indx := getMinKeyIndexNode48(node48.keys, vis)
+				if indx == -1 {
+					break
+				}
+				nodeCh := node48.children[node48.keys[indx]]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node48.children[itr]).(Node[T])
-				newStack := make([]Node[T], len(i.stack)+1)
-				copy(newStack[1:], i.stack)
-				newStack[0] = child
-				i.stack = newStack
+				child := (*node48.children[node48.keys[indx]]).(Node[T])
+				i.stack = append(i.stack, child)
 			}
 		case NODE256:
 			node256 := currentNode.(*Node256[T])
@@ -80,10 +88,7 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 					continue
 				}
 				child := (*node256.children[itr]).(Node[T])
-				newStack := make([]Node[T], len(i.stack)+1)
-				copy(newStack[1:], i.stack)
-				newStack[0] = child
-				i.stack = newStack
+				i.stack = append(i.stack, child)
 			}
 		}
 	}
@@ -138,5 +143,4 @@ func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 		node = **child
 		depth++
 	}
-
 }

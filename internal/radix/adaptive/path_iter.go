@@ -7,147 +7,137 @@ package adaptive
 // down to a specified path. This will iterate over the same values that
 // the Node.WalkPath method will.
 type PathIterator[T any] struct {
-	path      []byte
-	depth     int
-	currentCh uint8
-	parent    *Node[T]
-}
-
-// Next returns the next node in order
-func (i *PathIterator[T]) recursiveForEachChildren(child *Node[T]) ([]byte, T, bool) {
-	var zero T
-	childNode := *child
-	if childNode != nil && childNode.isLeaf() {
-		leaf := childNode.(*NodeLeaf[T])
-		if leaf.prefixContainsMatch(i.path) {
-			return getKey(leaf.key), leaf.value, true
-		}
-	} else {
-		i.parent = child
-		i.currentCh = 0
-		key, value, found := i.recursiveForEach()
-		if found {
-			return key, value, true
-		}
-	}
-	return nil, zero, false
+	path    []byte
+	depth   int
+	parent  *Node[T]
+	stack   []Node[T]
+	current *Node[T]
 }
 
 func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 	var zero T
-	key, value, found := i.recursiveForEach()
-	if found {
-		i.Iterate()
-		return key, value, true
-	}
-	return nil, zero, false
-}
 
-func (i *PathIterator[T]) Iterate() {
-	depth := i.depth
-	if i.parent == nil {
-		return
+	if i.current == nil && len(i.stack) == 0 {
+		i.stack = append(i.stack, *i.parent)
+		i.current = i.parent
 	}
-	parent := *i.parent
-	if parent == nil {
-		return
-	}
-	if parent.getNumChildren() > i.currentCh {
-		i.currentCh++
-		child := parent.getChild(int(i.currentCh))
-		if child == nil {
-			i.Iterate()
-			return
-		}
-		if child == nil {
-			i.Iterate()
-			return
-		}
-		return
-	}
-	if parent.getPartialLen() > 0 {
-		prefixLen := checkPrefix[T](parent, i.path, len(i.path), i.depth)
-		if prefixLen != min(MaxPrefixLen, int(parent.getPartialLen())) {
-			return
-		}
-		depth += int(parent.getPartialLen())
-	}
-	next := findChild[T](parent, i.path[depth])
-	if next == nil {
-		i.parent = nil
-		i.currentCh = 0
-		i.depth = depth
-		return
-	}
-	i.parent = *next
-	i.currentCh = 0
-	depth++
-	i.depth = depth
-}
 
-func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
-	var zero T
-
-	if i.parent == nil {
+	if len(i.stack) == 0 {
 		return nil, zero, false
 	}
 
-	parent := *i.parent
+	// Iterate through the stack until it's empty
+	for len(i.stack) > 0 {
+		node := i.stack[0]
+		i.stack = i.stack[1:]
+		currentNode := node.(Node[T])
 
-	switch parent.getArtNodeType() {
-	case LEAF:
-		leaf := parent.(*NodeLeaf[T])
-		return getKey(leaf.key), leaf.value, true
-	case NODE4:
-		node4 := parent.(*Node4[T])
-		for itr := i.currentCh; itr < node4.numChildren; itr++ {
-			i.currentCh = itr
-			if node4.children[itr] != nil {
-				key, value, found := i.recursiveForEachChildren(node4.children[itr])
-				if found {
-					return key, value, true
-				}
+		switch currentNode.getArtNodeType() {
+		case LEAF:
+			leafCh := currentNode.(*NodeLeaf[T])
+			if leafCh.prefixContainsMatch(i.path) {
+				return getKey(leafCh.key), leafCh.value, true
 			}
-		}
-
-	case NODE16:
-		node16 := parent.(*Node16[T])
-		for itr := i.currentCh; itr < node16.numChildren; itr++ {
-			i.currentCh = itr
-			if node16.children[itr] != nil {
-				i.currentCh = itr
-				key, value, found := i.recursiveForEachChildren(node16.children[itr])
-				if found {
-					return key, value, true
+			continue
+		case NODE4:
+			node4 := currentNode.(*Node4[T])
+			vis := [4]bool{}
+			for {
+				indx := getMinKeyIndexNode4(node4.keys, vis)
+				if indx == -1 || indx >= 16 {
+					break
 				}
+				vis[indx] = true
+				nodeCh := node4.children[indx]
+				if nodeCh == nil {
+					continue
+				}
+				child := (*node4.children[indx]).(Node[T])
+				i.stack = append(i.stack, child)
 			}
-		}
-
-	case NODE48:
-		node48 := parent.(*Node48[T])
-		for itr := i.currentCh; itr < node48.numChildren; itr++ {
-			i.currentCh = itr
-			if node48.children[itr] != nil {
-				i.currentCh = itr
-				key, value, found := i.recursiveForEachChildren(node48.children[itr])
-				if found {
-					return key, value, true
+		case NODE16:
+			node16 := currentNode.(*Node16[T])
+			vis := [16]bool{}
+			for {
+				indx := getMinKeyIndexNode16(node16.keys, vis)
+				if indx == -1 || indx >= 16 {
+					break
 				}
+				vis[indx] = true
+				nodeCh := node16.children[indx]
+				if nodeCh == nil {
+					continue
+				}
+				child := (*node16.children[indx]).(Node[T])
+				i.stack = append(i.stack, child)
 			}
-		}
-
-	case NODE256:
-		node256 := parent.(*Node256[T])
-		for itr := i.currentCh; itr < node256.numChildren; itr++ {
-			i.currentCh = itr
-			if node256.children[itr] != nil {
-				i.currentCh = itr
-				key, value, found := i.recursiveForEachChildren(node256.children[itr])
-				if found {
-					return key, value, true
+		case NODE48:
+			node48 := currentNode.(*Node48[T])
+			vis := [256]bool{}
+			for {
+				indx := getMinKeyIndexNode48(node48.keys, vis)
+				if indx == -1 {
+					break
 				}
+				vis[indx] = true
+				nodeCh := node48.children[node48.keys[indx]]
+				if nodeCh == nil {
+					continue
+				}
+				child := (*node48.children[node48.keys[indx]]).(Node[T])
+				i.stack = append(i.stack, child)
+			}
+		case NODE256:
+			node256 := currentNode.(*Node256[T])
+			for itr := int(node256.getNumChildren()) - 1; itr >= 0; itr-- {
+				nodeCh := node256.children[itr]
+				if nodeCh == nil {
+					continue
+				}
+				child := (*node256.children[itr]).(Node[T])
+				i.stack = append(i.stack, child)
 			}
 		}
 	}
 	return nil, zero, false
+}
+
+func getMinKeyIndexNode4(keys [4]byte, vis [4]bool) int {
+	minV := byte(255)
+	indx := -1
+	for i := 0; i < 4; i++ {
+		if keys[i] != 0 && minV > keys[i] && !vis[i] {
+			minV = keys[i]
+			indx = i
+		}
+	}
+	return indx
+}
+
+func getMinKeyIndexNode16(keys [16]byte, vis [16]bool) int {
+	minV := byte(255)
+	indx := -1
+	for i := 0; i < 16; i++ {
+		if keys[i] != 0 && minV > keys[i] && !vis[i] {
+			minV = keys[i]
+			indx = i
+		}
+	}
+	return indx
+}
+
+func getMinKeyIndexNode48(keys [256]byte, vis [256]bool) int {
+	return getMinKeyIndexNode256(keys, vis)
+}
+
+func getMinKeyIndexNode256(keys [256]byte, vis [256]bool) int {
+	minV := byte(255)
+	indx := -1
+	for i := 0; i < 256; i++ {
+		if keys[i] != 0 && minV > keys[i] && !vis[i] {
+			minV = keys[i]
+			indx = i
+		}
+	}
+	return indx
 }

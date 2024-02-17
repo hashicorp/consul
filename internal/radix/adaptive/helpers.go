@@ -639,6 +639,9 @@ func removeChild4[T any](n *Node4[T], ref **Node[T], l **Node[T]) {
 
 	// Remove nodes with only a single child
 	if node.numChildren == 1 {
+		if n.children[0] == nil {
+			return
+		}
 		child := *n.children[0]
 		// Is not leaf
 		if !child.isLeaf() {

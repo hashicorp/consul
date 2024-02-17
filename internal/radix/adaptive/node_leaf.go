@@ -75,6 +75,9 @@ func (n *NodeLeaf[T]) setPartial(partial []byte) {
 }
 
 func (l *NodeLeaf[T]) prefixContainsMatch(key []byte) bool {
+	if len(key) == 0 || len(l.key) == 0 {
+		return false
+	}
 	if key == nil || len(l.key)-1 > len(key) {
 		return false
 	}
