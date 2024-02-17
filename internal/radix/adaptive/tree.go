@@ -93,10 +93,11 @@ type Txn[T any] struct {
 // Txn starts a new transaction that can be used to mutate the tree
 func (t *RadixTree[T]) Txn() *Txn[T] {
 	txn := &Txn[T]{
-		root: t.root,
-		snap: t.root,
-		size: t.size,
-		tree: t,
+		root:  t.root,
+		snap:  t.root,
+		size:  t.size,
+		tree:  t,
+		mutex: &sync.RWMutex{},
 	}
 	return txn
 }
