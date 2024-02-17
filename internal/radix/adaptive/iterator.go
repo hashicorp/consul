@@ -92,6 +92,50 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 
 func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 	// Start from the root node
-	//TODO implement this
-	i.path = getTreeKey(prefixKey)
+	prefix := getTreeKey(prefixKey)
+
+	i.path = prefix
+
+	i.stack = nil
+	node := *i.root
+	depth := 0
+
+	for node != nil {
+		// Check if the node matches the prefix
+		i.stack = []Node[T]{node}
+		i.root = &node
+
+		if node.isLeaf() {
+			return
+		}
+
+		// Determine the child index to proceed based on the next byte of the prefix
+		if node.getPartialLen() > 0 {
+			// If the node has a prefix, compare it with the prefix
+			mismatchIdx := prefixMismatch[T](node, prefix, len(prefix), depth)
+			if mismatchIdx < int(node.getPartialLen()) {
+				// If there's a mismatch, set the node to nil to break the loop
+				node = nil
+				break
+			}
+			depth += int(node.getPartialLen())
+		}
+
+		// Get the next child node based on the prefix
+		child := findChild[T](node, prefix[depth])
+		if child == nil {
+			// If the child node doesn't exist, break the loop
+			node = nil
+			break
+		}
+
+		if depth == len(prefix)-1 {
+			// If the prefix is exhausted, break the loop
+			break
+		}
+
+		// Move to the next level in the tree
+		node = **child
+		depth++
+	}
 }

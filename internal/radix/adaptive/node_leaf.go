@@ -106,7 +106,7 @@ func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
 }
 
 func (n *NodeLeaf[T]) matchPrefix(prefix []byte) bool {
-	if len(n.key) == 0 || len(prefix) == 0 {
+	if len(n.key) == 0 {
 		return false
 	}
 	actualKey := n.key[:len(n.key)-1]
