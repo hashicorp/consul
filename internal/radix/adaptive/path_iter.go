@@ -43,20 +43,20 @@ func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 	return nil, zero, false
 }
 
-func (i *PathIterator[T]) Iterate() bool {
+func (i *PathIterator[T]) Iterate() {
 	depth := i.depth
 	if i.parent == nil {
-		return false
+		return
 	}
 	parent := i.parent
 	if parent.getNumChildren() > i.currentCh {
 		i.currentCh++
-		return false
+		return
 	}
 	if parent.getPartialLen() > 0 {
 		prefixLen := checkPrefix[T](parent, i.path, len(i.path), i.depth)
 		if prefixLen != min(MaxPrefixLen, int(parent.getPartialLen())) {
-			return false
+			return
 		}
 		depth += int(parent.getPartialLen())
 	}
@@ -64,13 +64,12 @@ func (i *PathIterator[T]) Iterate() bool {
 	if next == nil {
 		i.parent = nil
 		i.currentCh = 0
-		return false
+		return
 	}
 	i.parent = **next
 	i.currentCh = 0
 	depth++
 	i.depth = depth
-	return true
 }
 
 func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
@@ -83,12 +82,8 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 	parent := i.parent
 
 	if parent.getNumChildren() == i.currentCh {
-		shouldContinue := i.Iterate()
-		if shouldContinue {
-			return i.Next()
-		} else {
-			return nil, zero, false
-		}
+		i.Iterate()
+		return i.Next()
 	}
 
 	switch parent.getArtNodeType() {
@@ -98,7 +93,6 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 			if node4.children[itr] != nil {
 				key, value, found := i.recursiveForEachChildren(node4.children[itr])
 				if found {
-					i.currentCh = itr
 					return key, value, true
 				}
 			}
@@ -111,7 +105,6 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node16.children[itr])
 				if found {
-					i.currentCh = itr
 					return key, value, true
 				}
 			}
@@ -124,7 +117,6 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node48.children[itr])
 				if found {
-					i.currentCh = itr
 					return key, value, true
 				}
 			}
@@ -137,7 +129,6 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node256.children[itr])
 				if found {
-					i.currentCh = itr
 					return key, value, true
 				}
 			}
