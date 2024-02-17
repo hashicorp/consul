@@ -67,5 +67,8 @@ func (n *Node256[T]) matchPrefix(_ []byte) bool {
 }
 
 func (n *Node256[T]) getChild(index int) *Node[T] {
+	if index < 0 || index >= 256 {
+		return nil
+	}
 	return n.children[index]
 }
