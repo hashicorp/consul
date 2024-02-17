@@ -88,8 +88,18 @@ func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, dept
 		return zero
 	}
 
-	// If we are at a leaf, we need to replace it with a node
 	node := *n
+	// This means root is nil
+	if node.isLeaf() {
+		nodeLeaf := node.(*NodeLeaf[T])
+		if len(nodeLeaf.key) == 0 {
+			leafNode := makeLeaf[T](key, value)
+			*ref = &leafNode
+			return zero
+		}
+	}
+
+	// If we are at a leaf, we need to replace it with a node
 	if node.isLeaf() {
 		nodeLeaf := node.(*NodeLeaf[T])
 

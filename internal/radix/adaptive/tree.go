@@ -22,7 +22,8 @@ func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
 }
 
 func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
-	return &RadixTree[T]{root: nil, size: 0}
+	nodeLeaf := allocNode[T](LEAF)
+	return &RadixTree[T]{root: &nodeLeaf, size: 0}
 }
 
 func (t *RadixTree[T]) Insert(key []byte, value T) T {
@@ -127,8 +128,5 @@ func (t *Txn[T]) Delete(key []byte) T {
 }
 
 func (t *Txn[T]) Root() Node[T] {
-	if t.root == nil {
-		return &NodeLeaf[T]{}
-	}
 	return *t.root
 }

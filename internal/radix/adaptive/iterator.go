@@ -8,7 +8,7 @@ package adaptive
 // the Node.WalkPath method will.
 type Iterator[T any] struct {
 	path  []byte
-	root  Node[T]
+	root  *Node[T]
 	stack []Node[T]
 	depth int
 }
@@ -81,13 +81,13 @@ func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 	i.path = prefix
 
 	i.stack = nil
-	node := i.root
+	node := *i.root
 	depth := 0
 
 	for node != nil {
 		// Check if the node matches the prefix
 		i.stack = []Node[T]{node}
-		i.root = node
+		i.root = &node
 
 		if node.isLeaf() {
 			return

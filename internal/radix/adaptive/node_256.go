@@ -52,7 +52,8 @@ func (n *Node256[T]) isLeaf() bool {
 func (n *Node256[T]) Iterator() *Iterator[T] {
 	stack := make([]Node[T], 0)
 	stack = append(stack, n)
-	return &Iterator[T]{stack: stack, root: n}
+	nodeT := Node[T](n)
+	return &Iterator[T]{stack: stack, root: &nodeT}
 }
 
 func (n *Node256[T]) PathIterator(path []byte) *PathIterator[T] {
