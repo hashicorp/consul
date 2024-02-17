@@ -514,6 +514,9 @@ func findChild[T any](n Node[T], c byte) **Node[T] {
 		if node.children[c] != nil {
 			return &node.children[c]
 		}
+	case LEAF:
+		// no-op
+		return nil
 	default:
 		panic("Unknown node type")
 	}
