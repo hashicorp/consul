@@ -70,11 +70,11 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 			vis := [256]bool{}
 			for {
 				indx := getMinKeyIndexNode48(node48.keys, vis)
-				vis[indx] = true
 				if indx == -1 {
 					break
 				}
 				nodeCh := node48.children[node48.keys[indx]]
+				vis[indx] = true
 				if nodeCh == nil {
 					continue
 				}
