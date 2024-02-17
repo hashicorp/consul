@@ -5,7 +5,7 @@ package adaptive
 
 import "github.com/hashicorp/golang-lru/v2/simplelru"
 
-const MaxPrefixLen = 1000
+const MaxPrefixLen = 100
 const LEAF = 0
 const NODE4 = 1
 const NODE16 = 2
