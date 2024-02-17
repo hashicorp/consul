@@ -3,8 +3,6 @@
 
 package adaptive
 
-import "bytes"
-
 // Iterator is used to iterate over a set of nodes from the root
 // down to a specified path. This will iterate over the same values that
 // the Node.WalkPath method will.
@@ -36,49 +34,37 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 			node4 := currentNode.(*Node4[T])
 			for itr := int(node4.getNumChildren()) - 1; itr >= 0; itr-- {
 				child := (*node4.children[itr]).(Node[T])
-				// If the child's partial key matches the prefix, push it onto the stack
-				if bytes.HasPrefix(child.getPartial(), i.path) {
-					newStack := make([]Node[T], len(i.stack)+1)
-					copy(newStack[1:], i.stack)
-					newStack[0] = child
-					i.stack = newStack
-				}
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE16:
 			node16 := currentNode.(*Node16[T])
 			for itr := int(node16.getNumChildren()) - 1; itr >= 0; itr-- {
 				child := (*node16.children[itr]).(Node[T])
-				// If the child's partial key matches the prefix, push it onto the stack
-				if bytes.HasPrefix(child.getPartial(), i.path) {
-					newStack := make([]Node[T], len(i.stack)+1)
-					copy(newStack[1:], i.stack)
-					newStack[0] = child
-					i.stack = newStack
-				}
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE48:
 			node48 := currentNode.(*Node48[T])
 			for itr := int(node48.getNumChildren()) - 1; itr >= 0; itr-- {
 				child := (*node48.children[itr]).(Node[T])
-				// If the child's partial key matches the prefix, push it onto the stack
-				if bytes.HasPrefix(child.getPartial(), i.path) {
-					newStack := make([]Node[T], len(i.stack)+1)
-					copy(newStack[1:], i.stack)
-					newStack[0] = child
-					i.stack = newStack
-				}
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE256:
 			node256 := currentNode.(*Node256[T])
 			for itr := int(node256.getNumChildren()) - 1; itr >= 0; itr-- {
 				child := (*node256.children[itr]).(Node[T])
-				// If the child's partial key matches the prefix, push it onto the stack
-				if bytes.HasPrefix(child.getPartial(), i.path) {
-					newStack := make([]Node[T], len(i.stack)+1)
-					copy(newStack[1:], i.stack)
-					newStack[0] = child
-					i.stack = newStack
-				}
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		}
 	}
@@ -119,6 +105,11 @@ func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 		if child == nil {
 			// If the child node doesn't exist, break the loop
 			node = nil
+			break
+		}
+
+		if depth == len(prefix)-1 {
+			// If the prefix is exhausted, break the loop
 			break
 		}
 
