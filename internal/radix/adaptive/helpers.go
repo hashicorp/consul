@@ -41,6 +41,10 @@ func iterativeSearch[T any](t *RadixTree[T], key []byte) (T, bool) {
 			depth += int(n.getPartialLen())
 		}
 
+		if depth >= keyLen {
+			return zero, false
+		}
+
 		// Recursively search
 		child = findChild[T](n, key[depth])
 		if child != nil && *child != nil && **child != nil {
