@@ -98,7 +98,8 @@ func (n *NodeLeaf[T]) Iterator() *Iterator[T] {
 }
 
 func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
-	return &PathIterator[T]{parent: n, path: path}
+	nodeT := Node[T](n)
+	return &PathIterator[T]{parent: &nodeT, path: path}
 }
 
 func (n *NodeLeaf[T]) matchPrefix(prefix []byte) bool {

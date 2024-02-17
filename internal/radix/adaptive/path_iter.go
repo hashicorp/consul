@@ -10,7 +10,7 @@ type PathIterator[T any] struct {
 	path      []byte
 	depth     int
 	currentCh uint8
-	parent    Node[T]
+	parent    *Node[T]
 }
 
 // Next returns the next node in order
@@ -23,7 +23,7 @@ func (i *PathIterator[T]) recursiveForEachChildren(child *Node[T]) ([]byte, T, b
 			return getKey(leaf.key), leaf.value, true
 		}
 	} else {
-		i.parent = *child
+		i.parent = child
 		i.currentCh = 0
 		key, value, found := i.recursiveForEach()
 		if found {
@@ -48,7 +48,7 @@ func (i *PathIterator[T]) Iterate() {
 	if i.parent == nil {
 		return
 	}
-	parent := i.parent
+	parent := *i.parent
 	if parent == nil {
 		return
 	}
@@ -79,7 +79,7 @@ func (i *PathIterator[T]) Iterate() {
 		i.depth = depth
 		return
 	}
-	i.parent = **next
+	i.parent = *next
 	i.currentCh = 0
 	depth++
 	i.depth = depth
@@ -92,9 +92,12 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 		return nil, zero, false
 	}
 
-	parent := i.parent
+	parent := *i.parent
 
 	switch parent.getArtNodeType() {
+	case LEAF:
+		leaf := parent.(*NodeLeaf[T])
+		return getKey(leaf.key), leaf.value, true
 	case NODE4:
 		node4 := parent.(*Node4[T])
 		for itr := i.currentCh; itr < node4.numChildren; itr++ {

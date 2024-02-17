@@ -60,7 +60,8 @@ func (n *Node48[T]) Iterator() *Iterator[T] {
 }
 
 func (n *Node48[T]) PathIterator(path []byte) *PathIterator[T] {
-	return &PathIterator[T]{parent: n, path: path}
+	nodeT := Node[T](n)
+	return &PathIterator[T]{parent: &nodeT, path: path}
 }
 
 func (n *Node48[T]) matchPrefix(prefix []byte) bool {
