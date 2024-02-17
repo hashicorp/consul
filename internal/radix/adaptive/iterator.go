@@ -35,19 +35,16 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 			return getKey(leafCh.key), leafCh.value, true
 		case NODE4:
 			node4 := currentNode.(*Node4[T])
-			vis := [4]bool{}
-			for {
-				indx := getMinKeyIndexNode4(node4.keys, vis)
-				if indx == -1 || indx >= 16 {
-					break
-				}
-				vis[indx] = true
-				nodeCh := node4.children[indx]
+			for itr := int(node4.getNumChildren()) - 1; itr >= 0; itr-- {
+				nodeCh := node4.children[itr]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node4.children[indx]).(Node[T])
-				i.stack = append(i.stack, child)
+				child := (*node4.children[itr]).(Node[T])
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE16:
 			node16 := currentNode.(*Node16[T])
@@ -63,13 +60,17 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 					continue
 				}
 				child := (*node16.children[indx]).(Node[T])
-				i.stack = append(i.stack, child)
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE48:
 			node48 := currentNode.(*Node48[T])
 			vis := [256]bool{}
 			for {
 				indx := getMinKeyIndexNode48(node48.keys, vis)
+				vis[indx] = true
 				if indx == -1 {
 					break
 				}
@@ -78,7 +79,10 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 					continue
 				}
 				child := (*node48.children[node48.keys[indx]]).(Node[T])
-				i.stack = append(i.stack, child)
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		case NODE256:
 			node256 := currentNode.(*Node256[T])
@@ -88,7 +92,10 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 					continue
 				}
 				child := (*node256.children[itr]).(Node[T])
-				i.stack = append(i.stack, child)
+				newStack := make([]Node[T], len(i.stack)+1)
+				copy(newStack[1:], i.stack)
+				newStack[0] = child
+				i.stack = newStack
 			}
 		}
 	}
