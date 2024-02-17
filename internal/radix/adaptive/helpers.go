@@ -153,6 +153,9 @@ func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, dept
 		} else {
 			node.setPartialLen(node.getPartialLen() - uint32(prefixDiff+1))
 			l := minimum[T](&node)
+			if l == nil {
+				return zero
+			}
 			addChild4[T](newNode4, ref, l.key[depth+prefixDiff], node)
 			length := min(MaxPrefixLen, int(node.getPartialLen()))
 			copy(node.getPartial()[:], l.key[depth+prefixDiff+1:depth+prefixDiff+1+length])
@@ -387,6 +390,9 @@ func prefixMismatch[T any](n Node[T], key []byte, keyLen, depth int) int {
 	if n.getPartialLen() > MaxPrefixLen {
 		// Prefix is longer than what we've checked, find a leaf
 		l := minimum(&n)
+		if l == nil {
+			return idx
+		}
 		maxCmp = min(int(l.keyLen), keyLen) - depth
 		for ; idx < maxCmp; idx++ {
 			if l.key[idx+depth] != key[depth+idx] {
