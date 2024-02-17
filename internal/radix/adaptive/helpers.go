@@ -201,25 +201,15 @@ func (t *RadixTree[T]) allocNode(nodeType uint8) Node[T] {
 	var n Node[T]
 	switch nodeType {
 	case LEAF:
-		n = &NodeLeaf[T]{
-			mutex: t.mutex,
-		}
+		n = &NodeLeaf[T]{}
 	case NODE4:
-		n = &Node4[T]{
-			mutex: t.mutex,
-		}
+		n = &Node4[T]{}
 	case NODE16:
-		n = &Node16[T]{
-			mutex: t.mutex,
-		}
+		n = &Node16[T]{}
 	case NODE48:
-		n = &Node48[T]{
-			mutex: t.mutex,
-		}
+		n = &Node48[T]{}
 	case NODE256:
-		n = &Node256[T]{
-			mutex: t.mutex,
-		}
+		n = &Node256[T]{}
 	default:
 		panic("Unknown node type")
 	}
