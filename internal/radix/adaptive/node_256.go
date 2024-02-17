@@ -3,15 +3,12 @@
 
 package adaptive
 
-import "sync"
-
 type Node256[T any] struct {
 	partialLen  uint32
 	artNodeType uint8
 	numChildren uint8
 	partial     []byte
 	children    [256]*Node[T]
-	mutex       *sync.RWMutex
 }
 
 func (n *Node256[T]) getPartialLen() uint32 {
@@ -56,12 +53,12 @@ func (n *Node256[T]) Iterator() *Iterator[T] {
 	stack := make([]Node[T], 0)
 	stack = append(stack, n)
 	nodeT := Node[T](n)
-	return &Iterator[T]{stack: stack, root: &nodeT, mutex: n.mutex}
+	return &Iterator[T]{stack: stack, root: &nodeT}
 }
 
 func (n *Node256[T]) PathIterator(path []byte) *PathIterator[T] {
 	nodeT := Node[T](n)
-	return &PathIterator[T]{parent: &nodeT, path: path, mutex: n.mutex}
+	return &PathIterator[T]{parent: &nodeT, path: path}
 }
 
 func (n *Node256[T]) matchPrefix(_ []byte) bool {
@@ -74,8 +71,4 @@ func (n *Node256[T]) getChild(index int) *Node[T] {
 		return nil
 	}
 	return n.children[index]
-}
-
-func (n *Node256[T]) getTreeMutex() *sync.RWMutex {
-	return n.mutex
 }
