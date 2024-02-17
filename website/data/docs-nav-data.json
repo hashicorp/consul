@@ -1406,6 +1406,10 @@
                 "path": "k8s/deployment-configurations/vault/wan-federation"
               }
             ]
+          },
+          {
+            "title": "Datadog",
+            "path": "k8s/deployment-configurations/datadog"
           }
         ]
       },
@@ -1530,10 +1534,6 @@
               {
                 "title": "Metrics",
                 "path": "k8s/connect/observability/metrics"
-              },
-              {
-                "title": "Datadog",
-                "path": "k8s/connect/observability/datadog"
               }
             ]
           }
