@@ -59,14 +59,9 @@ func (i *PathIterator[T]) Iterate() {
 			i.Iterate()
 			return
 		}
-		childNode := (*child).(Node[T])
 		if child == nil {
 			i.Iterate()
 			return
-		} else {
-			if !childNode.matchPrefix(i.path) {
-				i.Iterate()
-			}
 		}
 		return
 	}
@@ -103,6 +98,7 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 	case NODE4:
 		node4 := parent.(*Node4[T])
 		for itr := i.currentCh; itr < node4.numChildren; itr++ {
+			i.currentCh = itr
 			if node4.children[itr] != nil {
 				key, value, found := i.recursiveForEachChildren(node4.children[itr])
 				if found {
@@ -114,6 +110,7 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 	case NODE16:
 		node16 := parent.(*Node16[T])
 		for itr := i.currentCh; itr < node16.numChildren; itr++ {
+			i.currentCh = itr
 			if node16.children[itr] != nil {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node16.children[itr])
@@ -126,6 +123,7 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 	case NODE48:
 		node48 := parent.(*Node48[T])
 		for itr := i.currentCh; itr < node48.numChildren; itr++ {
+			i.currentCh = itr
 			if node48.children[itr] != nil {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node48.children[itr])
@@ -138,6 +136,7 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 	case NODE256:
 		node256 := parent.(*Node256[T])
 		for itr := i.currentCh; itr < node256.numChildren; itr++ {
+			i.currentCh = itr
 			if node256.children[itr] != nil {
 				i.currentCh = itr
 				key, value, found := i.recursiveForEachChildren(node256.children[itr])

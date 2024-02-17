@@ -528,6 +528,7 @@ func getTreeKey(key []byte) []byte {
 	keyLen := len(key) + 1
 	newKey := make([]byte, keyLen)
 	copy(newKey, key)
+	newKey[keyLen-1] = '$'
 	return newKey
 }
 
