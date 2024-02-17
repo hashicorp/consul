@@ -5,7 +5,6 @@ package adaptive
 
 import (
 	"github.com/hashicorp/golang-lru/v2/simplelru"
-	"sync"
 )
 
 const MaxPrefixLen = 1000
@@ -16,25 +15,22 @@ const NODE48 = 3
 const NODE256 = 4
 
 type RadixTree[T any] struct {
-	root  *Node[T]
-	size  uint64
-	mutex *sync.RWMutex
+	root *Node[T]
+	size uint64
 }
 
 func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
-	return &PathIterator[T]{parent: t.root, path: getTreeKey(path), mutex: t.mutex}
+	return &PathIterator[T]{parent: t.root, path: getTreeKey(path)}
 }
 
 func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
-	rt := &RadixTree[T]{size: 0, mutex: &sync.RWMutex{}}
+	rt := &RadixTree[T]{size: 0}
 	nodeLeaf := rt.allocNode(LEAF)
 	rt.root = &nodeLeaf
 	return rt
 }
 
 func (t *RadixTree[T]) Insert(key []byte, value T) T {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
 	var old int
 	oldVal := t.recursiveInsert(t.root, &t.root, getTreeKey(key), value, 0, &old)
 	if old == 0 {
@@ -57,8 +53,6 @@ func (t *RadixTree[T]) Maximum() *NodeLeaf[T] {
 }
 
 func (t *RadixTree[T]) Delete(key []byte) T {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
 	var zero T
 	l := t.recursiveDelete(t.root, &t.root, getTreeKey(key), 0)
 	if t.root == nil {
