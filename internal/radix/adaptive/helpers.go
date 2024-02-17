@@ -8,7 +8,7 @@ import (
 	"math/bits"
 )
 
-func iterativeSearch[T any](t *RadixTree[T], key []byte) (T, bool) {
+func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 	var zero T
 	if t.root == nil {
 		return zero, false
@@ -46,7 +46,7 @@ func iterativeSearch[T any](t *RadixTree[T], key []byte) (T, bool) {
 		}
 
 		// Recursively search
-		child = findChild[T](n, key[depth])
+		child = t.findChild(n, key[depth])
 		if child != nil && *child != nil && **child != nil {
 			n = **child
 		} else {
@@ -77,13 +77,13 @@ func leafMatches[T any](n *NodeLeaf[T], key []byte, keyLen int) int {
 	return bytes.Compare(n.key, key)
 }
 
-func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, depth int, old *int) T {
+func (t *RadixTree[T]) recursiveInsert(n *Node[T], ref **Node[T], key []byte, value T, depth int, old *int) T {
 	var zero T
 	keyLen := len(key)
 
 	// If we are at a nil node, inject a leaf
 	if n == nil {
-		leafNode := makeLeaf[T](key, value)
+		leafNode := t.makeLeaf(key, value)
 		*ref = &leafNode
 		return zero
 	}
@@ -93,7 +93,7 @@ func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, dept
 	if node.isLeaf() {
 		nodeLeaf := node.(*NodeLeaf[T])
 		if len(nodeLeaf.key) == 0 {
-			leafNode := makeLeaf[T](key, value)
+			leafNode := t.makeLeaf(key, value)
 			*ref = &leafNode
 			return zero
 		}
@@ -112,18 +112,18 @@ func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, dept
 		}
 
 		// New value, we must split the leaf into a node4
-		newLeaf2 := makeLeaf[T](key, value).(*NodeLeaf[T])
+		newLeaf2 := t.makeLeaf(key, value).(*NodeLeaf[T])
 
 		// Determine longest prefix
 		longestPrefix := longestCommonPrefix[T](nodeLeaf, newLeaf2, depth)
-		newNode := allocNode[T](NODE4)
+		newNode := t.allocNode(NODE4)
 		newNode4 := newNode.(*Node4[T])
 		newNode4.partialLen = uint32(longestPrefix)
 		copy(newNode4.partial[:], key[depth:depth+min(MaxPrefixLen, longestPrefix)])
 
 		// Add the leafs to the new node4
-		addChild4[T](newNode4, ref, nodeLeaf.key[depth+longestPrefix], nodeLeaf)
-		addChild4[T](newNode4, ref, newLeaf2.key[depth+longestPrefix], newLeaf2)
+		t.addChild4(newNode4, ref, nodeLeaf.key[depth+longestPrefix], nodeLeaf)
+		t.addChild4(newNode4, ref, newLeaf2.key[depth+longestPrefix], newLeaf2)
 		*ref = &newNode
 		return zero
 	}
@@ -138,7 +138,7 @@ func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, dept
 		}
 
 		// Create a new node
-		newNode := allocNode[T](NODE4)
+		newNode := t.allocNode(NODE4)
 		*ref = &newNode
 		newNode4 := newNode.(*Node4[T])
 		newNode4.partialLen = uint32(prefixDiff)
@@ -146,7 +146,7 @@ func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, dept
 
 		// Adjust the prefix of the old node
 		if node.getPartialLen() <= MaxPrefixLen {
-			addChild4[T](newNode4, ref, node.getPartial()[prefixDiff], node)
+			t.addChild4(newNode4, ref, node.getPartial()[prefixDiff], node)
 			node.setPartialLen(node.getPartialLen() - uint32(prefixDiff+1))
 			length := min(MaxPrefixLen, int(node.getPartialLen()))
 			copy(node.getPartial()[:], node.getPartial()[prefixDiff+1:+prefixDiff+1+length])
@@ -156,32 +156,32 @@ func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, dept
 			if l == nil {
 				return zero
 			}
-			addChild4[T](newNode4, ref, l.key[depth+prefixDiff], node)
+			t.addChild4(newNode4, ref, l.key[depth+prefixDiff], node)
 			length := min(MaxPrefixLen, int(node.getPartialLen()))
 			copy(node.getPartial()[:], l.key[depth+prefixDiff+1:depth+prefixDiff+1+length])
 		}
 		// Insert the new leaf
-		newLeaf := makeLeaf[T](key, value)
-		addChild4[T](newNode4, ref, key[depth+prefixDiff], newLeaf)
+		newLeaf := t.makeLeaf(key, value)
+		t.addChild4(newNode4, ref, key[depth+prefixDiff], newLeaf)
 		return zero
 	}
 
 RECURSE_SEARCH:
 	// Find a child to recurse to
-	child := findChild[T](node, key[depth])
+	child := t.findChild(node, key[depth])
 	if child != nil {
-		return recursiveInsert[T](*child, child, key, value, depth+1, old)
+		return t.recursiveInsert(*child, child, key, value, depth+1, old)
 	}
 
 	// No child, node goes within us
-	newLeaf := makeLeaf[T](key, value)
-	addChild[T](node, ref, key[depth], newLeaf)
+	newLeaf := t.makeLeaf(key, value)
+	t.addChild(node, ref, key[depth], newLeaf)
 	return zero
 }
 
-func makeLeaf[T any](key []byte, value T) Node[T] {
+func (t *RadixTree[T]) makeLeaf(key []byte, value T) Node[T] {
 	// Allocate memory for the leaf node
-	l := allocNode[T](LEAF).(*NodeLeaf[T])
+	l := t.allocNode(LEAF).(*NodeLeaf[T])
 	if l == nil {
 		return nil
 	}
@@ -197,19 +197,29 @@ func makeLeaf[T any](key []byte, value T) Node[T] {
 	return Node[T](l)
 }
 
-func allocNode[T any](nodeType uint8) Node[T] {
+func (t *RadixTree[T]) allocNode(nodeType uint8) Node[T] {
 	var n Node[T]
 	switch nodeType {
 	case LEAF:
-		n = &NodeLeaf[T]{}
+		n = &NodeLeaf[T]{
+			mutex: t.mutex,
+		}
 	case NODE4:
-		n = &Node4[T]{}
+		n = &Node4[T]{
+			mutex: t.mutex,
+		}
 	case NODE16:
-		n = &Node16[T]{}
+		n = &Node16[T]{
+			mutex: t.mutex,
+		}
 	case NODE48:
-		n = &Node48[T]{}
+		n = &Node48[T]{
+			mutex: t.mutex,
+		}
 	case NODE256:
-		n = &Node256[T]{}
+		n = &Node256[T]{
+			mutex: t.mutex,
+		}
 	default:
 		panic("Unknown node type")
 	}
@@ -235,23 +245,23 @@ func longestCommonPrefix[T any](l1, l2 *NodeLeaf[T], depth int) int {
 }
 
 // addChild adds a child node to the parent node.
-func addChild[T any](n Node[T], ref **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild(n Node[T], ref **Node[T], c byte, child Node[T]) {
 	switch n.getArtNodeType() {
 	case NODE4:
-		addChild4[T](n.(*Node4[T]), ref, c, child)
+		t.addChild4(n.(*Node4[T]), ref, c, child)
 	case NODE16:
-		addChild16[T](n.(*Node16[T]), ref, c, child)
+		t.addChild16(n.(*Node16[T]), ref, c, child)
 	case NODE48:
-		addChild48[T](n.(*Node48[T]), ref, c, child)
+		t.addChild48(n.(*Node48[T]), ref, c, child)
 	case NODE256:
-		addChild256[T](n.(*Node256[T]), ref, c, child)
+		t.addChild256(n.(*Node256[T]), ref, c, child)
 	default:
 		panic("Unknown node type")
 	}
 }
 
 // addChild4 adds a child node to a node4.
-func addChild4[T any](n *Node4[T], ref **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild4(n *Node4[T], ref **Node[T], c byte, child Node[T]) {
 	if n.numChildren < 4 {
 		idx := 0
 		for idx = 0; idx < int(n.numChildren); idx++ {
@@ -271,19 +281,19 @@ func addChild4[T any](n *Node4[T], ref **Node[T], c byte, child Node[T]) {
 		n.numChildren++
 
 	} else {
-		newNode := allocNode[T](NODE16)
+		newNode := t.allocNode(NODE16)
 		*ref = &newNode
 		node16 := newNode.(*Node16[T])
 		// Copy the child pointers and the key map
 		copy(node16.children[:], n.children[:n.numChildren])
 		copy(node16.keys[:], n.keys[:n.numChildren])
-		copyHeader[T](newNode, n)
-		addChild16[T](node16, ref, c, child)
+		t.copyHeader(newNode, n)
+		t.addChild16(node16, ref, c, child)
 	}
 }
 
 // addChild16 adds a child node to a node16.
-func addChild16[T any](n *Node16[T], ref **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild16(n *Node16[T], ref **Node[T], c byte, child Node[T]) {
 	if n.numChildren < 16 {
 		var mask uint32 = (1 << n.numChildren) - 1
 		var bitfield uint32
@@ -315,7 +325,7 @@ func addChild16[T any](n *Node16[T], ref **Node[T], c byte, child Node[T]) {
 		n.numChildren++
 
 	} else {
-		newNode := allocNode[T](NODE48)
+		newNode := t.allocNode(NODE48)
 		*ref = &newNode
 
 		node48 := newNode.(*Node48[T])
@@ -325,13 +335,13 @@ func addChild16[T any](n *Node16[T], ref **Node[T], c byte, child Node[T]) {
 			node48.keys[n.keys[i]] = byte(i + 1)
 		}
 
-		copyHeader[T](newNode, n)
-		addChild48[T](node48, ref, c, child)
+		t.copyHeader(newNode, n)
+		t.addChild48(node48, ref, c, child)
 	}
 }
 
 // addChild48 adds a child node to a node48.
-func addChild48[T any](n *Node48[T], ref **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild48(n *Node48[T], ref **Node[T], c byte, child Node[T]) {
 	if n.numChildren < 48 {
 		pos := 0
 		for n.children[pos] != nil {
@@ -341,7 +351,7 @@ func addChild48[T any](n *Node48[T], ref **Node[T], c byte, child Node[T]) {
 		n.keys[c] = byte(pos + 1)
 		n.numChildren++
 	} else {
-		newNode := allocNode[T](NODE256)
+		newNode := t.allocNode(NODE256)
 		*ref = &newNode
 		node256 := newNode.(*Node256[T])
 		for i := 0; i < 256; i++ {
@@ -349,13 +359,13 @@ func addChild48[T any](n *Node48[T], ref **Node[T], c byte, child Node[T]) {
 				node256.children[i] = n.children[int(n.keys[i])-1]
 			}
 		}
-		copyHeader[T](newNode, n)
-		addChild256[T](node256, ref, c, child)
+		t.copyHeader(newNode, n)
+		t.addChild256(node256, ref, c, child)
 	}
 }
 
 // copyHeader copies header information from src to dest node.
-func copyHeader[T any](dest, src Node[T]) {
+func (t *RadixTree[T]) copyHeader(dest, src Node[T]) {
 	dest.setNumChildren(src.getNumChildren())
 	dest.setPartialLen(src.getPartialLen())
 	length := min(MaxPrefixLen, int(src.getPartialLen()))
@@ -364,7 +374,7 @@ func copyHeader[T any](dest, src Node[T]) {
 }
 
 // addChild256 adds a child node to a node256.
-func addChild256[T any](n *Node256[T], _ **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild256(n *Node256[T], _ **Node[T], c byte, child Node[T]) {
 	n.numChildren++
 	n.children[c] = &child
 }
@@ -492,6 +502,9 @@ func isLeaf[T any](node Node[T]) bool {
 }
 
 // findChild finds the child node pointer based on the given character in the ART tree node.
+func (t *RadixTree[T]) findChild(n Node[T], c byte) **Node[T] {
+	return findChild(n, c)
+}
 func findChild[T any](n Node[T], c byte) **Node[T] {
 	switch n.getArtNodeType() {
 	case NODE4:
@@ -558,7 +571,7 @@ func getKey(key []byte) []byte {
 	return newKey
 }
 
-func recursiveDelete[T any](n *Node[T], ref **Node[T], key []byte, depth int) *NodeLeaf[T] {
+func (t *RadixTree[T]) recursiveDelete(n *Node[T], ref **Node[T], key []byte, depth int) *NodeLeaf[T] {
 	keyLen := len(key)
 	// Search terminated
 	if n == nil {
@@ -585,7 +598,7 @@ func recursiveDelete[T any](n *Node[T], ref **Node[T], key []byte, depth int) *N
 	}
 
 	// Find child node
-	child := findChild[T](node, key[depth])
+	child := t.findChild(node, key[depth])
 	if child == nil {
 		return nil
 	}
@@ -595,32 +608,32 @@ func recursiveDelete[T any](n *Node[T], ref **Node[T], key []byte, depth int) *N
 		nodeChild := **child
 		l := nodeChild.(*NodeLeaf[T])
 		if leafMatches[T](l, key, keyLen) == 0 {
-			removeChild[T](node, ref, key[depth], child)
+			t.removeChild(node, ref, key[depth], child)
 			return l
 		}
 		return nil
 	}
 
 	// Recurse
-	return recursiveDelete[T](*child, child, key, depth+1)
+	return t.recursiveDelete(*child, child, key, depth+1)
 }
 
-func removeChild[T any](n Node[T], ref **Node[T], c byte, l **Node[T]) {
+func (t *RadixTree[T]) removeChild(n Node[T], ref **Node[T], c byte, l **Node[T]) {
 	switch n.getArtNodeType() {
 	case NODE4:
-		removeChild4[T](n.(*Node4[T]), ref, l)
+		t.removeChild4(n.(*Node4[T]), ref, l)
 	case NODE16:
-		removeChild16[T](n.(*Node16[T]), ref, l)
+		t.removeChild16(n.(*Node16[T]), ref, l)
 	case NODE48:
-		removeChild48[T](n.(*Node48[T]), ref, c)
+		t.removeChild48(n.(*Node48[T]), ref, c)
 	case NODE256:
-		removeChild256[T](n.(*Node256[T]), ref, c)
+		t.removeChild256(n.(*Node256[T]), ref, c)
 	default:
 		panic("invalid node type")
 	}
 }
 
-func removeChild4[T any](n *Node4[T], ref **Node[T], l **Node[T]) {
+func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
 	pos := -1
 	for i, node := range n.children {
 		if node == *l {
@@ -665,7 +678,7 @@ func removeChild4[T any](n *Node4[T], ref **Node[T], l **Node[T]) {
 	}
 }
 
-func removeChild16[T any](n *Node16[T], ref **Node[T], l **Node[T]) {
+func (t *RadixTree[T]) removeChild16(n *Node16[T], ref **Node[T], l **Node[T]) {
 	pos := -1
 	for i, node := range n.children {
 		if node == *l {
@@ -683,26 +696,26 @@ func removeChild16[T any](n *Node16[T], ref **Node[T], l **Node[T]) {
 	node.numChildren--
 
 	if node.numChildren == 3 {
-		newNode := allocNode[T](NODE4)
+		newNode := t.allocNode(NODE4)
 		*ref = &newNode
 		node4 := newNode.(*Node4[T])
-		copyHeader[T](newNode, n)
+		t.copyHeader(newNode, n)
 		copy(node4.keys[:], node.keys[:4])
 		copy(node4.children[:], node.children[:4])
 	}
 }
 
-func removeChild48[T any](n *Node48[T], ref **Node[T], c uint8) {
+func (t *RadixTree[T]) removeChild48(n *Node48[T], ref **Node[T], c uint8) {
 	pos := n.keys[c]
 	n.keys[c] = 0
 	n.children[pos-1] = nil
 	n.numChildren--
 
 	if n.numChildren == 12 {
-		newNode := allocNode[T](NODE16)
+		newNode := t.allocNode(NODE16)
 		*ref = &newNode
 		node16 := newNode.(*Node16[T])
-		copyHeader[T](newNode, n)
+		t.copyHeader(newNode, n)
 
 		child := 0
 		for i := 0; i < 256; i++ {
@@ -716,17 +729,17 @@ func removeChild48[T any](n *Node48[T], ref **Node[T], c uint8) {
 	}
 }
 
-func removeChild256[T any](n *Node256[T], ref **Node[T], c uint8) {
+func (t *RadixTree[T]) removeChild256(n *Node256[T], ref **Node[T], c uint8) {
 	n.children[c] = nil
 	n.numChildren--
 
 	// Resize to a node48 on underflow, not immediately to prevent
 	// trashing if we sit on the 48/49 boundary
 	if n.numChildren == 37 {
-		newNode := allocNode[T](NODE48)
+		newNode := t.allocNode(NODE48)
 		*ref = &newNode
 		node48 := newNode.(*Node48[T])
-		copyHeader[T](newNode, n)
+		t.copyHeader(newNode, n)
 
 		pos := 0
 		for i := 0; i < 256; i++ {
@@ -737,63 +750,4 @@ func removeChild256[T any](n *Node256[T], ref **Node[T], c uint8) {
 			}
 		}
 	}
-}
-
-func recursiveIter[T any](n *Node[T], cb func(key []byte, value T)) int {
-	// Handle base cases
-	if n == nil {
-		return 0
-	}
-	node := *n
-	if isLeaf[T](node) {
-		l := node.(*NodeLeaf[T])
-		cb(l.key, l.value)
-		return 0
-	}
-
-	var res int
-	switch node.getArtNodeType() {
-	case NODE4:
-		for i := 0; i < int(node.getNumChildren()); i++ {
-			res = recursiveIter(node.(*Node4[T]).children[i], cb)
-			if res != 0 {
-				return res
-			}
-		}
-
-	case NODE16:
-		for i := 0; i < int(node.getNumChildren()); i++ {
-			res = recursiveIter(node.(*Node16[T]).children[i], cb)
-			if res != 0 {
-				return res
-			}
-		}
-
-	case NODE48:
-		for i := 0; i < 256; i++ {
-			idx := node.(*Node48[T]).keys[i]
-			if idx == 0 {
-				continue
-			}
-			res = recursiveIter(node.(*Node48[T]).children[idx-1], cb)
-			if res != 0 {
-				return res
-			}
-		}
-
-	case NODE256:
-		for i := 0; i < 256; i++ {
-			if node.(*Node256[T]).children[i] == nil {
-				continue
-			}
-			res = recursiveIter(node.(*Node256[T]).children[i], cb)
-			if res != 0 {
-				return res
-			}
-		}
-
-	default:
-		panic("Unknown node type")
-	}
-	return 0
 }

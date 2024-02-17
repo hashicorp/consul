@@ -26,15 +26,17 @@ func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
 }
 
 func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
-	nodeLeaf := allocNode[T](LEAF)
-	return &RadixTree[T]{root: &nodeLeaf, size: 0, mutex: &sync.RWMutex{}}
+	rt := &RadixTree[T]{size: 0, mutex: &sync.RWMutex{}}
+	nodeLeaf := rt.allocNode(LEAF)
+	rt.root = &nodeLeaf
+	return rt
 }
 
 func (t *RadixTree[T]) Insert(key []byte, value T) T {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	var old int
-	oldVal := recursiveInsert[T](t.root, &t.root, getTreeKey(key), value, 0, &old)
+	oldVal := t.recursiveInsert(t.root, &t.root, getTreeKey(key), value, 0, &old)
 	if old == 0 {
 		t.size++
 	}
@@ -42,7 +44,7 @@ func (t *RadixTree[T]) Insert(key []byte, value T) T {
 }
 
 func (t *RadixTree[T]) Search(key []byte) (T, bool) {
-	val, found := iterativeSearch[T](t, getTreeKey(key))
+	val, found := t.iterativeSearch(getTreeKey(key))
 	return val, found
 }
 
@@ -58,9 +60,9 @@ func (t *RadixTree[T]) Delete(key []byte) T {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	var zero T
-	l := recursiveDelete[T](t.root, &t.root, getTreeKey(key), 0)
+	l := t.recursiveDelete(t.root, &t.root, getTreeKey(key), 0)
 	if t.root == nil {
-		nodeLeaf := allocNode[T](LEAF)
+		nodeLeaf := t.allocNode(LEAF)
 		t.root = &nodeLeaf
 	}
 	if l != nil {

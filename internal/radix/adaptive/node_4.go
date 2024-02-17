@@ -3,7 +3,10 @@
 
 package adaptive
 
-import "bytes"
+import (
+	"bytes"
+	"sync"
+)
 
 type Node4[T any] struct {
 	partialLen  uint32
@@ -12,6 +15,7 @@ type Node4[T any] struct {
 	partial     []byte
 	keys        [4]byte
 	children    [4]*Node[T]
+	mutex       *sync.RWMutex
 }
 
 func (n *Node4[T]) getPartialLen() uint32 {
@@ -56,12 +60,12 @@ func (n *Node4[T]) Iterator() *Iterator[T] {
 	stack := make([]Node[T], 0)
 	stack = append(stack, n)
 	nodeT := Node[T](n)
-	return &Iterator[T]{stack: stack, root: &nodeT}
+	return &Iterator[T]{stack: stack, root: &nodeT, mutex: n.mutex}
 }
 
 func (n *Node4[T]) PathIterator(path []byte) *PathIterator[T] {
 	nodeT := Node[T](n)
-	return &PathIterator[T]{parent: &nodeT, path: path}
+	return &PathIterator[T]{parent: &nodeT, path: path, mutex: n.mutex}
 }
 
 func (n *Node4[T]) matchPrefix(prefix []byte) bool {
@@ -73,4 +77,8 @@ func (n *Node4[T]) getChild(index int) *Node[T] {
 		return nil
 	}
 	return n.children[index]
+}
+
+func (n *Node4[T]) getTreeMutex() *sync.RWMutex {
+	return n.mutex
 }
