@@ -27,8 +27,9 @@ type WorkQueue[T ItemType] interface {
 	Get() (item T, shutdown bool)
 	// Add immediately adds a Request to the work queue.
 	Add(item T)
-	// AddAfter adds a Request to the work queue after a given amount of time.
-	AddAfter(item T, duration time.Duration)
+	// AddAfter adds a Request to the work queue after a given amount of time
+	// with the option to override any existing Request that may be scheduled.
+	AddAfter(item T, duration time.Duration, override bool)
 	// AddRateLimited adds a Request to the work queue after the amount of time
 	// specified by applying the queue's rate limiter.
 	AddRateLimited(item T)
@@ -41,10 +42,10 @@ type WorkQueue[T ItemType] interface {
 
 // queue implements a rate-limited work queue
 type queue[T ItemType] struct {
-	// queue holds an ordered list of Requests needing to be processed
+	// queue holds an ordered list of non-deferred Requests needing to be processed
 	queue []T
 
-	// dirty holds the working set of all Requests, whether they are being
+	// dirty holds the working set of all non-deferred Requests, whether they are being
 	// processed or not
 	dirty map[string]struct{}
 	// processing holds the set of current requests being processed
@@ -145,8 +146,9 @@ func (q *queue[T]) Add(item T) {
 	q.cond.Signal()
 }
 
-// AddAfter adds a Request to the work queue after a given amount of time.
-func (q *queue[T]) AddAfter(item T, duration time.Duration) {
+// AddAfter adds a Request to the work queue after a given amount of time with
+// the option to override any existing Request that may be scheduled.
+func (q *queue[T]) AddAfter(item T, duration time.Duration, override bool) {
 	// don't add if we're already shutting down
 	if q.shuttingDown() {
 		return
@@ -158,13 +160,13 @@ func (q *queue[T]) AddAfter(item T, duration time.Duration) {
 		return
 	}
 
-	q.deferred.Defer(q.ctx, item, time.Now().Add(duration))
+	q.deferred.Defer(q.ctx, item, time.Now().Add(duration), override)
 }
 
 // AddRateLimited adds the given Request to the queue after applying the
 // rate limiter to determine when the Request should next be processed.
 func (q *queue[T]) AddRateLimited(item T) {
-	q.AddAfter(item, q.ratelimiter.NextRetry(item))
+	q.AddAfter(item, q.ratelimiter.NextRetry(item), false)
 }
 
 // Forget signals the queue to reset the rate-limiting for the given Request.

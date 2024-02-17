@@ -103,7 +103,6 @@ func Test_FetchVirtualIP(t *testing.T) {
 						*reply = tc.expectedResult.Service.Address
 					}
 				})
-			// TODO (v2-dns): mock these properly
 			translateServicePortFunc := func(dc string, port int, taggedAddresses map[string]structs.ServiceAddress) int { return 0 }
 			rpcFuncForServiceNodes := func(ctx context.Context, req structs.ServiceSpecificRequest) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 				return structs.IndexedCheckServiceNodes{}, cache.ResultMeta{}, nil
@@ -140,12 +139,14 @@ func Test_FetchEndpoints(t *testing.T) {
 	expectedResults := []*Result{
 		{
 			Node: &Location{
-				Name:    "node-name",
-				Address: "node-address",
+				Name:            "node-name",
+				Address:         "node-address",
+				TaggedAddresses: map[string]*TaggedAddress{},
 			},
 			Service: &Location{
-				Name:    "service-name",
-				Address: "service-address",
+				Name:            "service-name",
+				Address:         "service-address",
+				TaggedAddresses: map[string]*TaggedAddress{},
 			},
 			Type: ResultTypeService,
 			DNS: DNSConfig{
@@ -156,12 +157,14 @@ func Test_FetchEndpoints(t *testing.T) {
 					Number: 0,
 				},
 			},
+			Tenancy: ResultTenancy{
+				PeerName: "test-peer",
+			},
 		},
 	}
 
 	logger := testutil.Logger(t)
 	mockRPC := cachetype.NewMockRPC(t)
-	// TODO (v2-dns): mock these properly
 	translateServicePortFunc := func(dc string, port int, taggedAddresses map[string]structs.ServiceAddress) int { return 0 }
 	rpcFuncForSamenessGroup := func(ctx context.Context, req *structs.ConfigEntryQuery) (structs.SamenessGroupConfigEntry, cache.ResultMeta, error) {
 		return structs.SamenessGroupConfigEntry{}, cache.ResultMeta{}, nil

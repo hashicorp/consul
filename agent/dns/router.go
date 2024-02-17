@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
 	"github.com/miekg/dns"
 
@@ -47,8 +48,6 @@ var (
 	trailingSpacesRE = regexp.MustCompile(" +$")
 )
 
-// TODO (v2-dns): metrics
-
 // Context is used augment a DNS message with Consul-specific metadata.
 type Context struct {
 	Token             string
@@ -58,16 +57,15 @@ type Context struct {
 
 // RouterDynamicConfig is the dynamic configuration that can be hot-reloaded
 type RouterDynamicConfig struct {
-	ARecordLimit          int
-	DisableCompression    bool
-	EnableDefaultFailover bool // TODO (v2-dns): plumbing required for this new V2 setting. This is the agent configured default
-	EnableTruncate        bool
-	NodeMetaTXT           bool
-	NodeTTL               time.Duration
-	Recursors             []string
-	RecursorTimeout       time.Duration
-	RecursorStrategy      structs.RecursorStrategy
-	SOAConfig             SOAConfig
+	ARecordLimit       int
+	DisableCompression bool
+	EnableTruncate     bool
+	NodeMetaTXT        bool
+	NodeTTL            time.Duration
+	Recursors          []string
+	RecursorTimeout    time.Duration
+	RecursorStrategy   structs.RecursorStrategy
+	SOAConfig          SOAConfig
 	// TTLRadix sets service TTLs by prefix, eg: "database-*"
 	TTLRadix *radix.Tree
 	// TTLStrict sets TTLs to service by full name match. It Has higher priority than TTLRadix
@@ -105,9 +103,12 @@ type Router struct {
 	domain     string
 	altDomain  string
 	datacenter string
+	nodeName   string
 	logger     hclog.Logger
 
-	tokenFunc func() string
+	tokenFunc                   func() string
+	translateAddressFunc        func(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string
+	translateServiceAddressFunc func(dc string, address string, taggedAddresses map[string]structs.ServiceAddress, accept dnsutil.TranslateAddressAccept) string
 
 	// dynamicConfig stores the config as an atomic value (for hot-reloading).
 	// It is always of type *RouterDynamicConfig
@@ -122,18 +123,19 @@ func NewRouter(cfg Config) (*Router, error) {
 	domain := dns.CanonicalName(cfg.AgentConfig.DNSDomain)
 	altDomain := dns.CanonicalName(cfg.AgentConfig.DNSAltDomain)
 
-	// TODO (v2-dns): need to figure out tenancy information here in a way that work for V2 and V1
-
 	logger := cfg.Logger.Named(logging.DNS)
 
 	router := &Router{
-		processor:  cfg.Processor,
-		recursor:   newRecursor(logger),
-		domain:     domain,
-		altDomain:  altDomain,
-		datacenter: cfg.AgentConfig.Datacenter,
-		logger:     logger,
-		tokenFunc:  cfg.TokenFunc,
+		processor:                   cfg.Processor,
+		recursor:                    newRecursor(logger),
+		domain:                      domain,
+		altDomain:                   altDomain,
+		datacenter:                  cfg.AgentConfig.Datacenter,
+		logger:                      logger,
+		nodeName:                    cfg.AgentConfig.NodeName,
+		tokenFunc:                   cfg.TokenFunc,
+		translateAddressFunc:        cfg.TranslateAddressFunc,
+		translateServiceAddressFunc: cfg.TranslateServiceAddressFunc,
 	}
 
 	if err := router.ReloadConfig(cfg.AgentConfig); err != nil {
@@ -144,21 +146,6 @@ func NewRouter(cfg Config) (*Router, error) {
 
 // HandleRequest is used to process an individual DNS request. It returns a message in success or fail cases.
 func (r *Router) HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.Addr) *dns.Msg {
-	return r.handleRequestRecursively(req, reqCtx, remoteAddress, maxRecursionLevelDefault)
-}
-
-// getErrorFromECSNotGlobalError returns the underlying error from an ECSNotGlobalError, if it exists.
-func getErrorFromECSNotGlobalError(err error) error {
-	if errors.Is(err, discovery.ErrECSNotGlobal) {
-		return err.(discovery.ECSNotGlobalError).Unwrap()
-	}
-	return err
-}
-
-// handleRequestRecursively is used to process an individual DNS request. It will recurse as needed
-// a maximum number of times and returns a message in success or fail cases.
-func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context,
-	remoteAddress net.Addr, maxRecursionLevel int) *dns.Msg {
 	configCtx := r.dynamicConfig.Load().(*RouterDynamicConfig)
 
 	r.logger.Trace("received request", "question", req.Question[0].Name, "type", dns.Type(req.Question[0].Qtype).String())
@@ -171,6 +158,45 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context,
 		}
 		return createServerFailureResponse(req, configCtx, false)
 	}
+
+	defer func(s time.Time, q dns.Question) {
+		metrics.MeasureSinceWithLabels([]string{"dns", "query"}, s,
+			[]metrics.Label{
+				{Name: "node", Value: r.nodeName},
+				{Name: "type", Value: dns.Type(q.Qtype).String()},
+			})
+
+		r.logger.Trace("request served from client",
+			"name", q.Name,
+			"type", dns.Type(q.Qtype).String(),
+			"class", dns.Class(q.Qclass).String(),
+			"latency", time.Since(s).String(),
+			"client", remoteAddress.String(),
+			"client_network", remoteAddress.Network(),
+		)
+	}(time.Now(), req.Question[0])
+
+	return r.handleRequestRecursively(req, reqCtx, configCtx, remoteAddress, maxRecursionLevelDefault)
+}
+
+// getErrorFromECSNotGlobalError returns the underlying error from an ECSNotGlobalError, if it exists.
+func getErrorFromECSNotGlobalError(err error) error {
+	if errors.Is(err, discovery.ErrECSNotGlobal) {
+		return err.(discovery.ECSNotGlobalError).Unwrap()
+	}
+	return err
+}
+
+// handleRequestRecursively is used to process an individual DNS request. It will recurse as needed
+// a maximum number of times and returns a message in success or fail cases.
+func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context, configCtx *RouterDynamicConfig,
+	remoteAddress net.Addr, maxRecursionLevel int) *dns.Msg {
+
+	r.logger.Trace(
+		"received request",
+		"question", req.Question[0].Name,
+		"type", dns.Type(req.Question[0].Qtype).String(),
+		"recursion_remaining", maxRecursionLevel)
 
 	responseDomain, needRecurse := r.parseDomain(req.Question[0].Name)
 	if needRecurse && !canRecurse(configCtx) {
@@ -304,13 +330,6 @@ func getTTLForResult(name string, overrideTTL *uint32, query *discovery.Query, c
 	}
 
 	switch query.QueryType {
-	// TODO (v2-dns): currently have to do this related to the results type being changed to node whe
-	// the v1 data fetcher encounters a blank service address and uses the node address instead.
-	// we will revisiting this when look at modifying the discovery result struct to
-	// possibly include additional metadata like the node address.
-	case discovery.QueryTypeWorkload:
-		// TODO (v2-dns): we need to discuss what we want to do for workload TTLs
-		return 0
 	case discovery.QueryTypeService, discovery.QueryTypePreparedQuery:
 		ttl, ok := cfg.getTTLForService(name)
 		if ok {
@@ -526,11 +545,7 @@ func (r *Router) serializeQueryResults(req *dns.Msg, reqCtx Context,
 
 				// The datacenter should be empty during translation if it is a peering lookup.
 				// This should be fine because we should always prefer the WAN address.
-				//serviceAddress := d.agent.TranslateServiceAddress(lookup.Datacenter, node.Service.Address, node.Service.TaggedAddresses, TranslateAddressAcceptAny)
-				//servicePort := d.agent.TranslateServicePort(lookup.Datacenter, node.Service.Port, node.Service.TaggedAddresses)
-				//tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, serviceAddress, servicePort)
 
-				// TODO (v2-dns): this needs a clean up so we're not assuming this everywhere.
 				address := ""
 				if result.Service != nil {
 					address = result.Service.Address
@@ -554,11 +569,33 @@ func (r *Router) serializeQueryResults(req *dns.Msg, reqCtx Context,
 		r.appendResultsToDNSResponse(req, reqCtx, query, resp, results, cfg, responseDomain, remoteAddress, maxRecursionLevel)
 	}
 
-	if len(resp.Answer) == 0 && len(resp.Extra) == 0 {
+	if query != nil && query.QueryType != discovery.QueryTypeVirtual &&
+		len(resp.Answer) == 0 && len(resp.Extra) == 0 {
 		return nil, discovery.ErrNoData
 	}
 
 	return resp, nil
+}
+
+// getServiceAddressMapFromLocationMap converts a map of Location to a map of ServiceAddress.
+func getServiceAddressMapFromLocationMap(taggedAddresses map[string]*discovery.TaggedAddress) map[string]structs.ServiceAddress {
+	taggedServiceAddresses := make(map[string]structs.ServiceAddress, len(taggedAddresses))
+	for k, v := range taggedAddresses {
+		taggedServiceAddresses[k] = structs.ServiceAddress{
+			Address: v.Address,
+			Port:    int(v.Port.Number),
+		}
+	}
+	return taggedServiceAddresses
+}
+
+// getStringAddressMapFromTaggedAddressMap converts a map of Location to a map of string.
+func getStringAddressMapFromTaggedAddressMap(taggedAddresses map[string]*discovery.TaggedAddress) map[string]string {
+	taggedServiceAddresses := make(map[string]string, len(taggedAddresses))
+	for k, v := range taggedAddresses {
+		taggedServiceAddresses[k] = v.Address
+	}
+	return taggedServiceAddresses
 }
 
 // appendResultsToDNSResponse builds dns message from the discovery results and
@@ -632,28 +669,28 @@ func (r *Router) defaultAgentDNSRequestContext() Context {
 }
 
 // resolveCNAME is used to recursively resolve CNAME records
-func (r *Router) resolveCNAME(cfg *RouterDynamicConfig, name string, reqCtx Context,
+func (r *Router) resolveCNAME(cfgContext *RouterDynamicConfig, name string, reqCtx Context,
 	remoteAddress net.Addr, maxRecursionLevel int) []dns.RR {
 	// If the CNAME record points to a Consul address, resolve it internally
-	// Convert query to lowercase because DNS is case-insensitive; d.domain and
-	// d.altDomain are already converted
+	// Convert query to lowercase because DNS is case-insensitive; r.domain and
+	// r.altDomain are already converted
 
 	if ln := strings.ToLower(name); strings.HasSuffix(ln, "."+r.domain) || strings.HasSuffix(ln, "."+r.altDomain) {
 		if maxRecursionLevel < 1 {
-			//d.logger.Error("Infinite recursion detected for name, won't perform any CNAME resolution.", "name", name)
+			r.logger.Error("Infinite recursion detected for name, won't perform any CNAME resolution.", "name", name)
 			return nil
 		}
 		req := &dns.Msg{}
 
 		req.SetQuestion(name, dns.TypeANY)
-		// TODO: handle error response
-		resp := r.handleRequestRecursively(req, reqCtx, nil, maxRecursionLevel-1)
+		// TODO: handle error response (this is a comment from the V1 DNS Server)
+		resp := r.handleRequestRecursively(req, reqCtx, cfgContext, nil, maxRecursionLevel-1)
 
 		return resp.Answer
 	}
 
 	// Do nothing if we don't have a recursor
-	if !canRecurse(cfg) {
+	if !canRecurse(cfgContext) {
 		return nil
 	}
 
@@ -662,7 +699,7 @@ func (r *Router) resolveCNAME(cfg *RouterDynamicConfig, name string, reqCtx Cont
 	m.SetQuestion(name, dns.TypeA)
 
 	// Make a DNS lookup request
-	recursorResponse, err := r.recursor.handle(m, cfg, remoteAddress)
+	recursorResponse, err := r.recursor.handle(m, cfgContext, remoteAddress)
 	if err == nil {
 		return recursorResponse.Answer
 	}
@@ -906,15 +943,7 @@ func buildAddressResults(req *dns.Msg) ([]*discovery.Result, error) {
 func (r *Router) getAnswerExtraAndNs(result *discovery.Result, port discovery.Port, req *dns.Msg, reqCtx Context,
 	query *discovery.Query, cfg *RouterDynamicConfig, domain string, remoteAddress net.Addr,
 	maxRecursionLevel int) (answer []dns.RR, extra []dns.RR, ns []dns.RR) {
-
-	serviceAddress := newDNSAddress("")
-	if result.Service != nil {
-		serviceAddress = newDNSAddress(result.Service.Address)
-	}
-	nodeAddress := newDNSAddress("")
-	if result.Node != nil {
-		nodeAddress = newDNSAddress(result.Node.Address)
-	}
+	serviceAddress, nodeAddress := r.getServiceAndNodeAddresses(result, req)
 	qName := req.Question[0].Name
 	ttlLookupName := qName
 	if query != nil {
@@ -944,22 +973,20 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, port discovery.Po
 		}
 		answer = append(answer, ptr)
 	case qType == dns.TypeNS:
-		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
 		resultType := result.Type
 		target := result.Node.Name
 		if parseRequestType(req) == requestTypeConsul && resultType == discovery.ResultTypeService {
 			resultType = discovery.ResultTypeNode
 		}
 		fqdn := canonicalNameForResult(resultType, target, domain, result.Tenancy, port.Name)
-		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
+		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl)
 
 		answer = append(answer, makeNSRecord(domain, fqdn, ttl))
 		extra = append(extra, extraRecord)
 	case qType == dns.TypeSOA:
-		// TODO (v2-dns): fqdn in V1 has the datacenter included, this would need to be added to discovery.Result
 		// to be returned in the result.
 		fqdn := canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, port.Name)
-		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl) // TODO (v2-dns): this is not sufficient, because recursion and CNAMES are supported
+		extraRecord := makeIPBasedRecord(fqdn, nodeAddress, ttl)
 
 		ns = append(ns, makeNSRecord(domain, fqdn, ttl))
 		extra = append(extra, extraRecord)
@@ -981,6 +1008,35 @@ func (r *Router) getAnswerExtraAndNs(result *discovery.Result, port discovery.Po
 	answer = append(answer, a...)
 	extra = append(extra, e...)
 	return
+}
+
+// getServiceAndNodeAddresses returns the service and node addresses from a discovery result.
+func (r *Router) getServiceAndNodeAddresses(result *discovery.Result, req *dns.Msg) (*dnsAddress, *dnsAddress) {
+	addrTranslate := dnsutil.TranslateAddressAcceptDomain
+	if req.Question[0].Qtype == dns.TypeA {
+		addrTranslate |= dnsutil.TranslateAddressAcceptIPv4
+	} else if req.Question[0].Qtype == dns.TypeAAAA {
+		addrTranslate |= dnsutil.TranslateAddressAcceptIPv6
+	} else {
+		addrTranslate |= dnsutil.TranslateAddressAcceptAny
+	}
+
+	// The datacenter should be empty during translation if it is a peering lookup.
+	// This should be fine because we should always prefer the WAN address.
+	serviceAddress := newDNSAddress("")
+	if result.Service != nil {
+		sa := r.translateServiceAddressFunc(result.Tenancy.Datacenter,
+			result.Service.Address, getServiceAddressMapFromLocationMap(result.Service.TaggedAddresses),
+			addrTranslate)
+		serviceAddress = newDNSAddress(sa)
+	}
+	nodeAddress := newDNSAddress("")
+	if result.Node != nil {
+		na := r.translateAddressFunc(result.Tenancy.Datacenter, result.Node.Address,
+			getStringAddressMapFromTaggedAddressMap(result.Node.TaggedAddresses), addrTranslate)
+		nodeAddress = newDNSAddress(na)
+	}
+	return serviceAddress, nodeAddress
 }
 
 // getAnswerExtrasForAddressAndTarget creates the dns answer and extra from nodeAddress and serviceAddress dnsAddress pairs.
@@ -1119,7 +1175,7 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
 	qType := question.Qtype
 	canReturnARecord := qType == dns.TypeSRV || qType == dns.TypeA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
 	canReturnAAAARecord := qType == dns.TypeSRV || qType == dns.TypeAAAA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
-	if reqType != requestTypeAddress {
+	if reqType != requestTypeAddress && result.Type != discovery.ResultTypeVirtual {
 		switch {
 		// check IPV4
 		case addr.IsIP() && addr.IsIPV4() && !canReturnARecord,
@@ -1143,8 +1199,7 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
 	}
 
 	if reqType != requestTypeAddress && qType == dns.TypeSRV {
-		if result.Type == discovery.ResultTypeService && addr.IsIP() && result.Service.
-			Address == addr.String() {
+		if result.Type == discovery.ResultTypeService && addr.IsIP() && result.Node.Address != addr.String() {
 			// encode the ip to be used in the header of the A/AAAA record
 			// as well as the target of the SRV record.
 			recHdrName = encodeIPAsFqdn(result, addr.IP(), domain)
@@ -1359,4 +1414,45 @@ func makeTXTRecord(name string, result *discovery.Result, ttl uint32) []dns.RR {
 		})
 	}
 	return extra
+}
+
+// canonicalNameForResult returns the canonical name for a discovery result.
+func canonicalNameForResult(resultType discovery.ResultType, target, domain string,
+	tenancy discovery.ResultTenancy, portName string) string {
+	switch resultType {
+	case discovery.ResultTypeService:
+		if tenancy.Namespace != "" {
+			return fmt.Sprintf("%s.%s.%s.%s.%s", target, "service", tenancy.Namespace, tenancy.Datacenter, domain)
+		}
+		return fmt.Sprintf("%s.%s.%s.%s", target, "service", tenancy.Datacenter, domain)
+	case discovery.ResultTypeNode:
+		if tenancy.PeerName != "" && tenancy.Partition != "" {
+			// We must return a more-specific DNS name for peering so
+			// that there is no ambiguity with lookups.
+			// Nodes are always registered in the default namespace, so
+			// the `.ns` qualifier is not required.
+			return fmt.Sprintf("%s.node.%s.peer.%s.ap.%s",
+				target,
+				tenancy.PeerName,
+				tenancy.Partition,
+				domain)
+		}
+		if tenancy.PeerName != "" {
+			// We must return a more-specific DNS name for peering so
+			// that there is no ambiguity with lookups.
+			return fmt.Sprintf("%s.node.%s.peer.%s",
+				target,
+				tenancy.PeerName,
+				domain)
+		}
+		// Return a simpler format for non-peering nodes.
+		return fmt.Sprintf("%s.node.%s.%s", target, tenancy.Datacenter, domain)
+	case discovery.ResultTypeWorkload:
+		// TODO (v2-dns): it doesn't appear this is being used to return a result. Need to investigate and refactor
+		if portName != "" {
+			return fmt.Sprintf("%s.port.%s.workload.%s.ns.%s.ap.%s", portName, target, tenancy.Namespace, tenancy.Partition, domain)
+		}
+		return fmt.Sprintf("%s.workload.%s.ns.%s.ap.%s", target, tenancy.Namespace, tenancy.Partition, domain)
+	}
+	return ""
 }

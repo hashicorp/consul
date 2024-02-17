@@ -23,10 +23,9 @@ func New() *SamenessGroupExpander {
 	return &SamenessGroupExpander{}
 }
 
-func (sgE *SamenessGroupExpander) Expand(_ types.XTrafficPermissions,
-	_ map[string][]*pbmulticluster.SamenessGroupMember) []string {
-	// no-op for CE
-	return nil
+func (sgE *SamenessGroupExpander) Expand(xtp types.XTrafficPermissions,
+	_ map[string][]*pbmulticluster.SamenessGroupMember) ([]*pbauth.Permission, []string) {
+	return xtp.GetPermissions(), nil
 }
 
 func (sgE *SamenessGroupExpander) List(_ context.Context, _ controller.Runtime,

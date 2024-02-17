@@ -18,8 +18,10 @@ type DeferQueue[T ItemType] interface {
 	// Defer defers processing a Request until a given time. When
 	// the timeout is hit, the request will be processed by the
 	// callback given in the Process loop. If the given context
-	// is canceled, the item is not deferred.
-	Defer(ctx context.Context, item T, until time.Time)
+	// is canceled, the item is not deferred. Override replaces
+	// any existing item regardless of the enqueue time when true.
+	Defer(ctx context.Context, item T, until time.Time, override bool)
+
 	// Process processes all items in the defer queue with the
 	// given callback, blocking until the given context is canceled.
 	// Callers should only ever call Process once, likely in a
@@ -32,6 +34,9 @@ type DeferQueue[T ItemType] interface {
 type deferredRequest[T ItemType] struct {
 	enqueueAt time.Time
 	item      T
+	// override replaces any existing item when true regardless
+	// of the enqueue time
+	override bool
 	// index holds the index for the given heap entry so that if
 	// the entry is updated the heap can be re-sorted
 	index int
@@ -64,10 +69,11 @@ func NewDeferQueue[T ItemType](tick time.Duration) DeferQueue[T] {
 // Defer defers the given Request until the given time in the future. If the
 // passed in context is canceled before the Request is deferred, then this
 // immediately returns.
-func (q *deferQueue[T]) Defer(ctx context.Context, item T, until time.Time) {
+func (q *deferQueue[T]) Defer(ctx context.Context, item T, until time.Time, override bool) {
 	entry := &deferredRequest[T]{
 		enqueueAt: until,
 		item:      item,
+		override:  override,
 	}
 
 	select {
@@ -79,9 +85,9 @@ func (q *deferQueue[T]) Defer(ctx context.Context, item T, until time.Time) {
 // deferEntry adds a deferred request to the priority queue
 func (q *deferQueue[T]) deferEntry(entry *deferredRequest[T]) {
 	existing, exists := q.entries[entry.item.Key()]
+	// insert or update the item deferral time
 	if exists {
-		// insert or update the item deferral time
-		if existing.enqueueAt.After(entry.enqueueAt) {
+		if entry.override || entry.enqueueAt.Before(existing.enqueueAt) {
 			existing.enqueueAt = entry.enqueueAt
 			heap.Fix(q.heap, existing.index)
 		}
