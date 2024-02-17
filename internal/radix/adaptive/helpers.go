@@ -80,6 +80,7 @@ func leafMatches[T any](n *NodeLeaf[T], key []byte, keyLen int) int {
 func recursiveInsert[T any](n *Node[T], ref **Node[T], key []byte, value T, depth int, old *int) T {
 	var zero T
 	keyLen := len(key)
+
 	// If we are at a nil node, inject a leaf
 	if n == nil {
 		leafNode := makeLeaf[T](key, value)

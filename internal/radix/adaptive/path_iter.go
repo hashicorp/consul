@@ -99,11 +99,6 @@ func (i *PathIterator[T]) recursiveForEach() ([]byte, T, bool) {
 
 	parent := i.parent
 
-	if parent.getNumChildren() == i.currentCh {
-		i.Iterate()
-		return i.Next()
-	}
-
 	switch parent.getArtNodeType() {
 	case NODE4:
 		node4 := parent.(*Node4[T])
