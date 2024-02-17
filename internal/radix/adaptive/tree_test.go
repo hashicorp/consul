@@ -126,7 +126,7 @@ func TestARTree_InsertVeryLongKey(t *testing.T) {
 		101, 178, 0, 8, 18, 255, 255, 255, 219, 191, 198, 134, 5, 208, 212, 72,
 		44, 208, 250, 180, 14, 1, 0, 0, 8}
 
-	art := &RadixTree[string]{}
+	art := NewAdaptiveRadixTree[string]()
 	val1 := art.Insert(key1, string(key1))
 	val2 := art.Insert(key2, string(key2))
 	require.Equal(t, val1, "")
