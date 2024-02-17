@@ -3,7 +3,10 @@
 
 package adaptive
 
-import "github.com/hashicorp/golang-lru/v2/simplelru"
+import (
+	"github.com/hashicorp/golang-lru/v2/simplelru"
+	"sync"
+)
 
 const MaxPrefixLen = 1000
 const LEAF = 0
@@ -83,6 +86,8 @@ type Txn[T any] struct {
 	writable *simplelru.LRU[*Node[T], any]
 
 	tree *RadixTree[T]
+
+	mutex *sync.RWMutex
 }
 
 // Txn starts a new transaction that can be used to mutate the tree
@@ -104,6 +109,8 @@ func (t *Txn[T]) Get(k []byte) (T, bool) {
 }
 
 func (t *Txn[T]) Insert(key []byte, value T) T {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	oldVal := t.tree.Insert(key, value)
 	t.root = t.tree.root
 	t.size = t.tree.size
@@ -111,6 +118,8 @@ func (t *Txn[T]) Insert(key []byte, value T) T {
 }
 
 func (t *Txn[T]) Delete(key []byte) T {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	oldVal := t.tree.Delete(key)
 	t.root = t.tree.root
 	t.size = t.tree.size
