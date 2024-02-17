@@ -22,7 +22,7 @@ type RadixTree[T any] struct {
 }
 
 func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
-	return &PathIterator[T]{parent: t.root, path: getTreeKey(path)}
+	return &PathIterator[T]{parent: t.root, path: getTreeKey(path), mutex: t.mutex}
 }
 
 func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
