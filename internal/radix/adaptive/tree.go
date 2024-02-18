@@ -36,10 +36,13 @@ func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
 
 func (t *RadixTree[T]) Insert(key []byte, value T) T {
 	var old int
-	oldVal := t.recursiveInsert(t.root, &t.root, getTreeKey(key), value, 0, &old)
+	rootNode := *t.root
+	rootClone := rootNode.Clone()
+	oldVal := t.recursiveInsert(rootClone, &rootClone, getTreeKey(key), value, 0, &old)
 	if old == 0 {
 		t.size++
 	}
+	t.root = rootClone
 	return oldVal
 }
 
@@ -58,7 +61,10 @@ func (t *RadixTree[T]) Maximum() *NodeLeaf[T] {
 
 func (t *RadixTree[T]) Delete(key []byte) T {
 	var zero T
-	l := t.recursiveDelete(t.root, &t.root, getTreeKey(key), 0)
+	rootNode := *t.root
+	rootClone := rootNode.Clone()
+	l := t.recursiveDelete(rootClone, &rootClone, getTreeKey(key), 0)
+	t.root = rootClone
 	if t.root == nil {
 		nodeLeaf := t.allocNode(LEAF)
 		t.root = &nodeLeaf
@@ -112,6 +118,8 @@ func (t *Txn[T]) Get(k []byte) (T, bool) {
 }
 
 func (t *Txn[T]) Insert(key []byte, value T) T {
+	t.tree.mu.Lock()
+	defer t.tree.mu.Unlock()
 	oldVal := t.tree.Insert(key, value)
 	t.root = t.tree.root
 	t.size = t.tree.size
@@ -119,6 +127,8 @@ func (t *Txn[T]) Insert(key []byte, value T) T {
 }
 
 func (t *Txn[T]) Delete(key []byte) T {
+	t.tree.mu.Lock()
+	defer t.tree.mu.Unlock()
 	oldVal := t.tree.Delete(key)
 	t.root = t.tree.root
 	t.size = t.tree.size

@@ -21,4 +21,5 @@ type Node[T any] interface {
 	getChild(int) *Node[T]
 	setMutex(*sync.RWMutex)
 	getMutex() *sync.RWMutex
+	Clone() *Node[T]
 }

@@ -87,3 +87,16 @@ func (n *Node256[T]) setMutex(mu *sync.RWMutex) {
 func (n *Node256[T]) getMutex() *sync.RWMutex {
 	return n.mu
 }
+
+func (n *Node256[T]) Clone() *Node[T] {
+	newNode := &Node256[T]{
+		partialLen:  n.getPartialLen(),
+		artNodeType: n.getArtNodeType(),
+		numChildren: n.getNumChildren(),
+		partial:     n.getPartial(),
+		mu:          n.getMutex(),
+	}
+	copy(newNode.children[:], n.children[:])
+	nodeT := Node[T](newNode)
+	return &nodeT
+}

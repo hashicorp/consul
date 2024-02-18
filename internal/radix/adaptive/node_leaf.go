@@ -45,7 +45,7 @@ func (n *NodeLeaf[T]) isLeaf() bool {
 	return true
 }
 
-func (n *NodeLeaf[T]) getValue() interface{} {
+func (n *NodeLeaf[T]) getValue() T {
 	return n.value
 }
 
@@ -132,4 +132,17 @@ func (n *NodeLeaf[T]) setMutex(mu *sync.RWMutex) {
 
 func (n *NodeLeaf[T]) getMutex() *sync.RWMutex {
 	return n.mu
+}
+
+func (n *NodeLeaf[T]) Clone() *Node[T] {
+	newNode := &NodeLeaf[T]{
+		artNodeType: n.getArtNodeType(),
+		mu:          n.getMutex(),
+		keyLen:      n.getKeyLen(),
+		key:         make([]byte, len(n.getKey())),
+		value:       n.getValue(),
+	}
+	copy(newNode.key[:], n.key[:])
+	nodeT := Node[T](newNode)
+	return &nodeT
 }

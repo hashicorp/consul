@@ -64,8 +64,12 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 			}
 		case NODE48:
 			node48 := currentNode.(*Node48[T])
-			for itr := 47; itr >= 0; itr-- {
-				nodeCh := node48.children[itr]
+			for itr := 0; itr < 256; itr++ {
+				idx := node48.keys[itr]
+				if idx == 0 {
+					continue
+				}
+				nodeCh := node48.children[idx-1]
 				if nodeCh == nil {
 					continue
 				}
