@@ -1,0 +1,177 @@
+---
+layout: docs
+page_title: Define tasks
+description: >-
+  Learn how to configure task settings in the Consul-Terraform-Sync configuration file. 
+---
+
+# Define tasks  
+
+This topic describes how to define tasks in the Consul-Terraform-Sync (CTS) configuration file.
+
+## Overview
+
+A task configuration specifies how dynamic service information from the Consul catalog translates to downstream network infrastructure changes. It specifies which Terraform module and providers to run when CTS detects a change in the Consul catalog. Refer to [Modules](/terraform/language/modules) and [Providers](/terraform/language/providers) in the Terraform documentation to learn more about modules and providers. 
+
+The task configuration also specifies which conditions trigger the update. You can only specify one condition per task, but you can define multiple tasks in the configuration. 
+
+The task can also specify inputs that the Terraform module may require to execute the task. The type of module input configuration depends on the type of condition configured for the task. 
+
+## Enable the task
+
+Add a [`task`](/consul/docs/reference/cts#task) block to your CTS configuration for each network resource you want to monitor and automatically update. Configure the following settings in the `task` block:
+
+- [`enabled`](/consul/docs/reference/cts#task-enabled): Set to `true` to enable CTS to run the task and manage its resources.
+- [`name`](/consul/docs/reference/cts#task-name): Specifies a unique name for the task.
+- [`description`](/consul/docs/reference/cts#task-description): Attaches a human-readable description of the task.
+- [`version`](/consul/docs/reference/cts#task-version): Specifies the version of module to use.
+- [`module`](/consul/docs/reference/cts#task-module): Specifies the location of the Terraform module that CTS runs when it detects a change in your Consul service mesh. You can specify local or remote module.
+
+## Specify providers
+
+Specify a list of providers to run in the [`providers`](/consul/docs/reference/cts#task-providers) block. The `providers` block only lists the names or aliases of the providers and does not configure provider usage. Refer to [Configure Terraform providers](/consul/docs/cts/configure/provider) for information about configuring providers.
+
+## Define conditions
+
+You can configure a task to monitor and execute on different types of conditions, such as changes to services or service registration status, in the `condition "<type>"` block.
+
+### Services condition
+
+Add a [`condition "services"`](/consul/docs/reference/cts#task-condition-services) block the `task` configuration to monitor services and execute the task on changes. You can add a list of services to monitor in the `names` field or define a pattern in the `regex` field to match on service names.
+
+You can specify additional metadata to append to the the [`services` input variable](/consul/docs/cts/create-terraform-module#services-input-variable) that is required for each CTS module adding the `cts_user_defined_metadata` field to the condition.
+
+If you want to use the condition values as module inputs, set the `use_as_module_inputs` field to `true`.
+
+The services condition monitors the [`/health/service/:service` API endpoint](/consul/api-docs/health#list-nodes-for-service) and executes the task on any changes to the services information. The changes include one or more changes to service values, such as IP address, added or removed service instance, or tags. Changes to the following values cause a task to run:
+
+| Attribute | Description |
+| --- | --- |
+| `id` | A unique Consul ID for this service. This is unique per Consul agent. |
+| `name` | The logical name of the service. Many service instances may share the same logical service name.  |
+| `address` | IP address of the service host. When empty, CTS uses the node address.                          |
+| `port` | Port number of the service. |
+| `meta` | List of user-defined metadata key-value pairs for the service.                                     |
+| `tags` | List of tags for the service.                                                                      |
+| `namespace`| Consul Enterprise namespace of the service instance.                                               |
+| `status` | Representative status for the service instance based on an aggregate of the list of health checks. |
+| `node` | Name of the Consul node on which the service is registered.                                        |
+| `node_id` | ID of the node on which the service is registered.                                                |
+| `node_address` | The IP address of the Consul node on which the service is registered.                             |
+| `node_datacenter` | Data center of the Consul node on which the service is registered.                                |
+| `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent.                                           |
+| `node_meta` | List of user-defined metadata key-value pairs for the node. |
+
+The following example configuration monitors services prefixed with `web.` and executes when CTS detects a change:
+
+```hcl
+task {
+  name        = "services_condition_task"
+  description = "execute on changes to services whose name starts with web"
+  providers   = ["my-provider"]
+  module      = "path/to/services-condition-module"
+
+  condition "services" {
+    regexp              = "^web.*"
+    use_as_module_input = false
+  }
+}
+```
+
+### Catalog services condition
+
+Add a [`condition "catalog-services"`](/consul/docs/reference/cts#task-condition-catalog-services) block the `task` configuration to monitor services and execute the task on when an instance of the service first registers with Consul or when the last instance de-registers. Define a pattern in the `regex` field to match on service names to monitor.
+
+Depending on the module, tasks with a `condition "catalog-services"` may additionally monitor, but not execute, on service instance information.
+
+The catalog services condition monitors the [`/catalog/services` API endpoint](/consul/api-docs/catalog#list-services) and executes the task when services are added or removed in the list of registered services. The task does not execute on changes to the tags of the list of services. 
+
+If you want to use the condition values as module inputs for the [`catalog_services` input variable](/consul/docs/cts/create-terraform-module#catalog-services-variable), set the `use_as_module_inputs` field to `true`.
+
+The following example executes the task when CTS detects registration changes for services prefixed with `web.` in the `dc1` datacenter. Additionally, the task monitors, but does not execute, on service instance changes to `web-api` in datacenter `dc2`.
+
+```hcl
+task {
+  name      = "catalog_service_condition_task"
+  module    = "path/to/catalog-services-module"
+  providers = ["my-provider"]
+
+  condition "catalog-services" {
+    datacenter          = "dc1"
+    regexp              = "web.*"
+    use_as_module_input = false
+  }
+
+  module_input "services" {
+    names = ["web-api"]
+    datacenter = "dc2"
+  }
+}
+```
+
+
+### Consul KV condition
+
+Add a [`condition "consul-kv"`](/consul/docs/reference/cts#task-condition-consul-kv) block the `task` configuration to monitor services and execute the task on on Consul KV changes. Specify the path to the key in the `path` field to monitor the key-value pair. You can also set the `recurse` field to `true` so that CTS treats the value of the `path` field as a prefix. This enables you to monitor all keys in the path. 
+
+The Consul KV condition monitors the [`/kv/:key` API endpoint](/consul/api-docs/kv#read-key) and executes the task when a configured KV entry is created, deleted, or updated.
+
+If you want to use the condition object as module inputs for the [`consul_kv` input variable](/consul/docs/cts/create-terraform-module#consul-kv-variable), set the `use_as_module_inputs` field to `true`.
+
+The following example executes on changes to all entries in the `my-key` path:
+
+```hcl
+task {
+  name        = "consul_kv_condition_task"
+  description = "execute on changes to Consul KV entry"
+  module      = "path/to/consul-kv-module"
+  providers   = ["my-provider"]
+
+  condition "consul-kv" {
+    path                = "my-key"
+    recurse             = true
+    datacenter          = "dc1"
+    namespace           = "default"
+    use_as_module_input = true
+  }
+}
+```
+
+### Schedule condition
+
+Add a [`condition "schedule"`](/consul/docs/reference/cts#task-condition-schedule) block to the `task` configuration to set a cadence to trigger the task using cron. You must use a schedule condition for all scheduled tasks.  
+
+The schedule condition block does not support parameters to configure module input. As a result, you must configure inputs separately. To define the module inputs, configure a [`module_input "services"`](/consul/docs/reference/cts#task-module_input-services) or [`module_input "consul-kv"`](/consul/docs/reference/cts#task-module_input-consul-kv) block.
+
+CTS disables global and task level `buffer_period` configuration for scheduled tasks. Refer to [Task execution details](/consul/docs/cts/run/task) for additional information.
+
+CTS stores an event each time the task triggers on schedule, whether or not the Consul catalog changed. Refer to [Task execution details](/consul/docs/cts/run/task) for additional information.
+
+The following example configuration directs the task to execute every Monday. When the task runs, the module retrieves the latest information on the `web` and `db` services from Consul and provides the data to the module's input variables.
+
+```hcl
+task {
+  name        = "scheduled_task"
+  description = "execute every Monday using service information from web and db"
+  module      = "path/to/module"
+
+  condition "schedule" {
+    cron = "* * * * Mon"
+  }
+  module_input "services" {
+    names = ["web", "db"]
+  }
+}
+```
+
+#### Run modes
+
+Schedule condition generally run tasks on a schedule, but you can specify a mode when starting CTS that enables you to trigger scheduled tasks on demand. Refer to [Modes](/consul/docs/reference/cts/cli/start#modes) in the CTS CLI reference for additional information:
+
+- **Long-running mode**: At the beginning of the long-running mode, CTS first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase. This behavior also applies to tasks that are not scheduled. After once-mode has completed, scheduled tasks subsequently trigger on schedule.
+
+- **Inspect mode**: When running in inspect mode, the terminal outputs a plan of proposed updates that would be made if the tasks were to trigger at that moment and then exit. CTS does not apply changes in this mode. The plan CTS outputs for a scheduled task also serves as the proposed updates that would be made if the task ran at that moment.
+
+- **Once mode**: During once mode, all tasks are only triggered one time. Scheduled tasks execute during once mode even if not on the schedule.
+
+- **Enable CLI**: When a task is enabled through the CLI, any type of task, including scheduled tasks, are triggered at that time.

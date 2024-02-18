@@ -1,0 +1,161 @@
+---
+layout: docs
+page_title: Create a Terraform module for CTS
+description: >-
+  Learn how to create Terraform module for Consul-Terraform-Sync (CTS) automates execution Terraform modules for network infrastructure automation.
+---
+
+# Create a Terraform module
+
+This topic describes how to create a Terraform module that Consul-Terraform-Sync (CTS) can run when it detects a change in your Consul service mesh. Refer to [Consul-Terraform-Sync overview](/cts) for additional information about the CTS workflow.
+
+> Complete the [Build and use a local module tutorial](/terraform/tutorials/modules/module-create?utm_source=docs) for hands-on experience creating Terraform modules.
+
+
+## Background
+
+To create a Terraform module, configure a main Terraform configuration file and a variables file. The main configuration file contains resources that Terraform creates to provision infrastructure when CTS detects a change in the service mesh. The variables file contains dynamic values referenced by the main configuration file. You can clone the [`hashicorp/consul-terraform-sync-template-module` repository](https://github.com/hashicorp/consul-terraform-sync-template-module) and use the example code as a starting point.
+
+### Module guidelines
+
+Adhere to the following guidelines when authoring CTS modules:
+
+- **Limit the number of related resources for each provider:** Small modules are easier to use and facilitate CTS adoption. Small modules allow also allows practitioners to iteratively combine different modules and use them as building blocks to meet their unique network infrastructure needs.
+- **Limit module complexity**: Low complexity reduces the run time for Terraform execution. Complex modules that have a large number of dependencies may result in longer runs, which adds delay to the near real time network updates.
+- **Specify required providers and compatible versions**: Specify the providers and version required to run the module in the [`terraform.required_providers` block](/terraform/language/providers/requirements#requiring-providers). Note that aside from the `required_providers` block, do not include provider configurations within the sharable module for network integrations. End users configure the providers through CTS, and CTS translates provider configuration to the generated root module appropriately.
+- **Document your modules in a `README` or `README.md` file**: Because practitioners can run modules that you create for CTS outside the `consul-terraform-sync` daemon and Consul environment, you should write and design them according to Terraform best practices, which includes clear and complete documentation.
+
+### Input variables
+
+Terraform requires variables to be declared, typed, and passed explicitly as module arguments. Practitioners configure the values within the [`task` block](/consul/docs/nia/configuration#variable_files). CTS parses value assignments to interpolate the corresponding variable declaration and writes them to the appropriate Terraform files. 
+
+As CTS parses value assignments, it creates intermediate variables at the root level from the module input. To create the intermediate variables, CTS assumes that user-provided variables are declared and supported by the module and match the name and type.
+
+When passed as module arguments, Terraform variables can be [lossy for object types](/terraform/language/expressions/type-constraints#conversion-of-complex-types). As a result, CTS declares the full variable with every object attribute in the generated root module and passes the variable to a child module that contains a subset of the attributes for its variable declaration. You can simplify the `var.services` declaration in your module by omitting unused attributes.
+
+## Prerequisites
+
+You should have defined the conditions for executing the module in the task configuration.  
+This allows you to use other types of CTS-provided input variables in your module. 
+It also helps inform your documentation and how users should configure their task for your module.
+
+Refer to [Task execution](/consul/docs/cts/task#task-execution) for additional information.
+
+## Specify resources 
+
+1. On the host machine where the CTS binary is running, create a directory for the Terraform configuration files that form the module.
+1. Create a file named `main.tf` and specify the resources that you want Terraform to create when CTS runs the module. Refer to [Creating modules](/terraform/language/modules/develop) in the Terraform documentation for details about declaring resources. The following example directs Terraform to use the `local_file` resource to create a file named `consul_services.txt` that contains service names, IDs, and node addresses registered in Consul:  
+
+  <CodeBlockConfig filename="main.tf">
+
+  ```hcl
+  # Create a file with service names and their node addresses
+  resource "local_file" "consul_services" {
+    content = join("\n", [
+      for _, service in var.services : "${service.name} ${service.id} ${service.node_address}"
+    ])
+    filename = "consul_services.txt"
+  }
+  ```
+
+  </CodeBlockConfig>
+
+## Declare variables
+
+In the same directory containing the `main.tf` file, create a file named `variables.tf` to hold the input variables that your resources in your module refer to. You can declare any input variables necessary for automating infrastructure in your environment, but you must configure a variable named `services` and specify key-value pairs that hold identifying attributes for services in the Consul datacenter.
+
+### Services input variable
+
+In the `variables.tf` file, specify a `services` input variable and set its `type` to `map`. The `services` variable is required and contains several key-value pairs that hold identifying attributes for services in the Consul datacenter. Services in Consul are uniquely identified by its ID, node name, and datacenter. Consul Enterprise also uses the namespace attribute to identify services. 
+
+- Consul community edition format: `service-id.node.datacenter` 
+- Consul Enterprise format: `service-id.node.namespace.datacenter`    
+
+Refer to [Discover services](/consul/docs/discover/dns) for additional information about identifying attributes for services in Consul.
+
+The following example specifies several attributes for identifying services:
+
+<CodeBlockConfig filename="variables.tf">
+
+```hcl
+variable "services" {
+description = "Consul services monitored by Consul-Terraform-Sync"
+type = map(
+  object({
+    id        = string
+    name      = string
+    kind      = string
+    address   = string
+    port      = number
+    meta      = map(string)
+    tags      = list(string)
+    namespace = string
+    status    = string
+
+    node                  = string
+    node_id               = string
+    node_address          = string
+    node_datacenter       = string
+    node_tagged_addresses = map(string)
+    node_meta             = map(string)
+
+    cts_user_defined_meta = map(string)
+  })
+)
+}
+```
+
+</CodeBlockConfig>
+
+Refer to [CTS task configuration reference](/consul/docs/nia/tasks#services-condition) for the complete list of attributes available for the `services` variable.
+
+### Catalog services variable
+
+You can declare the `catalog_services` variable when creating a module for a [catalog-services condition](/consul/docs/nia/tasks#catalog-services-condition). The `catalog_services` variable is a map that contains the names of the services that are registered with Consul at the given datacenter. 
+
+Set the `type` to `map(list(string))` to declare the variable. Set the value for each service name to a list of all known tags for that service.
+
+<CodeBlockConfig filename="variables.tf">
+
+```hcl
+variable "catalog_services" {
+  description = "Consul catalog service names and tags monitored by Consul-Terraform-Sync"
+  type        = map(list(string))
+}
+```
+
+</CodeBlockConfig>
+
+When using the variable as part of a catalog-services condition, you should document details about the `catalog_services` variable in the module README file. This helps users that want to configure a task with your module understand how to configure catalog-services [`condition`](/consul/docs/nia/configuration#condition) blocks.
+
+When using the `catalog_services` variable in your module, we also recommend documenting usage information in the README so that module users know to set the catalog-services condition [`use_as_module_input`](/consul/docs/nia/configuration#catalog-services-condition) configuration to `true`. When this field is set to true, CTS will declare the `catalog_services` variable in the generated root module, and pass the variable to a child module. Therefore, if this field is configured inconsistently, CTS will error and exit.
+
+### Consul KV Variable
+
+You can add the `consul_kv` variable when creating a module for a [consul-kv condition](/consul/docs/nia/tasks#consul-kv-condition). This variable contains a map of the keys and values for the Consul KV pairs. 
+
+<CodeBlockConfig filename="variables.tf">
+
+```hcl
+variable "consul_kv" {
+	description = "Keys and values of the Consul KV pairs monitored by Consul-Terraform-Sync"
+	type        = map(string)
+}
+```
+
+</CodeBlockConfig>
+
+If your module contains the `consul_kv` variable, we recommend documenting the usage in the README file so that users know to set the [`use_as_module_input`](/consul/docs/nia/configuration#consul-kv-condition) configuration to `true` in the `consul-kv` condition. Setting the field to `true` instructs CTS to declare the `consul_kv` variable in the generated root module and pass the variable to a child module. Therefore, if this field is configured inconsistently, CTS will error and exit.
+
+## Replace hardcoded values with variables
+
+Identify areas in the module where practitioners could tailor the automation to fit their infrastructure. Declare input variables and insert the use of variables throughout module resources to expose these options to practitioners. Refer to the [Terraform configuration language reference](/terraform/language/values/variables) for details about declaring variables.
+
+Use the following guidance for assistance:
+
+- Include descriptions to capture what the variables are and how they are used.
+- Specify [custom validation rules for variables](/terraform/language/values/variables#custom-validation-rules) to provide context to users the expected format and conditions for the variables. 
+- Set default values for optional variables and omit default values for variables that are required module arguments. 
+- Set the [sensitive argument](/terraform/language/values/variables) for variables that contain secret or sensitive values. When set, Terraform will redact the value from output when Terraform commands are run.
+
+Refer to [Input variables](#input-variables) for additional background information about how CTS processes Terraform input variables.

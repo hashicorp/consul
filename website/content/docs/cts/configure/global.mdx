@@ -1,0 +1,29 @@
+---
+layout: docs
+page_title: Configure global settings for Consul-Terraform-Sync
+description: >-
+  Learn how to configure global settings for Consul-Terraform-Sync.
+---
+
+# Global settings for Configure Consul-Terraform-Sync
+
+This topic describes how to define global settings in the Consul-Terraform-Sync (CTS) configuration file.
+
+## Overview
+
+CTS generates suitable default values for many global settings, but we recommend configuring TLS settings for the CTS API, working directory, and default buffer period for dynamic tasks. Refer to [Consul-Terraform-Sync (CTS) configuration reference](/consul/docs/reference/cts) for details about all configuration parameters.
+
+## Define the working directory
+
+CTS generates local artifacts to prepare configuration versions used for workspace runs. You can set the default location of the files created with the [`working_dir`](/consul/docs/reference/cts#working_dir) option. You can also configure the working directory for each task. When a task is configured with a local module and is run with the Terraform Cloud driver, the local module is copied and uploaded as a part of the configuration version.
+
+## Define CTS API settings
+
+Configure the following settings so that the CTS API is able to securely perform its operations:
+
+1. Specify a port number to serve CTS API requests. If unspecified, CTS uses port number `8558`. Refer to [`port`](/consul/docs/reference/cts#port) in the configuration reference for additional information.
+1. Specify TLS configurations, such as the location of the PEM-encoded certificate files. Refer to [`tls`](/consul/docs/reference/cts#tls) in the configuration reference for additional information.
+
+## Define buffer period
+
+You can specify additional time that CTS should wait after it detects changes before triggering dynamic tasks. The buffer period is intended to reduce _flapping_, which refers to when a component changes state too frequently resulting in  errors. Refer to [`buffer_period`](/consul/docs/reference/cts#buffer_period) in the configuration reference for additional information.  

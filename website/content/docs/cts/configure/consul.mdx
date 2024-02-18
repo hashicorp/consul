@@ -1,0 +1,37 @@
+---
+layout: docs
+page_title: Configure Consul settings for Consul-Terraform-Sync
+description: >-
+  Learn how to configure Consul connection settings for Consul-Terraform-Sync.
+---
+
+# Configure Consul settings for Consul-Terraform-Sync
+
+This topic describes how to define Consul connection settings in the Consul-Terraform-Sync (CTS) configuration file.
+
+## Overview
+
+For CTS to monitor changes in your service network environment, CTS must be able to connect to and query the Consul server. Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. Refer to [Consul-Terraform-Sync (CTS) configuration reference](/consul/docs/reference/cts) for details about all configuration parameters.
+
+## Enable TLS
+
+Configure TLS settings on the local Consul agent, as well as in the CTS configuration.
+
+### Consul agent settings
+
+Configure the following settings in the local Consul agent configuration file:  
+
+- [`tls`](/consul/docs/reference/agent#tls) 
+- [`cert_file`](/consul/docs/reference/agent#cert_file) 
+- [`key_file`](/consul/docs/reference/agent#key_file) 
+
+Refer to [Requirements](/consul/docs/cts/requirements) for additional information about Consul agent requirements for CTS.
+
+### CTS configuration
+
+Configure the following [`consul`](/consul/docs/reference/cts#consul) settings in the Consul-Terraform-Sync configuration file:
+
+- Set the [`consul.tls.enabled`](/consul/docs/reference/cts#consul-tls) field to `true`.
+- Set the [`consul.address`](/consul/docs/reference/cts#consul-address) parameter to the HTTPS URL of the Consul agent. For example, `address = example.consul.com:8501`. 
+
+- If you are using self-signed certificates for Consul and the certificate is not on the global CA chain, you must also set [`consul.tls.verify`](/consul/docs/reference/cts#consul-tls) to `false` or specify the certificate in the [`ca_cert`](/consul/docs/reference/cts#consul-tls) or [`ca_path`](/consul/docs/reference/cts#consul-tls) field.
