@@ -80,11 +80,11 @@ func (l *NodeLeaf[T]) prefixContainsMatch(key []byte) bool {
 	if len(key) == 0 || len(l.key) == 0 {
 		return false
 	}
-	if key == nil || len(l.key)-1 > len(key) {
+	if key == nil {
 		return false
 	}
 
-	return bytes.Compare(key[:len(l.key)-1], l.key[:len(l.key)-1]) == 0
+	return bytes.HasPrefix(key, getKey(l.key))
 }
 
 func (l *NodeLeaf[T]) prefixMatch(key []byte) bool {
@@ -104,7 +104,7 @@ func (n *NodeLeaf[T]) Iterator() *Iterator[T] {
 
 func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
 	nodeT := Node[T](n)
-	return &PathIterator[T]{parent: &nodeT, path: path}
+	return &PathIterator[T]{parent: &nodeT, path: getTreeKey(path)}
 }
 
 func (n *NodeLeaf[T]) matchPrefix(prefix []byte) bool {
