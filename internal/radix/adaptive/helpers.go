@@ -89,9 +89,9 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], ref **Node[T], key []byte, va
 	}
 
 	node := *n
-	// This means root is nil
 	if node.isLeaf() {
 		nodeLeaf := node.(*NodeLeaf[T])
+		// This means root is nil
 		if len(nodeLeaf.key) == 0 {
 			leafNode := t.makeLeaf(key, value)
 			*ref = &leafNode
@@ -104,7 +104,7 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], ref **Node[T], key []byte, va
 		nodeLeaf := node.(*NodeLeaf[T])
 
 		// Check if we are updating an existing value
-		if bytes.Equal(nodeLeaf.key, key[:keyLen]) {
+		if bytes.Equal(nodeLeaf.key, key) {
 			*old = 1
 			oldVal := nodeLeaf.value
 			nodeLeaf.value = value

@@ -5,6 +5,7 @@ package adaptive
 
 import (
 	"github.com/hashicorp/golang-lru/v2/simplelru"
+	"sync"
 )
 
 const MaxPrefixLen = 100
@@ -17,6 +18,7 @@ const NODE256 = 4
 type RadixTree[T any] struct {
 	root *Node[T]
 	size uint64
+	mu   *sync.RWMutex
 }
 
 func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
@@ -27,6 +29,7 @@ func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
 	rt := &RadixTree[T]{size: 0}
 	nodeLeaf := rt.allocNode(LEAF)
 	rt.root = &nodeLeaf
+	rt.mu = &sync.RWMutex{}
 	return rt
 }
 
@@ -108,6 +111,8 @@ func (t *Txn[T]) Get(k []byte) (T, bool) {
 }
 
 func (t *Txn[T]) Insert(key []byte, value T) T {
+	t.tree.mu.Lock()
+	defer t.tree.mu.Unlock()
 	oldVal := t.tree.Insert(key, value)
 	t.root = t.tree.root
 	t.size = t.tree.size
@@ -115,6 +120,8 @@ func (t *Txn[T]) Insert(key []byte, value T) T {
 }
 
 func (t *Txn[T]) Delete(key []byte) T {
+	t.tree.mu.Lock()
+	defer t.tree.mu.Unlock()
 	oldVal := t.tree.Delete(key)
 	t.root = t.tree.root
 	t.size = t.tree.size
