@@ -759,6 +759,7 @@ func verifyServiceEndpoints(t *testing.T, c *rtest.Client, id *pbresource.ID, ex
 		var actual pbcatalog.ServiceEndpoints
 		err := res.Data.UnmarshalTo(&actual)
 		require.NoError(t, err)
+		require.Equal(t, len(expected.Endpoints), len(actual.Endpoints))
 		prototest.AssertElementsMatch(t, expected.Endpoints, actual.Endpoints)
 	})
 }
