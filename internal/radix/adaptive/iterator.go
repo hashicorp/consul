@@ -15,6 +15,9 @@ type Iterator[T any] struct {
 
 func (i *Iterator[T]) Next() ([]byte, T, bool) {
 	var zero T
+	node := *i.root
+	node.getMutex().Lock()
+	defer node.getMutex().Unlock()
 
 	if len(i.stack) == 0 {
 		return nil, zero, false
@@ -80,12 +83,14 @@ func (i *Iterator[T]) Next() ([]byte, T, bool) {
 
 func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 	// Start from the root node
+	node := *i.root
+	node.getMutex().Lock()
+	defer node.getMutex().Unlock()
 	prefix := getTreeKey(prefixKey)
 
 	i.path = prefix
 
 	i.stack = nil
-	node := *i.root
 	depth := 0
 
 	for node != nil {

@@ -5,6 +5,7 @@ package adaptive
 
 import (
 	"bytes"
+	"sync"
 )
 
 type Node48[T any] struct {
@@ -14,6 +15,7 @@ type Node48[T any] struct {
 	partial     []byte
 	keys        [256]byte
 	children    [48]*Node[T]
+	mu          *sync.RWMutex
 }
 
 func (n *Node48[T]) getPartialLen() uint32 {
@@ -84,4 +86,12 @@ func (n *Node48[T]) getChild(index int) *Node[T] {
 		return nil
 	}
 	return n.children[index]
+}
+
+func (n *Node48[T]) setMutex(mu *sync.RWMutex) {
+	n.mu = mu
+}
+
+func (n *Node48[T]) getMutex() *sync.RWMutex {
+	return n.mu
 }

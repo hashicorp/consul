@@ -14,6 +14,9 @@ type PathIterator[T any] struct {
 }
 
 func (i *PathIterator[T]) Next() ([]byte, T, bool) {
+	node := *i.parent
+	node.getMutex().Lock()
+	defer node.getMutex().Unlock()
 	var zero T
 
 	if len(i.stack) == 0 {
