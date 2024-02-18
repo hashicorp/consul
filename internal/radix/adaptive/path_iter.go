@@ -7,20 +7,14 @@ package adaptive
 // down to a specified path. This will iterate over the same values that
 // the Node.WalkPath method will.
 type PathIterator[T any] struct {
-	path    []byte
-	depth   int
-	parent  *Node[T]
-	stack   []Node[T]
-	current *Node[T]
+	path   []byte
+	depth  int
+	parent *Node[T]
+	stack  []Node[T]
 }
 
 func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 	var zero T
-
-	if i.current == nil && len(i.stack) == 0 {
-		i.stack = append(i.stack, *i.parent)
-		i.current = i.parent
-	}
 
 	if len(i.stack) == 0 {
 		return nil, zero, false

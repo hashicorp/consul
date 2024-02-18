@@ -63,7 +63,7 @@ func (n *Node4[T]) Iterator() *Iterator[T] {
 
 func (n *Node4[T]) PathIterator(path []byte) *PathIterator[T] {
 	nodeT := Node[T](n)
-	return &PathIterator[T]{parent: &nodeT, path: getTreeKey(path)}
+	return &PathIterator[T]{parent: &nodeT, path: getTreeKey(path), stack: []Node[T]{nodeT}}
 }
 
 func (n *Node4[T]) matchPrefix(prefix []byte) bool {
