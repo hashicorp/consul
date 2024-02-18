@@ -166,5 +166,7 @@ func (t *txn) deleteOne(idxVal []byte, r *pbresource.Resource) bool {
 }
 
 func (t *txn) Commit() {
-	//TODO
+	if t.dirty {
+		t.index.tree = t.inner.Commit()
+	}
 }
