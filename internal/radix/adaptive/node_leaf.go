@@ -101,12 +101,16 @@ func (n *NodeLeaf[T]) Iterator() *Iterator[T] {
 	stack := make([]Node[T], 0)
 	stack = append(stack, n)
 	nodeT := Node[T](n)
-	return &Iterator[T]{stack: stack, root: &nodeT}
+	return &Iterator[T]{stack: stack, root: &nodeT, mu: n.getMutex()}
 }
 
 func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
 	nodeT := Node[T](n)
-	return &PathIterator[T]{parent: &nodeT, path: getTreeKey(path), stack: []Node[T]{nodeT}}
+	return &PathIterator[T]{parent: &nodeT,
+		path:  getTreeKey(path),
+		stack: []Node[T]{nodeT},
+		mu:    n.getMutex(),
+	}
 }
 
 func (n *NodeLeaf[T]) matchPrefix(prefix []byte) bool {

@@ -3,6 +3,8 @@
 
 package adaptive
 
+import "sync"
+
 // PathIterator is used to iterate over a set of nodes from the root
 // down to a specified path. This will iterate over the same values that
 // the Node.WalkPath method will.
@@ -11,10 +13,24 @@ type PathIterator[T any] struct {
 	depth  int
 	parent *Node[T]
 	stack  []Node[T]
+	mu     *sync.RWMutex
 }
 
 func (i *PathIterator[T]) Next() ([]byte, T, bool) {
+	node := *i.parent
+
 	var zero T
+
+	if node.isLeaf() {
+		leafN := node.(*NodeLeaf[T])
+		if len(leafN.key) == 0 {
+			return nil, zero, false
+		}
+	}
+
+	if node == nil {
+		return nil, zero, false
+	}
 
 	if len(i.stack) == 0 {
 		return nil, zero, false
