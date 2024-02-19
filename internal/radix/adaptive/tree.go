@@ -138,3 +138,7 @@ func (t *Txn[T]) Delete(key []byte) T {
 func (t *Txn[T]) Root() Node[T] {
 	return *t.root
 }
+
+func (t *Txn[T]) Commit() *RadixTree[T] {
+	return t.tree
+}
