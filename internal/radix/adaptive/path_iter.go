@@ -17,6 +17,8 @@ type PathIterator[T any] struct {
 }
 
 func (i *PathIterator[T]) Next() ([]byte, T, bool) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
 	node := *i.parent
 
 	var zero T
