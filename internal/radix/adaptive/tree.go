@@ -121,8 +121,6 @@ func (t *Txn[T]) Insert(key []byte, value T) T {
 	t.tree.mu.Lock()
 	defer t.tree.mu.Unlock()
 	oldVal := t.tree.Insert(key, value)
-	t.root = t.tree.root
-	t.size = t.tree.size
 	return oldVal
 }
 
@@ -130,11 +128,18 @@ func (t *Txn[T]) Delete(key []byte) T {
 	t.tree.mu.Lock()
 	defer t.tree.mu.Unlock()
 	oldVal := t.tree.Delete(key)
-	t.root = t.tree.root
-	t.size = t.tree.size
 	return oldVal
 }
 
 func (t *Txn[T]) Root() *Node[T] {
 	return t.root
+}
+
+func (t *Txn[T]) Commit() *RadixTree[T] {
+	nt := NewAdaptiveRadixTree[T]()
+	nt.root = t.tree.root
+	nt.size = t.tree.size
+	t.root = nt.root
+	t.size = nt.size
+	return nt
 }
