@@ -511,7 +511,7 @@ func findChild[T any](n Node[T], c byte) **Node[T] {
 
 		// Compare the key to all 16 stored keys
 		var bitfield uint16
-		for i := 0; i < int(n.getNumChildren()); i++ {
+		for i := 0; i < 16; i++ {
 			if node.keys[i] == c {
 				bitfield |= 1 << uint(i)
 			}
@@ -634,13 +634,12 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
 		}
 	}
 
-	node := *n
 	copy(n.keys[pos:], n.keys[pos+1:])
 	copy(n.children[pos:], n.children[pos+1:])
-	node.numChildren--
+	n.numChildren--
 
 	// Remove nodes with only a single child
-	if node.numChildren == 1 {
+	if n.numChildren == 1 {
 		if n.children[0] == nil {
 			return
 		}
@@ -648,20 +647,20 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
 		// Is not leaf
 		if !child.isLeaf() {
 			// Concatenate the prefixes
-			prefix := int(node.getPartialLen())
+			prefix := int(n.getPartialLen())
 			if prefix < MaxPrefixLen {
 				n.partial[prefix] = n.keys[0]
 				prefix++
 			}
 			if prefix < MaxPrefixLen {
 				subPrefix := min(int(child.getPartialLen()), MaxPrefixLen-prefix)
-				copy(node.getPartial()[prefix:], child.getPartial()[:subPrefix])
+				copy(n.getPartial()[prefix:], child.getPartial()[:subPrefix])
 				prefix += subPrefix
 			}
 
 			// Store the prefix in the child
-			copy(child.getPartial(), node.partial[:min(prefix, MaxPrefixLen)])
-			child.setPartialLen(child.getPartialLen() + node.getPartialLen() + 1)
+			copy(child.getPartial(), n.partial[:min(prefix, MaxPrefixLen)])
+			child.setPartialLen(child.getPartialLen() + n.getPartialLen() + 1)
 		}
 		*ref = &child
 	}
@@ -676,18 +675,17 @@ func (t *RadixTree[T]) removeChild16(n *Node16[T], ref **Node[T], l **Node[T]) {
 		}
 	}
 
-	node := *n
 	copy(n.keys[pos:], n.keys[pos+1:])
 	copy(n.children[pos:], n.children[pos+1:])
-	node.numChildren--
+	n.numChildren--
 
-	if node.numChildren == 3 {
+	if n.numChildren == 3 {
 		newNode := t.allocNode(NODE4)
 		*ref = &newNode
 		node4 := newNode.(*Node4[T])
 		t.copyHeader(newNode, n)
-		copy(node4.keys[:], node.keys[:4])
-		copy(node4.children[:], node.children[:4])
+		copy(node4.keys[:], n.keys[:4])
+		copy(node4.children[:], n.children[:4])
 	}
 }
 
