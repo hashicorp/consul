@@ -637,8 +637,9 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
 	}
 
 	node := *n
-	copy(n.keys[pos:], n.keys[pos+1:])
-	copy(n.children[pos:], n.children[pos+1:])
+	length := int(node.numChildren) - 1 - pos
+	copy(n.keys[pos:], n.keys[pos+1:pos+1+length])
+	copy(n.children[pos:], n.children[pos+1:pos+1+length])
 	node.numChildren--
 
 	// Remove nodes with only a single child
@@ -682,8 +683,9 @@ func (t *RadixTree[T]) removeChild16(n *Node16[T], ref **Node[T], l **Node[T]) {
 	}
 
 	node := *n
-	copy(n.keys[pos:], n.keys[pos+1:])
-	copy(n.children[pos:], n.children[pos+1:])
+	length := int(node.numChildren) - 1 - pos
+	copy(n.keys[pos:], n.keys[pos+1:pos+1+length])
+	copy(n.children[pos:], n.children[pos+1:pos+1+length])
 	node.numChildren--
 
 	if node.numChildren == 3 {
