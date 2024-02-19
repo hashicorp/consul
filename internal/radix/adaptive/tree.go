@@ -4,7 +4,6 @@
 package adaptive
 
 import (
-	"github.com/hashicorp/golang-lru/v2/simplelru"
 	"sync"
 )
 
@@ -88,13 +87,6 @@ type Txn[T any] struct {
 	// size tracks the size of the tree as it is modified during the
 	// transaction.
 	size uint64
-
-	// writable is a cache of writable nodes that have been created during
-	// the course of the transaction. This allows us to re-use the same
-	// nodes for further writes and avoid unnecessary copies of nodes that
-	// have never been exposed outside the transaction. This will only hold
-	// up to defaultModifiedCache number of entries.
-	writable *simplelru.LRU[*Node[T], any]
 
 	tree *RadixTree[T]
 }
