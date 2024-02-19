@@ -77,15 +77,8 @@ func (t *RadixTree[T]) Delete(key []byte) T {
 }
 
 type Txn[T any] struct {
-	// root is the modified root for the transaction.
 	root *Node[T]
 
-	// snap is a snapshot of the root node for use if we have to run the
-	// slow notify algorithm.
-	snap *Node[T]
-
-	// size tracks the size of the tree as it is modified during the
-	// transaction.
 	size uint64
 
 	tree *RadixTree[T]
@@ -95,7 +88,6 @@ type Txn[T any] struct {
 func (t *RadixTree[T]) Txn() *Txn[T] {
 	txn := &Txn[T]{
 		root: t.root,
-		snap: t.root,
 		size: t.size,
 		tree: t,
 	}
