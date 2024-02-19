@@ -1428,7 +1428,7 @@
             ]
           },
           {
-            "title": "Datadog",
+            "title": "Datadog metrics",
             "path": "k8s/deployment-configurations/datadog"
           }
         ]
