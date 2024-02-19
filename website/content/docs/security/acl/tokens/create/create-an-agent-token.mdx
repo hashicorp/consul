@@ -34,7 +34,7 @@ The agent token must be linked to policies that grant the following permissions:
 
 @include 'create-token-requirements.mdx'
 
-## Node identity in Consul OSS
+## Node identity in Consul CE
 
 Refer to [Node identities](/consul/docs/security/acl#node-identities) for information about node identities that you can link to tokens.
 
@@ -125,7 +125,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 </Tabs>
 
-## Custom policy in Consul OSS
+## Custom policy in Consul CE
 
 When you are unable to link tokens to a node identity, you can define policies, register them with Consul, and link the policies to tokens that enable nodes to register into the Consul catalog.
 

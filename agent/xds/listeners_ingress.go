@@ -9,6 +9,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"github.com/hashicorp/consul/agent/xds/naming"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -22,7 +23,6 @@ import (
 
 func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
 		if !ok {
@@ -62,7 +62,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				if err != nil {
 					return nil, err
 				}
-				clusterName = CustomizeClusterName(target.Name, chain)
+				clusterName = naming.CustomizeClusterName(target.Name, chain)
 			}
 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
@@ -78,13 +78,14 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			l := makeListener(opts)
 
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				accessLogs:  &cfgSnap.Proxy.AccessLogs,
-				routeName:   uid.EnvoyID(),
-				useRDS:      useRDS,
-				clusterName: clusterName,
-				filterName:  filterName,
-				protocol:    cfg.Protocol,
-				tlsContext:  tlsContext,
+				accessLogs:      &cfgSnap.Proxy.AccessLogs,
+				routeName:       uid.EnvoyID(),
+				useRDS:          useRDS,
+				fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				clusterName:     clusterName,
+				filterName:      filterName,
+				protocol:        cfg.Protocol,
+				tlsContext:      tlsContext,
 			})
 			if err != nil {
 				return nil, err
@@ -109,6 +110,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			filterOpts := listenerFilterOpts{
 				useRDS:           true,
+				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 				protocol:         listenerKey.Protocol,
 				filterName:       listenerKey.RouteName(),
 				routeName:        listenerKey.RouteName(),
@@ -298,7 +300,7 @@ func routeNameForUpstream(l structs.IngressListener, s structs.IngressService) s
 
 	// Return a specific route for this service as it needs a custom FilterChain
 	// to serve its custom cert so we should attach its routes to a separate Route
-	// too. We need this to be consistent between OSS and Enterprise to avoid xDS
+	// too. We need this to be consistent between CE and Enterprise to avoid xDS
 	// config golden files in tests conflicting so we can't use ServiceID.String()
 	// which normalizes to included all identifiers in Enterprise.
 	sn := s.ToServiceName()

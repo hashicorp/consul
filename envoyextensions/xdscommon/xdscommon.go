@@ -54,6 +54,10 @@ const (
 	SecretType = apiTypePrefix + "envoy.extensions.transport_sockets.tls.v3.Secret"
 
 	FailoverClusterNamePrefix = "failover-target~"
+
+	// BlackHoleClusterName is the cluster we use for black-holing traffic for cases when a workload
+	// has no inbound ports to route to.
+	BlackHoleClusterName = "black-hole-cluster"
 )
 
 type IndexedResources struct {

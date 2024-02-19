@@ -4,15 +4,17 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestIsValidDNSLabel(t *testing.T) {
@@ -44,6 +46,10 @@ func TestIsValidDNSLabel(t *testing.T) {
 		},
 		"numeric-start": {
 			name:  "1abc",
+			valid: true,
+		},
+		"fully-numeric": {
+			name:  "1234",
 			valid: true,
 		},
 		"underscore-start-not-allowed": {
@@ -149,6 +155,56 @@ func TestIsValidIPAddress(t *testing.T) {
 	}
 }
 
+// TestIsValidPort tests both physical and virtual port validation using
+// the same cases to ensure same coverage.
+func TestIsValidPort(t *testing.T) {
+	type testCase struct {
+		port          int
+		validVirtual  bool
+		validPhysical bool
+	}
+
+	cases := map[string]testCase{
+		"negative": {
+			port:          -1,
+			validPhysical: false,
+			validVirtual:  false,
+		},
+		"zero": {
+			port:          0,
+			validPhysical: false,
+			validVirtual:  true,
+		},
+		"min": {
+			port:          1,
+			validPhysical: true,
+			validVirtual:  true,
+		},
+		"8080": {
+			port:          8080,
+			validPhysical: true,
+			validVirtual:  true,
+		},
+		"max": {
+			port:          65535,
+			validPhysical: true,
+			validVirtual:  true,
+		},
+		"above-max": {
+			port:          65536,
+			validPhysical: false,
+			validVirtual:  false,
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tcase.validPhysical, isValidPhysicalPortNumber(tcase.port))
+			require.Equal(t, tcase.validVirtual, ValidateVirtualPort(tcase.port) == nil)
+		})
+	}
+}
+
 func TestIsValidUnixSocketPath(t *testing.T) {
 	type testCase struct {
 		name  string
@@ -176,7 +232,7 @@ func TestIsValidUnixSocketPath(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tcase.valid, isValidUnixSocketPath(tcase.name))
+			require.Equal(t, tcase.valid, IsValidUnixSocketPath(tcase.name))
 		})
 	}
 }
@@ -280,11 +336,49 @@ func TestValidateSelector(t *testing.T) {
 				},
 			},
 		},
+		"filter-with-empty-query": {
+			selector: &pbcatalog.WorkloadSelector{
+				Filter: "garbage.value == zzz",
+			},
+			allowEmpty: true,
+			err: resource.ErrInvalidField{
+				Name: "filter",
+				Wrapped: errors.New(
+					`filter cannot be set unless there is a name or prefix selector`,
+				),
+			},
+		},
+		"bad-filter": {
+			selector: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"foo", "bar"},
+				Filter:   "garbage.value == zzz",
+			},
+			allowEmpty: false,
+			err: &multierror.Error{
+				Errors: []error{
+					resource.ErrInvalidField{
+						Name: "filter",
+						Wrapped: fmt.Errorf(
+							`filter "garbage.value == zzz" is invalid: %w`,
+							errors.New(`Selector "garbage" is not valid`),
+						),
+					},
+				},
+			},
+		},
+		"good-filter": {
+			selector: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"foo", "bar"},
+				Filter:   "metadata.zone == west1",
+			},
+			allowEmpty: false,
+			err:        nil,
+		},
 	}
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			err := validateSelector(tcase.selector, tcase.allowEmpty)
+			err := ValidateSelector(tcase.selector, tcase.allowEmpty)
 			if tcase.err == nil {
 				require.NoError(t, err)
 			} else {
@@ -314,22 +408,117 @@ func TestValidateIPAddress(t *testing.T) {
 }
 
 func TestValidatePortName(t *testing.T) {
+	type testCase struct {
+		name  string
+		valid bool
+	}
+
+	cases := map[string]testCase{
+		"min-length": {
+			name:  "a",
+			valid: true,
+		},
+		"max-length": {
+			name:  "a1b2c3d4e5f6g7h",
+			valid: true,
+		},
+		"underscore-not-allowed": {
+			name:  "has_underscores",
+			valid: false,
+		},
+		"hyphenated": {
+			name:  "has-hyphen3",
+			valid: true,
+		},
+		"uppercase-allowed": {
+			name:  "UPPERCASE",
+			valid: true,
+		},
+		"numeric-start": {
+			name:  "1abc",
+			valid: true,
+		},
+		"numeric-start-with-hypen": {
+			name:  "1-abc",
+			valid: true,
+		},
+		"at-least-one-alpha-required": {
+			name:  "1234",
+			valid: false,
+		},
+		"hyphen-start-not-allowed": {
+			name:  "-abc",
+			valid: false,
+		},
+		"hyphen-end-not-allowed": {
+			name:  "abc-",
+			valid: false,
+		},
+		"unicode-not allowed": {
+			name:  "abc∑",
+			valid: false,
+		},
+		"too-long": {
+			name:  strings.Repeat("a", 16),
+			valid: false,
+		},
+		"missing-name": {
+			name:  "",
+			valid: false,
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := ValidatePortName(tcase.name)
+			if tcase.valid {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				if tcase.name == "" {
+					require.Equal(t, resource.ErrEmpty, err)
+				} else {
+					require.Equal(t, errNotPortName, err)
+				}
+			}
+		})
+	}
+}
+
+func TestValidatePortID(t *testing.T) {
 	// this test does not perform extensive validation of what constitutes
-	// a valid port name. In general the criteria is that it must not
-	// be empty and must be a valid DNS label. Therefore extensive testing
-	// of what it means to be a valid DNS label is performed within the
-	// test for the isValidDNSLabel function.
+	// a valid port ID because it is a combination of ValidatePortName and
+	// ValidateVirtualPort. In general the criteria is that it must not
+	// be empty and must be either a valid DNS label or stringified port
+	// number between 1 and 65535. Extensive testing is performed within the
+	// tests for those functions.
 
 	t.Run("empty", func(t *testing.T) {
-		require.Equal(t, resource.ErrEmpty, validatePortName(""))
+		require.Equal(t, resource.ErrEmpty, ValidateServicePortID(""))
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		require.Equal(t, errNotDNSLabel, validatePortName("foo.com"))
+		require.Equal(t, errInvalidPortID, ValidateServicePortID("foo.com"))
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		require.Equal(t, errInvalidPortID, ValidateServicePortID("-1"))
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		require.Equal(t, errInvalidPortID, ValidateServicePortID("0"))
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		require.Equal(t, errInvalidPortID, ValidateServicePortID("65536"))
 	})
 
 	t.Run("ok", func(t *testing.T) {
-		require.NoError(t, validatePortName("http"))
+		require.NoError(t, ValidateServicePortID("http"))
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		require.NoError(t, ValidateServicePortID("8080"))
 	})
 }
 
@@ -428,6 +617,79 @@ func TestValidateWorkloadAddress(t *testing.T) {
 	}
 }
 
+func TestValidateDNSPolicy(t *testing.T) {
+	type testCase struct {
+		policy      *pbcatalog.DNSPolicy
+		validateErr func(*testing.T, error)
+	}
+
+	cases := map[string]testCase{
+		"invalid-passing-weight-too-high": {
+			policy: &pbcatalog.DNSPolicy{
+				Weights: &pbcatalog.Weights{
+					Passing: 1000000,
+				},
+			},
+			validateErr: func(t *testing.T, err error) {
+				var actual resource.ErrInvalidField
+				require.ErrorAs(t, err, &actual)
+				require.Equal(t, "passing", actual.Name)
+				require.ErrorIs(t, err, errDNSPassingWeightOutOfRange)
+			},
+		},
+		"invalid-passing-weight-too-low": {
+			policy: &pbcatalog.DNSPolicy{
+				Weights: &pbcatalog.Weights{
+					Passing: 0,
+				},
+			},
+			validateErr: func(t *testing.T, err error) {
+				var actual resource.ErrInvalidField
+				require.ErrorAs(t, err, &actual)
+				require.Equal(t, "passing", actual.Name)
+				require.ErrorIs(t, err, errDNSPassingWeightOutOfRange)
+			},
+		},
+		"invalid-warning-weight": {
+			policy: &pbcatalog.DNSPolicy{
+				Weights: &pbcatalog.Weights{
+					Passing: 1,
+					Warning: 1000000,
+				},
+			},
+			validateErr: func(t *testing.T, err error) {
+				var actual resource.ErrInvalidField
+				require.ErrorAs(t, err, &actual)
+				require.Equal(t, "warning", actual.Name)
+				require.ErrorIs(t, err, errDNSWarningWeightOutOfRange)
+			},
+		},
+		"ok": {
+			policy: &pbcatalog.DNSPolicy{
+				Weights: &pbcatalog.Weights{
+					Passing: 3,
+					Warning: 0,
+				},
+			},
+		},
+		"nil ok": {
+			policy: &pbcatalog.DNSPolicy{},
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := validateDNSPolicy(tcase.policy)
+			if tcase.validateErr != nil {
+				require.Error(t, err)
+				tcase.validateErr(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateReferenceType(t *testing.T) {
 	allowedType := &pbresource.Type{
 		Group:        "foo",
@@ -487,7 +749,6 @@ func TestValidateReferenceTenancy(t *testing.T) {
 	allowedTenancy := &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "default",
-		PeerName:  "local",
 	}
 
 	type testCase struct {
@@ -504,23 +765,13 @@ func TestValidateReferenceTenancy(t *testing.T) {
 			check: &pbresource.Tenancy{
 				Partition: "food",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			err: true,
 		},
-		"group-version-mismatch": {
+		"namespace-mismatch": {
 			check: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "v2",
-				PeerName:  "local",
-			},
-			err: true,
-		},
-		"kind-mismatch": {
-			check: &pbresource.Tenancy{
-				Partition: "default",
-				Namespace: "default",
-				PeerName:  "Baz",
 			},
 			err: true,
 		},
@@ -542,10 +793,9 @@ func TestValidateReference(t *testing.T) {
 	allowedTenancy := &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "default",
-		PeerName:  "local",
 	}
 
-	allowedType := WorkloadType
+	allowedType := pbcatalog.WorkloadType
 
 	type testCase struct {
 		check *pbresource.ID
@@ -562,7 +812,7 @@ func TestValidateReference(t *testing.T) {
 		},
 		"type-err": {
 			check: &pbresource.ID{
-				Type:    NodeType,
+				Type:    pbcatalog.NodeType,
 				Tenancy: allowedTenancy,
 				Name:    "foo",
 			},
@@ -574,7 +824,6 @@ func TestValidateReference(t *testing.T) {
 				Tenancy: &pbresource.Tenancy{
 					Partition: "foo",
 					Namespace: "bar",
-					PeerName:  "baz",
 				},
 				Name: "foo",
 			},

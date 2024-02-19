@@ -1,0 +1,4 @@
+```release-note:bug
+connect: Fix bug where uncleanly closed xDS connections would influence connection balancing for too long and prevent envoy instances from starting. Two new configuration fields
+`performance.grpc_keepalive_timeout` and `performance.grpc_keepalive_interval` now exist to allow for configuration on how often these dead connections will be cleaned up.
+```

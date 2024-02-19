@@ -1,139 +1,139 @@
 {
-  "versionInfo":  "00000001",
-  "resources":  [
+  "nonce": "00000001",
+  "resources": [
     {
-      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "virtualHosts":  [
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "validateClusters": true,
+      "virtualHosts": [
         {
-          "name":  "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-          "domains":  [
+          "domains": [
             "*"
           ],
-          "routes":  [
+          "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "routes": [
             {
-              "match":  {
-                "prefix":  "/"
+              "match": {
+                "prefix": "/"
               },
-              "route":  {
-                "cluster":  "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "autoHostRewrite":  true,
-                "timeout":  "0.200s",
-                "hashPolicy":  [
+              "route": {
+                "autoHostRewrite": true,
+                "cluster": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "hashPolicy": [
                   {
-                    "cookie":  {
-                      "name":  "chocolate-chip"
+                    "cookie": {
+                      "name": "chocolate-chip"
                     },
-                    "terminal":  true
+                    "terminal": true
                   },
                   {
-                    "header":  {
-                      "headerName":  "x-user-id"
+                    "header": {
+                      "headerName": "x-user-id"
                     }
                   },
                   {
-                    "connectionProperties":  {
-                      "sourceIp":  true
+                    "connectionProperties": {
+                      "sourceIp": true
                     },
-                    "terminal":  true
+                    "terminal": true
                   }
-                ]
+                ],
+                "timeout": "0.200s"
               }
             }
           ]
         }
-      ],
-      "validateClusters":  true
+      ]
     },
     {
-      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "virtualHosts":  [
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "validateClusters": true,
+      "virtualHosts": [
         {
-          "name":  "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-          "domains":  [
+          "domains": [
             "*"
           ],
-          "routes":  [
+          "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "routes": [
             {
-              "match":  {
-                "prefix":  "/"
+              "match": {
+                "prefix": "/"
               },
-              "route":  {
-                "cluster":  "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "autoHostRewrite":  true,
-                "timeout":  "0.200s",
-                "hashPolicy":  [
+              "route": {
+                "autoHostRewrite": true,
+                "cluster": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "hashPolicy": [
                   {
-                    "cookie":  {
-                      "name":  "chocolate-chip"
+                    "cookie": {
+                      "name": "chocolate-chip"
                     },
-                    "terminal":  true
+                    "terminal": true
                   },
                   {
-                    "header":  {
-                      "headerName":  "x-user-id"
+                    "header": {
+                      "headerName": "x-user-id"
                     }
                   },
                   {
-                    "connectionProperties":  {
-                      "sourceIp":  true
+                    "connectionProperties": {
+                      "sourceIp": true
                     },
-                    "terminal":  true
+                    "terminal": true
                   }
-                ]
+                ],
+                "timeout": "0.200s"
               }
             }
           ]
         }
-      ],
-      "validateClusters":  true
+      ]
     },
     {
-      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "virtualHosts":  [
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "validateClusters": true,
+      "virtualHosts": [
         {
-          "name":  "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-          "domains":  [
+          "domains": [
             "*"
           ],
-          "routes":  [
+          "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "routes": [
             {
-              "match":  {
-                "prefix":  "/"
+              "match": {
+                "prefix": "/"
               },
-              "route":  {
-                "cluster":  "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "autoHostRewrite":  true,
-                "timeout":  "0.200s",
-                "hashPolicy":  [
+              "route": {
+                "autoHostRewrite": true,
+                "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "hashPolicy": [
                   {
-                    "cookie":  {
-                      "name":  "chocolate-chip"
+                    "cookie": {
+                      "name": "chocolate-chip"
                     },
-                    "terminal":  true
+                    "terminal": true
                   },
                   {
-                    "header":  {
-                      "headerName":  "x-user-id"
+                    "header": {
+                      "headerName": "x-user-id"
                     }
                   },
                   {
-                    "connectionProperties":  {
-                      "sourceIp":  true
+                    "connectionProperties": {
+                      "sourceIp": true
                     },
-                    "terminal":  true
+                    "terminal": true
                   }
-                ]
+                ],
+                "timeout": "0.200s"
               }
             }
           ]
         }
-      ],
-      "validateClusters":  true
+      ]
     }
   ],
-  "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-  "nonce":  "00000001"
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "versionInfo": "00000001"
 }

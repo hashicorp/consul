@@ -56,7 +56,7 @@ func (s *Sprawl) bootstrapACLs(cluster string) error {
 			return fmt.Errorf("management token no longer works: %w", err)
 		}
 
-		logger.Info("current management token", "token", mgmtToken)
+		logger.Debug("current management token", "token", mgmtToken)
 		return nil
 	}
 
@@ -65,7 +65,7 @@ TRYAGAIN2:
 	tok, _, err := ac.Bootstrap()
 	if err != nil {
 		if isACLNotBootstrapped(err) {
-			logger.Warn("system is rebooting", "error", err)
+			logger.Debug("system is rebooting", "error", err)
 			time.Sleep(250 * time.Millisecond)
 			goto TRYAGAIN2
 		}
@@ -74,7 +74,7 @@ TRYAGAIN2:
 	mgmtToken = tok.SecretID
 	s.secrets.SaveGeneric(cluster, secrets.BootstrapToken, mgmtToken)
 
-	logger.Info("current management token", "token", mgmtToken)
+	logger.Debug("current management token", "token", mgmtToken)
 
 	return nil
 
@@ -120,7 +120,7 @@ func (s *Sprawl) createAnonymousToken(cluster *topology.Cluster) error {
 		return err
 	}
 
-	logger.Info("created anonymous token",
+	logger.Debug("created anonymous token",
 		"token", token.SecretID,
 	)
 
@@ -138,10 +138,62 @@ func (s *Sprawl) createAnonymousPolicy(cluster *topology.Cluster) error {
 		return err
 	}
 
-	logger.Info("created anonymous policy",
+	logger.Debug("created anonymous policy",
 		"policy-name", op.Name,
 		"policy-id", op.ID,
 	)
+
+	return nil
+}
+
+// assignAgentJoinPolicyToAnonymousToken is used only for version prior to agent token
+func (s *Sprawl) assignAgentJoinPolicyToAnonymousToken(cluster *topology.Cluster) error {
+	var (
+		client = s.clients[cluster.Name]
+	)
+
+	acl := client.ACL()
+	anonymousTok, _, err := acl.TokenRead(anonymousTokenAccessorID, &api.QueryOptions{})
+	if err != nil {
+		return nil
+	}
+
+	rule := `
+service_prefix "" {
+	policy = "read"
+}
+	
+agent_prefix "" {
+	policy = "read"
+}
+	
+node_prefix "" {
+	policy = "write"
+}
+
+operator = "write"
+`
+	policy, _, err := acl.PolicyCreate(
+		&api.ACLPolicy{
+			Name:  "client-join-policy",
+			Rules: rule,
+		},
+		&api.WriteOptions{},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	anonymousTok.Policies = append(anonymousTok.Policies,
+		&api.ACLLink{
+			Name: policy.Name,
+		},
+	)
+	_, _, err = acl.TokenUpdate(anonymousTok, &api.WriteOptions{})
+	if err != nil {
+		return nil
+	}
 
 	return nil
 }
@@ -158,18 +210,20 @@ func (s *Sprawl) createAgentTokens(cluster *topology.Cluster) error {
 			continue
 		}
 
-		if tok := s.secrets.ReadAgentToken(cluster.Name, node.ID()); tok == "" {
-			token, err := CreateOrUpdateToken(client, tokenForNode(node, cluster.Enterprise))
-			if err != nil {
-				return err
+		if node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
+			if tok := s.secrets.ReadAgentToken(cluster.Name, node.ID()); tok == "" {
+				token, err := CreateOrUpdateToken(client, tokenForNode(node, cluster.Enterprise))
+				if err != nil {
+					return fmt.Errorf("node %s: %w", node.Name, err)
+				}
+
+				logger.Debug("created agent token",
+					"node", node.ID(),
+					"token", token.SecretID,
+				)
+
+				s.secrets.SaveAgentToken(cluster.Name, node.ID(), token.SecretID)
 			}
-
-			logger.Info("created agent token",
-				"node", node.ID(),
-				"token", token.SecretID,
-			)
-
-			s.secrets.SaveAgentToken(cluster.Name, node.ID(), token.SecretID)
 		}
 	}
 
@@ -193,7 +247,7 @@ func (s *Sprawl) createCrossNamespaceCatalogReadPolicies(cluster *topology.Clust
 		return err
 	}
 
-	logger.Info("created cross-ns-catalog-read policy",
+	logger.Debug("created cross-ns-catalog-read policy",
 		"policy-name", op.Name,
 		"policy-id", op.ID,
 		"partition", partition,
@@ -202,58 +256,56 @@ func (s *Sprawl) createCrossNamespaceCatalogReadPolicies(cluster *topology.Clust
 	return nil
 }
 
-func (s *Sprawl) createAllServiceTokens() error {
+func (s *Sprawl) createAllWorkloadTokens() error {
 	for _, cluster := range s.topology.Clusters {
-		if err := s.createServiceTokens(cluster); err != nil {
-			return fmt.Errorf("createServiceTokens[%s]: %w", cluster.Name, err)
+		if err := s.createWorkloadTokens(cluster); err != nil {
+			return fmt.Errorf("createWorkloadTokens[%s]: %w", cluster.Name, err)
 		}
 	}
 	return nil
 }
 
-func (s *Sprawl) createServiceTokens(cluster *topology.Cluster) error {
+func (s *Sprawl) createWorkloadTokens(cluster *topology.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
 	)
 
-	sids := make(map[topology.ServiceID]struct{})
+	workloadIDs := make(map[topology.ID]struct{})
 	for _, node := range cluster.Nodes {
-		if !node.RunsWorkloads() || len(node.Services) == 0 || node.Disabled {
+		if !node.RunsWorkloads() || len(node.Workloads) == 0 || node.Disabled {
 			continue
 		}
 
-		for _, svc := range node.Services {
-			sid := svc.ID
-
-			if _, done := sids[sid]; done {
+		for _, wrk := range node.Workloads {
+			if _, done := workloadIDs[wrk.ID]; done {
 				continue
 			}
 
 			var overridePolicy *api.ACLPolicy
-			if svc.IsMeshGateway {
+			if wrk.IsMeshGateway {
 				var err error
-				overridePolicy, err = CreateOrUpdatePolicy(client, policyForMeshGateway(svc, cluster.Enterprise))
+				overridePolicy, err = CreateOrUpdatePolicy(client, policyForMeshGateway(wrk, cluster.Enterprise))
 				if err != nil {
 					return fmt.Errorf("could not create policy: %w", err)
 				}
 			}
 
-			token, err := CreateOrUpdateToken(client, tokenForService(svc, overridePolicy, cluster.Enterprise))
+			token, err := CreateOrUpdateToken(client, tokenForWorkload(wrk, overridePolicy, cluster.Enterprise))
 			if err != nil {
 				return fmt.Errorf("could not create token: %w", err)
 			}
 
-			logger.Info("created service token",
-				"service", svc.ID.Name,
-				"namespace", svc.ID.Namespace,
-				"partition", svc.ID.Partition,
+			logger.Debug("created workload token",
+				"workload", wrk.ID.Name,
+				"namespace", wrk.ID.Namespace,
+				"partition", wrk.ID.Partition,
 				"token", token.SecretID,
 			)
 
-			s.secrets.SaveServiceToken(cluster.Name, sid, token.SecretID)
+			s.secrets.SaveWorkloadToken(cluster.Name, wrk.ID, token.SecretID)
 
-			sids[sid] = struct{}{}
+			workloadIDs[wrk.ID] = struct{}{}
 		}
 	}
 

@@ -13,13 +13,15 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"text/template"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -74,7 +76,7 @@ type TestAgent struct {
 
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
-	dns *DNSServer
+	dns dnsServer
 
 	// srv is an HTTPHandlers that may be used to test http endpoints.
 	srv *HTTPHandlers
@@ -86,15 +88,32 @@ type TestAgent struct {
 	// allows the BaseDeps to be modified before starting the embedded agent
 	OverrideDeps func(deps *BaseDeps)
 
+	// Skips asserting that the ACL bootstrap has occurred. This may be required
+	// for various tests where multiple servers are joined later.
+	disableACLBootstrapCheck bool
+
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
 }
 
+type TestAgentOpts struct {
+	// Skips asserting that the ACL bootstrap has occurred. This may be required
+	// for various tests where multiple servers are joined later.
+	DisableACLBootstrapCheck bool
+}
+
 // NewTestAgent returns a started agent with the given configuration. It fails
 // the test if the Agent could not be started.
-func NewTestAgent(t *testing.T, hcl string) *TestAgent {
-	a := StartTestAgent(t, TestAgent{HCL: hcl})
+func NewTestAgent(t *testing.T, hcl string, opts ...TestAgentOpts) *TestAgent {
+	// This varargs approach is used so that we don't have to modify all of the `NewTestAgent()` calls
+	// in order to introduce more optional arguments.
+	require.LessOrEqual(t, len(opts), 1, "NewTestAgent cannot accept more than one opts argument")
+	ta := TestAgent{HCL: hcl}
+	if len(opts) == 1 {
+		ta.disableACLBootstrapCheck = opts[0].DisableACLBootstrapCheck
+	}
+	a := StartTestAgent(t, ta)
 	t.Cleanup(func() { a.Shutdown() })
 	return a
 }
@@ -117,8 +136,8 @@ func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) 
 func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	t.Helper()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		t.Helper()
-		if err := a.Start(t); err != nil {
+		r.Helper()
+		if err := a.Start(r); err != nil {
 			r.Fatal(err)
 		}
 	})
@@ -152,7 +171,7 @@ func TestConfigHCL(nodeID string) string {
 
 // Start starts a test agent. It returns an error if the agent could not be started.
 // If no error is returned, the caller must call Shutdown() when finished.
-func (a *TestAgent) Start(t *testing.T) error {
+func (a *TestAgent) Start(t testutil.TestingTB) error {
 	t.Helper()
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
@@ -286,6 +305,32 @@ func (a *TestAgent) waitForUp() error {
 			continue // fail, try again
 		}
 		if a.Config.Bootstrap && a.Config.ServerMode {
+			if !a.disableACLBootstrapCheck {
+				if ok, err := a.isACLBootstrapped(); err != nil {
+					retErr = fmt.Errorf("error checking for acl bootstrap: %w", err)
+					continue // fail, try again
+				} else if !ok {
+					retErr = fmt.Errorf("acl system not bootstrapped yet")
+					continue // fail, try again
+				}
+			}
+
+			if a.baseDeps.UseV2Resources() {
+				args := structs.DCSpecificRequest{
+					Datacenter: "dc1",
+				}
+				var leader string
+				if err := a.RPC(context.Background(), "Status.Leader", args, &leader); err != nil {
+					retErr = fmt.Errorf("Status.Leader failed: %v", err)
+					continue // fail, try again
+				}
+				if leader == "" {
+					retErr = fmt.Errorf("No leader")
+					continue // fail, try again
+				}
+				return nil // success
+			}
+
 			// Ensure we have a leader and a node registration.
 			args := &structs.DCSpecificRequest{
 				Datacenter: a.Config.Datacenter,
@@ -321,9 +366,54 @@ func (a *TestAgent) waitForUp() error {
 			}
 			return nil // success
 		}
+
 	}
 
 	return fmt.Errorf("unavailable. last error: %v", retErr)
+}
+
+func (a *TestAgent) isACLBootstrapped() (bool, error) {
+	if a.config.ACLInitialManagementToken == "" {
+		logger := a.Agent.logger.Named("test")
+		logger.Warn("Skipping check for ACL bootstrapping")
+
+		return true, nil // We lie because we can't check.
+	}
+
+	const policyName = structs.ACLPolicyGlobalManagementName
+
+	req := httptest.NewRequest("GET", "/v1/acl/policy/name/"+policyName, nil)
+	req.Header.Add("X-Consul-Token", a.config.ACLInitialManagementToken)
+	resp := httptest.NewRecorder()
+
+	raw, err := a.srv.ACLPolicyReadByName(resp, req)
+	if err != nil {
+		if strings.Contains(err.Error(), "Unexpected response code: 403 (ACL not found)") {
+			return false, nil
+		} else if isACLNotBootstrapped(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if raw == nil {
+		return false, nil
+	}
+	policy, ok := raw.(*structs.ACLPolicy)
+	if !ok {
+		return false, fmt.Errorf("expected ACLPolicy got %T", raw)
+	}
+
+	return policy != nil, nil
+}
+
+func isACLNotBootstrapped(err error) bool {
+	switch {
+	case strings.Contains(err.Error(), "ACL system must be bootstrapped before making any requests that require authorization"):
+		return true
+	case strings.Contains(err.Error(), "The ACL system is currently in legacy mode"):
+		return true
+	}
+	return false
 }
 
 // Shutdown stops the agent and removes the data directory if it is
@@ -346,7 +436,7 @@ func (a *TestAgent) DNSAddr() string {
 	if a.dns == nil {
 		return ""
 	}
-	return a.dns.Addr
+	return a.dns.GetAddr()
 }
 
 func (a *TestAgent) HTTPAddr() string {
@@ -405,6 +495,19 @@ func (a *TestAgent) consulConfig() *consul.Config {
 	return c
 }
 
+// Using sdk/freeport with *retry.R is not possible without changing
+// function signatures. We use this shim instead to save the headache
+// of syncing sdk submodule updates.
+type retryShim struct {
+	*retry.R
+
+	name string
+}
+
+func (r *retryShim) Name() string {
+	return r.name
+}
+
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
 // reduces it significantly with little overhead. Furthermore, asking
@@ -413,13 +516,16 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(t *testing.T, useHTTPS bool) string {
-	ports := freeport.GetN(t, 8)
+func randomPortsSource(t testutil.TestingTB, useHTTPS bool) string {
+	var ports []int
+	retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
+		ports = freeport.GetN(r, 7)
+	})
 
 	var http, https int
 	if useHTTPS {
 		http = -1
-		https = ports[2]
+		https = ports[1]
 	} else {
 		http = ports[1]
 		https = -1
@@ -430,11 +536,11 @@ func randomPortsSource(t *testing.T, useHTTPS bool) string {
 			dns = ` + strconv.Itoa(ports[0]) + `
 			http = ` + strconv.Itoa(http) + `
 			https = ` + strconv.Itoa(https) + `
-			serf_lan = ` + strconv.Itoa(ports[3]) + `
-			serf_wan = ` + strconv.Itoa(ports[4]) + `
-			server = ` + strconv.Itoa(ports[5]) + `
-			grpc = ` + strconv.Itoa(ports[6]) + `
-			grpc_tls = ` + strconv.Itoa(ports[7]) + `
+			serf_lan = ` + strconv.Itoa(ports[2]) + `
+			serf_wan = ` + strconv.Itoa(ports[3]) + `
+			server = ` + strconv.Itoa(ports[4]) + `
+			grpc = ` + strconv.Itoa(ports[5]) + `
+			grpc_tls = ` + strconv.Itoa(ports[6]) + `
 		}
 	`
 }
@@ -529,6 +635,7 @@ type TestACLConfigParams struct {
 	DefaultToken           string
 	AgentRecoveryToken     string
 	ReplicationToken       string
+	DNSToken               string
 	EnableTokenReplication bool
 }
 
@@ -547,7 +654,8 @@ func (p *TestACLConfigParams) HasConfiguredTokens() bool {
 		p.AgentToken != "" ||
 		p.DefaultToken != "" ||
 		p.AgentRecoveryToken != "" ||
-		p.ReplicationToken != ""
+		p.ReplicationToken != "" ||
+		p.DNSToken != ""
 }
 
 func TestACLConfigNew() string {
@@ -557,6 +665,7 @@ func TestACLConfigNew() string {
 		InitialManagementToken: "root",
 		AgentToken:             "root",
 		AgentRecoveryToken:     "towel",
+		DNSToken:               "dns",
 	})
 }
 

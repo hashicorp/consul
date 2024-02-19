@@ -23,16 +23,32 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+const (
+	HeaderConsulToken     = "x-consul-token"
+	HeaderConsistencyMode = "x-consul-consistency-mode"
+)
+
+// NewHandler creates a new HTTP handler for the resource service.
+// httpPathPrefix is the prefix to be used for all HTTP endpoints. Should start with "/" and
+// end without a trailing "/".
+// client is the gRPC client to be used to communicate with the resource service.
+// registry is the resource registry to be used to determine the resource types.
+// parseToken is a function that will be called to parse the Consul token from the request.
 func NewHandler(
+	httpPathPrefix string,
 	client pbresource.ResourceServiceClient,
 	registry resource.Registry,
 	parseToken func(req *http.Request, token *string),
 	logger hclog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	for _, t := range registry.Types() {
-		// Individual Resource Endpoints.
-		prefix := strings.ToLower(fmt.Sprintf("/%s/%s/%s/", t.Type.Group, t.Type.GroupVersion, t.Type.Kind))
-		logger.Info("Registered resource endpoint", "endpoint", prefix)
+		// List Endpoint
+		base := strings.ToLower(fmt.Sprintf("/%s/%s/%s", t.Type.Group, t.Type.GroupVersion, t.Type.Kind))
+		mux.Handle(base, http.StripPrefix(base, &listHandler{t, client, parseToken, logger}))
+		logger.Info("Registered resource endpoint", "endpoint", fmt.Sprintf("%s%s", httpPathPrefix, base))
+
+		// Individual Resource Endpoints
+		prefix := strings.ToLower(fmt.Sprintf("%s/", base))
 		mux.Handle(prefix, http.StripPrefix(prefix, &resourceHandler{t, client, parseToken, logger}))
 	}
 
@@ -55,7 +71,7 @@ type resourceHandler struct {
 func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var token string
 	h.parseToken(r, &token)
-	ctx := metadata.AppendToOutgoingContext(r.Context(), "x-consul-token", token)
+	ctx := metadata.AppendToOutgoingContext(r.Context(), HeaderConsulToken, token)
 	switch r.Method {
 	case http.MethodPut:
 		h.handleWrite(w, r, ctx)
@@ -73,14 +89,18 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	var req writeRequest
 	// convert req body to writeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode request body", "error", err)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Request body didn't follow schema."))
+		w.Write([]byte("Request body format is invalid"))
+		return
 	}
 	// convert data struct to proto message
 	data := h.reg.Proto.ProtoReflect().New().Interface()
 	if err := protojson.Unmarshal(req.Data, data); err != nil {
+		h.logger.Error("Failed to unmarshal to proto message", "error", err)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Request body didn't follow schema."))
+		w.Write([]byte("Request body didn't follow the resource schema"))
+		return
 	}
 	// proto message to any
 	anyProtoMsg, err := anypb.New(data)
@@ -106,7 +126,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 		},
 	})
 	if err != nil {
-		handleResponseError(err, w, h)
+		handleResponseError(err, w, h.logger)
 		return
 	}
 
@@ -133,7 +153,7 @@ func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx
 		},
 	})
 	if err != nil {
-		handleResponseError(err, w, h)
+		handleResponseError(err, w, h.logger)
 		return
 	}
 
@@ -158,7 +178,7 @@ func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, c
 		Version: params["version"],
 	})
 	if err != nil {
-		handleResponseError(err, w, h)
+		handleResponseError(err, w, h.logger)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -167,11 +187,17 @@ func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, c
 
 func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
 	query := r.URL.Query()
+	namespace := query.Get("namespace")
+	if namespace == "" {
+		namespace = query.Get("ns")
+	}
+
 	tenancy = &pbresource.Tenancy{
 		Partition: query.Get("partition"),
-		PeerName:  query.Get("peer_name"),
-		Namespace: query.Get("namespace"),
+		Namespace: namespace,
 	}
+
+	// TODO(peering/v2) handle parsing peer tenancy
 
 	resourceName := path.Base(r.URL.Path)
 	if resourceName == "." || resourceName == "/" {
@@ -181,11 +207,15 @@ func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[strin
 	params = make(map[string]string)
 	params["resourceName"] = resourceName
 	params["version"] = query.Get("version")
+	params["namePrefix"] = query.Get("name_prefix")
+	// coming from command line
+	params["consistent"] = query.Get("RequireConsistent")
+	// coming from http client
 	if _, ok := query["consistent"]; ok {
 		params["consistent"] = "true"
 	}
 
-	return
+	return tenancy, params
 }
 
 func jsonMarshal(res *pbresource.Resource) ([]byte, error) {
@@ -203,28 +233,82 @@ func jsonMarshal(res *pbresource.Resource) ([]byte, error) {
 	return json.MarshalIndent(stuff, "", "  ")
 }
 
-func handleResponseError(err error, w http.ResponseWriter, h *resourceHandler) {
+func handleResponseError(err error, w http.ResponseWriter, logger hclog.Logger) {
 	if e, ok := status.FromError(err); ok {
 		switch e.Code() {
 		case codes.InvalidArgument:
 			w.WriteHeader(http.StatusBadRequest)
-			h.logger.Info("User has mal-formed request", "error", err)
+			logger.Info("User has mal-formed request", "error", err)
 		case codes.NotFound:
 			w.WriteHeader(http.StatusNotFound)
-			h.logger.Info("Received error from resource service: Not found", "error", err)
+			logger.Info("Received error from resource service: Not found", "error", err)
 		case codes.PermissionDenied:
 			w.WriteHeader(http.StatusForbidden)
-			h.logger.Info("Received error from resource service: User not authenticated", "error", err)
+			logger.Info("Received error from resource service: User not authenticated", "error", err)
 		case codes.Aborted:
 			w.WriteHeader(http.StatusConflict)
-			h.logger.Info("Received error from resource service: the request conflict with the current state of the target resource", "error", err)
+			logger.Info("Received error from resource service: the request conflict with the current state of the target resource", "error", err)
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
-			h.logger.Error("Received error from resource service", "error", err)
+			logger.Error("Received error from resource service", "error", err)
 		}
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("Received error from resource service: not able to parse error returned", "error", err)
+		logger.Error("Received error from resource service: not able to parse error returned", "error", err)
 	}
 	w.Write([]byte(err.Error()))
+}
+
+type listHandler struct {
+	reg        resource.Registration
+	client     pbresource.ResourceServiceClient
+	parseToken func(req *http.Request, token *string)
+	logger     hclog.Logger
+}
+
+func (h *listHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	var token string
+	h.parseToken(r, &token)
+	ctx := metadata.AppendToOutgoingContext(r.Context(), HeaderConsulToken, token)
+
+	tenancyInfo, params := parseParams(r)
+	if params["consistent"] == "true" {
+		ctx = metadata.AppendToOutgoingContext(ctx, HeaderConsistencyMode, "consistent")
+	}
+
+	rsp, err := h.client.List(ctx, &pbresource.ListRequest{
+		Type:       h.reg.Type,
+		Tenancy:    tenancyInfo,
+		NamePrefix: params["namePrefix"],
+	})
+	if err != nil {
+		handleResponseError(err, w, h.logger)
+		return
+	}
+
+	output := make([]json.RawMessage, len(rsp.Resources))
+	for idx, res := range rsp.Resources {
+		b, err := jsonMarshal(res)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Error("Failed to unmarshal GRPC resource response", "error", err)
+			return
+		}
+		output[idx] = b
+	}
+
+	b, err := json.MarshalIndent(struct {
+		Resources []json.RawMessage `json:"resources"`
+	}{output}, "", "  ")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error("Failed to correctly format the list response", "error", err)
+		return
+	}
+	w.Write(b)
 }

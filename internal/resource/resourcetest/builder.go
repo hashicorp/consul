@@ -4,6 +4,7 @@
 package resourcetest
 
 import (
+	"context"
 	"strings"
 
 	"github.com/oklog/ulid/v2"
@@ -36,11 +37,6 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					GroupVersion: rtype.GroupVersion,
 					Kind:         rtype.Kind,
 				},
-				Tenancy: &pbresource.Tenancy{
-					Partition: resource.DefaultPartitionName,
-					Namespace: resource.DefaultNamespaceName,
-					PeerName:  "local",
-				},
 				Name: name,
 			},
 		},
@@ -57,6 +53,11 @@ func ResourceID(id *pbresource.ID) *resourceBuilder {
 
 func (b *resourceBuilder) WithTenancy(tenant *pbresource.Tenancy) *resourceBuilder {
 	b.resource.Id.Tenancy = tenant
+	return b
+}
+
+func (b *resourceBuilder) WithVersion(version string) *resourceBuilder {
+	b.resource.Version = version
 	return b
 }
 
@@ -112,13 +113,15 @@ func (b *resourceBuilder) Build() *pbresource.Resource {
 	}
 
 	// Now create the status map
-	res.Status = make(map[string]*pbresource.Status)
-	for key, original := range b.statuses {
-		status := &pbresource.Status{
-			ObservedGeneration: res.Generation,
-			Conditions:         original.Conditions,
+	if len(b.statuses) > 0 {
+		res.Status = make(map[string]*pbresource.Status)
+		for key, original := range b.statuses {
+			status := &pbresource.Status{
+				ObservedGeneration: res.Generation,
+				Conditions:         original.Conditions,
+			}
+			res.Status[key] = status
 		}
-		res.Status[key] = status
 	}
 
 	return res
@@ -132,10 +135,21 @@ func (b *resourceBuilder) Reference(section string) *pbresource.Reference {
 	return resource.Reference(b.ID(), section)
 }
 
+func (b *resourceBuilder) ReferenceNoSection() *pbresource.Reference {
+	return resource.Reference(b.ID(), "")
+}
+
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 
-	ctx := testutil.TestContext(t)
+	var ctx context.Context
+	rtestClient, ok := client.(*Client)
+	if ok {
+		ctx = rtestClient.Context(t)
+	} else {
+		ctx = testutil.TestContext(t)
+		rtestClient = NewClient(client)
+	}
 
 	res := b.resource
 
@@ -164,11 +178,14 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		}
 	})
 
+	require.NoError(t, err)
+	require.NotNil(t, rsp)
+
 	if !b.dontCleanup {
 		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
 		id.Uid = ""
 		t.Cleanup(func() {
-			NewClient(client).MustDelete(t, id)
+			rtestClient.CleanupDelete(t, id)
 		})
 	}
 

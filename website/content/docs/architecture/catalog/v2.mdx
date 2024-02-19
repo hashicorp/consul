@@ -1,0 +1,139 @@
+---
+layout: docs
+page_title: v2 Catalog API
+description: Learn about version 2 of the Consul catalog, which uses GAMMA specified resources. Learn how the v2 catalog corresponds to the v1 catalog and Kubernetes resources.
+---
+
+# v2 Catalog API
+
+<Warning>
+The v2 catalog API is in a beta release for testing and development purposes. Do not use the v2 catalog or multi-port services in secure production environments.
+</Warning>
+
+This topic provides information about version 2 (v2) of the Consul catalog API. The catalog tracks registered services and their locations for both service discovery and service mesh use cases.
+
+Consul supports the v2 catalog for service mesh use cases on Kubernetes deployments only. For more information about Consul’s default catalog, refer to [v1 Catalog API](/consul/docs/architecture/catalog/v1).
+
+## Introduction
+
+When Consul registers services, it records [user-defined and Consul-assigned information](/consul/docs/architecture/catalog/v1#catalog-structure). To determine a service’s identity, v1 of the catalog API records the following information:
+
+- IDs of the specific _service instances_ that are registered
+- Locations of the _nodes_ the instances run on
+- Names of the _services_ the instances are associated with
+
+This information enables Consul to associate service names with the individual instances and their unique network addresses, which makes it essential to Consul’s service discovery and service mesh operations.
+
+The [Consul v1 catalog API](/consul/docs/architecture/catalog/v1) was designed prior to the introduction of Consul’s service mesh features. One major implication of this design is that communication in Consul’s service mesh is secured through Consul's ACL system, which requires that a Kubernetes ServiceAccount resource match the Service name. As a result, only one Kubernetes Service can represent a service instance in the v1 catalog.
+
+The v2 catalog API aligns more closely with the [Kubernetes Gateway API's GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/), which conceptualizes a Kubernetes Service as having two facets:
+
+- The Service _front end_ is a combination of cluster IP and DNS name
+- The Service _back end_ is a collection of endpoint IPs
+
+For more information about the differences between the two facets and their impact on how Kubernetes directs requests, refer to [The Different Facets of a Service](https://gateway-api.sigs.k8s.io/concepts/service-facets/) in the Kubernetes documentation.
+
+Consul's v2 catalog API makes a similar distinction, enabling it associate Kubernetes Pods with multiple Kubernetes Services. As a direct result of this change in catalog structure, Consul can register Services and Pods with multiple ports. For more information about how the differences between the catalog API impacts other Consul operations, refer to [changes to Consul's existing architecture](#changes-to-consul-s-existing-architecture).
+
+The v2 catalog API is available alongside the existing v1 catalog API, but the catalogs cannot be used simultaneously. The v2 catalog is disabled by default. This beta release is for testing and development purposes only. We do not recommend implementing v2 in production environments or migrating to v2 until the API is generally available.
+
+## Catalog structure
+
+Consul v1.17 introduces a new version of the catalog API designed to bridge differences between the Consul and Kubernetes data models. The v2 catalog API continues to track services and nodes for Consul, but it replaces service instances with _workloads_ and _workload identites_.
+
+### Catalog resources
+
+The following table describes resources in the v2 catalog, how they generally compare to the v1 catalog and Kubernetes resources, and whether they are created by Kubernetes or computed by Consul when it registers a service.
+
+| Catalog v2 resource | Description | Catalog v1 analogue | Kubernetes analogue | Source |
+| :------------------ | :---------- | :--------------------------- | :--------------------------- | :----- |
+| Service             | The name of the service Consul registers a workload under. | Service | [Kubernetes Service](https://kubernetes.io/docs/concepts/services-networking/service/)  | Created by Kubernetes |
+| Node | The address of the Consul node where the workload runs. | Node | [Kubernetes Node](https://kubernetes.io/docs/concepts/architecture/nodes/) | Computed by Consul |
+| Workload | An application instance running in a set of one or more Pods scheduled according to a Kubernetes Workload resource such as a Deployment or StatefulSet. | Service instance | [Kubernetes Pod](https://kubernetes.io/docs/concepts/workloads/pods/) | Created by Kubernetes |
+| Workload identity | Provides a distinct identity for a workload to assume. Each workload identity is tied to an Envoy proxy. This identity is used when Consul generates mTLS certificates. | Service name | [Kubernetes Service Accounts](https://kubernetes.io/docs/concepts/security/service-accounts/) | Created by Kubernetes |
+| Service endpoint | Maps services to workload addresses and endpoints. | None  | [Kubernetes Endpoints](https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoints-v1/) | Computed by Consul |
+| Health status | A resource for reporting the health status of a workload. | Service instance health status | [PodStatus](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodStatus) | Created by Kubernetes |
+| Health check | A resource for defining the health checks for a workload. | [Service instance health check](/consul/docs/services/usage/checks) | [Liveness, Readiness, and Startup Probes](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes) | Created by Kubernetes |
+| Proxy configuration | Represents a configuration for a sidecar or gateway proxy. | `Proxy` field in service definition | None | Created by Kubernetes or user CRD |
+| Destinations | Represents explicit service upstreams. When using the v1 catalog, these upstreams are configured in Helm chart as [Upstream Service annotations](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) | [Proxy Configuration](/consul/docs/connect/proxies/envoy#envoy-proxy-configuration-for-service-mesh) | None | Created by Kubernetes |
+| Traffic permissions| Enables L4 traffic authorization according to workload identity instead of service identity. | [Service intentions](/consul/docs/connect/intentions) | None | Created by user CRD |
+
+## Resource groups
+
+Each resource is part of a _resource group_. These resource groups structure Consul's ability to target either an _individual workload identity_ or an _entire collection of workload endpoints_ when managing service mesh traffic. There are three resource groups in the v2 API:
+
+- `auth` group: Resources apply to workload identity
+- `catalog` group: Resources apply to all workloads associated with a service
+- `mesh` group: Resources apply to either workload identities or all workloads
+
+For example, traffic permissions are part of the `auth` group. Permissions allow or deny traffic according to the other v2 catalog resource in the `auth` group, the workload identity. Meanwhile, when Consul routes service mesh traffic it applies rules to workloads based on the Service, which is a resource in the `catalog` group.
+
+One practical impact of resource groups is that the [HTTPRoute](/consul/docs/k8s/multiport/reference/httproute), [GRPCRoute](/consul/docs/k8s/multiport/reference/grpcroute), and [TCPRoute](/consul/docs/k8s/multiport/reference/tcproute) CRDs require you to specify a `name` and `type` in configuration blocks. The `catalog.v2beta1.Service` type indicates that the rules defined in these CRDs apply to all workloads registered in the Consul catalog under the given name.
+
+You can also use the `consul resource` command to return information about Consul resources in each group using a `group.groupVersion.kind` syntax. Refer to [`consul resource`](/consul/docs/k8s/multiport/reference/resource-command) for more information.
+
+The following table describes the Consul resources that belong to each resource group and the resource's `group.groupVersion.kind` syntax.
+
+| Resource `group` | v2 resource | Consul resource syntax |
+| :------------------ | :-------- | :---- |
+| `auth` | Traffic permissions |  `auth.v2beta1.TrafficPermissions` |
+| `auth` | Workload identity |  `auth.v2beta1.WorkloadIdentity` |
+| `catalog` | Service  | `catalog.v2beta1.Service` |
+| `catalog` | Node | `catalog.v2beta1.Node` |
+| `catalog` | Workload | `catalog.v2beta1.Workload` |
+| `catalog` | Health status |  `catalog.v2beta1.HealthStatus` |
+| `catalog` | Destinations |  `catalog.v2beta1.Destination` |
+| `mesh` | GRPCRoute |  `mesh.v2beta1.GRPCRoute` |
+| `mesh` | HTTPRoute |  `mesh.v2beta1.HTTPRoute` |
+| `mesh` | Proxy configuration |  `mesh.v2beta1.ProxyConfiguration` |
+| `mesh` | TCPRoute |  `mesh.v2beta1.TCPRoute` |
+
+## Changes to Consul’s existing architecture
+
+The change in data models introduced by the v2 Catalog API impacts several aspects of Consul’s operations.
+
+### Traffic permissions resource replaces service intentions
+
+The most significant change to Consul’s architecture and operations when using the v2 catalog structure is the introduction of the traffic permissions resource. This resource replaces the service intentions configuration entry, and enables authorized service-to-service communication for both L4 and L7 applications.
+
+For more information about this resource, including example configurations, refer to [Traffic permissions configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions).
+
+### HTTPRoute, GRPCRoute, and TCPRoute resources for traffic management
+
+You can configure traffic management behavior such as service splitting in an `HTTPRoute`, `GRPCRoute`, or `TCPRoute` resource. In the v1 catalog, this behavior is defined in dedicated configuration entries. For examples, refer to [service splitter configuration entry reference](/consul/docs/connect/config-entries/service-splitter#examples).
+
+For more information about these resource, including specifications and example configurations, refer to [HTTPRoute resource configuration reference](/consul/docs/k8s/multiport/reference/httproute), [GRPCRoute resource configuration reference](/consul/docs/k8s/multiport/reference/grpcroute), and [TCPRoute resource configuration reference](/consul/docs/k8s/multiport/reference/tcproute).
+
+### New proxy configuration resource
+
+In the v1 catalog, a service’s sidecar proxy and its behavior is [defined in the `Proxy` field of the service definition](/consul/docs/services/usage/define-services). You can also separately [define a service mesh proxy](/consul/docs/connect/proxies/deploy-service-mesh-proxies) and [configure proxy defaults](/consul/docs/connect/config-entries/proxy-defaults).
+
+In the v2 catalog, the `ProxyConfiguration` resource configures a workload's sidecar proxy behavior according to Consul workload identity. Refer to [ProxyConfiguration resource configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration) for more information.
+
+## Constraints and limitations
+
+Be aware of the following constraints and technical limitations on the v2 catalog API:
+
+- The v2 catalog API only supports deployments using [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents. Consul on Kubernetes uses dataplanes by default.
+- The v1 and v2 catalog APIs cannot run concurrently.
+- The Consul UI does not support the v2 catalog API in this release. You must disable the UI in the Helm chart in order to use the v2 catalog API.
+- HCP Consul does not support the v2 catalog API in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
+- We do not recommend updating existing clusters to enable the v2 catalog in this release. Instead, deploy a new Consul cluster and [enable the v2 catalog in the Helm chart](/consul/docs/k8s/multiport/configure#enable-the-v2-catalog).
+
+## Guidance
+
+The following resources are available to help you use the v2 catalog API:
+
+### Usage documentation
+
+- [Multi-port services overview](/consul/docs/k8s/multiport)
+- [Configure multi-port services](/consul/docs/k8s/multiport/configure)
+
+### Reference documentation
+
+- [`consul resource` CLI command](/consul/docs/k8s/multiport/reference/resource-command)
+- [GRPCRoute configuration reference](/consul/docs/k8s/multiport/reference/grpcroute)
+- [HTTPRoute configuration reference](/consul/docs/k8s/multiport/reference/httproute)
+- [ProxyConfiguration configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration)
+- [TCPRoute configuration reference](/consul/docs/k8s/multiport/reference/tcproute)
+- [TrafficPermissions configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions)

@@ -1,6 +1,6 @@
 resource "docker_container" "{{.PodName}}" {
   name     = "{{.PodName}}"
-  image = docker_image.pause.latest
+  image = docker_image.pause.image_id
   hostname = "{{.PodName}}"
   restart  = "always"
   dns      = ["{{.DNSAddress}}"]

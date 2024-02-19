@@ -165,6 +165,7 @@ type Config struct {
 	DataDir                          *string             `mapstructure:"data_dir" json:"data_dir,omitempty"`
 	Datacenter                       *string             `mapstructure:"datacenter" json:"datacenter,omitempty"`
 	DefaultQueryTime                 *string             `mapstructure:"default_query_time" json:"default_query_time,omitempty"`
+	DefaultIntentionPolicy           *string             `mapstructure:"default_intention_policy" json:"default_intention_policy,omitempty"`
 	DisableAnonymousSignature        *bool               `mapstructure:"disable_anonymous_signature" json:"disable_anonymous_signature,omitempty"`
 	DisableCoordinates               *bool               `mapstructure:"disable_coordinates" json:"disable_coordinates,omitempty"`
 	DisableHostNodeID                *bool               `mapstructure:"disable_host_node_id" json:"disable_host_node_id,omitempty"`
@@ -404,6 +405,7 @@ type ServiceDefinition struct {
 	EnableTagOverride *bool                     `mapstructure:"enable_tag_override"`
 	Proxy             *ServiceProxy             `mapstructure:"proxy"`
 	Connect           *ServiceConnect           `mapstructure:"connect"`
+	Locality          *Locality                 `mapstructure:"locality"`
 
 	EnterpriseMeta `mapstructure:",squash"`
 }
@@ -423,6 +425,7 @@ type CheckDefinition struct {
 	DisableRedirects               *bool               `mapstructure:"disable_redirects"`
 	OutputMaxSize                  *int                `mapstructure:"output_max_size"`
 	TCP                            *string             `mapstructure:"tcp"`
+	TCPUseTLS                      *bool               `mapstructure:"tcp_use_tls"`
 	UDP                            *string             `mapstructure:"udp"`
 	Interval                       *string             `mapstructure:"interval"`
 	DockerContainerID              *string             `mapstructure:"docker_container_id" alias:"dockercontainerid"`
@@ -672,9 +675,11 @@ type HTTPConfig struct {
 }
 
 type Performance struct {
-	LeaveDrainTime *string `mapstructure:"leave_drain_time"`
-	RaftMultiplier *int    `mapstructure:"raft_multiplier"` // todo(fs): validate as uint
-	RPCHoldTimeout *string `mapstructure:"rpc_hold_timeout"`
+	LeaveDrainTime        *string `mapstructure:"leave_drain_time"`
+	RaftMultiplier        *int    `mapstructure:"raft_multiplier"` // todo(fs): validate as uint
+	RPCHoldTimeout        *string `mapstructure:"rpc_hold_timeout"`
+	GRPCKeepaliveInterval *string `mapstructure:"grpc_keepalive_interval"`
+	GRPCKeepaliveTimeout  *string `mapstructure:"grpc_keepalive_timeout"`
 }
 
 type Telemetry struct {
@@ -777,6 +782,7 @@ type Tokens struct {
 	Default                *string `mapstructure:"default"`
 	Agent                  *string `mapstructure:"agent"`
 	ConfigFileRegistration *string `mapstructure:"config_file_service_registration"`
+	DNS                    *string `mapstructure:"dns"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`

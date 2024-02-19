@@ -1,0 +1,25 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.resource;
+
+import "google/protobuf/descriptor.proto";
+
+enum Scope {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  SCOPE_UNDEFINED = 0;
+  SCOPE_CLUSTER = 1;
+  SCOPE_PARTITION = 2;
+  SCOPE_NAMESPACE = 3;
+}
+
+message ResourceTypeSpec {
+  Scope scope = 1;
+  bool dont_map_http = 2;
+}
+
+extend google.protobuf.MessageOptions {
+  ResourceTypeSpec spec = 8500;
+}

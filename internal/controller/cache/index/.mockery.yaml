@@ -1,0 +1,23 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+with-expecter: true
+recursive: false
+# We don't want the mocks within proto-public so as to force a dependency
+# of the testify library on the modules usage. The mocks are only for
+# internal testing purposes. Other consumers can generated the mocks into
+# their own code base.
+dir: "indexmock"
+outpkg: "indexmock"
+# camelcase ensure that private interfaces also get public mocks
+mockname: "{{.InterfaceName | camelcase }}"
+
+# The Txn and IndexOption interfaces require this package and if the mocks
+# are generated out of package (in the indexmock package) then it will
+# cause there to be cyclical imports. As we don't need mocks for these
+# right now it is easier to just exclude them.
+include-regex: ".*"
+exclude-regex: "^(Txn|IndexOption)$"
+
+packages:
+  github.com/hashicorp/consul/internal/controller/cache/index:

@@ -109,6 +109,20 @@ func (f *prettyFormatter) FormatToken(token *api.ACLToken) (string, error) {
 			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
 		}
 	}
+	if len(token.TemplatedPolicies) > 0 {
+		buffer.WriteString(fmt.Sprintln("Templated Policies:"))
+		for _, templatedPolicy := range token.TemplatedPolicies {
+			buffer.WriteString(fmt.Sprintf("   %s\n", templatedPolicy.TemplateName))
+			if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
+				buffer.WriteString(fmt.Sprintf("      Name: %s\n", templatedPolicy.TemplateVariables.Name))
+			}
+			if len(templatedPolicy.Datacenters) > 0 {
+				buffer.WriteString(fmt.Sprintf("      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
+			} else {
+				buffer.WriteString("      Datacenters: all\n")
+			}
+		}
+	}
 
 	return buffer.String(), nil
 }
@@ -174,10 +188,7 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 		}
 		identity := structs.ACLServiceIdentity{ServiceName: svcIdentity.ServiceName, Datacenters: svcIdentity.Datacenters}
 		policy := identity.SyntheticPolicy(&entMeta)
-		buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Description: %s\n", policy.Description))
-		buffer.WriteString(indent + WHITESPACE_2 + "Rules:")
-		buffer.WriteString(strings.ReplaceAll(policy.Rules, "\n", "\n"+indent+WHITESPACE_4))
-		buffer.WriteString("\n\n")
+		displaySyntheticPolicy(policy, &buffer, indent)
 	}
 	if len(token.ACLToken.ServiceIdentities) > 0 {
 		buffer.WriteString("Service Identities:\n")
@@ -190,15 +201,40 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 		buffer.WriteString(fmt.Sprintf(indent+"Name: %s (Datacenter: %s)\n", nodeIdentity.NodeName, nodeIdentity.Datacenter))
 		identity := structs.ACLNodeIdentity{NodeName: nodeIdentity.NodeName, Datacenter: nodeIdentity.Datacenter}
 		policy := identity.SyntheticPolicy(&entMeta)
-		buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Description: %s\n", policy.Description))
-		buffer.WriteString(indent + WHITESPACE_2 + "Rules:")
-		buffer.WriteString(strings.ReplaceAll(policy.Rules, "\n", "\n"+indent+WHITESPACE_4))
-		buffer.WriteString("\n\n")
+		displaySyntheticPolicy(policy, &buffer, indent)
 	}
 	if len(token.ACLToken.NodeIdentities) > 0 {
 		buffer.WriteString("Node Identities:\n")
 		for _, nodeIdentity := range token.ACLToken.NodeIdentities {
 			formatNodeIdentity(nodeIdentity, WHITESPACE_2)
+		}
+	}
+
+	formatTemplatedPolicy := func(templatedPolicy *api.ACLTemplatedPolicy, indent string) {
+		buffer.WriteString(fmt.Sprintf(indent+"%s\n", templatedPolicy.TemplateName))
+		tp := structs.ACLTemplatedPolicy{
+			TemplateName: templatedPolicy.TemplateName,
+			Datacenters:  templatedPolicy.Datacenters,
+		}
+		if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
+			tp.TemplateVariables = &structs.ACLTemplatedPolicyVariables{
+				Name: templatedPolicy.TemplateVariables.Name,
+			}
+			buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Name: %s\n", templatedPolicy.TemplateVariables.Name))
+		}
+		if len(templatedPolicy.Datacenters) > 0 {
+			buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
+		} else {
+			buffer.WriteString(fmt.Sprintf(indent + WHITESPACE_2 + "Datacenters: all\n"))
+		}
+		policy, _ := tp.SyntheticPolicy(&entMeta)
+		displaySyntheticPolicy(policy, &buffer, indent)
+	}
+	if len(token.ACLToken.TemplatedPolicies) > 0 {
+		buffer.WriteString("Templated Policies:\n")
+
+		for _, templatedPolicy := range token.ACLToken.TemplatedPolicies {
+			formatTemplatedPolicy(templatedPolicy, WHITESPACE_2)
 		}
 	}
 
@@ -264,6 +300,13 @@ func (f *prettyFormatter) FormatTokenExpanded(token *api.ACLTokenExpanded) (stri
 	buffer.WriteString(WHITESPACE_2 + "Description: Defines what to do if this Token's information cannot be read from the primary_datacenter (refer to down_policy option in agent configuration)\n\n")
 
 	return buffer.String(), nil
+}
+
+func displaySyntheticPolicy(policy *structs.ACLPolicy, buffer *bytes.Buffer, indent string) {
+	buffer.WriteString(fmt.Sprintf(indent+WHITESPACE_2+"Description: %s\n", policy.Description))
+	buffer.WriteString(indent + WHITESPACE_2 + "Rules:")
+	buffer.WriteString(strings.ReplaceAll(policy.Rules, "\n", "\n"+indent+WHITESPACE_4))
+	buffer.WriteString("\n\n")
 }
 
 func (f *prettyFormatter) FormatTokenList(tokens []*api.ACLTokenListEntry) (string, error) {
@@ -333,6 +376,21 @@ func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) str
 		buffer.WriteString(fmt.Sprintln("Node Identities:"))
 		for _, nodeid := range token.NodeIdentities {
 			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
+		}
+	}
+
+	if len(token.TemplatedPolicies) > 0 {
+		buffer.WriteString(fmt.Sprintln("Templated Policies:"))
+		for _, templatedPolicy := range token.TemplatedPolicies {
+			buffer.WriteString(fmt.Sprintf("   %s\n", templatedPolicy.TemplateName))
+			if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
+				buffer.WriteString(fmt.Sprintf("      Name: %s\n", templatedPolicy.TemplateVariables.Name))
+			}
+			if len(templatedPolicy.Datacenters) > 0 {
+				buffer.WriteString(fmt.Sprintf("      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
+			} else {
+				buffer.WriteString("      Datacenters: all\n")
+			}
 		}
 	}
 	return buffer.String()

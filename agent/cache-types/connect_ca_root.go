@@ -8,11 +8,12 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Recommended name for registration.
-const ConnectCARootName = "connect-ca-root"
+const ConnectCARootName = cacheshim.ConnectCARootName
 
 // ConnectCARoot supports fetching the Connect CA roots. This is a
 // straightforward cache type since it only has to block on the given

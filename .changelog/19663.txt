@@ -1,0 +1,3 @@
+```release-note:improvement
+connect: Default `stats_flush_interval` to 60 seconds when using the Consul Telemetry Collector, unless custom stats sink are present or an explicit flush interval is configured.
+```

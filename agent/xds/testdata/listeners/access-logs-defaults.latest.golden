@@ -1,9 +1,51 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "db:127.0.0.1:9191",
+      "accessLog": [
+        {
+          "filter": {
+            "responseFlagFilter": {
+              "flags": [
+                "NR"
+              ]
+            }
+          },
+          "name": "Consul Listener Log",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
+            "logFormat": {
+              "jsonFormat": {
+                "authority": "%REQ(:AUTHORITY)%",
+                "bytes_received": "%BYTES_RECEIVED%",
+                "bytes_sent": "%BYTES_SENT%",
+                "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
+                "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
+                "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
+                "duration": "%DURATION%",
+                "method": "%REQ(:METHOD)%",
+                "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                "protocol": "%PROTOCOL%",
+                "request_id": "%REQ(X-REQUEST-ID)%",
+                "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                "response_code": "%RESPONSE_CODE%",
+                "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                "response_flags": "%RESPONSE_FLAGS%",
+                "route_name": "%ROUTE_NAME%",
+                "start_time": "%START_TIME%",
+                "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                "upstream_host": "%UPSTREAM_HOST%",
+                "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
+                "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
+                "user_agent": "%REQ(USER-AGENT)%",
+                "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
+              }
+            }
+          }
+        }
+      ],
       "address": {
         "socketAddress": {
           "address": "127.0.0.1",
@@ -17,8 +59,6 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.db.default.default.dc1",
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "accessLog": [
                   {
                     "name": "Consul Listener Filter Log",
@@ -26,44 +66,49 @@
                       "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
                       "logFormat": {
                         "jsonFormat": {
-                            "authority": "%REQ(:AUTHORITY)%",
-                            "bytes_received": "%BYTES_RECEIVED%",
-                            "bytes_sent": "%BYTES_SENT%",
-                            "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
-                            "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
-                            "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
-                            "duration": "%DURATION%",
-                            "method": "%REQ(:METHOD)%",
-                            "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
-                            "protocol": "%PROTOCOL%",
-                            "request_id": "%REQ(X-REQUEST-ID)%",
-                            "requested_server_name": "%REQUESTED_SERVER_NAME%",
-                            "response_code": "%RESPONSE_CODE%",
-                            "response_code_details": "%RESPONSE_CODE_DETAILS%",
-                            "response_flags": "%RESPONSE_FLAGS%",
-                            "route_name": "%ROUTE_NAME%",
-                            "start_time": "%START_TIME%",
-                            "upstream_cluster": "%UPSTREAM_CLUSTER%",
-                            "upstream_host": "%UPSTREAM_HOST%",
-                            "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
-                            "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
-                            "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
-                            "user_agent": "%REQ(USER-AGENT)%",
-                            "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
-                          }
+                          "authority": "%REQ(:AUTHORITY)%",
+                          "bytes_received": "%BYTES_RECEIVED%",
+                          "bytes_sent": "%BYTES_SENT%",
+                          "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
+                          "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
+                          "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
+                          "duration": "%DURATION%",
+                          "method": "%REQ(:METHOD)%",
+                          "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                          "protocol": "%PROTOCOL%",
+                          "request_id": "%REQ(X-REQUEST-ID)%",
+                          "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                          "response_code": "%RESPONSE_CODE%",
+                          "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                          "response_flags": "%RESPONSE_FLAGS%",
+                          "route_name": "%ROUTE_NAME%",
+                          "start_time": "%START_TIME%",
+                          "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                          "upstream_host": "%UPSTREAM_HOST%",
+                          "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
+                          "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                          "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
+                          "user_agent": "%REQ(USER-AGENT)%",
+                          "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
+                        }
                       }
                     }
                   }
-                ]
+                ],
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.db.default.default.dc1"
               }
             }
           ]
         }
       ],
-      "trafficDirection": "OUTBOUND",
+      "name": "db:127.0.0.1:9191",
+      "trafficDirection": "OUTBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "accessLog": [
         {
-          "name": "Consul Listener Log",
           "filter": {
             "responseFlagFilter": {
               "flags": [
@@ -71,43 +116,40 @@
               ]
             }
           },
+          "name": "Consul Listener Log",
           "typedConfig": {
             "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
             "logFormat": {
               "jsonFormat": {
-                  "authority": "%REQ(:AUTHORITY)%",
-                  "bytes_received": "%BYTES_RECEIVED%",
-                  "bytes_sent": "%BYTES_SENT%",
-                  "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
-                  "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
-                  "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
-                  "duration": "%DURATION%",
-                  "method": "%REQ(:METHOD)%",
-                  "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
-                  "protocol": "%PROTOCOL%",
-                  "request_id": "%REQ(X-REQUEST-ID)%",
-                  "requested_server_name": "%REQUESTED_SERVER_NAME%",
-                  "response_code": "%RESPONSE_CODE%",
-                  "response_code_details": "%RESPONSE_CODE_DETAILS%",
-                  "response_flags": "%RESPONSE_FLAGS%",
-                  "route_name": "%ROUTE_NAME%",
-                  "start_time": "%START_TIME%",
-                  "upstream_cluster": "%UPSTREAM_CLUSTER%",
-                  "upstream_host": "%UPSTREAM_HOST%",
-                  "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
-                  "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
-                  "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
-                  "user_agent": "%REQ(USER-AGENT)%",
-                  "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
-                }
+                "authority": "%REQ(:AUTHORITY)%",
+                "bytes_received": "%BYTES_RECEIVED%",
+                "bytes_sent": "%BYTES_SENT%",
+                "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
+                "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
+                "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
+                "duration": "%DURATION%",
+                "method": "%REQ(:METHOD)%",
+                "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                "protocol": "%PROTOCOL%",
+                "request_id": "%REQ(X-REQUEST-ID)%",
+                "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                "response_code": "%RESPONSE_CODE%",
+                "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                "response_flags": "%RESPONSE_FLAGS%",
+                "route_name": "%ROUTE_NAME%",
+                "start_time": "%START_TIME%",
+                "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                "upstream_host": "%UPSTREAM_HOST%",
+                "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
+                "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
+                "user_agent": "%REQ(USER-AGENT)%",
+                "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
+              }
             }
           }
         }
-      ]
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "prepared_query:geo-cache:127.10.10.10:8181",
+      ],
       "address": {
         "socketAddress": {
           "address": "127.10.10.10",
@@ -121,8 +163,6 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "upstream.prepared_query_geo-cache",
-                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
                 "accessLog": [
                   {
                     "name": "Consul Listener Filter Log",
@@ -130,44 +170,49 @@
                       "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
                       "logFormat": {
                         "jsonFormat": {
-                            "authority": "%REQ(:AUTHORITY)%",
-                            "bytes_received": "%BYTES_RECEIVED%",
-                            "bytes_sent": "%BYTES_SENT%",
-                            "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
-                            "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
-                            "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
-                            "duration": "%DURATION%",
-                            "method": "%REQ(:METHOD)%",
-                            "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
-                            "protocol": "%PROTOCOL%",
-                            "request_id": "%REQ(X-REQUEST-ID)%",
-                            "requested_server_name": "%REQUESTED_SERVER_NAME%",
-                            "response_code": "%RESPONSE_CODE%",
-                            "response_code_details": "%RESPONSE_CODE_DETAILS%",
-                            "response_flags": "%RESPONSE_FLAGS%",
-                            "route_name": "%ROUTE_NAME%",
-                            "start_time": "%START_TIME%",
-                            "upstream_cluster": "%UPSTREAM_CLUSTER%",
-                            "upstream_host": "%UPSTREAM_HOST%",
-                            "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
-                            "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
-                            "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
-                            "user_agent": "%REQ(USER-AGENT)%",
-                            "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
-                          }
+                          "authority": "%REQ(:AUTHORITY)%",
+                          "bytes_received": "%BYTES_RECEIVED%",
+                          "bytes_sent": "%BYTES_SENT%",
+                          "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
+                          "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
+                          "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
+                          "duration": "%DURATION%",
+                          "method": "%REQ(:METHOD)%",
+                          "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                          "protocol": "%PROTOCOL%",
+                          "request_id": "%REQ(X-REQUEST-ID)%",
+                          "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                          "response_code": "%RESPONSE_CODE%",
+                          "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                          "response_flags": "%RESPONSE_FLAGS%",
+                          "route_name": "%ROUTE_NAME%",
+                          "start_time": "%START_TIME%",
+                          "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                          "upstream_host": "%UPSTREAM_HOST%",
+                          "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
+                          "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                          "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
+                          "user_agent": "%REQ(USER-AGENT)%",
+                          "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
+                        }
                       }
                     }
                   }
-                ]
+                ],
+                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.prepared_query_geo-cache"
               }
             }
           ]
         }
       ],
-      "trafficDirection": "OUTBOUND",
+      "name": "prepared_query:geo-cache:127.10.10.10:8181",
+      "trafficDirection": "OUTBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "accessLog": [
         {
-          "name": "Consul Listener Log",
           "filter": {
             "responseFlagFilter": {
               "flags": [
@@ -175,43 +220,40 @@
               ]
             }
           },
+          "name": "Consul Listener Log",
           "typedConfig": {
             "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
             "logFormat": {
               "jsonFormat": {
-                  "authority": "%REQ(:AUTHORITY)%",
-                  "bytes_received": "%BYTES_RECEIVED%",
-                  "bytes_sent": "%BYTES_SENT%",
-                  "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
-                  "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
-                  "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
-                  "duration": "%DURATION%",
-                  "method": "%REQ(:METHOD)%",
-                  "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
-                  "protocol": "%PROTOCOL%",
-                  "request_id": "%REQ(X-REQUEST-ID)%",
-                  "requested_server_name": "%REQUESTED_SERVER_NAME%",
-                  "response_code": "%RESPONSE_CODE%",
-                  "response_code_details": "%RESPONSE_CODE_DETAILS%",
-                  "response_flags": "%RESPONSE_FLAGS%",
-                  "route_name": "%ROUTE_NAME%",
-                  "start_time": "%START_TIME%",
-                  "upstream_cluster": "%UPSTREAM_CLUSTER%",
-                  "upstream_host": "%UPSTREAM_HOST%",
-                  "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
-                  "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
-                  "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
-                  "user_agent": "%REQ(USER-AGENT)%",
-                  "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
-                }
+                "authority": "%REQ(:AUTHORITY)%",
+                "bytes_received": "%BYTES_RECEIVED%",
+                "bytes_sent": "%BYTES_SENT%",
+                "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
+                "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
+                "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
+                "duration": "%DURATION%",
+                "method": "%REQ(:METHOD)%",
+                "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                "protocol": "%PROTOCOL%",
+                "request_id": "%REQ(X-REQUEST-ID)%",
+                "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                "response_code": "%RESPONSE_CODE%",
+                "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                "response_flags": "%RESPONSE_FLAGS%",
+                "route_name": "%ROUTE_NAME%",
+                "start_time": "%START_TIME%",
+                "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                "upstream_host": "%UPSTREAM_HOST%",
+                "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
+                "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
+                "user_agent": "%REQ(USER-AGENT)%",
+                "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
+              }
             }
           }
         }
-      ]
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "public_listener:0.0.0.0:9999",
+      ],
       "address": {
         "socketAddress": {
           "address": "0.0.0.0",
@@ -225,9 +267,7 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {
-
-                },
+                "rules": {},
                 "statPrefix": "connect_authz"
               }
             },
@@ -235,8 +275,6 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "public_listener",
-                "cluster": "local_app",
                 "accessLog": [
                   {
                     "name": "Consul Listener Filter Log",
@@ -244,35 +282,37 @@
                       "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
                       "logFormat": {
                         "jsonFormat": {
-                            "authority": "%REQ(:AUTHORITY)%",
-                            "bytes_received": "%BYTES_RECEIVED%",
-                            "bytes_sent": "%BYTES_SENT%",
-                            "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
-                            "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
-                            "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
-                            "duration": "%DURATION%",
-                            "method": "%REQ(:METHOD)%",
-                            "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
-                            "protocol": "%PROTOCOL%",
-                            "request_id": "%REQ(X-REQUEST-ID)%",
-                            "requested_server_name": "%REQUESTED_SERVER_NAME%",
-                            "response_code": "%RESPONSE_CODE%",
-                            "response_code_details": "%RESPONSE_CODE_DETAILS%",
-                            "response_flags": "%RESPONSE_FLAGS%",
-                            "route_name": "%ROUTE_NAME%",
-                            "start_time": "%START_TIME%",
-                            "upstream_cluster": "%UPSTREAM_CLUSTER%",
-                            "upstream_host": "%UPSTREAM_HOST%",
-                            "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
-                            "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
-                            "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
-                            "user_agent": "%REQ(USER-AGENT)%",
-                            "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
-                          }
+                          "authority": "%REQ(:AUTHORITY)%",
+                          "bytes_received": "%BYTES_RECEIVED%",
+                          "bytes_sent": "%BYTES_SENT%",
+                          "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
+                          "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
+                          "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
+                          "duration": "%DURATION%",
+                          "method": "%REQ(:METHOD)%",
+                          "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+                          "protocol": "%PROTOCOL%",
+                          "request_id": "%REQ(X-REQUEST-ID)%",
+                          "requested_server_name": "%REQUESTED_SERVER_NAME%",
+                          "response_code": "%RESPONSE_CODE%",
+                          "response_code_details": "%RESPONSE_CODE_DETAILS%",
+                          "response_flags": "%RESPONSE_FLAGS%",
+                          "route_name": "%ROUTE_NAME%",
+                          "start_time": "%START_TIME%",
+                          "upstream_cluster": "%UPSTREAM_CLUSTER%",
+                          "upstream_host": "%UPSTREAM_HOST%",
+                          "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
+                          "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+                          "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
+                          "user_agent": "%REQ(USER-AGENT)%",
+                          "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
+                        }
                       }
                     }
                   }
-                ]
+                ],
+                "cluster": "local_app",
+                "statPrefix": "public_listener"
               }
             }
           ],
@@ -281,9 +321,6 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -294,6 +331,7 @@
                     }
                   }
                 ],
+                "tlsParams": {},
                 "validationContext": {
                   "trustedCa": {
                     "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
@@ -305,52 +343,10 @@
           }
         }
       ],
-      "trafficDirection": "INBOUND",
-      "accessLog": [
-        {
-          "name": "Consul Listener Log",
-          "filter": {
-            "responseFlagFilter": {
-              "flags": [
-                "NR"
-              ]
-            }
-          },
-          "typedConfig": {
-            "@type": "type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog",
-            "logFormat": {
-              "jsonFormat": {
-                  "authority": "%REQ(:AUTHORITY)%",
-                  "bytes_received": "%BYTES_RECEIVED%",
-                  "bytes_sent": "%BYTES_SENT%",
-                  "connection_termination_details": "%CONNECTION_TERMINATION_DETAILS%",
-                  "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
-                  "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
-                  "duration": "%DURATION%",
-                  "method": "%REQ(:METHOD)%",
-                  "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
-                  "protocol": "%PROTOCOL%",
-                  "request_id": "%REQ(X-REQUEST-ID)%",
-                  "requested_server_name": "%REQUESTED_SERVER_NAME%",
-                  "response_code": "%RESPONSE_CODE%",
-                  "response_code_details": "%RESPONSE_CODE_DETAILS%",
-                  "response_flags": "%RESPONSE_FLAGS%",
-                  "route_name": "%ROUTE_NAME%",
-                  "start_time": "%START_TIME%",
-                  "upstream_cluster": "%UPSTREAM_CLUSTER%",
-                  "upstream_host": "%UPSTREAM_HOST%",
-                  "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
-                  "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
-                  "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
-                  "user_agent": "%REQ(USER-AGENT)%",
-                  "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
-                }
-            }
-          }
-        }
-      ]
+      "name": "public_listener:0.0.0.0:9999",
+      "trafficDirection": "INBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

@@ -13,7 +13,7 @@ We are pleased to announce the following updates to Consul API Gateway.
 
 - **Consul Dataplane Support:** Consul 1.14 introduces a simplified deployment architecture that eliminates the need to deploy node-level Consul clients on Kubernetes. This is referred to as Consul Dataplane. API Gateway 0.5.0 supports this type of deployment.
 
-- **Routing to Services in Peered Clusters:** API Gateway now supports the ability to route traffic to services that are imported from peered Consul clusters. Cluster peering is was added in Consul 1.14. Refer to the `MeshService` [documentation](/consul/docs/api-gateway/configuration/meshservice) for additional information.
+- **Routing to Services in Peered Clusters:** API Gateway now supports the ability to route traffic to services that are imported from peered Consul clusters. Cluster peering is was added in Consul 1.14. Refer to the `MeshService` [documentation](/consul/docs/connect/gateways/api-gateway/configuration/meshservice) for additional information.
 
 - **Deploy in Admin Partitions:** API Gateway can now be deployed in any Consul admin partition. Previous versions of API Gateway could only be deployed in the default partition. The partition is configured in the `GatewayClassConfig`.
 
@@ -40,7 +40,7 @@ Supported version of the [Gateway API](https://gateway-api.sigs.k8s.io/) spec: v
 
 ## Upgrading
 
-For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/api-gateway/upgrades)
+For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/connect/gateways/api-gateway/upgrades-k8s)
 
 ## Known issues
 At the time of release, there are no known issues in API Gateway v0.5.0

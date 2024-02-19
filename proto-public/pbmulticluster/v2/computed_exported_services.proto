@@ -1,0 +1,28 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.multicluster.v2;
+
+import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
+
+message ComputedExportedServices {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+
+  repeated ComputedExportedService services = 1;
+}
+
+message ComputedExportedService {
+  hashicorp.consul.resource.Reference target_ref = 1;
+  repeated ComputedExportedServiceConsumer consumers = 2;
+}
+
+message ComputedExportedServiceConsumer {
+  // no sameness group
+  oneof tenancy {
+    string peer = 3;
+    string partition = 4;
+  }
+}

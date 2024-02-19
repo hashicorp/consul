@@ -1,0 +1,208 @@
+---
+layout: docs
+page_title: Downgrade from Consul Enterprise to the community edition
+description: >-
+  Learn how to downgrade your installation of Consul Enterprise to the free Consul community edition (CE)
+---
+
+# Downgrade from Consul Enterprise to the community edition
+
+This document describes how to downgrade from Consul Enterprise to Consul community edition (CE). 
+
+## Overview
+
+You can downgrade Consul editions if you no longer require Consul Enterprise features. Complete the following steps to downgrade to Consul CE:
+
+1. Download the CE binary.
+1. Backup your Consul data and set appropriate log levels.
+1. Complete the downgrade procedures.
+
+### Request-handling details
+
+During the downgrade process, the Consul CE server handles the raft replication logs in one of the following ways:
+
+- Drops the request.
+- Filters out data from requests sent from non-default namespaces or partitions.
+- Panics and stops the downgrade.
+
+The following examples describe scenarios where the server may drop the requests:
+
+- Registration requests in non-default namespace 
+- Services or health checks in non-default namespaces or partitions.
+
+- Write requests to peered clusters if the local partition connecting to the peer is non-default.
+
+The following examples describe scenarios where the server may filter out data from requests:
+
+- Intention sources that target non-default namespaces or partitions are filtered out of the configuration entry.
+- Exports of services within non-default namespaces or partitions are filtered out of the configuration entry.
+
+The server may panic and stop the downgrade when Consul cannot safely filter configuration entries that route traffic. This is because Consul is unable to determine if the filtered configuration entries send traffic to services that are able to handle the traffic. Consul CE panics in order to prevent harm to existing service mesh routes.
+
+In these situations, you must first remove references to services within non-default namespaces or partitions from those configuration entries.
+
+The server may panic in the following cases:
+
+- Service splitter, service resolver, and service router configuration entry requests that have references to services located in non-default namespaces or partitions cause the server to panic.
+
+## Requirements
+
+You can only downgrade Consul editions for v1.18 and later.
+
+## Download the CE binary version
+
+First, download the binary for CE.
+
+<Tabs>
+<Tab heading="Binary">
+
+All current and past versions of the CE and Enterprise releases are
+available on the [HashiCorp releases page](https://releases.hashicorp.com/consul)
+
+Example:
+```shell-session
+$ export VERSION=1.18.0
+$ curl https://releases.hashicorp.com/consul/${VERSION}/consul_${VERSION} _linux_amd64.zip
+```
+
+</Tab>
+<Tab heading="Kubernetes">
+
+To downgrade Consul edition on Kubernetes, modify the image version in your Helm chart and follow the upgrade process described in [Upgrade Consul version](/consul/docs/k8s/upgrade#upgrade-consul-version).
+
+</Tab>
+
+</Tabs>
+
+## Prepare for the downgrade to CE
+
+1. Take a snapshot of the existing Consul state so that you have a safe fallback if an error occurs.
+
+    ```shell-session
+    $ consul snapshot save backup.snap
+    ```
+
+1. Run the following command to verify that the snapshot was successfully saved:
+
+    ```shell-session
+    $ consul snapshot inspect backup.snap
+    ```
+
+    Example output:
+
+    ```
+    ID           2-1182-1542056499724
+    Size         4115
+    Index        1182
+    Term         2
+    Version      1
+    ```
+
+1. Store the snapshot in a safe location. Refer to the following documentation for additional information about using snapshots:
+
+   - [Consul snapshot](/consul/commands/snapshot)
+   - [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore) 
+
+1. Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
+       is set to `debug`. This enables Consul to report detailed information if an error occurs.
+1. Issue the following command on your servers to reload the configuration:
+
+    ```shell-session
+    $ consul reload
+    ```
+
+1. If applicable, modify the following configuration entries:
+   - [Service resolver](/consul/docs/connect/config-entries/service-resolver):
+     1. Remove services configured as failovers in non-default namespaces or services that belong to a sameness group.
+     1. Remove services configured as redirects that belong to non-default namespaces or partitions.
+   - [Service splitter](/consul/docs/connect/config-entries/service-splitter):
+     1. Remove services configured as splits that belong to non-default namespaces or partitions.
+   - [Service router](/consul/docs/connect/config-entries/service-router):
+     1. Remove services configured as a destination that belong to non-default namespaces or partitions.
+
+## Perform the downgrade
+
+1. Restart or redeploy all Consul clients with a CE version of the binary. You can use a service management system, such as `systemd` or `upstart`, to restart the Consul service. If you are not using a service management system, you must restart the agent manually. The following example uses `systemctl` to restart the Consul service:
+
+    ```shell-session
+    $ sudo systemctl restart consul
+    ```
+
+1. Issue the following command to discover which server is currently the leader:
+
+    ```shell-session
+    $ consul operator raft list-peers
+    ```
+
+    Consul prints the raft information. The format and content may differ based on your version of Consul:
+
+    ```shell-session
+    Node       ID                                    Address         State     Voter  RaftProtocol
+    dc1-node1  ae15858f-7f5f-4dcb-b7d5-710fdcdd2745  10.11.0.2:8300  leader    true   3
+    dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true   3
+    dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
+    ```
+
+1. Make a note of the leader so that you can perform the downgrade on agents in the proper order.
+
+1. Update the server binaries to use the CE version. Complete the following steps in order for each server agent in the `follower` state. Then, repeat the steps for the `leader` agent.
+
+   1. Set an environment variable named `CONSUL_ENTERPRISE_DOWNGRADE_TO_CE` to `true`. The following example sets variable using `systemd`:
+       1. Edit the Consul systemd service unit file:
+          ```shell-session
+          $ sudo vi /etc/systemd/system/consul.service
+          ```
+       1. Add the environment variables you want to set for Consul under the `[Service]` section of the unit file and save the changes:
+          ```shell-session
+          [Service]
+          Environment=CONSUL_ENTERPRISE_DOWNGRADE_TO_CE=true
+          ```
+       1. Reload `systemd`:
+          ```shell-session
+          $ sudo systemctl daemon-reload
+          ```
+   1. Restart the Consul service. You can use a service management system, such as `systemd` or `upstart`. If you are not using a service management system, you must restart the agent manually. The following example restarts Consul using `systemctl`:    
+       ```shell-session
+       $ sudo systemctl restart consul
+       ```
+   1. To validate that the agent has rejoined the cluster and is in sync with the leader, issue the following command:
+      ```shell-session
+      $ consul info
+      ```
+      Verify that the `commit_index` and `last_log_index` fields have the same value. Differing values may be result of an unexpected leadership election due to loss of quorum.
+
+1. Run the following command to verify that all servers appear in the cluster as expected and are on the correct version:
+
+    ```shell-session
+    $ consul members
+    ```
+
+    Consul prints cluster membership information. The exact format and content depends on your Consul version:
+
+    ```shell-session
+    Node       Address         Status  Type    Build  Protocol  DC
+    dc1-node1  10.11.0.2:8301  alive   server  1.18.0  2         dc1
+    dc1-node2  10.11.0.3:8301  alive   server  1.18.0  2         dc1
+    dc1-node3  10.11.0.4:8301  alive   server  1.18.0  2         dc1
+    ```
+
+1. Verify the raft state to make sure there is a leader and sufficient voters:
+
+    ```shell-session
+    $ consul operator raft list-peers
+    ```
+
+    Consul prints the raft information. The format and content may differ based on your version of Consul:
+
+    ```shell-session
+    Node       ID                                    Address         State     Voter  RaftProtocol
+    dc1-node1  ae15858f-7f5f-4dcb-b7d5-710fdcdd2745  10.11.0.2:8300  leader    true   3
+    dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true   3
+    dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
+    ```
+
+1. Set your `log_level` back to its original value and issue the following command on your servers to reload the configuration:
+
+    ```shell-session
+    $ consul reload
+    ```

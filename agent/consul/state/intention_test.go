@@ -313,6 +313,7 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 				src.LegacyMeta = nil
 			}
 		}
+		expect.SetHash(got.GetHash())
 		require.Equal(t, expect, got)
 	}
 
@@ -1965,27 +1966,27 @@ func TestStore_IntentionDecision(t *testing.T) {
 		src              string
 		dst              string
 		matchType        structs.IntentionMatchType
-		defaultDecision  acl.EnforcementDecision
+		defaultAllow     bool
 		allowPermissions bool
 		expect           structs.IntentionDecisionSummary
 	}{
 		{
-			name:            "no matching intention and default deny",
-			src:             "does-not-exist",
-			dst:             "ditto",
-			matchType:       structs.IntentionMatchDestination,
-			defaultDecision: acl.Deny,
+			name:         "no matching intention and default deny",
+			src:          "does-not-exist",
+			dst:          "ditto",
+			matchType:    structs.IntentionMatchDestination,
+			defaultAllow: false,
 			expect: structs.IntentionDecisionSummary{
 				Allowed:      false,
 				DefaultAllow: false,
 			},
 		},
 		{
-			name:            "no matching intention and default allow",
-			src:             "does-not-exist",
-			dst:             "ditto",
-			matchType:       structs.IntentionMatchDestination,
-			defaultDecision: acl.Allow,
+			name:         "no matching intention and default allow",
+			src:          "does-not-exist",
+			dst:          "ditto",
+			matchType:    structs.IntentionMatchDestination,
+			defaultAllow: true,
 			expect: structs.IntentionDecisionSummary{
 				Allowed:      true,
 				DefaultAllow: true,
@@ -2078,7 +2079,7 @@ func TestStore_IntentionDecision(t *testing.T) {
 				Partition:        acl.DefaultPartitionName,
 				Intentions:       intentions,
 				MatchType:        tc.matchType,
-				DefaultDecision:  tc.defaultDecision,
+				DefaultAllow:     tc.defaultAllow,
 				AllowPermissions: tc.allowPermissions,
 			}
 			decision, err := s.IntentionDecision(opts)
@@ -2160,7 +2161,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 	}
 	tests := []struct {
 		name            string
-		defaultDecision acl.EnforcementDecision
+		defaultAllow    bool
 		intentions      []structs.ServiceIntentionsConfigEntry
 		discoveryChains []structs.ConfigEntry
 		target          structs.ServiceName
@@ -2168,8 +2169,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 		expect          expect
 	}{
 		{
-			name:            "(upstream) acl allow all but intentions deny one",
-			defaultDecision: acl.Allow,
+			name:         "(upstream) default allow all but intentions deny one",
+			defaultAllow: true,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2195,8 +2196,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 			},
 		},
 		{
-			name:            "(upstream) acl allow includes virtual service",
-			defaultDecision: acl.Allow,
+			name:         "(upstream) default allow includes virtual service",
+			defaultAllow: true,
 			discoveryChains: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind: structs.ServiceResolver,
@@ -2224,8 +2225,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 			},
 		},
 		{
-			name:            "(upstream) acl deny all intentions allow virtual service",
-			defaultDecision: acl.Deny,
+			name:         "(upstream) default deny intentions allow virtual service",
+			defaultAllow: false,
 			discoveryChains: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind: structs.ServiceResolver,
@@ -2257,8 +2258,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 			},
 		},
 		{
-			name:            "(upstream) acl deny all intentions allow one",
-			defaultDecision: acl.Deny,
+			name:         "(upstream) default deny intentions allow one",
+			defaultAllow: false,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2284,8 +2285,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 			},
 		},
 		{
-			name:            "(downstream) acl allow all but intentions deny one",
-			defaultDecision: acl.Allow,
+			name:         "(downstream) default allow but intentions deny one",
+			defaultAllow: true,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2315,8 +2316,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 			},
 		},
 		{
-			name:            "(downstream) acl deny all intentions allow one",
-			defaultDecision: acl.Deny,
+			name:         "(downstream) default deny all intentions allow one",
+			defaultAllow: false,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2342,8 +2343,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 			},
 		},
 		{
-			name:            "acl deny but intention allow all overrides it",
-			defaultDecision: acl.Deny,
+			name:         "default deny but intention allow all overrides it",
+			defaultAllow: false,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2373,8 +2374,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 			},
 		},
 		{
-			name:            "acl allow but intention deny all overrides it",
-			defaultDecision: acl.Allow,
+			name:         "default allow but intention deny all overrides it",
+			defaultAllow: true,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2395,8 +2396,8 @@ func TestStore_IntentionTopology(t *testing.T) {
 			},
 		},
 		{
-			name:            "acl deny but intention allow all overrides it",
-			defaultDecision: acl.Deny,
+			name:         "default deny but intention allow all overrides it",
+			defaultAllow: false,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2447,7 +2448,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 				idx++
 			}
 
-			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultDecision, structs.IntentionTargetService)
+			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultAllow, structs.IntentionTargetService)
 			require.NoError(t, err)
 			require.Equal(t, tt.expect.idx, idx)
 
@@ -2501,16 +2502,16 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 		services structs.ServiceList
 	}
 	tests := []struct {
-		name            string
-		defaultDecision acl.EnforcementDecision
-		intentions      []structs.ServiceIntentionsConfigEntry
-		target          structs.ServiceName
-		downstreams     bool
-		expect          expect
+		name         string
+		defaultAllow bool
+		intentions   []structs.ServiceIntentionsConfigEntry
+		target       structs.ServiceName
+		downstreams  bool
+		expect       expect
 	}{
 		{
-			name:            "(upstream) acl allow all but intentions deny one, destination target",
-			defaultDecision: acl.Allow,
+			name:         "(upstream) default allow all but intentions deny one, destination target",
+			defaultAllow: true,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2536,8 +2537,8 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 			},
 		},
 		{
-			name:            "(upstream) acl deny all intentions allow one, destination target",
-			defaultDecision: acl.Deny,
+			name:         "(upstream) default deny intentions allow one, destination target",
+			defaultAllow: false,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2563,8 +2564,8 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 			},
 		},
 		{
-			name:            "(upstream) acl deny all check only destinations show, service target",
-			defaultDecision: acl.Deny,
+			name:         "(upstream) default deny check only destinations show, service target",
+			defaultAllow: false,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2585,8 +2586,8 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 			},
 		},
 		{
-			name:            "(upstream) acl allow all check only destinations show, service target",
-			defaultDecision: acl.Allow,
+			name:         "(upstream) default allow check only destinations show, service target",
+			defaultAllow: true,
 			intentions: []structs.ServiceIntentionsConfigEntry{
 				{
 					Kind: structs.ServiceIntentions,
@@ -2637,7 +2638,7 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 				idx++
 			}
 
-			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultDecision, structs.IntentionTargetDestination)
+			idx, got, err := s.IntentionTopology(nil, tt.target, tt.downstreams, tt.defaultAllow, structs.IntentionTargetDestination)
 			require.NoError(t, err)
 			require.Equal(t, tt.expect.idx, idx)
 
@@ -2664,7 +2665,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	target := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	ws := memdb.NewWatchSet()
-	index, got, err := s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
+	index, got, err := s.IntentionTopology(ws, target, false, false, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), index)
 	require.Empty(t, got)
@@ -2686,7 +2687,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 
 	// Reset the WatchSet
 	ws = memdb.NewWatchSet()
-	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
+	index, got, err = s.IntentionTopology(ws, target, false, false, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), index)
 	// Because API is a virtual service, it is included in this output.
@@ -2708,7 +2709,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	// require.False(t, watchFired(ws))
 
 	// Result should not have changed
-	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
+	index, got, err = s.IntentionTopology(ws, target, false, false, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), index)
 	require.Equal(t, structs.ServiceList{structs.NewServiceName("api", nil)}, got)
@@ -2723,7 +2724,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	require.True(t, watchFired(ws))
 
 	// Reset the WatchSet
-	index, got, err = s.IntentionTopology(nil, target, false, acl.Deny, structs.IntentionTargetService)
+	index, got, err = s.IntentionTopology(nil, target, false, false, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), index)
 

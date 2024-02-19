@@ -595,7 +595,29 @@ These metrics are used to monitor the health of the Consul servers.
 ** Requirements: **
 * Consul 1.12.0+
 
-Label based RPC metrics were added in Consul 1.12.0 as a Beta feature to better understand the workload on a Consul server and, where that workload is coming from. The following metric(s) provide that insight
+The following label-based RPC metrics provide insight about the workload on a Consul server and the source of the workload.
+
+The [`prefix_filter`](/consul/docs/agent/config/config-files#telemetry-prefix_filter) telemetry configuration setting blocks or enables all RPC metric method calls. Specify the RPC metrics you want to allow in the `prefix_filter`:
+
+<CodeTabs heading="Example prefix_filter allowing all RPC metrics">
+
+```hcl
+telemetry {
+  prefix_filter = ["+consul.rpc.server.call"]
+}
+```
+
+```json
+{
+  "telemetry": {
+    "prefix_filter": [
+      "+consul.rpc.server.call"
+    ]
+  }
+}
+```
+
+</CodeTabs>
 
 | Metric                                | Description                                               | Unit   | Type      |
 | ------------------------------------- | --------------------------------------------------------- | ------ | --------- |
@@ -644,14 +666,13 @@ Here is a Prometheus style example of an RPC metric and its labels:
 
 </CodeBlockConfig>
 
-Any metric in this section can be turned off with the [`prefix_filter`](/consul/docs/agent/config/config-files#telemetry-prefix_filter).
 
 ## Cluster Health
 
 These metrics give insight into the health of the cluster as a whole.
 Query for the `consul.memberlist.*` and `consul.serf.*` metrics can be appended
 with certain labels to further distinguish data between different gossip pools.
-The supported label for OSS is `network`, while `segment`, `partition`, `area`
+The supported label for CE is `network`, while `segment`, `partition`, `area`
 are allowed for <EnterpriseAlert inline />.
 
 | Metric                                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                        | Unit                                    | Type    |
@@ -763,7 +784,7 @@ Consul servers can report the following metrics about the host's system resource
 This feature must be enabled in the [agent telemetry configuration](/consul/docs/agent/config/config-files#telemetry-enable_host_metrics).
 Note that if the Consul server is operating inside a container these metrics
 still report host resource usage and do not report any resource limits placed
-on the container.  
+on the container.
 
 **Requirements:**
 - Consul 1.15.3+

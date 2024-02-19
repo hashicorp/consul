@@ -69,6 +69,9 @@ var defaultGrpcTlsAddr = net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.
 // checks for warnings on deprecated fields and flags.  These tests
 // should check one option at a time if possible
 func TestLoad_IntegrationWithFlags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 	dataDir := testutil.TempDir(t, "config")
 
 	run := func(t *testing.T, tc testCase) {
@@ -324,7 +327,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DevMode = true
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
-			rt.Experiments = []string{"resource-apis"}
+			rt.Experiments = nil
 			rt.EnableDebug = true
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
@@ -2326,7 +2329,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Cloud = hcpconfig.CloudConfig{
-				// ID is only populated from env if not populated from other sources.
 				ResourceID: "env-id",
 				NodeName:   "thehostname",
 				NodeID:     "",
@@ -2357,19 +2359,18 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		json: []string{`{
 			  "cloud": {
-              	"resource_id": "file-id" 
+              	"resource_id": "file-id"
               }
 			}`},
 		hcl: []string{`
 			  cloud = {
-	            resource_id = "file-id" 
+	            resource_id = "file-id"
 			  }
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Cloud = hcpconfig.CloudConfig{
-				// ID is only populated from env if not populated from other sources.
-				ResourceID: "file-id",
+				ResourceID: "env-id",
 				NodeName:   "thehostname",
 			}
 
@@ -2525,6 +2526,60 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Checks = []*structs.CheckDefinition{
 				{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "tcp check with tcp_use_tls set",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "tcp": "localhost:55555", "tcp_use_tls": true, "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" tcp = "localhost:55555" tcp_use_tls = true interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", TCP: "localhost:55555", TCPUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "tcp check with tcp_use_tls set to false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "tcp": "localhost:55555", "tcp_use_tls": false, "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" tcp = "localhost:55555" tcp_use_tls = false interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", TCP: "localhost:55555", TCPUseTLS: false, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "tcp check with tcp_use_tls not set",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "tcp": "localhost:55555", "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" tcp = "localhost:55555" interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", TCP: "localhost:55555", TCPUseTLS: false, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
 			}
 			rt.DataDir = dataDir
 		},
@@ -5956,8 +6011,26 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{``},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendDefault
 			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+		},
+	})
+	run(t, testCase{
+		desc: "logstore defaults",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"experiments": ["resource-apis"]
+			}	
+		`},
+		hcl: []string{`experiments=["resource-apis"]`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendDefault
+			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+			rt.Experiments = []string{"resource-apis"}
 		},
 	})
 	run(t, testCase{
@@ -6152,6 +6225,9 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.NodeName = expected.NodeName
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
+		for i, e := range expected.ConfigEntryBootstrap {
+			e.SetHash(actual.ConfigEntryBootstrap[i].GetHash())
+		}
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 		if tc.cleanup != nil {
 			tc.cleanup()
@@ -6287,6 +6363,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				Body:                           "wSjTy7dg",
 				DisableRedirects:               true,
 				TCP:                            "RJQND605",
+				TCPUseTLS:                      false,
 				H2PING:                         "9N1cSb5B",
 				H2PingUseTLS:                   false,
 				OSService:                      "aAjE6m9Z",
@@ -6317,6 +6394,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				DisableRedirects:               false,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
+				TCPUseTLS:                      false,
 				H2PING:                         "HCHU7gEb",
 				H2PingUseTLS:                   false,
 				OSService:                      "aqq95BhP",
@@ -6346,6 +6424,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				DisableRedirects:               true,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
+				TCPUseTLS:                      false,
 				H2PING:                         "rQ8eyCSF",
 				H2PingUseTLS:                   false,
 				OSService:                      "aZaCAXww",
@@ -6485,6 +6564,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
 		GRPCTLSPort:           5201,
 		GRPCTLSAddrs:          []net.Addr{tcpAddr("23.14.88.19:5201")},
+		GRPCKeepaliveInterval: 33 * time.Second,
+		GRPCKeepaliveTimeout:  22 * time.Second,
 		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -6499,6 +6580,10 @@ func TestLoad_FullConfig(t *testing.T) {
 		KVMaxValueSize:        1234567800,
 		LeaveDrainTime:        8265 * time.Second,
 		LeaveOnTerm:           true,
+		Locality: &Locality{
+			Region: strPtr("us-east-2"),
+			Zone:   strPtr("us-east-2b"),
+		},
 		Logging: logging.Config{
 			LogLevel:       "k1zo9Spt",
 			LogJSON:        true,
@@ -6600,6 +6685,10 @@ func TestLoad_FullConfig(t *testing.T) {
 							Warning: 1,
 						},
 					},
+				},
+				Locality: &structs.Locality{
+					Region: "us-east-1",
+					Zone:   "us-east-1a",
 				},
 			},
 			{
@@ -6758,6 +6847,10 @@ func TestLoad_FullConfig(t *testing.T) {
 				EnableTagOverride: true,
 				Connect: &structs.ServiceConnect{
 					Native: true,
+				},
+				Locality: &structs.Locality{
+					Region: "us-west-1",
+					Zone:   "us-west-1a",
 				},
 				Checks: structs.CheckTypes{
 					&structs.CheckType{
@@ -7031,6 +7124,9 @@ func TestLoad_FullConfig(t *testing.T) {
 				time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC)))
 			r, err := Load(opts)
 			require.NoError(t, err)
+			for i, e := range expected.ConfigEntryBootstrap {
+				e.SetHash(r.RuntimeConfig.ConfigEntryBootstrap[i].GetHash())
+			}
 			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)
 			require.ElementsMatch(t, expectedWarns, r.Warnings, "Warnings: %#v", r.Warnings)
 		})

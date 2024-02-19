@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 syntax = "proto3";
 
@@ -29,6 +29,7 @@ enum OperationCategory {
   OPERATION_CATEGORY_SUBSCRIBE = 9;
   OPERATION_CATEGORY_OPERATOR = 10;
   OPERATION_CATEGORY_RESOURCE = 11;
+  OPERATION_CATEGORY_CONFIGENTRY = 12;
 }
 
 // Spec describes the kind of rate limit that will be applied to this RPC.

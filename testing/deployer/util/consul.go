@@ -4,14 +4,62 @@
 package util
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 
+	"github.com/hashicorp/consul-server-connection-manager/discovery"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
+	"google.golang.org/grpc"
 )
+
+func DialExposedGRPCConn(
+	ctx context.Context, logger hclog.Logger,
+	exposedServerGRPCPort int, token string,
+	tlsConfig *tls.Config,
+) (*grpc.ClientConn, func(), error) {
+	if exposedServerGRPCPort <= 0 {
+		return nil, nil, fmt.Errorf("cannot dial server grpc on port %d", exposedServerGRPCPort)
+	}
+
+	cfg := discovery.Config{
+		Addresses: "127.0.0.1",
+		GRPCPort:  exposedServerGRPCPort,
+		// Disable server watch because we only need to get server IPs once.
+		ServerWatchDisabled: true,
+		TLS:                 tlsConfig,
+
+		Credentials: discovery.Credentials{
+			Type: discovery.CredentialsTypeStatic,
+			Static: discovery.StaticTokenCredential{
+				Token: token,
+			},
+		},
+	}
+	watcher, err := discovery.NewWatcher(ctx, cfg, logger.Named("consul-server-connection-manager"))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	go watcher.Run()
+
+	// We recycle the GRPC connection from the discovery client because it
+	// should have all the necessary dial options, including the resolver that
+	// continuously updates Consul server addresses. Otherwise, a lot of code from consul-server-connection-manager
+	// would need to be duplicated
+	state, err := watcher.State()
+	if err != nil {
+		watcher.Stop()
+		return nil, nil, fmt.Errorf("unable to get connection manager state: %w", err)
+	}
+
+	return state.GRPCConn, func() { watcher.Stop() }, nil
+}
 
 func ProxyNotPooledAPIClient(proxyPort int, containerIP string, containerPort int, token string) (*api.Client, error) {
 	return proxyAPIClient(cleanhttp.DefaultTransport(), proxyPort, containerIP, containerPort, token)

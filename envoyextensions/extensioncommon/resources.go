@@ -411,8 +411,8 @@ func getSNI(chain *envoy_listener_v3.FilterChain) string {
 }
 
 // GetHTTPConnectionManager returns the Envoy HttpConnectionManager filter from the list of network filters.
-// It also returns the index within the list of filters where the connection manager was found in case the caller
-// needs this information.
+// It also returns the index within the list of filters where the connection manager was found in case the
+// caller needs to overwrite the original filter.
 // It returns a non-nil error if the HttpConnectionManager is not found.
 func GetHTTPConnectionManager(filters ...*envoy_listener_v3.Filter) (*envoy_http_v3.HttpConnectionManager, int, error) {
 	for idx, filter := range filters {
@@ -491,9 +491,11 @@ func InsertHTTPFilter(filters []*envoy_listener_v3.Filter, filter *envoy_http_v3
 	if err != nil {
 		return filters, errors.New("failed to insert new HTTP connection manager filter")
 	}
-	filters[idx] = newHttpConMan
+	filtersCopy := make([]*envoy_listener_v3.Filter, len(filters))
+	copy(filtersCopy, filters)
+	filtersCopy[idx] = newHttpConMan
 
-	return filters, nil
+	return filtersCopy, nil
 }
 
 // InsertNetworkFilter inserts the given network filter into the filter chain in the location

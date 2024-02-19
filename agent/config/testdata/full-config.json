@@ -366,6 +366,10 @@
       "write_rate": 101.0
     }
   },
+  "locality": {
+    "region": "us-east-2",
+    "zone": "us-east-2b"
+  },
   "log_level": "k1zo9Spt",
   "log_json": true,
   "max_query_time": "18237s",
@@ -383,7 +387,9 @@
   "performance": {
     "leave_drain_time": "8265s",
     "raft_multiplier": 5,
-    "rpc_hold_timeout": "15707s"
+    "rpc_hold_timeout": "15707s",
+    "grpc_keepalive_interval": "33s",
+    "grpc_keepalive_timeout": "22s"
   },
   "pid_file": "43xN80Km",
   "ports": {
@@ -596,6 +602,10 @@
     ],
     "connect": {
       "native": true
+    },
+    "locality": {
+      "region": "us-west-1",
+      "zone": "us-west-1a"
     }
   },
   "services": [
@@ -647,6 +657,10 @@
       },
       "connect": {
         "sidecar_service": {}
+      },
+      "locality": {
+        "region": "us-east-1",
+        "zone": "us-east-1a"
       }
     },
     {

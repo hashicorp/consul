@@ -107,7 +107,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-	if err := config.CheckACL(); err != nil {
+	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
 
@@ -288,15 +288,17 @@ func (c *Client) RPC(ctx context.Context, method string, args interface{}, reply
 	firstCheck := time.Now()
 	retryCount := 0
 	previousJitter := time.Duration(0)
+
+	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 TRY:
 	retryCount++
 	manager, server := c.router.FindLANRoute()
 	if server == nil {
+		metrics.IncrCounter([]string{"client", "rpc", "failed"}, 1)
 		return structs.ErrNoServers
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !c.rpcLimiter.Load().(*rate.Limiter).Allow() {
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded

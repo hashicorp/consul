@@ -690,7 +690,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			req := msg.GetRequest()
 			require.NotNil(r, req)
 			require.Equal(r, pbpeerstream.TypeURLExportedService, req.ResourceURL)
-			prototest.AssertDeepEqual(t, expectAck, msg)
+			prototest.AssertDeepEqual(r, expectAck, msg)
 		})
 
 		expect := Status{
@@ -1175,7 +1175,7 @@ func TestStreamResources_Server_CARootUpdates(t *testing.T) {
 
 func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 	srv, store := newTestServer(t, func(c *Config) {
-		c.incomingHeartbeatTimeout = 10 * time.Millisecond
+		c.incomingHeartbeatTimeout = 5 * time.Second
 	})
 
 	p := writePeeringToBeDialed(t, store, 1, "my-peer")
@@ -1222,7 +1222,7 @@ func TestStreamResources_Server_AckNackNonce(t *testing.T) {
 	})
 	// Add in a sleep to prevent the test from flaking.
 	// The mock client expects certain calls to be made.
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 }
 
 // Test that when the client doesn't send a heartbeat in time, the stream is disconnected.
@@ -1433,10 +1433,6 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 	require.NoError(t, err)
 	receivedSub3, err := client.Recv()
 	require.NoError(t, err)
-
-	// This is required when the client subscribes to server address replication messages.
-	// We assert for the handler to be called at least once but the data doesn't matter.
-	srv.mockSnapshotHandler.expect("", 0, 0, nil)
 
 	// Issue services, roots, and server address subscription to server.
 	// Note that server address may not come as an initial message
@@ -3060,9 +3056,9 @@ func requireEqualInstances(t *testing.T, expect, got structs.CheckServiceNodes) 
 type testServer struct {
 	*Server
 
-	// mockSnapshotHandler is solely used for handling autopilot events
+	// readyServersSnapshotHandler is solely used for handling autopilot events
 	// which don't come from the state store.
-	mockSnapshotHandler *mockSnapshotHandler
+	readyServersSnapshotHandler *dummyReadyServersSnapshotHandler
 }
 
 func newTestServer(t *testing.T, configFn func(c *Config)) (*testServer, *state.Store) {
@@ -3104,8 +3100,8 @@ func newTestServer(t *testing.T, configFn func(c *Config)) (*testServer, *state.
 	t.Cleanup(grpcServer.Stop)
 
 	return &testServer{
-		Server:              srv,
-		mockSnapshotHandler: handler,
+		Server:                      srv,
+		readyServersSnapshotHandler: handler,
 	}, store
 }
 

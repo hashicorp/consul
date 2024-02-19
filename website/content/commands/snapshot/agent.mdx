@@ -14,7 +14,7 @@ Command: `consul snapshot agent`
 ~> The [`agent`](/consul/commands/snapshot/agent) subcommand described here is
 available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
 version 0.7.1 and later. All other [snapshot subcommands](/consul/commands/snapshot)
-are available in the open source version of Consul.
+are available in the community edition of Consul.
 
 The `snapshot agent` subcommand starts a process that takes snapshots of the
 state of the Consul servers and saves them locally, or pushes them to an
@@ -211,7 +211,7 @@ if desired.
   is useful for running snapshots via batch jobs. Defaults to "1h"
 
 - `-lock-key` - A prefix in Consul's KV store used to coordinate between
-  different instances of the snapshot agent order to only have one active instance
+  different instances of the snapshot agent in order to only have one active instance
   at a time. For highly available operation of the snapshot agent, simply run
   multiple instances. All instances must be configured with the same lock key in
   order to properly coordinate. Defaults to "consul-snapshot/lock".
@@ -242,7 +242,7 @@ if desired.
 - `-log-level` - Controls verbosity of snapshot agent logs. Valid options are
   "trace", "debug", "info", "warn", "error". Defaults to "info".
 
-- `-service` - The service name to used when registering the agent with Consul.
+- `-service` - The service name to use when registering the agent with Consul.
   Registering helps monitor running agents and the leader registers an additional
   health check to monitor that snapshots are taking place. Defaults to
   "consul-snapshot".

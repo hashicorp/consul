@@ -109,7 +109,6 @@
                             "key":  "trust-domain",
                             "regexValueRewrite":  {
                               "pattern":  {
-                                "googleRe2":  {},
                                 "regex":  ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution":  "\\1"
@@ -123,7 +122,6 @@
                             "key":  "partition",
                             "regexValueRewrite":  {
                               "pattern":  {
-                                "googleRe2":  {},
                                 "regex":  ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution":  "\\2"
@@ -137,7 +135,6 @@
                             "key":  "namespace",
                             "regexValueRewrite":  {
                               "pattern":  {
-                                "googleRe2":  {},
                                 "regex":  ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution":  "\\3"
@@ -151,7 +148,6 @@
                             "key":  "datacenter",
                             "regexValueRewrite":  {
                               "pattern":  {
-                                "googleRe2":  {},
                                 "regex":  ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution":  "\\4"
@@ -165,7 +161,6 @@
                             "key":  "service",
                             "regexValueRewrite":  {
                               "pattern":  {
-                                "googleRe2":  {},
                                 "regex":  ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
                               },
                               "substitution":  "\\5"

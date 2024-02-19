@@ -95,6 +95,16 @@ type ConfigEntry interface {
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *acl.EnterpriseMeta
 	GetRaftIndex() *RaftIndex
+	GetHash() uint64
+	SetHash(h uint64)
+}
+
+func HashConfigEntry(conf ConfigEntry) (uint64, error) {
+	hash, err := hashstructure.Hash(conf, nil)
+	if err != nil {
+		return hash, err
+	}
+	return hash, nil
 }
 
 // ControlledConfigEntry is an optional interface implemented by a ConfigEntry
@@ -165,11 +175,21 @@ type ServiceConfigEntry struct {
 	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
 	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
+	RateLimits                *RateLimits            `json:",omitempty" alias:"rate_limits"`
 	EnvoyExtensions           EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
@@ -224,6 +244,11 @@ func (e *ServiceConfigEntry) Normalize() error {
 			}
 		}
 	}
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 
 	return validationErr
 }
@@ -284,6 +309,10 @@ func (e *ServiceConfigEntry) Validate() error {
 		if e.Destination.Port < 1 || e.Destination.Port > 65535 {
 			validationErr = multierror.Append(validationErr, fmt.Errorf("Invalid Port number %d", e.Destination.Port))
 		}
+	}
+
+	if err := validateRatelimit(e.RateLimits); err != nil {
+		validationErr = multierror.Append(validationErr, err)
 	}
 
 	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
@@ -382,14 +411,51 @@ type DestinationConfig struct {
 	Port int `json:",omitempty"`
 }
 
-func IsHostname(address string) bool {
-	ip := net.ParseIP(address)
-	return ip == nil
-}
-
 func IsIP(address string) bool {
 	ip := net.ParseIP(address)
 	return ip != nil
+}
+
+// RateLimits is rate limiting configuration that is applied to
+// inbound traffic for a service.
+// Rate limiting is a Consul enterprise feature.
+type RateLimits struct {
+	InstanceLevel InstanceLevelRateLimits `alias:"instance_level"`
+}
+
+// InstanceLevelRateLimits represents rate limit configuration
+// that are applied per service instance.
+type InstanceLevelRateLimits struct {
+	// RequestsPerSecond is the average number of requests per second that can be
+	// made without being throttled. This field is required if RequestsMaxBurst
+	// is set. The allowed number of requests may exceed RequestsPerSecond up to
+	// the value specified in RequestsMaxBurst.
+	//
+	// Internally, this is the refill rate of the token bucket used for rate limiting.
+	RequestsPerSecond int `alias:"requests_per_second"`
+
+	// RequestsMaxBurst is the maximum number of requests that can be sent
+	// in a burst. Should be equal to or greater than RequestsPerSecond.
+	// If unset, defaults to RequestsPerSecond.
+	//
+	// Internally, this is the maximum size of the token bucket used for rate limiting.
+	RequestsMaxBurst int `alias:"requests_max_burst"`
+
+	// Routes is a list of rate limits applied to specific routes.
+	// For a given request, the first matching route will be applied, if any.
+	// Overrides any top-level configuration.
+	Routes []InstanceLevelRouteRateLimits
+}
+
+// InstanceLevelRouteRateLimits represents rate limit configuration
+// applied to a route matching one of PathExact/PathPrefix/PathRegex.
+type InstanceLevelRouteRateLimits struct {
+	PathExact  string `alias:"path_exact"`
+	PathPrefix string `alias:"path_prefix"`
+	PathRegex  string `alias:"path_regex"`
+
+	RequestsPerSecond int `alias:"requests_per_second"`
+	RequestsMaxBurst  int `alias:"requests_max_burst"`
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
@@ -397,6 +463,7 @@ type ProxyConfigEntry struct {
 	Kind                 string
 	Name                 string
 	Config               map[string]interface{}
+	Protocol             string                               `json:"-"`
 	Mode                 ProxyMode                            `json:",omitempty"`
 	TransparentProxy     TransparentProxyConfig               `json:",omitempty" alias:"transparent_proxy"`
 	MutualTLSMode        MutualTLSMode                        `json:",omitempty" alias:"mutual_tls_mode"`
@@ -408,8 +475,17 @@ type ProxyConfigEntry struct {
 	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ProxyConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ProxyConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ProxyConfigEntry) GetKind() string {
@@ -431,6 +507,22 @@ func (e *ProxyConfigEntry) GetMeta() map[string]string {
 	return e.Meta
 }
 
+func (e *ProxyConfigEntry) ComputeProtocol() error {
+	// proxyConfig is a snippet from agent/xds/config.go:ProxyConfig
+	// We calculate this up-front so that the expensive mapstructure decode
+	// is not needed during discovery chain compile time.
+	type proxyConfig struct {
+		Protocol string `mapstructure:"protocol"`
+	}
+	var cfg proxyConfig
+	err := mapstructure.WeakDecode(e.Config, &cfg)
+	if err != nil {
+		return err
+	}
+	e.Protocol = cfg.Protocol
+	return nil
+}
+
 func (e *ProxyConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
@@ -448,7 +540,17 @@ func (e *ProxyConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
+	if err := e.ComputeProtocol(); err != nil {
+		return err
+	}
+
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
+
 }
 
 func (e *ProxyConfigEntry) Validate() error {
@@ -824,19 +926,6 @@ type ServiceConfigRequest struct {
 
 func (s *ServiceConfigRequest) RequestDatacenter() string {
 	return s.Datacenter
-}
-
-// GetLocalUpstreamIDs returns the list of non-peer service ids for upstreams defined on this request.
-// This is often used for fetching service-defaults config entries.
-func (s *ServiceConfigRequest) GetLocalUpstreamIDs() []ServiceID {
-	var upstreams []ServiceID
-	for i := range s.UpstreamServiceNames {
-		u := &s.UpstreamServiceNames[i]
-		if u.Peer == "" {
-			upstreams = append(upstreams, u.ServiceName.ToServiceID())
-		}
-	}
-	return upstreams
 }
 
 func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
@@ -1218,6 +1307,7 @@ type ServiceConfigResponse struct {
 	Mode             ProxyMode              `json:",omitempty"`
 	Destination      DestinationConfig      `json:",omitempty"`
 	AccessLogs       AccessLogsConfig       `json:",omitempty"`
+	RateLimits       RateLimits             `json:",omitempty"`
 	Meta             map[string]string      `json:",omitempty"`
 	EnvoyExtensions  []EnvoyExtension       `json:",omitempty"`
 	QueryMeta

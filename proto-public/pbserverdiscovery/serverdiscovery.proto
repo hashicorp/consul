@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 // Package serverdiscovery provides a service on Consul servers to discover the set of servers
 // currently able to handle incoming requests.

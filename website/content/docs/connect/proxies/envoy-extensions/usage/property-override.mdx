@@ -72,25 +72,27 @@ EnvoyExtensions = [
 <CodeBlockConfig filename="property-override-extension-service-defaults.json">
 
 ```json
-"kind": "service-defaults",
-"name": "api",
-"protocol": "http",
-"envoyExtensions": [{
-  "name": "builtin/property-override",
-  "arguments": {
-    "proxyType": "connect-proxy",
-    "patches": [{
-      "resourceFilter": {
-        "resourceType": "cluster", 
-        "trafficDirection": "outbound",
-        "services": [{ "name":  "other-svc" }]
-      },
-      "op": "add",
-      "path": "/respect_dns_ttl",
-      "value": true
-    }]
-  }
-}]
+{
+  "kind": "service-defaults",
+  "name": "api",
+  "protocol": "http",
+  "envoyExtensions": [{
+    "name": "builtin/property-override",
+    "arguments": {
+      "proxyType": "connect-proxy",
+      "patches": [{
+        "resourceFilter": {
+          "resourceType": "cluster",
+          "trafficDirection": "outbound",
+          "services": [{ "name":  "other-svc" }]
+        },
+        "op": "add",
+        "path": "/respect_dns_ttl",
+        "value": true
+      }]
+    }
+  }]
+}
 ```
 </CodeBlockConfig>
 </Tab>

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package resourcehcl
 
 import (
@@ -30,6 +33,9 @@ func (n fieldNamer) GetField(fds protoreflect.FieldDescriptors, name string) pro
 		}
 	}
 
+	if len(name) <= 1 {
+		return fds.ByJSONName(name)
+	}
 	camel := strings.ToLower(name[:1]) + name[1:]
 	return fds.ByJSONName(camel)
 }

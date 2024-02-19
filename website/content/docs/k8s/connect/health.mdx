@@ -20,7 +20,7 @@ The Consul health check's state reflects the pod's readiness status.
 1. If the pod is using [transparent proxy mode](/consul/docs/connect/transparent-proxy),
 the mutating webhook redirects all `http` based startup, liveness, and readiness probes in the pod through the Envoy proxy.
 This webhook is defined in the
-[`ExposePaths` configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
+[`ExposePaths` configuration](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference)
 for each probe so that kubelet can access the endpoint through the Envoy proxy.
 
 The mutation behavior can be disabled, by setting either the `consul.hashicorp.com/transparent-proxy-overwrite-probes`

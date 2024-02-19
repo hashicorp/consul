@@ -1,0 +1,3 @@
+```release-note:improvement
+resource: lowercase names enforced for v2 resources only.
+```

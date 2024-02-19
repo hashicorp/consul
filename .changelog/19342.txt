@@ -1,0 +1,3 @@
+```release-note:improvement
+Replaces UI Side Nav with Helios Design System Side Nav. Adds dc/partition/namespace searching in Side Nav.
+```

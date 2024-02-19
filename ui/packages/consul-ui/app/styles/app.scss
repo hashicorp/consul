@@ -25,7 +25,8 @@
 /* more semantically (for our project) named icons  */
 @import 'icons';
 /* global control of themeable components */
-@import 'themes';
+@import './base/color/index';
+
 /* debug only, this is empty during a production build */
 /* but uses the contents of ./debug.scss during dev */
 @import '_debug';

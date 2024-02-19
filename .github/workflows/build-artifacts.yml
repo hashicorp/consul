@@ -30,8 +30,13 @@ jobs:
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   dev-build-push:
-    needs: setup
+    needs:
+    - setup
+    - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -65,7 +70,7 @@ jobs:
 
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     
     - run: go env
 
@@ -80,7 +85,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
 
-    # NOTE: conditional specific logic as we store secrets in Vault in ENT and use GHA secrets in OSS.
+    # NOTE: conditional specific logic as we store secrets in Vault in ENT and use GHA secrets in CE.
     - name: Login to Docker Hub
       uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
       with:

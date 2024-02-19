@@ -1628,7 +1628,7 @@ func TestAllowedNets(t *testing.T) {
 }
 
 // assertIndex tests that X-Consul-Index is set and non-zero
-func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
+func assertIndex(t testutil.TestingTB, resp *httptest.ResponseRecorder) {
 	t.Helper()
 	require.NoError(t, checkIndex(resp))
 }

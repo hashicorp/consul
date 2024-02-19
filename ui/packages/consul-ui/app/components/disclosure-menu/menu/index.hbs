@@ -4,9 +4,7 @@
 }}
 
 <@disclosure.Details as |details|>
-  <PagedCollection
-    @items={{or @items (array)}}
-  as |pager|>
+  <PagedCollection @items={{or @items (array)}} as |pager|>
     <div
       {{on-outside 'click' @disclosure.close}}
       {{did-insert pager.viewport}}
@@ -14,17 +12,13 @@
       {{css-prop '--paged-row-height' returns=pager.rowHeight}}
       {{css-prop 'max-height' returns=pager.maxHeight}}
       class={{class-map
-        (array 'paged-collection-scroll' (includes pager.type (array 'virtual-scroll' 'native-scroll')))
+        (array
+          'paged-collection-scroll' (includes pager.type (array 'virtual-scroll' 'native-scroll'))
+        )
       }}
       ...attributes
     >
-      {{yield (hash
-        Menu=(component 'menu'
-          disclosure=@disclosure
-          pager=pager
-        )
-      )}}
+      {{yield (hash Menu=(component 'menu' disclosure=@disclosure pager=pager))}}
     </div>
   </PagedCollection>
 </@disclosure.Details>
-

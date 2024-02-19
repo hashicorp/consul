@@ -1,0 +1,3 @@
+```release-note:bug
+check: prevent go routine leakage when existing Defercheck of same check id is not nil
+```

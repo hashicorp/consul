@@ -29,6 +29,15 @@ type TestOptions struct {
 	// SupportsStronglyConsistentList indicates whether the given storage backend
 	// supports strongly consistent list operations.
 	SupportsStronglyConsistentList bool
+
+	// IgnoreWatchListSnapshotOperations indicates whether a given storage
+	// backend is expected to be consistent enough with reads to emit
+	// WatchEvent_Upsert after the initial sync.
+	//
+	// For instance, a replicated copy of the state store will have stale data
+	// and may return an initial snapshot of nothing, and follow it up by an
+	// upsert.
+	IgnoreWatchListSnapshotOperations bool
 }
 
 // Test runs a suite of tests against a storage.Backend implementation to check
@@ -314,7 +323,6 @@ func testListWatch(t *testing.T, opts TestOptions) {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 			namePrefix: "",
@@ -324,14 +332,12 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				seedData[2],
 				seedData[3],
 				seedData[5],
-				seedData[6],
 			},
 		},
-		"fixed partition, wildcard peer, wildcard namespace": {
+		"fixed partition, wildcard namespace": {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 			namePrefix: "",
@@ -340,30 +346,12 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				seedData[1],
 				seedData[2],
 				seedData[5],
-				seedData[6],
 			},
 		},
-		"wildcard partition, fixed peer, wildcard namespace": {
+		"wildcard partition, fixed namespace": {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  "local",
-				Namespace: storage.Wildcard,
-			},
-			namePrefix: "",
-			results: []*pbresource.Resource{
-				seedData[0],
-				seedData[1],
-				seedData[2],
-				seedData[3],
-				seedData[5],
-			},
-		},
-		"wildcard partition, wildcard peer, fixed namespace": {
-			resourceType: storage.UnversionedTypeFrom(typeAv1),
-			tenancy: &pbresource.Tenancy{
-				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: "default",
 			},
 			namePrefix: "",
@@ -371,29 +359,12 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				seedData[0],
 				seedData[1],
 				seedData[2],
-				seedData[6],
-			},
-		},
-		"fixed partition, fixed peer, wildcard namespace": {
-			resourceType: storage.UnversionedTypeFrom(typeAv1),
-			tenancy: &pbresource.Tenancy{
-				Partition: "default",
-				PeerName:  "local",
-				Namespace: storage.Wildcard,
-			},
-			namePrefix: "",
-			results: []*pbresource.Resource{
-				seedData[0],
-				seedData[1],
-				seedData[2],
-				seedData[5],
 			},
 		},
 		"wildcard tenancy, name prefix": {
 			resourceType: storage.UnversionedTypeFrom(typeAv1),
 			tenancy: &pbresource.Tenancy{
 				Partition: storage.Wildcard,
-				PeerName:  storage.Wildcard,
 				Namespace: storage.Wildcard,
 			},
 			namePrefix: "a",
@@ -402,9 +373,9 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				seedData[1],
 				seedData[3],
 				seedData[5],
-				seedData[6],
 			},
 		},
+		// TODO(peering/v2) add tests for peer tenancy
 	}
 
 	t.Run("List", func(t *testing.T) {
@@ -454,15 +425,22 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				require.NoError(t, err)
 				t.Cleanup(watch.Close)
 
-				for i := 0; i < len(tc.results); i++ {
+				expectNum := len(tc.results) + 1
+				for i := 0; i < expectNum; i++ {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 					t.Cleanup(cancel)
 
 					event, err := watch.Next(ctx)
 					require.NoError(t, err)
 
-					require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, event.Operation)
-					prototest.AssertContainsElement(t, tc.results, event.Resource, ignoreVersion)
+					if opts.IgnoreWatchListSnapshotOperations && event.GetEndOfSnapshot() != nil {
+						continue // ignore
+					} else if !opts.IgnoreWatchListSnapshotOperations && i == expectNum-1 {
+						require.NotNil(t, event.GetEndOfSnapshot(), "expected EndOfSnapshot got %T", event.GetEvent())
+						continue
+					}
+					require.NotNil(t, event.GetUpsert(), "index=%d", i)
+					prototest.AssertContainsElement(t, tc.results, event.GetUpsert().Resource, ignoreVersion)
 				}
 			})
 
@@ -473,6 +451,15 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
 				require.NoError(t, err)
 				t.Cleanup(watch.Close)
+
+				{ // read snapshot end
+					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+					t.Cleanup(cancel)
+					event, err := watch.Next(ctx)
+					require.NoError(t, err)
+
+					require.NotNil(t, event.GetEndOfSnapshot())
+				}
 
 				// Write the seed data after the watch has been established.
 				for _, r := range seedData {
@@ -487,13 +474,13 @@ func testListWatch(t *testing.T, opts TestOptions) {
 					event, err := watch.Next(ctx)
 					require.NoError(t, err)
 
-					require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, event.Operation)
-					prototest.AssertContainsElement(t, tc.results, event.Resource, ignoreVersion)
+					require.NotNil(t, event.GetUpsert())
+					prototest.AssertContainsElement(t, tc.results, event.GetUpsert().Resource, ignoreVersion)
 
 					// Check that Read implements "monotonic reads" with Watch.
-					readRes, err := backend.Read(ctx, storage.EventualConsistency, event.Resource.Id)
+					readRes, err := backend.Read(ctx, storage.EventualConsistency, event.GetUpsert().Resource.Id)
 					require.NoError(t, err)
-					prototest.AssertDeepEqual(t, event.Resource, readRes)
+					prototest.AssertDeepEqual(t, event.GetUpsert().Resource, readRes)
 				}
 
 				// Delete a random resource to check we get an event.
@@ -507,8 +494,8 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				event, err := watch.Next(ctx)
 				require.NoError(t, err)
 
-				require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, event.Operation)
-				prototest.AssertDeepEqual(t, del, event.Resource)
+				require.NotNil(t, event.GetDelete())
+				prototest.AssertDeepEqual(t, del, event.GetDelete().Resource)
 
 				// Check that Read implements "monotonic reads" with Watch.
 				_, err = backend.Read(ctx, storage.EventualConsistency, del.Id)
@@ -610,23 +597,15 @@ var (
 	}
 	tenancyDefault = &pbresource.Tenancy{
 		Partition: "default",
-		PeerName:  "local",
 		Namespace: "default",
 	}
 
 	tenancyDefaultOtherNamespace = &pbresource.Tenancy{
 		Partition: "default",
-		PeerName:  "local",
 		Namespace: "other",
-	}
-	tenancyDefaultOtherPeer = &pbresource.Tenancy{
-		Partition: "default",
-		PeerName:  "remote",
-		Namespace: "default",
 	}
 	tenancyOther = &pbresource.Tenancy{
 		Partition: "billing",
-		PeerName:  "local",
 		Namespace: "payments",
 	}
 
@@ -637,7 +616,6 @@ var (
 		resource(typeAv1, tenancyOther, "api"),                        // 3
 		resource(typeB, tenancyDefault, "admin"),                      // 4
 		resource(typeAv1, tenancyDefaultOtherNamespace, "autoscaler"), // 5
-		resource(typeAv1, tenancyDefaultOtherPeer, "amplifier"),       // 6
 	}
 
 	ignoreVersion = protocmp.IgnoreFields(&pbresource.Resource{}, "version")

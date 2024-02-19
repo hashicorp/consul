@@ -439,6 +439,9 @@
         redirect: '../settings',
       },
     },
+    unavailable: {
+      _options: { path: '/unavailable' },
+    },
     notfound: {
       _options: { path: '/*notfound' },
     },

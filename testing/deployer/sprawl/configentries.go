@@ -47,7 +47,7 @@ func (s *Sprawl) populateInitialConfigEntries(cluster *topology.Cluster) error {
 				err,
 			)
 		}
-		logger.Info("wrote initial config entry",
+		logger.Debug("wrote initial config entry",
 			"kind", ce.GetKind(),
 			"name", ce.GetName(),
 			"namespace", ce.GetNamespace(),

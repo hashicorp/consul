@@ -5,12 +5,12 @@ package workloadhealth
 
 import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
-	StatusKey              = "consul.io/workload-health"
+	ControllerID           = "consul.io/workload-health"
 	StatusConditionHealthy = "healthy"
 
 	NodeAndWorkloadHealthyMessage   = "All workload and associated node health checks are passing"

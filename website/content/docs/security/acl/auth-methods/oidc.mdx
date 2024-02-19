@@ -86,7 +86,9 @@ parameters are required to properly configure an auth method of type
 
 ```json
 {
-    ...other fields...
+    "Name": "example-oidc-auth",
+    "Type": "oidc",
+    "Description": "Example OIDC auth method",
     "Config": {
         "AllowedRedirectURIs": [
             "http://localhost:8550/oidc/callback",

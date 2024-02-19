@@ -721,7 +721,7 @@ func newNewSnapshotToFollowEvent() *pbsubscribe.Event {
 }
 
 // getNamespace returns a namespace if namespace support exists, otherwise
-// returns the empty string. It allows the same tests to work in both oss and ent
+// returns the empty string. It allows the same tests to work in both ce and ent
 // without duplicating the tests.
 func getNamespace(ns string) string {
 	meta := structs.NewEnterpriseMetaInDefaultPartition(ns)

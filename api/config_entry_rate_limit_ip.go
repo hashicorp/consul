@@ -4,8 +4,8 @@
 package api
 
 type ReadWriteRatesConfig struct {
-	ReadRate  float64
-	WriteRate float64
+	ReadRate  float64 `alias:"read_rate"`
+	WriteRate float64 `alias:"write_rate"`
 }
 
 type RateLimitIPConfigEntry struct {
@@ -16,8 +16,8 @@ type RateLimitIPConfigEntry struct {
 
 	Meta map[string]string `json:",omitempty"`
 	// overall limits
-	ReadRate  float64
-	WriteRate float64
+	ReadRate  float64 `alias:"read_rate"`
+	WriteRate float64 `alias:"write_rate"`
 
 	//limits specific to a type of call
 	ACL             *ReadWriteRatesConfig `json:",omitempty"` //	OperationCategoryACL             OperationCategory = "ACL"

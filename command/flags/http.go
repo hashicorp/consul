@@ -29,6 +29,7 @@ type HTTPFlags struct {
 	// multi-tenancy flags
 	namespace StringValue
 	partition StringValue
+	peer      StringValue
 }
 
 func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
@@ -109,6 +110,10 @@ func (f *HTTPFlags) Partition() string {
 	return f.partition.String()
 }
 
+func (f *HTTPFlags) PeerName() string {
+	return f.peer.String()
+}
+
 func (f *HTTPFlags) Stale() bool {
 	if f.stale.v == nil {
 		return false
@@ -173,4 +178,10 @@ func (f *HTTPFlags) AddPartitionFlag(fs *flag.FlagSet) {
 		"Specifies the admin partition to query. If not provided, the admin partition will be inferred "+
 			"from the request's ACL token, or will default to the `default` admin partition. "+
 			"Admin Partitions are a Consul Enterprise feature.")
+}
+
+func (f *HTTPFlags) AddPeerName() *flag.FlagSet {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	fs.Var(&f.peer, "peer", "Specifies the name of peer to query. By default, it is `local`.")
+	return fs
 }

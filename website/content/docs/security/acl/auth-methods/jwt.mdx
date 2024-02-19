@@ -92,7 +92,9 @@ parameters are required to properly configure an auth method of type
 
 ```json
 {
-    ...other fields...
+    "Name": "example-jwt-auth-static-keys",
+    "Type": "jwt",
+    "Description": "Example JWT auth method with static keys",
     "Config": {
         "BoundIssuer": "corp-issuer",
         "JWTValidationPubKeys": [
@@ -113,7 +115,9 @@ parameters are required to properly configure an auth method of type
 
 ```json
 {
-    ...other fields...
+    "Name": "example-jwt-auth-jwks",
+    "Type": "jwt",
+    "Description": "Example JWT auth method with JWKS",
     "Config": {
         "JWKSURL": "https://my-corp-jwks-url.example.com/",
         "ClaimMappings": {
@@ -131,7 +135,9 @@ parameters are required to properly configure an auth method of type
 
 ```json
 {
-    ...other fields...
+    "Name": "example-oidc-auth",
+    "Type": "oidc",
+    "Description": "Example OIDC auth method",
     "Config": {
         "BoundAudiences": [
             "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt"

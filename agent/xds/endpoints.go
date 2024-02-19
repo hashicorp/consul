@@ -6,8 +6,9 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"strconv"
+
+	"github.com/hashicorp/go-hclog"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -15,12 +16,12 @@ import (
 	"github.com/hashicorp/go-bexpr"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 )
 
 const (
@@ -278,7 +279,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			lbEndpoint := &envoy_endpoint_v3.LbEndpoint{
 				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 					Endpoint: &envoy_endpoint_v3.Endpoint{
-						Address: makeAddress(addr, port),
+						Address: response.MakeAddress(addr, port),
 					},
 				},
 				HealthStatus: envoy_core_v3.HealthStatus_UNKNOWN,
@@ -335,7 +336,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			serverEndpoints = append(serverEndpoints, &envoy_endpoint_v3.LbEndpoint{
 				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 					Endpoint: &envoy_endpoint_v3.Endpoint{
-						Address: makeAddress(addr, port),
+						Address: response.MakeAddress(addr, port),
 					},
 				},
 			})
@@ -584,7 +585,7 @@ func makeEndpoint(host string, port int) *envoy_endpoint_v3.LbEndpoint {
 	return &envoy_endpoint_v3.LbEndpoint{
 		HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 			Endpoint: &envoy_endpoint_v3.Endpoint{
-				Address: makeAddress(host, port),
+				Address: response.MakeAddress(host, port),
 			},
 		},
 	}
@@ -594,7 +595,7 @@ func makePipeEndpoint(path string) *envoy_endpoint_v3.LbEndpoint {
 	return &envoy_endpoint_v3.LbEndpoint{
 		HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 			Endpoint: &envoy_endpoint_v3.Endpoint{
-				Address: makePipeAddress(path, 0),
+				Address: response.MakePipeAddress(path, 0),
 			},
 		},
 	}
@@ -749,6 +750,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			}
 			switch len(groupedTarget.Targets) {
 			case 0:
+				s.Logger.Trace("skipping endpoint generation for zero-length target group", "cluster", clusterName)
 				continue
 			case 1:
 				// We expect one target so this passes through to continue setting the load assignment up.
@@ -756,7 +758,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				return nil, fmt.Errorf("cannot have more than one target")
 			}
 			ti := groupedTarget.Targets[0]
-			s.Logger.Debug("generating endpoints for", "cluster", clusterName, "targetID", ti.TargetID)
+			s.Logger.Trace("generating endpoints for", "cluster", clusterName, "targetID", ti.TargetID, "gatewayKey", gatewayKey)
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(ti.TargetID)
 			if targetUID.Peer != "" {
 				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, targetUID, mgwMode)
@@ -778,6 +780,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				forMeshGateway,
 			)
 			if !valid {
+				s.Logger.Trace("skipping endpoint generation for invalid target group", "cluster", clusterName)
 				continue // skip the cluster if we're still populating the snapshot
 			}
 
@@ -877,13 +880,7 @@ func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, c
 		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(endpointGroups)),
 	}
 
-	if len(endpointGroups) > 1 {
-		cla.Policy = &envoy_endpoint_v3.ClusterLoadAssignment_Policy{
-			// We choose such a large value here that the failover math should
-			// in effect not happen until zero instances are healthy.
-			OverprovisioningFactor: makeUint32Value(100000),
-		}
-	}
+	setFullFailoverProvisioningFactor := len(endpointGroups) > 1
 
 	var priority uint32
 
@@ -892,6 +889,10 @@ func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, c
 
 		if err != nil {
 			continue
+		}
+
+		if len(endpointsByLocality) > 1 {
+			setFullFailoverProvisioningFactor = true
 		}
 
 		for _, endpoints := range endpointsByLocality {
@@ -907,14 +908,14 @@ func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, c
 				}
 
 				endpoint := &envoy_endpoint_v3.Endpoint{
-					Address: makeAddress(addr, port),
+					Address: response.MakeAddress(addr, port),
 				}
 				es = append(es, &envoy_endpoint_v3.LbEndpoint{
 					HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 						Endpoint: endpoint,
 					},
 					HealthStatus:        healthStatus,
-					LoadBalancingWeight: makeUint32Value(weight),
+					LoadBalancingWeight: response.MakeUint32Value(weight),
 				})
 			}
 
@@ -924,6 +925,14 @@ func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, c
 			})
 
 			priority++
+		}
+	}
+
+	if setFullFailoverProvisioningFactor {
+		cla.Policy = &envoy_endpoint_v3.ClusterLoadAssignment_Policy{
+			// We choose such a large value here that the failover math should
+			// in effect not happen until zero instances are healthy.
+			OverprovisioningFactor: response.MakeUint32Value(100000),
 		}
 	}
 

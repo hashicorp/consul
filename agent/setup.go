@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
+	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpcInt "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
@@ -137,17 +138,15 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
 
 	var extraSinks []metrics.MetricSink
-	if cfg.IsCloudEnabled() {
-		// This values is set late within newNodeIDFromConfig above
-		cfg.Cloud.NodeID = cfg.NodeID
+	// This values is set late within newNodeIDFromConfig above
+	cfg.Cloud.NodeID = cfg.NodeID
 
-		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"))
-		if err != nil {
-			return d, err
-		}
-		if d.HCP.Sink != nil {
-			extraSinks = append(extraSinks, d.HCP.Sink)
-		}
+	d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"), cfg.DataDir)
+	if err != nil {
+		return d, err
+	}
+	if d.HCP.Sink != nil {
+		extraSinks = append(extraSinks, d.HCP.Sink)
 	}
 
 	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger, extraSinks...)
@@ -185,6 +184,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 			TestOverrideCAChangeInitialDelay: cfg.ConnectTestCALeafRootChangeSpread,
 		},
 	})
+	// Set the leaf cert manager in the embedded deps type so it can be used by consul servers.
+	d.Deps.LeafCertManager = d.LeafCertManager
 
 	agentType := "client"
 	if cfg.ServerMode {
@@ -271,6 +272,9 @@ func (bd BaseDeps) Close() {
 	bd.AutoConfig.Stop()
 	bd.LeafCertManager.Stop()
 	bd.MetricsConfig.Cancel()
+	if bd.HCP.Sink != nil {
+		bd.HCP.Sink.Shutdown()
+	}
 
 	for _, fn := range []func(){bd.deregisterBalancer, bd.deregisterResolver, bd.stopHostCollector} {
 		if fn != nil {
@@ -379,7 +383,9 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		gauges = append(gauges, verifierGauges)
 	}
 
-	if isServer && cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL {
+	if isServer &&
+		(cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL ||
+			cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendDefault) {
 
 		walGauges := make([]prometheus.GaugeDefinition, 0)
 		for _, d := range wal.MetricDefinitions.Gauges {
@@ -429,6 +435,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		consul.CatalogCounters,
 		consul.ClientCounters,
 		consul.RPCCounters,
+		discovery.DNSCounters,
 		grpcWare.StatsCounters,
 		local.StateCounters,
 		xds.StatsCounters,
@@ -450,7 +457,9 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		}
 		counters = append(counters, verifierCounters)
 	}
-	if isServer && cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL {
+	if isServer &&
+		(cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL ||
+			cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendDefault) {
 		walCounters := make([]prometheus.CounterDefinition, 0)
 		for _, d := range wal.MetricDefinitions.Counters {
 			walCounters = append(walCounters, prometheus.CounterDefinition{
@@ -506,7 +515,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		consul.LeaderSummaries,
 		consul.PreparedQuerySummaries,
 		consul.RPCSummaries,
-		consul.SegmentOSSSummaries,
+		consul.SegmentCESummaries,
 		consul.SessionSummaries,
 		consul.SessionEndpointSummaries,
 		consul.TxnSummaries,

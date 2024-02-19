@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	"github.com/hashicorp/consul/agent/dns"
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -253,7 +252,7 @@ type RuntimeConfig struct {
 	// client agents try the first server in the list every time.
 	//
 	// hcl: dns_config { recursor_strategy = "(random|sequential)" }
-	DNSRecursorStrategy dns.RecursorStrategy
+	DNSRecursorStrategy structs.RecursorStrategy
 
 	// DNSRecursorTimeout specifies the timeout in seconds
 	// for Consul's internal dns client used for recursion.
@@ -273,7 +272,7 @@ type RuntimeConfig struct {
 	// Records returned in the ANSWER section of a DNS response for UDP
 	// responses without EDNS support (limited to 512 bytes).
 	// This parameter is deprecated, if you want to limit the number of
-	// records returned by A or AAAA questions, please use DNSARecordLimit
+	// records returned by A or AAAA questions, please use TestDNS_ServiceLookup_Randomize
 	// instead.
 	//
 	// hcl: dns_config { udp_answer_limit = int }
@@ -565,6 +564,15 @@ type RuntimeConfig struct {
 	// flag: -data-dir string
 	DataDir string
 
+	// DefaultIntentionPolicy is used to define a default intention action for all
+	// sources and destinations. Possible values are "allow", "deny", or "" (blank).
+	// For compatibility, falls back to ACLResolverSettings.ACLDefaultPolicy (which
+	// itself has a default of "allow") if left blank. Future versions of Consul
+	// will default this field to "deny" to be secure by default.
+	//
+	// hcl: default_intention_policy = string
+	DefaultIntentionPolicy string
+
 	// DefaultQueryTime is the amount of time a blocking query will wait before
 	// Consul will force a response. This value can be overridden by the 'wait'
 	// query parameter.
@@ -716,6 +724,19 @@ type RuntimeConfig struct {
 	//
 	// hcl: client_addr = string addresses { grpc_tls = string } ports { grpc_tls = int }
 	GRPCTLSAddrs []net.Addr
+
+	// GRPCKeepaliveInterval determines how frequently an HTTP2 keepalive will be broadcast
+	// whenever a GRPC connection is idle. This helps detect xds connections that have died.
+	//
+	// Since the xds load balancing between servers relies on knowing how many connections
+	// are active, this configuration ensures that they are routinely detected / cleaned up
+	// on an interval.
+	GRPCKeepaliveInterval time.Duration
+
+	// GRPCKeepaliveTimeout specifies how long a GRPC client has to reply to the keepalive
+	// messages spawned from GRPCKeepaliveInterval. If a client does not reply in this amount of
+	// time, the connection will be closed by the server.
+	GRPCKeepaliveTimeout time.Duration
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)

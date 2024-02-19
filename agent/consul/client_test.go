@@ -14,8 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/internal/resource"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
@@ -506,7 +504,7 @@ func newClient(t *testing.T, config *Config) *Client {
 	return client
 }
 
-func newTestResolverConfig(t *testing.T, suffix string, dc, agentType string) resolver.Config {
+func newTestResolverConfig(t testutil.TestingTB, suffix string, dc, agentType string) resolver.Config {
 	n := t.Name()
 	s := strings.Replace(n, "/", "", -1)
 	s = strings.Replace(s, "_", "", -1)
@@ -517,7 +515,7 @@ func newTestResolverConfig(t *testing.T, suffix string, dc, agentType string) re
 	}
 }
 
-func newDefaultDeps(t *testing.T, c *Config) Deps {
+func newDefaultDeps(t testutil.TestingTB, c *Config) Deps {
 	t.Helper()
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
@@ -578,7 +576,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
-		Registry:                 resource.NewRegistry(),
+		Registry:                 NewTypeRegistry(),
 	}
 }
 

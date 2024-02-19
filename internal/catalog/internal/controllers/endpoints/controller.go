@@ -7,88 +7,87 @@ import (
 	"context"
 	"sort"
 
-	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
-	"github.com/hashicorp/consul/internal/catalog/internal/types"
-	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
+	"github.com/hashicorp/consul/internal/controller/dependency"
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
 	endpointsMetaManagedBy = "managed-by-controller"
+
+	selectedWorkloadsIndexName = "selected-workloads"
 )
 
-// The WorkloadMapper interface is used to provide an implementation around being able
-// to map a watch even for a Workload resource and translate it to reconciliation requests
-type WorkloadMapper interface {
-	// MapWorkload conforms to the controller.DependencyMapper signature. Given a Workload
-	// resource it should report the resource IDs that have selected the workload.
-	MapWorkload(context.Context, controller.Runtime, *pbresource.Resource) ([]controller.Request, error)
-
-	// TrackIDForSelector should be used to associate the specified WorkloadSelector with
-	// the given resource ID. Future calls to MapWorkload
-	TrackIDForSelector(*pbresource.ID, *pbcatalog.WorkloadSelector)
-
-	// UntrackID should be used to inform the tracker to forget about the specified ID
-	UntrackID(*pbresource.ID)
-}
+type (
+	DecodedWorkload         = resource.DecodedResource[*pbcatalog.Workload]
+	DecodedService          = resource.DecodedResource[*pbcatalog.Service]
+	DecodedServiceEndpoints = resource.DecodedResource[*pbcatalog.ServiceEndpoints]
+)
 
 // ServiceEndpointsController creates a controller to perform automatic endpoint management for
 // services.
-func ServiceEndpointsController(workloadMap WorkloadMapper) controller.Controller {
-	if workloadMap == nil {
-		panic("No WorkloadMapper was provided to the ServiceEndpointsController constructor")
-	}
-
-	return controller.ForType(types.ServiceEndpointsType).
-		WithWatch(types.ServiceType, controller.ReplaceType(types.ServiceEndpointsType)).
-		WithWatch(types.WorkloadType, workloadMap.MapWorkload).
-		WithReconciler(newServiceEndpointsReconciler(workloadMap))
+func ServiceEndpointsController() *controller.Controller {
+	return controller.NewController(ControllerID, pbcatalog.ServiceEndpointsType).
+		WithWatch(pbcatalog.ServiceType,
+			// ServiceEndpoints are name-aligned with the Service type
+			dependency.ReplaceType(pbcatalog.ServiceEndpointsType),
+			// This cache index keeps track of the relationship between WorkloadSelectors (and the workload names and prefixes
+			// they include) and Services. This allows us to efficiently find all services and service endpoints that are
+			// are affected by the change to a workload.
+			workloadselector.Index[*pbcatalog.Service](selectedWorkloadsIndexName)).
+		WithWatch(pbcatalog.WorkloadType,
+			// The cache index is kept on the Service type but we need to translate events for ServiceEndpoints.
+			// Therefore we need to wrap the mapper from the workloadselector package with one which will
+			// replace the request types of Service with ServiceEndpoints.
+			dependency.WrapAndReplaceType(
+				pbcatalog.ServiceEndpointsType,
+				// This mapper will use the selected-workloads index to find all Services which select this
+				// workload by exact name or by prefix.
+				workloadselector.MapWorkloadsToSelectors(pbcatalog.ServiceType, selectedWorkloadsIndexName),
+			),
+		).
+		WithReconciler(newServiceEndpointsReconciler())
 }
 
-type serviceEndpointsReconciler struct {
-	workloadMap WorkloadMapper
-}
+type serviceEndpointsReconciler struct{}
 
-func newServiceEndpointsReconciler(workloadMap WorkloadMapper) *serviceEndpointsReconciler {
-	return &serviceEndpointsReconciler{
-		workloadMap: workloadMap,
-	}
+func newServiceEndpointsReconciler() *serviceEndpointsReconciler {
+	return &serviceEndpointsReconciler{}
 }
 
 // Reconcile will reconcile one ServiceEndpoints resource in response to some event.
 func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	// The runtime is passed by value so replacing it here for the remainder of this
 	// reconciliation request processing will not affect future invocations.
-	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
+	rt.Logger = rt.Logger.With("resource-id", req.ID)
 
 	rt.Logger.Trace("reconciling service endpoints")
 
 	endpointsID := req.ID
 	serviceID := &pbresource.ID{
-		Type:    types.ServiceType,
+		Type:    pbcatalog.ServiceType,
 		Tenancy: endpointsID.Tenancy,
 		Name:    endpointsID.Name,
 	}
 
 	// First we read and unmarshal the service
-
-	serviceData, err := getServiceData(ctx, rt, serviceID)
+	service, err := cache.GetDecoded[*pbcatalog.Service](rt.Cache, pbcatalog.ServiceType, "id", serviceID)
 	if err != nil {
 		rt.Logger.Error("error retrieving corresponding Service", "error", err)
 		return err
 	}
 
 	// Check if the service exists. If it doesn't we can avoid a bunch of other work.
-	if serviceData == nil {
+	if service == nil {
 		rt.Logger.Trace("service has been deleted")
-
-		// The service was deleted so we need to update the WorkloadMapper to tell it to
-		// stop tracking this service
-		r.workloadMap.UntrackID(req.ID)
 
 		// Note that because we configured ServiceEndpoints to be owned by the service,
 		// the service endpoints object should eventually be automatically deleted.
@@ -99,42 +98,37 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	// Now read and unmarshal the endpoints. We don't need this data just yet but all
 	// code paths from this point on will need this regardless of branching so we pull
 	// it now.
-	endpointsData, err := getEndpointsData(ctx, rt, endpointsID)
+	endpoints, err := cache.GetDecoded[*pbcatalog.ServiceEndpoints](rt.Cache, pbcatalog.ServiceEndpointsType, "id", endpointsID)
 	if err != nil {
 		rt.Logger.Error("error retrieving existing endpoints", "error", err)
 		return err
 	}
 
-	var status *pbresource.Condition
+	var statusConditions []*pbresource.Condition
 
-	if serviceUnderManagement(serviceData.service) {
+	if serviceUnderManagement(service.Data) {
 		rt.Logger.Trace("service is enabled for automatic endpoint management")
 		// This service should have its endpoints automatically managed
-		status = ConditionManaged
+		statusConditions = append(statusConditions, ConditionManaged)
 
-		// Inform the WorkloadMapper to track this service and its selectors. So
-		// future workload updates that would be matched by the services selectors
-		// cause this service to be rereconciled.
-		r.workloadMap.TrackIDForSelector(req.ID, serviceData.service.GetWorkloads())
-
-		// Now read and umarshal all workloads selected by the service. It is imperative
-		// that this happens after we notify the selection tracker to be tracking that
-		// selection criteria. If the order were reversed we could potentially miss
-		// workload creations that should be selected if they happen after gathering
-		// the workloads but before tracking the selector. Tracking first ensures that
-		// any event that happens after that would get mapped to an event for these
-		// endpoints.
-		workloadData, err := getWorkloadData(ctx, rt, serviceData)
+		// Now read and unmarshal all workloads selected by the service.
+		workloads, err := workloadselector.GetWorkloadsWithSelector(rt.Cache, service)
 		if err != nil {
 			rt.Logger.Trace("error retrieving selected workloads", "error", err)
 			return err
 		}
 
 		// Calculate the latest endpoints from the already gathered workloads
-		latestEndpoints := workloadsToEndpoints(serviceData.service, workloadData)
+		latestEndpoints := workloadsToEndpoints(service.Data, workloads)
+
+		// Add status
+		if endpoints != nil {
+			statusConditions = append(statusConditions,
+				workloadIdentityStatusFromEndpoints(latestEndpoints))
+		}
 
 		// Before writing the endpoints actually check to see if they are changed
-		if endpointsData == nil || !proto.Equal(endpointsData.endpoints, latestEndpoints) {
+		if endpoints == nil || !proto.Equal(endpoints.Data, latestEndpoints) {
 			rt.Logger.Trace("endpoints have changed")
 
 			// First encode the endpoints data as an Any type.
@@ -151,9 +145,9 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 			_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
 				Resource: &pbresource.Resource{
 					Id:    req.ID,
-					Owner: serviceData.resource.Id,
+					Owner: service.Id,
 					Metadata: map[string]string{
-						endpointsMetaManagedBy: StatusKey,
+						endpointsMetaManagedBy: ControllerID,
 					},
 					Data: endpointData,
 				},
@@ -168,22 +162,18 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	} else {
 		rt.Logger.Trace("endpoints are not being automatically managed")
 		// This service is not having its endpoints automatically managed
-		status = ConditionUnmanaged
-
-		// Inform the WorkloadMapper that it no longer needs to track this service
-		// as it is no longer under endpoint management
-		r.workloadMap.UntrackID(req.ID)
+		statusConditions = append(statusConditions, ConditionUnmanaged)
 
 		// Delete the managed ServiceEndpoints if necessary if the metadata would
 		// indicate that they were previously managed by this controller
-		if endpointsData != nil && endpointsData.resource.Metadata[endpointsMetaManagedBy] == StatusKey {
+		if endpoints != nil && endpoints.Metadata[endpointsMetaManagedBy] == ControllerID {
 			rt.Logger.Trace("removing previous managed endpoints")
 
 			// This performs a CAS deletion to protect against the case where the user
 			// has overwritten the endpoints since we fetched them.
 			_, err := rt.Client.Delete(ctx, &pbresource.DeleteRequest{
-				Id:      endpointsData.resource.Id,
-				Version: endpointsData.resource.Version,
+				Id:      endpoints.Id,
+				Version: endpoints.Version,
 			})
 
 			// Potentially we could look for CAS failures by checking if the gRPC
@@ -202,19 +192,17 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	// whether we are automatically managing the endpoints to set expectations
 	// for that object existing or not.
 	newStatus := &pbresource.Status{
-		ObservedGeneration: serviceData.resource.Generation,
-		Conditions: []*pbresource.Condition{
-			status,
-		},
+		ObservedGeneration: service.Generation,
+		Conditions:         statusConditions,
 	}
 	// If the status is unchanged then we should return and avoid the unnecessary write
-	if resource.EqualStatus(serviceData.resource.Status[StatusKey], newStatus, false) {
+	if resource.EqualStatus(service.Status[ControllerID], newStatus, false) {
 		return nil
 	}
 
 	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-		Id:     serviceData.resource.Id,
-		Key:    StatusKey,
+		Id:     service.Id,
+		Key:    ControllerID,
 		Status: newStatus,
 	})
 
@@ -230,7 +218,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 // or the status isn't in the expected form then this function will return
 // HEALTH_CRITICAL.
 func determineWorkloadHealth(workload *pbresource.Resource) pbcatalog.Health {
-	status, found := workload.Status[workloadhealth.StatusKey]
+	status, found := workload.Status[workloadhealth.ControllerID]
 	if !found {
 		return pbcatalog.Health_HEALTH_CRITICAL
 	}
@@ -270,7 +258,7 @@ func serviceUnderManagement(svc *pbcatalog.Service) bool {
 }
 
 // workloadsToEndpoints will translate the Workload resources into a ServiceEndpoints resource
-func workloadsToEndpoints(svc *pbcatalog.Service, workloads []*workloadData) *pbcatalog.ServiceEndpoints {
+func workloadsToEndpoints(svc *pbcatalog.Service, workloads []*DecodedWorkload) *pbcatalog.ServiceEndpoints {
 	var endpoints []*pbcatalog.Endpoint
 
 	for _, workload := range workloads {
@@ -295,8 +283,8 @@ func workloadsToEndpoints(svc *pbcatalog.Service, workloads []*workloadData) *pb
 // have reconciled the workloads health and stored it within the resources Status field.
 // Any unreconciled workload health will be represented in the ServiceEndpoints with
 // the ANY health status.
-func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.Endpoint {
-	health := determineWorkloadHealth(data.resource)
+func workloadToEndpoint(svc *pbcatalog.Service, workload *DecodedWorkload) *pbcatalog.Endpoint {
+	health := determineWorkloadHealth(workload.Resource)
 
 	endpointPorts := make(map[string]*pbcatalog.WorkloadPort)
 
@@ -304,14 +292,19 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 	// one of the services ports are included. Ports with a protocol mismatch
 	// between the service and workload will be excluded as well.
 	for _, svcPort := range svc.Ports {
-		workloadPort, found := data.workload.Ports[svcPort.TargetPort]
+		workloadPort, found := workload.Data.Ports[svcPort.TargetPort]
 		if !found {
 			// this workload doesn't have this port so ignore it
 			continue
 		}
 
-		if workloadPort.Protocol != svcPort.Protocol {
-			// workload port mismatch - ignore it
+		// If workload protocol is not specified, we will default to service's protocol.
+		// This is because on some platforms (kubernetes), workload protocol is not always
+		// known, and so we need to inherit from the service instead.
+		if workloadPort.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+			workloadPort.Protocol = svcPort.Protocol
+		} else if workloadPort.Protocol != svcPort.Protocol {
+			// Otherwise, there's workload port mismatch - ignore it.
 			continue
 		}
 
@@ -326,7 +319,7 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 	// address list. If some but not all of its ports are served, then the list
 	// of ports will be reduced to just the intersection of the service ports
 	// and the workload addresses ports
-	for _, addr := range data.workload.Addresses {
+	for _, addr := range workload.Data.Addresses {
 		var ports []string
 
 		if len(addr.Ports) > 0 {
@@ -376,9 +369,21 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 	}
 
 	return &pbcatalog.Endpoint{
-		TargetRef:    data.resource.Id,
+		TargetRef:    workload.Id,
 		HealthStatus: health,
 		Addresses:    workloadAddrs,
 		Ports:        endpointPorts,
+		Identity:     workload.Data.Identity,
+		Dns:          workload.Data.Dns,
 	}
+}
+
+func workloadIdentityStatusFromEndpoints(endpoints *pbcatalog.ServiceEndpoints) *pbresource.Condition {
+	identities := endpoints.GetIdentities()
+
+	if len(identities) > 0 {
+		return ConditionIdentitiesFound(identities)
+	}
+
+	return ConditionIdentitiesNotFound
 }

@@ -37,3 +37,25 @@ var (
 	_ ReferenceOrID = (*pbresource.ID)(nil)
 	_ ReferenceOrID = (*pbresource.Reference)(nil)
 )
+
+func ReferenceFromReferenceOrID(ref ReferenceOrID) *pbresource.Reference {
+	switch x := ref.(type) {
+	case *pbresource.Reference:
+		return x
+	default:
+		return &pbresource.Reference{
+			Type:    ref.GetType(),
+			Tenancy: ref.GetTenancy(),
+			Name:    ref.GetName(),
+			Section: "",
+		}
+	}
+}
+
+func ReplaceType(typ *pbresource.Type, id *pbresource.ID) *pbresource.ID {
+	return &pbresource.ID{
+		Type:    typ,
+		Name:    id.Name,
+		Tenancy: id.Tenancy,
+	}
+}

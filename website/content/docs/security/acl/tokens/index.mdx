@@ -15,7 +15,7 @@ Tokens are artifacts in the ACL system used to authenticate users, services, and
 
 Refer to the [ACL system workflow overview](/consul/docs/security/acl#workflow-overview) for information about tokens' role in the ACL system.
 
-## Creating Tokens
+## Creating tokens
 
 The person responsible for administrating ACLs can use the API or CLI to create and link tokens to entities that enable permissions to resources.
 Refer to the [ACL API](/consul/api-docs/acl) and [ACL CLI](/consul/commands/acl) documentation for instructions on how to create and link tokens. Tokens can also be created dynamically from trusted external system using an
@@ -29,35 +29,33 @@ Users deploying their services into the network or performing some operations in
 
 Tokens have several additional attributes. Refer to [Token Attributes](#token-attributes) for details.
 
-### Service Requests
+### Service requests
 
 Specify the value of the `SecretID` attribute with the `token` parameter when configuring your services. In the following example service configuration, the `token` has been included as a string parameter to the `redis` service:
 
 <CodeTabs>
 
-<CodeBlockConfig lineNumbers highlight="6">
+<CodeBlockConfig lineNumbers highlight="5">
 
 ```hcl
 service = {
   id = "redis"
   name = "redis"
-  ...
   namespace = "foo"
   token = "233b604b-b92e-48c8-a253-5f11514e4b50"
 }
 ```
 
 </CodeBlockConfig>
-<CodeBlockConfig lineNumbers highlight="6">
+<CodeBlockConfig lineNumbers highlight="5">
 
 ```json
 {
   "service": {
     "id": "redis",
     "name": "redis",
-    ...
-    "token": "233b604b-b92e-48c8-a253-5f11514e4b50",
-    "namespace": "foo"
+    "namespace": "foo",
+    "token": "233b604b-b92e-48c8-a253-5f11514e4b50"
   }
 }
 ```
@@ -68,7 +66,7 @@ service = {
 
 Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference) for additional information.
 
-### Agent Requests
+### Agent requests
 
 Consul agents can be configured to hold several ACL tokens (see [`tokens`](/consul/docs/agent/config/config-files#acl_tokens_default)) to accommodate several use cases. The following table describes agent configuration fields where ACLs are applicable and whether the configurations apply to servers, clients, or both.
 
@@ -103,7 +101,7 @@ tokens = {
 
 Refer to the [agent configurations documentation](/consul/docs/agent/config/config-files) for additional information.
 
-### Command Line Requests
+### Command line requests
 
 To make a request on the command line, specify the ACL token with the [`-token` command line flag](/consul/commands#authentication).
 In the following example, a token is included to enable the user to create an intention on the command line:
@@ -114,11 +112,11 @@ $ consul intention create -file one.json two.json -token "233b604b-b92e-48c8-a25
 
 Refer to the documentation for the command line operations you want to perform for additional information.
 
-#### Environment Variables
+#### Environment variables
 
 You can export tokens to environment variables on the local machine, which enable you to omit the `-token` flag when performing operations on the Consul command line. Refer to the [Consul command line documentation](/consul/commands#environment-variables) for details.
 
-### API Requests
+### API requests
 
 Specify the token in the HTTP `X-Consul-Token` header field to make an API request. Refer to the [HTTP API documentation](/consul/api-docs/api-structure#authentication) for details.
 
@@ -128,25 +126,26 @@ The following example shows the header for a GET request to the `agent/members` 
 $ curl --header "X-Consul-Token: <token>" "http://127.0.0.1:8500/v1/agent/members"
 ```
 
-## Token Attributes
+## Token attributes
 
 The following table is a partial list of attributes that a token may contain.
 Refer to the [API](/consul/api-docs/acl/tokens) or [command line](/consul/commands/acl/token) documentation for all attributes that can be assigned or generated for a token:
 
 | Attribute           | Description                                                                                                                                                                                                                                                | Type      | Default        |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------- |
-| `AccessorID`        | Used for [audit logging](/consul/docs/enterprise/audit-logging). The accessor ID is also returned in API responses to identify the token without revealing the secret ID.                                                                                         | String    | auto-generated |
+| `AccessorID`        | Used for [audit logging](/consul/docs/enterprise/audit-logging). The accessor ID is also returned in API responses to identify the token without revealing the secret ID.                                                                                  | String    | auto-generated |
 | `SecretID`          | Used to request access to resources, data, and APIs.                                                                                                                                                                                                       | String    | auto-generated |
-| `Partition`         | <EnterpriseAlert inline/> Specifies the name of the admin partition in which the token is valid. See [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.                                                                     | String    | `default`      |
-| `Namespace`         | <EnterpriseAlert inline/> Specifies the name of the Consul namespace in which the token is valid. See [Namespaces](/consul/docs/enterprise/namespaces) for additional information.                                                                                | String    | `default`      |
+| `Partition`         | <EnterpriseAlert inline/> Specifies the name of the admin partition in which the token is valid. See [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.                                                              | String    | `default`      |
+| `Namespace`         | <EnterpriseAlert inline/> Specifies the name of the Consul namespace in which the token is valid. See [Namespaces](/consul/docs/enterprise/namespaces) for additional information.                                                                         | String    | `default`      |
 | `Description`       | Human-readable description for documenting the purpose of the token.                                                                                                                                                                                       | String    | none           |
 | `Local`             | Indicates whether the token should be replicated globally or local to the datacenter. <br/> Set to `false` to replicate globally across all reachable datacenters. <br/>Setting to `true` configures the token to functional in the local datacenter only. | Boolean   | `false`        |
-| `ServiceIdentities` | Specifies a list of service identities to apply to the token. See [Service Identities](/consul/docs/security/acl/acl-roles#service-identities) in the "Roles" topic for additional information.                                                                   | Array     | none           |
-| `NodeIdentities`    | Specifies a list of node identities to apply to the token. See [Node Identities](/consul/docs/security/acl/acl-roles#node-identities) in the "Roles" topic for additional information.                                                                            | Array     | none           |
+| `TemplatedPolicies` | Specifies a list of templated policies to apply to the token. See [Templated Policies](/consul/docs/security/acl/acl-roles#templated-policies) in the "Roles" topic for additional information.                                                            | Array     | none          |
+| `ServiceIdentities` | Specifies a list of service identities to apply to the token. See [Service Identities](/consul/docs/security/acl/acl-roles#service-identities) in the "Roles" topic for additional information.                                                            | Array     | none           |
+| `NodeIdentities`    | Specifies a list of node identities to apply to the token. See [Node Identities](/consul/docs/security/acl/acl-roles#node-identities) in the "Roles" topic for additional information.                                                                     | Array     | none           |
 | `Policies`          | List of policies linked to the token, including the policy ID and name.                                                                                                                                                                                    | String    | none           |
-| `Roles`             | List of roles linked to the token, including the role ID and name.                                                                                                                                                                                      | String    | none           |
+| `Roles`             | List of roles linked to the token, including the role ID and name.                                                                                                                                                                                         | String    | none           |
 
-## Special-purpose Tokens
+## Special-purpose tokens
 
 Your ACL administrator can configure several tokens that enable specific functions, such as bootstrapping the ACL
 system or accessing Consul under specific conditions. The following table describes the special-purpose tokens:
@@ -157,14 +156,17 @@ system or accessing Consul under specific conditions. The following table descri
 | [`acl.tokens.agent`](/consul/docs/agent/config/config-files#acl_tokens_agent)                           | `OPTIONAL` | `OPTIONAL` | Used for internal agent operations. See [ACL Agent Token](#acl-agent-token) for details.                                                                                                                                                          |
 | [`acl.tokens.initial_management`](/consul/docs/agent/config/config-files#acl_tokens_initial_management) | `OPTIONAL` | `N/A`      | Used to bootstrap the ACL system. See [Initial Management Token](#initial-management-token).                                                                                                                                                      |
 | [`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default)                       | `OPTIONAL` | `OPTIONAL` | Specifies a default token to use for client requests if no token is supplied. This is commonly configured with read-only access to services to enable DNS service discovery on agents.                                                            |
+| [`acl.tokens.replication`](/consul/docs/agent/config/config-files#acl_tokens_replication)               | `OPTIONAL` | `N/A`      | Authorizes secondary datacenters to replicate data from the primary datacenter.                                                                                                                                                                   |
+| [`acl.tokens.config_file_service_registration`](/consul/docs/agent/config/config-files#acl_tokens_config_file_service_registration) | `OPTIONAL` | `OPTIONAL` | Registers services and checks from service and check definitions specified in configuration files or fragments passed to the agent using the `-hcl` flag.                                                             |
+| [`acl.tokens.dns`](/consul/docs/agent/config/config-files#acl_tokens_dns)                               | `OPTIONAL` | `OPTIONAL` | Enables the agent to answer DNS queries about services and nodes.                                                                                                                                                                                 |
 
 All reserved tokens except the `initial_management` token can be created or updated using the [/v1/agent/token API](/consul/api-docs/agent#update-acl-tokens).
 
-### Snapshot Tokens
+### Snapshot tokens
 
 Snapshots are artifacts created with the [snapshot API](/consul/api-docs/snapshot) for backup and recovery purposes. Snapshots contain ACL tokens and interacting with them requires a token with `acl:write` privileges.
 
-### ACL Agent Token
+### ACL agent token
 
 The [`acl.tokens.agent`](/consul/docs/agent/config/config-files#acl_tokens_agent) is a special token that is used for an agent's internal operations. It isn't used directly for any user-initiated operations like the [`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default), though if the `acl.tokens.agent` isn't configured the `acl.tokens.default` will be used. The ACL agent token is used for the following operations by the agent:
 
@@ -192,11 +194,11 @@ key_prefix "_rexec" {
 
 The `service_prefix` policy needs read access for any services that can be registered on the agent. If [remote exec is disabled](/consul/docs/agent/config/config-files#disable_remote_exec), the default, then the `key_prefix` policy can be omitted.
 
-## Built-in Tokens
+## Built-in tokens
 
 Consul includes a built-in anonymous token and initial management token. Both tokens are injected during when you bootstrap the cluster.
 
-### Anonymous Token
+### Anonymous token
 
 The anonymous token is used when a request is made to Consul without specifying a bearer token.
 This token has the following attributes (see [Token Attributes](#token-attributes) for additional information):
@@ -206,7 +208,7 @@ This token has the following attributes (see [Token Attributes](#token-attribute
 
 The description and policies may be updated, but the anonymous token cannot be deleted.
 
-### Initial Management Token
+### Initial management token
 
 Including an initial management token in the Consul configuration creates the
 token and links it with the built-in [global management](/consul/docs/security/acl/acl-policies#global-management) policy.
@@ -219,7 +221,7 @@ See the [Bootstrapping ACLs tutorial](/consul/tutorials/security/access-control-
 In Consul 1.4 - 1.10, this was called the `master` token. It was renamed to `initial_management` token in Consul 1.11.
 -->
 
-### ACL Agent Recovery Token
+### ACL agent recovery token
 
 The [`acl.tokens.agent_recovery`](/consul/docs/agent/config/config-files#acl_tokens_agent_recovery) is designed to be used when the Consul servers are not available. The policy linked to the token is managed locally on the agent and does not require a token to be defined on the Consul servers. Once set, it implicitly has the following policy associated with it
 

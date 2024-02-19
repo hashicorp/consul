@@ -553,6 +553,89 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	require.NotNil(t, token5)
 }
 
+func TestAPI_ACLToken_ListFiltered(t *testing.T) {
+	t.Parallel()
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	acl := c.ACL()
+	s.WaitForSerfCheck(t)
+
+	created1, _, err := acl.TokenCreate(&ACLToken{
+		Description: "token1",
+		ServiceIdentities: []*ACLServiceIdentity{
+			{ServiceName: "s1"},
+		},
+	}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, created1)
+	require.NotEqual(t, "", created1.AccessorID)
+	require.NotEqual(t, "", created1.SecretID)
+
+	created2, _, err := acl.TokenCreate(&ACLToken{
+		Description: "token2",
+		ServiceIdentities: []*ACLServiceIdentity{
+			{ServiceName: "s2"},
+		},
+	}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, created2)
+	require.NotEqual(t, "", created2.AccessorID)
+	require.NotEqual(t, "", created2.SecretID)
+
+	created3, _, err := acl.TokenCreate(&ACLToken{
+		Description: "token3",
+		ServiceIdentities: []*ACLServiceIdentity{
+			{ServiceName: "s1"},
+			{ServiceName: "s2"},
+		},
+	}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, created3)
+	require.NotEqual(t, "", created3.AccessorID)
+	require.NotEqual(t, "", created3.SecretID)
+
+	tokens, qm, err := acl.TokenListFiltered(ACLTokenFilterOptions{
+		ServiceName: "s1",
+	}, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
+	require.Len(t, tokens, 2)
+	found := make([]string, 0, 2)
+	for _, token := range tokens {
+		found = append(found, token.Description)
+	}
+	require.ElementsMatch(t, []string{"token1", "token3"}, found)
+
+	tokens, qm, err = acl.TokenListFiltered(ACLTokenFilterOptions{
+		ServiceName: "s2",
+	}, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
+	require.Len(t, tokens, 2)
+	found = make([]string, 0, 2)
+	for _, token := range tokens {
+		found = append(found, token.Description)
+	}
+	require.ElementsMatch(t, []string{"token2", "token3"}, found)
+
+	tokens, qm, err = acl.TokenListFiltered(ACLTokenFilterOptions{
+		ServiceName: "nothing",
+	}, nil)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, qm.LastIndex)
+	require.True(t, qm.KnownLeader)
+	require.Empty(t, tokens)
+
+	_, _, err = acl.TokenListFiltered(ACLTokenFilterOptions{
+		ServiceName: "s",
+		AuthMethod:  "a",
+	}, nil)
+	require.ErrorContains(t, err, "can only filter by one of")
+}
+
 func TestAPI_ACLToken_Clone(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)

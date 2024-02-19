@@ -1,0 +1,22 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/hashicorp/consul/internal/tools/protoc-gen-grpc-clone/e2e/proto
+plugins:
+  - name: go
+    out: .
+    opt:
+      - paths=source_relative
+  - name: go-grpc
+    out: .
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+  - name: grpc-clone
+    out: .
+    opt:
+      - paths=source_relative

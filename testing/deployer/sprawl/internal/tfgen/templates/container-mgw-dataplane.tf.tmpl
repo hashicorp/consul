@@ -1,0 +1,45 @@
+resource "docker_container" "{{.Node.DockerName}}-{{.Workload.ID.TFString}}" {
+	name = "{{.Node.DockerName}}-{{.Workload.ID.TFString}}"
+    network_mode = "container:${docker_container.{{.PodName}}.id}"
+    image        = docker_image.{{.ImageResource}}.image_id
+    restart      = "on-failure"
+
+{{- range $k, $v := .Labels }}
+  labels {
+    label = "{{ $k }}"
+    value = "{{ $v }}"
+  }
+{{- end }}
+
+  volumes {
+    volume_name    = "{{.TLSVolumeName}}"
+    container_path = "/consul/config/certs"
+    read_only      = true
+  }
+
+  env = [
+			"DP_CONSUL_ADDRESSES=server.{{.Node.Cluster}}-consulcluster.lan",
+			"DP_SERVICE_NODE_NAME={{.Node.PodName}}",
+			"DP_PROXY_SERVICE_ID={{.Workload.ID.Name}}",
+    {{ if .Enterprise }}
+      "DP_SERVICE_NAMESPACE={{.Workload.ID.Namespace}}",
+      "DP_SERVICE_PARTITION={{.Workload.ID.Partition}}",
+    {{ end }}
+    {{ if .Token }}
+      "DP_CREDENTIAL_TYPE=static",
+      "DP_CREDENTIAL_STATIC_TOKEN={{.Token}}",
+    {{ end }}
+      // for demo purposes
+			"DP_ENVOY_ADMIN_BIND_ADDRESS=0.0.0.0",
+			"DP_ENVOY_ADMIN_BIND_PORT=19000",
+			"DP_LOG_LEVEL=trace",
+			"DP_CA_CERTS=/consul/config/certs/consul-agent-ca.pem",
+			"DP_CONSUL_GRPC_PORT=8503",
+			"DP_TLS_SERVER_NAME=server.{{.Node.Datacenter}}.consul",
+  ]
+
+  command = [
+    "/usr/local/bin/consul-dataplane",
+  ]
+}
+

@@ -19,21 +19,15 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	if err != nil {
 		return nil, err
 	}
-	if config == nil || config.ClusterID == "" {
-		return nil, fmt.Errorf("CA has not finished initializing")
+
+	trustDomain, err := s.getTrustDomain(config)
+	if err != nil {
+		return nil, err
 	}
 
 	indexedRoots := &structs.IndexedCARoots{}
 
-	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
-	if signingID == nil {
-		// If CA is bootstrapped at all then this should never happen but be
-		// defensive.
-		return nil, fmt.Errorf("no cluster trust domain setup")
-	}
-
-	indexedRoots.TrustDomain = signingID.Host()
+	indexedRoots.TrustDomain = trustDomain
 
 	indexedRoots.Index, indexedRoots.Roots = index, roots
 	if indexedRoots.Roots == nil {
@@ -76,4 +70,20 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	}
 
 	return indexedRoots, nil
+}
+
+func (s *Server) getTrustDomain(config *structs.CAConfiguration) (string, error) {
+	if config == nil || config.ClusterID == "" {
+		return "", fmt.Errorf("CA has not finished initializing")
+	}
+
+	// Build TrustDomain based on the ClusterID stored.
+	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
+	if signingID == nil {
+		// If CA is bootstrapped at all then this should never happen but be
+		// defensive.
+		return "", fmt.Errorf("no cluster trust domain setup")
+	}
+
+	return signingID.Host(), nil
 }

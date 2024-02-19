@@ -752,19 +752,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		}
 	}
 
-	// Note: the default intention policy is like an intention with a
-	// wildcarded destination in that it is limited to L4-only.
-
-	// No match, we need to determine the default behavior. We do this by
-	// fetching the default intention behavior from the resolved authorizer.
-	// The default behavior if ACLs are disabled is to allow connections
-	// to mimic the behavior of Consul itself: everything is allowed if
-	// ACLs are disabled.
-	//
-	// NOTE(mitchellh): This is the same behavior as the agent authorize
-	// endpoint. If this behavior is incorrect, we should also change it there
-	// which is much more important.
-	defaultDecision := authz.IntentionDefaultAllow(nil)
+	defaultAllow := DefaultIntentionAllow(authz, s.srv.config.DefaultIntentionPolicy)
 
 	store := s.srv.fsm.State()
 
@@ -784,7 +772,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		Partition:        query.DestinationPartition,
 		Intentions:       intentions,
 		MatchType:        structs.IntentionMatchDestination,
-		DefaultDecision:  defaultDecision,
+		DefaultAllow:     defaultAllow,
 		AllowPermissions: false,
 	}
 	decision, err := store.IntentionDecision(opts)

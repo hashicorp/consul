@@ -1,0 +1,66 @@
+---
+layout: docs
+page_title: Encrypt API gateway traffic on virtual machines
+description: Learn how to define inline certificate config entries and deploy them to Consul. Inline certificate configuration entries enable you to attach TLS certificates and keys to gateway listeners so that traffic between external clients and gateway listeners is encrypted.
+---
+
+# Encrypt API gateway traffic on virtual machines
+
+This topic describes how to make TLS certificates available to API gateways so that requests between the user and the gateway endpoint are encrypted. 
+
+## Requirements
+
+- Consul 1.15 or later
+- You must have a certificate and key from your CA   
+- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
+- Network connectivity between the machine deploying the API gateway and a
+  Consul cluster agent or server
+
+### ACL requirements
+
+If ACLs are enabled, you must present a token with the following permissions to
+configure Consul and deploy API gateways:
+
+- `mesh: read`
+- `mesh: write`
+
+Refer [Mesh Rules](/consul/docs/security/acl/acl-rules#mesh-rules) for
+additional information about configuring policies that enable you to interact
+with Consul API gateway configurations.
+
+## Define TLS certificates
+
+1. Create an [`inline-certificate` configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate) and specify the following fields:
+   - `Kind`: Specifies the type of configuration entry. This must be set to `inline-certificate`.
+   - `Name`: Specify the name in the [API gateway listener configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway#listeners) to bind the certificate to that listener.  
+   - `Certificate`: Specifies the inline public certificate to use for TLS as plain text.
+   - `PrivateKey`: Specifies the inline private key to use for TLS as plain text.
+1. Configure any additional fields necessary for your use case, such as the namespace or admin partition. Refer to the [`inline-certificate` configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate) reference for additional information.
+1. Save the configuration.
+
+The following example defines a certificate named `my-certificate`. API gateway configurations that specify `inline-certificate` in the `Certificate.Kind` field and `my-certificate` in the `Certificate.Name` field are able to use the certificate.
+
+```hcl
+Kind = "inline-certificate"
+Name = "my-certificate"
+
+Certificate = <<EOF
+-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+EOF
+
+PrivateKey = <<EOF
+-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----
+EOF
+```
+
+## Deploy the configuration to Consul
+
+Run the `consul config write` command to enable listeners to use the certificate. The following example writes a configuration called `my-certificate.hcl`:
+
+```shell-session
+$ consul config write my-certificate.hcl
+```

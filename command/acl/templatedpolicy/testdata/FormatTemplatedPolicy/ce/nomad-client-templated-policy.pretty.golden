@@ -1,0 +1,5 @@
+Name:            builtin/nomad-client
+Description:     Gives the token or role permissions required for integration with a nomad client.
+Input variables: None
+Example usage:
+	consul acl token create -templated-policy builtin/nomad-client

@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	mathrand "math/rand"
 	"net"
 	"net/http"
@@ -31,18 +32,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/hcp-scada-provider/capability"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcp-scada-provider/capability"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -89,7 +90,7 @@ func requireServiceMissing(t *testing.T, a *TestAgent, id string) {
 	require.Nil(t, getService(a, id), "have service %q (expected missing)", id)
 }
 
-func requireCheckExists(t *testing.T, a *TestAgent, id types.CheckID) *structs.HealthCheck {
+func requireCheckExists(t testutil.TestingTB, a *TestAgent, id types.CheckID) *structs.HealthCheck {
 	t.Helper()
 	chk := getCheck(a, id)
 	require.NotNil(t, chk, "missing check %q", id)
@@ -346,10 +347,10 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 			require.NoError(t, err)
 
 			a, err := New(bd)
+			require.NoError(t, err)
 			mockDelegate := delegateMock{}
 			mockDelegate.On("LicenseCheck").Return()
 			a.delegate = &mockDelegate
-			require.NoError(t, err)
 
 			a.startLicenseManager(testutil.TestContext(t))
 
@@ -384,6 +385,8 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				resp, err := client.Do(req.WithContext(ctx))
 				require.NoError(t, err)
 				require.Equal(t, tt.expectedHTTPResponse, resp.StatusCode, "expected a '%d' http response, got '%d'", tt.expectedHTTPResponse, resp.StatusCode)
+				resp.Body.Close()
+				s.Shutdown(ctx)
 			}
 		})
 	}
@@ -850,7 +853,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 	assert.NoError(t, err)
 
 	retry.Run(t, func(r *retry.R) {
-		t.Helper()
+		r.Helper()
 		var args structs.NodeSpecificRequest
 		args.Datacenter = "dc1"
 		args.Node = "node1"
@@ -965,6 +968,80 @@ func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
 		t.Fatalf("Error registering service: %v", err)
 	}
 	requireCheckExists(t, a, "test-h2cping-check")
+}
+
+func startMockTLSServer(t *testing.T) (addr string, closeFunc func() error) {
+	// Load certificates
+	cert, err := tls.LoadX509KeyPair("../test/key/ourdomain_server.cer", "../test/key/ourdomain_server.key")
+	require.NoError(t, err)
+	// Create a certificate pool
+	rootCertPool := x509.NewCertPool()
+	caCert, err := os.ReadFile("../test/ca/root.cer")
+	require.NoError(t, err)
+	rootCertPool.AppendCertsFromPEM(caCert)
+	// Configure TLS
+	config := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    rootCertPool,
+	}
+	// Start TLS server
+	ln, err := tls.Listen("tcp", "127.0.0.1:0", config)
+	require.NoError(t, err)
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			io.Copy(io.Discard, conn)
+			conn.Close()
+		}
+	}()
+	return ln.Addr().String(), ln.Close
+}
+
+func TestAgent_AddServiceWithTCPTLSCheck(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent")
+	a := NewTestAgent(t, `
+		data_dir = "`+dataDir+`"
+		enable_agent_tls_for_checks = true
+		datacenter = "dc1"
+		tls {
+			defaults {
+				ca_file   = "../test/ca/root.cer"
+				cert_file = "../test/key/ourdomain_server.cer"
+				key_file  = "../test/key/ourdomain_server.key"
+			}
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	// Start mock TCP+TLS server
+	addr, closeServer := startMockTLSServer(t)
+	defer closeServer()
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "arbitraryTCPServerTLSCheck",
+		Name:    "arbitraryTCPServerTLSCheck",
+		Status:  api.HealthCritical,
+	}
+	chkType := &structs.CheckType{
+		TCP:           addr,
+		TCPUseTLS:     true,
+		TLSServerName: "server.dc1.consul",
+		Interval:      5 * time.Second,
+	}
+	err := a.AddCheck(check, chkType, false, "", ConfigSourceLocal)
+	require.NoError(t, err)
+	// Retry until the healthcheck is passing.
+	retry.Run(t, func(r *retry.R) {
+		status := getCheck(a, "arbitraryTCPServerTLSCheck")
+		if status.Status != api.HealthPassing {
+			r.Fatalf("bad: %v", status.Status)
+		}
+	})
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {
@@ -1811,7 +1888,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 
 	// We do this so that the agent logs and the informational messages from
 	// the test itself are interwoven properly.
-	logf := func(t *testing.T, a *TestAgent, format string, args ...interface{}) {
+	logf := func(a *TestAgent, format string, args ...interface{}) {
 		a.logger.Info("testharness: " + fmt.Sprintf(format, args...))
 	}
 
@@ -1870,12 +1947,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	retryUntilCheckState := func(t *testing.T, a *TestAgent, checkID string, expectedStatus string) {
 		t.Helper()
 		retry.Run(t, func(r *retry.R) {
-			chk := requireCheckExists(t, a, types.CheckID(checkID))
+			chk := requireCheckExists(r, a, types.CheckID(checkID))
 			if chk.Status != expectedStatus {
-				logf(t, a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
+				logf(a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
 				r.Fatalf("check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
 			}
-			logf(t, a, "check %q has reached desired status %q", checkID, expectedStatus)
+			logf(a, "check %q has reached desired status %q", checkID, expectedStatus)
 		})
 	}
 
@@ -1886,7 +1963,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	retryUntilCheckState(t, a, "service:ping", api.HealthPassing)
 	retryUntilCheckState(t, a, "service:ping-sidecar-proxy", api.HealthPassing)
 
-	logf(t, a, "==== POWERING DOWN ORIGINAL ====")
+	logf(a, "==== POWERING DOWN ORIGINAL ====")
 
 	require.NoError(t, a.Shutdown())
 
@@ -1908,7 +1985,7 @@ node_name = "` + a.Config.NodeName + `"
 		// reregister during standup; we use an adjustable timing to try and force a race
 		sleepDur := time.Duration(idx+1) * 500 * time.Millisecond
 		time.Sleep(sleepDur)
-		logf(t, a2, "re-registering checks and services after a delay of %v", sleepDur)
+		logf(a2, "re-registering checks and services after a delay of %v", sleepDur)
 		for i := 0; i < 20; i++ { // RACE RACE RACE!
 			registerServicesAndChecks(t, a2)
 			time.Sleep(50 * time.Millisecond)
@@ -1918,7 +1995,7 @@ node_name = "` + a.Config.NodeName + `"
 
 		retryUntilCheckState(t, a2, "service:ping", api.HealthPassing)
 
-		logf(t, a2, "giving the alias check a chance to notice...")
+		logf(a2, "giving the alias check a chance to notice...")
 		time.Sleep(5 * time.Second)
 
 		retryUntilCheckState(t, a2, "service:ping-sidecar-proxy", api.HealthPassing)
@@ -4302,7 +4379,7 @@ func TestAgent_consulConfig_RequestLimits(t *testing.T) {
 
 	t.Parallel()
 	hcl := `
-		limits { 
+		limits {
 			request_limits {
 				mode = "enforcing"
 				read_rate = 8888
@@ -6261,21 +6338,12 @@ func TestAgent_scadaProvider(t *testing.T) {
 	require.NoError(t, err)
 	defer require.NoError(t, l.Close())
 
-	pvd.EXPECT().UpdateMeta(mock.Anything).Once()
-	pvd.EXPECT().Start().Return(nil).Once()
 	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
 	pvd.EXPECT().Stop().Return(nil).Once()
-	pvd.EXPECT().SessionStatus().Return("test")
 	a := TestAgent{
 		OverrideDeps: func(deps *BaseDeps) {
 			deps.HCP.Provider = pvd
 		},
-		Overrides: `
-cloud {
-  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100" 
-  client_id = "test"
-  client_secret = "test"
-}`,
 	}
 	defer a.Shutdown()
 	require.NoError(t, a.Start(t))

@@ -1,9 +1,8 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "public_listener:0.0.0.0:9999",
       "address": {
         "socketAddress": {
           "address": "0.0.0.0",
@@ -17,9 +16,7 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {
-
-                },
+                "rules": {},
                 "statPrefix": "connect_authz"
               }
             },
@@ -27,8 +24,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "public_listener",
-                "cluster": "local_app"
+                "cluster": "local_app",
+                "statPrefix": "public_listener"
               }
             }
           ],
@@ -37,9 +34,6 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -50,6 +44,7 @@
                     }
                   }
                 ],
+                "tlsParams": {},
                 "validationContext": {
                   "customValidatorConfig": {
                     "name": "envoy.tls.cert_validator.spiffe",
@@ -84,9 +79,10 @@
           }
         }
       ],
+      "name": "public_listener:0.0.0.0:9999",
       "trafficDirection": "INBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

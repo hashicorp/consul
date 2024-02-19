@@ -1,0 +1,66 @@
+---
+layout: docs
+page_title: Multi-port services overview
+description: Consul on Kubernetes supports multi-port services for both service discovery and service mesh scenarios. Learn how Consul’s v2 catalog supports multiple ports for a service running in a single container.
+---
+
+# Multi-port services overview
+
+<Warning>
+
+Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
+
+</Warning>
+
+This topic describes the process to register a service with multiple ports on Kubernetes deployments using the v2 catalog API. For information about the v2 catalog’s contents and structure, refer to [v2 catalog API](/consul/docs/architecture/catalog/v2).
+
+## Workflow
+
+To use a multi-port service in Consul on Kubernetes deployments, complete the following steps:
+
+1. Enable the v2 catalog with ACLs enabled. Add `global.experiments: ["resource-apis"]`, `ui.enabled: false`, and `manageSystemACLs: true` to a cluster's Helm chart before deploying Consul.
+1. Use the `"consul.hashicorp.com/mesh-inject": "true"` annotation so that Consul registers the service automatically when Kubernetes deploys containers.
+1. Configure traffic permissions. When ACLs are enabled, Consul denies all traffic by default. You can use the `TrafficPermissions` CRD to allow traffic to services.
+
+For an example configuration and instructions for each of the steps in this workflow, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
+
+### Advanced proxy and route configuration workflow
+
+You can also configure Envoy proxies and sidecar behavior with the proxy configurations resource, and manage traffic between services at the L4 and L7 networking layers with the TCP, HTTP, and gRPC route resources. After you [configure multi-port services](/consul/docs/k8s/multiport/configure), complete the following steps:
+
+1. Define the resource's behavior in a custom resource definition (CRD). For specifications and example configurations, refer to the [configuration reference](#reference-documentation) for each resource.
+1. Apply the resource to your cluster.
+
+For an example configuration and instructions for each of the steps in this workflow, refer to [split TCP service traffic between ports](/consul/docs/k8s/multiport/traffic-split).
+
+## Constraints and limitations
+
+Be aware of the following constraints and technical limitations on using multi-port services and the v2 catalog API:
+
+- Multi-port services are available for deployments using [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents. Consul on Kubernetes uses dataplanes by default.
+- When running the v2 catalog for multi-port services, you cannot run the v1 catalog API at the same time.
+- The Consul UI does not support multi-port services in this release. You must disable the UI in the Helm chart in order to use multi-port services.
+- HCP Consul does not support multi-port services in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
+- We do not recommend updating existing clusters to enable the v2 catalog in this release. To register multi-port services, deploy a new Consul cluster that enables the v2 catalog.
+
+## Guidance
+
+The following resources are available to help you use multi-port services:
+
+### Concepts
+
+- [v2 catalog API](/consul/docs/architecture/catalog/v2)
+
+### Usage documentation
+
+- [Configure multi-port services](/consul/docs/k8s/multiport/configure)
+- [Split TCP traffic between multi-port services](/consul/docs/k8s/multiport/traffic-split)
+
+### Reference documentation
+
+- [`consul resource` CLI command](/consul/docs/k8s/multiport/reference/resource-command)
+- [`GRPCRoute` resource configuration reference](/consul/docs/k8s/multiport/reference/grpcroute)
+- [`HTTPRoute` resource configuration reference](/consul/docs/k8s/multiport/reference/httproute)
+- [`ProxyConfiguration` resource configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration)
+- [`TCPRoute` resource  configuration reference](/consul/docs/k8s/multiport/reference/tcproute)
+- [`TrafficPermissions` resource configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions)

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package resourcehcl
 
 import (
@@ -31,10 +34,13 @@ func (p anyProvider) AnyType(ctx *protohcl.UnmarshalContext, decoder protohcl.Me
 	if !isResource {
 		return p.base.AnyType(ctx, decoder)
 	}
-
-	resourceType := res.GetId().GetType()
 	if res == nil {
 		return "", nil, errors.New("ID.Type not found")
+	}
+
+	resourceType := res.GetId().GetType()
+	if resourceType == nil {
+		return "", nil, errors.New("ID.Type is nil")
 	}
 
 	reg, ok := p.reg.Resolve(resourceType)

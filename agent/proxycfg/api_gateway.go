@@ -54,6 +54,11 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
+	err = watchJWTProviders(ctx, h)
+	if err != nil {
+		return snap, err
+	}
+
 	snap.APIGateway.Listeners = make(map[string]structs.APIGatewayListener)
 	snap.APIGateway.BoundListeners = make(map[string]structs.BoundAPIGatewayListener)
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
@@ -97,27 +102,33 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
 
-	switch {
-	case u.CorrelationID == rootsWatchID:
+	switch u.CorrelationID {
+	case rootsWatchID:
 		// Handle change in the CA roots
 		if err := h.handleRootCAUpdate(u, snap); err != nil {
 			return err
 		}
-	case u.CorrelationID == apiGatewayConfigWatchID || u.CorrelationID == boundGatewayConfigWatchID:
+	case apiGatewayConfigWatchID, boundGatewayConfigWatchID:
 		// Handle change in the api-gateway or bound-api-gateway config entry
 		if err := h.handleGatewayConfigUpdate(ctx, u, snap, u.CorrelationID); err != nil {
 			return err
 		}
-	case u.CorrelationID == inlineCertificateConfigWatchID:
+	case inlineCertificateConfigWatchID:
 		// Handle change in an attached inline-certificate config entry
 		if err := h.handleInlineCertConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
-	case u.CorrelationID == routeConfigWatchID:
+	case routeConfigWatchID:
 		// Handle change in an attached http-route or tcp-route config entry
 		if err := h.handleRouteConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
+	case jwtProviderID:
+		err := setJWTProvider(u, snap)
+		if err != nil {
+			return err
+		}
+
 	default:
 		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
 			return err

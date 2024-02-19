@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -22,6 +23,7 @@ const (
 	indexAccessor      = "accessor"
 	indexPolicies      = "policies"
 	indexRoles         = "roles"
+	indexServiceName   = "service-name"
 	indexAuthMethod    = "authmethod"
 	indexLocality      = "locality"
 	indexName          = "name"
@@ -104,6 +106,15 @@ func tokensTableSchema() *memdb.TableSchema {
 				Indexer: indexerSingle[*TimeQuery, *structs.ACLToken]{
 					readIndex:  indexFromTimeQuery,
 					writeIndex: indexExpiresLocalFromACLToken,
+				},
+			},
+			indexServiceName: {
+				Name:         indexServiceName,
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: indexerMulti[Query, *structs.ACLToken]{
+					readIndex:       indexFromQuery,
+					writeIndexMulti: indexServiceNameFromACLToken,
 				},
 			},
 		},
@@ -396,6 +407,30 @@ func indexExpiresFromACLToken(t *structs.ACLToken, local bool) ([]byte, error) {
 	var b indexBuilder
 	b.Time(*t.ExpirationTime)
 	return b.Bytes(), nil
+}
+
+func indexServiceNameFromACLToken(token *structs.ACLToken) ([][]byte, error) {
+	vals := make([][]byte, 0, len(token.ServiceIdentities)+len(token.TemplatedPolicies))
+	for _, id := range token.ServiceIdentities {
+		if id != nil && id.ServiceName != "" {
+			var b indexBuilder
+			b.String(strings.ToLower(id.ServiceName))
+			vals = append(vals, b.Bytes())
+		}
+	}
+
+	for _, tp := range token.TemplatedPolicies {
+		if tp != nil && tp.TemplateName == api.ACLTemplatedPolicyServiceName && tp.TemplateVariables != nil && tp.TemplateVariables.Name != "" {
+			var b indexBuilder
+			b.String(strings.ToLower(tp.TemplateVariables.Name))
+			vals = append(vals, b.Bytes())
+		}
+	}
+
+	if len(vals) == 0 {
+		return nil, errMissingValueForIndex
+	}
+	return vals, nil
 }
 
 func authMethodsTableSchema() *memdb.TableSchema {

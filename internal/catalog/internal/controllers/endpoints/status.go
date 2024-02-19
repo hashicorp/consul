@@ -3,17 +3,27 @@
 
 package endpoints
 
-import "github.com/hashicorp/consul/proto-public/pbresource"
+import (
+	"sort"
+	"strings"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
+)
 
 const (
-	StatusKey                       = "consul.io/endpoint-manager"
+	ControllerID                    = "consul.io/endpoint-manager"
 	StatusConditionEndpointsManaged = "EndpointsManaged"
 
 	StatusReasonSelectorNotFound = "SelectorNotFound"
 	StatusReasonSelectorFound    = "SelectorFound"
 
-	SelectorFoundMessage    = "A valid workload selector is present within the service."
-	SelectorNotFoundMessage = "Either the workload selector was not present or contained no selection criteria."
+	selectorFoundMessage    = "A valid workload selector is present within the service."
+	selectorNotFoundMessage = "Either the workload selector was not present or contained no selection criteria."
+
+	StatusConditionBoundIdentities = "BoundIdentities"
+
+	StatusReasonWorkloadIdentitiesFound   = "WorkloadIdentitiesFound"
+	StatusReasonNoWorkloadIdentitiesFound = "NoWorkloadIdentitiesFound"
 )
 
 var (
@@ -21,13 +31,31 @@ var (
 		Type:    StatusConditionEndpointsManaged,
 		State:   pbresource.Condition_STATE_TRUE,
 		Reason:  StatusReasonSelectorFound,
-		Message: SelectorFoundMessage,
+		Message: selectorFoundMessage,
 	}
 
 	ConditionUnmanaged = &pbresource.Condition{
 		Type:    StatusConditionEndpointsManaged,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  StatusReasonSelectorNotFound,
-		Message: SelectorNotFoundMessage,
+		Message: selectorNotFoundMessage,
+	}
+
+	ConditionIdentitiesNotFound = &pbresource.Condition{
+		Type:    StatusConditionBoundIdentities,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  StatusReasonNoWorkloadIdentitiesFound,
+		Message: "",
 	}
 )
+
+func ConditionIdentitiesFound(identities []string) *pbresource.Condition {
+	sort.Strings(identities)
+
+	return &pbresource.Condition{
+		Type:    StatusConditionBoundIdentities,
+		State:   pbresource.Condition_STATE_TRUE,
+		Reason:  StatusReasonWorkloadIdentitiesFound,
+		Message: strings.Join(identities, ","),
+	}
+}

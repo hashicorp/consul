@@ -19,3 +19,10 @@ Service Identities:
    gardener (Datacenters: middleearth-northwest)
 Node Identities:
    bagend (Datacenter: middleearth-northwest)
+Templated Policies:
+   builtin/service
+      Name: web
+      Datacenters: middleearth-northwest
+   builtin/node
+      Name: api
+      Datacenters: all

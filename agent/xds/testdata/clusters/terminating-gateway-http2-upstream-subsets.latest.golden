@@ -1,11 +1,11 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
       "loadAssignment": {
         "clusterName": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
@@ -27,29 +27,14 @@
           }
         ]
       },
-      "typedExtensionProtocolOptions": {
-        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
-          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-          "explicitHttpConfig": {
-            "http2ProtocolOptions": {
-
-            }
-          }
-        }
-      },
-      "dnsRefreshRate": "10s",
-      "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-
-      },
+      "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {
-
-            },
+            "tlsParams": {},
             "validationContext": {
               "trustedCa": {
                 "filename": "ca.cert.pem"
@@ -57,13 +42,22 @@
             }
           }
         }
+      },
+      "type": "LOGICAL_DNS",
+      "typedExtensionProtocolOptions": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+          "explicitHttpConfig": {
+            "http2ProtocolOptions": {}
+          }
+        }
       }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
       "loadAssignment": {
         "clusterName": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
@@ -85,29 +79,14 @@
           }
         ]
       },
-      "typedExtensionProtocolOptions": {
-        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
-          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-          "explicitHttpConfig": {
-            "http2ProtocolOptions": {
-
-            }
-          }
-        }
-      },
-      "dnsRefreshRate": "10s",
-      "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-
-      },
+      "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {
-
-            },
+            "tlsParams": {},
             "validationContext": {
               "trustedCa": {
                 "filename": "ca.cert.pem"
@@ -115,13 +94,22 @@
             }
           }
         }
+      },
+      "type": "LOGICAL_DNS",
+      "typedExtensionProtocolOptions": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+          "explicitHttpConfig": {
+            "http2ProtocolOptions": {}
+          }
+        }
       }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
       "loadAssignment": {
         "clusterName": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
@@ -143,29 +131,14 @@
           }
         ]
       },
-      "typedExtensionProtocolOptions": {
-        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
-          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-          "explicitHttpConfig": {
-            "http2ProtocolOptions": {
-
-            }
-          }
-        }
-      },
-      "dnsRefreshRate": "10s",
-      "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-
-      },
+      "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {
-
-            },
+            "tlsParams": {},
             "validationContext": {
               "trustedCa": {
                 "filename": "ca.cert.pem"
@@ -173,9 +146,18 @@
             }
           }
         }
+      },
+      "type": "LOGICAL_DNS",
+      "typedExtensionProtocolOptions": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+          "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+          "explicitHttpConfig": {
+            "http2ProtocolOptions": {}
+          }
+        }
       }
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

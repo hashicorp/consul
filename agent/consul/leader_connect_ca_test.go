@@ -566,7 +566,7 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	deps := newDefaultDeps(t, conf1)
 	deps.Logger = logger
 
-	s1, err := NewServer(conf1, deps, grpc.NewServer(), nil, logger)
+	s1, err := NewServer(conf1, deps, grpc.NewServer(), nil, logger, nil)
 	require.NoError(t, err)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -1317,6 +1317,12 @@ func TestCAManager_AuthorizeAndSignCertificate(t *testing.T) {
 		Host:       "test-host",
 		Partition:  "test-partition",
 	}.URI()
+	identityURL := connect.SpiffeIDWorkloadIdentity{
+		TrustDomain:      "test-trust-domain",
+		Partition:        "test-partition",
+		Namespace:        "test-namespace",
+		WorkloadIdentity: "test-workload-identity",
+	}.URI()
 
 	tests := []struct {
 		name      string
@@ -1409,6 +1415,15 @@ func TestCAManager_AuthorizeAndSignCertificate(t *testing.T) {
 				}.URI()
 				return &x509.CertificateRequest{
 					URIs: []*url.URL{u},
+				}
+			},
+		},
+		{
+			name:      "err_identity_write_not_allowed",
+			expectErr: "Permission denied",
+			getCSR: func() *x509.CertificateRequest {
+				return &x509.CertificateRequest{
+					URIs: []*url.URL{identityURL},
 				}
 			},
 		},

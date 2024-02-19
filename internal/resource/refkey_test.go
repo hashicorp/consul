@@ -15,17 +15,16 @@ import (
 )
 
 func TestReferenceKey(t *testing.T) {
+	// TODO(peering/v2) update the test to account for peer tenancy
 	tenancy1 := &pbresource.Tenancy{}
 	tenancy1_actual := defaultTenancy()
 	tenancy2 := &pbresource.Tenancy{
 		Partition: "ap1",
 		Namespace: "ns-billing",
-		PeerName:  "peer-dc4",
 	}
 	tenancy3 := &pbresource.Tenancy{
 		Partition: "ap2",
 		Namespace: "ns-intern",
-		PeerName:  "peer-sea",
 	}
 
 	res1, err := demo.GenerateV2Artist()
@@ -82,6 +81,5 @@ func defaultTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "default",
-		PeerName:  "local",
 	}
 }

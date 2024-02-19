@@ -57,14 +57,14 @@ func UpdateFileIfDifferent(
 		if !os.IsNotExist(err) {
 			return result, err
 		}
-		logger.Info("writing new file", "path", path)
+		logger.Debug("writing new file", "path", path)
 		result = UpdateResultCreated
 	} else {
 		// loaded
 		if bytes.Equal(body, prev) {
 			return result, nil
 		}
-		logger.Info("file has changed", "path", path)
+		logger.Debug("file has changed", "path", path)
 		result = UpdateResultModified
 	}
 

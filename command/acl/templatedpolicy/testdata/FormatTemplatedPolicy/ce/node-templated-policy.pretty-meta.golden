@@ -1,0 +1,29 @@
+Name:            builtin/node
+Description:     Gives the token or role permissions for a register an agent/node into the catalog. A node is typically a consul agent but can also be a physical server, cloud instance or a container.
+Input variables:
+	Name: String - Required - The node name.
+Example usage:
+	consul acl token create -templated-policy builtin/node -var name:node-1
+Schema:
+{
+	"type": "object",
+	"properties": {
+		"name": { "type": "string", "$ref": "#/definitions/min-length-one" }
+	},
+	"required": ["name"],
+	"definitions": {
+		"min-length-one": {
+				"type": "string",
+				"minLength": 1
+		}
+	}
+}
+
+Raw Template:
+
+node "{{.Name}}" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}

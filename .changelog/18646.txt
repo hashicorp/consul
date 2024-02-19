@@ -1,0 +1,3 @@
+```release-note:feature
+api-gateway: Add support for response header modifiers on http-route configuration entry
+```

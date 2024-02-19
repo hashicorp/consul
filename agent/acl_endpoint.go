@@ -294,6 +294,7 @@ func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request)
 	args.Policy = req.URL.Query().Get("policy")
 	args.Role = req.URL.Query().Get("role")
 	args.AuthMethod = req.URL.Query().Get("authmethod")
+	args.ServiceName = req.URL.Query().Get("servicename")
 	if err := parseACLAuthMethodEnterpriseMeta(req, &args.ACLAuthMethodEnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1131,4 +1132,147 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	}
 
 	return responses, nil
+}
+
+func (s *HTTPHandlers) ACLTemplatedPoliciesList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
+	}
+
+	var token string
+	s.parseToken(req, &token)
+
+	var entMeta acl.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	s.defaultMetaPartitionToAgent(&entMeta)
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only ACLRead privileges are required to list templated policies
+	if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return nil, err
+	}
+
+	templatedPolicies := make(map[string]api.ACLTemplatedPolicyResponse)
+
+	for tp, tmpBase := range structs.GetACLTemplatedPolicyList() {
+		templatedPolicies[tp] = api.ACLTemplatedPolicyResponse{
+			TemplateName: tmpBase.TemplateName,
+			Schema:       tmpBase.Schema,
+			Template:     tmpBase.Template,
+			Description:  tmpBase.Description,
+		}
+	}
+
+	return templatedPolicies, nil
+}
+
+func (s *HTTPHandlers) ACLTemplatedPolicyRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
+	}
+
+	templateName := strings.TrimPrefix(req.URL.Path, "/v1/acl/templated-policy/name/")
+	if templateName == "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing templated policy Name"}
+	}
+
+	var token string
+	s.parseToken(req, &token)
+
+	var entMeta acl.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	s.defaultMetaPartitionToAgent(&entMeta)
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only ACLRead privileges are required to read templated policies
+	if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return nil, err
+	}
+
+	baseTemplate, ok := structs.GetACLTemplatedPolicyBase(templateName)
+	if !ok {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid templated policy Name: %s", templateName)}
+	}
+
+	return api.ACLTemplatedPolicyResponse{
+		TemplateName: baseTemplate.TemplateName,
+		Schema:       baseTemplate.Schema,
+		Template:     baseTemplate.Template,
+		Description:  baseTemplate.Description,
+	}, nil
+}
+
+func (s *HTTPHandlers) ACLTemplatedPolicyPreview(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if s.checkACLDisabled() {
+		return nil, aclDisabled
+	}
+
+	templateName := strings.TrimPrefix(req.URL.Path, "/v1/acl/templated-policy/preview/")
+	if templateName == "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing templated policy Name"}
+	}
+
+	var token string
+	s.parseToken(req, &token)
+
+	var entMeta acl.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	s.defaultMetaPartitionToAgent(&entMeta)
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only ACLRead privileges are required to read/preview templated policies
+	if err := authz.ToAllowAuthorizer().ACLReadAllowed(&authzContext); err != nil {
+		return nil, err
+	}
+
+	baseTemplate, ok := structs.GetACLTemplatedPolicyBase(templateName)
+	if !ok {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("templated policy %q does not exist", templateName)}
+	}
+
+	var tpRequest structs.ACLTemplatedPolicyVariables
+
+	if err := decodeBody(req.Body, &tpRequest); err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Failed to decode request body: %s", err.Error())}
+	}
+
+	templatedPolicy := structs.ACLTemplatedPolicy{
+		TemplateID:        baseTemplate.TemplateID,
+		TemplateName:      baseTemplate.TemplateName,
+		TemplateVariables: &tpRequest,
+	}
+
+	err = templatedPolicy.ValidateTemplatedPolicy(baseTemplate.Schema)
+	if err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("validation error for templated policy: %q: %s", templatedPolicy.TemplateName, err.Error())}
+	}
+
+	renderedPolicy, err := templatedPolicy.SyntheticPolicy(&entMeta)
+
+	if err != nil {
+		return nil, HTTPError{StatusCode: http.StatusInternalServerError, Reason: fmt.Sprintf("Failed to generate synthetic policy: %q: %s", templatedPolicy.TemplateName, err.Error())}
+	}
+
+	return renderedPolicy, nil
 }

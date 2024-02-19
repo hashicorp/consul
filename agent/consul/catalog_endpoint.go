@@ -450,7 +450,7 @@ func vetDeregisterWithACL(
 	}
 
 	// This order must match the code in applyDeregister() in
-	// fsm/commands_oss.go since it also evaluates things in this order,
+	// fsm/commands_ce.go since it also evaluates things in this order,
 	// and will ignore fields based on this precedence. This lets us also
 	// ignore them from an ACL perspective.
 	if subj.ServiceID != "" {
@@ -596,7 +596,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			if len(args.NodeMetaFilters) > 0 {
 				reply.Index, serviceNodes, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
+				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName, args.Filter != "")
 			}
 			if err != nil {
 				return err

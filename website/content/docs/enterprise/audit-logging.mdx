@@ -82,6 +82,21 @@ audit {
   }
 }
 ```
+
+```yaml
+server:
+  auditLogs:
+      enabled: true
+      sinks:
+        - name: My Sink
+          type: file
+          format: json
+          path: /tmp/audit.json
+          delivery_guarantee: best-effort
+          rotate_duration: 24h
+          rotate_max_files: 15
+          rotate_bytes: 25165824
+```
 </CodeTabs>
 
 </Tab>
@@ -120,6 +135,18 @@ audit {
     }
   }
 }
+```
+
+```yaml
+server:
+  auditLogs:
+      enabled: true
+      sinks:
+        - name: My Sink
+          type: file
+          format: json
+          path: /dev/stdout
+          delivery_guarantee: best-effort
 ```
 
 </CodeTabs>

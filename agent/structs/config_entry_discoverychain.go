@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/hashstructure"
 
@@ -78,8 +79,17 @@ type ServiceRouterConfigEntry struct {
 	Routes []ServiceRoute
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceRouterConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceRouterConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceRouterConfigEntry) GetKind() string {
@@ -128,6 +138,11 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 	}
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -357,9 +372,10 @@ func (m *ServiceRouteMatch) IsEmpty() bool {
 
 // ServiceRouteHTTPMatch is a set of http-specific match criteria.
 type ServiceRouteHTTPMatch struct {
-	PathExact  string `json:",omitempty" alias:"path_exact"`
-	PathPrefix string `json:",omitempty" alias:"path_prefix"`
-	PathRegex  string `json:",omitempty" alias:"path_regex"`
+	PathExact       string `json:",omitempty" alias:"path_exact"`
+	PathPrefix      string `json:",omitempty" alias:"path_prefix"`
+	PathRegex       string `json:",omitempty" alias:"path_regex"`
+	CaseInsensitive bool   `json:",omitempty" alias:"case_insensitive"`
 
 	Header     []ServiceRouteHTTPMatchHeader     `json:",omitempty"`
 	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty" alias:"query_param"`
@@ -370,6 +386,7 @@ func (m *ServiceRouteHTTPMatch) IsEmpty() bool {
 	return m.PathExact == "" &&
 		m.PathPrefix == "" &&
 		m.PathRegex == "" &&
+		!m.CaseInsensitive &&
 		len(m.Header) == 0 &&
 		len(m.QueryParam) == 0 &&
 		len(m.Methods) == 0
@@ -536,8 +553,17 @@ type ServiceSplitterConfigEntry struct {
 	Splits []ServiceSplit
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceSplitterConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceSplitterConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceSplitterConfigEntry) GetKind() string {
@@ -580,6 +606,11 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 		}
 	}
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -875,8 +906,17 @@ type ServiceResolverConfigEntry struct {
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceResolverConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceResolverConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceResolverConfigEntry) RelatedPeers() []string {
@@ -929,21 +969,22 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(e),
 	}
-	if err := lib.UnmarshalJSON(data, &aux); err != nil {
+	var err error
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
-	var err error
+	var merr *multierror.Error
 	if aux.ConnectTimeout != "" {
 		if e.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
-			return err
+			merr = multierror.Append(merr, err)
 		}
 	}
 	if aux.RequestTimeout != "" {
 		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
-			return err
+			merr = multierror.Append(merr, err)
 		}
 	}
-	return nil
+	return merr.ErrorOrNil()
 }
 
 func (e *ServiceResolverConfigEntry) SubsetExists(name string) bool {
@@ -996,6 +1037,11 @@ func (e *ServiceResolverConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 

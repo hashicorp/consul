@@ -68,6 +68,9 @@ func TestRoleUpdateCommand(t *testing.T) {
 					ServiceName: "fake",
 				},
 			},
+			TemplatedPolicies: []*api.ACLTemplatedPolicy{
+				{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "fake"}},
+			},
 		},
 		&api.WriteOptions{Token: "root"},
 	)
@@ -122,6 +125,7 @@ func TestRoleUpdateCommand(t *testing.T) {
 		require.Equal(t, "test role edited", role.Description)
 		require.Len(t, role.Policies, 1)
 		require.Len(t, role.ServiceIdentities, 1)
+		require.Len(t, role.TemplatedPolicies, 1)
 	})
 
 	t.Run("update with policy by id", func(t *testing.T) {
@@ -197,6 +201,47 @@ func TestRoleUpdateCommand(t *testing.T) {
 		require.Len(t, role.Policies, 2)
 		require.Len(t, role.ServiceIdentities, 3)
 		require.Len(t, role.NodeIdentities, 1)
+	})
+	t.Run("update with append templated policies", func(t *testing.T) {
+		_ = run(t, []string{
+			"-id=" + role.ID,
+			"-token=root",
+			"-append-templated-policy=builtin/service",
+			"-var=name:api",
+		})
+
+		role, _, err := client.ACL().RoleRead(
+			role.ID,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, role)
+		require.Equal(t, "test role edited", role.Description)
+		require.Len(t, role.Policies, 2)
+		require.Len(t, role.ServiceIdentities, 3)
+		require.Len(t, role.NodeIdentities, 1)
+		require.Len(t, role.TemplatedPolicies, 2)
+	})
+
+	t.Run("update with replace templated policies", func(t *testing.T) {
+		_ = run(t, []string{
+			"-id=" + role.ID,
+			"-token=root",
+			"-replace-templated-policy=builtin/service",
+			"-var=name:api",
+		})
+
+		role, _, err := client.ACL().RoleRead(
+			role.ID,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, role)
+		require.Equal(t, "test role edited", role.Description)
+		require.Len(t, role.Policies, 2)
+		require.Len(t, role.ServiceIdentities, 3)
+		require.Len(t, role.NodeIdentities, 1)
+		require.Len(t, role.TemplatedPolicies, 1)
 	})
 }
 
@@ -334,6 +379,9 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 					{
 						ServiceName: "fake",
 					},
+				},
+				TemplatedPolicies: []*api.ACLTemplatedPolicy{
+					{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "fake"}},
 				},
 				Policies: []*api.ACLRolePolicyLink{
 					{
@@ -481,5 +529,65 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.Equal(t, "", role.Description)
 		require.Len(t, role.Policies, 0)
 		require.Len(t, role.ServiceIdentities, 1)
+	})
+
+	t.Run("update with templated policy append", func(t *testing.T) {
+		role := createRole(t)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-id=" + role.ID,
+			"-name=" + role.Name,
+			"-token=root",
+			"-no-merge",
+			"-append-templated-policy=builtin/service",
+			"-var=name:api",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		role, _, err := client.ACL().RoleRead(
+			role.ID,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, role)
+		require.Equal(t, "", role.Description)
+		require.Len(t, role.Policies, 0)
+		require.Len(t, role.TemplatedPolicies, 1)
+	})
+
+	t.Run("update with replace templated policy", func(t *testing.T) {
+		role := createRole(t)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-id=" + role.ID,
+			"-name=" + role.Name,
+			"-token=root",
+			"-no-merge",
+			"-replace-templated-policy=builtin/service",
+			"-var=name:api",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		role, _, err := client.ACL().RoleRead(
+			role.ID,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, role)
+		require.Equal(t, "", role.Description)
+		require.Len(t, role.Policies, 0)
+		require.Len(t, role.TemplatedPolicies, 1)
 	})
 }

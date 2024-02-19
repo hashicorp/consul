@@ -115,6 +115,22 @@ func TestRoleCreateCommand_Pretty(t *testing.T) {
 
 		require.Len(t, role.NodeIdentities, 1)
 	})
+
+	t.Run("prevent templated-policy and templated-policy-file simultaneous use", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run([]string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-name=role-with-node-identity",
+			"-templated-policy=builtin/node",
+			"-var=name:" + a.Config.NodeName,
+			"-templated-policy-file=test.hcl",
+		})
+		require.Equal(t, 1, code)
+		require.Contains(t, ui.ErrorWriter.String(), "Cannot combine the use of templated-policy flag with templated-policy-file.")
+	})
 }
 
 func TestRoleCreateCommand_JSON(t *testing.T) {

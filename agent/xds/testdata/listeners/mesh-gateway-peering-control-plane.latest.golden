@@ -1,9 +1,8 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "default:1.2.3.4:8443",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -22,8 +21,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "mesh_gateway_local_peering_server.default.dc1",
-                "cluster": "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "mesh_gateway_local_peering_server.default.dc1"
               }
             }
           ]
@@ -40,8 +39,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "mesh_gateway_local.default",
-                "cluster": ""
+                "cluster": "",
+                "statPrefix": "mesh_gateway_local.default"
               }
             }
           ]
@@ -54,9 +53,10 @@
             "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
           }
         }
-      ]
+      ],
+      "name": "default:1.2.3.4:8443"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

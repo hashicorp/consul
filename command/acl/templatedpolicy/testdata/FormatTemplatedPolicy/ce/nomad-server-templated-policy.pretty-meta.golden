@@ -1,0 +1,17 @@
+Name:            builtin/nomad-server
+Description:     Gives the token or role permissions required for integration with a nomad server.
+Input variables: None
+Example usage:
+	consul acl token create -templated-policy builtin/nomad-server
+Raw Template:
+
+acl = "write"
+agent_prefix "" {
+  policy = "read"
+}
+node_prefix "" {
+  policy = "read"
+}
+service_prefix "" {
+  policy = "write"
+}

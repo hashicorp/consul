@@ -1,6 +1,6 @@
 resource "docker_container" "{{.DockerNetworkName}}-forwardproxy" {
   name     = "{{.DockerNetworkName}}-forwardproxy"
-  image = docker_image.nginx.latest
+  image = docker_image.nginx.image_id
   restart  = "always"
   dns      = ["8.8.8.8"]
 

@@ -14,8 +14,10 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/go-hclog"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -67,7 +69,7 @@ type ConfigSnapshotUpstreams struct {
 	// gateway endpoints.
 	//
 	// Note that the string form of GatewayKey is used as the key so empty
-	// fields can be normalized in OSS.
+	// fields can be normalized in CE.
 	//   GatewayKey.String() -> structs.CheckServiceNodes
 	WatchedLocalGWEndpoints watch.Map[string, structs.CheckServiceNodes]
 
@@ -282,6 +284,15 @@ type configSnapshotTerminatingGateway struct {
 	// HostnameServices is a map of service name to service instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
 	HostnameServices map[structs.ServiceName]structs.CheckServiceNodes
+
+	// WatchedInboundPeerTrustBundles is a map of service name to a cancel function. This cancel
+	// function is tied to the watch of the inbound peer trust bundles for the gateway.
+	WatchedInboundPeerTrustBundles map[structs.ServiceName]context.CancelFunc
+
+	// InboundPeerTrustBundles is a map of service name to a list of peering trust bundles.
+	// These bundles are used to configure RBAC policies for inbound filter chains on the gateway
+	// from services that are in a cluster-peered datacenter.
+	InboundPeerTrustBundles map[structs.ServiceName][]*pbpeering.PeeringTrustBundle
 }
 
 // ValidServices returns the list of service keys that have enough data to be emitted.
@@ -954,6 +965,18 @@ type ConfigSnapshot struct {
 
 	// api-gateway specific
 	APIGateway configSnapshotAPIGateway
+
+	// computedFields exists as a place to store relatively expensive
+	// computed data (such as parsed opaque maps) rather than parsing it
+	// multiple times during xDS generation. All data in this should be
+	// lazy-loaded / memoized when requested.
+	computedFields computedFields
+}
+
+type computedFields struct {
+	xdsCommonConfig *config.XDSCommonConfig
+	proxyConfig     *config.ProxyConfig
+	gatewayConfig   *config.GatewayConfig
 }
 
 // Valid returns whether or not the snapshot has all required fields filled yet.
@@ -1007,6 +1030,7 @@ func (s *ConfigSnapshot) Valid() bool {
 // without worrying that they will racily read or mutate shared maps etc.
 func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 	snap := s.DeepCopy()
+	snap.computedFields = computedFields{}
 
 	// nil these out as anything receiving one of these clones does not need them and should never "cancel" our watches
 	switch s.Kind {
@@ -1170,4 +1194,55 @@ func (u *ConfigSnapshotUpstreams) PeeredUpstreamIDs() []UpstreamID {
 		return true
 	})
 	return out
+}
+
+// GetXDSCommonConfig attempts to parse and return the xds config from the config snapshot.
+// Subsequent calls to this function will return the temporary cached value to reduce
+// cost of parsing. This function always returns a non-nil pointer to a config.
+// Any errors will be output to the logger during the initial parse time only.
+func (s *ConfigSnapshot) GetXDSCommonConfig(logger hclog.Logger) *config.XDSCommonConfig {
+	if s.computedFields.xdsCommonConfig == nil {
+		cfg, err := config.ParseXDSCommonConfig(s.Proxy.Config)
+		s.computedFields.xdsCommonConfig = &cfg
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
+		}
+	}
+	return s.computedFields.xdsCommonConfig
+}
+
+// GetProxyConfig attempts to parse and return the proxy config from the config snapshot.
+// Subsequent calls to this function will return the temporary cached value to reduce
+// cost of parsing. This function always returns a non-nil pointer to a config.
+// Any errors will be output to the logger during the initial parse time only.
+func (s *ConfigSnapshot) GetProxyConfig(logger hclog.Logger) *config.ProxyConfig {
+	if s.computedFields.proxyConfig == nil {
+		cfg, err := config.ParseProxyConfig(s.Proxy.Config)
+		s.computedFields.proxyConfig = &cfg
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			logger.Warn("failed to parse proxy Connect.Proxy.Config", "error", err)
+		}
+	}
+	return s.computedFields.proxyConfig
+}
+
+// GetGatewayConfig attempts to parse and return the gateway config from the config snapshot.
+// Subsequent calls to this function will return the temporary cached value to reduce
+// cost of parsing. This function always returns a non-nil pointer to a config.
+// Any errors will be output to the logger during the initial parse time only.
+func (s *ConfigSnapshot) GetGatewayConfig(logger hclog.Logger) *config.GatewayConfig {
+	if s.computedFields.gatewayConfig == nil {
+		cfg, err := config.ParseGatewayConfig(s.Proxy.Config)
+		s.computedFields.gatewayConfig = &cfg
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			logger.Warn("failed to parse gateway Connect.Proxy.Config", "error", err)
+		}
+	}
+	return s.computedFields.gatewayConfig
 }

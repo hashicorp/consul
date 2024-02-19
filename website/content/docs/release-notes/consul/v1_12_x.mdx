@@ -30,7 +30,7 @@ description: >-
 
 - The `disable_compat_1.9` option now defaults to true. Metrics formatted in the style of version 1.9, such as `consul.http...`,  can still be enabled by setting disable_compat_1.9 = false. However, these metrics will be removed in 1.13.
 
-- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. Refer to [ACL Agent Recovery Token](/consul/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/consul/commands/acl/set-agent-token) for more information.
+- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. Refer to [ACL Agent Recovery Token](/consul/docs/security/acl/tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/consul/commands/acl/set-agent-token) for more information.
 
 - If TLS min versions and max versions are not specified, the TLS min/max versions default to the following values. For details on how to configure TLS min and max, refer to the [Mesh TLS config entry](/consul/docs/connect/config-entries/mesh#tls) or CRD documentation. 
   - Incoming connections: TLS 1.2 for min0 version, TLS 1.3 for max version

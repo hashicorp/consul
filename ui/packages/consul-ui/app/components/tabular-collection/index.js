@@ -75,8 +75,7 @@ export default CollectionComponent.extend(Slotted, {
       if ($appContent) {
         const border = 1;
         const rect = $tbody.getBoundingClientRect();
-        const $footer = this.dom.element('footer[role="contentinfo"]');
-        const space = rect.top + $footer.clientHeight + border;
+        const space = rect.top + border;
         const height = e.target.innerHeight - space;
         this.set('maxHeight', Math.max(0, height));
         // TODO: The row height should auto calculate properly from the CSS

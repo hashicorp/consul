@@ -1,0 +1,35 @@
+Name:            builtin/service
+Description:     Gives the token or role permissions to register a service and discover services in the Consul catalog. It also gives the specified service's sidecar proxy the permission to discover and route traffic to other services.
+Input variables:
+	Name: String - Required - The name of the service.
+Example usage:
+	consul acl token create -templated-policy builtin/service -var name:api
+Schema:
+{
+	"type": "object",
+	"properties": {
+		"name": { "type": "string", "$ref": "#/definitions/min-length-one" }
+	},
+	"required": ["name"],
+	"definitions": {
+		"min-length-one": {
+				"type": "string",
+				"minLength": 1
+		}
+	}
+}
+
+Raw Template:
+
+service "{{.Name}}" {
+	policy = "write"
+}
+service "{{.Name}}-sidecar-proxy" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}

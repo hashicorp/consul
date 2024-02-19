@@ -1,10 +1,8 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "exposed_cluster_8090",
-      "type": "STATIC",
       "connectTimeout": "5s",
       "loadAssignment": {
         "clusterName": "exposed_cluster_8090",
@@ -24,12 +22,12 @@
             ]
           }
         ]
-      }
+      },
+      "name": "exposed_cluster_8090",
+      "type": "STATIC"
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "local_app",
-      "type": "STATIC",
       "connectTimeout": "5s",
       "loadAssignment": {
         "clusterName": "local_app",
@@ -50,18 +48,19 @@
           }
         ]
       },
+      "name": "local_app",
+      "type": "STATIC",
       "typedExtensionProtocolOptions": {
         "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
           "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-          "explicitHttpConfig": {
-            "http2ProtocolOptions": {
-
-            }
+          "useDownstreamProtocolConfig": {
+            "http2ProtocolOptions": {},
+            "httpProtocolOptions": {}
           }
         }
       }
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

@@ -1,136 +1,100 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
       "name": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
-      "edsClusterConfig": {
-        "edsConfig": {
-          "ads": {
-
-          },
-          "resourceApiVersion": "V3"
-        }
-      },
-      "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
+      "outlierDetection": {},
+      "type": "EDS"
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "altStatName": "exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
+      "circuitBreakers": {},
+      "commonLbConfig": {
+        "healthyPanicThreshold": {}
+      },
+      "connectTimeout": "5s",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
-      "connectTimeout": "5s",
-      "circuitBreakers": {
-
-      },
-      "outlierDetection": {
-
-      },
-      "commonLbConfig": {
-        "healthyPanicThreshold": {
-
-        }
-      }
+      "name": "exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "EDS"
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "exported~foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "altStatName": "exported~foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
+      "circuitBreakers": {},
+      "commonLbConfig": {
+        "healthyPanicThreshold": {}
+      },
+      "connectTimeout": "5s",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
-      "connectTimeout": "5s",
-      "circuitBreakers": {
-
-      },
-      "outlierDetection": {
-
-      },
-      "commonLbConfig": {
-        "healthyPanicThreshold": {
-
-        }
-      }
+      "name": "exported~foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "EDS"
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "exported~gir.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "altStatName": "exported~gir.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
-      "edsClusterConfig": {
-        "edsConfig": {
-          "ads": {
-
-          },
-          "resourceApiVersion": "V3"
-        }
-      },
-      "connectTimeout": "5s",
-      "circuitBreakers": {
-
-      },
-      "outlierDetection": {
-
-      },
+      "circuitBreakers": {},
       "commonLbConfig": {
-        "healthyPanicThreshold": {
-
+        "healthyPanicThreshold": {}
+      },
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
         }
-      }
+      },
+      "name": "exported~gir.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "EDS"
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
       "name": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
-      "edsClusterConfig": {
-        "edsConfig": {
-          "ads": {
-
-          },
-          "resourceApiVersion": "V3"
-        }
-      },
-      "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
+      "outlierDetection": {},
+      "type": "EDS"
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "gir.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
+      "connectTimeout": "5s",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
-      "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
+      "name": "gir.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "EDS"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

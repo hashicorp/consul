@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	retry "github.com/avast/retry-go"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 
@@ -29,13 +30,31 @@ const (
 	sharedAgentRecoveryToken = "22082b05-05c9-4a0a-b3da-b9685ac1d688"
 )
 
+type LaunchPhase int
+
+const (
+	LaunchPhaseRegular LaunchPhase = iota
+	LaunchPhaseUpgrade
+)
+
+func (lp LaunchPhase) String() string {
+	phaseStr := ""
+	switch lp {
+	case LaunchPhaseRegular:
+		phaseStr = "regular"
+	case LaunchPhaseUpgrade:
+		phaseStr = "upgrade"
+	}
+	return phaseStr
+}
+
 func (s *Sprawl) launch() error {
-	return s.launchType(true)
+	return s.launchType(true, LaunchPhaseRegular)
 }
-func (s *Sprawl) relaunch() error {
-	return s.launchType(false)
+func (s *Sprawl) relaunch(launchPhase LaunchPhase) error {
+	return s.launchType(false, launchPhase)
 }
-func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
+func (s *Sprawl) launchType(firstTime bool, launchPhase LaunchPhase) (launchErr error) {
 	if err := build.DockerImages(s.logger, s.runner, s.topology); err != nil {
 		return fmt.Errorf("build.DockerImages: %w", err)
 	}
@@ -119,13 +138,17 @@ func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 
 		s.generator.MarkLaunched()
 	} else {
-		if err := s.updateExisting(); err != nil {
+		if err := s.updateExisting(firstTime, launchPhase); err != nil {
 			return err
 		}
 	}
 
 	if err := s.waitForPeeringEstablishment(); err != nil {
 		return fmt.Errorf("waitForPeeringEstablishment: %w", err)
+	}
+
+	if err := s.waitForNetworkAreaEstablishment(); err != nil {
+		return fmt.Errorf("waitForNetworkAreaEstablishment: %w", err)
 	}
 
 	cleanupFuncs = nil // reset
@@ -180,6 +203,7 @@ func (s *Sprawl) assignIPAddresses() error {
 					return fmt.Errorf("unknown network %q", addr.Network)
 				}
 				addr.IPAddress = net.IPByIndex(node.Index)
+				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress, "type", addr.Type, "enabled", !node.Disabled)
 			}
 		}
 	}
@@ -234,12 +258,20 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("error creating final client for cluster=%s: %v", cluster.Name, err)
 		}
 
+		// Connect to gRPC as well.
+		if cluster.EnableV2 {
+			s.grpcConns[cluster.Name], s.grpcConnCancel[cluster.Name], err = s.dialServerGRPC(cluster, node, mgmtToken)
+			if err != nil {
+				return fmt.Errorf("error creating gRPC client conn for cluster=%s: %w", cluster.Name, err)
+			}
+		}
+
 		// For some reason the grpc resolver stuff for partitions takes some
 		// time to get ready.
 		s.waitForLocalWrites(cluster, mgmtToken)
 
 		// Create tenancies so that the ACL tokens and clients have somewhere to go.
-		if cluster.Enterprise {
+		if cluster.Enterprise && node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
 			if err := s.initTenancies(cluster); err != nil {
 				return fmt.Errorf("initTenancies[%s]: %w", cluster.Name, err)
 			}
@@ -249,16 +281,30 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
 		}
 
+		if cluster.EnableV2 {
+			// Resources are available only in V2
+			if err := s.populateInitialResources(cluster); err != nil {
+				return fmt.Errorf("populateInitialResources[%s]: %w", cluster.Name, err)
+			}
+		}
+
 		if err := s.createAnonymousToken(cluster); err != nil {
 			return fmt.Errorf("createAnonymousToken[%s]: %w", cluster.Name, err)
 		}
 
-		// Create tokens for all of the agents to use for anti-entropy.
-		//
-		// NOTE: this will cause the servers to roll to pick up the change to
-		// the acl{tokens{agent=XXX}}} section.
-		if err := s.createAgentTokens(cluster); err != nil {
-			return fmt.Errorf("createAgentTokens[%s]: %w", cluster.Name, err)
+		if node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
+			// Create tokens for all of the agents to use for anti-entropy.
+			//
+			// NOTE: this will cause the servers to roll to pick up the change to
+			// the acl{tokens{agent=XXX}}} section.
+			if err := s.createAgentTokens(cluster); err != nil {
+				return fmt.Errorf("createAgentTokens[%s]: %w", cluster.Name, err)
+			}
+		} else {
+			// Assign agent join policy to the anonymous token
+			if err := s.assignAgentJoinPolicyToAnonymousToken(cluster); err != nil {
+				return fmt.Errorf("assignAgentJoinPolicyToAnonymousToken[%s]: %w", cluster.Name, err)
+			}
 		}
 	}
 
@@ -267,6 +313,9 @@ func (s *Sprawl) initConsulServers() error {
 
 func (s *Sprawl) createFirstTime() error {
 	if err := s.initConsulServers(); err != nil {
+		if err := s.CaptureLogs(context.Background()); err != nil {
+			s.logger.Warn("container logs capture encountered failures", "error", err)
+		}
 		return fmt.Errorf("initConsulServers: %w", err)
 	}
 
@@ -274,19 +323,29 @@ func (s *Sprawl) createFirstTime() error {
 		return fmt.Errorf("generator[agents]: %w", err)
 	}
 	for _, cluster := range s.topology.Clusters {
-		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+		err := retry.Do(
+			func() error {
+				if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
+					return fmt.Errorf("create first time - waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+				}
+				return nil
+			},
+			retry.MaxDelay(5*time.Second),
+			retry.Attempts(15),
+		)
+		if err != nil {
+			return fmt.Errorf("create first time - waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
 		}
 	}
 
 	// Ideally we start services WITH a token initially, so we pre-create them
 	// before running terraform for them.
-	if err := s.createAllServiceTokens(); err != nil {
-		return fmt.Errorf("createAllServiceTokens: %w", err)
+	if err := s.createAllWorkloadTokens(); err != nil {
+		return fmt.Errorf("createAllWorkloadTokens: %w", err)
 	}
 
-	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
-		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
+	if err := s.syncAllServicesForDataplaneInstances(); err != nil {
+		return fmt.Errorf("syncAllServicesForDataplaneInstances: %w", err)
 	}
 
 	// We can do this ahead, because we've incrementally run terraform as
@@ -303,12 +362,25 @@ func (s *Sprawl) createFirstTime() error {
 	if err := s.initPeerings(); err != nil {
 		return fmt.Errorf("initPeerings: %w", err)
 	}
+
+	if err := s.initNetworkAreas(); err != nil {
+		return fmt.Errorf("initNetworkAreas: %w", err)
+	}
 	return nil
 }
 
-func (s *Sprawl) updateExisting() error {
-	if err := s.preRegenTasks(); err != nil {
-		return fmt.Errorf("preRegenTasks: %w", err)
+func (s *Sprawl) updateExisting(firstTime bool, launchPhase LaunchPhase) error {
+	if launchPhase != LaunchPhaseUpgrade {
+		if err := s.preRegenTasks(); err != nil {
+			return fmt.Errorf("preRegenTasks: %w", err)
+		}
+	} else {
+		s.logger.Info("Upgrade - skip preRegenTasks")
+		for _, cluster := range s.topology.Clusters {
+			if err := s.createAgentTokens(cluster); err != nil {
+				return fmt.Errorf("createAgentTokens[%s]: %w", cluster.Name, err)
+			}
+		}
 	}
 
 	// We save all of the terraform to the end. Some of the containers will
@@ -318,7 +390,7 @@ func (s *Sprawl) updateExisting() error {
 		return fmt.Errorf("generator[relaunch]: %w", err)
 	}
 
-	if err := s.postRegenTasks(); err != nil {
+	if err := s.postRegenTasks(firstTime); err != nil {
 		return fmt.Errorf("postRegenTasks: %w", err)
 	}
 
@@ -349,20 +421,23 @@ func (s *Sprawl) preRegenTasks() error {
 
 	// Ideally we start services WITH a token initially, so we pre-create them
 	// before running terraform for them.
-	if err := s.createAllServiceTokens(); err != nil {
-		return fmt.Errorf("createAllServiceTokens: %w", err)
+	if err := s.createAllWorkloadTokens(); err != nil {
+		return fmt.Errorf("createAllWorkloadTokens: %w", err)
 	}
 
-	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
-		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
+	if err := s.syncAllServicesForDataplaneInstances(); err != nil {
+		return fmt.Errorf("syncAllServicesForDataplaneInstances: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Sprawl) postRegenTasks() error {
-	if err := s.rejoinAllConsulServers(); err != nil {
-		return err
+func (s *Sprawl) postRegenTasks(firstTime bool) error {
+	// rejoinAllConsulServers only for firstTime; otherwise all server agents have retry_join
+	if firstTime {
+		if err := s.rejoinAllConsulServers(); err != nil {
+			return err
+		}
 	}
 
 	for _, cluster := range s.topology.Clusters {
@@ -372,6 +447,9 @@ func (s *Sprawl) postRegenTasks() error {
 
 		// Reconfigure the clients to use a management token.
 		node := cluster.FirstServer()
+		if node.Disabled {
+			continue
+		}
 		s.clients[cluster.Name], err = util.ProxyAPIClient(
 			node.LocalProxyPort(),
 			node.LocalAddress(),
@@ -391,7 +469,7 @@ func (s *Sprawl) postRegenTasks() error {
 
 	for _, cluster := range s.topology.Clusters {
 		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+			return fmt.Errorf("post regenerate waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
 		}
 	}
 
@@ -427,27 +505,28 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 	start := time.Now()
 	for attempts := 0; ; attempts++ {
 		if err := tryKV(); err != nil {
-			logger.Warn("local kv write failed; something is not ready yet", "error", err)
+			logger.Debug("local kv write failed; something is not ready yet", "error", err)
 			time.Sleep(500 * time.Millisecond)
 			continue
 		} else {
 			dur := time.Since(start)
-			logger.Info("local kv write success", "elapsed", dur, "retries", attempts)
+			logger.Debug("local kv write success", "elapsed", dur, "retries", attempts)
 		}
 
 		break
 	}
 
-	if cluster.Enterprise {
+	serverNodes := cluster.ServerNodes()
+	if cluster.Enterprise && serverNodes[0].Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
 		start = time.Now()
 		for attempts := 0; ; attempts++ {
 			if err := tryAP(); err != nil {
-				logger.Warn("local partition write failed; something is not ready yet", "error", err)
+				logger.Debug("local partition write failed; something is not ready yet", "error", err)
 				time.Sleep(500 * time.Millisecond)
 				continue
 			} else {
 				dur := time.Since(start)
-				logger.Info("local partition write success", "elapsed", dur, "retries", attempts)
+				logger.Debug("local partition write success", "elapsed", dur, "retries", attempts)
 			}
 
 			break
@@ -456,6 +535,9 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 }
 
 func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
+	if cluster.EnableV2 {
+		return nil // v1 catalog is disabled when v2 catalog is enabled
+	}
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -491,7 +573,7 @@ func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
 			nid := node.CatalogID()
 
 			got, ok := current[nid]
-			if ok && len(got.TaggedAddresses) > 0 {
+			if ok && (len(got.TaggedAddresses) > 0 || got.Address != "") {
 				// this is a field that is not updated just due to serf reconcile
 				continue
 			}
@@ -501,10 +583,10 @@ func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
 
 		if len(stragglers) == 0 {
 			dur := time.Since(start)
-			logger.Info("all nodes have posted node updates, so first anti-entropy has happened", "elapsed", dur)
+			logger.Debug("all nodes have posted node updates, so first anti-entropy has happened", "elapsed", dur)
 			return nil
 		}
-		logger.Info("not all client nodes have posted node updates yet", "nodes", stragglers)
+		logger.Debug("not all nodes have posted node updates yet", "nodes", stragglers)
 
 		time.Sleep(1 * time.Second)
 	}
@@ -514,10 +596,10 @@ func newGossipKey() (string, error) {
 	key := make([]byte, 16)
 	n, err := rand.Reader.Read(key)
 	if err != nil {
-		return "", fmt.Errorf("Error reading random data: %s", err)
+		return "", fmt.Errorf("error reading random data: %s", err)
 	}
 	if n != 16 {
-		return "", fmt.Errorf("Couldn't read enough entropy. Generate more entropy!")
+		return "", fmt.Errorf("couldn't read enough entropy. Generate more entropy")
 	}
 	return base64.StdEncoding.EncodeToString(key), nil
 }

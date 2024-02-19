@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/types"
 )
@@ -113,6 +114,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		target.Name = s.Name
 
 		JWTProviderToStructs(s.GetJWTProvider(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindExportedServices:
+		var target structs.ExportedServicesConfigEntry
+		target.Name = s.Name
+
+		ExportedServicesToStructs(s.GetExportedServices(), &target)
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
@@ -226,6 +235,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindJWTProvider
 		configEntry.Entry = &ConfigEntry_JWTProvider{
 			JWTProvider: &jwtProvider,
+		}
+	case *structs.ExportedServicesConfigEntry:
+		var es ExportedServices
+		ExportedServicesFromStructs(v, &es)
+
+		configEntry.Kind = Kind_KindExportedServices
+		configEntry.Entry = &ConfigEntry_ExportedServices{
+			ExportedServices: &es,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
@@ -571,4 +588,50 @@ func httpQueryMatchToStructs(a HTTPQueryMatchType) structs.HTTPQueryMatchType {
 	default:
 		return structs.HTTPQueryMatchExact
 	}
+}
+
+// mog: func-to=serviceRefsToStructs func-from=serviceRefFromStructs
+func serviceRefsToStructs(a map[string]*ListOfResourceReference) structs.ServiceRouteReferences {
+	m := make(structs.ServiceRouteReferences, len(a))
+
+	for key, refs := range a {
+		serviceName := structs.ServiceNameFromString(key)
+		m[serviceName] = make([]structs.ResourceReference, 0, len(refs.Ref))
+		for _, ref := range refs.Ref {
+			structsRef := structs.ResourceReference{}
+			ResourceReferenceToStructs(ref, &structsRef)
+			m[serviceName] = append(m[serviceName], structsRef)
+		}
+	}
+	return m
+}
+
+func serviceRefFromStructs(a structs.ServiceRouteReferences) map[string]*ListOfResourceReference {
+	m := make(map[string]*ListOfResourceReference, len(a))
+
+	for serviceName, refs := range a {
+		name := serviceName.String()
+		m[name] = &ListOfResourceReference{Ref: make([]*ResourceReference, len(refs))}
+		for _, ref := range refs {
+			resourceRef := &ResourceReference{}
+			ResourceReferenceFromStructs(&ref, resourceRef)
+			m[name].Ref = append(m[name].Ref, resourceRef)
+		}
+	}
+	return m
+}
+
+func (r *ResolvedExportedService) ToAPI() *api.ResolvedExportedService {
+	var t api.ResolvedExportedService
+
+	t.Service = r.Service
+	if r.EnterpriseMeta != nil {
+		t.Namespace = r.EnterpriseMeta.Namespace
+		t.Partition = r.EnterpriseMeta.Partition
+	}
+
+	t.Consumers.Peers = r.Consumers.Peers
+	t.Consumers.Partitions = r.Consumers.Partitions
+
+	return &t
 }

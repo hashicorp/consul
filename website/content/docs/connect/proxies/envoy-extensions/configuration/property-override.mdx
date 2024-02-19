@@ -177,16 +177,16 @@ EnvoyExtensions = [
       ProxyType = "connect-proxy",
       Patches = [
         {
-          "ResourceFilter" = {
-            "ResourceType" = "cluster",
-            "TrafficDirection" = "outbound",
-            "Service" = {
-              "Name" = "other-svc"
-            },
-          },
-          "Op" = "add",
-          "Path" =  "/respect_dns_ttl",
-          "Value" = true,
+          ResourceFilter = {
+            ResourceType = "cluster"
+            TrafficDirection = "outbound"
+            Service = {
+              Name = "other-svc"
+            }
+          }
+          Op = "add"
+          Path =  "/respect_dns_ttl"
+          Value = true
         }
       ]
     }

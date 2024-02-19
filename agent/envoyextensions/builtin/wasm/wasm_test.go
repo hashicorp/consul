@@ -18,7 +18,6 @@ import (
 	envoy_network_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/wasm/v3"
 	envoy_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/wasm/v3"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -138,8 +137,8 @@ func TestHttpWasmExtension(t *testing.T) {
 							t.Logf("cfg =\n%s\n\n", cfg.toJSON(t))
 							require.Equal(t, len(expFilters), len(obsFilters))
 							for idx, expFilter := range expFilters {
-								t.Logf("expFilterJSON[%d] =\n%s\n\n", idx, protoToJSON(t, expFilter))
-								t.Logf("obsfilterJSON[%d] =\n%s\n\n", idx, protoToJSON(t, obsFilters[idx]))
+								t.Logf("expFilterJSON[%d] =\n%s\n\n", idx, prototest.ProtoToJSON(t, expFilter))
+								t.Logf("obsfilterJSON[%d] =\n%s\n\n", idx, prototest.ProtoToJSON(t, obsFilters[idx]))
 							}
 						}
 
@@ -649,16 +648,6 @@ func newTestWasmConfig(protocol string, enterprise bool) *testWasmConfig {
 		cfg.PluginConfig.VmConfig.Code.Remote.HttpURI.Service.Partition = "ap1"
 	}
 	return cfg
-}
-
-func protoToJSON(t *testing.T, pb proto.Message) string {
-	t.Helper()
-	m := protojson.MarshalOptions{
-		Indent: "  ",
-	}
-	gotJSON, err := m.Marshal(pb)
-	require.NoError(t, err)
-	return string(gotJSON)
 }
 
 func setField(m map[string]any, path string, value any) {

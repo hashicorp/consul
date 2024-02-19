@@ -13,10 +13,14 @@ on:
 
 env:
   PKG_NAME: consul
+  # TODO(spatel): CE refactor
   METADATA: oss
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   set-product-version:
     runs-on: ubuntu-latest
     outputs:
@@ -27,6 +31,8 @@ jobs:
       shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # action-set-product-version implicitly sets fields like 'product-version' using version/VERSION
+      # https://github.com/hashicorp/actions-set-product-version
       - name: set product version
         id: set-product-version
         uses: hashicorp/actions-set-product-version@v1
@@ -34,7 +40,6 @@ jobs:
         id: get-product-version
         run: |
           CONSUL_DATE=$(build-support/scripts/build-date.sh)
-          ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
           echo "product-date=${CONSUL_DATE}" >> "$GITHUB_OUTPUT"
 
       - name: Set shared -ldflags
@@ -79,30 +84,32 @@ jobs:
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
 
   build:
-    needs: set-product-version
+    needs:
+    - set-product-version
+    - get-go-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - {go: "1.20.7", goos: "linux", goarch: "386"}
-          - {go: "1.20.7", goos: "linux", goarch: "amd64"}
-          - {go: "1.20.7", goos: "linux", goarch: "arm"}
-          - {go: "1.20.7", goos: "linux", goarch: "arm64"}
-          - {go: "1.20.7", goos: "freebsd", goarch: "386"}
-          - {go: "1.20.7", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.20.7", goos: "windows", goarch: "386"}
-          - {go: "1.20.7", goos: "windows", goarch: "amd64"}
-          - {go: "1.20.7", goos: "solaris", goarch: "amd64"}
+          - {goos: "linux", goarch: "386"}
+          - {goos: "linux", goarch: "amd64"}
+          - {goos: "linux", goarch: "arm"}
+          - {goos: "linux", goarch: "arm64"}
+          - {goos: "freebsd", goarch: "386"}
+          - {goos: "freebsd", goarch: "amd64"}
+          - {goos: "windows", goarch: "386"}
+          - {goos: "windows", goarch: "amd64"}
+          - {goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
-    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -129,7 +136,7 @@ jobs:
         with:
           product_name: ${{ env.PKG_NAME }}
           product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ matrix.go }}
+          go_version: ${{ needs.get-go-version.outputs.go-version }}
           os: ${{ matrix.goos }}
           arch: ${{ matrix.goarch }}
           reproducible: report
@@ -175,23 +182,25 @@ jobs:
           path: out/${{ env.DEB_PACKAGE }}
 
   build-s390x:
-    needs: set-product-version
+    needs:
+    - set-product-version
+    - get-go-version
     if: ${{ endsWith(github.repository, '-enterprise') }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - {go: "1.20.7", goos: "linux", goarch: "s390x"}
+          - {goos: "linux", goarch: "s390x"}
       fail-fast: true
 
-    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -218,7 +227,7 @@ jobs:
         with:
           product_name: ${{ env.PKG_NAME }}
           product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ matrix.go }}
+          go_version: ${{ needs.get-go-version.outputs.go-version }}
           os: ${{ matrix.goos }}
           arch: ${{ matrix.goarch }}
           reproducible: report
@@ -226,23 +235,24 @@ jobs:
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-darwin:
-    needs: set-product-version
+    needs:
+    - set-product-version
+    - get-go-version
     runs-on: macos-latest
     strategy:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64", "arm64" ]
-        go: [ "1.20.7" ]
       fail-fast: true
 
-    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -267,7 +277,7 @@ jobs:
         with:
           product_name: ${{ env.PKG_NAME }}
           product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ matrix.go }}
+          go_version: ${{ needs.get-go-version.outputs.go-version }}
           os: ${{ matrix.goos }}
           arch: ${{ matrix.goarch }}
           reproducible: report
@@ -298,8 +308,10 @@ jobs:
       # This naming convention will be used ONLY for per-commit dev images
       - name: Set docker dev tag
         run: |
-          version="${{ env.version }}"
-          echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
+          echo "full_dev_tag=${{ env.version }}"
+          echo "full_dev_tag=${{ env.version }}" >> $GITHUB_ENV
+          echo "minor_dev_tag=$(echo ${{ env.version }}| sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+(-[0-9a-zA-Z\+\.]+)?$/\1\2/')" 
+          echo "minor_dev_tag=$(echo ${{ env.version }}| sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+(-[0-9a-zA-Z\+\.]+)?$/\1\2/')" >> $GITHUB_ENV
 
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
@@ -311,32 +323,14 @@ jobs:
             docker.io/hashicorp/${{env.repo}}:${{env.version}}
             public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
           dev_tags: |
-            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}
-            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-${{ github.sha }}
-          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
-
-  build-docker-ubi-redhat:
-    name: Docker Build UBI Image for RedHat Registry
-    needs:
-      - set-product-version
-      - build
-    runs-on: ubuntu-latest
-    env:
-      repo: ${{github.event.repository.name}}
-      version: ${{needs.set-product-version.outputs.product-version}}
-
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - uses: hashicorp/actions-docker-build@v1
-        with:
-          version: ${{env.version}}
-          target: ubi
-          arch: amd64
-          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.full_dev_tag }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.full_dev_tag }}-${{ github.sha }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
   build-docker-ubi-dockerhub:
-    name: Docker Build UBI Image for DockerHub
+    name: Docker Build UBI Images
     needs:
       - set-product-version
       - build
@@ -352,8 +346,10 @@ jobs:
       # This naming convention will be used ONLY for per-commit dev images
       - name: Set docker dev tag
         run: |
-          version="${{ env.version }}"
-          echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
+          echo "full_dev_tag=${{ env.version }}"
+          echo "full_dev_tag=${{ env.version }}" >> $GITHUB_ENV
+          echo "minor_dev_tag=$(echo ${{ env.version }}| sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+(-[0-9a-zA-Z\+\.]+)?$/\1\2/')" 
+          echo "minor_dev_tag=$(echo ${{ env.version }}| sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+(-[0-9a-zA-Z\+\.]+)?$/\1\2/')" >> $GITHUB_ENV
 
       - uses: hashicorp/actions-docker-build@v1
         with:
@@ -364,9 +360,12 @@ jobs:
             docker.io/hashicorp/${{env.repo}}:${{env.version}}-ubi
             public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}-ubi
           dev_tags: |
-            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-ubi
-            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-ubi-${{ github.sha }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.full_dev_tag }}-ubi
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.full_dev_tag }}-ubi-${{ github.sha }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
 
   verify-linux:
     needs:

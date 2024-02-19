@@ -1,0 +1,7 @@
+```release-note:bug
+server: Ensure internal streams are properly terminated on snapshot restore.
+```
+
+```release-note:bug
+server: Ensure controllers are automatically restarted on internal stream errors.
+```

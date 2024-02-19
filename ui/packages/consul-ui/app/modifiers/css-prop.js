@@ -8,10 +8,9 @@ import { inject as service } from '@ember/service';
 
 export default class CSSPropModifier extends Modifier {
   @service('-document') doc;
-  didReceiveArguments() {
-    const params = this.args.positional;
-    const options = this.args.named;
-    const returns = params[1] || options.returns;
-    returns(this.doc.defaultView.getComputedStyle(this.element).getPropertyValue(params[0]));
+
+  modify(element, positional, named) {
+    const returns = positional[1] || named?.returns;
+    returns(this.doc.defaultView.getComputedStyle(element).getPropertyValue(positional[0]));
   }
 }

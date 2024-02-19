@@ -20,6 +20,7 @@ func APIGatewayToStructs(s *APIGateway, t *structs.APIGatewayConfigEntry) {
 		StatusToStructs(s.Status, &t.Status)
 	}
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 	if s == nil {
@@ -41,6 +42,7 @@ func APIGatewayFromStructs(t *structs.APIGatewayConfigEntry, s *APIGateway) {
 		s.Status = &x
 	}
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func APIGatewayListenerToStructs(s *APIGatewayListener, t *structs.APIGatewayListener) {
 	if s == nil {
@@ -146,7 +148,9 @@ func BoundAPIGatewayToStructs(s *BoundAPIGateway, t *structs.BoundAPIGatewayConf
 			}
 		}
 	}
+	t.Services = serviceRefsToStructs(s.Services)
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundAPIGateway) {
 	if s == nil {
@@ -162,7 +166,9 @@ func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundA
 			}
 		}
 	}
+	s.Services = serviceRefFromStructs(t.Services)
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func BoundAPIGatewayListenerToStructs(s *BoundAPIGatewayListener, t *structs.BoundAPIGatewayListener) {
 	if s == nil {
@@ -271,6 +277,86 @@ func DestinationConfigFromStructs(t *structs.DestinationConfig, s *DestinationCo
 	}
 	s.Addresses = t.Addresses
 	s.Port = int32(t.Port)
+}
+func ExportedServicesToStructs(s *ExportedServices, t *structs.ExportedServicesConfigEntry) {
+	if s == nil {
+		return
+	}
+	{
+		t.Services = make([]structs.ExportedService, len(s.Services))
+		for i := range s.Services {
+			if s.Services[i] != nil {
+				ExportedServicesServiceToStructs(s.Services[i], &t.Services[i])
+			}
+		}
+	}
+	t.Meta = s.Meta
+	t.Hash = s.Hash
+}
+func ExportedServicesFromStructs(t *structs.ExportedServicesConfigEntry, s *ExportedServices) {
+	if s == nil {
+		return
+	}
+	{
+		s.Services = make([]*ExportedServicesService, len(t.Services))
+		for i := range t.Services {
+			{
+				var x ExportedServicesService
+				ExportedServicesServiceFromStructs(&t.Services[i], &x)
+				s.Services[i] = &x
+			}
+		}
+	}
+	s.Meta = t.Meta
+	s.Hash = t.Hash
+}
+func ExportedServicesConsumerToStructs(s *ExportedServicesConsumer, t *structs.ServiceConsumer) {
+	if s == nil {
+		return
+	}
+	t.Partition = s.Partition
+	t.Peer = s.Peer
+	t.SamenessGroup = s.SamenessGroup
+}
+func ExportedServicesConsumerFromStructs(t *structs.ServiceConsumer, s *ExportedServicesConsumer) {
+	if s == nil {
+		return
+	}
+	s.Partition = t.Partition
+	s.Peer = t.Peer
+	s.SamenessGroup = t.SamenessGroup
+}
+func ExportedServicesServiceToStructs(s *ExportedServicesService, t *structs.ExportedService) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Namespace = s.Namespace
+	{
+		t.Consumers = make([]structs.ServiceConsumer, len(s.Consumers))
+		for i := range s.Consumers {
+			if s.Consumers[i] != nil {
+				ExportedServicesConsumerToStructs(s.Consumers[i], &t.Consumers[i])
+			}
+		}
+	}
+}
+func ExportedServicesServiceFromStructs(t *structs.ExportedService, s *ExportedServicesService) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Namespace = t.Namespace
+	{
+		s.Consumers = make([]*ExportedServicesConsumer, len(t.Consumers))
+		for i := range t.Consumers {
+			{
+				var x ExportedServicesConsumer
+				ExportedServicesConsumerFromStructs(&t.Consumers[i], &x)
+				s.Consumers[i] = &x
+			}
+		}
+	}
 }
 func ExposeConfigToStructs(s *ExposeConfig, t *structs.ExposeConfig) {
 	if s == nil {
@@ -578,6 +664,34 @@ func HTTPQueryMatchFromStructs(t *structs.HTTPQueryMatch, s *HTTPQueryMatch) {
 	s.Name = t.Name
 	s.Value = t.Value
 }
+func HTTPResponseFiltersToStructs(s *HTTPResponseFilters, t *structs.HTTPResponseFilters) {
+	if s == nil {
+		return
+	}
+	{
+		t.Headers = make([]structs.HTTPHeaderFilter, len(s.Headers))
+		for i := range s.Headers {
+			if s.Headers[i] != nil {
+				HTTPHeaderFilterToStructs(s.Headers[i], &t.Headers[i])
+			}
+		}
+	}
+}
+func HTTPResponseFiltersFromStructs(t *structs.HTTPResponseFilters, s *HTTPResponseFilters) {
+	if s == nil {
+		return
+	}
+	{
+		s.Headers = make([]*HTTPHeaderFilter, len(t.Headers))
+		for i := range t.Headers {
+			{
+				var x HTTPHeaderFilter
+				HTTPHeaderFilterFromStructs(&t.Headers[i], &x)
+				s.Headers[i] = &x
+			}
+		}
+	}
+}
 func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
 	if s == nil {
 		return
@@ -603,6 +717,7 @@ func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
 	if s.Status != nil {
 		StatusToStructs(s.Status, &t.Status)
 	}
+	t.Hash = s.Hash
 }
 func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
 	if s == nil {
@@ -635,6 +750,7 @@ func HTTPRouteFromStructs(t *structs.HTTPRouteConfigEntry, s *HTTPRoute) {
 		StatusFromStructs(&t.Status, &x)
 		s.Status = &x
 	}
+	s.Hash = t.Hash
 }
 func HTTPRouteRuleToStructs(s *HTTPRouteRule, t *structs.HTTPRouteRule) {
 	if s == nil {
@@ -642,6 +758,9 @@ func HTTPRouteRuleToStructs(s *HTTPRouteRule, t *structs.HTTPRouteRule) {
 	}
 	if s.Filters != nil {
 		HTTPFiltersToStructs(s.Filters, &t.Filters)
+	}
+	if s.ResponseFilters != nil {
+		HTTPResponseFiltersToStructs(s.ResponseFilters, &t.ResponseFilters)
 	}
 	{
 		t.Matches = make([]structs.HTTPMatch, len(s.Matches))
@@ -668,6 +787,11 @@ func HTTPRouteRuleFromStructs(t *structs.HTTPRouteRule, s *HTTPRouteRule) {
 		var x HTTPFilters
 		HTTPFiltersFromStructs(&t.Filters, &x)
 		s.Filters = &x
+	}
+	{
+		var x HTTPResponseFilters
+		HTTPResponseFiltersFromStructs(&t.ResponseFilters, &x)
+		s.ResponseFilters = &x
 	}
 	{
 		s.Matches = make([]*HTTPMatch, len(t.Matches))
@@ -699,6 +823,9 @@ func HTTPServiceToStructs(s *HTTPService, t *structs.HTTPService) {
 	if s.Filters != nil {
 		HTTPFiltersToStructs(s.Filters, &t.Filters)
 	}
+	if s.ResponseFilters != nil {
+		HTTPResponseFiltersToStructs(s.ResponseFilters, &t.ResponseFilters)
+	}
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
 func HTTPServiceFromStructs(t *structs.HTTPService, s *HTTPService) {
@@ -711,6 +838,11 @@ func HTTPServiceFromStructs(t *structs.HTTPService, s *HTTPService) {
 		var x HTTPFilters
 		HTTPFiltersFromStructs(&t.Filters, &x)
 		s.Filters = &x
+	}
+	{
+		var x HTTPResponseFilters
+		HTTPResponseFiltersFromStructs(&t.ResponseFilters, &x)
+		s.ResponseFilters = &x
 	}
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
@@ -763,6 +895,7 @@ func IngressGatewayToStructs(s *IngressGateway, t *structs.IngressGatewayConfigE
 		t.Defaults = &x
 	}
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func IngressGatewayFromStructs(t *structs.IngressGatewayConfigEntry, s *IngressGateway) {
 	if s == nil {
@@ -789,6 +922,7 @@ func IngressGatewayFromStructs(t *structs.IngressGatewayConfigEntry, s *IngressG
 		s.Defaults = &x
 	}
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func IngressListenerToStructs(s *IngressListener, t *structs.IngressListener) {
 	if s == nil {
@@ -929,6 +1063,7 @@ func InlineCertificateToStructs(s *InlineCertificate, t *structs.InlineCertifica
 	t.Certificate = s.Certificate
 	t.PrivateKey = s.PrivateKey
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func InlineCertificateFromStructs(t *structs.InlineCertificateConfigEntry, s *InlineCertificate) {
 	if s == nil {
@@ -937,6 +1072,59 @@ func InlineCertificateFromStructs(t *structs.InlineCertificateConfigEntry, s *In
 	s.Certificate = t.Certificate
 	s.PrivateKey = t.PrivateKey
 	s.Meta = t.Meta
+	s.Hash = t.Hash
+}
+func InstanceLevelRateLimitsToStructs(s *InstanceLevelRateLimits, t *structs.InstanceLevelRateLimits) {
+	if s == nil {
+		return
+	}
+	t.RequestsPerSecond = int(s.RequestsPerSecond)
+	t.RequestsMaxBurst = int(s.RequestsMaxBurst)
+	{
+		t.Routes = make([]structs.InstanceLevelRouteRateLimits, len(s.Routes))
+		for i := range s.Routes {
+			if s.Routes[i] != nil {
+				InstanceLevelRouteRateLimitsToStructs(s.Routes[i], &t.Routes[i])
+			}
+		}
+	}
+}
+func InstanceLevelRateLimitsFromStructs(t *structs.InstanceLevelRateLimits, s *InstanceLevelRateLimits) {
+	if s == nil {
+		return
+	}
+	s.RequestsPerSecond = uint32(t.RequestsPerSecond)
+	s.RequestsMaxBurst = uint32(t.RequestsMaxBurst)
+	{
+		s.Routes = make([]*InstanceLevelRouteRateLimits, len(t.Routes))
+		for i := range t.Routes {
+			{
+				var x InstanceLevelRouteRateLimits
+				InstanceLevelRouteRateLimitsFromStructs(&t.Routes[i], &x)
+				s.Routes[i] = &x
+			}
+		}
+	}
+}
+func InstanceLevelRouteRateLimitsToStructs(s *InstanceLevelRouteRateLimits, t *structs.InstanceLevelRouteRateLimits) {
+	if s == nil {
+		return
+	}
+	t.PathExact = s.PathExact
+	t.PathPrefix = s.PathPrefix
+	t.PathRegex = s.PathRegex
+	t.RequestsPerSecond = int(s.RequestsPerSecond)
+	t.RequestsMaxBurst = int(s.RequestsMaxBurst)
+}
+func InstanceLevelRouteRateLimitsFromStructs(t *structs.InstanceLevelRouteRateLimits, s *InstanceLevelRouteRateLimits) {
+	if s == nil {
+		return
+	}
+	s.PathExact = t.PathExact
+	s.PathPrefix = t.PathPrefix
+	s.PathRegex = t.PathRegex
+	s.RequestsPerSecond = uint32(t.RequestsPerSecond)
+	s.RequestsMaxBurst = uint32(t.RequestsMaxBurst)
 }
 func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t *structs.IntentionHTTPHeaderPermission) {
 	if s == nil {
@@ -1383,6 +1571,7 @@ func JWTProviderToStructs(s *JWTProvider, t *structs.JWTProviderConfigEntry) {
 		t.CacheConfig = &x
 	}
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func JWTProviderFromStructs(t *structs.JWTProviderConfigEntry, s *JWTProvider) {
 	if s == nil {
@@ -1417,6 +1606,7 @@ func JWTProviderFromStructs(t *structs.JWTProviderConfigEntry, s *JWTProvider) {
 		s.CacheConfig = &x
 	}
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func LeastRequestConfigToStructs(s *LeastRequestConfig, t *structs.LeastRequestConfig) {
 	if s == nil {
@@ -1518,6 +1708,7 @@ func MeshConfigToStructs(s *MeshConfig, t *structs.MeshConfigEntry) {
 		t.Peering = &x
 	}
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 	if s == nil {
@@ -1545,6 +1736,7 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 		s.Peering = &x
 	}
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func MeshDirectionalTLSConfigToStructs(s *MeshDirectionalTLSConfig, t *structs.MeshDirectionalTLSConfig) {
 	if s == nil {
@@ -1648,6 +1840,24 @@ func PeeringMeshConfigFromStructs(t *structs.PeeringMeshConfig, s *PeeringMeshCo
 	}
 	s.PeerThroughMeshGateways = t.PeerThroughMeshGateways
 }
+func RateLimitsToStructs(s *RateLimits, t *structs.RateLimits) {
+	if s == nil {
+		return
+	}
+	if s.InstanceLevel != nil {
+		InstanceLevelRateLimitsToStructs(s.InstanceLevel, &t.InstanceLevel)
+	}
+}
+func RateLimitsFromStructs(t *structs.RateLimits, s *RateLimits) {
+	if s == nil {
+		return
+	}
+	{
+		var x InstanceLevelRateLimits
+		InstanceLevelRateLimitsFromStructs(&t.InstanceLevel, &x)
+		s.InstanceLevel = &x
+	}
+}
 func RemoteJWKSToStructs(s *RemoteJWKS, t *structs.RemoteJWKS) {
 	if s == nil {
 		return
@@ -1708,19 +1918,19 @@ func RetryFilterToStructs(s *RetryFilter, t *structs.RetryFilter) {
 	if s == nil {
 		return
 	}
-	t.NumRetries = &s.NumRetries
+	t.NumRetries = s.NumRetries
 	t.RetryOn = s.RetryOn
 	t.RetryOnStatusCodes = s.RetryOnStatusCodes
-	t.RetryOnConnectFailure = &s.RetryOnConnectFailure
+	t.RetryOnConnectFailure = s.RetryOnConnectFailure
 }
 func RetryFilterFromStructs(t *structs.RetryFilter, s *RetryFilter) {
 	if s == nil {
 		return
 	}
-	s.NumRetries = *t.NumRetries
+	s.NumRetries = t.NumRetries
 	s.RetryOn = t.RetryOn
 	s.RetryOnStatusCodes = t.RetryOnStatusCodes
-	s.RetryOnConnectFailure = *t.RetryOnConnectFailure
+	s.RetryOnConnectFailure = t.RetryOnConnectFailure
 }
 func RetryPolicyBackOffToStructs(s *RetryPolicyBackOff, t *structs.RetryPolicyBackOff) {
 	if s == nil {
@@ -1766,6 +1976,7 @@ func SamenessGroupToStructs(s *SamenessGroup, t *structs.SamenessGroupConfigEntr
 		}
 	}
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
 func SamenessGroupFromStructs(t *structs.SamenessGroupConfigEntry, s *SamenessGroup) {
@@ -1786,6 +1997,7 @@ func SamenessGroupFromStructs(t *structs.SamenessGroupConfigEntry, s *SamenessGr
 		}
 	}
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
 func SamenessGroupMemberToStructs(s *SamenessGroupMember, t *structs.SamenessGroupMember) {
@@ -1833,8 +2045,14 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	t.LocalConnectTimeoutMs = int(s.LocalConnectTimeoutMs)
 	t.LocalRequestTimeoutMs = int(s.LocalRequestTimeoutMs)
 	t.BalanceInboundConnections = s.BalanceInboundConnections
+	if s.RateLimits != nil {
+		var x structs.RateLimits
+		RateLimitsToStructs(s.RateLimits, &x)
+		t.RateLimits = &x
+	}
 	t.EnvoyExtensions = EnvoyExtensionsToStructs(s.EnvoyExtensions)
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefaults) {
 	if s == nil {
@@ -1873,8 +2091,14 @@ func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefault
 	s.LocalConnectTimeoutMs = int32(t.LocalConnectTimeoutMs)
 	s.LocalRequestTimeoutMs = int32(t.LocalRequestTimeoutMs)
 	s.BalanceInboundConnections = t.BalanceInboundConnections
+	if t.RateLimits != nil {
+		var x RateLimits
+		RateLimitsFromStructs(t.RateLimits, &x)
+		s.RateLimits = &x
+	}
 	s.EnvoyExtensions = EnvoyExtensionsFromStructs(t.EnvoyExtensions)
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func ServiceIntentionsToStructs(s *ServiceIntentions, t *structs.ServiceIntentionsConfigEntry) {
 	if s == nil {
@@ -1896,6 +2120,7 @@ func ServiceIntentionsToStructs(s *ServiceIntentions, t *structs.ServiceIntentio
 		t.JWT = &x
 	}
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func ServiceIntentionsFromStructs(t *structs.ServiceIntentionsConfigEntry, s *ServiceIntentions) {
 	if s == nil {
@@ -1917,6 +2142,7 @@ func ServiceIntentionsFromStructs(t *structs.ServiceIntentionsConfigEntry, s *Se
 		s.JWT = &x
 	}
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func ServiceResolverToStructs(s *ServiceResolver, t *structs.ServiceResolverConfigEntry) {
 	if s == nil {
@@ -1961,6 +2187,7 @@ func ServiceResolverToStructs(s *ServiceResolver, t *structs.ServiceResolverConf
 		t.LoadBalancer = &x
 	}
 	t.Meta = s.Meta
+	t.Hash = s.Hash
 }
 func ServiceResolverFromStructs(t *structs.ServiceResolverConfigEntry, s *ServiceResolver) {
 	if s == nil {
@@ -2009,6 +2236,7 @@ func ServiceResolverFromStructs(t *structs.ServiceResolverConfigEntry, s *Servic
 		s.LoadBalancer = &x
 	}
 	s.Meta = t.Meta
+	s.Hash = t.Hash
 }
 func ServiceResolverFailoverToStructs(s *ServiceResolverFailover, t *structs.ServiceResolverFailover) {
 	if s == nil {
@@ -2250,6 +2478,7 @@ func TCPRouteToStructs(s *TCPRoute, t *structs.TCPRouteConfigEntry) {
 	if s.Status != nil {
 		StatusToStructs(s.Status, &t.Status)
 	}
+	t.Hash = s.Hash
 }
 func TCPRouteFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRoute) {
 	if s == nil {
@@ -2281,6 +2510,7 @@ func TCPRouteFromStructs(t *structs.TCPRouteConfigEntry, s *TCPRoute) {
 		StatusFromStructs(&t.Status, &x)
 		s.Status = &x
 	}
+	s.Hash = t.Hash
 }
 func TCPServiceToStructs(s *TCPService, t *structs.TCPService) {
 	if s == nil {

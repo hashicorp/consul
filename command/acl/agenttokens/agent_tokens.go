@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -63,6 +64,8 @@ func (c *cmd) Run(args []string) int {
 		_, err = client.Agent().UpdateReplicationACLToken(token, nil)
 	case "config_file_service_registration":
 		_, err = client.Agent().UpdateConfigFileRegistrationToken(token, nil)
+	case "dns":
+		_, err = client.Agent().UpdateDNSToken(token, nil)
 	default:
 		c.UI.Error(fmt.Sprintf("Unknown token type"))
 		return 1
@@ -139,6 +142,11 @@ Usage: consul acl set-agent-token [options] TYPE TOKEN
                                       being registered. If not set, the default token is used.
                                       If a service or check definition contains a 'token'
                                       field, then that token is used instead.
+
+    dns                               This is the token that the will be used in place of the default
+                                      token when specified for DNS requests and for DNS-specific RPCs.
+                                      If not provided the agent will attempt to use the default token
+                                      if one is present, then fallback to the anonymous token.
 
   Example:
 

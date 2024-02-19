@@ -1,0 +1,3 @@
+```release-note:improvement
+Reduce the frequency of metric exports from Consul to HCP from every 10s to every 1m
+```

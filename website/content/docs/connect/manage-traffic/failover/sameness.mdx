@@ -1,0 +1,203 @@
+---
+layout: docs
+page_title: Failover with sameness groups
+description: You can configure sameness groups so that when a service instance fails, traffic automatically routes to an identical service instance. Learn how to use sameness groups to create a failover strategy for deployments with multiple datacenters and cluster peering connections.
+---
+
+# Failover with sameness groups
+
+This page describes how to use sameness groups to automatically redirect service traffic to healthy instances in failover scenarios. Sameness groups are a user-defined set of Consul admin partitions with identical registered services. These admin paritions typically belong to Consul datacenters in different cloud regions, which enables sameness groups to participate in several service failover configuration strategies.
+
+To create a sameness group and configure each Consul datacenter to allow traffic from other members of the group, refer to [create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups).
+
+## Failover strategies
+
+You can edit a sameness group configuration entry so that all services failover to healthy instances on other members of a sameness group by default. You can also reference the sameness group in other configuration entries to enact other failover strategies for your network. 
+
+You can establish a failover strategy by configuring sameness group behavior in the following locations:
+
+- Sameness group configuration entry
+- Service resolver configuration entry
+- Prepared queries
+
+You can also configure service instances to route to upstreams in the same availability region during a failover. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+
+### Failover with a sameness group configuration entry
+
+To define failover behavior using a sameness group configuration entry, set `DefaultForFailover=true` and then apply the updated configuration to all clusters that are members of the group.
+
+In the following example configuration entry, datacenter `dc1` has two partitions, `partition-1` and `partition-2`. A second datacenter, `dc2`, has a single partition named `partition-1`. All three partitions have identically configured services and established cluster peering connections. The configuration entry defines a sameness group, `example-sg` in `dc1`. When redirecting traffic during a failover scenario, Consul attempts to find a healthy instance in a specific order: `dc1-partition-1`, then `dc1-partition-2`, then `dc2-partition-1`.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind                     = "sameness-group"  
+Name                     = "example-sg"
+Partition                = "partition-1" 
+DefaultForFailover       = true
+Members                = [
+      {Partition = "partition-1"},
+      {Partition = "partition-2"},
+      {Peer      = "dc2-partition-1"}
+      ]
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```
+{
+    "Kind": "sameness-group", 
+    "Name": "example-sg", 
+    "Partition": "partition-1",
+    "DefaultForFailover": true,
+    "Members": [
+        {
+            "Partition": "partition-1"
+        },
+        {
+            "Partition": "partition-2"
+        },
+        {
+            "Peer": "dc2-partition-1"
+        }
+    ]
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: SamenessGroup 
+metadata:
+  name: example-sg
+spec:
+  defaultForFailover: true
+  members:                                   
+    - partition: partition-1
+    - partition: partition-2
+    - peer: dc2-partition-1
+```
+
+</Tab>
+</Tabs>
+
+When a sameness group is configured as the failover default, sameness group failover takes place when a service resolver configuration entry does not implement more specific failover behavior. When a service resolver is defined for an upstream, it is used instead of the sameness group for default failover behavior.
+
+All services registered in the admin partition must failover to another member of the sameness group. You cannot choose subsets of services to use the sameness group as the failover default. If groups do not have identical services, or if a service is registered to some group members but not all members, this failover strategy may produce errors.
+
+For more information about specifying sameness group members and failover, refer to [sameness group configuration entry reference](/consul/docs/connect/config-entries/sameness-group).
+
+### Failover with a service resolver configuration entry
+
+When the sameness group is not configured as the failover default, you can reference the sameness group in a service resolver configuration entry. This approach enables you to use the sameness group as the failover destination for some services registered to group members.
+
+In the following example configuration, a database service called `db` is filtered into subsets based on a user-defined `version` tag. Services with a `v1` tag belong to the default subset, which uses the `product-group` sameness group for its failover. Instances of `db` with the `v2` tag, meanwhile, fail over to a service named `canary-db`.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind          = "service-resolver"
+Name          = "db"
+DefaultSubset = "v1"
+Subsets = {
+  v1 = {
+    Filter = "Service.Meta.version == v1"
+  }
+  v2 = {
+    Filter = "Service.Meta.version == v2"
+  }
+}
+Failover {
+  v1 = {
+    SamenessGroup = "product-group"
+  }
+  v2 = {
+    Service = "canary-db"
+  }
+}
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```
+{
+  "Kind": "service-resolver", 
+  "Name": "db", 
+  "DefaultSubset": "v1",
+  "Subsets": {
+    "v1": {
+      "Filter": "Service.Meta.version == v1"
+    },
+    "v2": {
+      "Filter": "Service.Meta.version == v2"
+    }
+  },   
+  "Failover": {
+      "v1": {
+            "SamenessGroup": "product-group"
+      },
+      "v2": {
+            "Service": "canary-db"
+      }
+  }
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: db
+spec:
+  defaultSubset: v1
+  subsets:
+    v1:
+      filter: 'Service.Meta.version == v1'
+    v2:
+      filter: 'Service.Meta.version == v2'
+  failover:
+    v1:
+      samenessGroup: "product-group"
+    v2:
+      service: "canary-db"
+```
+
+</Tab>
+</Tabs>
+
+For more information, including additional examples, refer to [service resolver configuration entry reference](/consul/docs/connect/config-entries/service-resolver).
+
+### Failover with a prepared query
+
+You can specify a sameness group in a prepared query to return service instances from the first member that has healthy instances. When a member does not have healthy instances, Consul queries group members in the order defined in the list of members in the sameness group configuration entry.
+
+The following example demonstrates a prepared query that can be referenced with the name `query-1`. It queries members of the sameness group for healthy instances of `db` that are registered to the `store-ns` namespace on partitions named `partition-1`.
+
+```json
+{
+  "Name": "query-1",
+  "Service": {
+    "Service": "db",
+    "SamenessGroup": "product-group",
+    "Partition": "partition-1",
+    "Namespace": "store-ns"
+  }
+}
+```
+
+In prepared queries, the sameness group is mutually exclusive with the [`Failover`](/consul/api-docs/query#failover) field because the sameness group includes failover targets based on the sameness group’s members. For more information about using prepared queries, refer to [Enable dynamic DNS queries](/consul/docs/services/discovery/dns-dynamic-lookups).

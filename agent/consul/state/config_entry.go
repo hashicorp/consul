@@ -102,6 +102,13 @@ func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 
 // ConfigEntry is used when restoring from a snapshot.
 func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
+	// the hash is recalculated when restoring config entries
+	// in case a new field is added in a newer version.
+	h, err := structs.HashConfigEntry(c)
+	if err != nil {
+		return err
+	}
+	c.SetHash(h)
 	return insertConfigEntryWithTxn(s.tx, c.GetRaftIndex().ModifyIndex, c)
 }
 
@@ -516,6 +523,16 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		}
 	case structs.SamenessGroup:
 		err := checkSamenessGroup(tx, conf)
+		if err != nil {
+			return err
+		}
+	case structs.ProxyDefaults:
+		proxyDefaults, ok := conf.(*structs.ProxyConfigEntry)
+		if !ok {
+			return fmt.Errorf("unable to cast config entry to proxy-defaults")
+		}
+		// Ensure we pre-compute the protocol before persisting always.
+		err := proxyDefaults.ComputeProtocol()
 		if err != nil {
 			return err
 		}

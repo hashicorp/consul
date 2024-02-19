@@ -36,7 +36,7 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
 
 #### Envoy Options for both Sidecars and Gateways
 
-- `-proxy-id` - The [proxy service](/consul/docs/connect/registration/service-registration) ID.
+- `-proxy-id` - The [proxy service](/consul/docs/connect/proxies/proxy-config-reference) ID.
   This service ID must already be registered with the local agent unless a gateway is being
   registered with the `-register` flag. As of Consul 1.8.0, this can also be
   specified via the `CONNECT_PROXY_ID` environment variable.
@@ -133,7 +133,7 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
   local agent yet but a [sidecar proxy
-  registration](/consul/docs/connect/registration/service-registration) with
+  registration](/consul/docs/proxies/deploy-sidecar-services) with
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
@@ -225,9 +225,9 @@ proxy configuration needed.
 
 ## Examples
 
-Assume a local service instance is registered on the local agent with a
+In the following examples, a local service instance is registered on the local agent with a
 sidecar proxy (using the [sidecar service
-registration](/consul/docs/connect/registration/service-registration) helper) as below.
+registration](/consul/docs/connect/proxies/deploy-sidecar-services) helper):
 
 ```hcl
 service {

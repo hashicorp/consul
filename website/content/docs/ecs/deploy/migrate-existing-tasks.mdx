@@ -1,0 +1,99 @@
+---
+layout: docs
+page_title: Migrate existing tasks to Consul service mesh
+description: >-
+  You can migrate tasks in existing Amazon Web Services ECS deployments to a service mesh deployed with Terraform. Learn how to convert a task specified as an ECS task definition into a `mesh-task` Terraform module.
+---
+
+# Migrate existing tasks to Consul on ECS with Terraform 
+
+To migrate existing tasks to Consul, rewrite the existing Terraform code for your tasks so that the container definitions include the [`mesh-task` Terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task). 
+
+Your tasks must already be defined in Terraform using the `ecs_task_definition` resource so that they can then be converted to use the `mesh-task` module.
+
+## Example 
+
+The following example shows an existing task definition configured in Terraform:
+
+```hcl
+resource "aws_ecs_task_definition" "my_task" {
+  family                   = "my_task"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = "arn:aws:iam::111111111111:role/execution-role"
+  task_role_arn            = "arn:aws:iam::111111111111:role/task-role"
+  container_definitions = jsonencode(
+    [{
+      name             = "example-client-app"
+      image            = "docker.io/org/my_task:v0.0.1"
+      essential        = true
+      portMappings = [
+        {
+          containerPort = 9090
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+      cpu         = 0
+      mountPoints = []
+      volumesFrom = []
+    }]
+  )
+}
+
+resource "aws_ecs_service" "my_task" {
+  name            = "my_task"
+  cluster         = "arn:aws:ecs:us-east-1:111111111111:cluster/my-cluster"
+  task_definition = aws_ecs_task_definition.my_task.arn
+  desired_count   = 1
+  network_configuration {
+    subnets = ["subnet-abc123"]
+  }
+  launch_type            = "FARGATE"
+}
+```
+
+
+Replace the `aws_ecs_task_definition` resource with the `mesh-task` module so that Consul adds the necessary dataplane containers that enable your task to join the mesh. The `mesh-task` module uses inputs similar to your old ECS task definition but creates a new version of the task definition with additional containers.
+
+The following Terraform configuration uses the `mesh-task` module to replace the previous example's task definition:
+
+```hcl
+module "my_task" {
+  source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
+  version = "<latest version>"
+
+  family                = "my_task"
+  container_definitions = [
+    {
+      name         = "example-client-app"
+      image        = "docker.io/org/my_task:v0.0.1"
+      essential    = true
+      portMappings = [
+        {
+          containerPort = 9090
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+      cpu         = 0
+      mountPoints = []
+      volumesFrom = []
+    }
+  ]
+
+  port       = 9090
+  consul_server_hosts = "<address of the Consul server>"
+}
+
+```
+
+Note the following differences:
+
+- The `execution_role_arn` and `task_role_arn` fields are removed. The `mesh-task` module creates the task and execution roles by default. If you need to use existing IAM roles, set the `task_role` and `execution_role` fields to pass in existing roles.
+- The `port` field specifes the port that your application listens on. If your application has no listening port, set `outbound_only = true` and remove the `port` field.
+- The `jsonencode()` function is removed from the `container_definitions` field.
+
+The `mesh-task` module creates a new version of your task definition with the necessary dataplane containers so you can delete your existing `aws_ecs_task_definition` resource.

@@ -1779,10 +1779,11 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 	// prep the cluster with some data we can use in our filters
 	registerTestCatalogEntries(t, codec)
 
-	doRequest := func(t *testing.T, filter string) structs.IndexedNodesWithGateways {
+	doRequest := func(t *testing.T, filter string, onlyNodes bool) structs.IndexedNodesWithGateways {
 		t.Helper()
-		args := structs.DCSpecificRequest{
+		args := structs.ServiceDumpRequest{
 			QueryOptions: structs.QueryOptions{Filter: filter},
+			NodesOnly:    onlyNodes,
 		}
 
 		var out structs.IndexedNodesWithGateways
@@ -1792,7 +1793,7 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 	}
 
 	t.Run("No peerings", func(t *testing.T) {
-		nodes := doRequest(t, "")
+		nodes := doRequest(t, "", false)
 		// redis (3), web (3), critical (1), warning (1) and consul (1)
 		require.Len(t, nodes.Nodes, 9)
 		require.Len(t, nodes.ImportedNodes, 0)
@@ -1809,19 +1810,27 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("peerings", func(t *testing.T) {
-		nodes := doRequest(t, "")
+		nodes := doRequest(t, "", false)
 		// redis (3), web (3), critical (1), warning (1) and consul (1)
 		require.Len(t, nodes.Nodes, 9)
 		// service (1)
 		require.Len(t, nodes.ImportedNodes, 1)
 	})
 
+	t.Run("peerings onlynodes", func(t *testing.T) {
+		nodes := doRequest(t, "", true)
+		// redis (3), web (3), critical (1), warning (1) and consul (1)
+		require.Len(t, nodes.Nodes, 9)
+		// service (1)
+		require.Len(t, nodes.ImportedNodes, 0)
+	})
+
 	t.Run("peerings w filter", func(t *testing.T) {
-		nodes := doRequest(t, "Node.PeerName == foo")
+		nodes := doRequest(t, "Node.PeerName == foo", false)
 		require.Len(t, nodes.Nodes, 0)
 		require.Len(t, nodes.ImportedNodes, 0)
 
-		nodes2 := doRequest(t, "Node.PeerName == peer1")
+		nodes2 := doRequest(t, "Node.PeerName == peer1", false)
 		require.Len(t, nodes2.Nodes, 0)
 		require.Len(t, nodes2.ImportedNodes, 1)
 	})
@@ -2375,14 +2384,12 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 	}
 
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -2462,6 +2469,40 @@ service "web" { policy = "read" }
 		// Can't read self, fails fast
 		require.True(t, acl.IsErrPermissionDenied(err))
 	})
+}
+
+// Tests that default intention deny policy overrides the ACL allow policy.
+// More comprehensive tests are done at the state store so this is minimal
+// coverage to be confident that the override happens.
+func TestInternal_ServiceTopology_DefaultIntentionPolicy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLInitialManagementToken = TestDefaultInitialManagementToken
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
+		c.DefaultIntentionPolicy = "deny"
+	})
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+
+	registerTestTopologyEntries(t, codec, TestDefaultInitialManagementToken)
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "redis",
+		QueryOptions: structs.QueryOptions{Token: TestDefaultInitialManagementToken},
+	}
+	var out structs.IndexedServiceTopology
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+
+	webSN := structs.NewServiceName("web", acl.DefaultEnterpriseMeta())
+	require.False(t, out.ServiceTopology.DownstreamDecisions[webSN.String()].DefaultAllow)
 }
 
 func TestInternal_IntentionUpstreams(t *testing.T) {

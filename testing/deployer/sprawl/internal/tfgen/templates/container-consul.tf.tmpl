@@ -1,16 +1,13 @@
 resource "docker_container" "{{.Node.DockerName}}" {
   name         = "{{.Node.DockerName}}"
   network_mode = "container:${docker_container.{{.PodName}}.id}"
-  image        = docker_image.{{.ImageResource}}.latest
+  image        = docker_image.{{.ImageResource}}.image_id
   restart      = "always"
 
   env = [
       "CONSUL_UID=0",
       "CONSUL_GID=0",
       "CONSUL_LICENSE={{.EnterpriseLicense}}",
-{{- range .Env }}
-      "{{.}}",
-{{- end}}
   ]
 
 {{- range $k, $v := .Labels }}

@@ -396,7 +396,7 @@ $ curl \
   `leader`, `voter`, `non-voter`, or `staging`.
 - `Meta` is the node metadata of this server. Values within this map are used for determining a server's
   redundancy zone and upgrade version.
-- `NodeType` is the desired type autopilot thinks this server should have. In Consul OSS the only possible
+- `NodeType` is the desired type autopilot thinks this server should have. In Consul CE, the only possible
   value is `voter` as all present servers should having voting rights. In Consul Enterprise the possible values also
   include `read-replica`, `zone-voter`, `zone-standby` and `zone-extra-voter`. `zone-voter` indicates that autopilot
   wants this server to be the voter for a particular redundancy zone. When a zone has no voter all nodes will be typed

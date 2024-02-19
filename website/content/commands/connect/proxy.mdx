@@ -24,14 +24,14 @@ Usage: `consul connect proxy [options]`
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
   local agent yet but a [sidecar proxy
-  registration](/consul/docs/connect/registration/service-registration) with
+  registration](/consul/docs/connect/proxies/deploy-sidecar-services) with
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
   This can also be specified via the `CONNECT_SIDECAR_FOR` environment variable.
 
 - `-proxy-id` - The [proxy
-  service](/consul/docs/connect/registration/service-registration) ID on the
+  service](/consul/docs/connect/proxies/proxy-config-reference) ID on the
   local agent. This must already be present on the local agent. This option
   can also be specified via the `CONNECT_PROXY_ID` environment variable.
 

@@ -1,0 +1,3 @@
+cd website
+
+npx next-hashicorp precommit

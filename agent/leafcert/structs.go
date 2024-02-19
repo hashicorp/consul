@@ -11,7 +11,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -31,16 +31,27 @@ type ConnectCALeafRequest struct {
 
 	// The following flags indicate the entity we are requesting a cert for.
 	// Only one of these must be specified.
-	Service string              // Given a Service name, not ID, the request is for a SpiffeIDService.
-	Agent   string              // Given an Agent name, not ID, the request is for a SpiffeIDAgent.
-	Kind    structs.ServiceKind // Given "mesh-gateway", the request is for a SpiffeIDMeshGateway. No other kinds supported.
-	Server  bool                // If true, the request is for a SpiffeIDServer.
+	WorkloadIdentity string              // Given a WorkloadIdentity name, the request is for a SpiffeIDWorkload.
+	Service          string              // Given a Service name, not ID, the request is for a SpiffeIDService.
+	Agent            string              // Given an Agent name, not ID, the request is for a SpiffeIDAgent.
+	Kind             structs.ServiceKind // Given "mesh-gateway", the request is for a SpiffeIDMeshGateway. No other kinds supported.
+	Server           bool                // If true, the request is for a SpiffeIDServer.
 }
 
 func (r *ConnectCALeafRequest) Key() string {
 	r.EnterpriseMeta.Normalize()
 
 	switch {
+	case r.WorkloadIdentity != "":
+		v, err := hashstructure.Hash([]any{
+			r.WorkloadIdentity,
+			r.EnterpriseMeta,
+			r.DNSSAN,
+			r.IPSAN,
+		}, nil)
+		if err == nil {
+			return fmt.Sprintf("workloadidentity:%d", v)
+		}
 	case r.Agent != "":
 		v, err := hashstructure.Hash([]any{
 			r.Agent,
@@ -94,8 +105,8 @@ func (req *ConnectCALeafRequest) TargetPartition() string {
 	return req.PartitionOrDefault()
 }
 
-func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
-	return cache.RequestInfo{
+func (r *ConnectCALeafRequest) CacheInfo() cacheshim.RequestInfo {
+	return cacheshim.RequestInfo{
 		Token:          r.Token,
 		Key:            r.Key(),
 		Datacenter:     r.Datacenter,

@@ -6,15 +6,9 @@ description: |-
 
 # Sameness groups configuration entry reference
 
-This page provides reference information for sameness group configuration entries. Sameness groups associate services with identical names across partitions and cluster peers.
+This page provides reference information for sameness group configuration entries. Sameness groups associate identical admin partitions to facilitate traffic between identical services. When partitions are part of the same Consul datacenter, you can create a sameness group by listing them in the `Members[].Partition` field. When partitions are located on remote clusters, you must establish cluster peering connections between remote partitions in order to add them to a sameness group in the `Members[].Peer` field.
 
 To learn more about creating a sameness group, refer to [Create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) or [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups).
-
-<Warning>
-
-Sameness groups are a beta feature for all Consul v1.16.x releases. Functionality is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may experience performance issues, scaling issues, and limited support.
-
-</Warning>
 
 ## Configuration model
 
@@ -28,6 +22,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Name`](#name): string | required
 - [`Partition`](#partition): string | `default`
 - [`DefaultForFailover`](#defaultforfailover): boolean | `false`
+- [`IncludeLocal`](#includelocal): boolean | `false`
 - [`Members`](#members): list of maps | required
   - [`Partition`](#members-partition): string
   - [`Peer`](#members-peer): string
@@ -41,10 +36,11 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
 - [`spec`](#spec): map | required
-  - [`DefaultForFailover`](#spec-defaultforfailover): boolean | `false`
-  - [`Members`](#spec-members): list of maps | required
-    - [`Partition`](#spec-members-partition): string
-    - [`Peer`](#spec-members-peer): string
+  - [`defaultForFailover`](#spec-defaultforfailover): boolean | `false`
+  - [`includeLocal`](#spec-includelocal): boolean | `false`
+  - [`members`](#spec-members): list of maps | required
+    - [`partition`](#spec-members-partition): string
+    - [`peer`](#spec-members-peer): string
 
 </Tab>
 </Tabs>
@@ -62,6 +58,7 @@ Kind               = "sameness-group"             # required
 Name               = "<group-name>"               # required
 Partition          = "<partition-configuration-applies-to>"
 DefaultForFailover = false
+IncludeLocal       = true
 Members = [                                       # required
   { Partition = "<partition-with-services-in-group>" },
   { Peer = "<cluster-peer-with-services-in-group>" }
@@ -78,6 +75,7 @@ Members = [                                       # required
     "Name": "<group-name>",                             // required
     "Partition": "<partition-configuration-applies-to>",
     "DefaultForFailover": false,
+    "IncludeLocal": true,    
     "Members": [                                        // required
         {
             "Partition": "<partition-with-services-in-group>"
@@ -100,6 +98,7 @@ metadata:
   name: <groupName>
 spec:
   defaultForFailover: false
+  includeLocal: true
   members:                                        # required
     - partition: <partitionWithServicesInGroup>
     - peer: <clusterPeerWithServicesInGroup>
@@ -147,9 +146,22 @@ Specifies the local admin partition that the sameness group applies to. Refer to
 
 ### `DefaultForFailover`
 
-Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, DNS queries and upstream requests automatically failover to services in the sameness group according to the order of the members in the `Members` list.
+Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios.
 
-When this field is set to `false`, you can still use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+When this field is set to `true`, upstream requests automatically fail over to services in the sameness group according to the order of the members in the `Members` list. It impacts all services on the partition.
+
+When this field is set to `false`, you can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `IncludeLocal`
+
+Determines whether the local partition should be considered the first member of the sameness group. When this field is set to `true`, DNS queries, upstream requests, and failover traffic returns a health instance from the local partition unless one does not exist.
+
+If you enable this parameter, you do not need to list the local partition as the first member in the group.
 
 #### Values
 
@@ -160,7 +172,7 @@ When this field is set to `false`, you can still use a sameness group for failov
 
 Specifies the partitions and cluster peers that are members of the sameness group from the perspective of the local partition.
 
-The local partition should be the first member listed. The order of the members determines their precedence during failover scenarios. If a member is listed but Consul cannot connect to it, failover proceeds with the next healthy member in the list. For an example demonstrating how to configure this parameter, refer to [Failover between sameness groups](#failover-between-sameness-groups).
+The local partition should be the first member listed unless `IncludeLocal=true`. The order of the members determines their precedence during failover scenarios. If a member is listed but Consul cannot connect to it, failover proceeds with the next healthy member in the list. For an example demonstrating how to configure this parameter, refer to [Failover between sameness groups](#failover-between-sameness-groups).
 
 Each partition can belong to a single sameness group. You cannot associate a partition or cluster peer with multiple sameness groups.
 
@@ -174,7 +186,7 @@ Each partition can belong to a single sameness group. You cannot associate a par
 
 ### `Members[].Partition`
 
-Specifies a partition in the local datacenter that is a member of the sameness group. When the value of this field is set to `*`, all local partitions become members of the sameness group.
+Specifies a partition in the local datacenter that is a member of the sameness group. Local partitions do not require cluster peering connections before they are added to a sameness group.
 
 #### Values
 
@@ -185,7 +197,7 @@ Specifies a partition in the local datacenter that is a member of the sameness g
 
 Specifies the name of a cluster peer that is a member of the sameness group.
 
-Cluster peering connections must be established before adding a peer to the list of members. Refer to [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
+Cluster peering connections must be established before adding a remote partition to the list of members. Refer to [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
 
 #### Values
 
@@ -247,9 +259,20 @@ Map that contains the details about the `SamenessGroup` configuration entry. The
 
 ### `spec.defaultForFailover`
 
-Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, DNS queries and upstream requests automatically failover to services in the sameness group according to the order of the members in the `spec.members` list.
+Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, upstream requests automatically failover to services in the sameness group according to the order of the members in the `spec.members` list. This setting affects all services on the partition.
 
-When this field is set to `false`, you can still use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+When this field is set to `false`, you can use a sameness group for failover by configuring the `spec.failover` block of a [service resolver CRD](/consul/docs/connect/config-entries/service-resolver).
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.includeLocal`
+
+Determines whether the local partition should be considered the first member of the sameness group. When this field is set to `true`, DNS queries, upstream requests, and failover traffic target return a healthy instance from the local partition unless a healthy instance does not exist.
+
+If you enable this parameter, you do not need to list the local partition as the first member in the group.
 
 #### Values
 
@@ -258,9 +281,9 @@ When this field is set to `false`, you can still use a sameness group for failov
 
 ### `spec.members`
 
-Specifies the partitions and cluster peers that are members of the sameness group from the perspective of the local partition.
+Specifies the local partitions and cluster peers that are members of the sameness group from the perspective of the local partition.
 
-The local partition should be the first member listed. The order of the members determines their precedence during failover scenarios. If a member is listed but Consul cannot connect to it, failover proceeds with the next healthy member in the list. For an example demonstrating how to configure this parameter, refer to [Failover between sameness groups](#failover-between-sameness-groups).
+The local partition should be the first member listed unless `spec.includeLocal: true`. The order of the members determines their precedence during failover scenarios. If a member is listed but Consul cannot connect to it, failover proceeds with the next healthy member in the list. For an example demonstrating how to configure this parameter, refer to [Failover between sameness groups](#failover-between-sameness-groups).
 
 Each partition can belong to a single sameness group. You cannot associate a partition or cluster peer with multiple sameness groups.
 
@@ -275,7 +298,7 @@ Each partition can belong to a single sameness group. You cannot associate a par
 
 ### `spec.members[].partition`
 
-Specifies a partition in the local datacenter that is a member of the sameness group. When the value of this field is set to `*`, all local partitions become members of the sameness group.
+Specifies a partition in the local datacenter that is a member of the sameness group. Local partitions do not require cluster peering connections before they are added to a sameness group.
 
 #### Values
 
@@ -302,7 +325,7 @@ The following examples demonstrate common sameness group configuration patterns 
 
 ### Failover between members of a sameness group
 
-In the following example, the configuration entry defines a sameness group named `products-api` that applies to the `store-east` partition in the local datacenter. The sameness group is configured so that when its services’ instances in `store-east` fails, Consul will attempt to establish a failover connection in the following order:
+In the following example, the configuration entry defines a sameness group named `products-api` that applies to the `store-east` partition in the local datacenter. The sameness group is configured so that when a service instance in `store-east` fails, Consul attempts to establish a failover connection in the following order:
 
 - Services with the same name in the `store-east` partition
 - Services with the same name in the `inventory-east` partition in the same datacenter
@@ -317,7 +340,6 @@ In the following example, the configuration entry defines a sameness group named
 Kind                     = "sameness-group"  
 Name                     = "products-api"
 Partition                = "store-east"
-DefaultForFailover = true
 Members = [
     { Partition = "store-east" },
     { Partition = "inventory-east" },
@@ -335,7 +357,6 @@ Members = [
     "Kind": "sameness-group", 
     "Name": "products-api", 
     "Partition": "store-east",
-    "DefaultForFailover": true,
     "Members": [
         {
             "Partition": "store-east"
@@ -363,7 +384,6 @@ kind: SamenessGroup
 metadata:
   name: products-api
 spec:
-  defaultForFailover: true
   members:                                   
     - partition: store-east
     - partition: inventory-east

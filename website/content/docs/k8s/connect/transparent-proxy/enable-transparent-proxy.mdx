@@ -43,8 +43,8 @@ connectInject:
 
 Apply the `consul.hashicorp.com/transparent-proxy=true` label to enable transparent proxy for a Kubernetes namespace. The label overrides the `connectInject.transparentProxy.defaultEnabled` Helm value and defines the default behavior of Pods in the namespace. The following example enables transparent proxy for Pods in the `my-app` namespace:
 
-```bash
-kubectl label namespaces my-app "consul.hashicorp.com/transparent-proxy=true"
+```shell-session
+$ kubectl label namespaces my-app "consul.hashicorp.com/transparent-proxy=true"
 ```
 ### Individual service
 
@@ -121,12 +121,11 @@ The [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](/consul/doc
 <CodeBlockConfig heading="Exclude inbound port numbers from redirection">
 
 ```yaml
-"metadata": {
-  "annotations": {
-    "consul.hashicorp.com/transparent-proxy-exclude-inbound-ports" : "8200, 8201”
-  }
-}
+metadata:
+  annotations:
+    consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "8200, 8201"
 ```
+
 </CodeBlockConfig>
 
 ### Exclude outbound ports
@@ -136,11 +135,9 @@ The [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/consul/do
 <CodeBlockConfig heading="Exclude outbound port numbers from redirection">
 
 ```yaml
-"metadata": {
-  "annotations": {
-    "consul.hashicorp.com/transparent-proxy-exclude-outbound-ports" : "8200, 8201”
-  }
-}
+metadata:
+  annotations":
+    consul.hashicorp.com/transparent-proxy-exclude-outbound-ports: "8200, 8201"
 ```
 
 </CodeBlockConfig>
@@ -154,11 +151,9 @@ In the following example, services in the `3.3.3.3/24` IP range are not redirect
 <CodeBlockConfig heading="Exclude outbound CIDR blocks from redirection">
 
 ```yaml
-"metadata": {
-  "annotations": {
-    "consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs" : "3.3.3.3,3.3.3.3/24"
-  }
-}
+metadata:
+  annotations:
+    consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs: "3.3.3.3,3.3.3.3/24"
 ```
 </CodeBlockConfig>
 
@@ -171,9 +166,9 @@ In the following example, services with the IDs `4444 ` and `44444 ` are not red
 <CodeBlockConfig heading="Exclude user IDs from redirection">
 
 ```yaml
-"metadata": {
-  "annotations": {
-    "consul.hashicorp.com/transparent-proxy-exclude-uids" : "4444,44444”
+metadata:
+  annotations:
+    consul.hashicorp.com/transparent-proxy-exclude-uids: "4444,44444"
   }
 }
 ```
@@ -201,7 +196,7 @@ then you must configure services in one Kubernetes cluster to explicitly dial a 
 The following example configures the service to dial an upstream service called `my-service` in datacenter `dc2` on port `1234`:
 
 ```yaml
-  "consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"
+consul.hashicorp.com/connect-service-upstreams: "my-service:1234:dc2"
 ```
 
 If your Consul cluster is deployed to a [single datacenter spanning multiple Kubernetes clusters](/consul/docs/k8s/deployment-configurations/single-dc-multi-k8s),
@@ -210,7 +205,7 @@ then you must configure services in one Kubernetes cluster to explicitly dial a 
 The following example configures the service to dial an upstream service called `my-service` in another Kubernetes cluster on port `1234`:
 
 ```yaml
-"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"
+consul.hashicorp.com/connect-service-upstreams: "my-service:1234"
 ```
 
 You do not need to configure services to explicitly dial upstream services if your Consul clusters are connected with a [peering connection](/consul/docs/connect/cluster-peering).
@@ -246,6 +241,8 @@ spec:
 </CodeBlockConfig>
 
 Additional services can query the [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) at `sample-app.default.svc.cluster.local` to reach `sample-app`. If ACLs are enabled and configured with default `deny` policies, the configuration also requires a [`ServiceIntention`](/consul/docs/connect/config-entries/service-intentions) to allow it to talk to `sample-app`.
+
+You can query the KubeDNS for a service that belongs to a sameness group at `sample-app.virtual.group-name.sg.consul`. This syntax is required when failover is desired and `spec.defaultForFailover` is set to `false` in the sameness group CRD. Refer to [sameness group configuration entry reference](/consul/docs/connect/config-entries/sameness-group) for more information.
 
 ### Headless services
 For services that are not addressed using a virtual cluster IP, you must configure the upstream service using the [DialedDirectly](/consul/docs/connect/config-entries/service-defaults#dialeddirectly) option. Then, use DNS to discover individual instance addresses and dial them through the transparent proxy. When this mode is enabled on the upstream, services present service mesh certificates for mTLS and intentions are enforced at the destination.

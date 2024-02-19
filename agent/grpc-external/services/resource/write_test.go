@@ -1,13 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package resource
+package resource_test
 
 import (
 	"context"
-	"strings"
-	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/mock"
@@ -17,102 +16,56 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl/resolver"
+	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/internal/storage"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
+// TODO: Update all tests to use true/false table test for v2tenancy
+
 func TestWrite_InputValidation(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-	demo.RegisterTypes(server.Registry)
-
-	testCases := map[string]func(artist, recordLabel *pbresource.Resource) *pbresource.Resource{
-		"no resource": func(artist, recordLabel *pbresource.Resource) *pbresource.Resource { return nil },
-		"no id": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Id = nil
-			return artist
-		},
-		"no type": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Id.Type = nil
-			return artist
-		},
-		"no tenancy": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Id.Tenancy = nil
-			return artist
-		},
-		"no name": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Id.Name = ""
-			return artist
-		},
-		"no data": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Data = nil
-			return artist
-		},
-		"wrong data type": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			var err error
-			artist.Data, err = anypb.New(&pbdemov2.Album{})
-			require.NoError(t, err)
-			return artist
-		},
-		"fail validation hook": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			buffer := &pbdemov2.Artist{}
-			require.NoError(t, artist.Data.UnmarshalTo(buffer))
-			buffer.Name = "" // name cannot be empty
-			require.NoError(t, artist.Data.MarshalFrom(buffer))
-			return artist
-		},
-		"partition scope with non-empty namespace": func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
-			recordLabel.Id.Tenancy.Namespace = "bogus"
-			return recordLabel
-		},
-		// TODO(spatel): add cluster scope tests when we have an actual cluster scoped resource (e.g. partition)
-	}
-	for desc, modFn := range testCases {
+	for desc, tc := range resourceValidTestCases(t) {
 		t.Run(desc, func(t *testing.T) {
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 
-			req := &pbresource.WriteRequest{Resource: modFn(artist, recordLabel)}
+			req := &pbresource.WriteRequest{Resource: tc.modFn(artist, recordLabel)}
 			_, err = client.Write(testContext(t), req)
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+			require.ErrorContains(t, err, tc.errContains)
 		})
 	}
 }
 
 func TestWrite_OwnerValidation(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-	demo.RegisterTypes(server.Registry)
+	testCases := ownerValidationTestCases(t)
 
-	type testCase struct {
-		modReqFn      func(req *pbresource.WriteRequest)
-		errorContains string
+	// This is not part of ownerValidationTestCases because it is a special case
+	// that only gets caught deeper into the write path.
+	testCases["no owner tenancy"] = ownerValidTestCase{
+		modFn:         func(res *pbresource.Resource) { res.Owner.Tenancy = nil },
+		errorContains: "resource.owner does not exist",
 	}
-	testCases := map[string]testCase{
-		"no owner type": {
-			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Type = nil },
-			errorContains: "resource.owner.type",
-		},
-		"no owner tenancy": {
-			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Tenancy = nil },
-			errorContains: "resource.owner.tenancy",
-		},
-		"no owner name": {
-			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Name = "" },
-			errorContains: "resource.owner.name",
-		},
-	}
+
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			artist, err := demo.GenerateV2Artist()
@@ -121,10 +74,9 @@ func TestWrite_OwnerValidation(t *testing.T) {
 			album, err := demo.GenerateV2Album(artist.Id)
 			require.NoError(t, err)
 
-			albumReq := &pbresource.WriteRequest{Resource: album}
-			tc.modReqFn(albumReq)
+			tc.modFn(album)
 
-			_, err = client.Write(testContext(t), albumReq)
+			_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
 			require.ErrorContains(t, err, tc.errorContains)
@@ -133,8 +85,7 @@ func TestWrite_OwnerValidation(t *testing.T) {
 }
 
 func TestWrite_TypeNotFound(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
+	client := svctest.NewResourceServiceBuilder().Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -168,14 +119,14 @@ func TestWrite_ACLs(t *testing.T) {
 
 	for desc, tc := range testcases {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			client := testClient(t, server)
-
-			mockACLResolver := &MockACLResolver{}
+			mockACLResolver := &svc.MockACLResolver{}
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
-			server.ACLResolver = mockACLResolver
-			demo.RegisterTypes(server.Registry)
+
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				WithACLResolver(mockACLResolver).
+				Run(t)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -188,9 +139,9 @@ func TestWrite_ACLs(t *testing.T) {
 }
 
 func TestWrite_Mutate(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -213,75 +164,13 @@ func TestWrite_Mutate(t *testing.T) {
 }
 
 func TestWrite_Create_Success(t *testing.T) {
-	testCases := map[string]struct {
-		modFn           func(artist, recordLabel *pbresource.Resource) *pbresource.Resource
-		expectedTenancy *pbresource.Tenancy
-	}{
-		"namespaced resource provides nonempty partition and namespace": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				return artist
-			},
-			expectedTenancy: resource.DefaultNamespacedTenancy(),
-		},
-		"namespaced resource provides uppercase partition and namespace": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				artist.Id.Tenancy.Partition = strings.ToUpper(artist.Id.Tenancy.Partition)
-				artist.Id.Tenancy.Namespace = strings.ToUpper(artist.Id.Tenancy.Namespace)
-				return artist
-			},
-			expectedTenancy: resource.DefaultNamespacedTenancy(),
-		},
-		"namespaced resource inherits tokens partition when empty": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				artist.Id.Tenancy.Partition = ""
-				return artist
-			},
-			expectedTenancy: resource.DefaultNamespacedTenancy(),
-		},
-		"namespaced resource inherits tokens namespace when empty": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				artist.Id.Tenancy.Namespace = ""
-				return artist
-			},
-			expectedTenancy: resource.DefaultNamespacedTenancy(),
-		},
-		"namespaced resource inherits tokens partition and namespace when empty": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				artist.Id.Tenancy.Partition = ""
-				artist.Id.Tenancy.Namespace = ""
-				return artist
-			},
-			expectedTenancy: resource.DefaultNamespacedTenancy(),
-		},
-		"partitioned resource provides nonempty partition": {
-			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
-				return recordLabel
-			},
-			expectedTenancy: resource.DefaultPartitionedTenancy(),
-		},
-		"partitioned resource provides uppercase partition": {
-			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
-				recordLabel.Id.Tenancy.Partition = strings.ToUpper(recordLabel.Id.Tenancy.Partition)
-				return recordLabel
-			},
-			expectedTenancy: resource.DefaultPartitionedTenancy(),
-		},
-		"partitioned resource inherits tokens partition when empty": {
-			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
-				recordLabel.Id.Tenancy.Partition = ""
-				return recordLabel
-			},
-			expectedTenancy: resource.DefaultPartitionedTenancy(),
-		},
-		// TODO(spatel): Add cluster scope tests when we have an actual cluster scoped resource (e.g. partition)
-	}
-	for desc, tc := range testCases {
+	for desc, tc := range mavOrWriteSuccessTestCases(t) {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			client := testClient(t, server)
-			demo.RegisterTypes(server.Registry)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
-			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 
 			artist, err := demo.GenerateV2Artist()
@@ -297,44 +186,15 @@ func TestWrite_Create_Success(t *testing.T) {
 	}
 }
 
-func TestWrite_Create_Invalid_Tenancy(t *testing.T) {
-	testCases := map[string]struct {
-		modFn       func(artist, recordLabel *pbresource.Resource) *pbresource.Resource
-		errCode     codes.Code
-		errContains string
-	}{
-		"namespaced resource provides nonexistant partition": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				artist.Id.Tenancy.Partition = "boguspartition"
-				return artist
-			},
-			errCode:     codes.InvalidArgument,
-			errContains: "partition",
-		},
-		"namespaced resource provides nonexistant namespace": {
-			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
-				artist.Id.Tenancy.Namespace = "bogusnamespace"
-				return artist
-			},
-			errCode:     codes.InvalidArgument,
-			errContains: "namespace",
-		},
-		"partitioned resource provides nonexistant partition": {
-			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
-				recordLabel.Id.Tenancy.Partition = "boguspartition"
-				return recordLabel
-			},
-			errCode:     codes.InvalidArgument,
-			errContains: "partition",
-		},
-	}
-	for desc, tc := range testCases {
+func TestWrite_Create_Tenancy_NotFound(t *testing.T) {
+	for desc, tc := range mavOrWriteTenancyNotFoundTestCases(t) {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			client := testClient(t, server)
-			demo.RegisterTypes(server.Registry)
+			client := svctest.NewResourceServiceBuilder().
+				WithV2Tenancy(true).
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
-			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 
 			artist, err := demo.GenerateV2Artist()
@@ -348,53 +208,44 @@ func TestWrite_Create_Invalid_Tenancy(t *testing.T) {
 	}
 }
 
-func TestWrite_Tenancy_MarkedForDeletion(t *testing.T) {
-	// Verify resource write fails when its partition or namespace is marked for deletion.
-	testCases := map[string]struct {
-		modFn       func(artist, recordLabel *pbresource.Resource, mockTenancyBridge *MockTenancyBridge) *pbresource.Resource
-		errContains string
-	}{
-		"namespaced resources partition marked for deletion": {
-			modFn: func(artist, _ *pbresource.Resource, mockTenancyBridge *MockTenancyBridge) *pbresource.Resource {
-				mockTenancyBridge.On("IsPartitionMarkedForDeletion", "part1").Return(true, nil)
-				return artist
-			},
-			errContains: "partition marked for deletion",
-		},
-		"namespaced resources namespace marked for deletion": {
-			modFn: func(artist, _ *pbresource.Resource, mockTenancyBridge *MockTenancyBridge) *pbresource.Resource {
-				mockTenancyBridge.On("IsPartitionMarkedForDeletion", "part1").Return(false, nil)
-				mockTenancyBridge.On("IsNamespaceMarkedForDeletion", "part1", "ns1").Return(true, nil)
-				return artist
-			},
-			errContains: "namespace marked for deletion",
-		},
-		"partitioned resources partition marked for deletion": {
-			modFn: func(_, recordLabel *pbresource.Resource, mockTenancyBridge *MockTenancyBridge) *pbresource.Resource {
-				mockTenancyBridge.On("IsPartitionMarkedForDeletion", "part1").Return(true, nil)
-				return recordLabel
-			},
-			errContains: "partition marked for deletion",
-		},
-	}
-	for desc, tc := range testCases {
+func TestWrite_Create_With_DeletionTimestamp_Fails(t *testing.T) {
+	client := svctest.NewResourceServiceBuilder().
+		WithV2Tenancy(true).
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+
+	res := rtest.Resource(demo.TypeV1Artist, "blur").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(t, &pbdemov1.Artist{Name: "Blur"}).
+		WithMeta(resource.DeletionTimestampKey, time.Now().Format(time.RFC3339)).
+		Build()
+
+	_, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), resource.DeletionTimestampKey)
+}
+
+func TestWrite_Create_With_TenancyMarkedForDeletion_Fails(t *testing.T) {
+	for desc, tc := range mavOrWriteTenancyMarkedForDeletionTestCases(t) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
 			demo.RegisterTypes(server.Registry)
-			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+
+			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
-			recordLabel.Id.Tenancy.Partition = "part1"
+			recordLabel.Id.Tenancy.Partition = "ap1"
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
-			artist.Id.Tenancy.Partition = "part1"
+			artist.Id.Tenancy.Partition = "ap1"
 			artist.Id.Tenancy.Namespace = "ns1"
 
-			mockTenancyBridge := &MockTenancyBridge{}
-			mockTenancyBridge.On("PartitionExists", "part1").Return(true, nil)
-			mockTenancyBridge.On("NamespaceExists", "part1", "ns1").Return(true, nil)
-			server.V1TenancyBridge = mockTenancyBridge
+			mockTenancyBridge := &svc.MockTenancyBridge{}
+			mockTenancyBridge.On("PartitionExists", "ap1").Return(true, nil)
+			mockTenancyBridge.On("NamespaceExists", "ap1", "ns1").Return(true, nil)
+			server.TenancyBridge = mockTenancyBridge
 
 			_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: tc.modFn(artist, recordLabel, mockTenancyBridge)})
 			require.Error(t, err)
@@ -405,10 +256,9 @@ func TestWrite_Tenancy_MarkedForDeletion(t *testing.T) {
 }
 
 func TestWrite_CASUpdate_Success(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -427,10 +277,9 @@ func TestWrite_CASUpdate_Success(t *testing.T) {
 }
 
 func TestWrite_ResourceCreation_StatusProvided(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -446,10 +295,9 @@ func TestWrite_ResourceCreation_StatusProvided(t *testing.T) {
 }
 
 func TestWrite_CASUpdate_Failure(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -467,10 +315,9 @@ func TestWrite_CASUpdate_Failure(t *testing.T) {
 }
 
 func TestWrite_Update_WrongUid(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -488,10 +335,9 @@ func TestWrite_Update_WrongUid(t *testing.T) {
 }
 
 func TestWrite_Update_StatusModified(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -518,10 +364,9 @@ func TestWrite_Update_StatusModified(t *testing.T) {
 }
 
 func TestWrite_Update_NilStatus(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -542,10 +387,9 @@ func TestWrite_Update_NilStatus(t *testing.T) {
 }
 
 func TestWrite_Update_NoUid(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -561,10 +405,9 @@ func TestWrite_Update_NoUid(t *testing.T) {
 }
 
 func TestWrite_Update_GroupVersion(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -591,10 +434,9 @@ func TestWrite_Update_GroupVersion(t *testing.T) {
 }
 
 func TestWrite_NonCASUpdate_Success(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -614,7 +456,6 @@ func TestWrite_NonCASUpdate_Success(t *testing.T) {
 func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-
 	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
@@ -628,8 +469,8 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	backend := &blockOnceBackend{
 		Backend: server.Backend,
 
-		readCh:  make(chan struct{}),
-		blockCh: make(chan struct{}),
+		readCompletedCh: make(chan struct{}),
+		blockCh:         make(chan struct{}),
 	}
 	server.Backend = backend
 
@@ -644,7 +485,7 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 
 	// Wait for the read, to ensure the Write in the goroutine above has read the
 	// current version of the resource.
-	<-backend.readCh
+	<-backend.readCompletedCh
 
 	// Update the resource.
 	res = modifyArtist(t, rsp1.Resource)
@@ -658,14 +499,27 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
+func TestWrite_NoData(t *testing.T) {
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+
+	res, err := demo.GenerateV1Concept("jazz")
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+	require.NotEmpty(t, rsp.Resource.Version)
+	require.Equal(t, rsp.Resource.Id.Name, "jazz")
+}
+
 func TestWrite_Owner_Immutable(t *testing.T) {
 	// Use of proto.Equal(..) in implementation covers all permutations
 	// (nil -> non-nil, non-nil -> nil, owner1 -> owner2) so only the first one
 	// is tested.
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -690,10 +544,9 @@ func TestWrite_Owner_Immutable(t *testing.T) {
 }
 
 func TestWrite_Owner_Uid(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	t.Run("uid given", func(t *testing.T) {
 		artist, err := demo.GenerateV2Artist()
@@ -759,23 +612,317 @@ func TestWrite_Owner_Uid(t *testing.T) {
 	})
 }
 
-type blockOnceBackend struct {
-	storage.Backend
-
-	done    uint32
-	readCh  chan struct{}
-	blockCh chan struct{}
-}
-
-func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
-	res, err := b.Backend.Read(ctx, consistency, id)
-
-	// Block for exactly one call to Read. All subsequent calls (including those
-	// concurrent to the blocked call) will return immediately.
-	if atomic.CompareAndSwapUint32(&b.done, 0, 1) {
-		close(b.readCh)
-		<-b.blockCh
+func TestEnsureFinalizerRemoved(t *testing.T) {
+	type testCase struct {
+		mod         func(input, existing *pbresource.Resource)
+		errContains string
 	}
 
-	return res, err
+	testCases := map[string]testCase{
+		"one finalizer removed from input": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(existing, "f2")
+				resource.AddFinalizer(input, "f1")
+			},
+		},
+		"all finalizers removed from input": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(existing, "f2")
+				resource.AddFinalizer(input, "f1")
+				resource.RemoveFinalizer(input, "f1")
+			},
+		},
+		"all finalizers removed from input and no finalizer key": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(existing, "f2")
+			},
+		},
+		"no finalizers removed from input": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(input, "f1")
+			},
+			errContains: "expected at least one finalizer to be removed",
+		},
+		"input finalizers not proper subset of existing": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(existing, "f2")
+				resource.AddFinalizer(input, "f3")
+			},
+			errContains: "expected at least one finalizer to be removed",
+		},
+		"existing has no finalizers for input to remove": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(input, "f3")
+			},
+			errContains: "expected at least one finalizer to be removed",
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			input := rtest.Resource(demo.TypeV1Artist, "artist1").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemov1.Artist{Name: "artist1"}).
+				WithMeta(resource.DeletionTimestampKey, "someTimestamp").
+				Build()
+
+			existing := rtest.Resource(demo.TypeV1Artist, "artist1").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemov1.Artist{Name: "artist1"}).
+				WithMeta(resource.DeletionTimestampKey, "someTimestamp").
+				Build()
+
+			tc.mod(input, existing)
+
+			err := svc.EnsureFinalizerRemoved(input, existing)
+			if tc.errContains != "" {
+				require.Error(t, err)
+				require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+				require.ErrorContains(t, err, tc.errContains)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestWrite_ResourceFrozenAfterMarkedForDeletion(t *testing.T) {
+	type testCase struct {
+		modFn       func(res *pbresource.Resource)
+		errContains string
+	}
+	testCases := map[string]testCase{
+		"no-op write rejected": {
+			modFn:       func(res *pbresource.Resource) {},
+			errContains: "cannot no-op write resource marked for deletion",
+		},
+		"remove one finalizer": {
+			modFn: func(res *pbresource.Resource) {
+				resource.RemoveFinalizer(res, "finalizer1")
+			},
+		},
+		"remove all finalizers": {
+			modFn: func(res *pbresource.Resource) {
+				resource.RemoveFinalizer(res, "finalizer1")
+				resource.RemoveFinalizer(res, "finalizer2")
+			},
+		},
+		"adding finalizer fails": {
+			modFn: func(res *pbresource.Resource) {
+				resource.AddFinalizer(res, "finalizer3")
+			},
+			errContains: "expected at least one finalizer to be removed",
+		},
+		"remove deletionTimestamp fails": {
+			modFn: func(res *pbresource.Resource) {
+				delete(res.Metadata, resource.DeletionTimestampKey)
+			},
+			errContains: "cannot remove deletionTimestamp",
+		},
+		"modify deletionTimestamp fails": {
+			modFn: func(res *pbresource.Resource) {
+				res.Metadata[resource.DeletionTimestampKey] = "bad"
+			},
+			errContains: "cannot modify deletionTimestamp",
+		},
+		"modify data fails": {
+			modFn: func(res *pbresource.Resource) {
+				var err error
+				res.Data, err = anypb.New(&pbdemo.Artist{Name: "New Order"})
+				require.NoError(t, err)
+			},
+			errContains: "cannot modify data",
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			client := svctest.NewResourceServiceBuilder().
+				WithV2Tenancy(true).
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
+
+			// Create a resource with finalizers
+			res := rtest.Resource(demo.TypeV1Artist, "joydivision").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy Division"}).
+				WithMeta(resource.FinalizerKey, "finalizer1 finalizer2").
+				Write(t, client)
+
+			// Mark for deletion - resource should now be frozen
+			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: res.Id})
+			require.NoError(t, err)
+
+			// Verify marked for deletion
+			rsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
+			require.NoError(t, err)
+			require.True(t, resource.IsMarkedForDeletion(rsp.Resource))
+
+			// Apply test case mods
+			tc.modFn(rsp.Resource)
+
+			// Verify write results
+			_, err = client.Write(context.Background(), &pbresource.WriteRequest{Resource: rsp.Resource})
+			if tc.errContains == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+				require.ErrorContains(t, err, tc.errContains)
+			}
+		})
+	}
+}
+
+func TestWrite_NonCASWritePreservesFinalizers(t *testing.T) {
+	type testCase struct {
+		existingMeta map[string]string
+		inputMeta    map[string]string
+		expectedMeta map[string]string
+	}
+	testCases := map[string]testCase{
+		"input nil metadata preserves existing finalizers": {
+			inputMeta:    nil,
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+		},
+		"input metadata and no finalizer key preserves existing finalizers": {
+			inputMeta:    map[string]string{},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+		},
+		"input metadata and with empty finalizer key overwrites existing finalizers": {
+			inputMeta:    map[string]string{resource.FinalizerKey: ""},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: ""},
+		},
+		"input metadata with one finalizer key overwrites multiple existing finalizers": {
+			inputMeta:    map[string]string{resource.FinalizerKey: "finalizer2"},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer2"},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			client := svctest.NewResourceServiceBuilder().
+				WithV2Tenancy(true).
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
+
+			// Create the resource based on tc.existingMetadata
+			builder := rtest.Resource(demo.TypeV1Artist, "joydivision").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy"})
+
+			if tc.existingMeta != nil {
+				for k, v := range tc.existingMeta {
+					builder.WithMeta(k, v)
+				}
+			}
+			res := builder.Write(t, client)
+
+			// Build resource for user write based on tc.inputMetadata
+			builder = rtest.Resource(demo.TypeV1Artist, res.Id.Name).
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
+
+			if tc.inputMeta != nil {
+				for k, v := range tc.inputMeta {
+					builder.WithMeta(k, v)
+				}
+			}
+			userRes := builder.Build()
+
+			// Perform the user write
+			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: userRes})
+			require.NoError(t, err)
+
+			// Verify write result preserved metadata based on testcase.expecteMetadata
+			for k := range tc.expectedMeta {
+				require.Equal(t, tc.expectedMeta[k], rsp.Resource.Metadata[k])
+			}
+			require.Equal(t, len(tc.expectedMeta), len(rsp.Resource.Metadata))
+		})
+	}
+}
+
+func TestWrite_NonCASWritePreservesDeletionTimestamp(t *testing.T) {
+	type testCase struct {
+		existingMeta map[string]string
+		inputMeta    map[string]string
+		expectedMeta map[string]string
+	}
+
+	// deletionTimestamp has to be generated via Delete() call and can't be embedded in testdata
+	// even though testcase desc refers to it.
+	testCases := map[string]testCase{
+		"input metadata no deletion timestamp preserves existing deletion timestamp and removes single finalizer": {
+			inputMeta:    map[string]string{resource.FinalizerKey: "finalizer1"},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1"},
+		},
+		"input metadata no deletion timestamp preserves existing deletion timestamp and removes all finalizers": {
+			inputMeta:    map[string]string{resource.FinalizerKey: ""},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: ""},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			client := svctest.NewResourceServiceBuilder().
+				WithV2Tenancy(true).
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
+
+			// Create the resource based on tc.existingMetadata
+			builder := rtest.Resource(demo.TypeV1Artist, "joydivision").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
+
+			if tc.existingMeta != nil {
+				for k, v := range tc.existingMeta {
+					builder.WithMeta(k, v)
+				}
+			}
+			res := builder.Write(t, client)
+
+			// Mark for deletion
+			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: res.Id})
+			require.NoError(t, err)
+
+			// Re-read the deleted res for future comparison of deletionTimestamp
+			delRsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
+			require.NoError(t, err)
+
+			// Build resource for user write based on tc.inputMetadata
+			builder = rtest.Resource(demo.TypeV1Artist, res.Id.Name).
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
+
+			if tc.inputMeta != nil {
+				for k, v := range tc.inputMeta {
+					builder.WithMeta(k, v)
+				}
+			}
+			userRes := builder.Build()
+
+			// Perform the non-CAS user write
+			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: userRes})
+			require.NoError(t, err)
+
+			// Verify write result preserved metadata based on testcase.expectedMetadata
+			for k := range tc.expectedMeta {
+				require.Equal(t, tc.expectedMeta[k], rsp.Resource.Metadata[k])
+			}
+			// Verify deletion timestamp preserved even though it wasn't passed in to the write
+			require.Equal(t, delRsp.Resource.Metadata[resource.DeletionTimestampKey], rsp.Resource.Metadata[resource.DeletionTimestampKey])
+		})
+	}
 }

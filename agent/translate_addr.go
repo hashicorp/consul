@@ -5,19 +5,10 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"net"
 
 	"github.com/hashicorp/consul/agent/structs"
-)
-
-type TranslateAddressAccept int
-
-const (
-	TranslateAddressAcceptDomain TranslateAddressAccept = 1 << iota
-	TranslateAddressAcceptIPv4
-	TranslateAddressAcceptIPv6
-
-	TranslateAddressAcceptAny TranslateAddressAccept = ^0
 )
 
 // TranslateServicePort is used to provide the final, translated port for a service,
@@ -35,7 +26,7 @@ func (a *Agent) TranslateServicePort(dc string, port int, taggedAddresses map[st
 // TranslateServiceAddress is used to provide the final, translated address for a node,
 // depending on how the agent and the other node are configured. The dc
 // parameter is the dc the datacenter this node is from.
-func (a *Agent) TranslateServiceAddress(dc string, addr string, taggedAddresses map[string]structs.ServiceAddress, accept TranslateAddressAccept) string {
+func (a *Agent) TranslateServiceAddress(dc string, addr string, taggedAddresses map[string]structs.ServiceAddress, accept dnsutil.TranslateAddressAccept) string {
 	def := addr
 	v4 := taggedAddresses[structs.TaggedAddressLANIPv4].Address
 	v6 := taggedAddresses[structs.TaggedAddressLANIPv6].Address
@@ -59,7 +50,7 @@ func (a *Agent) TranslateServiceAddress(dc string, addr string, taggedAddresses 
 // TranslateAddress is used to provide the final, translated address for a node,
 // depending on how the agent and the other node are configured. The dc
 // parameter is the dc the datacenter this node is from.
-func (a *Agent) TranslateAddress(dc string, addr string, taggedAddresses map[string]string, accept TranslateAddressAccept) string {
+func (a *Agent) TranslateAddress(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string {
 	def := addr
 	v4 := taggedAddresses[structs.TaggedAddressLANIPv4]
 	v6 := taggedAddresses[structs.TaggedAddressLANIPv6]
@@ -80,22 +71,22 @@ func (a *Agent) TranslateAddress(dc string, addr string, taggedAddresses map[str
 	return translateAddressAccept(accept, def, v4, v6)
 }
 
-func translateAddressAccept(accept TranslateAddressAccept, def, v4, v6 string) string {
+func translateAddressAccept(accept dnsutil.TranslateAddressAccept, def, v4, v6 string) string {
 	switch {
-	case accept&TranslateAddressAcceptIPv6 > 0 && v6 != "":
+	case accept&dnsutil.TranslateAddressAcceptIPv6 > 0 && v6 != "":
 		return v6
-	case accept&TranslateAddressAcceptIPv4 > 0 && v4 != "":
+	case accept&dnsutil.TranslateAddressAcceptIPv4 > 0 && v4 != "":
 		return v4
-	case accept&TranslateAddressAcceptAny > 0 && def != "":
+	case accept&dnsutil.TranslateAddressAcceptAny > 0 && def != "":
 		return def
 	default:
 		defIP := net.ParseIP(def)
 		switch {
-		case defIP != nil && defIP.To4() != nil && accept&TranslateAddressAcceptIPv4 > 0:
+		case defIP != nil && defIP.To4() != nil && accept&dnsutil.TranslateAddressAcceptIPv4 > 0:
 			return def
-		case defIP != nil && defIP.To4() == nil && accept&TranslateAddressAcceptIPv6 > 0:
+		case defIP != nil && defIP.To4() == nil && accept&dnsutil.TranslateAddressAcceptIPv6 > 0:
 			return def
-		case defIP == nil && accept&TranslateAddressAcceptDomain > 0:
+		case defIP == nil && accept&dnsutil.TranslateAddressAcceptDomain > 0:
 			return def
 		}
 	}
@@ -106,7 +97,7 @@ func translateAddressAccept(accept TranslateAddressAccept, def, v4, v6 string) s
 // TranslateAddresses translates addresses in the given structure into the
 // final, translated address, depending on how the agent and the other node are
 // configured. The dc parameter is the datacenter this structure is from.
-func (a *Agent) TranslateAddresses(dc string, subj interface{}, accept TranslateAddressAccept) {
+func (a *Agent) TranslateAddresses(dc string, subj interface{}, accept dnsutil.TranslateAddressAccept) {
 	// CAUTION - SUBTLE! An agent running on a server can, in some cases,
 	// return pointers directly into the immutable state store for
 	// performance (it's via the in-memory RPC mechanism). It's never safe

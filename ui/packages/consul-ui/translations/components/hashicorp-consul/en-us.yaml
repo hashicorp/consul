@@ -1,0 +1,47 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+notifications:
+  logged-out: You are now logged out.
+  logged-out-error: There was an error logging out.
+  logged-in: You are now logged in.
+  logged-in-error: There was an error, please check your SecretID/Token
+side-nav:
+  support-menu:
+    eng-docs: Eng docs
+    docs: Documentation
+    tutorials: Tutorials
+    feedback: Give feedback
+  user-menu:
+    settings: Settings
+    log-in: Log in
+    Log out: Log out
+  hcp: Back to HCP
+  datacenters:
+    title: Datacenter
+    placeholder: Search datacenters
+    description: WAN federated datacenters
+  partitions:
+    title: Admin partition
+    placeholder: Search partitions
+    footer: View all partitions
+  nspaces:
+    title: Namespace
+    placeholder: Search namespaces
+    footer: View all namespaces
+  overview: Overview
+  services: Services
+  nodes: Nodes
+  kv: Key/Value
+  intentions: Intentions
+  acls:
+    title: Access Controls
+    tooltip: ACLs are not currently enabled in this cluster
+    tokens: Tokens
+    policies: Policies
+    roles: Roles
+    auth-methods: Auth Methods
+  organization:
+    title: Organization
+    peers: Peers
+  footer: Consul v{version}

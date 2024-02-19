@@ -1,0 +1,3 @@
+```release-note:bug
+connect: **(Enterprise only)** Fix bug where incorrect service-defaults entries were fetched to determine an upstream's protocol whenever the upstream did not explicitly define the namespace / partition. When this bug occurs, upstreams would use the protocol from a service-default entry in the default namespace / partition, rather than their own namespace / partition.
+```

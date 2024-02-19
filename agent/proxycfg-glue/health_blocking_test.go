@@ -30,8 +30,7 @@ func TestServerHealthBlocking(t *testing.T) {
 		remoteSource := newMockHealth(t)
 		remoteSource.On("Notify", ctx, req, correlationID, ch).Return(result)
 
-		store := state.NewStateStore(nil)
-		dataSource := ServerHealthBlocking(ServerDataSourceDeps{Datacenter: "dc1"}, remoteSource, store)
+		dataSource := ServerHealthBlocking(ServerDataSourceDeps{Datacenter: "dc1"}, remoteSource)
 		err := dataSource.Notify(ctx, req, correlationID, ch)
 		require.Equal(t, result, err)
 	})
@@ -52,7 +51,7 @@ func TestServerHealthBlocking(t *testing.T) {
 			Datacenter:  datacenter,
 			ACLResolver: aclResolver,
 			Logger:      testutil.Logger(t),
-		}, nil, store)
+		}, nil)
 		dataSource.watchTimeout = 1 * time.Second
 
 		// Watch for all events

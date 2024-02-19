@@ -64,7 +64,7 @@ Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) 
 
 The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/services/usage/define-services).
 
-- Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams`](/consul/docs/connect/registration/service-registration#upstream-configuration-reference) documentation for details.
+- Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams`](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) documentation for details.
 - The `proxy.upstreams.destination_name` parameter is always required.
 - The `proxy.upstreams.destination_peer` parameter must be configured to enable cross-cluster traffic.
 - The `proxy.upstream/destination_namespace` configuration is only necessary if the destination service is in a non-default namespace.

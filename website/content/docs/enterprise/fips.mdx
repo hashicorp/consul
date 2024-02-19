@@ -32,6 +32,10 @@ The FIPS 140-2 variant of Consul uses separate binaries that are available from 
 
 The above naming conventions, which append `.fips1402` to binary names and tags, and `-fips` to registry names, also apply to `consul-k8s`, `consul-k8s-control-plane`, `consul-dataplane`, and `consul-ecs`, which are packaged separately from Consul Enterprise.
 
+### Cluster peering support
+
+A Consul cluster running FIPS variants of Consul can peer with any combination of standard (non-FIPS) Consul clusters and FIPS Consul clusters. Consul supports all cluster peering features between FIPS clusters and non-FIPS clusters.
+
 ### Usage restrictions
 
 When using Consul Enterprise with FIPS 140-2, be aware of the following operation restrictions:

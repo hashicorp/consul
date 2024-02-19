@@ -1,0 +1,3 @@
+```release-note:bug
+logging: add /api prefix to v2 resource endpoint logs
+```

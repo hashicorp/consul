@@ -1,0 +1,44 @@
+---
+layout: docs
+page_title: Consul API gateway configuration overview
+description: >-
+  Configure your Consul API Gateway to manage traffic into your service mesh. Learn about the Kubernetes Gateway Specification items you can configure and how to configure custom API Gateways.
+---
+
+# Consul API gateway configuration overview
+
+This topic provides an overview of the configuration items you can use to create API gateways, configure listeners, define routes, and apply additional resources that may be necessary to operate Consul API gateways in your environment. 
+
+## Configurations for virtual machines
+
+Apply the following configuration items if your network runs on virtual machines nodes:
+
+| Configuration | Description | Usage |
+| ---  | ---         | ---   |
+| [`api-gateway`](/consul/docs/connect/config-entries/api-gateway) | Defines the main infrastructure resource for declaring an API gateway and listeners on the gateway. | [Deploy API gateway listeners on virtual machines](/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms) |
+| [`http-route`](/consul/docs/connect/config-entries/http-route) | Enables HTTP traffic to reach services in the mesh from a listener on the gateway.| <nobr>[Define routes on virtual machines](/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms)</nobr> |
+| [`tcp-route`](/consul/docs/connect/config-entries/tcp-route) | Enables TCP traffic to reach services in the mesh from a listener on the gateway.| [Define routes on virtual machines](/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms) |
+| <nobr>[`inline-certificate`](/consul/docs/connect/config-entries/inline-certificate)</nobr> | Provides gateway artificats with a CA certificate so that requests between the user and the gateway endpoint are encrypted. | [Encrypt API gateway traffic on virtual machines](/consul/docs/connect/gateways/api-gateway/secure-traffic/encrypt-vms) |
+| [`service-intentions`](/consul/docs/connect/config-entries/service-intentions) | Specifies traffic communication rules between services in the mesh. Intentions also enforce rules for service-to-service traffic routed through a Consul API gateway. | General configuration for securing a service mesh |
+ 
+## Configurations for Kubernetes
+
+Apply the following configuration items if your network runs on Kubernetes:
+
+| Configuration | Description | Usage |
+| ---  | ---         | ---   |
+| [`Gateway`](/consul/docs/connect/gateways/api-gateway/configuration/gateway) | Defines the main infrastructure resource for declaring an API gateway and listeners on the gateway. It also specifies the name of the `GatewayClass`. | [Deploy listeners on Kubernetes](/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s) |
+| [`GatewayClass`](/consul/docs/connect/gateways/api-gateway/configuration/gatewayclass) | Defines a class of gateway resources used as a template for creating gateways. The default gateway class is `consul` and is suitable for most API gateway implementations.  | [Deploy listeners on Kubernetes](/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s) |
+| [`GatewayClassConfig`](/consul/docs/connect/gateways/api-gateway/configuration/gatewayclassconfig) | Describes additional gateway-related configuration parameters for the `GatewayClass` resource. | [Deploy listeners on Kubernetes](/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s) |
+| [`Routes`](/consul/docs/connect/gateways/api-gateway/configuration/routes) | Specifies paths from the gateway listener to backend services. | <nobr>[Define routes on Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/routes-k8s)</nobr><p>[Reroute traffic in Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests)</p><p>[Route traffic to peered services in Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services)</p> |
+| [`MeshServices`](/consul/docs/connect/gateways/api-gateway/configuration/meshservices) | Enables routes to reference services in Consul. | [Route traffic to peered services in Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services) |
+| [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions) | Specifies traffic communication rules between services in the mesh. Intentions also enforce rules for service-to-service traffic routed through a Consul API gateway. | General configuration for securing a service mesh | 
+
+<!-- Reuse later for a topic about creating custom api gateway classes
+You can create a basic Gateway object using the default [`gatewayClassName`](/consul/docs/connect/gateways/api-gateway/configuration/gateway#gatewayclassname) (`consul`). If you want to create custom Gateways suitable for your environment, complete the following steps:
+
+1. Define a [GatewayClassConfig](/consul/docs/connect/gateways/api-gateway/configuration/gatewayclassconfig) that contains your custom configurations.
+1. Define a [GatewayClass](/consul/docs/connect/gateways/api-gateway/configuration/gatewayclass) and configure the [`parametersRef.name`](/consul/docs/connect/gateways/api-gateway/configuration/configuration/gatewayclass#parametersref-name) to reference the name of your [GatewayClassConfig](/consul/docs/connect/gateways/api-gateway/configuration/gatewayclassconfig).
+1. Define a [Gateway](/consul/docs/connect/gateways/api-gateway/configuration/configuration/gateway) and configure the [`gatewayClassName`](/consul/docs/connect/gateways/api-gateway/configuration/gateway#gatewayclassname) to reference the name of your [GatewayClass](/consul/docs/connect/gateways/api-gateway/configuration/gatewayclass).
+
+<!--TODO add diagram -->

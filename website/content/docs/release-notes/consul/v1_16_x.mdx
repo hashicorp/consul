@@ -37,7 +37,7 @@ We are pleased to announce the following Consul updates.
 
     - **External Authorization:** The external authorization Envoy extension lets you delegate data plane authorization requests to external systems. Refer to the [Delegate authorization to an external service](/consul/docs/connect/proxies/envoy-extensions/usage/ext-authz) for more information on how to use this extension. 
 
-- **Simplified API Gateway installation for Consul on Kubernetes:** API Gateway is now built into Consul. This enables a simplified installation and configuration process for Consul on Kubernetes. Refer to the [API Gateway installation](/consul/docs/api-gateway/install) for more information on the simplified native installation method. 
+- **Simplified API Gateway installation for Consul on Kubernetes:** API Gateway is now built into Consul. This enables a simplified installation and configuration process for Consul on Kubernetes. Refer to the [API Gateway installation](/consul/docs/connect/gateways/api-gateway/install-k8s) for more information on the simplified native installation method. 
 
 - **FIPS compliance (Enterprise):** HashiCorp now offers FIPS 140-2 compliant builds of Consul Enterprise that meet the security needs of federal agencies protecting sensitive, unclassified information with approved cryptographic measures. These builds use certified cryptographic modules and restrict configuration settings to comply with FIPS 140-2 Level 1 requirements, enabling compliant Consul deployments. Refer to the [Consul Enterprise FIPS](/consul/docs/enterprise/fips) for more information on FIPS compliance.
 
@@ -50,6 +50,10 @@ We are pleased to announce the following Consul updates.
 - **Ingress gateway:** Starting with this release, ingress gateway is deprecated and will not be enhanced beyond its current capabilities. Ingress gateway is fully supported in this version but may be removed in a future release of Consul. 
 
   Consul's API gateway is the recommended alternative to ingress gateway. For ingress gateway features not currently supported by API gateway, equivalent functionality will be added to API gateway over the next several releases of Consul.
+
+- **Legacy API Gateway:** The Consul API Gateway that was previously packaged as `consul-api-gateway` and released separately from Consul K8s is now deprecated. This is referred to as the "legacy" API Gateway.
+
+  This version of Consul supports v0.5.4 of the legacy API Gateway in order to simplify the process of migrating from legacy to native API gateways.
 
 - **Connect Native Golang SDK:** The Connect Native [Golang SDK](https://github.com/hashicorp/consul/tree/main/connect) is deprecated and will be removed in a future release. No further enhancements or maintenance is expected in the future releases. We will remove the SDK when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
 
@@ -64,6 +68,21 @@ We are pleased to announce the following Consul updates.
 
 For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
 
+## Known Issues
+
+The following issues are known to exist in the v1.16.x releases:
+
+- v1.16.5 - Excessively strict TLS SAN verification is performed by terminating gateways,
+    which prevents connections outside of the mesh to upstream services. Terminating gateway
+    users are advised to avoid deploying these Consul versions. A fix will be present in a future
+    release of Consul 1.16.6 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
+
+- v1.16.0 - v1.16.1 may have issues when a snapshot restore is performed
+    and the servers are hosting xDS streams. When this bug triggers, it
+    will cause Envoy to incorrectly populate upstream endpoints. It is
+    currently recommended for service mesh users running agent-less
+    workloads to upgrade Consul to v1.16.2 and later.
+
 ## Changelogs
 
 The changelogs for this major release version and any maintenance versions are listed below.
@@ -71,3 +90,5 @@ The changelogs for this major release version and any maintenance versions are l
 <Note> These links take you to the changelogs on the GitHub website. </Note>
 
 - [1.16.0](https://github.com/hashicorp/consul/releases/tag/v1.16.0)
+- [1.16.1](https://github.com/hashicorp/consul/releases/tag/v1.16.1)
+- [1.16.2](https://github.com/hashicorp/consul/releases/tag/v1.16.2)

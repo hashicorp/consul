@@ -159,9 +159,9 @@ the `ServiceSplitter`.
 
 ## Kubernetes Namespaces
 
-### Consul OSS
+### Consul CE ((#consul_oss))
 
-Consul Open Source (Consul OSS) ignores Kubernetes namespaces and registers all services into the same
+Consul Community Edition (Consul CE) ignores Kubernetes namespaces and registers all services into the same
 global Consul registry based on their names. For example, service `web` in Kubernetes namespace
 `web-ns` and service `admin` in Kubernetes namespace `admin-ns` are registered into
 Consul as `web` and `admin` with the Kubernetes source namespace ignored.

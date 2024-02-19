@@ -145,9 +145,9 @@ spec:
 
 </CodeTabs>
 
--> **NOTE:** This example uses a [proxy defaults](/consul/docs/connect/config-entries/proxy-defaults) config entry which will apply to all proxies
-but you can also apply this config in the
-[proxy service registration](/consul/docs/connect/registration/service-registration#proxy-parameters) (not supported on Kubernetes).
+-> **NOTE:** This example uses a [proxy defaults](/consul/docs/connect/config-entries/proxy-defaults) configuration entry, which applies to all proxies,
+but you can also apply the configuration in the
+[`proxy` block of your service configuration](/consul/docs/connect/proxies/proxy-config-reference#proxy-parameters). The proxy service registration is not supported on Kubernetes.
 
 Within the config there are two keys you need to customize:
 

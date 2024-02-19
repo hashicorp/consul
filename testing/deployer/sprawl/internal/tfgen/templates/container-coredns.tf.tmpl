@@ -1,6 +1,6 @@
 resource "docker_container" "{{.DockerNetworkName}}-coredns" {
   name     = "{{.DockerNetworkName}}-coredns"
-  image = docker_image.coredns.latest
+  image = docker_image.coredns.image_id
   restart  = "always"
   dns      = ["8.8.8.8"]
 

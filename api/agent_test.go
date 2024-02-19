@@ -58,8 +58,13 @@ func TestAPI_AgentMetrics(t *testing.T) {
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
+		hostname, err := os.Hostname()
+		if err != nil {
+			r.Fatalf("error determining hostname: %v", err)
+		}
+		metricName := fmt.Sprintf("consul.%s.runtime.alloc_bytes", hostname)
 		for _, g := range metrics.Gauges {
-			if g.Name == "consul.runtime.alloc_bytes" {
+			if g.Name == metricName {
 				return
 			}
 		}
@@ -295,6 +300,21 @@ func TestAgent_ServiceRegisterOpts_WithContextTimeout(t *testing.T) {
 	opts := ServiceRegisterOpts{}.WithContext(ctx)
 	err = c.Agent().ServiceRegisterOpts(&AgentServiceRegistration{}, opts)
 	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
+}
+
+func TestAgent_ServiceRegisterOpts_Token(t *testing.T) {
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	reg := &AgentServiceRegistration{Name: "example"}
+	opts := &ServiceRegisterOpts{}
+	opts.Token = "invalid"
+	err := c.Agent().ServiceRegisterOpts(reg, *opts)
+	require.EqualError(t, err, "Unexpected response code: 403 (ACL not found)")
+
+	opts.Token = "root"
+	err = c.Agent().ServiceRegisterOpts(reg, *opts)
+	require.NoError(t, err)
 }
 
 func TestAPI_NewClient_TokenFileCLIFirstPriority(t *testing.T) {
@@ -1058,7 +1078,7 @@ func TestAPI_AgentChecks(t *testing.T) {
 		Name: "foo",
 	}
 	reg.TTL = "15s"
-	if err := agent.CheckRegister(reg); err != nil {
+	if err := agent.CheckRegisterOpts(reg, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1080,6 +1100,19 @@ func TestAPI_AgentChecks(t *testing.T) {
 	if err := agent.CheckDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAgent_AgentChecksRegisterOpts_WithContextTimeout(t *testing.T) {
+	c, err := NewClient(DefaultConfig())
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	t.Cleanup(cancel)
+
+	opts := &QueryOptions{}
+	opts = opts.WithContext(ctx)
+	err = c.Agent().CheckRegisterOpts(&AgentCheckRegistration{}, opts)
+	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
 }
 
 func TestAPI_AgentChecksWithFilterOpts(t *testing.T) {
@@ -1635,6 +1668,10 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		if _, err := agent.UpdateDNSToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
 	})
 
 	t.Run("new with fallback", func(t *testing.T) {
@@ -1722,6 +1759,9 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		require.Error(t, err)
 
 		_, err = agent.UpdateConfigFileRegistrationToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateDNSToken("root", nil)
 		require.Error(t, err)
 	})
 }

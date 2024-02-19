@@ -48,6 +48,10 @@
         "path": "acl/policies"
       },
       {
+        "title": "Templated Policies",
+        "path": "acl/templated-policies"
+      },
+      {
         "title": "Roles",
         "path": "acl/roles"
       },
@@ -126,6 +130,14 @@
   {
     "title": "Events",
     "path": "event"
+  },
+  {
+    "title": "Exported Services",
+    "path": "exported-services"
+  },
+  {
+    "title": "HCP Consul Central Link",
+    "path": "hcp-link"
   },
   {
     "title": "Health",
