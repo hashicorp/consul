@@ -135,6 +135,6 @@ func (t *Txn[T]) Delete(key []byte) T {
 	return oldVal
 }
 
-func (t *Txn[T]) Root() *Node[T] {
-	return t.root
+func (t *Txn[T]) Root() Node[T] {
+	return *t.root
 }
