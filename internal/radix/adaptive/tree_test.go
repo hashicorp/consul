@@ -170,8 +170,8 @@ func TestARTree_InsertSearchAndDelete(t *testing.T) {
 		require.Equal(t, art.size, uint64(len(lines)-lineNumber+1))
 	}
 
-	//artLeafMin := art.Minimum()
-	//artLeafMax := art.Maximum()
-	//require.Equal(t, (*NodeLeaf[int])(nil), artLeafMin)
-	//require.Equal(t, (*NodeLeaf[int])(nil), artLeafMax)
+	artLeafMin := art.Minimum()
+	artLeafMax := art.Maximum()
+	require.Equal(t, (*NodeLeaf[int])(nil), artLeafMin)
+	require.Equal(t, (*NodeLeaf[int])(nil), artLeafMax)
 }
