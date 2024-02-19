@@ -38,9 +38,9 @@ func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 
 	// Iterate through the stack until it's empty
 	for len(i.stack) > 0 {
-		node := i.stack[0]
+		nodeCur := i.stack[0]
 		i.stack = i.stack[1:]
-		currentNode := node.(Node[T])
+		currentNode := nodeCur.(Node[T])
 
 		switch currentNode.getArtNodeType() {
 		case LEAF:
