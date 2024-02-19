@@ -633,9 +633,6 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
 			break
 		}
 	}
-	if pos == -1 {
-		return // Child node not found
-	}
 
 	node := *n
 	copy(n.keys[pos:], n.keys[pos+1:])
@@ -677,9 +674,6 @@ func (t *RadixTree[T]) removeChild16(n *Node16[T], ref **Node[T], l **Node[T]) {
 			pos = i
 			break
 		}
-	}
-	if pos == -1 {
-		return // Child node not found
 	}
 
 	node := *n
