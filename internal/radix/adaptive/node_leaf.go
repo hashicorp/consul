@@ -86,15 +86,7 @@ func (l *NodeLeaf[T]) prefixContainsMatch(key []byte) bool {
 		return false
 	}
 
-	return bytes.HasPrefix(key, getKey(l.key))
-}
-
-func (l *NodeLeaf[T]) prefixMatch(key []byte) bool {
-	if key == nil || len(l.key)-1 > len(key) {
-		return false
-	}
-
-	return bytes.Compare(key[:len(l.key)-1], l.key[:len(l.key)-1]) == 0
+	return bytes.HasPrefix(getKey(key), getKey(l.key))
 }
 
 func (n *NodeLeaf[T]) Iterator() *Iterator[T] {
