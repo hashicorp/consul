@@ -424,10 +424,11 @@ func minimum[T any](n *Node[T]) *NodeLeaf[T] {
 	case NODE48:
 		idx = 0
 		node := node.(*Node48[T])
-		for idx < 48 && node.children[idx] == nil {
+		for idx < 256 && node.keys[idx] == 0 {
 			idx++
 		}
-		if idx < 256 {
+		idx = int(node.keys[idx] - 1)
+		if idx < 48 {
 			return minimum[T](node.children[idx])
 		}
 	case NODE256:
