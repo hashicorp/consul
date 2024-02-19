@@ -39,7 +39,7 @@ func (t *txn) ListIterator(args ...any) (ResourceIterator, error) {
 		return nil, err
 	}
 
-	iter := t.inner.Root().Iterator()
+	iter := (*t.inner.Root()).Iterator()
 	iter.SeekPrefix(val)
 
 	return &resourceIterator{iter: iter}, nil
@@ -51,7 +51,7 @@ func (t *txn) ParentsIterator(args ...any) (ResourceIterator, error) {
 		return nil, err
 	}
 
-	iter := t.inner.Root().PathIterator(val)
+	iter := (*t.inner.Root()).PathIterator(val)
 
 	return &resourceIterator{iter: iter}, nil
 }
