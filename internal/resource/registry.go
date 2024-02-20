@@ -77,6 +77,11 @@ type Registration struct {
 
 	// Scope describes the tenancy scope of a resource.
 	Scope Scope
+
+	// LicenseFeature is an optional enterprise license feature that the
+	// resource type is associated with. A string form of license.Feature
+	// from the consul-licensing module is expected.
+	LicenseFeature string
 }
 
 var ErrNeedResource = errors.New("authorization check requires the entire resource")
