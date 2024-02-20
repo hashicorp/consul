@@ -413,8 +413,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.Authoritative = true
-	recursorsEnabled := atomic.LoadUint32(&(d.recursorEnabled)) != 1
-	recursionAvailable := recursorsEnabled && len(cfg.Recursors) > 0
+	recursionAvailable := len(cfg.Recursors) > 0 && atomic.LoadUint32(&(d.recursorEnabled)) != 1
 	m.RecursionAvailable = recursionAvailable
 
 	// Only add the SOA if requested
