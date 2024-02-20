@@ -5,8 +5,7 @@ description: >-
   Configuration for Argo Rollouts Controller to enable Canary deployments for subset based routing using Rollouts to integrate with Consul Service Mesh.
 ---
 
-NOTES:
-**_1. Currently, the Consul Traffic Routing Rollouts Plugin only supports subset based routing._**
+-> **Note:** Currently, the Consul Traffic Routing Rollouts Plugin only supports subset based routing.
 
 ### Install Rollouts Using Helm (Init Container)
 This is the preferred method for installing this plugin.
@@ -42,7 +41,7 @@ helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
 ### Install Rollouts Using Helm (Binary)
 
 1. Build this plugin (i.e. `make build`).
-2. Mount the built plugin on to the `argo-rollouts` container
+2. Mount the built plugin onto the `argo-rollouts` container
 3. Add the following code to your `values.yaml` file, then install the argo-rollouts by helm:
 
 ```yaml
@@ -66,8 +65,7 @@ helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
 
 ### Stand-alone installation
 
-NOTES:
-**_1. The file as follows (and the codes in it) just for illustrative purposes only, please do not use directly!_**
+-> **Note:** The files which follow (and the code in it) are only for illustrative purposes, please do not use directly!
 
 Steps:
 
@@ -124,7 +122,7 @@ kubectl apply -f https://raw.githubusercontent.com/argoproj-labs/rollouts-plugin
 
 ## Usage
 
-1. Create the Kubernetes Service that will be utilized by the service being rolled out. Additionally, configure any Service Defaults and Proxy Defaults required for the service.
+Create the Kubernetes Service that will be utilized by the service being rolled out. Additionally, configure any Service Defaults and Proxy Defaults required for the service.
 ```yaml
 apiVersion: v1
 kind: Service
@@ -139,7 +137,7 @@ spec:
       targetPort: 8080
 ```
 
-1. Create the Service Resolver and Service Splitter CRDs for your stable and canary services.
+Create the Service Resolver and Service Splitter CRDs for your stable service. Argo will automate the modification of these CRDs during canary deployments.
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -166,7 +164,7 @@ spec:
       serviceSubset: canary
 ```
 
-1. Configure your Argo Rollout resource
+Configure your Argo Rollout resource
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
@@ -218,4 +216,4 @@ spec:
       - pause: {duration: 10}
 ```
 
-1. Perform the Rollout operation using the Argo Rollouts Kubectl plugin.
+Perform the Rollout operation using the Argo Rollouts Kubectl plugin.
