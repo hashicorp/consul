@@ -292,20 +292,62 @@ during normal operation beyond that of Consul's available metrics.
 
 See the below [table](#additional-integration-checks-performed) for an outline of the features added by the official integration.
 
+<Note>
+  Currently, the annotations configured by the Helm overrides with Consul RPC TLS enabled
+  assume server and ca certificate secrets are shared with the Datadog agent release namespace and mount the valid <code>tls.crt</code>, <code>tls.key</code>,
+  and <code>ca.crt</code> secret volumes at the <code>/etc/datadog-agent/conf.d/consul.d/certs</code> path on the Datadog Agent, agent container.
+</Note>
+
 ### Helm Chart Configuration
 
-<CodeBlockConfig heading={"Datadog Consul Checks"}>
+<Tabs>
+  <CodeBlockConfig heading={"Datadog Consul Checks"}>
+
+  Consul Helm Chart Overrides
 
   ```yaml
-  metrics:
-    enabled: true
-    enableAgentMetrics: true
-    datadog:
+  global:
+    tls:
       enabled: true
-      namespace: "datadog"
+      enableAutoEncrypt: true
+    acls:
+      manageSystemACLs: true
+    metrics:
+      enabled: true
+      enableAgentMetrics: true
+      datadog:
+        enabled: true
+        namespace: "datadog"
   ```
 
-</CodeBlockConfig>
+
+  Consul `server-statefulset.yaml` annotations
+
+  ```yaml
+  "ad.datadoghq.com/consul.checks": |
+    {
+      "consul": {
+      "init_config": {},
+      "instances": [
+          {
+            "url": "https://consul-server.consul.svc:8501",
+            "tls_cert": "/etc/datadog-agent/conf.d/consul.d/certs/tls.crt",
+            "tls_private_key": "/etc/datadog-agent/conf.d/consul.d/certs/tls.key",
+            "tls_ca_cert": "/etc/datadog-agent/conf.d/consul.d/ca/tls.crt",
+            "use_prometheus_endpoint": true,
+            "acl_token": "ENC[k8s_secret@consul/consul-datadog-agent-metrics-acl-token/token]",
+            "new_leader_checks": true,
+            "network_latency_checks": true,
+            "catalog_checks": true,
+            "auth_type": "basic"
+          }
+        ]
+      }
+    }
+  ```
+
+  </CodeBlockConfig>
+</Tabs>
 
 ### Additional Integration Checks Performed
 
@@ -340,6 +382,12 @@ This method implements the collection via Openmetrics as that is fully supported
 <Note>
   Enabling OpenMetrics collection via Datadog <strong><em>by design</em></strong> removes the <code>prometheus.io/path</code> and <code>prometheus.io/port</code> annotations from the consul-server statefulset deployment to allow Datadog
   to scrape the agent's metrics API endpoint using either RPC TLS and Consul ACLs as necessary.
+</Note>
+
+<Note>
+  Currently, the annotations configured by the Helm overrides with Consul RPC TLS enabled
+  assume server and ca certificate secrets are shared with the Datadog agent release namespace and mount the valid <code>tls.crt</code>, <code>tls.key</code>,
+  and <code>ca.crt</code> secret volumes at the <code>/etc/datadog-agent/conf.d/consul.d/certs</code> path on the Datadog Agent, agent container.
 </Note>
 
 ### Helm Chart Configuration
