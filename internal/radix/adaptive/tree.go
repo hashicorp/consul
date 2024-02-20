@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-const MaxPrefixLen = 100
+const MaxPrefixLen = 10
 const LEAF = 0
 const NODE4 = 1
 const NODE16 = 2
