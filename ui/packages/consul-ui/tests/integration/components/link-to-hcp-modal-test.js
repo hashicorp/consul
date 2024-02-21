@@ -14,6 +14,7 @@ import { BlockingEventSource as RealEventSource } from 'consul-ui/utils/dom/even
 import { ACCESS_LEVEL } from 'consul-ui/components/link-to-hcp-modal';
 
 const modalSelector = '[data-test-link-to-hcp-modal]';
+const modalRefreshPageAlertSelector = '[data-test-link-to-hcp-modal-refresh-page-alert]';
 const modalNoACLsAlertSelector = '[data-test-link-to-hcp-modal-no-acls-alert]';
 const modalOptionReadOnlySelector = '#accessMode-readonly';
 const modalOptionReadOnlyErrorSelector = '[data-test-link-to-hcp-modal-access-level-options-error]';
@@ -88,6 +89,7 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
 
     assert.dom(modalSelector).exists({ count: 1 });
     assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).doesNotExist();
+    assert.dom(`${modalSelector} ${modalRefreshPageAlertSelector}`).isVisible();
 
     // select read-only
     await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
@@ -186,6 +188,8 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
 
     assert.dom(modalSelector).exists({ count: 1 });
     assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).doesNotExist();
+    assert.dom(`${modalSelector} ${modalRefreshPageAlertSelector}`).isVisible();
+
     // select read-only
     await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
 
@@ -213,6 +217,8 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
 
     assert.dom(modalSelector).exists({ count: 1 });
     assert.dom(`${modalSelector} ${modalNoACLsAlertSelector}`).isVisible();
+    assert.dom(`${modalSelector} ${modalRefreshPageAlertSelector}`).isVisible();
+
     // select read-only
     await click(`${modalSelector} ${modalOptionReadOnlySelector}`);
 
