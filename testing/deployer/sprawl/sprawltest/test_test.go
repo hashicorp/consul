@@ -1,6 +1,8 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
+//go:build integration
+
 package sprawltest_test
 
 import (
@@ -19,10 +21,6 @@ import (
 )
 
 func TestSprawl_CatalogV2(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this full-stack integration test is too slow for testing.Short")
-	}
-
 	serversDC1 := newTopologyServerSet("dc1-server", 3, []string{"dc1", "wan"}, nil)
 
 	cfg := &topology.Config{
@@ -156,10 +154,6 @@ func TestSprawl_CatalogV2(t *testing.T) {
 }
 
 func TestSprawl(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this full-stack integration test is too slow for testing.Short")
-	}
-
 	serversDC1 := newTopologyServerSet("dc1-server", 3, []string{"dc1", "wan"}, nil)
 	serversDC2 := newTopologyServerSet("dc2-server", 3, []string{"dc2", "wan"}, nil)
 
