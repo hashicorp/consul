@@ -413,11 +413,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.Authoritative = true
-<<<<<<< HEAD
 	recursionAvailable := atomic.LoadUint32(&(d.recursorEnabled)) == 1
-=======
-	recursionAvailable := len(cfg.Recursors) > 0 && atomic.LoadUint32(&(d.recursorEnabled)) != 1
->>>>>>> fbe92df712 (Update agent/dns.go)
 	m.RecursionAvailable = recursionAvailable
 
 	// Only add the SOA if requested
