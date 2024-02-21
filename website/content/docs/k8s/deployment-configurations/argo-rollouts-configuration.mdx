@@ -2,15 +2,29 @@
 layout: docs
 page_title: Argo Rollouts Progressive Delivery with Consul on Kubernetes
 description: >-
-  Configuration for Argo Rollouts Controller to enable Canary deployments for subset based routing using Rollouts to integrate with Consul Service Mesh.
+  Configure the Argo Rollouts Controller to enable Canary deployments for subset-based routing. Learn how k8s Rollouts integrate with Consul's service mesh.
 ---
 
--> **Note:** Currently, the Consul Traffic Routing Rollouts Plugin only supports subset based routing.
+# Argo Rollouts Progressive Delivery with Consul on Kubernetes
 
-### Install Rollouts Using Helm (Init Container)
-This is the preferred method for installing this plugin.
+This page describes the process to configure and use the [Argo Rollouts Controller](https://argo-rollouts.readthedocs.io/en/stable/) with Consul on Kubernetes to manage advanced subset-based routing for Canary deployments. 
 
-Add the following code to your `values.yaml` file, then install the argo-rollouts by helm:
+Consul's support for Argo Rollouts is currently limited to subset-based routing.
+
+## Install Argo Rollouts Controller
+
+There are three methods for installing the Argo Rollouts Controller with Consul on Kubernetes:
+
+1. [Install with Helm and init containers](#install-rollouts-using-helm-init-containers). We recommend installing the Argo Rollouts Controllor using this method.
+1. [Build the binary and install with Helm](#install-rollouts-using-helm-binary)
+1. [Standalone installation](#stand-alone-installation)
+
+After installing the controller, you must [apply the RBAC CRD](https://raw.githubusercontent.com/argoproj-labs/rollouts-plugin-trafficrouter-consul/main/yaml/rbac.yaml) to your Kubernetes cluster.
+
+### Install Rollouts Using Helm and init containers
+We recommend using this method to install this plugin.
+
+Add the following code to your `values.yaml` file to configure the plugin:
 
 ```yaml
   initContainers:
@@ -34,15 +48,21 @@ Add the following code to your `values.yaml` file, then install the argo-rollout
     - name: consul-plugin
       mountPath: /plugin-bin/hashicorp
 ```
-```bash
-helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
-```
 
-### Install Rollouts Using Helm (Binary)
+Then install the `argo-rollouts` and apply your updated values using Helm:
 
-1. Build this plugin (i.e. `make build`).
-2. Mount the built plugin onto the `argo-rollouts` container
-3. Add the following code to your `values.yaml` file, then install the argo-rollouts by helm:
+```shell-session
+$ helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
+``` 
+
+
+### Install Rollouts Using Helm and binary
+
+To build the binary and install Rollouts, complete the following steps:
+
+1. Build this plugin using your preferred tool. For example, `make build`.
+1. Mount the built plugin onto the `argo-rollouts` container.
+1. Add the following code to your `values.yaml` file to configure the plugin:
 
 ```yaml
   trafficRouterPlugins:
@@ -59,19 +79,24 @@ helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
     - name: consul-route-plugin
       mountPath: /plugin-bin/hashicorp
 ```
-```bash
-helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
-```
+
+Then install the `argo-rollouts` and apply your updated values using Helm:
+
+```shell-session
+  $ helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
+``` 
 
 ### Stand-alone installation
 
--> **Note:** The files which follow (and the code in it) are only for illustrative purposes, please do not use directly!
+This section describes the process to create a stand-alone installation. These instructions are for illustrative purposes. We recommend using init containers to create and install this plugin.
 
-Steps:
+To create a stand-alone installation of the Rollouts plugin, complete the following steps:
 
 1. Build this plugin.
-2. Put the plugin on the path & mount onto the `argo-rollouts`container (please refer to the example YAML below to modify the deployment)
-3. Create a ConfigMap to configure `argo-rollouts` with the plugin's location:
+1. Put the plugin on the path and mount it to the `argo-rollouts`container.
+1. Create a `ConfigMap` to configure `argo-rollouts` with the plugin's location.
+
+The following example schedules a Deployment and mounts it to the `argo-rollouts` container:
 
 ```yaml
 apiVersion: apps/v1
@@ -100,6 +125,9 @@ spec:
                mountPath: /plugin-bin/hashicorp
 
 ```
+
+The following example creates the `ConfigMap` with the location of the plugin:
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -115,14 +143,16 @@ binaryData: {}
 
 ### Install the RBAC
 
-After either mounting the binary or using an init container apply the RBAC using the provided `yaml/rbac.yaml`
-```bash
-kubectl apply -f https://raw.githubusercontent.com/argoproj-labs/rollouts-plugin-trafficrouter-consul/main/yaml/rbac.yaml
+After either mounting the binary or using an init container, configure an RBAC using [Argo Rollout Consul plugin `rbac.yaml`](https://raw.githubusercontent.com/argoproj-labs/rollouts-plugin-trafficrouter-consul/main/yaml/rbac.yaml):
+
+```shell-session
+$ kubectl apply -f https://raw.githubusercontent.com/argoproj-labs/rollouts-plugin-trafficrouter-consul/main/yaml/rbac.yaml
 ```
 
-## Usage
+## Use the Argo Rollouts Consul plugin
 
-Create the Kubernetes Service that will be utilized by the service being rolled out. Additionally, configure any Service Defaults and Proxy Defaults required for the service.
+Schedule the Kubernetes Service utilized by the service being rolled out. Additionally, configure any Service Defaults and Proxy Defaults required for the service.
+
 ```yaml
 apiVersion: v1
 kind: Service
@@ -137,7 +167,10 @@ spec:
       targetPort: 8080
 ```
 
-Create the Service Resolver and Service Splitter CRDs for your stable service. Argo will automate the modification of these CRDs during canary deployments.
+Next, create the service resolver and service splitter CRDs for your stable service. Argo automatically modifies these CRDs during canary deployments.
+
+The following example demonstrates the configuration of the service resolver CRD, which creates service subsets and sets the stable subset as the default:
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -151,6 +184,9 @@ spec:
       filter: ""
   defaultSubset: stable
 ```
+
+The following example demonstrates the configuration of the service splitter CRD, which initially sends 100% of traffic to the stable deployment:
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceSplitter
@@ -164,7 +200,7 @@ spec:
       serviceSubset: canary
 ```
 
-Configure your Argo Rollout resource
+Then configure your Argo Rollout resource to incrementally rollout the canary deployment:
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
