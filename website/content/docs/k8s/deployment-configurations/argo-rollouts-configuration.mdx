@@ -22,6 +22,7 @@ There are three methods for installing the Argo Rollouts Controller with Consul 
 After installing the controller, you must [apply the RBAC CRD](https://raw.githubusercontent.com/argoproj-labs/rollouts-plugin-trafficrouter-consul/main/yaml/rbac.yaml) to your Kubernetes cluster.
 
 ### Install Rollouts Using Helm and init containers
+
 We recommend using this method to install this plugin.
 
 Add the following code to your `values.yaml` file to configure the plugin:
@@ -152,7 +153,7 @@ $ kubectl apply -f https://raw.githubusercontent.com/argoproj-labs/rollouts-plug
 
 ## Use the Argo Rollouts Consul plugin
 
-Schedule the Kubernetes Service utilized by the service being rolled out. Additionally, configure any Service Defaults and Proxy Defaults required for the service.
+Schedule the Kubernetes Service utilized by the service being rolled out. Additionally, configure any service defaults and proxy defaults required for the service.
 
 ```yaml
 apiVersion: v1
@@ -202,6 +203,7 @@ spec:
 ```
 
 Then configure your Argo Rollout resource to incrementally rollout the canary deployment:
+
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
@@ -253,7 +255,7 @@ spec:
       - pause: {duration: 10}
 ```
 
-Perform the Rollout operation using the Argo Rollouts Kubectl plugin.
+Finally, perform the Rollout operation using the Argo Rollouts Kubectl plugin.
 
 ```shell-session
 $ kubectl argo rollouts promote test-service
