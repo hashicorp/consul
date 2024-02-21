@@ -1329,7 +1329,7 @@
             "path": "k8s/deployment-configurations/consul-enterprise"
           },
           {
-            "title": "Argo Rollouts Configuration",
+            "title": "Argo Rollouts Progressive Delivery",
             "path": "k8s/deployment-configurations/argo-rollouts-configuration"
           },
           {
