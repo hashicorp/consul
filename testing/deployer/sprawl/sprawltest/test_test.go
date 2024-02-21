@@ -7,18 +7,22 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
 func TestSprawl_CatalogV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this full-stack integration test is too slow for testing.Short")
+	}
+
 	serversDC1 := newTopologyServerSet("dc1-server", 3, []string{"dc1", "wan"}, nil)
 
 	cfg := &topology.Config{
@@ -152,6 +156,10 @@ func TestSprawl_CatalogV2(t *testing.T) {
 }
 
 func TestSprawl(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this full-stack integration test is too slow for testing.Short")
+	}
+
 	serversDC1 := newTopologyServerSet("dc1-server", 3, []string{"dc1", "wan"}, nil)
 	serversDC2 := newTopologyServerSet("dc2-server", 3, []string{"dc2", "wan"}, nil)
 
