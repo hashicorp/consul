@@ -490,6 +490,26 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
+  go-test-testing-deployer:
+    needs:
+    - setup
+    - get-go-version
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: testing/deployer
+      runs-on: ${{ needs.setup.outputs.compute-large }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+
   noop:
     runs-on: ubuntu-latest
     steps:
