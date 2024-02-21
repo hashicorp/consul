@@ -237,6 +237,19 @@ go-mod-tidy/%:
 	@echo "--> Running go mod tidy ($*)"
 	@cd $* && go mod tidy
 
+.PHONY: go-mod-get
+go-mod-get: $(foreach mod,$(GO_MODULES),go-mod-get/$(mod)) ## Run go get and go mod tidy in every module for the given dependency
+
+.PHONY: go-mod-get/%
+go-mod-get/%:
+ifndef DEP_VERSION
+	$(error DEP_VERSION is undefined: set this to <dependency>@<version>, e.g. github.com/hashicorp/go-hclog@v1.5.0)
+endif
+	@echo "--> Running go get ${DEP_VERSION} ($*)"
+	@cd $* && go get $(DEP_VERSION)
+	@echo "--> Running go mod tidy ($*)"
+	@cd $* && go mod tidy
+
 ##@ Checks
 
 .PHONY: fmt
