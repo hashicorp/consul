@@ -7,7 +7,7 @@ description: >-
 
 # Argo Rollouts Progressive Delivery with Consul on Kubernetes
 
-This page describes the process to configure and use the [Argo Rollouts Controller](https://argo-rollouts.readthedocs.io/en/stable/) with Consul on Kubernetes to manage advanced subset-based routing for Canary deployments. 
+This page describes the process to configure and use the [Argo Rollouts Controller](https://argo-rollouts.readthedocs.io/en/stable/) with Consul on Kubernetes to manage advanced subset-based routing for Canary deployments.
 
 Consul's support for Argo Rollouts is currently limited to subset-based routing.
 
@@ -27,9 +27,10 @@ We recommend using this method to install this plugin.
 Add the following code to your `values.yaml` file to configure the plugin:
 
 ```yaml
+controller:
   initContainers:
     - name: copy-consul-plugin
-      image: <TODO Insert Release Image>
+      image: hashicorp/rollouts-plugin-trafficrouter-consul
       command: ["/bin/sh", "-c"]
       args:
         # Copy the binary from the image to the rollout container
@@ -53,8 +54,7 @@ Then install the `argo-rollouts` and apply your updated values using Helm:
 
 ```shell-session
 $ helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
-``` 
-
+```
 
 ### Install Rollouts Using Helm and binary
 
@@ -65,6 +65,7 @@ To build the binary and install Rollouts, complete the following steps:
 1. Add the following code to your `values.yaml` file to configure the plugin:
 
 ```yaml
+controller:
   trafficRouterPlugins:
     trafficRouterPlugins: |-
       - name: "argoproj-labs/consul"
@@ -84,7 +85,7 @@ Then install the `argo-rollouts` and apply your updated values using Helm:
 
 ```shell-session
   $ helm install argo-rollouts argo/argo-rollouts -f values.yaml -n argo-rollouts
-``` 
+```
 
 ### Stand-alone installation
 
@@ -253,3 +254,7 @@ spec:
 ```
 
 Perform the Rollout operation using the Argo Rollouts Kubectl plugin.
+
+```shell-session
+$ kubectl argo rollouts promote test-service
+```
