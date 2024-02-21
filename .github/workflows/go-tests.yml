@@ -552,6 +552,7 @@ jobs:
     - go-test-sdk-backwards-compatibility
     - go-test-sdk
     - go-test-32bit
+    - go-test-testing-deployer
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
