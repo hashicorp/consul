@@ -401,7 +401,8 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.Authoritative = true
-	m.RecursionAvailable = (len(cfg.Recursors) > 0)
+	recursionAvailable := atomic.LoadUint32(&(d.recursorEnabled)) == 1
+	m.RecursionAvailable = recursionAvailable
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
@@ -476,8 +477,13 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// nothing found locally, recurse
 	if len(m.Answer) == 0 {
-		d.handleRecurse(resp, req)
-		return
+		if recursionAvailable {
+			d.handleRecurse(resp, req)
+			return
+		} else {
+			m.SetRcode(req, dns.RcodeNameError)
+			d.addSOA(cfg, m, q.Name)
+		}
 	}
 
 	// ptr record responses are globally valid
