@@ -3,6 +3,8 @@
 
 SHELL = bash
 
+GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-gen-rpc-glue/e2e" | sort)
+
 ###
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
@@ -10,6 +12,7 @@ SHELL = bash
 GOLANGCI_LINT_VERSION='v1.55.2'
 MOCKERY_VERSION='v2.20.0'
 BUF_VERSION='v1.4.0'
+
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.4.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
@@ -252,6 +255,18 @@ go-mod-tidy:
 	@cd internal/tools/proto-gen-rpc-glue/e2e/consul && go mod tidy
 	@cd internal/tools/protoc-gen-consul-rate-limit && go mod tidy
 
+.PHONY: go-mod-get
+go-mod-get: $(foreach mod,$(GO_MODULES),go-mod-get/$(mod)) ## Run go get and go mod tidy in every module for the given dependency
+
+.PHONY: go-mod-get/%
+go-mod-get/%:
+ifndef DEP_VERSION
+	$(error DEP_VERSION is undefined: set this to <dependency>@<version>, e.g. github.com/hashicorp/go-hclog@v1.5.0)
+endif
+	@echo "--> Running go get ${DEP_VERSION} ($*)"
+	@cd $* && go get $(DEP_VERSION)
+	@echo "--> Running go mod tidy ($*)"
+	@cd $* && go mod tidy
 
 test-internal:
 	@echo "--> Running go test"
