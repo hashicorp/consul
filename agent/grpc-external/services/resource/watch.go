@@ -121,6 +121,10 @@ func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (
 		return nil, err
 	}
 
+	// Ignore return value since read ops are allowed but will log a warning if the feature is
+	// not enabled in the license.
+	_ = s.FeatureCheck(reg)
+
 	// if no tenancy is passed defaults to wildcard
 	if req.Tenancy == nil {
 		req.Tenancy = wildcardTenancyFor(reg.Scope)

@@ -11,7 +11,7 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # or the string @DEV to imply use what is currently installed locally.
 ###
 GOLANGCI_LINT_VERSION='v1.55.2'
-MOCKERY_VERSION='v2.37.1'
+MOCKERY_VERSION='v2.41.0'
 BUF_VERSION='v1.26.0'
 
 PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'

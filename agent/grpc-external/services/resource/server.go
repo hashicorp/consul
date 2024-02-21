@@ -15,8 +15,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
@@ -27,23 +25,6 @@ import (
 
 type Server struct {
 	Config
-}
-
-type Config struct {
-	Logger   hclog.Logger
-	Registry Registry
-
-	// Backend is the storage backend that will be used for resource persistence.
-	Backend     Backend
-	ACLResolver ACLResolver
-	// TenancyBridge temporarily allows us to use V1 implementations of
-	// partitions and namespaces until V2 implementations are available.
-	TenancyBridge TenancyBridge
-
-	// UseV2Tenancy is true if the "v2tenancy" experiement is active, false otherwise.
-	// Attempts to create v2 tenancy resources (partition or namespace) will fail when the
-	// flag is false.
-	UseV2Tenancy bool
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -79,7 +60,7 @@ func (s *Server) Register(registrar grpc.ServiceRegistrar) {
 	pbresource.RegisterResourceServiceServer(registrar, s)
 }
 
-// Get token from grpc metadata or AnonymounsTokenId if not found
+// Get token from grpc metadata or AnonymousTokenId if not found
 func tokenFromContext(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
