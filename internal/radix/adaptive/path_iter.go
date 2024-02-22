@@ -45,29 +45,29 @@ func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 		currentNode := nodeCur.(Node[T])
 
 		switch currentNode.getArtNodeType() {
-		case LEAF:
+		case leafType:
 			leafCh := currentNode.(*NodeLeaf[T])
 			if leafCh.prefixContainsMatch(i.path) {
 				return getKey(leafCh.key), leafCh.value, true
 			}
 			continue
-		case NODE4:
-			node4 := currentNode.(*Node4[T])
+		case node4:
+			n4 := currentNode.(*Node4[T])
 			for itr := 3; itr >= 0; itr-- {
-				nodeCh := node4.children[itr]
+				nodeCh := n4.children[itr]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node4.children[itr]).(Node[T])
+				child := (*n4.children[itr]).(Node[T])
 				newStack := make([]Node[T], len(i.stack)+1)
 				copy(newStack[1:], i.stack)
 				newStack[0] = child
 				i.stack = newStack
 			}
-		case NODE16:
-			node16 := currentNode.(*Node16[T])
+		case node16:
+			n16 := currentNode.(*Node16[T])
 			for itr := 15; itr >= 0; itr-- {
-				nodeCh := node16.children[itr]
+				nodeCh := n16.children[itr]
 				if nodeCh == nil {
 					continue
 				}
@@ -77,14 +77,14 @@ func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 				newStack[0] = child
 				i.stack = newStack
 			}
-		case NODE48:
-			node48 := currentNode.(*Node48[T])
+		case node48:
+			n48 := currentNode.(*Node48[T])
 			for itr := 255; itr >= 0; itr-- {
-				idx := node48.keys[itr]
+				idx := n48.keys[itr]
 				if idx == 0 {
 					continue
 				}
-				nodeCh := node48.children[idx-1]
+				nodeCh := n48.children[idx-1]
 				if nodeCh == nil {
 					continue
 				}
@@ -94,14 +94,14 @@ func (i *PathIterator[T]) Next() ([]byte, T, bool) {
 				newStack[0] = child
 				i.stack = newStack
 			}
-		case NODE256:
-			node256 := currentNode.(*Node256[T])
+		case node256:
+			n256 := currentNode.(*Node256[T])
 			for itr := 255; itr >= 0; itr-- {
-				nodeCh := node256.children[itr]
+				nodeCh := n256.children[itr]
 				if nodeCh == nil {
 					continue
 				}
-				child := (*node256.children[itr]).(Node[T])
+				child := (*n256.children[itr]).(Node[T])
 				newStack := make([]Node[T], len(i.stack)+1)
 				copy(newStack[1:], i.stack)
 				newStack[0] = child
