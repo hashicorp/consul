@@ -29,7 +29,7 @@ func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
 	return nodeT.PathIterator(path)
 }
 
-func NewAdaptiveRadixTree[T any]() *RadixTree[T] {
+func NewRadixTree[T any]() *RadixTree[T] {
 	rt := &RadixTree[T]{size: 0, mu: &sync.RWMutex{}}
 	nodeLeaf := rt.allocNode(LEAF)
 	rt.root = &nodeLeaf
