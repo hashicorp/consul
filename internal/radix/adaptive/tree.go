@@ -5,6 +5,7 @@ package adaptive
 
 import (
 	"bytes"
+	"sync"
 )
 
 const maxPrefixLen = 10
@@ -22,10 +23,11 @@ const (
 type RadixTree[T any] struct {
 	root *Node[T]
 	size uint64
+	mu   *sync.RWMutex
 }
 
 func NewRadixTree[T any]() *RadixTree[T] {
-	rt := &RadixTree[T]{size: 0}
+	rt := &RadixTree[T]{size: 0, mu: &sync.RWMutex{}}
 	nodeLeaf := rt.allocNode(leafType)
 	rt.root = &nodeLeaf
 	return rt

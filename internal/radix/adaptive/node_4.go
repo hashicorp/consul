@@ -93,3 +93,7 @@ func (n *Node4[T]) Clone() *Node[T] {
 	nodeT := Node[T](newNode)
 	return &nodeT
 }
+
+func (n *Node4[T]) setMutex(mu *sync.RWMutex) {
+	n.mu = mu
+}

@@ -127,3 +127,7 @@ func (n *NodeLeaf[T]) Clone() *Node[T] {
 	nodeT := Node[T](newNode)
 	return &nodeT
 }
+
+func (n *NodeLeaf[T]) setMutex(mu *sync.RWMutex) {
+	n.mu = mu
+}

@@ -64,6 +64,7 @@ func (t *RadixTree[T]) allocNode(ntype nodeType) Node[T] {
 	}
 	n.setPartial(make([]byte, maxPrefixLen))
 	n.setPartialLen(maxPrefixLen)
+	n.setMutex(t.mu)
 	return n
 }
 
