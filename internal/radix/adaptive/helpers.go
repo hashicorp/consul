@@ -121,12 +121,12 @@ func (t *RadixTree[T]) addChild4(n *Node4[T], ref **Node[T], c byte, child Node[
 	} else {
 		newNode := t.allocNode(node16)
 		*ref = &newNode
-		node16 := newNode.(*Node16[T])
+		n16 := newNode.(*Node16[T])
 		// Copy the child pointers and the key map
-		copy(node16.children[:], n.children[:n.numChildren])
-		copy(node16.keys[:], n.keys[:n.numChildren])
+		copy(n16.children[:], n.children[:n.numChildren])
+		copy(n16.keys[:], n.keys[:n.numChildren])
 		t.copyHeader(newNode, n)
-		t.addChild16(node16, ref, c, child)
+		t.addChild16(n16, ref, c, child)
 	}
 }
 
@@ -166,15 +166,15 @@ func (t *RadixTree[T]) addChild16(n *Node16[T], ref **Node[T], c byte, child Nod
 		newNode := t.allocNode(node48)
 		*ref = &newNode
 
-		node48 := newNode.(*Node48[T])
+		n48 := newNode.(*Node48[T])
 		// Copy the child pointers and populate the key map
-		copy(node48.children[:], n.children[:n.numChildren])
+		copy(n48.children[:], n.children[:n.numChildren])
 		for i := 0; i < int(n.numChildren); i++ {
-			node48.keys[n.keys[i]] = byte(i + 1)
+			n48.keys[n.keys[i]] = byte(i + 1)
 		}
 
 		t.copyHeader(newNode, n)
-		t.addChild48(node48, ref, c, child)
+		t.addChild48(n48, ref, c, child)
 	}
 }
 
@@ -191,14 +191,14 @@ func (t *RadixTree[T]) addChild48(n *Node48[T], ref **Node[T], c byte, child Nod
 	} else {
 		newNode := t.allocNode(node256)
 		*ref = &newNode
-		node256 := newNode.(*Node256[T])
+		n256 := newNode.(*Node256[T])
 		for i := 0; i < 256; i++ {
 			if n.keys[i] != 0 {
-				node256.children[i] = n.children[int(n.keys[i])-1]
+				n256.children[i] = n.children[int(n.keys[i])-1]
 			}
 		}
 		t.copyHeader(newNode, n)
-		t.addChild256(node256, ref, c, child)
+		t.addChild256(n256, ref, c, child)
 	}
 }
 
