@@ -54,30 +54,29 @@ The Consul API gateway ships with Consul and is automatically installed when you
   
   <Tab heading="GKE Autopilot">
   
-    By default, GKE Autopilot installs [Gateway API resources](https://gateway-api.sigs.k8s.io), so we recommend customizing the `connectInject.apiGateway` stanza to accommodate the pre-installed Gateway API CRDs. 
-    
-    The following working example enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
+  By default, GKE Autopilot installs [Gateway API resources](https://gateway-api.sigs.k8s.io), so we recommend customizing the `connectInject.apiGateway` stanza to accommodate the pre-installed Gateway API CRDs. 
+  
+  The following working example enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
   
   <CodeBlockConfig filename="values.yaml">
   
-     ```yaml
-     global:
-       name: consul
-     connectInject:
-       enabled: true
-       apiGateway:
-         manageExternalCRDs: false
-         manageNonStandardCRDs: true
-       cni:
-         enabled: true
-         logLevel: info
-         cniBinDir: "/home/kubernetes/bin"
-         cniNetDir: "/etc/cni/net.d"
-     ```
+  ```yaml
+  global:
+    name: consul
+  connectInject:
+    enabled: true
+    apiGateway:
+      manageExternalCRDs: false
+      manageNonStandardCRDs: true
+    cni:
+      enabled: true
+      logLevel: info
+      cniBinDir: "/home/kubernetes/bin"
+      cniNetDir: "/etc/cni/net.d"
+  ```
   </CodeBlockConfig>
   </Tab> 
-  
-</Tabs>  
+  </Tabs>  
 
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Refer to the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) in GitHub releases for the available versions.
 
