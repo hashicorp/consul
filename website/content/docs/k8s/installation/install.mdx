@@ -124,6 +124,7 @@ By default, GKE Autopilot also installs [Gateway API resources](https://gateway-
 The following working example enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
 
 <CodeBlockConfig filename="values.yaml">
+
 ```yaml
 global:
   name: consul
@@ -138,6 +139,7 @@ connectInject:
     cniBinDir: "/home/kubernetes/bin"
     cniNetDir: "/etc/cni/net.d"
 ```
+
 </CodeBlockConfig>
 
 ### Enable the Consul CNI plugin
