@@ -181,7 +181,15 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], ref **Node[T], key []byte, va
 		prefixDiff := prefixMismatch[T](node, key, keyLen, depth)
 		if prefixDiff >= int(node.getPartialLen()) {
 			depth += int(node.getPartialLen())
-			goto RECURSE_SEARCH
+			child := t.findChild(node, key[depth])
+			if child != nil {
+				return t.recursiveInsert(*child, child, key, value, depth+1, old)
+			}
+
+			// No child, node goes within us
+			newLeaf := t.makeLeaf(key, value)
+			t.addChild(node, ref, key[depth], newLeaf)
+			return zero
 		}
 
 		// Create a new node
@@ -212,8 +220,6 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], ref **Node[T], key []byte, va
 		t.addChild4(newNode4, ref, key[depth+prefixDiff], newLeaf)
 		return zero
 	}
-
-RECURSE_SEARCH:
 	// Find a child to recurse to
 	child := t.findChild(node, key[depth])
 	if child != nil {
