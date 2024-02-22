@@ -39,15 +39,15 @@ The Consul API gateway ships with Consul and is automatically installed when you
        openshift:
          enabled: true
      connectInject:
-      enabled: true
-      apiGateway:
-        manageExternalCRDs: true
-      cni:
-        enabled: true
-        logLevel: info
-        multus: true
-        cniBinDir: "/var/lib/cni/bin"
-        cniNetDir: "/etc/kubernetes/cni/net.d"
+       enabled: true
+       apiGateway:
+         manageExternalCRDs: true
+       cni:
+         enabled: true
+         logLevel: info
+         multus: true
+         cniBinDir: "/var/lib/cni/bin"
+         cniNetDir: "/etc/kubernetes/cni/net.d"
      ```
     </CodeBlockConfig>
     </Tab> 
@@ -66,11 +66,11 @@ The Consul API gateway ships with Consul and is automatically installed when you
        apiGateway:
          manageExternalCRDs: false
          manageNonStandardCRDs: true
-     cni:
-       enabled: true
-       logLevel: info
-       cniBinDir: "/home/kubernetes/bin"
-       cniNetDir: "/etc/cni/net.d"
+       cni:
+         enabled: true
+         logLevel: info
+         cniBinDir: "/home/kubernetes/bin"
+         cniNetDir: "/etc/cni/net.d"
      ```
     </CodeBlockConfig>
     </Tab> 
