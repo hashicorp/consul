@@ -78,11 +78,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/api-gateway/install',
-    destination: '/consul/docs/connect/gateways/api-gateway/deploy/install-k8s',
-    permanent: true,
-  },
-  {
     source: '/consul/docs/api-gateway/usage/reroute-http-requests',
     destination:
       '/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests',
