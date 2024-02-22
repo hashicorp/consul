@@ -54,7 +54,7 @@ The Consul API gateway ships with Consul and is automatically installed when you
   
     <Tab heading="GKE Autopilot">
   
-    By default, GKE Autopilot also installs [Gateway API](https://gateway-api.sigs.k8s.io) resources, so it is recommended to customize the `connectInject.apiGateway` stanza to accomodate for the pre-installed Gateway API CRDs. Below is a working example that enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
+    By default, GKE Autopilot installs [Gateway API](https://gateway-api.sigs.k8s.io) resources, so it is recommended to customize the `connectInject.apiGateway` stanza to accomodate for the pre-installed Gateway API CRDs. Below is a working example that enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
   
     <CodeBlockConfig filename="values.yaml">
   
