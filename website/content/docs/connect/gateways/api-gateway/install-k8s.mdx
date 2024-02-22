@@ -11,70 +11,69 @@ The Consul API gateway ships with Consul and is automatically installed when you
 
 1. The Consul Helm chart deploys the API gateway using the configuration specified in the `values.yaml` file. Refer to [Helm Chart Configuration - `connectInject.apiGateway`](/consul/docs/k8s/helm#apigateway) for information about the Helm chart configuration options. Create a `values.yaml` file for configuring your Consul API gateway deployment and include the following settings:
 
+<Tabs>
 
-    <Tabs>
+  <Tab heading="Reference configuration">
+  <CodeBlockConfig filename="values.yaml">
+
+  ```yaml
+  global:
+    name: consul
+  connectInject:
+    enabled: true
+    apiGateway:
+      manageExternalCRDs: true
+  ```
+
+  </CodeBlockConfig>
+  </Tab>
   
-      <Tab heading="Reference configuration">
-      <CodeBlockConfig filename="values.yaml">
+  <Tab heading="OpenShift">
+  If you are installing Consul on an OpenShift Kubernetes cluster, you must include the `global.openShift.enabled` parameter and set it to `true`. Refer to [OpenShift requirements](/consul/docs/connect/gateways/api-gateway/tech-specs#openshift-requirements) for additional information.
+  <CodeBlockConfig filename="values.yaml">
+
+   ```yaml
+   global:
+     openshift:
+       enabled: true
+   connectInject:
+    enabled: true
+    apiGateway:
+      manageExternalCRDs: true
+    cni:
+      enabled: true
+      logLevel: info
+      multus: true
+      cniBinDir: "/var/lib/cni/bin"
+      cniNetDir: "/etc/kubernetes/cni/net.d"
+   ```
+  </CodeBlockConfig>
+  </Tab> 
+
+  <Tab heading="GKE Autopilot">
   
-      ```yaml
-      global:
-        name: consul
-      connectInject:
-        enabled: true
-        apiGateway:
-          manageExternalCRDs: true
-      ```
+    By default, GKE Autopilot also installs [Gateway API](https://gateway-api.sigs.k8s.io) resources, so it is recommended to customize the `connectInject.apiGateway` stanza to accomodate for the pre-installed Gateway API CRDs. Below is a working example that enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
+  <CodeBlockConfig filename="values.yaml">
+
+   ```yaml
+   global:
+     name: consul
+   connectInject:
+     enabled: true
+     apiGateway:
+       manageExternalCRDs: false
+       manageNonStandardCRDs: true
+   cni:
+     enabled: true
+     logLevel: info
+     cniBinDir: "/home/kubernetes/bin"
+     cniNetDir: "/etc/cni/net.d"
+   ```
+  </CodeBlockConfig>
   
-      </CodeBlockConfig>
-      </Tab>
-      
-      <Tab heading="OpenShift">
-      If you are installing Consul on an OpenShift Kubernetes cluster, you must include the `global.openShift.enabled` parameter and set it to `true`. Refer to [OpenShift requirements](/consul/docs/connect/gateways/api-gateway/tech-specs#openshift-requirements) for additional information.
-      <CodeBlockConfig filename="values.yaml">
-  
-       ```yaml
-       global:
-         openshift:
-           enabled: true
-       connectInject:
-        enabled: true
-        apiGateway:
-          manageExternalCRDs: true
-        cni:
-          enabled: true
-          logLevel: info
-          multus: true
-          cniBinDir: "/var/lib/cni/bin"
-          cniNetDir: "/etc/kubernetes/cni/net.d"
-       ```
-      </CodeBlockConfig>
-      
-      </Tab> 
-      <Tab heading="GKE Autopilot">
-      
-      By default, GKE Autopilot also installs [Gateway API](https://gateway-api.sigs.k8s.io) resources, so it is recommended to customize the `connectInject.apiGateway` stanza to accomodate for the pre-installed Gateway API CRDs. Below is a working example that enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
-      <CodeBlockConfig filename="values.yaml">
-  
-       ```yaml
-       global:
-         name: consul
-       connectInject:
-         enabled: true
-         apiGateway:
-           manageExternalCRDs: false
-           manageNonStandardCRDs: true
-       cni:
-         enabled: true
-         logLevel: info
-         cniBinDir: "/home/kubernetes/bin"
-         cniNetDir: "/etc/cni/net.d"
-       ```
-      </CodeBlockConfig>
-      
-      </Tab> 
-    
-    </Tabs>  
+  </Tab> 
+
+</Tabs>  
 
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Refer to the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) in GitHub releases for the available versions.
 
