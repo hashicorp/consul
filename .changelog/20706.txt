@@ -1,0 +1,3 @@
+```release-note:improvement
+cloud: makes the HCP LinkController run periodically to allow for automatic updates to the Link resource
+```

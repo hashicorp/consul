@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,6 +23,9 @@ import (
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+// linkControllerPeriod specifies how often the LinkController will run
+const linkControllerPeriod = time.Minute
 
 // HCPClientFn is a function that can be used to create an HCP client from a Link object.
 // This function type should be passed to a LinkController in order to tell it how to make a client from
@@ -171,7 +175,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 
 	newStatus.Conditions = append(newStatus.Conditions, ConditionLinked(link.ResourceId))
 
-	return nil
+	return controller.RequeueAfter(linkControllerPeriod)
 }
 
 type linkInitializer struct {
