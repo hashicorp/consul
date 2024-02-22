@@ -8,11 +8,14 @@ import (
 )
 
 const MaxPrefixLen = 10
-const LEAF = 0
-const NODE4 = 1
-const NODE16 = 2
-const NODE48 = 3
-const NODE256 = 4
+type nodeType int
+const (
+   leafType nodeType = iota
+   node4
+   node16
+   node48
+   node256
+)
 
 type RadixTree[T any] struct {
 	root *Node[T]
