@@ -8,8 +8,8 @@ import "sync"
 type Node[T any] interface {
 	getPartialLen() uint32
 	setPartialLen(uint32)
-	getArtNodeType() uint8
-	setArtNodeType(uint8)
+	getArtNodeType() nodeType
+	setArtNodeType(nodeType)
 	getNumChildren() uint8
 	setNumChildren(uint8)
 	getPartial() []byte
@@ -19,7 +19,5 @@ type Node[T any] interface {
 	PathIterator([]byte) *PathIterator[T]
 	matchPrefix([]byte) bool
 	getChild(int) *Node[T]
-	setMutex(*sync.RWMutex)
-	getMutex() *sync.RWMutex
 	Clone() *Node[T]
 }
