@@ -16,7 +16,7 @@ import (
 )
 
 func (s *Server) MutateAndValidate(ctx context.Context, req *pbresource.MutateAndValidateRequest) (*pbresource.MutateAndValidateResponse, error) {
-	tenancyMarkedForDeletion, err := s.mutateAndValidate(ctx, req.Resource)
+	tenancyMarkedForDeletion, err := s.mutateAndValidate(ctx, req.Resource, false)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +33,8 @@ func (s *Server) MutateAndValidate(ctx context.Context, req *pbresource.MutateAn
 }
 
 // private DRY impl that is used by both the Write and MutateAndValidate RPCs.
-func (s *Server) mutateAndValidate(ctx context.Context, res *pbresource.Resource) (tenancyMarkedForDeletion bool, err error) {
-	reg, err := s.ensureResourceValid(res)
+func (s *Server) mutateAndValidate(ctx context.Context, res *pbresource.Resource, enforceLicenseCheck bool) (tenancyMarkedForDeletion bool, err error) {
+	reg, err := s.ensureResourceValid(res, enforceLicenseCheck)
 	if err != nil {
 		return false, err
 	}
@@ -92,7 +92,7 @@ func (s *Server) mutateAndValidate(ctx context.Context, res *pbresource.Resource
 	return false, nil
 }
 
-func (s *Server) ensureResourceValid(res *pbresource.Resource) (*resource.Registration, error) {
+func (s *Server) ensureResourceValid(res *pbresource.Resource, enforceLicenseCheck bool) (*resource.Registration, error) {
 	var field string
 	switch {
 	case res == nil:
@@ -118,6 +118,12 @@ func (s *Server) ensureResourceValid(res *pbresource.Resource) (*resource.Regist
 	// Check type exists.
 	reg, err := s.resolveType(res.Id.Type)
 	if err != nil {
+		return nil, err
+	}
+
+	// Since this is shared by Write and MutateAndValidate, only fail the operation
+	// if it's a write operation and the feature is not allowed by the license.
+	if err = s.FeatureCheck(reg); err != nil && enforceLicenseCheck {
 		return nil, err
 	}
 

@@ -43,6 +43,22 @@ func (_m *MockRegistry) Resolve(typ *pbresource.Type) (internalresource.Registra
 	return r0, r1
 }
 
+// Types provides a mock function with given fields:
+func (_m *MockRegistry) Types() []internalresource.Registration {
+	ret := _m.Called()
+
+	var r0 []internalresource.Registration
+	if rf, ok := ret.Get(0).(func() []internalresource.Registration); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]internalresource.Registration)
+		}
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewMockRegistry interface {
 	mock.TestingT
 	Cleanup(func())

@@ -35,7 +35,7 @@ import (
 var errUseWriteStatus = status.Error(codes.InvalidArgument, "resource.status can only be set using the WriteStatus endpoint")
 
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	tenancyMarkedForDeletion, err := s.mutateAndValidate(ctx, req.Resource)
+	tenancyMarkedForDeletion, err := s.mutateAndValidate(ctx, req.Resource, true)
 	if err != nil {
 		return nil, err
 	}
