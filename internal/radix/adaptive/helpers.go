@@ -270,22 +270,22 @@ func minimum[T any](n *Node[T]) *NodeLeaf[T] {
 		return minimum[T](node.(*Node16[T]).children[0])
 	case node48:
 		idx = 0
-		node := node.(*Node48[T])
-		for idx < 256 && node.keys[idx] == 0 {
+		n48 := node.(*Node48[T])
+		for idx < 256 && n48.keys[idx] == 0 {
 			idx++
 		}
-		idx = int(node.keys[idx] - 1)
+		idx = int(n48.keys[idx] - 1)
 		if idx < 48 {
-			return minimum[T](node.children[idx])
+			return minimum[T](n48.children[idx])
 		}
 	case node256:
-		node := node.(*Node256[T])
+		n256 := node.(*Node256[T])
 		idx = 0
-		for idx < 256 && node.children[idx] == nil {
+		for idx < 256 && n256.children[idx] == nil {
 			idx++
 		}
 		if idx < 256 {
-			return minimum[T](node.children[idx])
+			return minimum[T](n256.children[idx])
 		}
 	default:
 		panic("Unknown node type")
@@ -312,22 +312,22 @@ func maximum[T any](n *Node[T]) *NodeLeaf[T] {
 	case node16:
 		return maximum[T](node.(*Node16[T]).children[node.getNumChildren()-1])
 	case node48:
-		node := node.(*Node48[T])
+		n48 := node.(*Node48[T])
 		idx = 255
-		for idx >= 0 && node.children[idx] == nil {
+		for idx >= 0 && n48.children[idx] == nil {
 			idx--
 		}
 		if idx >= 0 {
-			return maximum[T](node.children[idx])
+			return maximum[T](n48.children[idx])
 		}
 	case node256:
 		idx = 255
-		node := node.(*Node256[T])
-		for idx >= 0 && node.children[idx] == nil {
+		n256 := node.(*Node256[T])
+		for idx >= 0 && n256.children[idx] == nil {
 			idx--
 		}
 		if idx >= 0 {
-			return maximum[T](node.children[idx])
+			return maximum[T](n256.children[idx])
 		}
 	default:
 		panic("Unknown node type")
@@ -482,10 +482,10 @@ func (t *RadixTree[T]) removeChild16(n *Node16[T], ref **Node[T], l **Node[T]) {
 	if n.numChildren == 3 {
 		newNode := t.allocNode(node4)
 		*ref = &newNode
-		node4 := newNode.(*Node4[T])
+		n4 := newNode.(*Node4[T])
 		t.copyHeader(newNode, n)
-		copy(node4.keys[:], n.keys[:4])
-		copy(node4.children[:], n.children[:4])
+		copy(n4.keys[:], n.keys[:4])
+		copy(n4.children[:], n.children[:4])
 	}
 }
 
@@ -498,15 +498,15 @@ func (t *RadixTree[T]) removeChild48(n *Node48[T], ref **Node[T], c uint8) {
 	if n.numChildren == 12 {
 		newNode := t.allocNode(node16)
 		*ref = &newNode
-		node16 := newNode.(*Node16[T])
+		n16 := newNode.(*Node16[T])
 		t.copyHeader(newNode, n)
 
 		child := 0
 		for i := 0; i < 256; i++ {
 			pos = n.keys[i]
 			if pos != 0 {
-				node16.keys[child] = byte(i)
-				node16.children[child] = n.children[pos-1]
+				n16.keys[child] = byte(i)
+				n16.children[child] = n.children[pos-1]
 				child++
 			}
 		}
@@ -522,14 +522,14 @@ func (t *RadixTree[T]) removeChild256(n *Node256[T], ref **Node[T], c uint8) {
 	if n.numChildren == 37 {
 		newNode := t.allocNode(node48)
 		*ref = &newNode
-		node48 := newNode.(*Node48[T])
+		n48 := newNode.(*Node48[T])
 		t.copyHeader(newNode, n)
 
 		pos := 0
 		for i := 0; i < 256; i++ {
 			if n.children[i] != nil {
-				node48.children[pos] = n.children[i]
-				node48.keys[i] = byte(pos + 1)
+				n48.children[pos] = n.children[i]
+				n48.keys[i] = byte(pos + 1)
 				pos++
 			}
 		}
