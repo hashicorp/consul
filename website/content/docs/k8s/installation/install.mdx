@@ -118,7 +118,7 @@ Refer to [`openshift` in the Helm chart reference](/consul/docs/k8s/helm#v-globa
 
 ### Install Consul on GKE Autopilot 
 
-GKE Autopilot provides a fully managed environment for containerized workloads and requires the Consul CNI Plugin to be installed. Refer to [Enable the Consul CNI plugin](#enable-the-consul-cni-plugin) for a full reference on how to enable the CNI plug-in. 
+GKE Autopilot provides a fully managed environment for containerized workloads and requires the Consul CNI plugin to be installed. Refer to [Enable the Consul CNI plugin](#enable-the-consul-cni-plugin) for a full reference on how to enable the CNI plugin. 
 
 By default, GKE Autopilot also installs [Gateway API](https://gateway-api.sigs.k8s.io) resources, so it is recommended to customize the `connectInject.apiGateway` stanza to accomodate for the pre-installed Gateway API CRDs. Below is a working example that enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
 
