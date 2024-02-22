@@ -18,8 +18,11 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/reporting"
+	resourcegrpc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 )
 
 // runEnterpriseRateLimiterConfigEntryController start the rate limiter config controller
@@ -192,4 +195,16 @@ func (s *Server) updateReportingConfig(config ReloadableConfig) {
 func getEnterpriseReportingDeps(deps Deps) reporting.EntDeps {
 	// no-op
 	return reporting.EntDeps{}
+}
+
+// CE version without LicenseManager
+func (s *Server) newResourceServiceConfig(typeRegistry resource.Registry, resolver resourcegrpc.ACLResolver, tenancyBridge resourcegrpc.TenancyBridge) resourcegrpc.Config {
+	return resourcegrpc.Config{
+		Registry:      typeRegistry,
+		Backend:       s.storageBackend,
+		ACLResolver:   resolver,
+		Logger:        s.loggers.Named(logging.GRPCAPI).Named(logging.Resource),
+		TenancyBridge: tenancyBridge,
+		UseV2Tenancy:  s.useV2Tenancy,
+	}
 }

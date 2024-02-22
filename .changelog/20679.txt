@@ -1,0 +1,3 @@
+```release-note:bug
+dns: SERVFAIL when resolving not found PTR records.
+```
