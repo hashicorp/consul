@@ -95,7 +95,7 @@ The Consul API gateway ships with Consul and is automatically installed when you
   ```
   
   ```shell-session
-  $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.17.0
+  $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.18.0
   ```
   
   </Tab>
@@ -110,7 +110,7 @@ The Consul API gateway ships with Consul and is automatically installed when you
   Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
   
   ```shell-session
-  $ helm install consul hashicorp/consul --version 1.3.0 --values values.yaml --create-namespace --namespace consul
+  $ helm install consul hashicorp/consul --version 1.4.0 --values values.yaml --create-namespace --namespace consul
   ```
   
   </Tab>
