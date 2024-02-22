@@ -212,4 +212,14 @@ module.exports = [
     destination: '/consul/docs/v1.8.x/agent/config-entries/:slug',
     permanent: true,
   },
+  {
+    source: '/consul/docs/k8s/multiport/reference/resource-command/:slug',
+    destination: '/consul/commands/resource/:slug',
+    permanent: true,
+  },
+  {
+    source: '/consul/commands/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/resource/:slug*',
+    destination: '/consul/docs/:version/k8s/multiport/reference/resource-command/:slug',
+    permanent: true
+  },
 ]
