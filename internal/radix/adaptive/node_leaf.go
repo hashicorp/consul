@@ -25,12 +25,8 @@ func (n *NodeLeaf[T]) setPartialLen(partialLen uint32) {
 	// no-op
 }
 
-func (n *NodeLeaf[T]) getArtNodeType() uint8 {
-	return n.artNodeType
-}
-
-func (n *NodeLeaf[T]) setArtNodeType(artNodeType uint8) {
-	n.artNodeType = artNodeType
+func (n *NodeLeaf[T]) getArtNodeType() nodeType {
+	return leafType
 }
 
 func (n *NodeLeaf[T]) getNumChildren() uint8 {
@@ -128,11 +124,10 @@ func (n *NodeLeaf[T]) getMutex() *sync.RWMutex {
 
 func (n *NodeLeaf[T]) Clone() *Node[T] {
 	newNode := &NodeLeaf[T]{
-		artNodeType: n.getArtNodeType(),
-		mu:          n.getMutex(),
-		keyLen:      n.getKeyLen(),
-		key:         make([]byte, len(n.getKey())),
-		value:       n.getValue(),
+		mu:     n.getMutex(),
+		keyLen: n.getKeyLen(),
+		key:    make([]byte, len(n.getKey())),
+		value:  n.getValue(),
 	}
 	copy(newNode.key[:], n.key[:])
 	nodeT := Node[T](newNode)

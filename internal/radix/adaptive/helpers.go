@@ -8,57 +8,8 @@ import (
 	"math/bits"
 )
 
-func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
-	var zero T
-	if t.root == nil {
-		return zero, false
-	}
-	keyLen := len(key)
-	var child **Node[T]
-	n := *t.root
-	depth := 0
-
-	for n != nil {
-		// Might be a leaf
-		if isLeaf[T](n) {
-			leaf, ok := n.(*NodeLeaf[T])
-			if !ok {
-				continue
-			}
-			// Check if the expanded path matches
-			if leafMatches[T](leaf, key, keyLen) == 0 {
-				return leaf.value, true
-			}
-			return zero, false
-		}
-
-		// Bail if the prefix does not match
-		if n.getPartialLen() > 0 {
-			prefixLen := checkPrefix[T](n, key, keyLen, depth)
-			if prefixLen != min(MaxPrefixLen, int(n.getPartialLen())) {
-				return zero, false
-			}
-			depth += int(n.getPartialLen())
-		}
-
-		if depth >= keyLen {
-			return zero, false
-		}
-
-		// Recursively search
-		child = t.findChild(n, key[depth])
-		if child != nil && *child != nil && **child != nil {
-			n = **child
-		} else {
-			n = nil
-		}
-		depth++
-	}
-	return zero, false
-}
-
 func checkPrefix[T any](n Node[T], key []byte, keyLen, depth int) int {
-	maxCmp := min(min(int(n.getPartialLen()), MaxPrefixLen), keyLen-depth)
+	maxCmp := min(min(int(n.getPartialLen()), maxPrefixLen), keyLen-depth)
 	var idx int
 	for idx = 0; idx < maxCmp; idx++ {
 		if n.getPartial()[idx] != key[depth+idx] {
@@ -77,111 +28,9 @@ func leafMatches[T any](n *NodeLeaf[T], key []byte, keyLen int) int {
 	return bytes.Compare(n.key, key)
 }
 
-func (t *RadixTree[T]) recursiveInsert(n *Node[T], ref **Node[T], key []byte, value T, depth int, old *int) T {
-	var zero T
-	keyLen := len(key)
-
-	// If we are at a nil node, inject a leaf
-	if n == nil {
-		leafNode := t.makeLeaf(key, value)
-		*ref = &leafNode
-		return zero
-	}
-
-	node := *n
-	if node.isLeaf() {
-		nodeLeaf := node.(*NodeLeaf[T])
-		// This means root is nil
-		if len(nodeLeaf.key) == 0 {
-			leafNode := t.makeLeaf(key, value)
-			*ref = &leafNode
-			return zero
-		}
-	}
-
-	// If we are at a leaf, we need to replace it with a node
-	if node.isLeaf() {
-		nodeLeaf := node.(*NodeLeaf[T])
-
-		// Check if we are updating an existing value
-		if bytes.Equal(nodeLeaf.key, key) {
-			*old = 1
-			oldVal := nodeLeaf.value
-			nodeLeaf.value = value
-			return oldVal
-		}
-
-		// New value, we must split the leaf into a node4
-		newLeaf2 := t.makeLeaf(key, value).(*NodeLeaf[T])
-
-		// Determine longest prefix
-		longestPrefix := longestCommonPrefix[T](nodeLeaf, newLeaf2, depth)
-		newNode := t.allocNode(NODE4)
-		newNode4 := newNode.(*Node4[T])
-		newNode4.partialLen = uint32(longestPrefix)
-		copy(newNode4.partial[:], key[depth:depth+min(MaxPrefixLen, longestPrefix)])
-
-		// Add the leafs to the new node4
-		t.addChild4(newNode4, ref, nodeLeaf.key[depth+longestPrefix], nodeLeaf)
-		t.addChild4(newNode4, ref, newLeaf2.key[depth+longestPrefix], newLeaf2)
-		*ref = &newNode
-		return zero
-	}
-
-	// Check if given node has a prefix
-	if node.getPartialLen() > 0 {
-		// Determine if the prefixes differ, since we need to split
-		prefixDiff := prefixMismatch[T](node, key, keyLen, depth)
-		if prefixDiff >= int(node.getPartialLen()) {
-			depth += int(node.getPartialLen())
-			goto RECURSE_SEARCH
-		}
-
-		// Create a new node
-		newNode := t.allocNode(NODE4)
-		*ref = &newNode
-		newNode4 := newNode.(*Node4[T])
-		newNode4.partialLen = uint32(prefixDiff)
-		copy(newNode4.partial[:], node.getPartial()[:min(MaxPrefixLen, prefixDiff)])
-
-		// Adjust the prefix of the old node
-		if node.getPartialLen() <= MaxPrefixLen {
-			t.addChild4(newNode4, ref, node.getPartial()[prefixDiff], node)
-			node.setPartialLen(node.getPartialLen() - uint32(prefixDiff+1))
-			length := min(MaxPrefixLen, int(node.getPartialLen()))
-			copy(node.getPartial()[:], node.getPartial()[prefixDiff+1:+prefixDiff+1+length])
-		} else {
-			node.setPartialLen(node.getPartialLen() - uint32(prefixDiff+1))
-			l := minimum[T](&node)
-			if l == nil {
-				return zero
-			}
-			t.addChild4(newNode4, ref, l.key[depth+prefixDiff], node)
-			length := min(MaxPrefixLen, int(node.getPartialLen()))
-			copy(node.getPartial()[:], l.key[depth+prefixDiff+1:depth+prefixDiff+1+length])
-		}
-		// Insert the new leaf
-		newLeaf := t.makeLeaf(key, value)
-		t.addChild4(newNode4, ref, key[depth+prefixDiff], newLeaf)
-		return zero
-	}
-
-RECURSE_SEARCH:
-	// Find a child to recurse to
-	child := t.findChild(node, key[depth])
-	if child != nil {
-		return t.recursiveInsert(*child, child, key, value, depth+1, old)
-	}
-
-	// No child, node goes within us
-	newLeaf := t.makeLeaf(key, value)
-	t.addChild(node, ref, key[depth], newLeaf)
-	return zero
-}
-
 func (t *RadixTree[T]) makeLeaf(key []byte, value T) Node[T] {
 	// Allocate memory for the leaf node
-	l := t.allocNode(LEAF).(*NodeLeaf[T])
+	l := t.allocNode(leafType).(*NodeLeaf[T])
 	if l == nil {
 		return nil
 	}
@@ -197,26 +46,24 @@ func (t *RadixTree[T]) makeLeaf(key []byte, value T) Node[T] {
 	return Node[T](l)
 }
 
-func (t *RadixTree[T]) allocNode(nodeType uint8) Node[T] {
+func (t *RadixTree[T]) allocNode(ntype nodeType) Node[T] {
 	var n Node[T]
-	switch nodeType {
-	case LEAF:
+	switch ntype {
+	case leafType:
 		n = &NodeLeaf[T]{}
-	case NODE4:
+	case node4:
 		n = &Node4[T]{}
-	case NODE16:
+	case node16:
 		n = &Node16[T]{}
-	case NODE48:
+	case node48:
 		n = &Node48[T]{}
-	case NODE256:
+	case node256:
 		n = &Node256[T]{}
 	default:
 		panic("Unknown node type")
 	}
-	n.setArtNodeType(nodeType)
-	n.setPartial(make([]byte, MaxPrefixLen))
-	n.setPartialLen(MaxPrefixLen)
-	n.setMutex(t.mu)
+	n.setPartial(make([]byte, maxPrefixLen))
+	n.setPartialLen(maxPrefixLen)
 	return n
 }
 
@@ -238,13 +85,13 @@ func longestCommonPrefix[T any](l1, l2 *NodeLeaf[T], depth int) int {
 // addChild adds a child node to the parent node.
 func (t *RadixTree[T]) addChild(n Node[T], ref **Node[T], c byte, child Node[T]) {
 	switch n.getArtNodeType() {
-	case NODE4:
+	case node4:
 		t.addChild4(n.(*Node4[T]), ref, c, child)
-	case NODE16:
+	case node16:
 		t.addChild16(n.(*Node16[T]), ref, c, child)
-	case NODE48:
+	case node48:
 		t.addChild48(n.(*Node48[T]), ref, c, child)
-	case NODE256:
+	case node256:
 		t.addChild256(n.(*Node256[T]), ref, c, child)
 	default:
 		panic("Unknown node type")
@@ -272,7 +119,7 @@ func (t *RadixTree[T]) addChild4(n *Node4[T], ref **Node[T], c byte, child Node[
 		n.numChildren++
 
 	} else {
-		newNode := t.allocNode(NODE16)
+		newNode := t.allocNode(node16)
 		*ref = &newNode
 		node16 := newNode.(*Node16[T])
 		// Copy the child pointers and the key map
@@ -316,7 +163,7 @@ func (t *RadixTree[T]) addChild16(n *Node16[T], ref **Node[T], c byte, child Nod
 		n.numChildren++
 
 	} else {
-		newNode := t.allocNode(NODE48)
+		newNode := t.allocNode(node48)
 		*ref = &newNode
 
 		node48 := newNode.(*Node48[T])
@@ -342,7 +189,7 @@ func (t *RadixTree[T]) addChild48(n *Node48[T], ref **Node[T], c byte, child Nod
 		n.keys[c] = byte(pos + 1)
 		n.numChildren++
 	} else {
-		newNode := t.allocNode(NODE256)
+		newNode := t.allocNode(node256)
 		*ref = &newNode
 		node256 := newNode.(*Node256[T])
 		for i := 0; i < 256; i++ {
@@ -359,7 +206,7 @@ func (t *RadixTree[T]) addChild48(n *Node48[T], ref **Node[T], c byte, child Nod
 func (t *RadixTree[T]) copyHeader(dest, src Node[T]) {
 	dest.setNumChildren(src.getNumChildren())
 	dest.setPartialLen(src.getPartialLen())
-	length := min(MaxPrefixLen, int(src.getPartialLen()))
+	length := min(maxPrefixLen, int(src.getPartialLen()))
 	partialToCopy := src.getPartial()[:length]
 	copy(dest.getPartial()[:length], partialToCopy)
 }
@@ -379,7 +226,7 @@ func min(a, b int) int {
 
 // prefixMismatch calculates the index at which the prefixes mismatch.
 func prefixMismatch[T any](n Node[T], key []byte, keyLen, depth int) int {
-	maxCmp := min(min(MaxPrefixLen, int(n.getPartialLen())), keyLen-depth)
+	maxCmp := min(min(maxPrefixLen, int(n.getPartialLen())), keyLen-depth)
 	var idx int
 	for idx = 0; idx < maxCmp; idx++ {
 		if n.getPartial()[idx] != key[depth+idx] {
@@ -388,7 +235,7 @@ func prefixMismatch[T any](n Node[T], key []byte, keyLen, depth int) int {
 	}
 
 	// If the prefix is short we can avoid finding a leaf
-	if n.getPartialLen() > MaxPrefixLen {
+	if n.getPartialLen() > maxPrefixLen {
 		// Prefix is longer than what we've checked, find a leaf
 		l := minimum(&n)
 		if l == nil {
@@ -417,11 +264,11 @@ func minimum[T any](n *Node[T]) *NodeLeaf[T] {
 
 	var idx int
 	switch node.getArtNodeType() {
-	case NODE4:
+	case node4:
 		return minimum[T](node.(*Node4[T]).children[0])
-	case NODE16:
+	case node16:
 		return minimum[T](node.(*Node16[T]).children[0])
-	case NODE48:
+	case node48:
 		idx = 0
 		node := node.(*Node48[T])
 		for idx < 256 && node.keys[idx] == 0 {
@@ -431,7 +278,7 @@ func minimum[T any](n *Node[T]) *NodeLeaf[T] {
 		if idx < 48 {
 			return minimum[T](node.children[idx])
 		}
-	case NODE256:
+	case node256:
 		node := node.(*Node256[T])
 		idx = 0
 		for idx < 256 && node.children[idx] == nil {
@@ -460,11 +307,11 @@ func maximum[T any](n *Node[T]) *NodeLeaf[T] {
 	}
 	var idx int
 	switch node.getArtNodeType() {
-	case NODE4:
+	case node4:
 		return maximum[T](node.(*Node4[T]).children[node.getNumChildren()-1])
-	case NODE16:
+	case node16:
 		return maximum[T](node.(*Node16[T]).children[node.getNumChildren()-1])
-	case NODE48:
+	case node48:
 		node := node.(*Node48[T])
 		idx = 255
 		for idx >= 0 && node.children[idx] == nil {
@@ -473,7 +320,7 @@ func maximum[T any](n *Node[T]) *NodeLeaf[T] {
 		if idx >= 0 {
 			return maximum[T](node.children[idx])
 		}
-	case NODE256:
+	case node256:
 		idx = 255
 		node := node.(*Node256[T])
 		for idx >= 0 && node.children[idx] == nil {
@@ -499,14 +346,14 @@ func (t *RadixTree[T]) findChild(n Node[T], c byte) **Node[T] {
 }
 func findChild[T any](n Node[T], c byte) **Node[T] {
 	switch n.getArtNodeType() {
-	case NODE4:
+	case node4:
 		node := n.(*Node4[T])
 		for i := 0; i < int(n.getNumChildren()); i++ {
 			if node.keys[i] == c {
 				return &node.children[i]
 			}
 		}
-	case NODE16:
+	case node16:
 		node := n.(*Node16[T])
 
 		// Compare the key to all 16 stored keys
@@ -525,18 +372,18 @@ func findChild[T any](n Node[T], c byte) **Node[T] {
 		if bitfield != 0 {
 			return &node.children[bits.TrailingZeros16(bitfield)]
 		}
-	case NODE48:
+	case node48:
 		node := n.(*Node48[T])
 		i := node.keys[c]
 		if i != 0 {
 			return &node.children[i-1]
 		}
-	case NODE256:
+	case node256:
 		node := n.(*Node256[T])
 		if node.children[c] != nil {
 			return &node.children[c]
 		}
-	case LEAF:
+	case leafType:
 		// no-op
 		return nil
 	default:
@@ -563,62 +410,15 @@ func getKey(key []byte) []byte {
 	return newKey
 }
 
-func (t *RadixTree[T]) recursiveDelete(n *Node[T], ref **Node[T], key []byte, depth int) *NodeLeaf[T] {
-	keyLen := len(key)
-	// Search terminated
-	if n == nil {
-		return nil
-	}
-	node := *n
-	// Handle hitting a leaf node
-	if isLeaf[T](node) {
-		l := node.(*NodeLeaf[T])
-		if leafMatches[T](l, key, keyLen) == 0 {
-			*ref = nil
-			return l
-		}
-		return nil
-	}
-
-	// Bail if the prefix does not match
-	if node.getPartialLen() > 0 {
-		prefixLen := checkPrefix[T](node, key, keyLen, depth)
-		if prefixLen != min(MaxPrefixLen, int(node.getPartialLen())) {
-			return nil
-		}
-		depth += int(node.getPartialLen())
-	}
-
-	// Find child node
-	child := t.findChild(node, key[depth])
-	if child == nil {
-		return nil
-	}
-
-	// If the child is a leaf, delete from this node
-	if isLeaf[T](**child) {
-		nodeChild := **child
-		l := nodeChild.(*NodeLeaf[T])
-		if leafMatches[T](l, key, keyLen) == 0 {
-			t.removeChild(node, ref, key[depth], child)
-			return l
-		}
-		return nil
-	}
-
-	// Recurse
-	return t.recursiveDelete(*child, child, key, depth+1)
-}
-
 func (t *RadixTree[T]) removeChild(n Node[T], ref **Node[T], c byte, l **Node[T]) {
 	switch n.getArtNodeType() {
-	case NODE4:
+	case node4:
 		t.removeChild4(n.(*Node4[T]), ref, l)
-	case NODE16:
+	case node16:
 		t.removeChild16(n.(*Node16[T]), ref, l)
-	case NODE48:
+	case node48:
 		t.removeChild48(n.(*Node48[T]), ref, c)
-	case NODE256:
+	case node256:
 		t.removeChild256(n.(*Node256[T]), ref, c)
 	default:
 		panic("invalid node type")
@@ -648,18 +448,18 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
 		if !child.isLeaf() {
 			// Concatenate the prefixes
 			prefix := int(n.getPartialLen())
-			if prefix < MaxPrefixLen {
+			if prefix < maxPrefixLen {
 				n.partial[prefix] = n.keys[0]
 				prefix++
 			}
-			if prefix < MaxPrefixLen {
-				subPrefix := min(int(child.getPartialLen()), MaxPrefixLen-prefix)
+			if prefix < maxPrefixLen {
+				subPrefix := min(int(child.getPartialLen()), maxPrefixLen-prefix)
 				copy(n.getPartial()[prefix:], child.getPartial()[:subPrefix])
 				prefix += subPrefix
 			}
 
 			// Store the prefix in the child
-			copy(child.getPartial(), n.partial[:min(prefix, MaxPrefixLen)])
+			copy(child.getPartial(), n.partial[:min(prefix, maxPrefixLen)])
 			child.setPartialLen(child.getPartialLen() + n.getPartialLen() + 1)
 		}
 		*ref = &child
@@ -680,7 +480,7 @@ func (t *RadixTree[T]) removeChild16(n *Node16[T], ref **Node[T], l **Node[T]) {
 	n.numChildren--
 
 	if n.numChildren == 3 {
-		newNode := t.allocNode(NODE4)
+		newNode := t.allocNode(node4)
 		*ref = &newNode
 		node4 := newNode.(*Node4[T])
 		t.copyHeader(newNode, n)
@@ -696,7 +496,7 @@ func (t *RadixTree[T]) removeChild48(n *Node48[T], ref **Node[T], c uint8) {
 	n.numChildren--
 
 	if n.numChildren == 12 {
-		newNode := t.allocNode(NODE16)
+		newNode := t.allocNode(node16)
 		*ref = &newNode
 		node16 := newNode.(*Node16[T])
 		t.copyHeader(newNode, n)
@@ -720,7 +520,7 @@ func (t *RadixTree[T]) removeChild256(n *Node256[T], ref **Node[T], c uint8) {
 	// Resize to a node48 on underflow, not immediately to prevent
 	// trashing if we sit on the 48/49 boundary
 	if n.numChildren == 37 {
-		newNode := t.allocNode(NODE48)
+		newNode := t.allocNode(node48)
 		*ref = &newNode
 		node48 := newNode.(*Node48[T])
 		t.copyHeader(newNode, n)

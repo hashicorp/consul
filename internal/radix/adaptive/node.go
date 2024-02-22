@@ -3,13 +3,10 @@
 
 package adaptive
 
-import "sync"
-
 type Node[T any] interface {
 	getPartialLen() uint32
 	setPartialLen(uint32)
 	getArtNodeType() nodeType
-	setArtNodeType(nodeType)
 	getNumChildren() uint8
 	setNumChildren(uint8)
 	getPartial() []byte

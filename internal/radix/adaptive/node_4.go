@@ -10,7 +10,6 @@ import (
 
 type Node4[T any] struct {
 	partialLen  uint32
-	artNodeType uint8
 	numChildren uint8
 	partial     []byte
 	keys        [4]byte
@@ -26,12 +25,8 @@ func (n *Node4[T]) setPartialLen(partialLen uint32) {
 	n.partialLen = partialLen
 }
 
-func (n *Node4[T]) getArtNodeType() uint8 {
-	return n.artNodeType
-}
-
-func (n *Node4[T]) setArtNodeType(ARTNodeType uint8) {
-	n.artNodeType = ARTNodeType
+func (n *Node4[T]) getArtNodeType() nodeType {
+	return node4
 }
 
 func (n *Node4[T]) getNumChildren() uint8 {
@@ -94,7 +89,6 @@ func (n *Node4[T]) getMutex() *sync.RWMutex {
 func (n *Node4[T]) Clone() *Node[T] {
 	newNode := &Node4[T]{
 		partialLen:  n.getPartialLen(),
-		artNodeType: n.getArtNodeType(),
 		numChildren: n.getNumChildren(),
 		partial:     n.getPartial(),
 		mu:          n.getMutex(),

@@ -10,7 +10,7 @@ import (
 )
 
 func TestPathIterator(t *testing.T) {
-	r := NewAdaptiveRadixTree[any]()
+	r := NewRadixTree[any]()
 
 	keys := []string{
 		"foo",

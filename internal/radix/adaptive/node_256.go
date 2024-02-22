@@ -7,7 +7,6 @@ import "sync"
 
 type Node256[T any] struct {
 	partialLen  uint32
-	artNodeType uint8
 	numChildren uint8
 	partial     []byte
 	children    [256]*Node[T]
@@ -22,12 +21,8 @@ func (n *Node256[T]) setPartialLen(partialLen uint32) {
 	n.partialLen = partialLen
 }
 
-func (n *Node256[T]) getArtNodeType() uint8 {
-	return n.artNodeType
-}
-
-func (n *Node256[T]) setArtNodeType(artNodeType uint8) {
-	n.artNodeType = artNodeType
+func (n *Node256[T]) getArtNodeType() nodeType {
+	return node256
 }
 
 func (n *Node256[T]) getNumChildren() uint8 {
@@ -91,7 +86,6 @@ func (n *Node256[T]) getMutex() *sync.RWMutex {
 func (n *Node256[T]) Clone() *Node[T] {
 	newNode := &Node256[T]{
 		partialLen:  n.getPartialLen(),
-		artNodeType: n.getArtNodeType(),
 		numChildren: n.getNumChildren(),
 		partial:     n.getPartial(),
 		mu:          n.getMutex(),

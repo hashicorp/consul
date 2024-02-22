@@ -25,12 +25,8 @@ func (n *Node16[T]) setPartialLen(partialLen uint32) {
 	n.partialLen = partialLen
 }
 
-func (n *Node16[T]) getArtNodeType() uint8 {
-	return n.artNodeType
-}
-
-func (n *Node16[T]) setArtNodeType(artNodeType uint8) {
-	n.artNodeType = artNodeType
+func (n *Node16[T]) getArtNodeType() nodeType {
+	return node16
 }
 
 func (n *Node16[T]) getNumChildren() uint8 {
@@ -93,7 +89,6 @@ func (n *Node16[T]) getMutex() *sync.RWMutex {
 func (n *Node16[T]) Clone() *Node[T] {
 	newNode := &Node16[T]{
 		partialLen:  n.getPartialLen(),
-		artNodeType: n.getArtNodeType(),
 		numChildren: n.getNumChildren(),
 		partial:     n.getPartial(),
 		mu:          n.getMutex(),

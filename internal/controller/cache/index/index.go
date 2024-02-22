@@ -52,7 +52,7 @@ func (i *Index) Name() string {
 func (i *Index) IndexedData() *IndexedData {
 	return &IndexedData{
 		Index: i,
-		tree:  adaptive.NewAdaptiveRadixTree[[]*pbresource.Resource](),
+		tree:  adaptive.NewRadixTree[[]*pbresource.Resource](),
 	}
 }
 
