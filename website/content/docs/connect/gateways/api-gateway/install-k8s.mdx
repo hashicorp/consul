@@ -29,7 +29,9 @@ The Consul API gateway ships with Consul and is automatically installed when you
   </Tab>
   
   <Tab heading="OpenShift">
+
   If you are installing Consul on an OpenShift Kubernetes cluster, you must include the `global.openShift.enabled` parameter and set it to `true`. Refer to [OpenShift requirements](/consul/docs/connect/gateways/api-gateway/tech-specs#openshift-requirements) for additional information.
+
   <CodeBlockConfig filename="values.yaml">
 
    ```yaml
@@ -52,7 +54,8 @@ The Consul API gateway ships with Consul and is automatically installed when you
 
   <Tab heading="GKE Autopilot">
   
-    By default, GKE Autopilot also installs [Gateway API](https://gateway-api.sigs.k8s.io) resources, so it is recommended to customize the `connectInject.apiGateway` stanza to accomodate for the pre-installed Gateway API CRDs. Below is a working example that enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
+  By default, GKE Autopilot also installs [Gateway API](https://gateway-api.sigs.k8s.io) resources, so it is recommended to customize the `connectInject.apiGateway` stanza to accomodate for the pre-installed Gateway API CRDs. Below is a working example that enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
+
   <CodeBlockConfig filename="values.yaml">
 
    ```yaml
@@ -75,7 +78,7 @@ The Consul API gateway ships with Consul and is automatically installed when you
 
 </Tabs>  
 
-1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Refer to the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) in GitHub releases for the available versions.
+2. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Refer to the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) in GitHub releases for the available versions.
 
 <Tabs>
 <Tab heading="Consul K8s CLI (Mac Only)">
