@@ -6,13 +6,13 @@ description: Consul on Kubernetes supports multi-port services for both service 
 
 # Multi-port services overview
 
-<Warning>
+<Note>
 
-Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
+Multi-port services require enabling [Consul's v2 architecture](/consul/docs/architecture/v2).
 
-</Warning>
+</Note>
 
-This topic describes the process to register a service with multiple ports on Kubernetes deployments using the v2 catalog API. For information about the v2 catalog’s contents and structure, refer to [v2 catalog API](/consul/docs/architecture/catalog/v2).
+This topic describes the process to register a service with multiple ports on Kubernetes deployments using the v2 catalog API. For information about the v2 catalog’s contents and structure, refer to [v2 catalog API](/consul/docs/architecture/v2/catalog).
 
 ## Workflow
 
@@ -49,7 +49,9 @@ The following resources are available to help you use multi-port services:
 
 ### Concepts
 
-- [v2 catalog API](/consul/docs/architecture/catalog/v2)
+- [v2 architecture overview](/consul/docs/architecture/v2/catalog)
+- [v2 Consul catalog](/consul/docs/architecture/v2/catalog)
+- [v2 resource groups](/consul/docs/architecture/v2/catalog)
 
 ### Usage documentation
 
@@ -58,7 +60,7 @@ The following resources are available to help you use multi-port services:
 
 ### Reference documentation
 
-- [`consul resource` CLI command](/consul/docs/k8s/multiport/reference/resource-command)
+- [`consul resource` CLI command](/consul/commands/resource)
 - [`GRPCRoute` resource configuration reference](/consul/docs/k8s/multiport/reference/grpcroute)
 - [`HTTPRoute` resource configuration reference](/consul/docs/k8s/multiport/reference/httproute)
 - [`ProxyConfiguration` resource configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration)
