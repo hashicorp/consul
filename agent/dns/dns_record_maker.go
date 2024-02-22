@@ -91,7 +91,7 @@ func (dnsRecordMaker) makeCNAME(name string, target string, ttl uint32) *dns.CNA
 }
 
 // makeSRV returns an SRV record for the given name and target.
-func (dnsRecordMaker) makeSRV(name, target string, result *discovery.Result, ttl uint32, port *discovery.Port) *dns.SRV {
+func (dnsRecordMaker) makeSRV(name, target string, weight uint16, ttl uint32, port *discovery.Port) *dns.SRV {
 	return &dns.SRV{
 		Hdr: dns.RR_Header{
 			Name:   name,
@@ -100,16 +100,16 @@ func (dnsRecordMaker) makeSRV(name, target string, result *discovery.Result, ttl
 			Ttl:    ttl,
 		},
 		Priority: 1,
-		Weight:   uint16(result.DNS.Weight),
+		Weight:   weight,
 		Port:     uint16(port.Number),
 		Target:   target,
 	}
 }
 
 // makeTXT returns a TXT record for the given name and result metadata.
-func (dnsRecordMaker) makeTXT(name string, result *discovery.Result, ttl uint32) []dns.RR {
-	extra := make([]dns.RR, 0, len(result.Metadata))
-	for key, value := range result.Metadata {
+func (dnsRecordMaker) makeTXT(name string, metadata map[string]string, ttl uint32) []dns.RR {
+	extra := make([]dns.RR, 0, len(metadata))
+	for key, value := range metadata {
 		txt := value
 		if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
 			txt = encodeKVasRFC1464(key, value)

@@ -252,7 +252,7 @@ func getEffectiveDatacenter(labels *parsedLabels, defaultDC string) string {
 func getQueryTypePartsAndSuffixesFromDNSMessage(req *dns.Msg, domain, altDomain string) (queryType discovery.QueryType, parts []string, suffixes []string) {
 	// Get the QName without the domain suffix
 	// TODO (v2-dns): we will also need to handle the "failover" and "no-failover" suffixes here.
-	// They come AFTER the domain. See `stripSuffix` in router.go
+	// They come AFTER the domain. See `stripAnyFailoverSuffix` in router.go
 	qName := trimDomainFromQuestionName(req.Question[0].Name, domain, altDomain)
 
 	// Split into the label parts

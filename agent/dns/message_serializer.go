@@ -382,7 +382,7 @@ MORE_REC:
 	}
 
 	if q.Qtype == dns.TypeSRV {
-		answer := opts.dnsRecordMaker.makeSRV(q.Name, fqdn, opts.result, opts.ttl, &opts.port)
+		answer := opts.dnsRecordMaker.makeSRV(q.Name, fqdn, uint16(opts.result.DNS.Weight), opts.ttl, &opts.port)
 		return []dns.RR{answer}, additional
 	}
 
@@ -433,7 +433,7 @@ func getAnswerAndExtraTXT(req *dns.Msg, cfg *RouterDynamicConfig, qName string,
 
 	// Do not generate txt records if we don't have to: https://github.com/hashicorp/consul/pull/5272
 	if generateMeta {
-		meta := maker.makeTXT(recordHeaderName, result, ttl)
+		meta := maker.makeTXT(recordHeaderName, result.Metadata, ttl)
 		if metaInAnswer {
 			answer = append(answer, meta...)
 		} else {
@@ -499,7 +499,7 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
 		if result.Type == discovery.ResultTypeWorkload {
 			recHdrName = canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, port.Name)
 		}
-		srv := maker.makeSRV(name, recHdrName, result, ttl, port)
+		srv := maker.makeSRV(name, recHdrName, uint16(result.DNS.Weight), ttl, port)
 		answer = append(answer, srv)
 	}
 

@@ -71,9 +71,9 @@ type RouterDynamicConfig struct {
 	UDPAnswerLimit int
 }
 
-// getTTLForService Find the TTL for a given service.
+// GetTTLForService Find the TTL for a given service.
 // return ttl, true if found, 0, false otherwise
-func (cfg *RouterDynamicConfig) getTTLForService(service string) (time.Duration, bool) {
+func (cfg *RouterDynamicConfig) GetTTLForService(service string) (time.Duration, bool) {
 	if cfg.TTLStrict != nil {
 		ttl, ok := cfg.TTLStrict[service]
 		if ok {
@@ -334,11 +334,6 @@ func (r *Router) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	}
 	r.dynamicConfig.Store(cfg)
 	return nil
-}
-
-// GetConfig returns the current router config
-func (r *Router) GetConfig() *RouterDynamicConfig {
-	return r.dynamicConfig.Load().(*RouterDynamicConfig)
 }
 
 // resolveCNAME is used to recursively resolve CNAME records
