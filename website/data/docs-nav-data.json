@@ -103,15 +103,23 @@
         "path": "architecture"
       },
       {
-        "title": "Catalog",
+        "title": "v1 Catalog",
+        "path": "architecture/catalog"
+      },
+      {
+        "title": "v2 architecture",
         "routes": [
           {
-            "title": "v1 API",
-            "path": "architecture/catalog/v1"
+            "title": "Overview",
+            "path": "architecture/v2"
           },
           {
-            "title": "v2 API",
-            "path": "architecture/catalog/v2"
+            "title": "Catalog",
+            "path": "architecture/v2/catalog"
+          },
+          {
+            "title": "Resource groups",
+            "path": "architecture/v2/groups"
           }
         ]
       },

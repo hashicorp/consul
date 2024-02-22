@@ -10,7 +10,9 @@ description: >-
 Command: `consul resource`
 
 <Note>
-  You must enable the [v2 catalog API](/consul/docs/concept/catalog/v2) to use this command.
+
+You must enable the [v2 catalog API](/consul/docs/concept/catalog/v2) to use this command.
+
 </Note>
 
 Use the `resource` command to apply, list, read, and delete resources when interacting with Consul's v2 catalog through the command line. For more information, refer to [v2 catalog API](/consul/docs/concept/catalog/v2).
@@ -82,7 +84,7 @@ $ consul resource delete -f=trafficpermissions.hcl
 
 `consul resource list` outputs information about resources according to the type of resource and the location where the resource is applied. 
 
-This command must be issued with a resource type. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can list information about services with `catalog.v2beta1.Service` and TCP routes with `mesh.v2beta1.TCPRoute`. Refer to [v2 catalog](/consul/docs/architecture/catalog/v2#catalog-structure) for more information.
+This command must be issued with a resource type. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can list information about services with `catalog.v2beta1.Service` and TCP routes with `mesh.v2beta1.TCPRoute`. Refer to [v2 catalog](/consul/docs/architecture/v2/catalog#catalog-structure) for more information.
 
 Do not include a resource name when listing resources.
 
@@ -302,7 +304,7 @@ $ consul resource list catalog.v2beta1.Service
 
 `consul resource read` outputs information about resources according to the type and name of the resource.
 
-This command must be issued with a resource type and a resource name. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can read information about services with `catalog.v2beta1.Service`, TCP routes with `mesh.v2beta1.TCPRoute`, and traffic permissions with `auth.v2beta1.TrafficPermissions`. Refer to [v2 catalog](/consul/docs/architecture/catalog/v2#catalog-structure) for more information. 
+This command must be issued with a resource type and a resource name. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can read information about services with `catalog.v2beta1.Service`, TCP routes with `mesh.v2beta1.TCPRoute`, and traffic permissions with `auth.v2beta1.TrafficPermissions`. Refer to [v2 catalog](/consul/docs/architecture/v2/catalog#catalog-structure) for more information. 
 
 The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `read` command:
 
