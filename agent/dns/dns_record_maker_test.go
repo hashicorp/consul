@@ -4,11 +4,13 @@
 package dns
 
 import (
-	"github.com/hashicorp/consul/agent/discovery"
-	"github.com/miekg/dns"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/miekg/dns"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/discovery"
 )
 
 func TestDNSRecordMaker_makeSOA(t *testing.T) {

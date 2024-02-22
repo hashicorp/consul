@@ -5,16 +5,17 @@ package dns
 
 import (
 	"encoding/hex"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/internal/dnsutil"
-	"github.com/hashicorp/go-hclog"
 	"net"
 	"strings"
 
 	"github.com/miekg/dns"
 
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/discovery"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 )
 
 // discoveryResultsFetcher is a facade for the DNS router to formulate

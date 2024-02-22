@@ -393,7 +393,7 @@ const (
 // that DS query types are not supported.
 func (r *Router) parseDomain(questionName string) (string, bool) {
 	target := dns.CanonicalName(questionName)
-	target, _ = stripSuffix(target)
+	target, _ = stripAnyFailoverSuffix(target)
 
 	for offset, overflow := 0, false; !overflow; offset, overflow = dns.NextLabel(target, offset) {
 		subdomain := target[offset:]
@@ -466,8 +466,8 @@ func validateAndNormalizeRequest(req *dns.Msg) error {
 	return nil
 }
 
-// stripSuffix strips off the suffixes that may have been added to the request name.
-func stripSuffix(target string) (string, bool) {
+// stripAnyFailoverSuffix strips off the suffixes that may have been added to the request name.
+func stripAnyFailoverSuffix(target string) (string, bool) {
 	enableFailover := false
 
 	// Strip off any suffixes that may have been added.

@@ -6,13 +6,15 @@ package dns
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/discovery"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-hclog"
-	"github.com/miekg/dns"
 	"math"
 	"net"
 	"strings"
+
+	"github.com/miekg/dns"
+
+	"github.com/hashicorp/consul/agent/discovery"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (

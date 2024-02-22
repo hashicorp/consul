@@ -6,13 +6,15 @@ package dns
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/hashicorp/consul/agent/discovery"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/internal/dnsutil"
-	"github.com/miekg/dns"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/miekg/dns"
+
+	"github.com/hashicorp/consul/agent/discovery"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 )
 
 // messageSerializer is the high level orchestrator for generating the Answer,

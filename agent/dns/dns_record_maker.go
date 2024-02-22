@@ -4,11 +4,13 @@
 package dns
 
 import (
-	"github.com/hashicorp/consul/agent/discovery"
-	"github.com/miekg/dns"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/miekg/dns"
+
+	"github.com/hashicorp/consul/agent/discovery"
 )
 
 // dnsRecordMaker creates DNS records to be used when generating
