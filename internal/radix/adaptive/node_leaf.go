@@ -5,15 +5,12 @@ package adaptive
 
 import (
 	"bytes"
-	"sync"
 )
 
 type NodeLeaf[T any] struct {
-	value       T
-	keyLen      uint32
-	key         []byte
-	artNodeType uint8
-	mu          *sync.RWMutex
+	value  T
+	keyLen uint32
+	key    []byte
 }
 
 func (n *NodeLeaf[T]) getPartialLen() uint32 {
@@ -89,7 +86,10 @@ func (n *NodeLeaf[T]) Iterator() *Iterator[T] {
 	stack := make([]Node[T], 0)
 	stack = append(stack, n)
 	nodeT := Node[T](n)
-	return &Iterator[T]{stack: stack, root: &nodeT, mu: n.getMutex()}
+	return &Iterator[T]{
+		stack: stack,
+		root:  &nodeT,
+	}
 }
 
 func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
@@ -97,7 +97,6 @@ func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
 	return &PathIterator[T]{parent: &nodeT,
 		path:  getTreeKey(path),
 		stack: []Node[T]{nodeT},
-		mu:    n.getMutex(),
 	}
 }
 
@@ -114,17 +113,8 @@ func (n *NodeLeaf[T]) getChild(index int) *Node[T] {
 	return nil
 }
 
-func (n *NodeLeaf[T]) setMutex(mu *sync.RWMutex) {
-	n.mu = mu
-}
-
-func (n *NodeLeaf[T]) getMutex() *sync.RWMutex {
-	return n.mu
-}
-
 func (n *NodeLeaf[T]) Clone() *Node[T] {
 	newNode := &NodeLeaf[T]{
-		mu:     n.getMutex(),
 		keyLen: n.getKeyLen(),
 		key:    make([]byte, len(n.getKey())),
 		value:  n.getValue(),

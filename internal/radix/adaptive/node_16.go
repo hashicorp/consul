@@ -5,7 +5,6 @@ package adaptive
 
 import (
 	"bytes"
-	"sync"
 )
 
 type Node16[T any] struct {
@@ -14,7 +13,6 @@ type Node16[T any] struct {
 	partial     []byte
 	keys        [16]byte
 	children    [16]*Node[T]
-	mu          *sync.RWMutex
 }
 
 func (n *Node16[T]) getPartialLen() uint32 {
@@ -55,15 +53,18 @@ func (n *Node16[T]) Iterator() *Iterator[T] {
 	stack := make([]Node[T], 0)
 	stack = append(stack, n)
 	nodeT := Node[T](n)
-	return &Iterator[T]{stack: stack, root: &nodeT, mu: n.getMutex()}
+	return &Iterator[T]{
+		stack: stack,
+		root:  &nodeT,
+	}
 }
 
 func (n *Node16[T]) PathIterator(path []byte) *PathIterator[T] {
 	nodeT := Node[T](n)
 	return &PathIterator[T]{
 		parent: &nodeT,
-		path:   getTreeKey(path), stack: []Node[T]{nodeT},
-		mu: n.getMutex(),
+		path:   getTreeKey(path),
+		stack:  []Node[T]{nodeT},
 	}
 }
 
@@ -78,20 +79,11 @@ func (n *Node16[T]) getChild(index int) *Node[T] {
 	return n.children[index]
 }
 
-func (n *Node16[T]) setMutex(mu *sync.RWMutex) {
-	n.mu = mu
-}
-
-func (n *Node16[T]) getMutex() *sync.RWMutex {
-	return n.mu
-}
-
 func (n *Node16[T]) Clone() *Node[T] {
 	newNode := &Node16[T]{
 		partialLen:  n.getPartialLen(),
 		numChildren: n.getNumChildren(),
 		partial:     n.getPartial(),
-		mu:          n.getMutex(),
 	}
 	copy(newNode.keys[:], n.keys[:])
 	copy(newNode.children[:], n.children[:])
