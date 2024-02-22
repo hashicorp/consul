@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-const MaxPrefixLen = 10
+const maxPrefixLen = 10
 type nodeType int
 const (
    leafType nodeType = iota
