@@ -3,6 +3,8 @@
 
 package adaptive
 
+import "sync"
+
 // Iterator is used to iterate over a set of nodes from the root
 // down to a specified path. This will iterate over the same values that
 // the Node.WalkPath method will.
@@ -11,9 +13,12 @@ type Iterator[T any] struct {
 	root  *Node[T]
 	stack []Node[T]
 	depth int
+	mu    *sync.RWMutex
 }
 
 func (i *Iterator[T]) Next() ([]byte, T, bool) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
 	var zero T
 
 	if len(i.stack) == 0 {
