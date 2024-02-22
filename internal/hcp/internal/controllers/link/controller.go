@@ -171,7 +171,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 
 	newStatus.Conditions = append(newStatus.Conditions, ConditionLinked(link.ResourceId))
 
-	return writeStatusIfNotEqual(ctx, rt, res, newStatus)
+	return nil
 }
 
 type linkInitializer struct {
