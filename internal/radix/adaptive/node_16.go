@@ -10,7 +10,6 @@ import (
 
 type Node16[T any] struct {
 	partialLen  uint32
-	artNodeType uint8
 	numChildren uint8
 	partial     []byte
 	keys        [16]byte
