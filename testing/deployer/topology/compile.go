@@ -13,32 +13,42 @@ import (
 	"sort"
 
 	"github.com/google/go-cmp/cmp"
+	"golang.org/x/exp/maps"
+
+	"github.com/hashicorp/go-hclog"
+
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-hclog"
-	"golang.org/x/exp/maps"
-
 	"github.com/hashicorp/consul/testing/deployer/util"
 )
 
 const DockerPrefix = "cslc" // ConSuLCluster
 
 func Compile(logger hclog.Logger, raw *Config) (*Topology, error) {
-	return compile(logger, raw, nil)
+	return compile(logger, raw, nil, "")
 }
 
 func Recompile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error) {
 	if prev == nil {
 		return nil, errors.New("missing previous topology")
 	}
-	return compile(logger, raw, prev)
+	return compile(logger, raw, prev, "")
 }
 
-func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error) {
+func compile(logger hclog.Logger, raw *Config, prev *Topology, testingID string) (*Topology, error) {
+	if logger == nil {
+		return nil, errors.New("logger is required")
+	}
+	if raw == nil {
+		return nil, errors.New("config is required")
+	}
+
 	var id string
-	if prev == nil {
+	if testingID != "" {
+		id = testingID
+	} else if prev == nil {
 		var err error
 		id, err = newTopologyID()
 		if err != nil {
@@ -90,20 +100,15 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		nextIndex int // use a global index so any shared networks work properly with assignments
 	)
 
-	foundPeerNames := make(map[string]map[string]struct{})
-	for _, c := range raw.Clusters {
+	compileCluster := func(c *Cluster) (map[string]struct{}, error) {
 		if c.Name == "" {
 			return nil, fmt.Errorf("cluster has no name")
 		}
 
-		foundPeerNames[c.Name] = make(map[string]struct{})
+		foundPeerNames := make(map[string]struct{})
 
 		if !IsValidLabel(c.Name) {
 			return nil, fmt.Errorf("cluster name is not valid: %s", c.Name)
-		}
-
-		if _, exists := clusters[c.Name]; exists {
-			return nil, fmt.Errorf("cannot have two clusters with the same name %q; use unique names and override the Datacenter field if that's what you want", c.Name)
 		}
 
 		if c.Datacenter == "" {
@@ -114,7 +119,6 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			}
 		}
 
-		clusters[c.Name] = c
 		if c.NetworkName == "" {
 			c.NetworkName = c.Name
 		}
@@ -158,6 +162,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				m = make(map[string]struct{})
 				tenancies[partition] = m
 			}
+			m["default"] = struct{}{}
 			m[namespace] = struct{}{}
 		}
 
@@ -203,8 +208,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			addTenancy(res.Id.Tenancy.Partition, res.Id.Tenancy.Namespace)
 		}
 
-		seenNodes := make(map[NodeID]struct{})
-		for _, n := range c.Nodes {
+		compileClusterNode := func(n *Node) (map[string]struct{}, error) {
 			if n.Name == "" {
 				return nil, fmt.Errorf("cluster %q node has no name", c.Name)
 			}
@@ -238,10 +242,9 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			}
 			addTenancy(n.Partition, "default")
 
-			if _, exists := seenNodes[n.ID()]; exists {
-				return nil, fmt.Errorf("cannot have two nodes in the same cluster %q with the same name %q", c.Name, n.ID())
+			if n.IsServer() && n.Partition != "default" {
+				return nil, fmt.Errorf("server agents must always be in the default partition")
 			}
-			seenNodes[n.ID()] = struct{}{}
 
 			if len(n.usedPorts) != 0 {
 				return nil, fmt.Errorf("user cannot specify the usedPorts field")
@@ -328,7 +331,10 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				return nil, fmt.Errorf("cluster %q node %q uses dataplane, but has more than one service", c.Name, n.Name)
 			}
 
-			seenServices := make(map[ID]struct{})
+			var (
+				foundPeerNames = make(map[string]struct{})
+				seenServices   = make(map[ID]struct{})
+			)
 			for _, wrk := range n.Workloads {
 				if n.IsAgent() {
 					// Default to that of the enclosing node.
@@ -412,7 +418,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 							dest.ID.Partition = "" // irrelevant here; we'll set it to the value of the OTHER side for plumbing purposes in tests
 						}
 						dest.ID.Namespace = NamespaceOrDefault(dest.ID.Namespace)
-						foundPeerNames[c.Name][dest.Peer] = struct{}{}
+						foundPeerNames[dest.Peer] = struct{}{}
 					}
 
 					addTenancy(dest.ID.Partition, dest.ID.Namespace)
@@ -431,7 +437,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 						}
 						if dest.PortName == "" && n.IsV2() {
 							// Assume this is a v1->v2 conversion and name it.
-							dest.PortName = "legacy"
+							dest.PortName = V1DefaultPortName
 						}
 					}
 
@@ -476,6 +482,15 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 								Protocol:   cfg.ActualProtocol,
 							})
 						}
+						sort.Slice(svcPorts, func(i, j int) bool {
+							a, b := svcPorts[i], svcPorts[j]
+							if a.TargetPort < b.TargetPort {
+								return true
+							} else if a.TargetPort > b.TargetPort {
+								return false
+							}
+							return a.Protocol < b.Protocol
+						})
 
 						v2svc := &pbcatalog.Service{
 							Workloads: &pbcatalog.WorkloadSelector{},
@@ -518,6 +533,31 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 					if wrk.WorkloadIdentity != "" {
 						return nil, fmt.Errorf("cannot specify workload identities for v1")
 					}
+				}
+			}
+			return foundPeerNames, nil
+		}
+
+		seenNodes := make(map[NodeID]struct{})
+		for _, n := range c.Nodes {
+			peerNames, err := compileClusterNode(n)
+			if err != nil {
+				return nil, fmt.Errorf("error compiling node %q: %w", n.Name, err)
+			}
+
+			if _, exists := seenNodes[n.ID()]; exists {
+				return nil, fmt.Errorf("cannot have two nodes in the same cluster %q with the same name %q", c.Name, n.ID())
+			}
+			seenNodes[n.ID()] = struct{}{}
+
+			maps.Copy(foundPeerNames, peerNames)
+		}
+
+		// Default anything in the toplevel services map.
+		for _, svc := range c.Services {
+			for _, port := range svc.Ports {
+				if port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+					port.Protocol = pbcatalog.Protocol_PROTOCOL_TCP
 				}
 			}
 		}
@@ -582,6 +622,24 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				return nil, fmt.Errorf("cluster %q references non-default partitions or namespaces but is CE", c.Name)
 			}
 		}
+
+		return foundPeerNames, nil
+	}
+
+	foundPeerNames := make(map[string]map[string]struct{})
+	for _, c := range raw.Clusters {
+		peerNames, err := compileCluster(c)
+		if err != nil {
+			return nil, fmt.Errorf("error building cluster %q: %w", c.Name, err)
+		}
+
+		foundPeerNames[c.Name] = peerNames
+
+		if _, exists := clusters[c.Name]; exists {
+			return nil, fmt.Errorf("cannot have two clusters with the same name %q; use unique names and override the Datacenter field if that's what you want", c.Name)
+		}
+
+		clusters[c.Name] = c
 	}
 
 	clusteredPeerings := make(map[string]map[string]*PeerCluster) // local-cluster -> local-peer -> info
