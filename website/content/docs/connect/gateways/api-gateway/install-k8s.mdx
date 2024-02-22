@@ -12,10 +12,10 @@ The Consul API gateway ships with Consul and is automatically installed when you
 1. The Consul Helm chart deploys the API gateway using the configuration specified in the `values.yaml` file. Refer to [Helm Chart Configuration - `connectInject.apiGateway`](/consul/docs/k8s/helm#apigateway) for information about the Helm chart configuration options. Create a `values.yaml` file for configuring your Consul API gateway deployment and include the following settings:
 
   <Tabs>
-  
+
     <Tab heading="Reference configuration">
     <CodeBlockConfig filename="values.yaml">
-  
+
     ```yaml
     global:
       name: consul
@@ -24,16 +24,16 @@ The Consul API gateway ships with Consul and is automatically installed when you
       apiGateway:
         manageExternalCRDs: true
     ```
-  
+
     </CodeBlockConfig>
     </Tab>
-    
+
     <Tab heading="OpenShift">
-  
+
     If you are installing Consul on an OpenShift Kubernetes cluster, you must include the `global.openShift.enabled` parameter and set it to `true`. Refer to [OpenShift requirements](/consul/docs/connect/gateways/api-gateway/tech-specs#openshift-requirements) for additional information.
-  
+
     <CodeBlockConfig filename="values.yaml">
-  
+
      ```yaml
      global:
        openshift:
@@ -50,16 +50,16 @@ The Consul API gateway ships with Consul and is automatically installed when you
          cniNetDir: "/etc/kubernetes/cni/net.d"
      ```
     </CodeBlockConfig>
-    </Tab> 
-  
+    </Tab>
+
     <Tab heading="GKE Autopilot">
-  
-By default, GKE Autopilot installs [Gateway API resources](https://gateway-api.sigs.k8s.io), so we recommend customizing the `connectInject.apiGateway` stanza to accommodate the pre-installed Gateway API CRDs. 
-    
-The following working example enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
-  
+
+    By default, GKE Autopilot installs [Gateway API resources](https://gateway-api.sigs.k8s.io), so we recommend customizing the `connectInject.apiGateway` stanza to accommodate the pre-installed Gateway API CRDs.
+
+    The following working example enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information.
+
     <CodeBlockConfig filename="values.yaml">
-  
+
      ```yaml
      global:
        name: consul
@@ -75,9 +75,9 @@ The following working example enables both Consul Service Mesh and Consul API Ga
          cniNetDir: "/etc/cni/net.d"
      ```
     </CodeBlockConfig>
-    </Tab> 
-  
-  </Tabs>  
+    </Tab>
+
+  </Tabs>
 
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Refer to the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) in GitHub releases for the available versions.
 
@@ -106,11 +106,13 @@ Add the HashiCorp Helm repository.
 ```shell-session
 $ helm repo add hashicorp https://helm.releases.hashicorp.com
 ```
+
 Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
 
 ```shell-session
 $ helm install consul hashicorp/consul --version 1.2.0 --values values.yaml --create-namespace --namespace consul
 ```
+
 </Tab>
 </Tabs>
 
@@ -118,5 +120,6 @@ $ helm install consul hashicorp/consul --version 1.2.0 --values values.yaml --cr
 ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
 Only Reference style links should be added below this comment
 --->
+
 [tech-specs]: /consul/docs/api-gateway/tech-specs
 [rel-notes]: /consul/docs/release-notes
