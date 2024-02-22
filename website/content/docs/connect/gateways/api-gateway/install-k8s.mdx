@@ -81,40 +81,40 @@ The Consul API gateway ships with Consul and is automatically installed when you
 
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Refer to the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) in GitHub releases for the available versions.
 
-<Tabs>
-<Tab heading="Consul K8s CLI (Mac Only)">
-
-Refer to the official [Consul K8S CLI documentation](/consul/docs/k8s/k8s-cli) to find additional settings.
-
-```shell-session
-$ brew tap hashicorp/tap
-```
-
-```shell-session
-$ brew install hashicorp/tap/consul-k8s
-```
-
-```shell-session
-$ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.16.0
-```
-
-</Tab>
-<Tab heading="Helm">
-
-Add the HashiCorp Helm repository.
-
-```shell-session
-$ helm repo add hashicorp https://helm.releases.hashicorp.com
-```
-
-Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
-
-```shell-session
-$ helm install consul hashicorp/consul --version 1.2.0 --values values.yaml --create-namespace --namespace consul
-```
-
-</Tab>
-</Tabs>
+  <Tabs>
+  <Tab heading="Consul K8s CLI (Mac Only)">
+  
+  Refer to the official [Consul K8S CLI documentation](/consul/docs/k8s/k8s-cli) to find additional settings.
+  
+  ```shell-session
+  $ brew tap hashicorp/tap
+  ```
+  
+  ```shell-session
+  $ brew install hashicorp/tap/consul-k8s
+  ```
+  
+  ```shell-session
+  $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.18.0
+  ```
+  
+  </Tab>
+  <Tab heading="Helm">
+  
+  Add the HashiCorp Helm repository.
+  
+  ```shell-session
+  $ helm repo add hashicorp https://helm.releases.hashicorp.com
+  ```
+  
+  Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
+  
+  ```shell-session
+  $ helm install consul hashicorp/consul --version 1.4.0 --values values.yaml --create-namespace --namespace consul
+  ```
+  
+  </Tab>
+  </Tabs>
 
 <!--
 ****** KEEP ALL PAGE CONTENT ABOVE THIS LINE *******
