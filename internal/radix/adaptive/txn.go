@@ -29,6 +29,8 @@ func (t *Txn[T]) Get(k []byte) (T, bool) {
 }
 
 func (t *Txn[T]) Insert(key []byte, value T) T {
+	t.tree.mu.Lock()
+	defer t.tree.mu.Unlock()
 	oldVal := t.tree.Insert(key, value)
 	t.root = t.tree.root
 	t.size = t.tree.size
@@ -36,6 +38,8 @@ func (t *Txn[T]) Insert(key []byte, value T) T {
 }
 
 func (t *Txn[T]) Delete(key []byte) T {
+	t.tree.mu.Lock()
+	defer t.tree.mu.Unlock()
 	oldVal := t.tree.Delete(key)
 	t.root = t.tree.root
 	t.size = t.tree.size
