@@ -1554,10 +1554,6 @@
             "title": "Reference",
             "routes": [
               {
-                "title": "Consul resource command",
-                "path": "k8s/multiport/reference/resource-command"
-              },
-              {
                 "title": "GRPCRoute resource",
                 "path": "k8s/multiport/reference/grpcroute"
               },
