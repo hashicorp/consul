@@ -6,6 +6,7 @@ package dns
 import (
 	"errors"
 	"fmt"
+	"github.com/armon/go-radix"
 	"net"
 	"reflect"
 	"testing"
@@ -3155,7 +3156,7 @@ func TestRouterDynamicConfig_GetTTLForService(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, ok := cfg.getTTLForService(tc.inputKey)
+			actual, ok := cfg.GetTTLForService(tc.inputKey)
 			require.Equal(t, tc.shouldMatch, ok)
 			require.Equal(t, tc.expectedDuration, actual)
 		})
@@ -3461,4 +3462,73 @@ func TestDNS_syncExtra(t *testing.T) {
 // getUint32Ptr return the pointer of an uint32 literal
 func getUint32Ptr(i uint32) *uint32 {
 	return &i
+}
+
+func TestRouter_ReloadConfig(t *testing.T) {
+	cdf := discovery.NewMockCatalogDataFetcher(t)
+	cfg := buildDNSConfig(nil, cdf, nil)
+	router, err := NewRouter(cfg)
+	require.NoError(t, err)
+
+	router.recursor = newMockDnsRecursor(t)
+
+	// Reload the config
+	newAgentConfig := &config.RuntimeConfig{
+		DNSARecordLimit:       123,
+		DNSEnableTruncate:     true,
+		DNSNodeTTL:            234,
+		DNSRecursorStrategy:   "strategy-123",
+		DNSRecursorTimeout:    345,
+		DNSUDPAnswerLimit:     456,
+		DNSNodeMetaTXT:        true,
+		DNSDisableCompression: true,
+		DNSSOA: config.RuntimeSOAConfig{
+			Expire:  123,
+			Minttl:  234,
+			Refresh: 345,
+			Retry:   456,
+		},
+		DNSServiceTTL: map[string]time.Duration{
+			"wildcard-config-*": 123,
+			"strict-config":     234,
+		},
+		DNSRecursors: []string{
+			"8.8.8.8",
+			"2001:4860:4860::8888",
+		},
+	}
+
+	expectTTLRadix := radix.New()
+	expectTTLRadix.Insert("wildcard-config-", time.Duration(123))
+
+	expectedCfg := &RouterDynamicConfig{
+		ARecordLimit:       123,
+		EnableTruncate:     true,
+		NodeTTL:            234,
+		RecursorStrategy:   "strategy-123",
+		RecursorTimeout:    345,
+		UDPAnswerLimit:     456,
+		NodeMetaTXT:        true,
+		DisableCompression: true,
+		SOAConfig: SOAConfig{
+			Expire:  123,
+			Minttl:  234,
+			Refresh: 345,
+			Retry:   456,
+		},
+		TTLRadix: expectTTLRadix,
+		TTLStrict: map[string]time.Duration{
+			"strict-config": 234,
+		},
+		Recursors: []string{
+			"8.8.8.8:53",
+			"[2001:4860:4860::8888]:53",
+		},
+	}
+	err = router.ReloadConfig(newAgentConfig)
+	require.NoError(t, err)
+	savedCfg := router.dynamicConfig.Load().(*RouterDynamicConfig)
+
+	// Ensure the new config is used
+	require.Equal(t, expectedCfg, savedCfg)
 }

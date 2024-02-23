@@ -24,6 +24,7 @@ import (
 type DNSRouter interface {
 	HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.Addr) *dns.Msg
 	ServeDNS(w dns.ResponseWriter, req *dns.Msg)
+	GetConfig() *RouterDynamicConfig
 	ReloadConfig(newCfg *config.RuntimeConfig) error
 }
 
