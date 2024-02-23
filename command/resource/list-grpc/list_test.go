@@ -5,16 +5,18 @@ package list
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/command/resource/apply"
+	"github.com/hashicorp/consul/command/resource/apply-grpc"
 )
 
 func TestResourceListCommand(t *testing.T) {
@@ -23,16 +25,19 @@ func TestResourceListCommand(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
+	availablePort := freeport.GetOne(t)
+	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	t.Cleanup(func() {
+		a.Shutdown()
+	})
 
 	applyCli := cli.NewMockUi()
 
 	applyCmd := apply.New(applyCli)
 	code := applyCmd.Run([]string{
 		"-f=../testdata/demo.hcl",
-		"-http-addr=" + a.HTTPAddr(),
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 		"-token=root",
 	})
 	require.Equal(t, 0, code)
@@ -48,9 +53,21 @@ func TestResourceListCommand(t *testing.T) {
 			name:   "sample output",
 			output: "\"name\": \"korn\"",
 			extraArgs: []string{
-				"demo.v2.artist",
-				"-namespace=default",
+				"demo.v2.Artist",
 				"-partition=default",
+				"-namespace=default",
+				"-peer=local",
+			},
+		},
+		{
+			name:   "sample output with name prefix",
+			output: "\"name\": \"korn\"",
+			extraArgs: []string{
+				"demo.v2.Artist",
+				"-p=korn",
+				"-partition=default",
+				"-namespace=default",
+				"-peer=local",
 			},
 		},
 		{
@@ -68,7 +85,7 @@ func TestResourceListCommand(t *testing.T) {
 			c := New(ui)
 
 			args := []string{
-				"-http-addr=" + a.HTTPAddr(),
+				fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 				"-token=root",
 			}
 
@@ -85,9 +102,12 @@ func TestResourceListCommand(t *testing.T) {
 func TestResourceListInvalidArgs(t *testing.T) {
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
+	availablePort := freeport.GetOne(t)
+	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	t.Cleanup(func() {
+		a.Shutdown()
+	})
 
 	type tc struct {
 		args         []string
@@ -99,7 +119,7 @@ func TestResourceListInvalidArgs(t *testing.T) {
 		"nil args": {
 			args:         nil,
 			expectedCode: 1,
-			expectedErr:  errors.New("Incorrect argument format: Must include resource type argument"),
+			expectedErr:  errors.New("Incorrect argument format: Must include resource type or flag arguments"),
 		},
 		"minimum args required": {
 			args:         []string{},
@@ -129,10 +149,11 @@ func TestResourceListInvalidArgs(t *testing.T) {
 		},
 		"file argument with resource type": {
 			args: []string{
-				"demo.v2.artist",
-				"-namespace=default",
+				"demo.v2.Artist",
 				"-partition=default",
-				"-http-addr=" + a.HTTPAddr(),
+				"-namespace=default",
+				"-peer=local",
+				fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 				"-token=root",
 				"-f=demo.hcl",
 			},
@@ -142,21 +163,23 @@ func TestResourceListInvalidArgs(t *testing.T) {
 		"resource type invalid": {
 			args: []string{
 				"test",
-				"-namespace=default",
 				"-partition=default",
+				"-namespace=default",
+				"-peer=local",
 			},
 			expectedCode: 1,
-			expectedErr:  errors.New("Must include resource type argument in group.version.kind format"),
+			expectedErr:  errors.New("Incorrect argument format: The shorthand name does not map to any existing resource type"),
 		},
 		"resource name is provided": {
 			args: []string{
-				"demo.v2.artist",
+				"demo.v2.Artist",
 				"test",
 				"-namespace=default",
+				"-peer=local",
 				"-partition=default",
 			},
 			expectedCode: 1,
-			expectedErr:  errors.New("Must include flag arguments after resource type"),
+			expectedErr:  errors.New("Incorrect argument format: Must include flag arguments after resource type"),
 		},
 	}
 
