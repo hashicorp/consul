@@ -93,7 +93,7 @@ metadata:
   namespace: <namespace>
 spec:
   parentRefs:
-    port: <portNameRoutedFrom>
+    port: <portRoutedFrom>
     - ref:
       name: <nameRoutedFrom>
       type: 
@@ -104,7 +104,7 @@ spec:
     - backendRefs:
       - backendRef:
         datacenter: <datacenterRoutedTo>
-        port: "<portNameRoutedTo>"
+        port: "<portRoutedTo>"
         ref:
           name: <nameRoutedTo>
           type:
@@ -230,7 +230,9 @@ Specifies the services and other resources to attach the route to. You can only 
 
 ### `spec.parentRefs.port`
 
-Specifies the name of the port that the configuration applies to.
+Specifies the port for the Consul service that the configuration applies to. This parameter can be either a virtual port number, such as a Kubernetes service port, or a non-numeric target port value representing a named workload port.
+
+If you are not targeting a virtual port, specify the workload port name directly.
 
 #### Values
 
@@ -312,7 +314,9 @@ Specifies the name of the Consul datacenter that registered the Service backend 
 
 ### `spec.rules.backendRefs.backendRef.port`
 
-Specifies the name of the port for the Consul service that the configuration routes traffic to.
+Specifies the port for the Consul service that the configuration routes traffic to. This parameter can be either a virtual port number, such as a Kubernetes service port, or a non-numeric target port value representing a named workload port.
+
+If you are not targeting a virtual port, specify the workload port name directly.
 
 #### Values
 
@@ -701,8 +705,8 @@ spec:
           groupVersion: v2beta1
           kind: Service
         name: api
-      # The configuration targets the workload port, not the service port.
-      port: "api-workload"
+      # The virtual port number for the "api-workload" target port.
+      port: "80"
   rules:
     - backendRefs:
       - backendRef:
@@ -712,8 +716,8 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          # The configuration targets the workload port, not the service port.
-          port: "api-workload"
+          # The virtual port number for the "api-workload" target port.
+          port: "80"
         weight: 50
       - backendRef:
           ref: 
@@ -722,8 +726,8 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          # The configuration targets the workload port, not the service port.
-          port: "admin-workload"
+          # The virtual port number for the "admin-workload" target port.
+          port: "90"
         weight: 50
 ```
 
@@ -750,8 +754,8 @@ spec:
           groupVersion: v2beta1
           kind: Service
         name: api
-      # The configuration targets the workload port, not the service port.
-      port: "api-workload"
+      # The virtual port number for the "api-workload" target port.
+      port: "80"
   rules:
     - matches:
       - headers:
@@ -775,8 +779,8 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          # The configuration targets the workload port, not the service port.
-          port: "api-workload"
+          # The virtual port number for the "api-workload" target port.
+          port: "80"
     - matches:
       - headers:
           - type: "HEADER_MATCH_TYPE_EXACT"
@@ -799,6 +803,6 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api-admin
-          # The configuration targets the workload port, not the service port.
-          port: "admin-workload"
+          # The virtual port number for the "admin-workload" target port.
+          port: "90"
 ```
