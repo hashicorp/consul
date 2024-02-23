@@ -1,20 +1,22 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
-package read
+package delete
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/command/resource/apply"
+	"github.com/hashicorp/consul/command/resource/apply-grpc"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestResourceReadInvalidArgs(t *testing.T) {
+func TestResourceDeleteInvalidArgs(t *testing.T) {
 	t.Parallel()
 
 	type tc struct {
@@ -67,7 +69,7 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 		"invalid resource type format": {
 			args:         []string{"a.", "name", "-namespace", "default"},
 			expectedCode: 1,
-			expectedErr:  errors.New("Incorrect argument format: Must provide resource type argument with either in group.version.kind format or its shorthand name"),
+			expectedErr:  errors.New("Must provide resource type argument with either in group.version.kind format or its shorthand name"),
 		},
 	}
 
@@ -84,12 +86,12 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 	}
 }
 
-func createResource(t *testing.T, a *agent.TestAgent) {
+func createResource(t *testing.T, port int) {
 	applyUi := cli.NewMockUi()
 	applyCmd := apply.New(applyUi)
 
 	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", port),
 		"-token=root",
 	}
 
@@ -100,46 +102,48 @@ func createResource(t *testing.T, a *agent.TestAgent) {
 	require.Empty(t, applyUi.ErrorWriter.String())
 }
 
-func TestResourceRead(t *testing.T) {
+func TestResourceDelete(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
+	availablePort := freeport.GetOne(t)
+	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	t.Cleanup(func() {
+		a.Shutdown()
+	})
 
 	defaultCmdArgs := []string{
-		"-http-addr=" + a.HTTPAddr(),
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 		"-token=root",
 	}
 
-	createResource(t, a)
 	cases := []struct {
-		name         string
-		args         []string
-		expectedCode int
-		errMsg       string
+		name           string
+		args           []string
+		expectedCode   int
+		createResource bool
 	}{
 		{
-			name:         "read resource in hcl format",
-			args:         []string{"-f=../testdata/demo.hcl"},
-			expectedCode: 0,
-			errMsg:       "",
+			name:           "delete resource in hcl format",
+			args:           []string{"-f=../testdata/demo.hcl"},
+			expectedCode:   0,
+			createResource: true,
 		},
 		{
-			name:         "read resource in command line format",
-			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"},
-			expectedCode: 0,
-			errMsg:       "",
+			name:           "delete resource in command line format",
+			args:           []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"},
+			expectedCode:   0,
+			createResource: true,
 		},
 		{
-			name:         "read resource that doesn't exist",
-			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default"},
-			expectedCode: 1,
-			errMsg:       "Error reading resource demo.v2.Artist/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
+			name:           "delete resource that doesn't exist in command line format",
+			args:           []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"},
+			expectedCode:   0,
+			createResource: false,
 		},
 	}
 
@@ -148,9 +152,13 @@ func TestResourceRead(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
 			cliArgs := append(tc.args, defaultCmdArgs...)
+			if tc.createResource {
+				createResource(t, availablePort)
+			}
 			code := c.Run(cliArgs)
-			require.Equal(t, tc.errMsg, ui.ErrorWriter.String())
+			require.Empty(t, ui.ErrorWriter.String())
 			require.Equal(t, tc.expectedCode, code)
+			require.Contains(t, ui.OutputWriter.String(), "deleted")
 		})
 	}
 }
