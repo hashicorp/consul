@@ -175,7 +175,7 @@ Usage: consul resource list [type] -partition=<default> -namespace=<default>
 or
 consul resource list -f [path/to/file.hcl]
 
-Lists all the resources specified by the type under the given partition, namespace and peer
+Lists all the resources specified by the type under the given partition and namespace
 and outputs in JSON format.
 
 Example:

@@ -146,7 +146,7 @@ func (c *cmd) Help() string {
 const synopsis = "Delete resource information"
 const help = `
 Usage: You have two options to delete the resource specified by the given
-type, name, partition, namespace and peer and outputs its JSON representation.
+type, name, partition and namespace and outputs its JSON representation.
 
 consul resource delete [type] [name] -partition=<default> -namespace=<default>
 consul resource delete -f [resource_file_path]
