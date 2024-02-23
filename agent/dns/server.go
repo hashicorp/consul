@@ -94,6 +94,7 @@ func (d *Server) Shutdown() {
 			d.logger.Error("Error stopping DNS server", "error", err)
 		}
 	}
+	d.Router = nil
 }
 
 // GetAddr is a function to return the server address if is not nil.
