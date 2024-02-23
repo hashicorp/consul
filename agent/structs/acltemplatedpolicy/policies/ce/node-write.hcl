@@ -1,0 +1,3 @@
+node "{{.Name}}" {
+    policy = "write"
+}

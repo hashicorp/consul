@@ -1,0 +1,12 @@
+{
+	"type": "object",
+	"properties": {
+		"name": { "type": "string", "$ref": "#/definitions/min-length-zero" }
+	},
+	"definitions": {
+		"min-length-zero": {
+				"type": "string",
+				"minLength": 0
+		}
+	}
+}

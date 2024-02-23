@@ -1,0 +1,3 @@
+agent "{{.Name}}" {
+    policy = "read"
+}

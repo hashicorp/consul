@@ -1,0 +1,3 @@
+service "{{.Name}}" {
+    policy = "write"
+}
