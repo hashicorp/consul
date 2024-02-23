@@ -156,7 +156,7 @@ func (c *cmd) Help() string {
 const synopsis = "Read resource information"
 const help = `
 Usage: You have two options to read the resource specified by the given
-type, name, partition, namespace and peer and outputs its JSON representation.
+type, name, partition and namespace and outputs its JSON representation.
 
 consul resource read [type] [name] -partition=<default> -namespace=<default>
 consul resource read -f [resource_file_path]
