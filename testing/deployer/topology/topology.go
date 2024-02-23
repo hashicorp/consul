@@ -17,6 +17,10 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+const (
+	V1DefaultPortName = "legacy"
+)
+
 type Topology struct {
 	ID string
 
@@ -898,6 +902,9 @@ func (w *Workload) ports() []int {
 	if len(w.Ports) > 0 {
 		seen := make(map[int]struct{})
 		for _, port := range w.Ports {
+			if port == nil {
+				continue
+			}
 			if _, ok := seen[port.Number]; !ok {
 				// It's totally fine to expose the same port twice in a workload.
 				seen[port.Number] = struct{}{}
@@ -933,6 +940,8 @@ func (w *Workload) DigestExposedPorts(ports map[int]int) {
 	}
 }
 
+// Validate checks a bunch of stuff intrinsic to the definition of the workload
+// itself.
 func (w *Workload) Validate() error {
 	if w.ID.Name == "" {
 		return fmt.Errorf("service name is required")
@@ -956,12 +965,15 @@ func (w *Workload) Validate() error {
 		}
 		if w.Port > 0 {
 			w.Ports = map[string]*Port{
-				"legacy": {
+				V1DefaultPortName: {
 					Number:   w.Port,
 					Protocol: "tcp",
 				},
 			}
 			w.Port = 0
+		}
+		if w.Ports == nil {
+			w.Ports = make(map[string]*Port)
 		}
 
 		if !w.DisableServiceMesh && w.EnvoyPublicListenerPort > 0 {
@@ -990,7 +1002,7 @@ func (w *Workload) Validate() error {
 		}
 	} else {
 		if len(w.Ports) > 0 {
-			return fmt.Errorf("cannot specify mulitport on service in v1")
+			return fmt.Errorf("cannot specify multiport on service in v1")
 		}
 		if w.Port <= 0 {
 			return fmt.Errorf("service has invalid port")
