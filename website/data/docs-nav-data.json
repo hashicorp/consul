@@ -1818,6 +1818,10 @@
         "path": "enterprise"
       },
       {
+        "title": "Long Term Support (LTS)",
+        "path": "enterprise/long-term-support"
+      },
+      {
         "title": "Admin Partitions",
         "path": "enterprise/admin-partitions"
       },
