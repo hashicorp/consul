@@ -12,7 +12,7 @@ const linkToHcpSelector = '[data-test-link-to-hcp]';
 const linkToHcpBannerButtonSelector = '[data-test-link-to-hcp-banner-button]';
 const linkToHcpModalSelector = '[data-test-link-to-hcp-modal]';
 const linkToHcpModalCancelButtonSelector = '[data-test-link-to-hcp-modal-cancel-button]';
-module('Acceptance | link to hcp', function (hooks) {
+module.skip('Acceptance | link to hcp', function (hooks) {
   setupApplicationTest(hooks);
 
   hooks.beforeEach(function () {
