@@ -2398,7 +2398,7 @@ func makeTCPProxyFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, err
 		AccessLog:        accessLogs,
 		ClusterSpecifier: &envoy_tcp_proxy_v3.TcpProxy_Cluster{Cluster: opts.cluster},
 		StatPrefix:       makeStatPrefix(opts.statPrefix, opts.filterName),
-		IdleTimeout:      durationpb.New(time.Duration(*opts.requestTimeoutMs) * time.Millisecond),
+		IdleTimeout:      durationpb.New(time.Duration(0) * time.Millisecond),
 	}
 	return makeFilter("envoy.filters.network.tcp_proxy", cfg)
 }
