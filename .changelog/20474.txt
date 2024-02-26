@@ -1,3 +1,0 @@
-```release-note:breaking-change
-ui: Adds a "Link to HCP Consul Central" modal with integration to side-nav and link to HCP banner. There will be an option to disable the Link to HCP banner from the UI in a follow-up release.
-```

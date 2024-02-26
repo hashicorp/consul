@@ -1,0 +1,3 @@
+```release-note:bug
+ingress-gateway: **(Enterprise Only)** Fix a bug where on update, Ingress Gateways lost all upstreams for listeners with wildcard services in a different namespace.
+```
