@@ -13,9 +13,9 @@ For more information about using Nomad to schedule clusters and applications, re
 
 ## Introduction
 
-Nomad is HashiCorp’s workload orchestrator. It enables you to run containers, legacy, and batch applications together on the same infrastructure. Just like a Consul client runs as a system daemon on a worker node, Nomad is deployed in a the same fashion. In order to use Consul with Nomad, you must configure Nomad to access the Consul cluster. We recommend running a Consul client alongside each Nomad client.
+Nomad is HashiCorp’s workload orchestrator. It enables you to run containers, legacy, and batch applications together on the same infrastructure. Just like a Consul client runs as a system daemon on a worker node, Nomad is deployed in a similar fashion. In order to use Consul with Nomad, you must configure Nomad to access the Consul cluster. We recommend running a Consul client alongside each Nomad client.
 
-Consul and Nomad operate independently in their deployment and functions, but can integrate to simplify the other’s operations. For example, Nomad can register tasks as services in the Consul catalog and configure sidecar proxies. Furthermore, Nomad servers can also registers themselves as a service in Consul, which helps with bootstrapping a Nomad cluster.
+Consul and Nomad operate independently in their deployment and functions, but can integrate to simplify the other’s operations. For example, Nomad can register tasks as services in the Consul catalog and configure sidecar proxies. Furthermore, Nomad servers can also register themselves as a service in Consul, which helps with bootstrapping a Nomad cluster.
 
 Deployments in Nomad can take advantage of Consul service discovery, service mesh, or both. You can leverage Consul DNS and run the Nomad service workloads, or start a sidecar process for each service to abstract the networking layer within the service mesh environment.
 
