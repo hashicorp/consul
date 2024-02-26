@@ -4,7 +4,6 @@ package delete
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/mitchellh/cli"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/command/resource/apply"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -86,12 +84,12 @@ func TestResourceDeleteInvalidArgs(t *testing.T) {
 	}
 }
 
-func createResource(t *testing.T, port int) {
+func createResource(t *testing.T, a *agent.TestAgent) {
 	applyUi := cli.NewMockUi()
 	applyCmd := apply.New(applyUi)
 
 	args := []string{
-		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", port),
+		"-http-addr=" + a.HTTPAddr(),
 		"-token=root",
 	}
 
@@ -109,18 +107,14 @@ func TestResourceDelete(t *testing.T) {
 
 	t.Parallel()
 
-	availablePort := freeport.GetOne(t)
-	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-	t.Cleanup(func() {
-		a.Shutdown()
-	})
 
 	defaultCmdArgs := []string{
-		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
+		"-http-addr=" + a.HTTPAddr(),
 		"-token=root",
 	}
-
 	cases := []struct {
 		name           string
 		args           []string
@@ -153,7 +147,7 @@ func TestResourceDelete(t *testing.T) {
 			c := New(ui)
 			cliArgs := append(tc.args, defaultCmdArgs...)
 			if tc.createResource {
-				createResource(t, availablePort)
+				createResource(t, a)
 			}
 			code := c.Run(cliArgs)
 			require.Empty(t, ui.ErrorWriter.String())
