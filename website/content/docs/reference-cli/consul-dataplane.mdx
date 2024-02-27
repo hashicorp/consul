@@ -9,20 +9,74 @@ description: >-
 
 The `consul-dataplane` command interacts with the binary for [simplified service mesh with Consul Dataplane](/consul/docs/connect/dataplane). Use this command to install Consul Dataplane, configure its Envoy proxies, and secure Dataplane deployments.
 
-## Usage
+## Install Consul Dataplane CLI
 
-Usage: `consul-dataplane [options]`
+<Tabs>
+
+<Tab heading="Kubernetes" group="k8s">
+
+To install Consul Dataplane, set `VERSION` to `1.0.0` and then follow the instructions to install a specific version of Consul [with the Helm Chart](/consul/docs/k8s/installation/install#install-consul) or [with the Consul-k8s CLI](/consul/docs/k8s/installation/install-cli#install-a-previous-version).
+
+#### Helm
+
+```shell-session
+$ export VERSION=1.0.0 && \
+  helm install consul hashicorp/consul --set global.name=consul --version ${VERSION} --create-namespace --namespace consul
+```
+
+#### Consul-k8s CLI
+
+```shell-session
+$ export VERSION=1.0.0 && \
+    curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
+```
+</Tab>
+
+<Tab heading="ECS" group="ecs">
+
+Refer to the following documentation for Consul on ECS workloads:
+
+- [Deploy Consul with the Terraform module](/consul/docs/ecs/deploy/terraform)
+- [Deploy Consul manually](/consul/ecs/install-manul)
+
+</Tab>
+
+</Tabs>
+
+
+### Upgrade
+
+<Tabs>
+
+<Tab heading="Kubernetes" group="k8s">
+
+Before you upgrade Consul to a version that uses Consul Dataplane, you must edit your Helm chart so that client agents are removed from your deployments. Refer to [upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for more information.
+
+</Tab>
+
+<Tab heading="ECS" group="ecs">
+
+Refer to [Upgrade to dataplane architecture](/consul/docs/ecs/upgrade-to-dataplanes) for instructions.
+
+</Tab>
+
+</Tabs>
+
 
 ### Requirements
 
 Consul Dataplane requires servers running Consul version `v1.14+`. To find a specific version of Consul, refer to [HashiCorp's Official Release Channels](https://www.hashicorp.com/official-release-channels).
+
+## Usage
+
+Usage: `consul-dataplane [options]`
 
 ### Startup
 
 The following options are required when starting `consul-dataplane` with the CLI:
 
 <Tabs>
-<Tab heading="Consul CE">
+<Tab heading="Consul CE" group="community">
 
 - `-addresses`
 - `-service-node-name`
@@ -30,19 +84,19 @@ The following options are required when starting `consul-dataplane` with the CLI
 
 </Tab>
 
-<Tab heading="Consul Enterprise">
+<Tab heading="Consul Enterprise" group="enterprise">
 
 - `-addresses`
 - `-service-node-name`
+- `-proxy-service-id`
 - `-service-namespace`
 - `-service-partition`
-- `-proxy-service-id`
 
 </Tab>
 </Tabs>
 
 
-### Command Options
+## Commands options
 
 - `-addresses` - Consul server gRPC addresses. Can be a DNS name or an executable command. Accepted environment variable is `DP_CONSUL_ADDRESSES`. Refer to [go-netaddrs](https://github.com/hashicorp/go-netaddrs#summary) for details and examples.
 - `-ca-certs` - The path to a file or directory containing CA certificates used to verify the server's certificate. Accepted environment variable is `DP_CA_CERTS`.
@@ -103,7 +157,7 @@ Consul Dataplane resolves a domain name to discover Consul server IP addresses.
   $ consul-dataplane -addresses my.consul.example.com
   ```
 
-### Executable Command
+### Executable command
 
 Consul Dataplane runs a script that, on success, returns one or more IP addresses separated by whitespace.
 
@@ -116,7 +170,7 @@ Consul Dataplane runs a script that, on success, returns one or more IP addresse
   $ consul-dataplane -addresses "exec=./my-script.sh"
   ```
 
-### Go Discover Nodes for Cloud Providers
+### Go Discover nodes for cloud providers
 
 The [`go-discover`](https://github.com/hashicorp/go-discover) binary is included in the `hashicorp/consul-dataplane` image for use with this mode of server discovery, which functions in
   a way similar to [Cloud Auto-join](/consul/docs/deploy/server/vm/cloud-auto-join). The
@@ -139,7 +193,7 @@ A static ACL token is passed to Consul Dataplane.
 Consul Dataplane logs in to one of Consul's supported [auth methods](/consul/docs/secure-consul/acl/auth-methods).
 
   <Tabs>
-  <Tab heading="Consul CE">
+  <Tab heading="Consul CE" group="community">
 
   ```shell-session
   $ consul-dataplane -credential-type "login"
@@ -151,7 +205,7 @@ Consul Dataplane logs in to one of Consul's supported [auth methods](/consul/doc
 
   </Tab>
 
-  <Tab heading="Consul Enterprise">
+  <Tab heading="Consul Enterprise" group="enterprise">
 
   ```shell-session
   $ consul-dataplane -credential-type "login"
@@ -166,16 +220,12 @@ Consul Dataplane logs in to one of Consul's supported [auth methods](/consul/doc
   </Tab>
   </Tabs>
 
-### Consul Servers Behind a Load Balancer
+### Consul servers behind a load balancer
 
-When Consul servers are behind a load balancer, you must pass `-server-watch-disabled` to Consul
-Dataplane.
+When Consul servers are behind a load balancer, you must pass `-server-watch-disabled` to Consul Dataplane.
 
 ```shell-session
 $ consul-dataplane -server-watch-disabled
 ```
 
-By default, Consul Dataplane opens a server watch stream to a Consul server, which enables the server
-to inform Consul Dataplane of new or different Consul server addresses. However, if Consul Dataplane
-is connecting through a load balancer, then it must ignore the Consul server addresses that are
-returned from the server watch stream.
+By default, Consul Dataplane opens a server watch stream to a Consul server, which enables the server to inform Consul Dataplane of new or different Consul server addresses. However, if Consul Dataplane is connecting through a load balancer, then it must ignore the Consul server addresses that are returned from the server watch stream.

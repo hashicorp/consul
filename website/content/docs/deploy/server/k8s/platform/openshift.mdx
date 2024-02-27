@@ -7,56 +7,40 @@ description: >-
 
 # Deploy Consul on Openshift
 
-[Red Hat OpenShift](https://www.openshift.com/learn/what-is-openshift) is a
-distribution of the Kubernetes platform that provides a number of usability and
-security enhancements.
+This topic describes how to deploy a Consul datacenter to an Openshift Kubernetes cluster. After deploying Consul, you will interact with Consul using the CLI, UI, and/or API.
 
-In this tutorial you will:
-
-- Deploy an OpenShift cluster
-- Deploy a Consul datacenter
-- Access the Consul UI
-- Use the Consul CLI to inspect your environment
-- Decommission the OpenShift environment
+[Red Hat OpenShift](https://www.openshift.com/learn/what-is-openshift) is a distribution of the Kubernetes platform that provides a number of usability and security enhancements.
 
 <Warning title="Security Warning">
 
- This tutorial is not for production use. The chart was
-installed with an insecure configuration of Consul. Refer to the
-[Secure Consul and Registered Services on Kubernetes tutorial](/consul/tutorials/kubernetes/kubernetes-secure-agents)
-to learn how you can secure Consul on Kubernetes in production.
+ This tutorial is not for production use. The chart was installed with an insecure configuration of Consul. Refer to the [Secure Consul and Registered Services on Kubernetes tutorial](/consul/tutorials/kubernetes/kubernetes-secure-agents) to learn how you can secure Consul on Kubernetes in production.
 
 </Warning>
 
-## Prerequisites
+## Requirements
 
-To complete this tutorial you will need:
+To deploy Consul on Openshift, you will need:
 
 - Access to a Kubernetes cluster deployed with OpenShift
-- A text editor
-- Basic command line access
 - A Red Hat account
-- The [Consul CLI](/consul/docs/install)
 - [CodeReady Containers v1.17.0+](https://access.redhat.com/documentation/en-us/red_hat_codeready_containers/1.0/html/getting_started_guide/getting-started-with-codeready-containers_gsg)
-- [Helm v3.6+](https://helm.sh/docs/helm/helm_install/) or [consul-k8s v1.0.2+](/consul/docs/k8s/installation/install-cli#install-a-specific-version-of-the-cli)
+- [consul v1.14.0+](/consul/install/)
+- [Helm v3.6+](https://helm.sh/docs/helm/helm_install/)
+- [consul-k8s v1.0.2+](/consul/docs/reference-cli/consul-k8s#install-the-cli)
 
 ---
 
 ## Deploy OpenShift
 
-OpenShift can be deployed on multiple [platforms](https://docs.openshift.com/container-platform/4.8/installing/index.html#supported-platforms-for-openshift-clusters_ocp-installation-overview), and there are several installation options available for installing OpenShift on either production and development environments. This tutorial requires a running OpenShift cluster to deploy Consul on Kubernetes. If an OpenShift cluster is already provisioned in a production or development environment to be used for deploying Consul on Kubernetes, please skip ahead to [Deploy Consul](#deploy-consul). 
-This tutorial will utilize CodeReady Containers (CRC) to provide a pre-configured development OpenShift environment on your local machine. CRC is bundled as a Red Hat Enterprise Linux virtual machine that supports native hypervisors for
-Linux, macOS, and Windows 10. CRC is the quickest way to get started building
-OpenShift clusters. It is designed to run on a local computer to simplify setup
-and emulate the cloud development environment locally with all the tools needed
-to develop container-based apps. While we use CRC in this tutorial, the Consul Helm deployment process will work on any OpenShift cluster and is production ready.
+You can deploy OpenShift on multiple [platforms](https://docs.openshift.com/container-platform/4.8/installing/index.html#supported-platforms-for-openshift-clusters_ocp-installation-overview), and there are several installation options available for installing OpenShift on either production and development environments. This guide requires a running OpenShift cluster to deploy Consul on Kubernetes. If an OpenShift cluster is already provisioned in a production or development environment to be used for deploying Consul on Kubernetes, skip ahead to [Deploy Consul](#deploy-consul).
+
+This tutorial will use CodeReady Containers (CRC) to provide a pre-configured development OpenShift environment on your local machine. CRC is bundled as a Red Hat Enterprise Linux virtual machine that supports native hypervisors for Linux, macOS, and Windows 10. CRC is the quickest way to get started building OpenShift clusters. It is designed to run on a local computer to simplify setup and emulate the cloud development environment locally with all the tools needed to develop container-based apps. While we use CRC in this tutorial, the Consul Helm deployment process will work on any OpenShift cluster and is production ready.
 
 If deploying CRC is not preferred, a managed OpenShift cluster could quickly be provisioned within less than an hour using [Azure RedHat OpenShift](https://docs.microsoft.com/en-us/azure/openshift/tutorial-create-cluster). [Azure RedHat Openshift](https://docs.microsoft.com/en-us/azure/openshift/intro-openshift) requires an Azure subscription. However, it provides the simplest installation flow for getting a production-ready OpenShift cluster available to be used for this tutorial. 
 
 ### CRC Setup
 
-After installing CodeReady Containers, issue the following command
-to setup your environment.
+After installing CodeReady Containers, issue the following command to setup your environment.
 
 ```shell-session
 $ crc setup
@@ -80,10 +64,8 @@ Your system is correctly setup for using CRC. Use 'crc start' to start the insta
 
 ### CRC start
 
-Once the setup is complete, you can start the CRC service with the following command. The command
-will perform a few system checks to ensure your system meets the minimum requirements and will then ask you to provide an image pull secret. You should have your [Red Hat account](https://cloud.redhat.com/openshift/install/crc/installer-provisioned)
+Once the setup is complete, you can start the CRC service with the following command. The command will perform a few system checks to ensure your system meets the minimum requirements and will then ask you to provide an image pull secret. You should have your [Red Hat account](https://cloud.redhat.com/openshift/install/crc/installer-provisioned)
 open so that you can easily copy your image pull secret when prompted.
-
 
 ```shell-session
 $ crc start
@@ -102,7 +84,6 @@ CRC requires a pull secret to download content from Red Hat.
 You can copy it from the Pull Secret section of https://console.redhat.com/openshift/create/local.
 ? Please enter the pull secret
 ```
-
 
 Next, paste the image pull secret into the terminal and press enter.
 
@@ -379,7 +360,7 @@ $ consul-k8s install -config-file=values.yaml
 
 <Note>
 
- You can review the official [Consul K8S CLI documentation](/consul/docs/reference/k8s/consul-k8s-cli) to learn more about additional settings.
+ You can review the official [Consul K8S CLI documentation](/consul/docs/reference-cli/consul-k8s) to learn more about additional settings.
 
 </Note>
 
