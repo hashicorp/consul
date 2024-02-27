@@ -40,7 +40,6 @@ BUG FIXES:
 
 * dns: SERVFAIL when resolving not found PTR records. [[GH-20679](https://github.com/hashicorp/consul/issues/20679)]
 * raft:  Fix panic during downgrade from enterprise to oss. [[GH-19311](https://github.com/hashicorp/consul/issues/19311)]
-* raft:  Fix panic during downgrade from enterprise to oss.
 * server: Ensure controllers are automatically restarted on internal stream errors. [[GH-20642](https://github.com/hashicorp/consul/issues/20642)]
 * server: Ensure internal streams are properly terminated on snapshot restore. [[GH-20642](https://github.com/hashicorp/consul/issues/20642)]
 * snapshot-agent: **(Enterprise only)** Fix a bug with static AWS credentials where one of the key id or secret key is provided via config file and the other is provided via an environment variable.
