@@ -14,11 +14,13 @@ Multi-port services require enabling [Consul's v2 architecture](/consul/docs/arc
 
 This page describes the process for integrating a service that uses multiple ports in a single container when running Consul on Kubernetes deployments. It includes example configurations to demonstrate an end-to-end deployment test of Consul's multi-port features.
 
-## Prerequisites
+## Requirements
 
 Registering multi-port services with Consul requires Kubernetes. Multi-port services are not supported on VM deployments.
 
-The following minimum versions are required:
+### Version requirements
+
+Consul deployments that use multi-port services with the v2 catalog enabled must meet the following minimum version requirements:
 
 - Consul v1.18.0
 - `consul-k8s` CLI v1.4.0 or `hashicorp/consul` Helm chart release v1.4.0
@@ -30,7 +32,20 @@ The required version of Consul dataplanes deploy automatically when using the la
 
 For more information about upgrading Helm charts, refer to [Upgrade Helm chart version](/consul/docs/k8s/upgrade#upgrade-helm-chart-version).
 
-There are additional requirements for service mesh proxies in transparent proxy mode. This mode enables queries through Kube DNS instead of Consul DNS over permissive mTLS settings. For more information about the steps to configure global settings and enable permissive mTLS mode before registering a service, refer to the [onboard services in transparent mode workflow](/consul/docs/k8s/connect/onboarding-tproxy-mode#workflow).
+### Annotation requirements
+
+The examples on this page include the following required annotations in Kubernetes Deployment resources:
+
+```yaml
+spec:
+  template:
+    metadata:
+      annotations:
+        "consul.hashicorp.com/mesh-inject": "true"
+        "consul.hashicorp.com/transparent-proxy": "true"
+```
+
+These annotations inject Consul dataplanes and enable transparent proxy mode so that the services can curl each other on ports configured in the Kubernetes Service resource. Refer to [annotations and labels](/consul/docs/k8s/annotations-and-labels) for more information.
 
 ## Enable the v2 catalog
 
