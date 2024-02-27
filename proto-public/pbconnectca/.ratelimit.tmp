@@ -1,0 +1,1 @@
+[{"MethodName":"/hashicorp.consul.connectca.ConnectCAService/WatchRoots","OperationType":"OPERATION_TYPE_READ","Enterprise":false},{"MethodName":"/hashicorp.consul.connectca.ConnectCAService/Sign","OperationType":"OPERATION_TYPE_WRITE","Enterprise":false}]

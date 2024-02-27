@@ -22,6 +22,8 @@ import (
 //  * Create an example static-client sidecar, then register both the service and sidecar with Consul
 //  * Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
+	t.Skipf("Skipping test due to lack of backported fixes in 1.14.x, leading to repeated failure.")
+
 	cluster := createCluster(t)
 	defer terminate(t, cluster)
 

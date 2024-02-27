@@ -405,14 +405,15 @@ jobs:
               --rerun-fails=3 \
               -- \
               go test \
-              -p=4 \
+              -p=6 \
+              -parallel=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
               `go list ./... | grep -v upgrade` \
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
-              --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+              --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --latest-version latest
             ls -lrt
         env:
