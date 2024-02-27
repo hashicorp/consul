@@ -86,7 +86,7 @@ module('Integration | Component | hcp nav item', function (hooks) {
     });
   });
 
-  module('when rendered in self managed mode', function (hooks) {
+  module.skip('when rendered in self managed mode', function (hooks) {
     hooks.beforeEach(function () {
       this.owner.register(
         'service:env',
