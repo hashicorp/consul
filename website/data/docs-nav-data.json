@@ -106,6 +106,14 @@
         "path": "architecture"
       },
       {
+        "title": "Consul on Kubernetes",
+        "path": "architecture/kubernetes"
+      },
+      {
+        "title": "Consul ECS",
+        "path": "architecture/ecs"
+      },
+      {
         "title": "Catalog",
         "routes": [
           {
@@ -370,6 +378,10 @@
                     ]
                   }
                 ]
+              },
+              {
+                "title": "Uninstall Consul on Kubernetes",
+                "path": "deploy/server/k8s/uninstall"
               }
             ]
           },
@@ -414,6 +426,10 @@
           {
             "title": "Overview",
             "path": "deploy/service-mesh"
+          },
+          {
+            "title": "Consul Dataplane",
+            "path": "deploy/service-mesh/dataplane"
           },
           {
             "title": "Enable service mesh",
@@ -698,8 +714,21 @@
         "path": "monitor-consul"
       },
       {
-        "title": "Agent telemetry",
-        "path": "monitor-consul/telemetry"
+        "title": "Consul telemetry",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "monitor-consul/telemetry"
+          },
+          {
+            "title": "Agent telemetry",
+            "path": "monitor-consul/telemetry/agent"
+          },
+          {
+            "title": "Dataplane telemetry",
+            "path": "monitor-consul/telemetry/dataplane"
+          }
+        ]
       },
       {
         "title": "Consul logs",
