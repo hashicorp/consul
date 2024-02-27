@@ -250,6 +250,10 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 
 	var sout structs.IndexedServiceNodes
 	if err := f.rpcFunc(context.Background(), "Catalog.ServiceNodes", &sargs, &sout); err == nil {
+		if len(sout.ServiceNodes) == 0 {
+			return nil, ErrNotFound
+		}
+
 		for _, n := range sout.ServiceNodes {
 			if n.ServiceAddress == targetIP {
 				results = append(results, &Result{

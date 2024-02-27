@@ -261,7 +261,8 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 				require.Equal(t, 9, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
 				require.Equal(t, 9, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
 			} else {
-				// Expect 1 result per port, per workload, up to the default limit of 3. In practice the results are truncated at 2.
+				// Expect 1 result per port, per workload, up to the default limit of 3. In practice the results are truncated
+				// at 2 because of the record byte size.
 				require.Equal(t, 2, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
 				require.Equal(t, 2, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
 			}

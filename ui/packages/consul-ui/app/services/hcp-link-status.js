@@ -14,7 +14,8 @@ export default class HcpLinkStatus extends Service {
   userDismissedBanner = false;
 
   get shouldDisplayBanner() {
-    return !this.userDismissedBanner && this.hasPermissionToLink;
+    // With the death of Consul Central, we don't want to display the link nav item
+    return false;
   }
 
   get hasPermissionToLink() {

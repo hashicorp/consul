@@ -143,7 +143,7 @@ const (
 // Likely these will all be short lived exclusions.
 func IsExperimentAllowedOnSecondaries(name string) bool {
 	switch name {
-	case CatalogResourceExperimentName, V2DNSExperimentName, V2TenancyExperimentName:
+	case CatalogResourceExperimentName, V2TenancyExperimentName:
 		return false
 	default:
 		return true

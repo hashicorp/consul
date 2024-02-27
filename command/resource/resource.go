@@ -47,10 +47,6 @@ List resources by type:
 
 $ consul resource list [type] -partition=<default> -namespace=<default>
 
-Delete a resource:
-
-$ consul resource delete [type] [name] -partition=<default> -namespace=<default> -consistent=<false> -json
-
 Run
 
 consul resource <subcommand> -h 
