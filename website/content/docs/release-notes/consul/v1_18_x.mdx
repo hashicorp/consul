@@ -11,7 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-**Consul catalog v2 API updates:** Additional improvements were made to the v2 catalog API, which enables support for [multi-port services on Kubernetes](/consul/docs/k8s/multiport). Improvements include namespace and admin partition support for the TrafficPermissions resource, mesh gateway implementation, Consul DNS integration, and the ability to use virtual ports in configurations.
+**Consul catalog v2 API updates:** Additional improvements were made to the v2 catalog API, which enables support for [multi-port services on Kubernetes](/consul/docs/k8s/multiport). End user facing changes include the ability to use a service's ports in xRoute configurations as opposed to the workload port for reference in the parentRef stanza of the xRoute configuration, and the change in Traffic Permissions to only allow `ACTION_DENY` for Consul Enterprise as it will enable future governance related workflows. 
 
 The v2 catalog API is currently available for Consul on Kubernetes deployments only. Refer to [Consul v2 architecture](/consul/docs/architecture/v2) for more information.
 
