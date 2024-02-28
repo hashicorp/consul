@@ -44,8 +44,9 @@ In the v2 catalog, the `ProxyConfiguration` resource configures a workload's sid
 Be aware of the following constraints and technical limitations on the v2 catalog API:
 
 - The v2 catalog API only supports deployments using [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents. Consul on Kubernetes uses dataplanes by default.
-- The v1 and v2 catalog APIs cannot run concurrently.
+- The v1 and v2 catalog APIs cannot run concurrently. Because configuration entries are part of the v1 catalog, you cannot use them when the v2 catalog is enabled. Use v2 resources instead.
 - The Consul UI does not support the v2 catalog API in this release. You must disable the UI in the Helm chart in order to use the v2 catalog API.
+- Secondary datacenters in WAN-federated deployments cannot enable the v2 catalog API in this release.
 - HCP Consul does not support the v2 catalog API in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
 - We do not recommend updating existing clusters to enable the v2 catalog in this release. Instead, deploy a new Consul cluster and [enable the v2 catalog in the Helm chart](/consul/docs/k8s/multiport/configure#enable-the-v2-catalog).
 
@@ -55,8 +56,9 @@ The following resources are available to help you use the v2 catalog API:
 
 ### Usage documentation
 
-- [Multi-port services overview](/consul/docs/k8s/multiport)
+- [Use the v2 Catalog API](/consul/docs/k8s/multiport)
 - [Configure multi-port services](/consul/docs/k8s/multiport/configure)
+- [Split TCP traffic between multiple ports](/consul/docs/k8s/multiport/traffic-split)
 
 ### Reference documentation
 
