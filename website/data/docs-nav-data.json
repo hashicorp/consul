@@ -1710,6 +1710,10 @@
     ]
   },
   {
+    "title": "Nomad",
+    "path": "nomad"
+  },
+  {
     "title": "AWS ECS",
     "routes": [
       {
