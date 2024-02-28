@@ -98,10 +98,10 @@ $ helm install consul hashicorp/consul --create-namespace --namespace consul --v
 
 ## Define the multi-port service
 
-Consul's v2 catalog supports two methods for defining multi-port services in Kubernetes:
+Consul's v2 catalog supports two new methods for registering services on the mesh in Kubernetes:
 
-- **Method 1**: Define a single Kubernetes Service that exposes multiple ports
-- **Method 2**: Define multiple Kubernetes Services that expose individual ports
+- **Method 1**: Register a Kubernetes service that select workloads which expose multiple ports
+- **Method 2**: Register multiple Kubernetes Services that direct traffic to an explicit port on the same workload
 
 These methods affect how the Services are addressed in Kubernetes.
 
