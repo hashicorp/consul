@@ -161,6 +161,10 @@ github.com/googleapis/gax-go/v2 v2.0.4/go.mod h1:0Wqv26UfaUD9n4G6kQubkQ+KchISgw+
 github.com/googleapis/gax-go/v2 v2.0.5/go.mod h1:DWXyrwAJ9X0FpwwEdw+IPEYBICEFu5mhpdKc/us6bOk=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0/go.mod h1:hgWBS7lorOAVIJEQMi4ZsPv9hVvWI6+ch50m39Pf2Ks=
+github.com/hashicorp/consul/api v1.28.0 h1:QWfM1UXnQaECMh7bwP5jt+/uJsCE09qWuYq3GWbBZA8=
+github.com/hashicorp/consul/api v1.28.0/go.mod h1:MyriVXDqGlf2ZeV6NW2NGdyl26W1mwF5nKLlg8xlNak=
+github.com/hashicorp/consul/envoyextensions v0.6.0 h1:PtbJUVKBMSGKXnTdSIw1EGyjWvMrmFvXcZuVeIT79Ls=
+github.com/hashicorp/consul/envoyextensions v0.6.0/go.mod h1:MwSQg5WUuAle1bGsJWS6/z/RNvs8Ob0sNvFZ98l/+Mc=
 github.com/hashicorp/consul/sdk v0.16.0 h1:SE9m0W6DEfgIVCJX7xU+iv/hUl4m/nxqMTnCdMxDpJ8=
 github.com/hashicorp/consul/sdk v0.16.0/go.mod h1:7pxqqhqoaPqnBnzXD1StKed62LqJeClzVsUEy85Zr0A=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
