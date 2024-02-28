@@ -15,7 +15,7 @@ FEATURES:
 
 * acl: add policy bindtype to binding rules. [[GH-19499](https://github.com/hashicorp/consul/issues/19499)]
 * agent: Introduces a new agent config default_intention_policy to decouple the default intention behavior from ACLs [[GH-20544](https://github.com/hashicorp/consul/issues/20544)]
-* agent: add fault injection filter support [[GH-7513](https://github.com/hashicorp/consul/issues/7513)]
+* agent: **(Enterprise Only)** Add fault injection filter support for Consul Service Mesh
 * cloud: Adds new API/CLI to initiate and manage linking a Consul cluster to HCP Consul Central [[GH-20312](https://github.com/hashicorp/consul/issues/20312)]
 * dns: adds experimental support for a refactored DNS server that is v1 and v2 Catalog compatible.
   Use `v2dns` in the `experiments` agent config to enable.
