@@ -29,10 +29,6 @@ For more information, refer to [fault injection](/consul/docs/manage-traffic/fau
 
 Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
 
-**API Gateway support for Nomad:** Nomad now supports the Consul API gateway, which enables external network clients to securely access applications and services running in a Consul datacenter. Consul API gateways can also forward requests from clients to specific destinations based on path or request protocol.
-
-Refer to [API gateway overview](/consul/docs/connect/gateways/api-gateway) for more information.
-
 **Transparent proxy for EC2 on ECS:**  Consul now supports transparent proxy mode for deployments running on EC2 instances in AWS Elastic Container Service (ECS). When service mesh proxies are in transparent proxy mode, Consul service mesh uses IPtables to direct all inbound and outbound traffic to the sidecar. Consul also uses information configured in service intentions to infer routes, which eliminates the need to explicitly configure upstreams.
 
 Consul’s transparent proxy allows applications to communicate through Consul’s service mesh without modifying their underlying configurations to use Consul DNS. The transparent proxy also hardens application security by preventing direct inbound connections that bypass the mesh.
