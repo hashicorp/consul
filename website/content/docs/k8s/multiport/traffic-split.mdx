@@ -8,7 +8,7 @@ description: Learn how to configure Consul to split TCP traffic between two port
 
 <Warning>
 
-Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
+The v2 catalog API is currently in beta. This documentation supports testing and development scenarios. Do not use the v2 catalog API in secure production environments.
 
 </Warning>
 
@@ -18,10 +18,10 @@ This page describes the process for splitting TCP, HTTP, and gRPC traffic betwee
 
 Splitting traffic between two ports of a multi-port service requires the [v2 catalog API](/consul/docs/architecture/v2/catalog).
 
-In addition, how you define a multi-port service affects how Services are addressed in Kubernetes. The instructions on this page offer examples for two configuration methods:
+In addition, they are two different workflows for registering Services in Kubernetes using the v2 catalog API. The instructions on this page offer examples for two configuration methods:
 
-- **Method 1**: Define a single Kubernetes Service that exposes multiple ports
-- **Method 2**: Define multiple Kubernetes Services that expose individual ports
+- **Method 1**: Register a Kubernetes service that select workloads which expose multiple ports
+- **Method 2**: Register multiple Kubernetes Services that direct traffic to an explicit port on the same workload
 
 For guidance on enabling the v2 catalog, deploying multi-port services using these methods, and applying traffic permissions to the services, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
 
