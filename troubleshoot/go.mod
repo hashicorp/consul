@@ -15,9 +15,9 @@ exclude (
 require (
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
-	github.com/hashicorp/consul/api v1.26.1
-	github.com/hashicorp/consul/envoyextensions v0.5.1
-	github.com/hashicorp/consul/sdk v0.15.0
+	github.com/hashicorp/consul/api v1.28.0
+	github.com/hashicorp/consul/envoyextensions v0.6.0
+	github.com/hashicorp/consul/sdk v0.16.0
 	github.com/stretchr/testify v1.8.3
 	google.golang.org/protobuf v1.30.0
 )
