@@ -40,7 +40,7 @@ require (
 	github.com/hashi-derek/grpc-proxy v0.0.0-20231207191910-191266484d75
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.26.1
+	github.com/hashicorp/consul/api v1.28.0
 	github.com/hashicorp/consul/envoyextensions v0.5.1
 	github.com/hashicorp/consul/proto-public v0.5.1
 	github.com/hashicorp/consul/sdk v0.16.0
