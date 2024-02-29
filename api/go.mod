@@ -4,6 +4,8 @@ go 1.19
 
 replace github.com/hashicorp/consul/sdk => ../sdk
 
+retract v1.28.0 // tag was mutated
+
 require (
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/consul/sdk v0.15.0
