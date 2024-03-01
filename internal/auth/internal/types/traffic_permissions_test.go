@@ -7,15 +7,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 func TestValidateTrafficPermissions_ParseError(t *testing.T) {
@@ -31,254 +31,302 @@ func TestValidateTrafficPermissions_ParseError(t *testing.T) {
 }
 
 func TestValidateTrafficPermissions(t *testing.T) {
+	const (
+		TrafficPermissions = 1 << iota
+		NamespaceTrafficPermissions
+		PartitionTrafficPermissions
+	)
+	all := TrafficPermissions | NamespaceTrafficPermissions | PartitionTrafficPermissions
+
 	cases := map[string]struct {
-		tp        *pbauth.TrafficPermissions
-		id        *pbresource.ID
-		expectErr string
+		// bitmask of what xTrafficPermissions to test
+		xTPs int
+
+		// following fields will be used to construct all the xTrafficPermissions
+		destination *pbauth.Destination // used only by TrafficPermissions
+		action      pbauth.Action
+		permissions []*pbauth.Permission
+
+		id         *pbresource.ID
+		expectErr  string
+		enterprise bool
 	}{
 		"ok-minimal": {
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{IdentityName: "wi-1"},
-				Action:      pbauth.Action_ACTION_ALLOW,
-			},
+			xTPs:        all,
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
 		},
-		"unspecified-action": {
-			// Any type other than the TrafficPermissions type would work
-			// to cause the error we are expecting
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "wi1",
-				},
-				Action:      pbauth.Action_ACTION_UNSPECIFIED,
-				Permissions: nil,
-			},
-			expectErr: `invalid "data.action" field`,
-		},
-		"invalid-action": {
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "wi1",
-				},
-				Action:      pbauth.Action(50),
-				Permissions: nil,
-			},
-			expectErr: `invalid "data.action" field`,
-		},
-		"no-destination": {
-			tp: &pbauth.TrafficPermissions{
-				Action:      pbauth.Action_ACTION_ALLOW,
-				Permissions: nil,
-			},
-			expectErr: `invalid "data.destination" field: cannot be empty`,
-		},
-		"source-tenancy": {
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "w1",
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition:     "ap1",
-								Peer:          "cl1",
-								SamenessGroup: "sg1",
-							},
+		"ok-permissions": {
+			xTPs:        all,
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							IdentityName: "wi-2",
+							Namespace:    "default",
+							Partition:    "default",
 						},
-						DestinationRules: nil,
+						{
+							IdentityName: "wi-1",
+							Namespace:    "default",
+							Partition:    "ap1",
+						},
+					},
+					DestinationRules: []*pbauth.DestinationRule{
+						{
+							PathPrefix: "/",
+							Methods:    []string{"GET"},
+							Headers:    []*pbauth.DestinationRuleHeader{{Name: "X-Consul-Token", Present: false, Invert: true}},
+							PortNames:  []string{"https"},
+							Exclude:    []*pbauth.ExcludePermissionRule{{PathExact: "/admin"}},
+						},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
+		},
+		"unspecified-action": {
+			xTPs:        all,
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_UNSPECIFIED,
+			expectErr:   `invalid "data.action" field`,
+		},
+		"invalid-action": {
+			xTPs:        all,
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action(50),
+			expectErr:   `invalid "data.action" field`,
+		},
+		"deny-action": {
+			xTPs:        all,
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_DENY,
+			expectErr:   `invalid "data.action" field`,
+			enterprise:  true,
+		},
+		"no-destination": {
+			xTPs:        TrafficPermissions,
+			destination: nil,
+			action:      pbauth.Action_ACTION_ALLOW,
+			expectErr:   `invalid "data.destination" field: cannot be empty`,
+		},
+		"source-tenancy": {
+			xTPs:        all,
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition:     "ap1",
+							Peer:          "cl1",
+							SamenessGroup: "sg1",
+						},
+					},
+					DestinationRules: nil,
+				},
+			},
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": permissions sources may not specify partitions, peers, and sameness_groups together`,
 		},
 		"source-has-same-tenancy-as-tp": {
+			xTPs: all,
 			id: &pbresource.ID{
 				Tenancy: &pbresource.Tenancy{
 					Partition: resource.DefaultPartitionName,
 				},
 			},
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "w1",
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition:     resource.DefaultPartitionName,
-								Peer:          resource.DefaultPeerName,
-								SamenessGroup: "",
-							},
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition:     resource.DefaultPartitionName,
+							Peer:          resource.DefaultPeerName,
+							SamenessGroup: "",
 						},
 					},
 				},
 			},
 		},
 		"source-has-partition-set": {
+			xTPs: all,
 			id: &pbresource.ID{
 				Tenancy: &pbresource.Tenancy{
 					Partition: resource.DefaultPartitionName,
 				},
 			},
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "w1",
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition:     "part",
-								Peer:          resource.DefaultPeerName,
-								SamenessGroup: "",
-							},
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition:     "part",
+							Peer:          resource.DefaultPeerName,
+							SamenessGroup: "",
 						},
 					},
 				},
 			},
 		},
 		"source-has-peer-set": {
+			xTPs: all,
 			id: &pbresource.ID{
 				Tenancy: &pbresource.Tenancy{
 					Partition: resource.DefaultPartitionName,
 				},
 			},
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "w1",
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition:     resource.DefaultNamespaceName,
-								Peer:          "peer",
-								SamenessGroup: "",
-							},
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition:     resource.DefaultPartitionName,
+							Peer:          "peer",
+							SamenessGroup: "",
 						},
 					},
 				},
 			},
 		},
 		"source-has-sameness-group-set": {
+			xTPs: all,
 			id: &pbresource.ID{
 				Tenancy: &pbresource.Tenancy{
 					Partition: resource.DefaultPartitionName,
 				},
 			},
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "w1",
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition:     resource.DefaultNamespaceName,
-								Peer:          resource.DefaultPeerName,
-								SamenessGroup: "sg1",
-							},
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition:     resource.DefaultPartitionName,
+							Peer:          resource.DefaultPeerName,
+							SamenessGroup: "sg1",
 						},
 					},
 				},
 			},
 		},
 		"source-has-peer-and-partition-set": {
+			xTPs: all,
 			id: &pbresource.ID{
 				Tenancy: &pbresource.Tenancy{
 					Partition: resource.DefaultPartitionName,
 				},
 			},
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "w1",
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition:     "part",
-								Peer:          "peer",
-								SamenessGroup: "",
-							},
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition:     "part",
+							Peer:          "peer",
+							SamenessGroup: "",
 						},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": permissions sources may not specify partitions, peers, and sameness_groups together`,
 		},
 		"source-has-sameness-group-and-partition-set": {
+			xTPs: all,
 			id: &pbresource.ID{
 				Tenancy: &pbresource.Tenancy{
 					Partition: resource.DefaultPartitionName,
 				},
 			},
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "w1",
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition:     "part",
-								Peer:          resource.DefaultPeerName,
-								SamenessGroup: "sg1",
-							},
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition:     "part",
+							Peer:          resource.DefaultPeerName,
+							SamenessGroup: "sg1",
 						},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": permissions sources may not specify partitions, peers, and sameness_groups together`,
 		},
 		"source-has-sameness-group-and-partition-peer-set": {
+			xTPs: all,
 			id: &pbresource.ID{
 				Tenancy: &pbresource.Tenancy{
 					Partition: resource.DefaultPartitionName,
 				},
 			},
-			tp: &pbauth.TrafficPermissions{
-				Destination: &pbauth.Destination{
-					IdentityName: "w1",
-				},
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition:     "part",
-								Peer:          "peer",
-								SamenessGroup: "sg1",
-							},
+			destination: &pbauth.Destination{IdentityName: "wi-1"},
+			action:      pbauth.Action_ACTION_ALLOW,
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition:     "part",
+							Peer:          "peer",
+							SamenessGroup: "sg1",
 						},
 					},
 				},
 			},
-			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": permissions sources may not specify partitions, peers, and sameness_groups together`,
 		},
 	}
 
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
-			resBuilder := resourcetest.Resource(pbauth.TrafficPermissionsType, "tp").
-				WithData(t, tc.tp)
-			if tc.id != nil {
-				resBuilder = resBuilder.WithTenancy(tc.id.Tenancy)
+			check := func(t *testing.T, typ *pbresource.Type, data protoreflect.ProtoMessage, validateFunc resource.ValidationHook) {
+				resBuilder := resourcetest.Resource(typ, "tp").
+					WithData(t, data)
+				if tc.id != nil {
+					resBuilder = resBuilder.WithTenancy(tc.id.Tenancy)
+				}
+				res := resBuilder.Build()
+				err := validateFunc(res)
+				if tc.expectErr == "" {
+					require.NoError(t, err)
+				} else if tc.enterprise && versiontest.IsEnterprise() {
+					require.NoError(t, err)
+				} else {
+					// Expect error in CE, not ENT
+					testutil.RequireErrorContains(t, err, tc.expectErr)
+				}
 			}
-			res := resBuilder.Build()
-
-			err := ValidateTrafficPermissions(res)
-			if tc.expectErr == "" {
-				require.NoError(t, err)
-			} else {
-				testutil.RequireErrorContains(t, err, tc.expectErr)
+			if tc.xTPs&TrafficPermissions != 0 {
+				t.Run("TrafficPermissions", func(t *testing.T) {
+					tp := &pbauth.TrafficPermissions{
+						Destination: tc.destination,
+						Action:      tc.action,
+						Permissions: tc.permissions,
+					}
+					check(t, pbauth.TrafficPermissionsType, tp, ValidateTrafficPermissions)
+				})
+			}
+			if tc.xTPs&NamespaceTrafficPermissions != 0 {
+				t.Run("NamespaceTrafficPermissions", func(t *testing.T) {
+					ntp := &pbauth.NamespaceTrafficPermissions{
+						Action:      tc.action,
+						Permissions: tc.permissions,
+					}
+					check(t, pbauth.NamespaceTrafficPermissionsType, ntp, ValidateNamespaceTrafficPermissions)
+				})
+			}
+			if tc.xTPs&PartitionTrafficPermissions != 0 {
+				t.Run("PartitionTrafficPermissions", func(t *testing.T) {
+					ptp := &pbauth.PartitionTrafficPermissions{
+						Action:      tc.action,
+						Permissions: tc.permissions,
+					}
+					check(t, pbauth.PartitionTrafficPermissionsType, ptp, ValidatePartitionTrafficPermissions)
+				})
 			}
 		})
 	}
@@ -441,6 +489,82 @@ func permissionsTestCases() map[string]permissionTestCase {
 			},
 			expectErr: `invalid element at index 0 of list "destination_rule": prefix values, regex values, and explicit names must not combined`,
 		},
+		"destination-rule-empty": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "destination_rule": rules must contain path, method, header, or port fields`,
+		},
+		"destination-rule-only-empty-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{Exclude: []*pbauth.ExcludePermissionRule{{}}},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_rules": invalid element at index 0 of list "exclude_permission_rule": rules must contain path, method, header, or port fields`,
+		},
+		"destination-rule-empty-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						PathExact: "/",
+						Exclude:   []*pbauth.ExcludePermissionRule{{}},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_rules": invalid element at index 0 of list "exclude_permission_rule": rules must contain path, method, header, or port fields`,
+		},
+		"destination-rule-mismatched-ports-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						PortNames: []string{"foo"},
+						Exclude:   []*pbauth.ExcludePermissionRule{{PortNames: []string{"bar"}}},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_rules": invalid element at index 0 of list "exclude_permission_header_rule": exclude permission rules must select a subset of ports and methods defined in the destination rule`,
+		},
+		"destination-rule-ports-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						Exclude: []*pbauth.ExcludePermissionRule{{PortNames: []string{"bar"}}},
+					},
+				},
+			},
+		},
+		"destination-rule-invalid-headers-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						Headers: []*pbauth.DestinationRuleHeader{{Name: "auth"}},
+						Exclude: []*pbauth.ExcludePermissionRule{{Headers: []*pbauth.DestinationRuleHeader{{}}}},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_header_rules": invalid element at index 0 of list "exclude_permission_header_rule": header rule must contain header name`,
+		},
+		"destination-rule-mismatched-methods-exclude": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{{IdentityName: "i1"}},
+				DestinationRules: []*pbauth.DestinationRule{
+					{
+						Methods: []string{"post"},
+						Exclude: []*pbauth.ExcludePermissionRule{{Methods: []string{"patch"}}},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "exclude_permission_rules": invalid element at index 0 of list "exclude_permission_header_rule": exclude permission rules must select a subset of ports and methods defined in the destination rule`,
+		},
 	}
 }
 
@@ -473,164 +597,134 @@ func TestValidateTrafficPermissions_Permissions(t *testing.T) {
 	}
 }
 
-func TestMutateTrafficPermissions(t *testing.T) {
-	type testcase struct {
-		policyTenancy *pbresource.Tenancy
-		tp            *pbauth.TrafficPermissions
-		expect        *pbauth.TrafficPermissions
-		expectErr     string
-	}
+type mutationTestCase struct {
+	tenancy     *pbresource.Tenancy
+	permissions []*pbauth.Permission
+	expect      []*pbauth.Permission
+	expectErr   string
+}
 
-	run := func(t *testing.T, tc testcase) {
-		tenancy := tc.policyTenancy
-		if tenancy == nil {
-			tenancy = resource.DefaultNamespacedTenancy()
-		}
-		res := resourcetest.Resource(pbauth.TrafficPermissionsType, "api").
-			WithTenancy(tenancy).
-			WithData(t, tc.tp).
-			Build()
-
-		err := MutateTrafficPermissions(res)
-
-		got := resourcetest.MustDecode[*pbauth.TrafficPermissions](t, res)
-
-		if tc.expectErr == "" {
-			require.NoError(t, err)
-			prototest.AssertDeepEqual(t, tc.expect, got.Data)
-		} else {
-			testutil.RequireErrorContains(t, err, tc.expectErr)
-		}
-	}
-
-	cases := map[string]testcase{
-		"empty-1": {
-			tp:     &pbauth.TrafficPermissions{},
-			expect: &pbauth.TrafficPermissions{},
+func mutationTestCases() map[string]mutationTestCase {
+	return map[string]mutationTestCase{
+		"empty": {
+			permissions: nil,
+			expect:      nil,
 		},
 		"kitchen-sink-default-partition": {
-			tp: &pbauth.TrafficPermissions{
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{},
-							{
-								Peer: "not-default",
-							},
-							{
-								Namespace: "ns1",
-							},
-							{
-								IdentityName: "i1",
-								Namespace:    "ns1",
-								Partition:    "ap1",
-							},
-							{
-								IdentityName: "i1",
-								Namespace:    "ns1",
-								Peer:         "local",
-							},
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{},
+						{
+							Peer: "not-default",
+						},
+						{
+							Namespace: "ns1",
+						},
+						{
+							IdentityName: "i1",
+							Namespace:    "ns1",
+							Partition:    "ap1",
+						},
+						{
+							IdentityName: "i1",
+							Namespace:    "ns1",
+							Peer:         "local",
 						},
 					},
 				},
 			},
-			expect: &pbauth.TrafficPermissions{
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition: "default",
-								Peer:      "local",
-							},
-							{
-								Peer: "not-default",
-							},
-							{
-								Namespace: "ns1",
-								Partition: "default",
-								Peer:      "local",
-							},
-							{
-								IdentityName: "i1",
-								Namespace:    "ns1",
-								Partition:    "ap1",
-								// TODO(peering/v2) revisit peer defaulting
-								// Peer:         "local",
-							},
-							{
-								IdentityName: "i1",
-								Namespace:    "ns1",
-								Partition:    "default",
-								Peer:         "local",
-							},
+			expect: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition: "default",
+							Peer:      "local",
+						},
+						{
+							Peer: "not-default",
+						},
+						{
+							Namespace: "ns1",
+							Partition: "default",
+							Peer:      "local",
+						},
+						{
+							IdentityName: "i1",
+							Namespace:    "ns1",
+							Partition:    "ap1",
+							// TODO(peering/v2) revisit peer defaulting
+							// Peer:         "local",
+						},
+						{
+							IdentityName: "i1",
+							Namespace:    "ns1",
+							Partition:    "default",
+							Peer:         "local",
 						},
 					},
 				},
 			},
 		},
 		"kitchen-sink-excludes-default-partition": {
-			tp: &pbauth.TrafficPermissions{
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Exclude: []*pbauth.ExcludeSource{
-									{},
-									{
-										Peer: "not-default",
-									},
-									{
-										Namespace: "ns1",
-									},
-									{
-										IdentityName: "i1",
-										Namespace:    "ns1",
-										Partition:    "ap1",
-									},
-									{
-										IdentityName: "i1",
-										Namespace:    "ns1",
-										Peer:         "local",
-									},
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Exclude: []*pbauth.ExcludeSource{
+								{},
+								{
+									Peer: "not-default",
+								},
+								{
+									Namespace: "ns1",
+								},
+								{
+									IdentityName: "i1",
+									Namespace:    "ns1",
+									Partition:    "ap1",
+								},
+								{
+									IdentityName: "i1",
+									Namespace:    "ns1",
+									Peer:         "local",
 								},
 							},
 						},
 					},
 				},
 			},
-			expect: &pbauth.TrafficPermissions{
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition: "default",
-								Peer:      "local",
-								Exclude: []*pbauth.ExcludeSource{
-									{
-										Partition: "default",
-										Peer:      "local",
-									},
-									{
-										Peer: "not-default",
-									},
-									{
-										Namespace: "ns1",
-										Partition: "default",
-										Peer:      "local",
-									},
-									{
-										IdentityName: "i1",
-										Namespace:    "ns1",
-										Partition:    "ap1",
-										// TODO(peering/v2) revisit peer defaulting
-										// Peer:         "local",
-									},
-									{
-										IdentityName: "i1",
-										Namespace:    "ns1",
-										Partition:    "default",
-										Peer:         "local",
-									},
+			expect: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition: "default",
+							Peer:      "local",
+							Exclude: []*pbauth.ExcludeSource{
+								{
+									Partition: "default",
+									Peer:      "local",
+								},
+								{
+									Peer: "not-default",
+								},
+								{
+									Namespace: "ns1",
+									Partition: "default",
+									Peer:      "local",
+								},
+								{
+									IdentityName: "i1",
+									Namespace:    "ns1",
+									Partition:    "ap1",
+									// TODO(peering/v2) revisit peer defaulting
+									// Peer:         "local",
+								},
+								{
+									IdentityName: "i1",
+									Namespace:    "ns1",
+									Partition:    "default",
+									Peer:         "local",
 								},
 							},
 						},
@@ -639,166 +733,158 @@ func TestMutateTrafficPermissions(t *testing.T) {
 			},
 		},
 		"kitchen-sink-non-default-partition": {
-			policyTenancy: &pbresource.Tenancy{
+			tenancy: &pbresource.Tenancy{
 				Partition: "ap1",
 				Namespace: "ns3",
 			},
-			tp: &pbauth.TrafficPermissions{
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{},
-							{
-								Peer: "not-default",
-							},
-							{
-								Namespace: "ns1",
-							},
-							{
-								IdentityName: "i1",
-								Namespace:    "ns1",
-								Partition:    "ap5",
-							},
-							{
-								IdentityName: "i1",
-								Namespace:    "ns1",
-								Peer:         "local",
-							},
-							{
-								IdentityName: "i2",
-							},
-							{
-								IdentityName: "i2",
-								Partition:    "non-default",
-							},
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{},
+						{
+							Peer: "not-default",
+						},
+						{
+							Namespace: "ns1",
+						},
+						{
+							IdentityName: "i1",
+							Namespace:    "ns1",
+							Partition:    "ap5",
+						},
+						{
+							IdentityName: "i1",
+							Namespace:    "ns1",
+							Peer:         "local",
+						},
+						{
+							IdentityName: "i2",
+						},
+						{
+							IdentityName: "i2",
+							Partition:    "non-default",
 						},
 					},
 				},
 			},
-			expect: &pbauth.TrafficPermissions{
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition: "ap1",
-								Namespace: "",
-								Peer:      "local",
-							},
-							{
-								Peer: "not-default",
-							},
-							{
-								Namespace: "ns1",
-								Partition: "ap1",
-								Peer:      "local",
-							},
-							{
-								IdentityName: "i1",
-								Namespace:    "ns1",
-								Partition:    "ap5",
-								// TODO(peering/v2) revisit to figure out defaulting
-								// Peer:         "local",
-							},
-							{
-								IdentityName: "i1",
-								Namespace:    "ns1",
-								Partition:    "ap1",
-								Peer:         "local",
-							},
-							{
-								IdentityName: "i2",
-								Namespace:    "ns3",
-								Partition:    "ap1",
-								Peer:         "local",
-							},
-							{
-								IdentityName: "i2",
-								Namespace:    "default",
-								Partition:    "non-default",
-								Peer:         "local",
-							},
+			expect: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition: "ap1",
+							Namespace: "",
+							Peer:      "local",
+						},
+						{
+							Peer: "not-default",
+						},
+						{
+							Namespace: "ns1",
+							Partition: "ap1",
+							Peer:      "local",
+						},
+						{
+							IdentityName: "i1",
+							Namespace:    "ns1",
+							Partition:    "ap5",
+							// TODO(peering/v2) revisit to figure out defaulting
+							// Peer:         "local",
+						},
+						{
+							IdentityName: "i1",
+							Namespace:    "ns1",
+							Partition:    "ap1",
+							Peer:         "local",
+						},
+						{
+							IdentityName: "i2",
+							Namespace:    "ns3",
+							Partition:    "ap1",
+							Peer:         "local",
+						},
+						{
+							IdentityName: "i2",
+							Namespace:    "default",
+							Partition:    "non-default",
+							Peer:         "local",
 						},
 					},
 				},
 			},
 		},
 		"kitchen-sink-excludes-non-default-partition": {
-			policyTenancy: &pbresource.Tenancy{
+			tenancy: &pbresource.Tenancy{
 				Partition: "ap1",
 				Namespace: "ns3",
 			},
-			tp: &pbauth.TrafficPermissions{
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Exclude: []*pbauth.ExcludeSource{
-									{},
-									{
-										Peer: "not-default",
-									},
-									{
-										Namespace: "ns1",
-									},
-									{
-										IdentityName: "i1",
-										Namespace:    "ns1",
-										Partition:    "ap5",
-									},
-									{
-										IdentityName: "i1",
-										Namespace:    "ns1",
-										Peer:         "local",
-									},
-									{
-										IdentityName: "i2",
-									},
+			permissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Exclude: []*pbauth.ExcludeSource{
+								{},
+								{
+									Peer: "not-default",
+								},
+								{
+									Namespace: "ns1",
+								},
+								{
+									IdentityName: "i1",
+									Namespace:    "ns1",
+									Partition:    "ap5",
+								},
+								{
+									IdentityName: "i1",
+									Namespace:    "ns1",
+									Peer:         "local",
+								},
+								{
+									IdentityName: "i2",
 								},
 							},
 						},
 					},
 				},
 			},
-			expect: &pbauth.TrafficPermissions{
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								Partition: "ap1",
-								Peer:      "local",
-								Exclude: []*pbauth.ExcludeSource{
-									{
-										Partition: "ap1",
-										Namespace: "",
-										Peer:      "local",
-									},
-									{
-										Peer: "not-default",
-									},
-									{
-										Namespace: "ns1",
-										Partition: "ap1",
-										Peer:      "local",
-									},
-									{
-										IdentityName: "i1",
-										Namespace:    "ns1",
-										Partition:    "ap5",
-										// TODO(peering/v2) revisit peer defaulting
-										// Peer:         "local",
-									},
-									{
-										IdentityName: "i1",
-										Namespace:    "ns1",
-										Partition:    "ap1",
-										Peer:         "local",
-									},
-									{
-										IdentityName: "i2",
-										Namespace:    "ns3",
-										Partition:    "ap1",
-										Peer:         "local",
-									},
+			expect: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							Partition: "ap1",
+							Peer:      "local",
+							Exclude: []*pbauth.ExcludeSource{
+								{
+									Partition: "ap1",
+									Namespace: "",
+									Peer:      "local",
+								},
+								{
+									Peer: "not-default",
+								},
+								{
+									Namespace: "ns1",
+									Partition: "ap1",
+									Peer:      "local",
+								},
+								{
+									IdentityName: "i1",
+									Namespace:    "ns1",
+									Partition:    "ap5",
+									// TODO(peering/v2) revisit peer defaulting
+									// Peer:         "local",
+								},
+								{
+									IdentityName: "i1",
+									Namespace:    "ns1",
+									Partition:    "ap1",
+									Peer:         "local",
+								},
+								{
+									IdentityName: "i2",
+									Namespace:    "ns3",
+									Partition:    "ap1",
+									Peer:         "local",
 								},
 							},
 						},
@@ -807,8 +893,36 @@ func TestMutateTrafficPermissions(t *testing.T) {
 			},
 		},
 	}
+}
 
-	for name, tc := range cases {
+func TestMutateTrafficPermissions(t *testing.T) {
+	run := func(t *testing.T, tc mutationTestCase) {
+		tenancy := tc.tenancy
+		if tenancy == nil {
+			tenancy = resource.DefaultNamespacedTenancy()
+		}
+		res := resourcetest.Resource(pbauth.TrafficPermissionsType, "api").
+			WithTenancy(tenancy).
+			WithData(t, &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{IdentityName: "wi1"},
+				Action:      pbauth.Action_ACTION_ALLOW,
+				Permissions: tc.permissions,
+			}).
+			Build()
+
+		err := MutateTrafficPermissions(res)
+
+		got := resourcetest.MustDecode[*pbauth.TrafficPermissions](t, res)
+
+		if tc.expectErr == "" {
+			require.NoError(t, err)
+			prototest.AssertDeepEqual(t, tc.expect, got.Data.Permissions)
+		} else {
+			testutil.RequireErrorContains(t, err, tc.expectErr)
+		}
+	}
+
+	for name, tc := range mutationTestCases() {
 		t.Run(name, func(t *testing.T) {
 			run(t, tc)
 		})
@@ -816,130 +930,83 @@ func TestMutateTrafficPermissions(t *testing.T) {
 }
 
 func TestTrafficPermissionsACLs(t *testing.T) {
-	// Wire up a registry to generically invoke hooks
 	registry := resource.NewRegistry()
 	Register(registry)
 
-	type testcase struct {
-		rules   string
-		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
-		readOK  string
-		writeOK string
-		listOK  string
+	tpData := &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi1"},
+		Action:      pbauth.Action_ACTION_ALLOW,
 	}
-
-	const (
-		DENY    = "deny"
-		ALLOW   = "allow"
-		DEFAULT = "default"
-	)
-
-	checkF := func(t *testing.T, expect string, got error) {
-		switch expect {
-		case ALLOW:
-			if acl.IsErrPermissionDenied(got) {
-				t.Fatal("should be allowed")
-			}
-		case DENY:
-			if !acl.IsErrPermissionDenied(got) {
-				t.Fatal("should be denied")
-			}
-		case DEFAULT:
-			require.Nil(t, got, "expected fallthrough decision")
-		default:
-			t.Fatalf("unexpected expectation: %q", expect)
-		}
-	}
-
-	reg, ok := registry.Resolve(pbauth.TrafficPermissionsType)
-	require.True(t, ok)
-
-	run := func(t *testing.T, tc testcase) {
-		tpData := &pbauth.TrafficPermissions{
-			Destination: &pbauth.Destination{IdentityName: "wi1"},
-			Action:      pbauth.Action_ACTION_ALLOW,
-		}
-		res := resourcetest.Resource(pbauth.TrafficPermissionsType, "tp1").
-			WithTenancy(resource.DefaultNamespacedTenancy()).
-			WithData(t, tpData).
-			Build()
-		resourcetest.ValidateAndNormalize(t, registry, res)
-
-		config := acl.Config{
-			WildcardName: structs.WildcardSpecifier,
-		}
-		authz, err := acl.NewAuthorizerFromRules(tc.rules, &config, nil)
-		require.NoError(t, err)
-		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
-
-		t.Run("read", func(t *testing.T) {
-			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, res)
-			checkF(t, tc.readOK, err)
-		})
-		t.Run("write", func(t *testing.T) {
-			err := reg.ACLs.Write(authz, &acl.AuthorizerContext{}, res)
-			checkF(t, tc.writeOK, err)
-		})
-		t.Run("list", func(t *testing.T) {
-			err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
-			checkF(t, tc.listOK, err)
-		})
-	}
-
-	cases := map[string]testcase{
+	cases := map[string]resourcetest.ACLTestCase{
 		"no rules": {
-			rules:   ``,
-			readOK:  DENY,
-			writeOK: DENY,
-			listOK:  DEFAULT,
+			Rules:   ``,
+			Data:    tpData,
+			Typ:     pbauth.TrafficPermissionsType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
 		},
 		"workload identity w1 read, no intentions": {
-			rules:   `identity "wi1" { policy = "read" }`,
-			readOK:  ALLOW,
-			writeOK: DENY,
-			listOK:  DEFAULT,
+			Rules:   `identity "wi1" { policy = "read" }`,
+			Data:    tpData,
+			Typ:     pbauth.TrafficPermissionsType,
+			ReadOK:  resourcetest.ALLOW,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
 		},
 		"workload identity w1 read, deny intentions": {
-			rules:   `identity "wi1" { policy = "read", intentions = "deny" }`,
-			readOK:  DENY,
-			writeOK: DENY,
-			listOK:  DEFAULT,
+			Rules:   `identity "wi1" { policy = "read", intentions = "deny" }`,
+			Data:    tpData,
+			Typ:     pbauth.TrafficPermissionsType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
 		},
 		"workload identity w1 read, intentions read": {
-			rules:   `identity "wi1" { policy = "read", intentions = "read" }`,
-			readOK:  ALLOW,
-			writeOK: DENY,
-			listOK:  DEFAULT,
+			Rules:   `identity "wi1" { policy = "read", intentions = "read" }`,
+			Data:    tpData,
+			Typ:     pbauth.TrafficPermissionsType,
+			ReadOK:  resourcetest.ALLOW,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
 		},
-		"workload identity w1 write, write intentions": {
-			rules:   `identity "wi1" { policy = "read", intentions = "write" }`,
-			readOK:  ALLOW,
-			writeOK: ALLOW,
-			listOK:  DEFAULT,
+		"workload identity w1 read, intentions write": {
+			Rules:   `identity "wi1" { policy = "read", intentions = "write" }`,
+			Data:    tpData,
+			Typ:     pbauth.TrafficPermissionsType,
+			ReadOK:  resourcetest.ALLOW,
+			WriteOK: resourcetest.ALLOW,
+			ListOK:  resourcetest.DEFAULT,
 		},
 		"workload identity w1 write, deny intentions": {
-			rules:   `identity "wi1" { policy = "write", intentions = "deny" }`,
-			readOK:  DENY,
-			writeOK: DENY,
-			listOK:  DEFAULT,
+			Rules:   `identity "wi1" { policy = "write", intentions = "deny" }`,
+			Data:    tpData,
+			Typ:     pbauth.TrafficPermissionsType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
 		},
 		"workload identity w1 write, intentions read": {
-			rules:   `identity "wi1" { policy = "write", intentions = "read" }`,
-			readOK:  ALLOW,
-			writeOK: DENY,
-			listOK:  DEFAULT,
+			Rules:   `identity "wi1" { policy = "write", intentions = "read" }`,
+			Data:    tpData,
+			Typ:     pbauth.TrafficPermissionsType,
+			ReadOK:  resourcetest.ALLOW,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
 		},
 		"workload identity w1 write, intentions write": {
-			rules:   `identity "wi1" { policy = "write", intentions = "write" }`,
-			readOK:  ALLOW,
-			writeOK: ALLOW,
-			listOK:  DEFAULT,
+			Rules:   `identity "wi1" { policy = "write", intentions = "write" }`,
+			Data:    tpData,
+			Typ:     pbauth.TrafficPermissionsType,
+			ReadOK:  resourcetest.ALLOW,
+			WriteOK: resourcetest.ALLOW,
+			ListOK:  resourcetest.DEFAULT,
 		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			run(t, tc)
+			resourcetest.RunACLTestCase(t, tc, registry)
 		})
 	}
 }

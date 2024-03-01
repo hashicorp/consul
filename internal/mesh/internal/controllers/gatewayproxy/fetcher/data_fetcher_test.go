@@ -14,7 +14,6 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -110,10 +109,7 @@ func (suite *dataFetcherSuite) setupWithTenancy(tenancy *pbresource.Tenancy) {
 
 func (suite *dataFetcherSuite) TestFetcher_FetchMeshGateway() {
 	suite.runTestCaseWithTenancies(func(_ *pbresource.Tenancy) {
-		c := cache.New()
-
 		f := Fetcher{
-			cache:  c,
 			client: suite.client,
 		}
 
@@ -143,10 +139,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchMeshGateway() {
 
 func (suite *dataFetcherSuite) TestFetcher_FetchProxyStateTemplate() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		c := cache.New()
-
 		f := Fetcher{
-			cache:  c,
 			client: suite.client,
 		}
 
@@ -176,10 +169,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchProxyStateTemplate() {
 
 func (suite *dataFetcherSuite) TestFetcher_FetchWorkload() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		c := cache.New()
-
 		f := Fetcher{
-			cache:  c,
 			client: suite.client,
 		}
 
@@ -200,10 +190,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload() {
 
 func (suite *dataFetcherSuite) TestFetcher_FetchExportedServices() {
 	suite.runTestCaseWithTenancies(func(_ *pbresource.Tenancy) {
-		c := cache.New()
-
 		f := Fetcher{
-			cache:  c,
 			client: suite.client,
 		}
 
@@ -224,10 +211,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExportedServices() {
 
 func (suite *dataFetcherSuite) TestFetcher_FetchService() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		c := cache.New()
-
 		f := Fetcher{
-			cache:  c,
 			client: suite.client,
 		}
 

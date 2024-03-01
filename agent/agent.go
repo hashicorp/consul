@@ -813,6 +813,15 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
 	}
 
+	// If DefaultIntentionPolicy is defined, it should override
+	// the values inherited from ACLDefaultPolicy.
+	switch a.config.DefaultIntentionPolicy {
+	case "allow":
+		intentionDefaultAllow = true
+	case "deny":
+		intentionDefaultAllow = false
+	}
+
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// Start the proxy config manager.
@@ -1131,11 +1140,13 @@ func (a *Agent) listenAndServeV2DNS() error {
 
 	// create server
 	cfg := dns.Config{
-		AgentConfig: a.config,
-		EntMeta:     *a.AgentEnterpriseMeta(),
-		Logger:      a.logger,
-		Processor:   processor,
-		TokenFunc:   a.getTokenFunc(),
+		AgentConfig:                 a.config,
+		EntMeta:                     *a.AgentEnterpriseMeta(),
+		Logger:                      a.logger,
+		Processor:                   processor,
+		TokenFunc:                   a.getTokenFunc(),
+		TranslateAddressFunc:        a.TranslateAddress,
+		TranslateServiceAddressFunc: a.TranslateServiceAddress,
 	}
 
 	for _, addr := range a.config.DNSAddrs {
@@ -4747,8 +4758,8 @@ func (a *Agent) proxyDataSources(server *consul.Server) proxycfg.DataSources {
 		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.HTTPChecks = proxycfgglue.ServerHTTPChecks(deps, a.config.NodeName, proxycfgglue.CacheHTTPChecks(a.cache), a.State)
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
-		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
-		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps)
+		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps, a.config.DefaultIntentionPolicy)
+		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps, a.config.DefaultIntentionPolicy)
 		sources.InternalServiceDump = proxycfgglue.ServerInternalServiceDump(deps, proxycfgglue.CacheInternalServiceDump(a.cache))
 		sources.PeeringList = proxycfgglue.ServerPeeringList(deps)
 		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)

@@ -21,6 +21,11 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/fullstorydev/grpchan/inprocgrpc"
+	"go.etcd.io/bbolt"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -31,11 +36,6 @@ import (
 	walmetrics "github.com/hashicorp/raft-wal/metrics"
 	"github.com/hashicorp/raft-wal/verifier"
 	"github.com/hashicorp/serf/serf"
-	"go.etcd.io/bbolt"
-	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
-
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/blockingquery"
@@ -53,6 +53,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -526,7 +527,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-	if err := config.CheckACL(); err != nil {
+	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
 
@@ -889,6 +890,23 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// to enable RPC forwarding.
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 
+	// Start watching HCP Link resource. This needs to be created after
+	// the GRPC services are set up in order for the resource service client to
+	// function. This uses the insecure grpc channel so that it doesn't need to
+	// present a valid ACL token.
+	go hcp.RunHCPLinkWatcher(
+		&lib.StopChannelContext{StopCh: shutdownCh},
+		logger.Named("hcp-link-watcher"),
+		pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
+		hcp.HCPManagerLifecycleFn(
+			s.hcpManager,
+			hcpclient.NewClient,
+			bootstrap.LoadManagementToken,
+			flat.HCP.Config,
+			flat.HCP.DataDir,
+		),
+	)
+
 	s.controllerManager = controller.NewManager(
 		// Usage of the insecure + unsafe grpc chan is required for the controller
 		// manager. It must be unauthorized so that controllers do not need to
@@ -990,13 +1008,13 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
-	hcpctl.RegisterControllers(s.controllerManager, hcpctl.ControllerDependencies{
-		ResourceApisEnabled:    s.useV2Resources,
-		HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
-		CloudConfig:            deps.HCP.Config,
-		DataDir:                deps.HCP.DataDir,
-		HCPManager:             s.hcpManager,
-	})
+	hcpctl.RegisterControllers(
+		s.controllerManager, hcpctl.ControllerDependencies{
+			ResourceApisEnabled:    s.useV2Resources,
+			HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
+			CloudConfig:            deps.HCP.Config,
+		},
+	)
 
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {
@@ -1043,10 +1061,11 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		})
 
 		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
+		multicluster.RegisterControllers(s.controllerManager)
+	} else {
+		shim := NewExportedServicesShim(s)
+		multicluster.RegisterCompatControllers(s.controllerManager, multicluster.DefaultCompatControllerDependencies(shim))
 	}
-
-	shim := NewExportedServicesShim(s)
-	multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies(shim))
 
 	reaper.RegisterControllers(s.controllerManager)
 

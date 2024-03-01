@@ -13,6 +13,8 @@ import (
 	"github.com/miekg/dns"
 )
 
+type TranslateAddressAccept int
+
 // MaxLabelLength is the maximum length for a name that can be used in DNS.
 const (
 	MaxLabelLength = 63
@@ -20,6 +22,12 @@ const (
 	arpaLabel     = "arpa"
 	arpaIPV4Label = "in-addr"
 	arpaIPV6Label = "ip6"
+
+	TranslateAddressAcceptDomain TranslateAddressAccept = 1 << iota
+	TranslateAddressAcceptIPv4
+	TranslateAddressAcceptIPv6
+
+	TranslateAddressAcceptAny TranslateAddressAccept = ^0
 )
 
 // InvalidNameRe is a regex that matches characters which can not be included in

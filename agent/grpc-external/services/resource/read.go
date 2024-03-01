@@ -24,7 +24,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	}
 
 	// acl.EnterpriseMeta acl.AuthorizerContext follow rules for V1 resources since they integrate with the V1 acl subsystem.
-	// pbresource.Tenacy follows rules for V2 resources and the Resource service.
+	// pbresource.Tenancy follows rules for V2 resources and the Resource service.
 	// Example:
 	//
 	//    A CE namespace scoped resource:
@@ -101,6 +101,10 @@ func (s *Server) ensureReadRequestValid(req *pbresource.ReadRequest) (*resource.
 	if err != nil {
 		return nil, err
 	}
+
+	// Ignore return value since read ops are allowed but will log a warning if the feature is
+	// not enabled in the license.
+	_ = s.FeatureCheck(reg)
 
 	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
 		return nil, err

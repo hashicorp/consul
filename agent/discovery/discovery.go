@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	ErrECSNotGlobal = fmt.Errorf("ECS response is not global")
-	ErrNoData       = fmt.Errorf("no data")
-	ErrNotFound     = fmt.Errorf("not found")
-	ErrNotSupported = fmt.Errorf("not supported")
+	ErrECSNotGlobal       = fmt.Errorf("ECS response is not global")
+	ErrNoData             = fmt.Errorf("no data")
+	ErrNotFound           = fmt.Errorf("not found")
+	ErrNotSupported       = fmt.Errorf("not supported")
+	ErrNoPathToDatacenter = fmt.Errorf("no path to datacenter")
 )
 
 // ECSNotGlobalError may be used to wrap an error or nil, to indicate that the
 // EDNS client subnet source scope is not global.
-// TODO (v2-dns): prepared queries errors are wrapped by this
 type ECSNotGlobalError struct {
 	error
 }
@@ -43,7 +43,6 @@ func (e ECSNotGlobalError) Unwrap() error {
 type Query struct {
 	QueryType    QueryType
 	QueryPayload QueryPayload
-	Limit        int
 }
 
 // QueryType is used to filter service endpoints.
@@ -84,6 +83,7 @@ type QueryPayload struct {
 	Tag      string       // deprecated: use for V1 only
 	SourceIP net.IP       // deprecated: used for prepared queries
 	Tenancy  QueryTenancy // tenancy includes any additional labels specified before the domain
+	Limit    int          // The maximum number of records to return
 
 	// v2 fields only
 	EnableFailover bool
@@ -104,21 +104,42 @@ const (
 // It is the responsibility of the DNS encoder to know what to do with
 // each Result, based on the query type.
 type Result struct {
-	Service    *Location         // The name and address of the service.
-	Node       *Location         // The name and address of the node.
-	Weight     uint32            // SRV queries
-	PortName   string            // Used to generate a fgdn when a specifc port was queried
-	PortNumber uint32            // SRV queries
-	Metadata   map[string]string // Used to collect metadata into TXT Records
-	Type       ResultType        // Used to reconstruct the fqdn name of the resource
+	Service  *Location         // The name and address of the service.
+	Node     *Location         // The name and address of the node.
+	Weight   uint32            // SRV queries
+	Metadata map[string]string // Used to collect metadata into TXT Records
+	Type     ResultType        // Used to reconstruct the fqdn name of the resource
+	DNS      DNSConfig         // Used for DNS-specific configuration for this result
+
+	// Ports include anything the node/service/workload implements. These are filtered if requested by the client.
+	// They are used in to generate the FQDN and SRV port numbers in V2 Catalog responses.
+	Ports []Port
 
 	Tenancy ResultTenancy
 }
 
-// Location is used to represent a service, node, or workload.
-type Location struct {
+// TaggedAddress is used to represent a tagged address.
+type TaggedAddress struct {
 	Name    string
 	Address string
+	Port    Port
+}
+
+// Location is used to represent a service, node, or workload.
+type Location struct {
+	Name            string
+	Address         string
+	TaggedAddresses map[string]*TaggedAddress // Used to collect tagged addresses into A/AAAA Records
+}
+
+type DNSConfig struct {
+	TTL    *uint32 // deprecated: use for V1 prepared queries only
+	Weight uint32  // SRV queries
+}
+
+type Port struct {
+	Name   string
+	Number uint32
 }
 
 // ResultTenancy is used to reconstruct the fqdn name of the resource.

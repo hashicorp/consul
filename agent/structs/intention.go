@@ -30,6 +30,9 @@ const (
 	// fix up all the places where this was used with the proper namespace
 	// value.
 	IntentionDefaultNamespace = "default"
+
+	IntentionDefaultPolicyAllow = "allow"
+	IntentionDefaultPolicyDeny  = "deny"
 )
 
 // Intention defines an intention for the Connect Service Graph. This defines
@@ -727,7 +730,7 @@ type IntentionQueryCheckResponse struct {
 // - Whether the matching intention has L7 permissions attached
 // - Whether the intention is managed by an external source like k8s
 // - Whether there is an exact, or wildcard, intention referencing the two services
-// - Whether ACLs are in DefaultAllow mode
+// - Whether intentions are in DefaultAllow mode
 type IntentionDecisionSummary struct {
 	Allowed        bool
 	HasPermissions bool

@@ -3557,7 +3557,7 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 	for _, svc := range gatewayServices {
 		// If the service is a wildcard we need to target all services within the namespace
 		if svc.Service.Name == structs.WildcardSpecifier {
-			if err := updateGatewayNamespace(tx, idx, svc, entMeta); err != nil {
+			if err := updateGatewayNamespace(tx, idx, svc, &svc.Service.EnterpriseMeta); err != nil {
 				return fmt.Errorf("failed to associate gateway %q with wildcard: %v", gateway.String(), err)
 			}
 			// Skip service-specific update below if there was a wildcard update
@@ -4315,7 +4315,7 @@ func (s *Store) ServiceTopology(
 	ws memdb.WatchSet,
 	dc, service string,
 	kind structs.ServiceKind,
-	defaultAllow acl.EnforcementDecision,
+	defaultAllow bool,
 	entMeta *acl.EnterpriseMeta,
 ) (uint64, *structs.ServiceTopology, error) {
 	tx := s.db.ReadTxn()
@@ -4466,7 +4466,7 @@ func (s *Store) ServiceTopology(
 			Partition:        un.PartitionOrDefault(),
 			Intentions:       srcIntentions,
 			MatchType:        structs.IntentionMatchDestination,
-			DefaultDecision:  defaultAllow,
+			DefaultAllow:     defaultAllow,
 			AllowPermissions: false,
 		}
 		decision, err := s.IntentionDecision(opts)
@@ -4590,7 +4590,7 @@ func (s *Store) ServiceTopology(
 			Partition:        dn.PartitionOrDefault(),
 			Intentions:       dstIntentions,
 			MatchType:        structs.IntentionMatchSource,
-			DefaultDecision:  defaultAllow,
+			DefaultAllow:     defaultAllow,
 			AllowPermissions: false,
 		}
 		decision, err := s.IntentionDecision(opts)

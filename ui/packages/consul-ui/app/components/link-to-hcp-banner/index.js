@@ -9,6 +9,7 @@ import { inject as service } from '@ember/service';
 
 export default class LinkToHcpBannerComponent extends Component {
   @service('hcp-link-status') hcpLinkStatus;
+  @service('hcp-link-modal') hcpLinkModal;
   @service('env') env;
 
   get notLinked() {
@@ -21,6 +22,6 @@ export default class LinkToHcpBannerComponent extends Component {
   }
   @action
   onClusterLink() {
-    // TODO: CC-7147: Open simplified modal
+    this.hcpLinkModal.show();
   }
 }

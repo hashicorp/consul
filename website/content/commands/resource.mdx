@@ -1,0 +1,391 @@
+---
+layout: commands
+page_title: 'Commands: Resource'
+description: >-
+  The `consul resource` command interacts with Consul's v2 catalog of services and its resources. It exposes top-level commands for reading and filtering data from the registry.
+---
+
+# Consul Resource
+
+Command: `consul resource`
+
+<Note>
+
+You must enable the [v2 catalog API](/consul/docs/concept/catalog/v2) to use this command.
+
+</Note>
+
+Use the `resource` command to apply, list, read, and delete resources when interacting with Consul's v2 catalog through the command line. For more information, refer to [v2 catalog API](/consul/docs/concept/catalog/v2).
+
+## Usage
+
+```text
+Usage: consul resource <subcommand> [options]
+
+  # ...
+
+Subcommands:
+
+    apply     Write or update resource information
+    delete    Delete resource information
+    list      Read all resources by type
+    read      Read resource information
+```
+
+## Subcommands
+
+You can issue the following subcommands with the `consul resource` command.
+
+### `apply`
+
+`consul resource apply` writes or updates a resource at a given file path.
+
+The following table shows the required [ACLs permission](/consul/api-docs/api-structure#authentication) to run the `apply` command:
+
+| ACL Required |
+| ------------ |
+| `operator:write`  |
+
+#### Command Options
+
+- `-f=<filepath>` - (Required) The path to the file that defines the Consul resource. When the file that defines the resource is in the current working directory, you may optionally omit this flag and pass the resource filename only.
+
+#### Example usage
+
+The following command applies a traffic permissions resource to Consul that restricts service-to-service communication to authorized services only.
+
+```shell-session hideClipboard
+$ consul resource apply -f=trafficpermissions.hcl
+```
+
+### `delete`
+
+`consul resource delete` removes a Consul resource at a given file path.
+
+The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `delete` command:
+
+| ACL Required |
+| ------------ |
+| `operator:write`  |
+
+#### Command Options
+
+- `-f=<filepath>` - (Required) The path to the file that defines the Consul resource. When the file that defines the resource is in the current working directory, you may optionally omit this flag and pass the resource filename only.
+
+#### Example usage
+
+The following command removes a traffic permissions resource from Consul that restricts service-to-service communication to authorized services only.
+
+```shell-session hideClipboard
+$ consul resource delete -f=trafficpermissions.hcl
+```
+
+### `list`
+
+`consul resource list` outputs information about resources according to the type of resource and the location where the resource is applied. 
+
+This command must be issued with a resource type. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can list information about services with `catalog.v2beta1.Service` and TCP routes with `mesh.v2beta1.TCPRoute`. Refer to [v2 catalog](/consul/docs/architecture/v2/catalog#catalog-structure) for more information.
+
+Do not include a resource name when listing resources.
+
+The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `list` command:
+
+| ACL Required |
+| ------------ |
+| `operator:read`  |
+
+#### Command Options
+
+The following flags enable you to filter results.
+
+- `-partition=<string>` - The partition where the resources apply.
+- `-namespace=<string>` - The namespace where the resources apply.
+
+#### Example usage
+
+The following command lists resources that apply to services registered with the v2 catalog API, and includes a sample output for the `api` and `web` services registered in [configure multi-port services](/consul/docs/k8s/multiport/configure):
+
+```shell-session hideClipboard
+$ consul resource list catalog.v2beta1.Service
+
+{
+    "resources": [
+        {
+            "data": {
+                "ports": [
+                    {
+                        "protocol": "PROTOCOL_TCP",
+                        "targetPort": "api",
+                        "virtualPort": 80
+                    },
+                    {
+                        "protocol": "PROTOCOL_MESH",
+                        "targetPort": "mesh"
+                    }
+                ],
+                "virtualIps": [
+                    "10.96.216.242"
+                ],
+                "workloads": {
+                    "prefixes": [
+                        "api-7c86cd8cb9"
+                    ]
+                }
+            },
+            "generation": "01HE8QWYFCTNEC2Q5JXKNXH6QW",
+            "id": {
+                "name": "api",
+                "tenancy": {
+                    "namespace": "default",
+                    "partition": "default",
+                },
+                "type": {
+                    "group": "catalog",
+                    "groupVersion": "v2beta1",
+                    "kind": "Service"
+                },
+                "uid": "01HE8QWYFCTNEC2Q5JXJ97M429"
+            },
+            "metadata": {
+                "k8s-namespace": "default",
+                "managed-by": "consul-k8s-endpoints-controller-v2"
+            },
+            "status": {
+                "consul.io/endpoint-manager": {
+                    "conditions": [
+                        {
+                            "message": "A valid workload selector is present within the service.",
+                            "reason": "SelectorFound",
+                            "state": "STATE_TRUE",
+                            "type": "EndpointsManaged"
+                        },
+                        {
+                            "message": "Found workload identities associated with this service: \"api\".",
+                            "reason": "WorkloadIdentitiesFound",
+                            "state": "STATE_TRUE",
+                            "type": "BoundIdentities"
+                        }
+                    ],
+                    "observedGeneration": "01HE8QWYFCTNEC2Q5JXKNXH6QW",
+                    "updatedAt": "2023-11-02T19:24:27.295564638Z"
+                }
+            },
+            "version": "118"
+        },
+        {
+            "data": {
+                "ports": [
+                    {
+                        "protocol": "PROTOCOL_TCP",
+                        "targetPort": "admin",
+                        "virtualPort": 90
+                    },
+                    {
+                        "protocol": "PROTOCOL_MESH",
+                        "targetPort": "mesh"
+                    }
+                ],
+                "virtualIps": [
+                    "10.96.231.41"
+                ],
+                "workloads": {
+                    "prefixes": [
+                        "api-7c86cd8cb9"
+                    ]
+                }
+            },
+            "generation": "01HE8QWYFJCXYXT2F4SBZE95Q4",
+            "id": {
+                "name": "api-admin",
+                "tenancy": {
+                    "namespace": "default",
+                    "partition": "default",
+                },
+                "type": {
+                    "group": "catalog",
+                    "groupVersion": "v2beta1",
+                    "kind": "Service"
+                },
+                "uid": "01HE8QWYFJCXYXT2F4SAHV7KG8"
+            },
+            "metadata": {
+                "k8s-namespace": "default",
+                "managed-by": "consul-k8s-endpoints-controller-v2"
+            },
+            "status": {
+                "consul.io/endpoint-manager": {
+                    "conditions": [
+                        {
+                            "message": "A valid workload selector is present within the service.",
+                            "reason": "SelectorFound",
+                            "state": "STATE_TRUE",
+                            "type": "EndpointsManaged"
+                        },
+                        {
+                            "message": "Found workload identities associated with this service: \"api\".",
+                            "reason": "WorkloadIdentitiesFound",
+                            "state": "STATE_TRUE",
+                            "type": "BoundIdentities"
+                        }
+                    ],
+                    "observedGeneration": "01HE8QWYFJCXYXT2F4SBZE95Q4",
+                    "updatedAt": "2023-11-02T19:24:27.589881680Z"
+                }
+            },
+            "version": "122"
+        },
+        {
+            "data": {
+                "ports": [
+                    {
+                        "protocol": "PROTOCOL_TCP",
+                        "targetPort": "80",
+                        "virtualPort": 80
+                    },
+                    {
+                        "protocol": "PROTOCOL_MESH",
+                        "targetPort": "mesh"
+                    }
+                ],
+                "virtualIps": [
+                    "10.96.157.170"
+                ],
+                "workloads": {
+                    "prefixes": [
+                        "web-6fd5c8bf57"
+                    ]
+                }
+            },
+            "generation": "01HE8QWYA9RSW2RS8GS5P538ZB",
+            "id": {
+                "name": "web",
+                "tenancy": {
+                    "namespace": "default",
+                    "partition": "default",
+                },
+                "type": {
+                    "group": "catalog",
+                    "groupVersion": "v2beta1",
+                    "kind": "Service"
+                },
+                "uid": "01HE8QWYA9RSW2RS8GS3922SK0"
+            },
+            "metadata": {
+                "k8s-namespace": "default",
+                "managed-by": "consul-k8s-endpoints-controller-v2"
+            },
+            "status": {
+                "consul.io/endpoint-manager": {
+                    "conditions": [
+                        {
+                            "message": "A valid workload selector is present within the service.",
+                            "reason": "SelectorFound",
+                            "state": "STATE_TRUE",
+                            "type": "EndpointsManaged"
+                        },
+                        {
+                            "message": "Found workload identities associated with this service: \"web\".",
+                            "reason": "WorkloadIdentitiesFound",
+                            "state": "STATE_TRUE",
+                            "type": "BoundIdentities"
+                        }
+                    ],
+                    "observedGeneration": "01HE8QWYA9RSW2RS8GS5P538ZB",
+                    "updatedAt": "2023-11-02T19:24:27.190972222Z"
+                }
+            },
+            "version": "115"
+        }
+    ]
+}
+```
+
+### `read`
+
+`consul resource read` outputs information about resources according to the type and name of the resource.
+
+This command must be issued with a resource type and a resource name. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can read information about services with `catalog.v2beta1.Service`, TCP routes with `mesh.v2beta1.TCPRoute`, and traffic permissions with `auth.v2beta1.TrafficPermissions`. Refer to [v2 catalog](/consul/docs/architecture/v2/catalog#catalog-structure) for more information. 
+
+The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `read` command:
+
+| ACL Required |
+| ------------ |
+| `operator:read`  |
+
+#### Command Options
+
+- `-partition=<string>` - The partition where the resource applies.
+- `-namespace=<string>` - The namespace where the resource applies.
+- `-stale` - Permits any Consul server to respond to the request. This flag enables for lower latency and higher throughput, but may result in stale data. This option has no effect on non-read operations.
+- `-token` - A Consul ACL token to include with the request.
+
+#### Example usage
+
+The following example demonstrates a command to read the `web` service and includes an example output that includes information such as ports, virtual IPs, and status.
+
+```shell-session hideClipboard
+$ consul resource read catalog.v2beta1.Service web
+
+{
+    "data": {
+        "ports": [
+            {
+                "protocol": "PROTOCOL_TCP",
+                "targetPort": "80",
+                "virtualPort": 80
+            },
+            {
+                "protocol": "PROTOCOL_MESH",
+                "targetPort": "mesh"
+            }
+        ],
+        "virtualIps": [
+            "10.96.98.157"
+        ],
+        "workloads": {
+            "prefixes": [
+                "web-6fd5c8bf57"
+            ]
+        }
+    },
+    "generation": "01HE6MPDXC1J6ZMEMPN1460Z6K",
+    "id": {
+        "name": "web",
+        "tenancy": {
+            "namespace": "default",
+            "partition": "default",
+        },
+        "type": {
+            "group": "catalog",
+            "groupVersion": "v2beta1",
+            "kind": "Service"
+        },
+        "uid": "01HE6MPDXC1J6ZMEMPN0648FVB"
+    },
+    "metadata": {
+        "k8s-namespace": "default",
+        "managed-by": "consul-k8s-endpoints-controller-v2"
+    },
+    "status": {
+        "consul.io/endpoint-manager": {
+            "conditions": [
+                {
+                    "message": "A valid workload selector is present within the service.",
+                    "reason": "SelectorFound",
+                    "state": "STATE_TRUE",
+                    "type": "EndpointsManaged"
+                },
+                {
+                    "message": "Found workload identities associated with this service: \"web\".",
+                    "reason": "WorkloadIdentitiesFound",
+                    "state": "STATE_TRUE",
+                    "type": "BoundIdentities"
+                }
+            ],
+            "observedGeneration": "01HE6MPDXC1J6ZMEMPN1460Z6K",
+            "updatedAt": "2023-11-01T23:49:59.172604219Z"
+        }
+    },
+    "version": "137"
+}
+```

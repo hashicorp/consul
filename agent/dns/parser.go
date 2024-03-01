@@ -33,7 +33,7 @@ func parseLabels(labels []string) (*parsedLabels, bool) {
 				result.Namespace = labels[i]
 			case "ap":
 				result.Partition = labels[i]
-			case "dc": // TODO (v2-dns): This should also include "cluster" for the new notation.
+			case "dc", "cluster":
 				result.Datacenter = labels[i]
 			case "sg":
 				result.SamenessGroup = labels[i]

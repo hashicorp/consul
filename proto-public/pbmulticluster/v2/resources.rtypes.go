@@ -14,7 +14,6 @@ const (
 	ExportedServicesKind          = "ExportedServices"
 	NamespaceExportedServicesKind = "NamespaceExportedServices"
 	PartitionExportedServicesKind = "PartitionExportedServices"
-	SamenessGroupKind             = "SamenessGroup"
 )
 
 var (
@@ -40,11 +39,5 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         PartitionExportedServicesKind,
-	}
-
-	SamenessGroupType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         SamenessGroupKind,
 	}
 )

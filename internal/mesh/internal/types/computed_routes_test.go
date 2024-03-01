@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -148,25 +147,6 @@ func TestValidateComputedRoutes(t *testing.T) {
 				},
 			},
 			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "service_endpoint_ref" field: field should be empty`,
-		},
-		"target/should not have service endpoints": {
-			routes: &pbmesh.ComputedRoutes{
-				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
-					"http": {
-						Config: &pbmesh.ComputedPortRoutes_Tcp{
-							Tcp: &pbmesh.ComputedTCPRoute{},
-						},
-						Targets: map[string]*pbmesh.BackendTargetDetails{
-							"foo": {
-								Type:             pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
-								MeshPort:         "mesh",
-								ServiceEndpoints: &pbcatalog.ServiceEndpoints{},
-							},
-						},
-					},
-				},
-			},
-			expectErr: `invalid value of key "http" within ported_configs: invalid value of key "foo" within targets: invalid "service_endpoints" field: field should be empty`,
 		},
 		"target/should not have identity refs": {
 			routes: &pbmesh.ComputedRoutes{

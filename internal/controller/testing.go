@@ -6,9 +6,10 @@ package controller
 import (
 	"context"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-hclog"
 )
 
 // TestController is most useful when writing unit tests for a controller where
@@ -65,4 +66,14 @@ func (tc *TestController) Runtime() Runtime {
 		Logger: tc.logger,
 		Cache:  tc.cache,
 	}
+}
+
+// DryRunMapper will trigger the appropriate DependencyMapper for an update of
+// the provided type and return the requested reconciles.
+//
+// Useful for testing just the DependencyMapper+Cache interactions for chains
+// that are more complicated than just a full controller interaction test would
+// be able to easily verify.
+func (tc *TestController) DryRunMapper(ctx context.Context, res *pbresource.Resource) ([]Request, error) {
+	return tc.c.dryRunMapper(ctx, tc.Runtime(), res)
 }

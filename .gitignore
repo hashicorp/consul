@@ -19,6 +19,7 @@ Thumbs.db
 __debug_bin
 coverage.out
 *.tmp
+.zed
 
 # MacOS
 .DS_Store

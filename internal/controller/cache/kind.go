@@ -18,16 +18,16 @@ type kindIndices struct {
 
 	it unversionedType
 
-	indices map[string]*index.Index
+	indices map[string]*index.IndexedData
 }
 
 func newKindIndices() *kindIndices {
 	kind := &kindIndices{
-		indices: make(map[string]*index.Index),
+		indices: make(map[string]*index.IndexedData),
 	}
 
 	// add the id index
-	kind.indices[IDIndex] = indexers.IDIndex(IDIndex, index.IndexRequired)
+	kind.indices[IDIndex] = indexers.IDIndex(IDIndex, index.IndexRequired).IndexedData()
 
 	return kind
 }
@@ -38,7 +38,7 @@ func (k *kindIndices) addIndex(i *index.Index) error {
 		return DuplicateIndexError{name: i.Name()}
 	}
 
-	k.indices[i.Name()] = i
+	k.indices[i.Name()] = i.IndexedData()
 	return nil
 }
 
@@ -178,7 +178,7 @@ func (k *kindIndices) delete(r *pbresource.Resource) error {
 	return nil
 }
 
-func (k *kindIndices) getIndex(name string) (*index.Index, error) {
+func (k *kindIndices) getIndex(name string) (*index.IndexedData, error) {
 	idx, ok := k.indices[name]
 	if !ok {
 		return nil, CacheTypeError{err: IndexNotFoundError{name: name}, it: k.it}

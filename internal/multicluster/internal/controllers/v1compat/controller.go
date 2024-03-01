@@ -6,11 +6,16 @@ package v1compat
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
+
+	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
+	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -23,6 +28,7 @@ const (
 	controllerMetaKey = "managed-by-controller"
 )
 
+//go:generate mockery --name AggregatedConfig --inpackage --with-expecter --filename mock_AggregatedConfig.go
 type AggregatedConfig interface {
 	Start(context.Context)
 	GetExportedServicesConfigEntry(context.Context, string, *acl.EnterpriseMeta) (*structs.ExportedServicesConfigEntry, error)
@@ -85,7 +91,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	entMeta.OverridePartition(req.ID.Tenancy.Partition)
 	existing, err := r.config.GetExportedServicesConfigEntry(ctx, req.ID.Tenancy.Partition, entMeta)
 	if err != nil {
-		rt.Logger.Error("error getting exported service config entry", "error", err)
+		// When we can't read the existing exported-services we purposely allow
+		// reconciler to continue so we can still write a new one
+		rt.Logger.Warn("error getting exported service config entry but continuing reconcile", "error", err)
 	}
 
 	if existing != nil && existing.Meta["managed-by-controller"] != ControllerName {
@@ -105,31 +113,46 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		EnterpriseMeta: *entMeta,
 	}
 
-	partitionExports, err := resource.ListDecodedResource[*pbmulticluster.PartitionExportedServices](ctx, rt.Client, &pbresource.ListRequest{
-		Type:    pbmulticluster.PartitionExportedServicesType,
-		Tenancy: req.ID.Tenancy,
-	})
-
+	partitionExports, err := cache.ListDecoded[*pbmulticluster.PartitionExportedServices](
+		rt.Cache,
+		pbmulticluster.PartitionExportedServicesType,
+		"id",
+		&pbresource.ID{
+			Type:    pbmulticluster.PartitionExportedServicesType,
+			Tenancy: req.ID.Tenancy,
+		},
+		index.IndexQueryOptions{Prefix: true},
+	)
 	if err != nil {
 		rt.Logger.Error("error retrieving partition exported services", "error", err)
 		return err
 	}
 
-	namespaceExports, err := resource.ListDecodedResource[*pbmulticluster.NamespaceExportedServices](ctx, rt.Client, &pbresource.ListRequest{
-		Type:    pbmulticluster.NamespaceExportedServicesType,
-		Tenancy: req.ID.Tenancy,
-	})
-
+	namespaceExports, err := cache.ListDecoded[*pbmulticluster.NamespaceExportedServices](
+		rt.Cache,
+		pbmulticluster.NamespaceExportedServicesType,
+		"id",
+		&pbresource.ID{
+			Type:    pbmulticluster.NamespaceExportedServicesType,
+			Tenancy: req.ID.Tenancy,
+		},
+		index.IndexQueryOptions{Prefix: true},
+	)
 	if err != nil {
-		rt.Logger.Error("error retrieving namespace exported service", "error", err)
+		rt.Logger.Error("error retrieving namespace exported services", "error", err)
 		return err
 	}
 
-	serviceExports, err := resource.ListDecodedResource[*pbmulticluster.ExportedServices](ctx, rt.Client, &pbresource.ListRequest{
-		Type:    pbmulticluster.ExportedServicesType,
-		Tenancy: req.ID.Tenancy,
-	})
-
+	serviceExports, err := cache.ListDecoded[*pbmulticluster.ExportedServices](
+		rt.Cache,
+		pbmulticluster.ExportedServicesType,
+		"id",
+		&pbresource.ID{
+			Type:    pbmulticluster.ExportedServicesType,
+			Tenancy: req.ID.Tenancy,
+		},
+		index.IndexQueryOptions{Prefix: true},
+	)
 	if err != nil {
 		rt.Logger.Error("error retrieving exported services", "error", err)
 		return err
@@ -223,24 +246,24 @@ func (c *exportConsumers) addConsumers(consumers []*pbmulticluster.ExportedServi
 func (c *exportConsumers) configEntryConsumers() []structs.ServiceConsumer {
 	consumers := make([]structs.ServiceConsumer, 0, len(c.partitions)+len(c.peers)+len(c.samenessGroups))
 
-	partitions := keys(c.partitions)
-	sort.Strings(partitions)
+	partitions := maps.Keys(c.partitions)
+	slices.Sort(partitions)
 	for _, consumer := range partitions {
 		consumers = append(consumers, structs.ServiceConsumer{
 			Partition: consumer,
 		})
 	}
 
-	peers := keys(c.peers)
-	sort.Strings(peers)
+	peers := maps.Keys(c.peers)
+	slices.Sort(peers)
 	for _, consumer := range peers {
 		consumers = append(consumers, structs.ServiceConsumer{
 			Peer: consumer,
 		})
 	}
 
-	samenessGroups := keys(c.samenessGroups)
-	sort.Strings(samenessGroups)
+	samenessGroups := maps.Keys(c.samenessGroups)
+	slices.Sort(samenessGroups)
 	for _, consumer := range samenessGroups {
 		consumers = append(consumers, structs.ServiceConsumer{
 			SamenessGroup: consumer,
@@ -296,8 +319,8 @@ func (t *exportTracker) allExports() []structs.ExportedService {
 		})
 	}
 
-	namespaces := keys(t.namespaces)
-	sort.Strings(namespaces)
+	namespaces := maps.Keys(t.namespaces)
+	slices.Sort(namespaces)
 	for _, ns := range namespaces {
 		exports = append(exports, structs.ExportedService{
 			Name:      "*",
@@ -306,7 +329,7 @@ func (t *exportTracker) allExports() []structs.ExportedService {
 		})
 	}
 
-	services := keys(t.services)
+	services := maps.Keys(t.services)
 	sort.Slice(services, func(i, j int) bool {
 		// the partitions must already be equal because we are only
 		// looking at resource exports for a single partition.

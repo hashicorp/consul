@@ -270,9 +270,9 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 2 based on these values:
-          # envoy-version: ["1.28.0"]
+          # envoy-version: ["1.28.1"]
           # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 4
+          TOTAL_RUNNERS: 2
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
@@ -305,7 +305,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.28.0"]
+        envoy-version: ["1.28.1"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -395,7 +395,7 @@ jobs:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
     env:
-      ENVOY_VERSION: "1.28.0"
+      ENVOY_VERSION: "1.28.1"
       CONSUL_DATAPLANE_IMAGE: "docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi"
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -536,6 +536,7 @@ jobs:
             -tags "${{ env.GOTAGS }}" \
             -timeout=20m \
             -parallel=2 \
+            -failfast \
             -json \
             `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo | grep -v upgrade ` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \

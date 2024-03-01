@@ -28,7 +28,7 @@ const (
 )
 
 // NewHTTPClient configures the retryable HTTP client.
-func NewHTTPClient(tlsCfg *tls.Config, source oauth2.TokenSource, logger hclog.Logger) *retryablehttp.Client {
+func NewHTTPClient(tlsCfg *tls.Config, source oauth2.TokenSource) *retryablehttp.Client {
 	tlsTransport := cleanhttp.DefaultPooledTransport()
 	tlsTransport.TLSClientConfig = tlsCfg
 
@@ -43,8 +43,9 @@ func NewHTTPClient(tlsCfg *tls.Config, source oauth2.TokenSource, logger hclog.L
 	}
 
 	retryClient := &retryablehttp.Client{
-		HTTPClient:   client,
-		Logger:       logger,
+		HTTPClient: client,
+		// We already log failed requests elsewhere, we pass a null logger here to avoid redundant logs.
+		Logger:       hclog.NewNullLogger(),
 		RetryWaitMin: defaultRetryWaitMin,
 		RetryWaitMax: defaultRetryWaitMax,
 		RetryMax:     defaultRetryMax,
