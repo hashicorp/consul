@@ -1,0 +1,12 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+with-expecter: true
+all: true
+recursive: false
+mockname: "{{.InterfaceName}}"
+dir: "reportingmock"
+filename: "mock_{{.InterfaceName}}.go"
+outpkg: "reportingmock"
+packages:
+  github.com/hashicorp/consul/agent/consul/reporting:
