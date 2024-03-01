@@ -149,6 +149,8 @@ Refer to the [service defaults configuration entry reference](/consul/docs/conne
 <Tabs>
   <Tab heading="VMs" group="vms">
 
+To inject a rate limit into a response, configure the following parameters: 
+
 1. `Arguments.Config.Bandwidth.Limit`: The amount of data allowed through the filter when applied. This value is specified in KiB/s. When the limit is exceeded, requests, operations, or connections will be subjected to rate limiting.
 1. `Arguments.Config.Bandwidth.Percentage`: The percent of responses to inject the bandwidth limit behavior into.
 
