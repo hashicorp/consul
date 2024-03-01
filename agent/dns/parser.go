@@ -58,7 +58,7 @@ func parseLabels(labels []string) (*parsedLabels, bool) {
 			return nil, false
 		}
 
-		// Validation e need to validate that this a valid DNS including sg
+		// Validate that this a valid DNS including sg
 		if result.SamenessGroup != "" && (result.Datacenter != "" || result.Peer != "") {
 			return nil, false
 		}
