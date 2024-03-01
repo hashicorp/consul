@@ -179,8 +179,8 @@ EnvoyExtensions = [
 
 To inject a rate limit into a response, configure the following parameters: 
 
-1. `spec.arguments.config.delay.duration`:
-1. `spec.arguments.config.delay.duration`:
+1. `spec.arguments.config.bandwidth.limit`: The amount of data allowed through the filter when applied. This value is specified in KiB/s. When the limit is exceeded, requests, operations, or connections will be subjected to rate limiting.
+1. `spec.arguments.config.bandwidth.percentage`: The percent of responses to inject the bandwidth limit behavior into.
 
 The following example configures the default behavior for a service named `billing`. This configuration limits the bandwidth of outgoing requests to 100 KiB/s for 50 percent of responses from the billing service.
 
