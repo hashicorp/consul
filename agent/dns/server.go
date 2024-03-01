@@ -24,6 +24,7 @@ import (
 type DNSRouter interface {
 	HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.Addr) *dns.Msg
 	ServeDNS(w dns.ResponseWriter, req *dns.Msg)
+	GetConfig() *RouterDynamicConfig
 	ReloadConfig(newCfg *config.RuntimeConfig) error
 }
 
@@ -93,6 +94,7 @@ func (d *Server) Shutdown() {
 			d.logger.Error("Error stopping DNS server", "error", err)
 		}
 	}
+	d.Router = nil
 }
 
 // GetAddr is a function to return the server address if is not nil.
