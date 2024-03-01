@@ -57,6 +57,8 @@ EnvoyExtensions = [
   </Tab>
   <Tab heading="Kubernetes" group="k8s">
 
+To inject a delay fault when Consul runs on Kubernetes, configure the following parameters:
+
 1. `spec.arguments.config.delay.duration`: The delay in milliseconds to use when injecting a delay type fault.
 1. `spec.arguments.config.delay.percentage`: The percentage of responses to inject the delay behavior into.
 
