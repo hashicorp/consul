@@ -1867,7 +1867,7 @@
       },
       {
         "title": "Fault injection",
-        "path": "connect/manage-traffic/fault-injection"
+        "path": "/docs/connect/manage-traffic/fault-injection"
       },
       {
         "title": "FIPS",
@@ -1875,7 +1875,7 @@
       },
       {
         "title": "Single sign-on - OIDC",
-        "href": "security/acl/auth-methods/oidc"
+        "href": "/docs/security/acl/auth-methods/oidc"
       },
       {
         "title": "Redundancy Zones",
