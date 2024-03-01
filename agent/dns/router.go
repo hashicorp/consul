@@ -331,7 +331,7 @@ func getTTLForResult(name string, overrideTTL *uint32, query *discovery.Query, c
 
 	switch query.QueryType {
 	case discovery.QueryTypeService, discovery.QueryTypePreparedQuery:
-		ttl, ok := cfg.getTTLForService(name)
+		ttl, ok := cfg.GetTTLForService(name)
 		if ok {
 			return uint32(ttl / time.Second)
 		}
@@ -417,9 +417,14 @@ func (r *Router) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	return nil
 }
 
-// getTTLForService Find the TTL for a given service.
+// GetConfig returns the current router config
+func (r *Router) GetConfig() *RouterDynamicConfig {
+	return r.dynamicConfig.Load().(*RouterDynamicConfig)
+}
+
+// GetTTLForService Find the TTL for a given service.
 // return ttl, true if found, 0, false otherwise
-func (cfg *RouterDynamicConfig) getTTLForService(service string) (time.Duration, bool) {
+func (cfg *RouterDynamicConfig) GetTTLForService(service string) (time.Duration, bool) {
 	if cfg.TTLStrict != nil {
 		ttl, ok := cfg.TTLStrict[service]
 		if ok {
