@@ -88,6 +88,7 @@ Refer to the [service defaults configuration entry reference](/consul/docs/conne
 
 <Tabs>
   <Tab heading="VMs" group="vms">
+To inject a status code when aborting a response, configure the following parameters: 
 
 1. `Arguments.Config.Abort.HttpStatus`: The HTTP status code to inject into responses when injecting an abort type fault. You may specify either a HTTP status or a gRPC status but not both.
 1. `Arguments.Config.Abort.GrpcStatus`: The gRPC status to inject into responses when injecting an abort type fault. You may specify either a HTTP status or a gRPC status but not both.
