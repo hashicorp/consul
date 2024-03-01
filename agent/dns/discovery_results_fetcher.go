@@ -4,13 +4,94 @@
 package dns
 
 import (
+	"encoding/hex"
 	"net"
 	"strings"
 
 	"github.com/miekg/dns"
 
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/discovery"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 )
+
+// discoveryResultsFetcher is a facade for the DNS router to formulate
+// and execute discovery queries.
+type discoveryResultsFetcher struct{}
+
+// getQueryOptions is a struct to hold the options for getQueryResults method.
+type getQueryOptions struct {
+	req           *dns.Msg
+	reqCtx        Context
+	qName         string
+	remoteAddress net.Addr
+	processor     DiscoveryQueryProcessor
+	logger        hclog.Logger
+	domain        string
+	altDomain     string
+}
+
+// getQueryResults returns a discovery.Result from a DNS message.
+func (d discoveryResultsFetcher) getQueryResults(opts *getQueryOptions) ([]*discovery.Result, *discovery.Query, error) {
+	reqType := parseRequestType(opts.req)
+
+	switch reqType {
+	case requestTypeConsul:
+		// This is a special case of discovery.QueryByName where we know that we need to query the consul service
+		// regardless of the question name.
+		query := &discovery.Query{
+			QueryType: discovery.QueryTypeService,
+			QueryPayload: discovery.QueryPayload{
+				Name: structs.ConsulServiceName,
+				Tenancy: discovery.QueryTenancy{
+					// We specify the partition here so that in the case we are a client agent in a non-default partition.
+					// We don't want the query processors default partition to be used.
+					// This is a small hack because for V1 CE, this is not the correct default partition name, but we
+					// need to add something to disambiguate the empty field.
+					Partition: acl.DefaultPartitionName, //NOTE: note this won't work if we ever have V2 client agents
+				},
+				Limit: 3,
+			},
+		}
+
+		results, err := opts.processor.QueryByName(query, discovery.Context{Token: opts.reqCtx.Token})
+		return results, query, err
+	case requestTypeName:
+		query, err := buildQueryFromDNSMessage(opts.req, opts.reqCtx, opts.domain, opts.altDomain, opts.remoteAddress)
+		if err != nil {
+			opts.logger.Error("error building discovery query from DNS request", "error", err)
+			return nil, query, err
+		}
+		results, err := opts.processor.QueryByName(query, discovery.Context{Token: opts.reqCtx.Token})
+
+		if getErrorFromECSNotGlobalError(err) != nil {
+			opts.logger.Error("error processing discovery query", "error", err)
+			return nil, query, err
+		}
+		return results, query, err
+	case requestTypeIP:
+		ip := dnsutil.IPFromARPA(opts.qName)
+		if ip == nil {
+			opts.logger.Error("error building IP from DNS request", "name", opts.qName)
+			return nil, nil, errNameNotFound
+		}
+		results, err := opts.processor.QueryByIP(ip, discovery.Context{Token: opts.reqCtx.Token})
+		return results, nil, err
+	case requestTypeAddress:
+		results, err := buildAddressResults(opts.req)
+		if err != nil {
+			opts.logger.Error("error processing discovery query", "error", err)
+			return nil, nil, err
+		}
+		return results, nil, nil
+	}
+
+	opts.logger.Error("error parsing discovery query type", "requestType", reqType)
+	return nil, nil, errInvalidQuestion
+}
 
 // buildQueryFromDNSMessage returns a discovery.Query from a DNS message.
 func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain string,
@@ -42,6 +123,32 @@ func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain st
 			Tag:      tag,
 			PortName: portName,
 			SourceIP: getSourceIP(req, queryType, remoteAddress),
+		},
+	}, nil
+}
+
+// buildAddressResults returns a discovery.Result from a DNS request for addr. records.
+func buildAddressResults(req *dns.Msg) ([]*discovery.Result, error) {
+	domain := dns.CanonicalName(req.Question[0].Name)
+	labels := dns.SplitDomainName(domain)
+	hexadecimal := labels[0]
+
+	if len(hexadecimal)/2 != 4 && len(hexadecimal)/2 != 16 {
+		return nil, errNameNotFound
+	}
+
+	var ip net.IP
+	ip, err := hex.DecodeString(hexadecimal)
+	if err != nil {
+		return nil, errNameNotFound
+	}
+
+	return []*discovery.Result{
+		{
+			Node: &discovery.Location{
+				Address: ip.String(),
+			},
+			Type: discovery.ResultTypeNode, // We choose node by convention since we do not know the origin of the IP
 		},
 	}, nil
 }
@@ -146,7 +253,7 @@ func getEffectiveDatacenter(labels *parsedLabels, defaultDC string) string {
 func getQueryTypePartsAndSuffixesFromDNSMessage(req *dns.Msg, domain, altDomain string) (queryType discovery.QueryType, parts []string, suffixes []string) {
 	// Get the QName without the domain suffix
 	// TODO (v2-dns): we will also need to handle the "failover" and "no-failover" suffixes here.
-	// They come AFTER the domain. See `stripSuffix` in router.go
+	// They come AFTER the domain. See `stripAnyFailoverSuffix` in router.go
 	qName := trimDomainFromQuestionName(req.Question[0].Name, domain, altDomain)
 
 	// Split into the label parts
