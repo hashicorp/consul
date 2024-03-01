@@ -12,7 +12,7 @@ This topic describes the process to inject different types of faults into the se
 
 ## Introduction
 
-Consul allows you to configure fault injection filters which can alter the responses from an upstream service. By injecting HTTP and gRPC statuses, bandwidth limits, or delays, users can test the resilience of their system to different unexpected issues.
+Consul allows you to configure fault injection filters to alter the responses from an upstream service. By injecting HTTP and gRPC statuses, bandwidth limits, or delays, users can test the resilience of their system to different unexpected issues.
 
 Consul applies fault injection filters to an upstream service as part of its service defaults. For example, to simulate that an upstream returned a 500 HTTP status code 50 percent of the time, add an `Abort` configuration to the Envoy extensions block in the service default configuration for the upstream service.
 
