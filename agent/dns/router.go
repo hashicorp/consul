@@ -415,6 +415,11 @@ func (r *Router) parseDomain(questionName string) (string, bool) {
 	return "", true
 }
 
+// GetConfig returns the current router config
+func (r *Router) GetConfig() *RouterDynamicConfig {
+	return r.dynamicConfig.Load().(*RouterDynamicConfig)
+}
+
 // defaultAgentDNSRequestContext returns a default request context based on the agent's config.
 func (r *Router) defaultAgentDNSRequestContext() Context {
 	return Context{

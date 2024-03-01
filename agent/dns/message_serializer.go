@@ -623,7 +623,7 @@ func getTTLForResult(name string, overrideTTL *uint32, query *discovery.Query, c
 
 	switch query.QueryType {
 	case discovery.QueryTypeService, discovery.QueryTypePreparedQuery:
-		ttl, ok := cfg.getTTLForService(name)
+		ttl, ok := cfg.GetTTLForService(name)
 		if ok {
 			return uint32(ttl / time.Second)
 		}

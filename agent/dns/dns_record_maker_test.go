@@ -154,7 +154,7 @@ func TestDNSRecordMaker_makeTXT(t *testing.T) {
 		expected []dns.RR
 	}{
 		{
-			name: "empty metadata",
+			name: "single metadata",
 			metadata: map[string]string{
 				"key": "value",
 			},
