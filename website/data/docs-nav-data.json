@@ -1866,12 +1866,16 @@
         "path": "enterprise/read-scale"
       },
       {
+        "title": "Fault injection",
+        "path": "connect/manage-traffic/fault-injection"
+      },
+      {
         "title": "FIPS",
         "path": "enterprise/fips"
       },
       {
         "title": "Single sign-on - OIDC",
-        "href": "/docs/security/acl/auth-methods/oidc"
+        "href": "security/acl/auth-methods/oidc"
       },
       {
         "title": "Redundancy Zones",
