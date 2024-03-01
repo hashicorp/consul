@@ -222,7 +222,7 @@ func TestDNSRecordMaker_makeTXT(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := dnsRecordMaker{}.makeTXT("my.service.consul.", tc.metadata, tc.ttl)
-			require.Equal(t, tc.expected, actual)
+			require.ElementsMatchf(t, tc.expected, actual, "expected: %v, actual: %v", tc.expected, actual)
 		})
 	}
 }

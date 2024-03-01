@@ -166,8 +166,6 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.A
 
 	respGenerator := dnsResponseGenerator{}
 
-	r.logger.Trace("received request", "question", req.Question[0].Name, "type", dns.Type(req.Question[0].Qtype).String())
-
 	err := validateAndNormalizeRequest(req)
 	if err != nil {
 		r.logger.Error("error parsing DNS query", "error", err)
@@ -176,6 +174,8 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.A
 		}
 		return respGenerator.createServerFailureResponse(req, configCtx, false)
 	}
+
+	r.logger.Trace("received request", "question", req.Question[0].Name, "type", dns.Type(req.Question[0].Qtype).String())
 
 	defer func(s time.Time, q dns.Question) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "query"}, s,
