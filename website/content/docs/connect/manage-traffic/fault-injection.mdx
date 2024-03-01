@@ -29,6 +29,8 @@ Specify the fault injection behavior in the [service defaults configuration entr
 <Tabs>
   <Tab heading="VMs" group="vms">
 
+To inject a delay fault when Consul runs on virtual machines, configure the following parameters:
+
 1. `Arguments.Config.Delay.Duration`: The delay in milliseconds to use when injecting a delay type fault.
 1. `Arguments.Config.Delay.Percentage`: The percentage of responses to inject the delay behavior into.
 
