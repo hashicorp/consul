@@ -1,20 +1,25 @@
 ---
 layout: docs
+<<<<<<< HEAD
 page_title: Fault Injection
 description: Learn how to use fault injection in a Consul service mesh. Fault injection can be used to inject artificial latency, response codes, or bandwidth limits for application testing.
+=======
+page_title: Fault injection
+description: Learn how to use fault injection in a Consul service mesh to inject artificial latency, response codes, or bandwidth limits for application testing.
+>>>>>>> 1857f73669 (Johnlanda/fault injection docs (#20713))
 ---
 
 # Fault Injection
 
-This topic describes how to configure Consul to inject different types of faults into the services in the mesh.
+This topic describes the process to inject different types of faults into the services in Consul's service mesh to help you test your network's resilience.
 
 <EnterpriseAlert> This feature is available in Consul Enterprise. </EnterpriseAlert>
 
 ## Introduction
 
-Consul allows you to configure fault injection filters which can alter the responses from an upstream service. By injecting HTTP and gRPC statuses, bandwidth limits, or delays, users can test the resilience of their system to different unexpected issues.
+Consul allows you to configure fault injection filters to alter the responses from an upstream service. By injecting HTTP and gRPC statuses, bandwidth limits, or delays, users can test the resilience of their system to different unexpected issues.
 
-Consul applies fault injection filters per upstream service as part of their service defaults. For example, if you wished to simulate that an upstream returned a 500 HTTP status code 50 percent of the time, you would add an Abort configuration to the Envoy extensions for the upstream service's service default configuration.
+Consul applies fault injection filters to an upstream service as part of its service defaults. For example, to simulate that an upstream returned a 500 HTTP status code 50 percent of the time, add an `Abort` configuration to the Envoy extensions block in the service default configuration for the upstream service.
 
 The fault injection filters may be used individually, or in a combination of the three types by adding multiple blocks to the `Arguments.Config` section of the configuration.
 
@@ -22,12 +27,14 @@ The fault injection filters may be used individually, or in a combination of the
 
 Consul Enterprise v1.18.0 or later
 
-## Inject Delays
+## Inject delays
 
-Specify the fault injection behavior in the service defaults config entry.
+Specify the fault injection behavior in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults).
 
 <Tabs>
   <Tab heading="VMs" group="vms">
+
+To inject a delay fault when Consul runs on virtual machines, configure the following parameters:
 
 1. `Arguments.Config.Delay.Duration`: The delay in milliseconds to use when injecting a delay type fault.
 1. `Arguments.Config.Delay.Percentage`: The percentage of responses to inject the delay behavior into.
@@ -55,6 +62,8 @@ EnvoyExtensions = [
   </Tab>
   <Tab heading="Kubernetes" group="k8s">
 
+To inject a delay fault when Consul runs on Kubernetes, configure the following parameters:
+
 1. `spec.arguments.config.delay.duration`: The delay in milliseconds to use when injecting a delay type fault.
 1. `spec.arguments.config.delay.percentage`: The percentage of responses to inject the delay behavior into.
 
@@ -80,10 +89,11 @@ spec:
 
 Refer to the [service defaults configuration entry reference](/consul/docs/connect/config-entries/service-defaults) for additional specifications and example configurations.
 
-## Inject Statuses
+## Inject statuses
 
 <Tabs>
   <Tab heading="VMs" group="vms">
+To inject a status code when aborting a response, configure the following parameters: 
 
 1. `Arguments.Config.Abort.HttpStatus`: The HTTP status code to inject into responses when injecting an abort type fault. You may specify either a HTTP status or a gRPC status but not both.
 1. `Arguments.Config.Abort.GrpcStatus`: The gRPC status to inject into responses when injecting an abort type fault. You may specify either a HTTP status or a gRPC status but not both.
@@ -112,6 +122,8 @@ EnvoyExtensions = [
   </Tab>
   <Tab heading="Kubernetes" group="k8s">
 
+To inject a status code when aborting a response, configure the following parameters: 
+
 1. `spec.arguments.config.abort.httpStatus`: The HTTP status code to inject into responses when injecting an abort type fault. You may specify either a HTTP status or a gRPC status but not both.
 1. `spec.arguments.config.abort.grpcStatus`: The gRPC status to inject into responses when injecting an abort type fault. You may specify either a HTTP status or a gRPC status but not both.
 1. `spec.arguments.config.abort.percentage`: The percentage of responses to inject the abort behavior into.
@@ -137,10 +149,12 @@ spec:
 
 Refer to the [service defaults configuration entry reference](/consul/docs/connect/config-entries/service-defaults) for additional specifications and example configurations.
 
-## Inject Bandwidth Limit
+## Inject bandwidth limit
 
 <Tabs>
   <Tab heading="VMs" group="vms">
+
+To inject a rate limit into a response, configure the following parameters: 
 
 1. `Arguments.Config.Bandwidth.Limit`: The amount of data allowed through the filter when applied. This value is specified in KiB/s. When the limit is exceeded, requests, operations, or connections will be subjected to rate limiting.
 1. `Arguments.Config.Bandwidth.Percentage`: The percent of responses to inject the bandwidth limit behavior into.
@@ -168,8 +182,10 @@ EnvoyExtensions = [
   </Tab>
   <Tab heading="Kubernetes" group="k8s">
 
-1. `spec.arguments.config.delay.duration`:
-1. `spec.arguments.config.delay.duration`:
+To inject a rate limit into a response, configure the following parameters: 
+
+1. `spec.arguments.config.bandwidth.limit`: The amount of data allowed through the filter when applied. This value is specified in KiB/s. When the limit is exceeded, requests, operations, or connections will be subjected to rate limiting.
+1. `spec.arguments.config.bandwidth.percentage`: The percent of responses to inject the bandwidth limit behavior into.
 
 The following example configures the default behavior for a service named `billing`. This configuration limits the bandwidth of outgoing requests to 100 KiB/s for 50 percent of responses from the billing service.
 
@@ -184,7 +200,7 @@ spec:
   config:
     bandwidth:
       limit: 100
-      percentage: 100
+      percentage: 50
 ```
 
   </Tab>

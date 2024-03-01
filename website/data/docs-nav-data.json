@@ -1862,6 +1862,10 @@
         "path": "enterprise/read-scale"
       },
       {
+        "title": "Fault injection",
+        "href": "/docs/connect/manage-traffic/fault-injection"
+      },
+      {
         "title": "FIPS",
         "path": "enterprise/fips"
       },
