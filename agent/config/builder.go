@@ -1951,7 +1951,19 @@ func (b *builder) uiConfigVal(v RawUIConfig) UIConfig {
 		MetricsProxy:               b.uiMetricsProxyVal(v.MetricsProxy),
 		DashboardURLTemplates:      v.DashboardURLTemplates,
 		HCPEnabled:                 os.Getenv("CONSUL_HCP_ENABLED") == "true",
+		Label:                      uiLabelDefault(v.Label),
 	}
+}
+
+func uiLabelDefault(v RawUILabel) RawUILabel {
+	if v.Text == "" {
+		return RawUILabel{
+			Text:            "", // UI will not display label if Text is empty
+			BackgroundColor: "Green",
+			TextColor:       "white",
+		}
+	}
+	return v
 }
 
 func (b *builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {

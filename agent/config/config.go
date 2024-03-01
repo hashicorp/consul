@@ -875,6 +875,13 @@ type RawUIConfig struct {
 	MetricsProviderOptionsJSON *string           `mapstructure:"metrics_provider_options_json"`
 	MetricsProxy               RawUIMetricsProxy `mapstructure:"metrics_proxy"`
 	DashboardURLTemplates      map[string]string `mapstructure:"dashboard_url_templates"`
+	Label                      RawUILabel        `mapstructure:"label"`
+}
+
+type RawUILabel struct {
+	Text            string `mapstructure:"text"`
+	BackgroundColor string `mapstructure:"background_color"`
+	TextColor       string `mapstructure:"text_color"`
 }
 
 type RawUIMetricsProxy struct {
