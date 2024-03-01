@@ -677,6 +677,10 @@
             "path": "connect/manage-traffic/limit-request-rates"
           },
           {
+            "title": "Fault Injection",
+            "path": "connect/manage-traffic/fault-injection"
+          },
+          {
             "title": "Failover",
             "routes": [
               {
@@ -1860,6 +1864,10 @@
       {
         "title": "Enhanced Read Scalability",
         "path": "enterprise/read-scale"
+      },
+      {
+        "title": "Fault injection",
+        "href": "/docs/connect/manage-traffic/fault-injection"
       },
       {
         "title": "FIPS",
