@@ -117,6 +117,8 @@ EnvoyExtensions = [
   </Tab>
   <Tab heading="Kubernetes" group="k8s">
 
+To inject a status code when aborting a response, configure the following parameters: 
+
 1. `spec.arguments.config.abort.httpStatus`: The HTTP status code to inject into responses when injecting an abort type fault. You may specify either a HTTP status or a gRPC status but not both.
 1. `spec.arguments.config.abort.grpcStatus`: The gRPC status to inject into responses when injecting an abort type fault. You may specify either a HTTP status or a gRPC status but not both.
 1. `spec.arguments.config.abort.percentage`: The percentage of responses to inject the abort behavior into.
