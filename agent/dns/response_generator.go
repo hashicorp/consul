@@ -1,14 +1,20 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
+
 package dns
 
 import (
+	"errors"
 	"fmt"
+	"math"
+	"net"
+	"strings"
+
+	"github.com/miekg/dns"
+
+	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
-	"github.com/miekg/dns"
-	"math"
-	"strings"
 )
 
 const (
@@ -28,8 +34,116 @@ const (
 	maxUDPDatagramSize = math.MaxUint16 - 68
 )
 
+// dnsResponseGenerator is used to:
+// - generate DNS responses for errors
+// - trim and truncate DNS responses
+// - EDNS to the response
+type dnsResponseGenerator struct{}
+
+// createRefusedResponse returns a REFUSED message. This is the default behavior for unmatched queries in
+// upstream miekg/dns.
+func (d dnsResponseGenerator) createRefusedResponse(req *dns.Msg) *dns.Msg {
+	// Return a REFUSED message
+	m := &dns.Msg{}
+	m.SetRcode(req, dns.RcodeRefused)
+	return m
+}
+
+// createServerFailureResponse returns a SERVFAIL message.
+func (d dnsResponseGenerator) createServerFailureResponse(req *dns.Msg, cfg *RouterDynamicConfig, recursionAvailable bool) *dns.Msg {
+	// Return a SERVFAIL message
+	m := &dns.Msg{}
+	m.SetReply(req)
+	m.Compress = !cfg.DisableCompression
+	m.SetRcode(req, dns.RcodeServerFailure)
+	m.RecursionAvailable = recursionAvailable
+	if edns := req.IsEdns0(); edns != nil {
+		d.setEDNS(req, m, true)
+	}
+
+	return m
+}
+
+// createAuthoritativeResponse returns an authoritative message that contains the SOA in the event that data is
+// not return for a query. There can be multiple reasons for not returning data, hence the rcode argument.
+func (d dnsResponseGenerator) createAuthoritativeResponse(req *dns.Msg, cfg *RouterDynamicConfig, domain string, rcode int, ecsGlobal bool) *dns.Msg {
+	m := &dns.Msg{}
+	m.SetRcode(req, rcode)
+	m.Compress = !cfg.DisableCompression
+	m.Authoritative = true
+	m.RecursionAvailable = canRecurse(cfg)
+	if edns := req.IsEdns0(); edns != nil {
+		d.setEDNS(req, m, ecsGlobal)
+	}
+
+	// We add the SOA on NameErrors
+	maker := &dnsRecordMaker{}
+	soa := maker.makeSOA(domain, cfg)
+	m.Ns = append(m.Ns, soa)
+
+	return m
+}
+
+// generateResponseFromErrorOpts is used to pass options to generateResponseFromError.
+type generateResponseFromErrorOpts struct {
+	req            *dns.Msg
+	err            error
+	qName          string
+	configCtx      *RouterDynamicConfig
+	responseDomain string
+	isECSGlobal    bool
+	query          *discovery.Query
+	canRecurse     bool
+	logger         hclog.Logger
+}
+
+// generateResponseFromError generates a response from an error.
+func (d dnsResponseGenerator) generateResponseFromError(opts *generateResponseFromErrorOpts) *dns.Msg {
+	switch {
+	case errors.Is(opts.err, errInvalidQuestion):
+		opts.logger.Error("invalid question", "name", opts.qName)
+
+		return d.createAuthoritativeResponse(opts.req, opts.configCtx, opts.responseDomain, dns.RcodeNameError, opts.isECSGlobal)
+	case errors.Is(opts.err, errNameNotFound):
+		opts.logger.Error("name not found", "name", opts.qName)
+
+		return d.createAuthoritativeResponse(opts.req, opts.configCtx, opts.responseDomain, dns.RcodeNameError, opts.isECSGlobal)
+	case errors.Is(opts.err, errNotImplemented):
+		opts.logger.Error("query not implemented", "name", opts.qName, "type", dns.Type(opts.req.Question[0].Qtype).String())
+
+		return d.createAuthoritativeResponse(opts.req, opts.configCtx, opts.responseDomain, dns.RcodeNotImplemented, opts.isECSGlobal)
+	case errors.Is(opts.err, discovery.ErrNotSupported):
+		opts.logger.Debug("query name syntax not supported", "name", opts.req.Question[0].Name)
+
+		return d.createAuthoritativeResponse(opts.req, opts.configCtx, opts.responseDomain, dns.RcodeNameError, opts.isECSGlobal)
+	case errors.Is(opts.err, discovery.ErrNotFound):
+		opts.logger.Debug("query name not found", "name", opts.req.Question[0].Name)
+
+		return d.createAuthoritativeResponse(opts.req, opts.configCtx, opts.responseDomain, dns.RcodeNameError, opts.isECSGlobal)
+	case errors.Is(opts.err, discovery.ErrNoData):
+		opts.logger.Debug("no data available", "name", opts.qName)
+
+		return d.createAuthoritativeResponse(opts.req, opts.configCtx, opts.responseDomain, dns.RcodeSuccess, opts.isECSGlobal)
+	case errors.Is(opts.err, discovery.ErrNoPathToDatacenter):
+		dc := ""
+		if opts.query != nil {
+			dc = opts.query.QueryPayload.Tenancy.Datacenter
+		}
+		opts.logger.Debug("no path to datacenter", "datacenter", dc)
+		return d.createAuthoritativeResponse(opts.req, opts.configCtx, opts.responseDomain, dns.RcodeNameError, opts.isECSGlobal)
+	}
+	opts.logger.Error("error processing discovery query", "error", opts.err)
+	return d.createServerFailureResponse(opts.req, opts.configCtx, opts.canRecurse)
+}
+
 // trimDNSResponse will trim the response for UDP and TCP
-func trimDNSResponse(cfg *RouterDynamicConfig, network string, req, resp *dns.Msg, logger hclog.Logger) {
+func (d dnsResponseGenerator) trimDNSResponse(cfg *RouterDynamicConfig, remoteAddress net.Addr, req, resp *dns.Msg, logger hclog.Logger) {
+	// Switch to TCP if the client is
+	network := "udp"
+	if _, ok := remoteAddress.(*net.TCPAddr); ok {
+		network = "tcp"
+	}
+
 	var trimmed bool
 	originalSize := resp.Len()
 	originalNumRecords := len(resp.Answer)
@@ -50,6 +164,58 @@ func trimDNSResponse(cfg *RouterDynamicConfig, network string, req, resp *dns.Ms
 			"size", fmt.Sprintf("%d/%d", resp.Len(), originalSize),
 		)
 	}
+}
+
+// setEDNS is used to set the responses EDNS size headers and
+// possibly the ECS headers as well if they were present in the
+// original request
+func (d dnsResponseGenerator) setEDNS(request *dns.Msg, response *dns.Msg, ecsGlobal bool) {
+	edns := request.IsEdns0()
+	if edns == nil {
+		return
+	}
+
+	// cannot just use the SetEdns0 function as we need to embed
+	// the ECS option as well
+	ednsResp := new(dns.OPT)
+	ednsResp.Hdr.Name = "."
+	ednsResp.Hdr.Rrtype = dns.TypeOPT
+	ednsResp.SetUDPSize(edns.UDPSize())
+
+	// Set up the ECS option if present
+	if subnet := ednsSubnetForRequest(request); subnet != nil {
+		subOp := new(dns.EDNS0_SUBNET)
+		subOp.Code = dns.EDNS0SUBNET
+		subOp.Family = subnet.Family
+		subOp.Address = subnet.Address
+		subOp.SourceNetmask = subnet.SourceNetmask
+		if c := response.Rcode; ecsGlobal || c == dns.RcodeNameError || c == dns.RcodeServerFailure || c == dns.RcodeRefused || c == dns.RcodeNotImplemented {
+			// reply is globally valid and should be cached accordingly
+			subOp.SourceScope = 0
+		} else {
+			// reply is only valid for the subnet it was queried with
+			subOp.SourceScope = subnet.SourceNetmask
+		}
+		ednsResp.Option = append(ednsResp.Option, subOp)
+	}
+
+	response.Extra = append(response.Extra, ednsResp)
+}
+
+// ednsSubnetForRequest looks through the request to find any EDS subnet options
+func ednsSubnetForRequest(req *dns.Msg) *dns.EDNS0_SUBNET {
+	// IsEdns0 returns the EDNS RR if present or nil otherwise
+	edns := req.IsEdns0()
+	if edns == nil {
+		return nil
+	}
+
+	for _, o := range edns.Option {
+		if subnet, ok := o.(*dns.EDNS0_SUBNET); ok {
+			return subnet
+		}
+	}
+	return nil
 }
 
 // trimTCPResponse limit the MaximumSize of messages to 64k as it is the limit
