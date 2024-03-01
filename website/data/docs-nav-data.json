@@ -1867,7 +1867,7 @@
       },
       {
         "title": "Fault injection",
-        "path": "connect/manage-traffic/fault-injection"
+        "href": "/docs/connect/manage-traffic/fault-injection"
       },
       {
         "title": "FIPS",
