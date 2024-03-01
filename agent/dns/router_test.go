@@ -5,11 +5,12 @@ package dns
 
 import (
 	"fmt"
-	"github.com/armon/go-radix"
 	"net"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/armon/go-radix"
 
 	"github.com/hashicorp/consul/internal/dnsutil"
 
@@ -65,6 +66,40 @@ var testSOA = &dns.SOA{
 	Retry:   2,
 	Expire:  3,
 	Minttl:  4,
+}
+
+func Test_HandleRequest_Validation(t *testing.T) {
+	testCases := []HandleTestCase{
+		{
+			name: "request with empty message",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{},
+			},
+			validateAndNormalizeExpected: false,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode:        dns.OpcodeQuery,
+					Response:      true,
+					Authoritative: false,
+					Rcode:         dns.RcodeRefused,
+				},
+				Compress: false,
+				Question: nil,
+				Answer:   nil,
+				Ns:       nil,
+				Extra:    nil,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			runHandleTestCases(t, tc)
+		})
+	}
 }
 
 // runHandleTestCases runs the test cases for the HandleRequest function.
@@ -526,4 +561,147 @@ func TestRouter_ReloadConfig(t *testing.T) {
 
 	// Ensure the new config is used
 	require.Equal(t, expectedCfg, savedCfg)
+}
+
+func Test_isPTRSubdomain(t *testing.T) {
+	testCases := []struct {
+		name     string
+		domain   string
+		expected bool
+	}{
+		{
+			name:     "empty domain returns false",
+			domain:   "",
+			expected: false,
+		},
+		{
+			name:     "last label is 'arpa' returns true",
+			domain:   "my-addr.arpa.",
+			expected: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := isPTRSubdomain(tc.domain)
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func Test_isAddrSubdomain(t *testing.T) {
+	testCases := []struct {
+		name     string
+		domain   string
+		expected bool
+	}{
+		{
+			name:     "empty domain returns false",
+			domain:   "",
+			expected: false,
+		},
+		{
+			name:     "'c000020a.addr.dc1.consul.' returns true",
+			domain:   "c000020a.addr.dc1.consul.",
+			expected: true,
+		},
+		{
+			name:     "'c000020a.addr.consul.' returns true",
+			domain:   "c000020a.addr.consul.",
+			expected: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := isAddrSubdomain(tc.domain)
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func Test_stripAnyFailoverSuffix(t *testing.T) {
+	testCases := []struct {
+		name                   string
+		target                 string
+		expectedEnableFailover bool
+		expectedResult         string
+	}{
+		{
+			name:                   "my-addr.service.dc1.consul.failover. returns 'my-addr.service.dc1.consul' and true",
+			target:                 "my-addr.service.dc1.consul.failover.",
+			expectedEnableFailover: true,
+			expectedResult:         "my-addr.service.dc1.consul.",
+		},
+		{
+			name:                   "my-addr.service.dc1.consul.no-failover. returns 'my-addr.service.dc1.consul' and false",
+			target:                 "my-addr.service.dc1.consul.no-failover.",
+			expectedEnableFailover: false,
+			expectedResult:         "my-addr.service.dc1.consul.",
+		},
+		{
+			name:                   "my-addr.service.dc1.consul. returns 'my-addr.service.dc1.consul' and false",
+			target:                 "my-addr.service.dc1.consul.",
+			expectedEnableFailover: false,
+			expectedResult:         "my-addr.service.dc1.consul.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, actualEnableFailover := stripAnyFailoverSuffix(tc.target)
+			require.Equal(t, tc.expectedEnableFailover, actualEnableFailover)
+			require.Equal(t, tc.expectedResult, actual)
+		})
+	}
+}
+
+func Test_trimDomain(t *testing.T) {
+	testCases := []struct {
+		name           string
+		domain         string
+		altDomain      string
+		questionName   string
+		expectedResult string
+	}{
+		{
+			name:           "given domain is 'consul.' and altDomain is 'my.consul.', when calling trimDomain with 'my-service.my.consul.', it returns 'my-service.'",
+			questionName:   "my-service.my.consul.",
+			domain:         "consul.",
+			altDomain:      "my.consul.",
+			expectedResult: "my-service.",
+		},
+		{
+			name:           "given domain is 'consul.' and altDomain is 'my.consul.', when calling trimDomain with 'my-service.consul.', it returns 'my-service.'",
+			questionName:   "my-service.consul.",
+			domain:         "consul.",
+			altDomain:      "my.consul.",
+			expectedResult: "my-service.",
+		},
+		{
+			name:           "given domain is 'consul.' and altDomain is 'my-consul.', when calling trimDomain with 'my-service.consul.', it returns 'my-service.'",
+			questionName:   "my-service.consul.",
+			domain:         "consul.",
+			altDomain:      "my-consul.",
+			expectedResult: "my-service.",
+		},
+		{
+			name:           "given domain is 'consul.' and altDomain is 'my-consul.', when calling trimDomain with 'my-service.my-consul.', it returns 'my-service.'",
+			questionName:   "my-service.my-consul.",
+			domain:         "consul.",
+			altDomain:      "my-consul.",
+			expectedResult: "my-service.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			router := Router{
+				domain:    tc.domain,
+				altDomain: tc.altDomain,
+			}
+			actual := router.trimDomain(tc.questionName)
+			require.Equal(t, tc.expectedResult, actual)
+		})
+	}
 }
