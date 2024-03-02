@@ -1,0 +1,49 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v2beta1;
+
+import "pbmesh/v2beta1/computed_routes.proto";
+import "pbmesh/v2beta1/pbproxystate/transport_socket.proto";
+import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
+
+// ComputedGatewayConfiguration contains the materialized snapshot of an API
+// Gateway with all of its route and certificate configuration.
+message ComputedGatewayConfiguration {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
+  // ListenerConfigs is the map of ComputedGatewayListeners to their underlying configurations.
+  //
+  // The key is the underlying listener name.
+  map<string, ComputedGatewayListener> listener_configs = 1;
+  // BoundReferences is a slice of mixed type references of resources that were
+  // involved in the formulation of this resource.
+  repeated hashicorp.consul.resource.Reference bound_references = 2;
+}
+
+message ComputedGatewayListener {
+  // HostnameConfigs is the map of the ComputedHostnameRoutes for
+  // a given hostname.
+  //
+  // The key is the hostname that all the routes in the configuration
+  // match and is used predominantly for both SNI and virtual
+  // host matching in the routers that correspond to a given ComputedHostnameRoutes.
+  map<string, ComputedHostnameRoutes> hostname_configs = 1;
+  // Port is the port a listener binds to.
+  uint32 port = 2;
+  // Certificate is the default TLS certificate used on this listener.
+  optional hashicorp.consul.resource.Reference certificate = 3;
+  // TLSParameters contains optional configuration for running TLS termination.
+  optional pbproxystate.TLSParameters tls_parameters = 4;
+}
+
+message ComputedHostnameRoutes {
+  // Routes is the effective ComputedPortRoutes that is used for targeting a set
+  // of upstream services with a complex set of routing rules.
+  ComputedPortRoutes routes = 1;
+  // Certificate is an optional TLS certificate to use for SNI-based request matching.
+  optional hashicorp.consul.resource.Reference certificate = 2;
+}
