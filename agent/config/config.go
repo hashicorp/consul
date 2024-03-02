@@ -879,9 +879,9 @@ type RawUIConfig struct {
 }
 
 type RawUILabel struct {
-	Text            string `mapstructure:"text"`
-	BackgroundColor string `mapstructure:"background_color"`
-	TextColor       string `mapstructure:"text_color"`
+	Text            *string `mapstructure:"text"`
+	BackgroundColor *string `mapstructure:"background_color"`
+	TextColor       *string `mapstructure:"text_color"`
 }
 
 type RawUIMetricsProxy struct {

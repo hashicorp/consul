@@ -1561,7 +1561,13 @@ type UIConfig struct {
 	MetricsProxy               UIMetricsProxy
 	DashboardURLTemplates      map[string]string
 	HCPEnabled                 bool
-	Label                      RawUILabel
+	Label                      UILabel
+}
+
+type UILabel struct {
+	Text            string
+	BackgroundColor string
+	TextColor       string
 }
 
 type UIMetricsProxy struct {

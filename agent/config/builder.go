@@ -1955,15 +1955,12 @@ func (b *builder) uiConfigVal(v RawUIConfig) UIConfig {
 	}
 }
 
-func uiLabelDefault(v RawUILabel) RawUILabel {
-	if v.Text == "" {
-		return RawUILabel{
-			Text:            "", // UI will not display label if Text is empty
-			BackgroundColor: "Green",
-			TextColor:       "white",
-		}
+func uiLabelDefault(v RawUILabel) UILabel {
+	return UILabel{
+		Text:            stringVal(v.Text), // UI will not display label if Text is empty
+		BackgroundColor: "green",
+		TextColor:       "white",
 	}
-	return v
 }
 
 func (b *builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {

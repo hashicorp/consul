@@ -735,6 +735,15 @@ func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	) // 301
 }
 
+func (s *HTTPHandlers) SetCustomLabel(resp http.ResponseWriter) {
+	if s.IsUIEnabled() {
+		if v, err := json.Marshal(s.agent.config.UIConfig.Label); err == nil {
+			setHeaders(resp, map[string]string{"X-CONSUL-LABEL": string(v)})
+			return
+		}
+	}
+}
+
 func decodeBody(body io.Reader, out interface{}) error {
 	return lib.DecodeJSON(body, out)
 }
