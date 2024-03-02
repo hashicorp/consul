@@ -7,7 +7,10 @@ import Error from '@ember/error';
 import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
 import dataSource from 'consul-ui/decorators/data-source';
-import { HEADERS_DEFAULT_ACL_POLICY as DEFAULT_ACL_POLICY } from 'consul-ui/utils/http/consul';
+import {
+  HEADERS_DEFAULT_ACL_POLICY as DEFAULT_ACL_POLICY,
+  HEADERS_LABEL as CUSTOM_LABEL,
+} from 'consul-ui/utils/http/consul';
 
 const SECONDS = 1000;
 const MODEL_NAME = 'dc';
@@ -55,6 +58,7 @@ const aggregate = (prev, body, type) => {
 
 export default class DcService extends RepositoryService {
   @service('env') env;
+  @service('settings') settings;
 
   getModelName() {
     return MODEL_NAME;
@@ -69,7 +73,7 @@ export default class DcService extends RepositoryService {
       GET /v1/catalog/datacenters
       X-Request-ID: ${uri}
     `
-    )((headers, body, cache) => {
+    )(async (headers, body, cache) => {
       // TODO: Not sure nowadays whether we need to keep lowercasing everything
       // I vaguely remember when I last looked it was not needed for browsers anymore
       // but I also vaguely remember something about Pretender lowercasing things still
@@ -80,6 +84,10 @@ export default class DcService extends RepositoryService {
       );
       //
       const DefaultACLPolicy = entry[1] || 'allow';
+      const label = Object.entries(headers).find(
+        ([key, value]) => key.toLowerCase() === CUSTOM_LABEL.toLowerCase()
+      );
+      await this.settings.persist({ uiLabelConfig: JSON.parse(label[1] || '{}') });
       return {
         meta: {
           version: 2,

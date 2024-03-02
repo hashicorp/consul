@@ -118,6 +118,18 @@
         </Hds::SideNav::Header>
       </:header>
       <:body>
+          <Hds::SideNav::List::Item>
+            <DataSource
+                @src={{uri '/${partition}/${nspace}/${dc}/ui-label-config'
+                (hash dc=@dc partition=@partition nspace=@nspace)}} as |config|>
+                {{#if config.data.text}}
+                <div class="hds-side-nav__list-item custom-label" style={{config.data.style}}>
+                  {{config.data.text}}
+                </div>
+                <br>
+                {{/if}}
+            </DataSource>
+          </Hds::SideNav::List::Item> 
         <Hds::SideNav::List
           class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
           as |SNL|

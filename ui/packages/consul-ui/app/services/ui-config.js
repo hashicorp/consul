@@ -10,6 +10,7 @@ import dataSource from 'consul-ui/decorators/data-source';
 
 export default class UiConfigService extends Service {
   @service('env') env;
+  @service('settings') settings;
 
   @dataSource('/:partition/:nspace/:dc/ui-config/:path')
   async findByPath(params) {
@@ -42,5 +43,17 @@ export default class UiConfigService extends Service {
   // @deprecated
   getSync() {
     return this.env.var('CONSUL_UI_CONFIG');
+  }
+
+  @dataSource('/:partition/:nspace/:dc/ui-label-config')
+  async getLabel() {
+    const label = await this.settings.findBySlug('uiLabelConfig');
+    return {
+      text: label?.Text || '',
+      style: `
+              color: ${label?.TextColor || 'green'};
+              background-color: ${label?.BackgroundColor || 'white'};
+              `,
+    };
   }
 }
