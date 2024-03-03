@@ -7041,7 +7041,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				PathAllowlist: []string{"/aSh3cu", "/eiK/2Th"},
 			},
 			DashboardURLTemplates: map[string]string{"u2eziu2n_lower_case": "http://lkjasd.otr"},
-			Label: RawUILabel{
+			Label: UILabel{
 				Text:            "Dev",
 				BackgroundColor: "green",
 				TextColor:       "white",
@@ -7391,7 +7391,7 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 					{Name: "foo", Value: "secret"},
 				},
 			},
-			Label: RawUILabel{
+			Label: UILabel{
 				Text:            "Dev",
 				BackgroundColor: "green",
 				TextColor:       "white",

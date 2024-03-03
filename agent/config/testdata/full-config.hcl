@@ -784,6 +784,11 @@ ui_config {
     dashboard_url_templates {
         u2eziu2n_lower_case = "http://lkjasd.otr"
     }
+    label {
+        text = "Dev"
+        background_color = "green"
+        text_color = "white"
+    }
 }
 unix_sockets = {
     group = "8pFodrV8"
