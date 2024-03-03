@@ -54,7 +54,7 @@ func (op *Operator) Usage(args *structs.OperatorUsageRequest, reply *structs.Usa
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			// Get service usage.
-			index, serviceUsage, err := state.ServiceUsage(ws)
+			index, serviceUsage, err := state.ServiceUsage(ws, true)
 			if err != nil {
 				return err
 			}
