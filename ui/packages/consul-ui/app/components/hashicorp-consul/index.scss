@@ -72,10 +72,3 @@
 .hashicorp-consul {
   @extend %hashicorp-consul;
 }
-
-.custom-label {
-  display: grid;
-  border-radius: 1rem;
-  padding: 0.25rem 1rem;
-  align-self: center;
-}

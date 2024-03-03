@@ -87,7 +87,9 @@ export default class DcService extends RepositoryService {
       const label = Object.entries(headers).find(
         ([key, value]) => key.toLowerCase() === CUSTOM_LABEL.toLowerCase()
       );
-      await this.settings.persist({ uiLabelConfig: JSON.parse(label[1] || '{}') });
+      await this.settings.persist({
+        uiLabelConfig: JSON.parse(label && label[1] ? label[1] : '{}'),
+      });
       return {
         meta: {
           version: 2,
