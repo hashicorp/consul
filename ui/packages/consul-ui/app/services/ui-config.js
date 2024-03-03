@@ -53,6 +53,7 @@ export default class UiConfigService extends Service {
       style: `
               color: ${label?.TextColor || 'green'};
               background-color: ${label?.BackgroundColor || 'white'};
+              margin-bottom: 1rem;
               `,
     };
   }

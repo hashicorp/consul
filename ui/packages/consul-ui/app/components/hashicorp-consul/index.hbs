@@ -120,9 +120,7 @@
       <:body>
         <DataSource @src={{uri '/${partition}/${nspace}/${dc}/ui-label-config'(hash dc=@dc partition=@partition nspace=@nspace)}} as |config|>
           {{#if config.data.text}}
-            <Hds::SideNav::List::Item class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'>
-              <Hds::Badge @text={{config.data.text}} style={{config.data.style}}/><br>
-            </Hds::SideNav::List::Item>
+              <Hds::Badge @text={{config.data.text}} style={{config.data.style}}/>
           {{/if}}
         </DataSource>
         <Hds::SideNav::List
