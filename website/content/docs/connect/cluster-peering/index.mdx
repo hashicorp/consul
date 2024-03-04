@@ -7,16 +7,16 @@ description: >-
 
 # Cluster peering overview
 
-This topic provides an overview of cluster peering, which lets you connect two or more independent Consul clusters so that services deployed to different partitions or datacenters can communicate.
-Cluster peering is enabled in Consul by default. For specific information about cluster peering configuration and usage, refer to following pages.
+This topic provides an overview of Consul's cluster peering features. Cluster peering is a strategy to extend Consul operations in an east-west direction by connecting two or more independent Consul clusters so that services deployed to different datacenters can communicate. Cluster peering is enabled in Consul by default.
 
-## What is cluster peering?
+## Overview
 
-Consul supports cluster peering connections between two [admin partitions](/consul/docs/enterprise/admin-partitions) _in different datacenters_. Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a default partition. Meanwhile, admin partitions _in the same datacenter_ do not require cluster peering connections because you can export services between them without generating or exchanging a peering token.
+Consul supports cluster peering connections between two [admin partitions](/consul/docs/enterprise/admin-partitions) _in different Consul datacenters_. Even though Consul requires an Enterprise license to configure server tenancy, deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a default partition. Admin partitions _in the same Consul datacenter_ do not require cluster peering connections because you can export services between them without generating or exchanging a peering token.
 
 The following diagram describes Consul's cluster peering architecture.
 
-![Diagram of cluster peering with admin partitions](/img/cluster-peering-diagram.png)
+![Diagram of cluster peering with admin partitions](/img/cluster-peering-overview.png#light-theme-only)
+![Diagram of cluster peering with admin partitions](/img/cluster-peering-overview-dark.png#dark-theme-only)
 
 In this diagram, the `default` partition in Consul DC 1 has a cluster peering connection with the `web` partition in Consul DC 2. Enforced by their respective mesh gateways, this cluster peering connection enables `Service B` to communicate with `Service C` as a service upstream.
 
