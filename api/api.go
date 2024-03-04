@@ -1138,7 +1138,7 @@ func (c *Client) delete(endpoint string, q *QueryOptions) (*WriteMeta, error) {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-	if err = requireHttpCodes(resp, 204); err != nil {
+	if err = requireHttpCodes(resp, 204, 200); err != nil {
 		return nil, err
 	}
 
