@@ -6,11 +6,8 @@
 <Route @name={{routeName}} as |route|>
 
   {{! Add the a11y route announcer }}
-  <route.Announcer @title='Consul' />
   <DataSource @src={{uri '/*/*/*/ui-label-config' }} as |config|>
-    {{#if config.data.text}}
-    <route.Announcer @title={{config.data.text}} />
-    {{/if}}
+    <route.Announcer @title={{concat (if config.data.text (concat config.data.text ' - ' )) 'Consul' }} />
   </DataSource>
 
   {{#unless (env 'CONSUL_V2_CATALOG_ENABLED')}}
