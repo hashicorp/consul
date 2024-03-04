@@ -7,6 +7,12 @@
 
   {{! Add the a11y route announcer }}
   <route.Announcer @title='Consul' />
+  <DataSource @src={{uri '/${partition}/${nspace}/${dc}/ui-label-config' (hash dc=@dc partition=@partition
+    nspace=@nspace)}} as |config|>
+    {{#if config.data.text}}
+    <route.Announcer @title={{config.data.text}} />
+    {{/if}}
+  </DataSource>
 
   {{#unless (env 'CONSUL_V2_CATALOG_ENABLED')}}
     {{! Tell CSS what we have enabled }}

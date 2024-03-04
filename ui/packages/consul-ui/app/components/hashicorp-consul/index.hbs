@@ -118,9 +118,10 @@
         </Hds::SideNav::Header>
       </:header>
       <:body>
-        <DataSource @src={{uri '/${partition}/${nspace}/${dc}/ui-label-config'(hash dc=@dc partition=@partition nspace=@nspace)}} as |config|>
+        <DataSource @src={{uri '/${partition}/${nspace}/${dc}/ui-label-config' (hash dc=@dc partition=@partition
+          nspace=@nspace)}} as |config|>
           {{#if config.data.text}}
-              <Hds::Badge @text={{config.data.text}} style={{config.data.style}}/>
+          <Hds::Badge @text={{config.data.text}} style={{config.data.style}} />
           {{/if}}
         </DataSource>
         <Hds::SideNav::List
