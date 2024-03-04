@@ -2,12 +2,12 @@
 layout: docs
 page_title: Cluster peering best practices 
 description: >- 
-  Cluster peering connections in Consul interact with mesh gateways, sidecar proxies, exported services, and ACLs. Learn about the configuration requirements for these components.
+  Cluster peering connections in Consul interact with mesh gateways, sidecar proxies, exported services, and ACLs. Learn about the  requirements and best practices for these components.
 ---
 
 # Cluster peering best practices
 
-This reference topic describes recommendations and best practices when using cluster peering in your Consul deployments. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
+This page describes recommendations and best practices when using cluster peering in your Consul deployments. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
 
 ## Requirements
 
@@ -20,13 +20,17 @@ In addition, make sure your Consul environment meets the following prerequisites
 
 ## Best practices
 
-We suggest the following best practices:
+We suggest the following best practices for Consul cluster peering connections.
 
-- When you generate peering tokens, use the following naming convention so that your configurations are human readable: `<remote-dc-name>.<remote-partition-name>`. For example, the instructions to [create a cluster peering connection](/consul/docs/connect/cluster-peering/usage) begin by generating a peering token for `dc1` that assigns the name `dc2-default` to the peer cluster. As a result, configuration entries that manage traffic with the peer cluster use `Peer: "dc2-default"` to configure traffic.
+- When you generate peering tokens, use the following naming convention: `<remote-dc-name>.<remote-partition-name>`.
+  - For example, the instructions to [create a cluster peering connection](/consul/docs/connect/cluster-peering/usage) begin by generating a peering token for `dc1` that assigns the name `dc2-default` to the peer cluster. As a result, configuration entries that export services and manage traffic with the peer cluster use `Peer: "dc2-default"` to to describe the remote cluster.
+  - This naming convention simplifies the creation and usage of sameness groups. Because a separate peering token is exchanged for each peered cluster in the group and each cluster requires a configuration entry that defines the group from its perspective, a uniform naming convention for cluster peers lowers the modifications required to each configuration entry.
+- Use mesh gateways to secure east-west traffic between peered clusters in production environments.
+- Delete peering tokens after you terminate cluster peering connections. Unmanaged token sprawl may negatively impact the security of a Consul deployment operating in a production environment.
 
 ## Mesh gateway recommendations
 
-When cluster peering through mesh gateways, consider the following deployment recommendaitons:
+When cluster peering through mesh gateways, consider the following deployment recommendaitons.
 
 - Register a mesh gateway as a Consul service in order to export services to peers in other regions or cloud providers.
 - Register the mesh gateway in the same Consul admin partition as the exported services and their `exported-services` configuration entry. An Enterprise license is required to use multiple admin partitions with a single cluster of Consul servers.
