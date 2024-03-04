@@ -34,6 +34,8 @@ type V2WriteResponse struct {
 	Status     map[string]any    `json:"status"`
 }
 
+// We are testing a v2 endpoint here in the v1 api module as a temporary measure to
+// support v2 CRUD operations, until we have a final design for v2 api clients.
 func TestAPI_RawV2ExportedServices(t *testing.T) {
 	t.Parallel()
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
