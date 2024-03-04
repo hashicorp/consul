@@ -23,7 +23,7 @@ In addition, make sure your Consul environment meets the following prerequisites
 We suggest the following best practices for Consul cluster peering connections.
 
 - When you generate peering tokens, use the following naming convention: `<remote-dc-name>.<remote-partition-name>`.
-  - For example, the instructions to [create a cluster peering connection](/consul/docs/connect/cluster-peering/usage) begin by generating a peering token for `dc1` that assigns the name `dc2-default` to the peer cluster. As a result, configuration entries that export services and manage traffic with the peer cluster use `Peer: "dc2-default"` to to describe the remote cluster.
+  - For example, the instructions to [create a cluster peering connection](/consul/docs/connect/cluster-peering/usage) begin by generating a peering token for `dc1` that assigns the name `dc2-default` to the peer cluster. As a result, many commands and configuration use `Peer: "dc2-default"` to refer to the remote cluster.
   - This naming convention simplifies the creation and usage of sameness groups. Because a separate peering token is exchanged for each peered cluster in the group and each cluster requires a configuration entry that defines the group from its perspective, a uniform naming convention for cluster peers lowers the modifications required to each configuration entry.
 - Use mesh gateways to secure east-west traffic between peered clusters in production environments.
 - Delete peering tokens after you terminate cluster peering connections. Unmanaged token sprawl may negatively impact the security of a Consul deployment operating in a production environment.
