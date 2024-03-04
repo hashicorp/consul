@@ -21,9 +21,10 @@ You can configure API gateways to use JWTs to verify incoming requests so that y
 
 Complete the following steps to use JWTs to verify requests:
 
-1. Define a policy that specifies default and override settings for API gateway listeners and attach it to the gateway.
-1. Define an HTTP route auth filter that specifies route-specific JWT verification settings.
-1. Attach the auth filter to the HTTP route values file.
+1. Define a JWTProvider that specifies the JWT provider and claims used to verify requests to the gateway.
+1. Define a GatewayPolicy that specifies default and override settings for API gateway listeners and attach it to the gateway.
+1. Define a RouteAuthFilter that specifies route-specific JWT verification settings.
+1. Reference the RouteAuthFilter from the HTTPRoute.
 1. Apply the configurations.
 
 
@@ -33,7 +34,32 @@ Complete the following steps to use JWTs to verify requests:
 - Consul on Kubernetes CLI or Helm chart v1.3.0+
 - JWT details, such as claims and provider
 
-## Define override and default settings
+## The Setup
+
+In this document we will set up a JWTProvider using a local set of JWKs, define a GatewayPolicy to specify default and override settings for JWT verification,
+define a RouteAuthFilter to specify route-specific JWT verification settings, attach the GatewayPolicy to a gateway listener, and reference the RouteAuthFilter
+from an HTTPRoute attached to the listener.
+
+
+## Define a JWTProvider
+
+Create a JWTProvider values file and configure the following fields. Refer to [`JWTProvider` configuration reference](/consul/docs/connect/config-entries/jwtprovider) for details. This is used to define the JWT provider that claims will be verified against.
+
+Below is an example of a JWT provider configuration that utilizes a local set of JWKs that we define inline. Do not use this configuration in a production environment. Instead, use a production-grade JWKs endpoint.
+```yaml
+// jwt-provider.yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: JWTProvider
+metadata:
+  name: local
+spec:
+  issuer: local
+  jsonWebKeySet:
+    local:
+      jwks: "ewogICAgImtleXMiOiBbCiAgICAgICAgewogICAgICAgICAgICAicCI6ICI5TTlWSVhJR0hpR3FlTnhseEJ2V0xFV09oUFh3dXhXZUpod01uM3dGdG9STEtfZmF6VWxjWEc1cUViLTdpMXo3VmlPUWVZRnh6WUZYTS1pbVU3OVFRa1dTVUVSazR2dHZuc2R5UnpUSnVPc3A0ZUhuWFVMSHJPOU51NkJ5bC1VeVprMzFvSnFGeGllM0pHQXlRLUM2OVF2NVFkVjFZV0hfVDkyTzk4d1hYZGMiLAogICAgICAgICAgICAia3R5IjogIlJTQSIsCiAgICAgICAgICAgICJxIjogInFIVnZBb3h0ckgxUTVza25veXNMMkhvbC1ubnU3ZlM3Mjg4clRGdE9jeG9Jb29nWXBKVTljemxwcjctSlo2bjc0TUViVHBBMHRkSUR5TEtQQ0xIN3JKTFRrZzBDZVZNQWpmY01zdkRUcWdFOHNBWE42bzd2ZjYya2hwcExYOHVCU3JxSHkyV1JhZXJsbDROU09hcmRGSkQ2MWhHSVF2cEpXRk4xazFTV3pWcyIsCiAgICAgICAgICAgICJkIjogIlp3elJsVklRZkg5ekZ6d1hOZ2hEMHhkZVctalBCbmRkWnJNZ0wwQ2JjeXZZYlg2X1c0ajlhM1dmYWpobmI2bTFILW9CWjRMczVmNXNRVTB2ZFJ2ZG1laFItUG43aWNRcUdURFNKUTYtdWVtNm15UVRWaEo2UmZiM0lINVJ2VDJTOXUzcVFDZWFadWN3aXFoZ1RCbFhnOWFfV0pwVHJYNFhPQ3JCR1ZsTng3Z2JETVJOamNEN0FnRkZ3S2p2TEZVdDRLTkZmdEJqaFF0TDFLQ2VwblNmamtvRm1RUTVlX3RSS2ozX2U1V3pNSkJkekpQejNkR2YxZEk3OF9wYmJFbmFMcWhqNWg0WUx2UU5JUUhVcURYSGx4ZDc1Qlh3aFJReE1nUDRfd1EwTFk2cVRKNGFDa2Q0RDJBTUtqMzJqeVFiVTRKTE9jQjFNMnZBRWFyc2NTU3l0USIsCiAgICAgICAgICAgICJlIjogIkFRQUIiLAogICAgICAgICAgICAidXNlIjogInNpZyIsCiAgICAgICAgICAgICJraWQiOiAiQy1FMW5DandnQkMtUHVHTTJPNDY3RlJEaEt4OEFrVmN0SVNBYm8zcmlldyIsCiAgICAgICAgICAgICJxaSI6ICJ0N2VOQjhQV21xVHdKREZLQlZKZExrZnJJT2drMFJ4MnREODBGNHB5cjhmNzRuNGlVWXFmWG1haVZtbGx2c2FlT3JlNHlIczQ4UE45NVZsZlVvS3Z6ZEJFaDNZTDFINGZTOGlYYXNzNGJiVnVuWHR4U0hMZFFPYUNZYUplSmhBbGMyUWQ4elR0NFFQWk9yRWVWLVJTYU0tN095ekkwUWtSSF9tcmk1YmRrOXMiLAogICAgICAgICAgICAiZHAiOiAiYnBLckQtVXhrRENDal81MFZLU0NFeE1Ec1Zob2VBZm1tNjMxb1o5aDhUTkZ4TUU1YVptbUJ2VzBJUG9wMm1PUF9qTW9FVWxfUG1RYUlBOEgtVEdqTFp2QTMxSlZBeFN3TU5aQzdwaVFPRjYzVnhneTZUTzlmb1hENVdndC1oLUNxU1N6T2V3eFdmUWNTMmpMcTA3NUFxOTYwTnA2SHhjbE8weUdRN1JDSlpjIiwKICAgICAgICAgICAgImFsZyI6ICJQUzI1NiIsCiAgICAgICAgICAgICJkcSI6ICJpdVZveGwwckFKSEM1c2JzbTZpZWQ3c2ZIVXIwS2Rja0hiVFBLb0lPU1BFcU5YaXBlT3BrWkdEdU55NWlDTXNyRnNHaDFrRW9kTkhZdE40ay1USm5KSDliV296SGdXbGloNnN2R1V0Zi1raFMxWC16ckxaMTJudzlyNDRBbjllWG54bjFaVXMxZm5OakltM3dtZ083algyTWxIeVlNVUZVd0RMd09xNEFPUWsiLAogICAgICAgICAgICAibiI6ICJvUmhjeUREdmp3NFZ4SHRRNTZhRDlNSmRTaWhWSk1nTHd1b2FCQVhhc0RjVDNEWVZjcENlVGxDMVBPdzdPNW1Ec2ZSWVFtcGpoendyRDVZWU8yeDE4REl4czdyNTNJdFMxRy1ybnQxQ1diVE9fUzFJT01DR2xxYzh5VWJnLUhSUkRETXQyb2V3TjJoRGtxYlBKVFJNbXpjRkpNMHRpTm1RZVVMcWViZEVYaWVUblJMT1BkMWg2ZmJycVNLS01mSXlIbGZ1WXFQc1VWSEdkMVBESGljZ3NMazFtZDhtYTNIS1hWM0hJdzZrdUV6R0hQb1gxNHo4YWF6RFFZWndUR3ZxVGlPLUdRUlVDZUJueVo4bVhyWnRmSjNqVk83UUhXcEx3MlM1VDVwVTRwcE0xQXppWTFxUDVfY3ZpOTNZT2Zrb09PalRTX3V3RENZWGFxWjB5bTJHYlEiCiAgICAgICAgfQogICAgXQp9Cg=="
+````
+
+## Define a GatewayPolicy
 
 Create a `GatewayPolicy` values file and configure the following fields to define default and override settings for JWT verification. Refer to [`GatewayPolicy` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy) for details.
 
@@ -46,7 +72,52 @@ Create a `GatewayPolicy` values file and configure the following fields to defin
 - `spec.targetRef.override.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
 - `spec.targetRef.default.jwt.providers`: Specifies a list of default providers and claims used to verify requests to the gateway.
 
-## Define an HTTP route auth filter
+Below is an example of a Gateway and the GatewayPolicy being attached to it. In this setup every request coming through the listener must be signed by the `local` provider
+and must have a claim of `role` with a value of `user` _unless_ this is overridden by the HTTPRoutes attaching to the listener.
+
+**Gateway:**
+```yaml
+// gateway.yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: api-gateway
+spec:
+  gatewayClassName: consul
+  listeners:
+    - protocol: HTTP
+      port: 30002
+      name: listener-one
+```
+
+**GatewayPolicy:**
+```yaml
+// gateway-policy.yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: GatewayPolicy
+metadata:
+  name: gw-policy
+spec:
+  targetRef:
+    name: api-gateway
+    sectionName: listener-one
+    group: gateway.networking.k8s.io/v1beta1
+    kind: Gateway
+  override:
+    jwt:
+      providers:
+      - name: "local"
+  default:
+    jwt:
+      providers:
+      - name: "local"
+        verifyClaims:
+        - path:
+            - role
+          value: user
+```
+
+## Define a RouteAuthFilter
 
 Create an `RouteAuthFilter` values file and configure the following fields. Refer to [`RouteAuthFilter` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter) for details.
 
@@ -55,20 +126,84 @@ Create an `RouteAuthFilter` values file and configure the following fields. Refe
 - `metadata.namespace`: Specifies the Consul namespace the filter applies to.
 - `spec.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
 
+Below is an example of a RouteAuthFilter that overrides the default settings set in the GatewayPolicy. In this setup every request coming through the listener must be signed by the `local` provider and have a claim of `role` with the value `admin`.
+```yaml
+// route-auth-filter.yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: RouteAuthFilter
+metadata:
+  name: auth-filter
+spec:
+  jwt:
+    providers:
+    - name: "local"
+      verifyClaims:
+      - path:
+          - role
+        value: admin
+```
+
 ## Attach the auth filter to your HTTP routes
 
 In the `filters` field of your HTTP route configuration, add the following fields. Refer to the [`extensionRef` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes#rules-filters-extensionref) for details:
 
-- `type: extensionRef`: Declare list of extension references.
+- `type`: Specifies the type of filter you want to apply to the rule. Must be `ExtensionRef` for a RouteAuthFilter.
 - `extensionRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kuberenetes.io`.
 - `extensionRef.kind`: Specifies the type of extension reference to attach to the route. Must be `RouteAuthFilter`
 - `extensionRef.name`: Specifies the name of the auth filter.
 
+Below is an HTTPRoute that references the `auth-filter` RouteAuthFilter for the `/admin` path. With this route the effective JWT configuration is that every request to `api-gateway-fqdn:3002/admin` must be signed
+by the `local` provider and have a claim of `role` with a value of `admin`. Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user` (this comes from the gateway listener configuration).
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: http-route
+spec:
+  parentRefs:
+    - name: api-gateway
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /admin
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: consul.hashicorp.com
+            kind: RouteAuthFilter
+            name: auth-filter
+      backendRefs:
+        - kind: Service
+          name: admin
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - kind: Service
+          name: user-service
+          port: 8081
+```
+
 ## Apply the configurations
 
-Run the `kubectl apply` command and specify the values files to apply the configurations. The following example applies the values files stored in the `jwt-routes` directory:
+Run the `kubectl apply` command and specify the values files to apply the configurations. The following example applies the above values files stored in a directory named `jwt-routes`:
 
 ```shell-session
 $ kubectl apply -f jwt-routes
 ```
 
+To test out the above configuration you can use the following JWTs that have been signed by the `local` provider:
+
+* role: admin
+```shell
+eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjExOGMwNDhmNzBkYWJjYTM2ZDA3ODE5Yzg3YTc0ODI2In0.eyJpc3MiOiJsb2NhbCIsInJvbGUiOiJhZG1pbiJ9.1Z5BOpIMRPK8Ccazqzjo1Jl0FgxyLfZpJn7oOxgkLjXF_KrBAAw-whQtsn73n3wHWVCzdEApiSkGPDDPjI5ZeQ
+```
+
+* role: user
+```shell
+eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjExOGMwNDhmNzBkYWJjYTM2ZDA3ODE5Yzg3YTc0ODI2In0.eyJpc3MiOiJsb2NhbCIsInJvbGUiOiJ1c2VyIn0.B10HBMx2CKT1k5mQA-1tZ6yV1_SyoFr5Ks54GDBmzdDmjyGk0v4_d2DU5i6R8hlO0NCbyQjHJFJcxTW6IYUYeg
+```
