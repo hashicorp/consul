@@ -73,7 +73,7 @@ export default class DcService extends RepositoryService {
       GET /v1/catalog/datacenters
       X-Request-ID: ${uri}
     `
-    )(async (headers, body, cache) => {
+    )((headers, body, cache) => {
       // TODO: Not sure nowadays whether we need to keep lowercasing everything
       // I vaguely remember when I last looked it was not needed for browsers anymore
       // but I also vaguely remember something about Pretender lowercasing things still
@@ -87,7 +87,7 @@ export default class DcService extends RepositoryService {
       const label = Object.entries(headers).find(
         ([key, value]) => key.toLowerCase() === CUSTOM_LABEL.toLowerCase()
       );
-      await this.settings.persist({
+      this.settings.persist({
         uiLabelConfig: JSON.parse(label && label[1] ? label[1] : '{}'),
       });
       return {
