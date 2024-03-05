@@ -9,18 +9,19 @@ import (
 	"time"
 
 	"fortio.org/fortio/fgrpc"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // GRPCPing sends a fgrpc.PingMessage to a fortio server at addr, analogous to
 // the CLI command `fortio grpcping`. It retries for up to 1m, with a 25ms gap.
 func GRPCPing(t *testing.T, addr string) {
 	t.Helper()
-	pingConn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	pingConn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
 	pingCl := fgrpc.NewPingServerClient(pingConn)
 	var msg *fgrpc.PingMessage
