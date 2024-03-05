@@ -23,7 +23,7 @@ In previous versions, Consul emitted redundant state store usage metrics that co
 * `consul.state.config_entries`
 * `consul.consul.state.config_entries`
 
-Consul 1.19 has stopped emitting the redundant metric with the double `consul.consul` in its name. Any monitoring alerts and dashboards that you may have utilizing these metrics should be migrated to using the remaining metric name.
+As of Consul v1.19, Consul does not emit the redundant metric with the double `consul.consul` in its name. Any monitoring alerts and dashboards that you may have utilizing these metrics may require edits to update to the simplified metric name.
 
 ## Consul 1.17.x
 
