@@ -129,12 +129,3 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace (
-	github.com/hashicorp/consul => ../../..
-	github.com/hashicorp/consul/api => ../../../api
-	github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
-	github.com/hashicorp/consul/proto-public => ../../../proto-public
-	github.com/hashicorp/consul/sdk => ../../../sdk
-	github.com/hashicorp/consul/testing/deployer => ../../../testing/deployer
-)
