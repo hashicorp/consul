@@ -18,7 +18,7 @@ upgrade flow.
 
 ### Metrics removal
 
-In previous versions, Consul would emit redundant state store usage metrics with `consul` in the metric name twice. As an example config entry usage counts would be emitted as both:
+In previous versions, Consul emitted redundant state store usage metrics that contained two instances of `consul` in the metric name. As an example, config entry usage counts were emitted as both:
 
 * `consul.state.config_entries`
 * `consul.consul.state.config_entries`
