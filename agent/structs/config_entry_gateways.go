@@ -870,7 +870,8 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		ListenerProtocolTCP:  true,
 	}
 	allowedCertificateKinds := map[string]bool{
-		InlineCertificate: true,
+		FileSystemCertificate: true,
+		InlineCertificate:     true,
 	}
 
 	for _, listener := range e.Listeners {
@@ -889,7 +890,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		}
 		for _, certificate := range listener.TLS.Certificates {
 			if !allowedCertificateKinds[certificate.Kind] {
-				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'file-system-certificate' or 'inline-certificate'", certificate.Kind)
 			}
 			if certificate.Name == "" {
 				return fmt.Errorf("certificate reference must have a name")

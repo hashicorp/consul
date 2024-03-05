@@ -869,6 +869,19 @@ message BoundAPIGatewayListener {
 
 // mog annotation:
 //
+// target=github.com/hashicorp/consul/agent/structs.FileSystemCertificateConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message FileSystemCertificate {
+  map<string, string> Meta = 1;
+  string Certificate = 2;
+  string PrivateKey = 3;
+  uint64 Hash = 4;
+}
+
+// mog annotation:
+//
 // target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
 // output=config_entry.gen.go
 // name=Structs
