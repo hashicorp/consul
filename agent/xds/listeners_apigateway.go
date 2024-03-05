@@ -35,13 +35,20 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		listenerKey := readyListener.listenerKey
 		boundListener := readyListener.boundListenerCfg
 
-		var certs []structs.InlineCertificateConfigEntry
+		// Collect the referenced certificate config entries
+		var fsCerts []structs.FileSystemCertificateConfigEntry
+		var inlineCerts []structs.InlineCertificateConfigEntry
 		for _, certRef := range boundListener.Certificates {
-			cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef)
-			if !ok {
-				continue
+			switch certRef.Kind {
+			case structs.InlineCertificate:
+				if cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef); ok {
+					inlineCerts = append(inlineCerts, *cert)
+				}
+			case structs.FileSystemCertificate:
+				if cert, ok := cfgSnap.APIGateway.FSCertificates.Get(certRef); ok {
+					fsCerts = append(fsCerts, *cert)
+				}
 			}
-			certs = append(certs, *cert)
 		}
 
 		isAPIGatewayWithTLS := len(boundListener.Certificates) > 0
@@ -125,7 +132,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 						accessLogs:      &cfgSnap.Proxy.AccessLogs,
 						logger:          s.Logger,
 					},
-					certs,
+					inlineCerts,
 				)
 				if err != nil {
 					return nil, err
@@ -225,7 +232,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
+				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, inlineCerts)
 				if err != nil {
 					return nil, err
 				}

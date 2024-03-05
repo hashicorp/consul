@@ -735,9 +735,10 @@ type configSnapshotAPIGateway struct {
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
 	UpstreamsSet routeUpstreamSet
 
-	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
-	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
-	Certificates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
+	HTTPRoutes     watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
+	TCPRoutes      watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
+	Certificates   watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
+	FSCertificates watch.Map[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry]
 
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.

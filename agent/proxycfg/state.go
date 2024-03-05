@@ -38,6 +38,7 @@ const (
 	gatewayConfigWatchID               = "gateway-config"
 	apiGatewayConfigWatchID            = "api-gateway-config"
 	boundGatewayConfigWatchID          = "bound-gateway-config"
+	fileSystemCertificateConfigWatchID = "file-system-certificate-config"
 	inlineCertificateConfigWatchID     = "inline-certificate-config"
 	routeConfigWatchID                 = "route-config"
 	externalServiceIDPrefix            = "external-service:"
