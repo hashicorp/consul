@@ -232,8 +232,13 @@ linux:  ## Linux builds a linux binary compatible with the source platform
 	@mkdir -p ./pkg/bin/linux_$(GOARCH)
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -o ./pkg/bin/linux_$(GOARCH) -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
+.PHONY: go-work-sync
+go-work-sync:
+	@echo "--> Running go work sync (.)"
+	@go work sync
+
 .PHONY: go-mod-tidy
-go-mod-tidy: $(foreach mod,$(GO_MODULES),go-mod-tidy/$(mod)) ## Run go mod tidy in every module
+go-mod-tidy: go-work-sync $(foreach mod,$(GO_MODULES),go-mod-tidy/$(mod))  ## Run go mod tidy in every module
 
 .PHONY: mod-tidy/%
 go-mod-tidy/%:

@@ -1,0 +1,20 @@
+go 1.22.5
+
+toolchain go1.22.7
+
+// Note that the ./internal/tools/proto-gen-rpc-glue/e2e and ./internal/tools/proto-gen-rpc-glue/e2e/consul
+// modules are omitted because they cause problems due to the latter claiming to be the main consul module.
+use (
+	.
+	./api
+	./envoyextensions
+	./internal/tools/proto-gen-rpc-glue
+	./internal/tools/protoc-gen-consul-rate-limit
+	./proto-public
+	./sdk
+	./test-integ
+	./test/integration/connect/envoy/test-sds-server
+	./test/integration/consul-container
+	./testing/deployer
+	./troubleshoot
+)
