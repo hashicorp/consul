@@ -1,4 +1,4 @@
-go 1.21.7
+go 1.21
 
 // Note that the ./internal/tools/proto-gen-rpc-glue/e2e and ./internal/tools/proto-gen-rpc-glue/e2e/consul
 // modules are omitted because they cause problems due to the latter claiming to be the main consul module.
