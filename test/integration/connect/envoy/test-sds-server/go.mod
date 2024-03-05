@@ -8,6 +8,7 @@ require (
 	github.com/hashicorp/consul v1.15.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230803162519-f966b187b2e5 // indirect

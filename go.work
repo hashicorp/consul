@@ -10,6 +10,7 @@ use (
 	./internal/tools/protoc-gen-consul-rate-limit
 	./proto-public
 	./sdk
+	./test-integ
 	./test/integration/connect/envoy/test-sds-server
 	./test/integration/consul-container
 	./testing/deployer
