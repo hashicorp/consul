@@ -187,7 +187,9 @@ func (c *Controller) countProxies(ctx context.Context) (<-chan error, uint32, er
 		ws.Add(store.AbandonCh())
 
 		var count uint32
-		_, usage, err := store.ServiceUsage(ws)
+		// we don't care about the per-tenant counts so avoid excessive cpu utilization
+		// and don't aggregate that information
+		_, usage, err := store.ServiceUsage(ws, false)
 
 		// Query failed? Wait for a while, and then go to the top of the loop to
 		// retry (unless the context is cancelled).
@@ -209,5 +211,5 @@ func (c *Controller) countProxies(ctx context.Context) (<-chan error, uint32, er
 
 type Store interface {
 	AbandonCh() <-chan struct{}
-	ServiceUsage(ws memdb.WatchSet) (uint64, structs.ServiceUsage, error)
+	ServiceUsage(ws memdb.WatchSet, tenantUsage bool) (uint64, structs.ServiceUsage, error)
 }
