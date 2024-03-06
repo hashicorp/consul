@@ -158,7 +158,8 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 				"error", err,
 			)
 		}
-		autoHostRewrite := cfgSnap.TerminatingGateway.AutoHostRewriteServices[svc]
+		service := cfgSnap.TerminatingGateway.GatewayServices[svc]
+		autoHostRewrite := service.AutoHostRewrite
 		if !structs.IsProtocolHTTPLike(cfg.Protocol) {
 			// Routes can only be defined for HTTP services
 			continue

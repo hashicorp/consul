@@ -220,11 +220,6 @@ type configSnapshotTerminatingGateway struct {
 	// a service altogether we then cancel watching that service for its endpoints.
 	WatchedServices map[structs.ServiceName]context.CancelFunc
 
-	// AutoHostRewriteServices is a map of service name to a bool that determines
-	// if the terminating gateway service should auto rewrite the host
-	// header before forwarding the request.
-	AutoHostRewriteServices map[structs.ServiceName]bool
-
 	// WatchedIntentions is a map of service name to a cancel function.
 	// This cancel function is tied to the watch of intentions for linked services.
 	// As with WatchedServices, intention watches will be cancelled when services
