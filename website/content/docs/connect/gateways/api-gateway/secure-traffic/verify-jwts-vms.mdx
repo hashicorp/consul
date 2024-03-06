@@ -20,6 +20,7 @@ You can configure API gateways to use JWTs to verify incoming requests so that y
 
 Complete the following steps to use JWTs to verify requests:
 
+1. Define a JWTProvider that specifies the JWT provider and claims used to verify requests to the gateway.
 1. Configure default and override settings for listeners in the API gateway configuration entry.
 1. Define route-specific JWT verification settings as filters in the HTTP route configuration entries.
 1. Write the configuration entries to Consul to begin verifying requests using JWTs.
@@ -29,17 +30,154 @@ Complete the following steps to use JWTs to verify requests:
 - Consul 1.17 or later
 - JWT details, such as claims and provider
 
+## The Setup
+
+In this document we will set up a JWTProvider using a local set of JWKs, define an APIGateway with a listener utilizing both Override and Default configuration, and an HTTPRoute that will define it's own JWT configuration for a single path and rely on the Gateway listener configuration for the rest.
+
+## Define a JWTProvider
+
+Create a JWTProvider values file and configure the following fields. Refer to [`JWTProvider` configuration reference](/consul/docs/connect/config-entries/jwtprovider) for details. This is used to define the JWT provider that claims will be verified against.
+
+Below is an example of a JWT provider configuration that utilizes a local set of JWKs that we define inline. Do not use this configuration in a production environment. Instead, use a production-grade JWKs endpoint.
+```hcl
+// jwt-proivder.hcl
+Kind = "jwt-provider"
+Name = "local"
+
+Issuer = "local"
+
+JSONWebKeySet = {
+    Local = {
+        JWKS="ewogICAgImtleXMiOiBbCiAgICAgICAgewogICAgICAgICAgICAicCI6ICI5TTlWSVhJR0hpR3FlTnhseEJ2V0xFV09oUFh3dXhXZUpod01uM3dGdG9STEtfZmF6VWxjWEc1cUViLTdpMXo3VmlPUWVZRnh6WUZYTS1pbVU3OVFRa1dTVUVSazR2dHZuc2R5UnpUSnVPc3A0ZUhuWFVMSHJPOU51NkJ5bC1VeVprMzFvSnFGeGllM0pHQXlRLUM2OVF2NVFkVjFZV0hfVDkyTzk4d1hYZGMiLAogICAgICAgICAgICAia3R5IjogIlJTQSIsCiAgICAgICAgICAgICJxIjogInFIVnZBb3h0ckgxUTVza25veXNMMkhvbC1ubnU3ZlM3Mjg4clRGdE9jeG9Jb29nWXBKVTljemxwcjctSlo2bjc0TUViVHBBMHRkSUR5TEtQQ0xIN3JKTFRrZzBDZVZNQWpmY01zdkRUcWdFOHNBWE42bzd2ZjYya2hwcExYOHVCU3JxSHkyV1JhZXJsbDROU09hcmRGSkQ2MWhHSVF2cEpXRk4xazFTV3pWcyIsCiAgICAgICAgICAgICJkIjogIlp3elJsVklRZkg5ekZ6d1hOZ2hEMHhkZVctalBCbmRkWnJNZ0wwQ2JjeXZZYlg2X1c0ajlhM1dmYWpobmI2bTFILW9CWjRMczVmNXNRVTB2ZFJ2ZG1laFItUG43aWNRcUdURFNKUTYtdWVtNm15UVRWaEo2UmZiM0lINVJ2VDJTOXUzcVFDZWFadWN3aXFoZ1RCbFhnOWFfV0pwVHJYNFhPQ3JCR1ZsTng3Z2JETVJOamNEN0FnRkZ3S2p2TEZVdDRLTkZmdEJqaFF0TDFLQ2VwblNmamtvRm1RUTVlX3RSS2ozX2U1V3pNSkJkekpQejNkR2YxZEk3OF9wYmJFbmFMcWhqNWg0WUx2UU5JUUhVcURYSGx4ZDc1Qlh3aFJReE1nUDRfd1EwTFk2cVRKNGFDa2Q0RDJBTUtqMzJqeVFiVTRKTE9jQjFNMnZBRWFyc2NTU3l0USIsCiAgICAgICAgICAgICJlIjogIkFRQUIiLAogICAgICAgICAgICAidXNlIjogInNpZyIsCiAgICAgICAgICAgICJraWQiOiAiQy1FMW5DandnQkMtUHVHTTJPNDY3RlJEaEt4OEFrVmN0SVNBYm8zcmlldyIsCiAgICAgICAgICAgICJxaSI6ICJ0N2VOQjhQV21xVHdKREZLQlZKZExrZnJJT2drMFJ4MnREODBGNHB5cjhmNzRuNGlVWXFmWG1haVZtbGx2c2FlT3JlNHlIczQ4UE45NVZsZlVvS3Z6ZEJFaDNZTDFINGZTOGlYYXNzNGJiVnVuWHR4U0hMZFFPYUNZYUplSmhBbGMyUWQ4elR0NFFQWk9yRWVWLVJTYU0tN095ekkwUWtSSF9tcmk1YmRrOXMiLAogICAgICAgICAgICAiZHAiOiAiYnBLckQtVXhrRENDal81MFZLU0NFeE1Ec1Zob2VBZm1tNjMxb1o5aDhUTkZ4TUU1YVptbUJ2VzBJUG9wMm1PUF9qTW9FVWxfUG1RYUlBOEgtVEdqTFp2QTMxSlZBeFN3TU5aQzdwaVFPRjYzVnhneTZUTzlmb1hENVdndC1oLUNxU1N6T2V3eFdmUWNTMmpMcTA3NUFxOTYwTnA2SHhjbE8weUdRN1JDSlpjIiwKICAgICAgICAgICAgImFsZyI6ICJQUzI1NiIsCiAgICAgICAgICAgICJkcSI6ICJpdVZveGwwckFKSEM1c2JzbTZpZWQ3c2ZIVXIwS2Rja0hiVFBLb0lPU1BFcU5YaXBlT3BrWkdEdU55NWlDTXNyRnNHaDFrRW9kTkhZdE40ay1USm5KSDliV296SGdXbGloNnN2R1V0Zi1raFMxWC16ckxaMTJudzlyNDRBbjllWG54bjFaVXMxZm5OakltM3dtZ083algyTWxIeVlNVUZVd0RMd09xNEFPUWsiLAogICAgICAgICAgICAibiI6ICJvUmhjeUREdmp3NFZ4SHRRNTZhRDlNSmRTaWhWSk1nTHd1b2FCQVhhc0RjVDNEWVZjcENlVGxDMVBPdzdPNW1Ec2ZSWVFtcGpoendyRDVZWU8yeDE4REl4czdyNTNJdFMxRy1ybnQxQ1diVE9fUzFJT01DR2xxYzh5VWJnLUhSUkRETXQyb2V3TjJoRGtxYlBKVFJNbXpjRkpNMHRpTm1RZVVMcWViZEVYaWVUblJMT1BkMWg2ZmJycVNLS01mSXlIbGZ1WXFQc1VWSEdkMVBESGljZ3NMazFtZDhtYTNIS1hWM0hJdzZrdUV6R0hQb1gxNHo4YWF6RFFZWndUR3ZxVGlPLUdRUlVDZUJueVo4bVhyWnRmSjNqVk83UUhXcEx3MlM1VDVwVTRwcE0xQXppWTFxUDVfY3ZpOTNZT2Zrb09PalRTX3V3RENZWGFxWjB5bTJHYlEiCiAgICAgICAgfQogICAgXQp9Cg=="
+    }
+}
+````
+
 ## Configure default and override settings
 
-Define default and override settings for JWT verification in the [API gateway configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway). 
+Define default and override settings for JWT verification in the [API gateway configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway).
 
-1. Add a `default.JWT` block to the listener that you want to apply JWT verification to. Consul applies these configurations to routes attached to the listener. Refer to the [`Listeners.default.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) configuration reference for details. 
-1. Add an `override.JWT` block to the listener that you want to apply JWT verification policies to. Consul applies these configurations to all routes attached to the listener, regardless of the `default` or route-specific settings. Refer to the [`Listeners.override.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) configuration reference for details. 
-1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write). 
+1. Add a `default.JWT` block to the listener that you want to apply JWT verification to. Consul applies these configurations to routes attached to the listener. Refer to the [`Listeners.default.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) configuration reference for details.
+1. Add an `override.JWT` block to the listener that you want to apply JWT verification policies to. Consul applies these configurations to all routes attached to the listener, regardless of the `default` or route-specific settings. Refer to the [`Listeners.override.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) configuration reference for details.
+1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write).
+
+Below is an example APIGateway config entry that uses the JWTProvider configured previously to verify that every request coming through the listener is signed by the `local` provider and must have a claim of `role` with a value of `user` _unless_ this is overridden by the HTTPRoutes attaching to the listener.
+
+```hcl
+Kind = "api-gateway"
+Name = "api-gateway"
+Listeners = [
+  {
+    Name     = "listener-one"
+    Port     = 9001
+    Protocol = "http"
+    Override = {
+      JWT = {
+        Providers = [
+          {
+            Name = "local"
+          }
+        ]
+      }
+    }
+    default = {
+      JWT = {
+        Providers = [
+          {
+            Name = "local"
+            VerifyClaims = [
+              {
+                Path  = ["role"]
+                Value = "pet"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+]
+```
 
 ## Configure verification for specific HTTP routes
 
-Define filters to enable route-specific JWT verification settings in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route). 
+Define filters to enable route-specific JWT verification settings in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).
 
 1. Add a `JWT` configuration to the `rules.filter` block. Route-specific configurations that overlap the [default settings ](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) in the API gateway configuration entry take precedence. Configurations defined in the [listener override settings](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) take the highest precedence.
-1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write). 
+1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write).
+
+Below is an example of a HTTPRoute that overrides the default settings set in the Gateway for the `/admin` path. With this route the effective JWT configuration is that every request to `api-gateway-fqdn:3002/admin` must be signed
+by the `local` provider and have a claim of `role` with a value of `admin`. Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user` (this comes from the gateway listener configuration).
+
+```hcl
+
+Kind = "http-route"
+Name = "api-gateway-route"
+Parents = [
+  {
+    SectionName = "listener-one"
+    Name        = "api-gateway"
+    Kind        = "api-gateway"
+  },
+]
+Rules = [
+  {
+    Matches = [
+      {
+        Path = {
+          Match = "prefix"
+          Value = "/admin"
+        }
+      }
+    ]
+    Filters = {
+      JWT = {
+        Providers = [
+          {
+            Name = "local"
+            VerifyClaims = [
+              {
+                Path  = ["role"]
+                Value = "admin"
+              }
+            ]
+          }
+        ]
+      }
+    }
+    Services = [
+      {
+        Name = "admin-service"
+      }
+    ]
+  },
+  {
+    Matches = [
+      {
+        Path = {
+          Match = "prefix"
+          Value = "/"
+        }
+      }
+    ]
+    Services = [
+      {
+        Name = "user-service"
+      }
+    ]
+  },
+]
+```
+
+
+To test out the above configuration you can use the following JWTs that have been signed by the `local` provider:
+
+* role: admin
+```shell
+eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjExOGMwNDhmNzBkYWJjYTM2ZDA3ODE5Yzg3YTc0ODI2In0.eyJpc3MiOiJsb2NhbCIsInJvbGUiOiJhZG1pbiJ9.1Z5BOpIMRPK8Ccazqzjo1Jl0FgxyLfZpJn7oOxgkLjXF_KrBAAw-whQtsn73n3wHWVCzdEApiSkGPDDPjI5ZeQ
+```
+
+* role: user
+```shell
+eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjExOGMwNDhmNzBkYWJjYTM2ZDA3ODE5Yzg3YTc0ODI2In0.eyJpc3MiOiJsb2NhbCIsInJvbGUiOiJ1c2VyIn0.B10HBMx2CKT1k5mQA-1tZ6yV1_SyoFr5Ks54GDBmzdDmjyGk0v4_d2DU5i6R8hlO0NCbyQjHJFJcxTW6IYUYeg
+```
