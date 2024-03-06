@@ -518,6 +518,9 @@ type LinkedService struct {
 	// SNI is the optional name to specify during the TLS handshake with a linked service
 	SNI string `json:",omitempty"`
 
+	//DisableAutoHostRewrite disables terminating gateways auto host rewrite feature when set to true.
+	DisableAutoHostRewrite bool `json:",omitempty"`
+
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
@@ -668,6 +671,7 @@ type GatewayService struct {
 	FromWildcard bool               `json:",omitempty"`
 	ServiceKind  GatewayServiceKind `json:",omitempty"`
 	RaftIndex
+	AutoHostRewrite bool `json:",omitempty"`
 }
 
 type GatewayServices []*GatewayService
