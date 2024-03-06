@@ -17,7 +17,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -389,42 +388,6 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 
 func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.TlsParameters {
 	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
-}
-
-func makeFileSystemTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, cert structs.FileSystemCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {
-	return &envoy_tls_v3.CommonTlsContext{
-		TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg),
-		TlsCertificates: []*envoy_tls_v3.TlsCertificate{{
-			CertificateChain: &envoy_core_v3.DataSource{
-				Specifier: &envoy_core_v3.DataSource_Filename{
-					Filename: cert.Certificate,
-				},
-			},
-			PrivateKey: &envoy_core_v3.DataSource{
-				Specifier: &envoy_core_v3.DataSource_Filename{
-					Filename: cert.PrivateKey,
-				},
-			},
-		}},
-	}
-}
-
-func makeInlineTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, cert structs.InlineCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {
-	return &envoy_tls_v3.CommonTlsContext{
-		TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg),
-		TlsCertificates: []*envoy_tls_v3.TlsCertificate{{
-			CertificateChain: &envoy_core_v3.DataSource{
-				Specifier: &envoy_core_v3.DataSource_InlineString{
-					InlineString: lib.EnsureTrailingNewline(cert.Certificate),
-				},
-			},
-			PrivateKey: &envoy_core_v3.DataSource{
-				Specifier: &envoy_core_v3.DataSource_InlineString{
-					InlineString: lib.EnsureTrailingNewline(cert.PrivateKey),
-				},
-			},
-		}},
-	}
 }
 
 func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {

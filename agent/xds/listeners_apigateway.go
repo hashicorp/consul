@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/lib"
 
 	"golang.org/x/exp/maps"
 
@@ -36,17 +37,16 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		boundListener := readyListener.boundListenerCfg
 
 		// Collect the referenced certificate config entries
-		var fsCerts []structs.FileSystemCertificateConfigEntry
-		var inlineCerts []structs.InlineCertificateConfigEntry
+		var certs []structs.ConfigEntry
 		for _, certRef := range boundListener.Certificates {
 			switch certRef.Kind {
 			case structs.InlineCertificate:
 				if cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef); ok {
-					inlineCerts = append(inlineCerts, *cert)
+					certs = append(certs, cert)
 				}
 			case structs.FileSystemCertificate:
 				if cert, ok := cfgSnap.APIGateway.FSCertificates.Get(certRef); ok {
-					fsCerts = append(fsCerts, *cert)
+					certs = append(certs, cert)
 				}
 			}
 		}
@@ -132,7 +132,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 						accessLogs:      &cfgSnap.Proxy.AccessLogs,
 						logger:          s.Logger,
 					},
-					inlineCerts,
+					certs,
 				)
 				if err != nil {
 					return nil, err
@@ -232,7 +232,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, inlineCerts)
+				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -404,7 +404,7 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	tlsCfg structs.GatewayTLSConfig,
 	protocol string,
 	filterOpts listenerFilterOpts,
-	certs []structs.InlineCertificateConfigEntry,
+	certs []structs.ConfigEntry,
 ) ([]*envoy_listener_v3.FilterChain, error) {
 	var chains []*envoy_listener_v3.FilterChain
 
@@ -436,54 +436,56 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 		return nil
 	}
 
-	multipleCerts := len(certs) > 1
-
-	allCertHosts := map[string]struct{}{}
-	overlappingHosts := map[string]struct{}{}
-
-	if multipleCerts {
-		// we only need to prune out overlapping hosts if we have more than
-		// one certificate
-		for _, cert := range certs {
-			hosts, err := cert.Hosts()
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
-			}
-			for _, host := range hosts {
-				if _, ok := allCertHosts[host]; ok {
-					overlappingHosts[host] = struct{}{}
-				}
-				allCertHosts[host] = struct{}{}
-			}
+	constructCert := func(ce structs.ConfigEntry) (*envoy_tls_v3.TlsCertificate, error) {
+		switch tce := ce.(type) {
+		case *structs.InlineCertificateConfigEntry:
+			return &envoy_tls_v3.TlsCertificate{
+				CertificateChain: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_InlineString{
+						InlineString: lib.EnsureTrailingNewline(tce.Certificate),
+					},
+				},
+				PrivateKey: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_InlineString{
+						InlineString: lib.EnsureTrailingNewline(tce.PrivateKey),
+					},
+				},
+			}, nil
+		case *structs.FileSystemCertificateConfigEntry:
+			return &envoy_tls_v3.TlsCertificate{
+				CertificateChain: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_Filename{
+						Filename: tce.Certificate,
+					},
+				},
+				PrivateKey: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_Filename{
+						Filename: tce.PrivateKey,
+					},
+				},
+			}, nil
+		default:
+			return nil, fmt.Errorf("unsupported config entry kind %s", tce.GetKind())
 		}
 	}
 
+	multipleCerts := len(certs) > 1
+
 	for _, cert := range certs {
-		var hosts []string
-
-		// if we only have one cert, we just use it for all ingress
-		if multipleCerts {
-			// otherwise, we need an SNI per cert and to fallback to our ingress
-			// gateway certificate signed by our Consul CA
-			certHosts, err := cert.Hosts()
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
-			}
-			// filter out any overlapping hosts so we don't have collisions in our filter chains
-			for _, host := range certHosts {
-				if _, ok := overlappingHosts[host]; !ok {
-					hosts = append(hosts, host)
-				}
-			}
-
-			if len(hosts) == 0 {
-				// all of our hosts are overlapping, so we just skip this filter and it'll be
-				// handled by the default filter chain
-				continue
-			}
+		tlsCert, err := constructCert(cert)
+		if err != nil {
+			continue
 		}
 
-		if err := constructChain(cert.Name, hosts, makeInlineTLSContextFromGatewayTLSConfig(tlsCfg, cert)); err != nil {
+		// TODO(nathancoleman) Look into using makeCommonTLSContextFromGatewayTLSConfig.
+		// Delivering via SDS is semi-required in order to get file system watches today.
+		// https://github.com/envoyproxy/envoy/issues/10387
+		tlsContext := &envoy_tls_v3.CommonTlsContext{
+			TlsParams:       makeTLSParametersFromGatewayTLSConfig(tlsCfg),
+			TlsCertificates: []*envoy_tls_v3.TlsCertificate{tlsCert},
+		}
+
+		if err := constructChain(cert.GetName(), nil, tlsContext); err != nil {
 			return nil, err
 		}
 	}
