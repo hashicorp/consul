@@ -833,6 +833,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &APIGatewayConfigEntry{Name: name}, nil
 	case BoundAPIGateway:
 		return &BoundAPIGatewayConfigEntry{Name: name}, nil
+	case FileSystemCertificate:
+		return &FileSystemCertificateConfigEntry{Name: name}, nil
 	case InlineCertificate:
 		return &InlineCertificateConfigEntry{Name: name}, nil
 	case HTTPRoute:

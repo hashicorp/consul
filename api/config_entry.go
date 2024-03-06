@@ -448,6 +448,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case TCPRoute:
 		return &TCPRouteConfigEntry{Kind: kind, Name: name}, nil
+	case FileSystemCertificate:
+		return &FileSystemCertificateConfigEntry{Kind: kind, Name: name}, nil
 	case InlineCertificate:
 		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
 	case HTTPRoute:
