@@ -518,34 +518,23 @@ func (a *Asserter) ValidateHealthEndpointAuditLog(t *testing.T, filePath string)
 	events := strings.Split(strings.TrimSpace(string(jsonData)), "\n")
 
 	// function to validate the error object when the health endpoint is returning 429
-	isErrorJSONObject := func(errorString string) bool {
+	isErrorJSONObject := func(errorString string) error {
 		// Attempt to unmarshal the error string into a map[string]interface{}
 		var m map[string]interface{}
 		err := json.Unmarshal([]byte(errorString), &m)
-		if err != nil {
-			// Error occurred during unmarshaling, indicating the string is not a JSON object
-			return false
-		}
-		return true
+		return err
 	}
 
 	for _, event := range events {
-		if strings.Contains(event, "/v1/operator/autopilot/health") {
-			if strings.Contains(event, "OperationComplete") {
-				err = json.Unmarshal([]byte(event), &entry)
-				require.NoError(t, err, "Error unmarshalling JSON: %v\", err")
-				if entry.Payload.Response.Status == "429" {
-					fmt.Printf("Payload Response Error: %s\n", entry.Payload.Response.Error)
-					errResponse := entry.Payload.Response.Error
-					if isErrorJSONObject(errResponse) {
-						fmt.Println("Autopilot Health endpoint error response in the audit log looks fine")
-						boolIsErrorJSON = true
-						break
-					} else {
-						fmt.Println("Autopilot Health endpoint error response in the audit log is in unexpected format")
-						break
-					}
-				}
+		if strings.Contains(event, "/v1/operator/autopilot/health") && strings.Contains(event, "OperationComplete") {
+			err = json.Unmarshal([]byte(event), &entry)
+			require.NoError(t, err, "Error unmarshalling JSON: %v\", err")
+			if entry.Payload.Response.Status == "429" {
+				boolIsErrorJSON = true
+				errResponse := entry.Payload.Response.Error
+				err = isErrorJSONObject(errResponse)
+				require.NoError(t, err, "Autopilot Health endpoint error response in the audit log is in unexpected format: %v\", err")
+				break
 			}
 		}
 	}
