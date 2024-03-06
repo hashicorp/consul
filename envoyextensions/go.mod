@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.2.1
 	github.com/stretchr/testify v1.7.2
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.33.0
 )
 
 require (

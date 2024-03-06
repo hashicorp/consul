@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/consul/envoyextensions v0.2.1
 	github.com/hashicorp/consul/sdk v0.15.0
 	github.com/stretchr/testify v1.8.4
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
