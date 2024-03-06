@@ -54,6 +54,7 @@ enum Kind {
   KindSamenessGroup = 11;
   KindJWTProvider = 12;
   KindExportedServices = 13;
+  KindFileSystemCertificate = 14;
 }
 
 message ConfigEntry {
@@ -77,6 +78,7 @@ message ConfigEntry {
     SamenessGroup SamenessGroup = 15;
     JWTProvider JWTProvider = 16;
     ExportedServices ExportedServices = 17;
+    FileSystemCertificate FileSystemCertificate = 18;
   }
 }
 

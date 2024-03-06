@@ -72,6 +72,7 @@ var AllConfigEntryKinds = []string{
 	BoundAPIGateway,
 	HTTPRoute,
 	TCPRoute,
+	FileSystemCertificate,
 	InlineCertificate,
 	RateLimitIPConfig,
 	JWTProvider,
