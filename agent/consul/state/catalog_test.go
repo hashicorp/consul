@@ -9089,3 +9089,43 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
 }
+
+func Test_terminatingConfigGatewayServices(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	cfg := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "terminating-gateway",
+		Services: []structs.LinkedService{
+			{
+				Name: "service-default-behavior",
+			},
+			{
+				Name:                   "service-disabled-behavior",
+				DisableAutoHostRewrite: true,
+			},
+		},
+	}
+
+	expected := structs.GatewayServices{
+		&structs.GatewayService{
+			Gateway:         structs.ServiceName{Name: "terminating-gateway"},
+			Service:         structs.ServiceName{Name: "service-default-behavior"},
+			GatewayKind:     "terminating-gateway",
+			AutoHostRewrite: true,
+		},
+		&structs.GatewayService{
+			Gateway:         structs.ServiceName{Name: "terminating-gateway"},
+			Service:         structs.ServiceName{Name: "service-disabled-behavior"},
+			GatewayKind:     "terminating-gateway",
+			AutoHostRewrite: false,
+		},
+	}
+
+	txn := s.db.Txn(false)
+
+	_, services, err := terminatingConfigGatewayServices(txn, structs.ServiceName{Name: "terminating-gateway"}, cfg, nil)
+	require.NoError(t, err)
+	require.Equal(t, services, expected)
+
+}

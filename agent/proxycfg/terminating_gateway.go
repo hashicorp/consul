@@ -57,6 +57,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	}
 
 	snap.TerminatingGateway.WatchedServices = make(map[structs.ServiceName]context.CancelFunc)
+	snap.TerminatingGateway.AutoHostRewriteServices = make(map[structs.ServiceName]bool)
 	snap.TerminatingGateway.WatchedIntentions = make(map[structs.ServiceName]context.CancelFunc)
 	snap.TerminatingGateway.Intentions = make(map[structs.ServiceName]structs.SimplifiedIntentions)
 	snap.TerminatingGateway.WatchedLeaves = make(map[structs.ServiceName]context.CancelFunc)
