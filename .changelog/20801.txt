@@ -1,0 +1,3 @@
+```release-note:security
+Update `google.golang.org/protobuf` to v1.33.0 to address [CVE-2024-24786](https://nvd.nist.gov/vuln/detail/CVE-2024-24786).
+```
