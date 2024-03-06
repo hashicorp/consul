@@ -25,3 +25,8 @@ func (raw *Raw) Query(endpoint string, out interface{}, q *QueryOptions) (*Query
 func (raw *Raw) Write(endpoint string, in, out interface{}, q *WriteOptions) (*WriteMeta, error) {
 	return raw.c.write(endpoint, in, out, q)
 }
+
+// Delete is used to do a DELETE request against an endpoint
+func (raw *Raw) Delete(endpoint string, q *QueryOptions) (*WriteMeta, error) {
+	return raw.c.delete(endpoint, q)
+}

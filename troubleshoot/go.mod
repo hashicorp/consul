@@ -5,6 +5,7 @@ go 1.19
 replace (
 	github.com/hashicorp/consul/api => ../api
 	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
+	github.com/hashicorp/consul/proto-public => ../proto-public
 )
 
 exclude (
