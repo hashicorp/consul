@@ -4,14 +4,6 @@
 package structs
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
-	"fmt"
-
-	"github.com/miekg/dns"
-
 	"github.com/hashicorp/consul/acl"
 )
 
@@ -61,75 +53,11 @@ func (e *FileSystemCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMe
 func (e *FileSystemCertificateConfigEntry) GetRaftIndex() *RaftIndex { return &e.RaftIndex }
 
 func (e *FileSystemCertificateConfigEntry) Validate() error {
-	err := validateConfigEntryMeta(e.Meta)
-	if err != nil {
-		return err
-	}
-
-	privateKeyBlock, _ := pem.Decode([]byte(e.PrivateKey))
-	if privateKeyBlock == nil {
-		return errors.New("failed to parse private key PEM")
-	}
-
-	err = validateKeyLength(privateKeyBlock)
-	if err != nil {
-		return err
-	}
-
-	certificateBlock, _ := pem.Decode([]byte(e.Certificate))
-	if certificateBlock == nil {
-		return errors.New("failed to parse certificate PEM")
-	}
-
-	// make sure we have a valid x509 certificate
-	_, err = x509.ParseCertificate(certificateBlock.Bytes)
-	if err != nil {
-		return fmt.Errorf("failed to parse certificate: %w", err)
-	}
-
-	// validate that the cert was generated with the given private key
-	_, err = tls.X509KeyPair([]byte(e.Certificate), []byte(e.PrivateKey))
-	if err != nil {
-		return err
-	}
-
-	// validate that each host referenced in the CN, DNSSans, and IPSans
-	// are valid hostnames
-	hosts, err := e.Hosts()
-	if err != nil {
-		return err
-	}
-	for _, host := range hosts {
-		if _, ok := dns.IsDomainName(host); !ok {
-			return fmt.Errorf("host %q must be a valid DNS hostname", host)
-		}
-	}
-
-	return nil
+	return validateConfigEntryMeta(e.Meta)
 }
 
 func (e *FileSystemCertificateConfigEntry) Hosts() ([]string, error) {
-	certificateBlock, _ := pem.Decode([]byte(e.Certificate))
-	if certificateBlock == nil {
-		return nil, errors.New("failed to parse certificate PEM")
-	}
-
-	certificate, err := x509.ParseCertificate(certificateBlock.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse certificate: %w", err)
-	}
-
-	hosts := []string{certificate.Subject.CommonName}
-
-	for _, name := range certificate.DNSNames {
-		hosts = append(hosts, name)
-	}
-
-	for _, ip := range certificate.IPAddresses {
-		hosts = append(hosts, ip.String())
-	}
-
-	return hosts, nil
+	return []string{}, nil
 }
 
 func (e *FileSystemCertificateConfigEntry) CanRead(authz acl.Authorizer) error {
