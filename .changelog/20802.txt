@@ -1,0 +1,14 @@
+```release-note:security
+Upgrade to use Go `1.21.8`. This resolves CVEs
+[CVE-2024-24783](https://nvd.nist.gov/vuln/detail/CVE-2024-24783) (`crypto/x509`).
+[CVE-2023-45290](https://nvd.nist.gov/vuln/detail/CVE-2023-45290) (`net/http`).
+[CVE-2023-45289](https://nvd.nist.gov/vuln/detail/CVE-2023-45289) (`net/http`, `net/http/cookiejar`).
+[CVE-2024-24785](https://nvd.nist.gov/vuln/detail/CVE-2024-24785) (`html/template`).
+[CVE-2024-24784](https://nvd.nist.gov/vuln/detail/CVE-2024-24784) (`net/mail`).
+```
+
+```release-note:security
+Update the Consul Build Go base image to `alpine3.19`. This resolves CVEs
+[CVE-2023-52425](https://nvd.nist.gov/vuln/detail/CVE-2023-52425)
+[CVE-2023-52426⁠](https://nvd.nist.gov/vuln/detail/CVE-2023-52426)
+```
