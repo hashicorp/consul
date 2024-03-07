@@ -152,8 +152,13 @@ In the `filters` field of your HTTP route configuration, add the following field
 - `extensionRef.kind`: Specifies the type of extension reference to attach to the route. Must be `RouteAuthFilter`
 - `extensionRef.name`: Specifies the name of the auth filter.
 
-Below is an HTTPRoute that references the `auth-filter` RouteAuthFilter for the `/admin` path. With this route the effective JWT configuration is that every request to `api-gateway-fqdn:3002/admin` must be signed
-by the `local` provider and have a claim of `role` with a value of `admin`. Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user` (this comes from the gateway listener configuration).
+The following example configures an HTTPRoute so that every request to `api-gateway-fqdn:3002/admin` must meet these conditions:
+
+- The request be signed by the `local` provider.
+- The request must have a `role` claim.
+- The value of the claim must be `admin` .
+
+Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user`, as defined in the GatewayPolicy.
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1beta1
