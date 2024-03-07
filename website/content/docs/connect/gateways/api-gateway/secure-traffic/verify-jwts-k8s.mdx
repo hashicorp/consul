@@ -126,7 +126,11 @@ Create an `RouteAuthFilter` values file and configure the following fields. Refe
 - `metadata.namespace`: Specifies the Consul namespace the filter applies to.
 - `spec.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
 
-Below is an example of a RouteAuthFilter that overrides the default settings set in the GatewayPolicy. In this setup every request coming through the listener must be signed by the `local` provider and have a claim of `role` with the value `admin`.
+In the following example, the RouteAuthFilter overrides default settings set in the GatewayPolicy so that every request coming through the listener must meet these conditions:
+
+- The request must be signed by the `local` provider
+- The request must have a `role` claim
+- The value of the claim must be `admin`
 ```yaml
 // route-auth-filter.yaml
 apiVersion: consul.hashicorp.com/v1alpha1
