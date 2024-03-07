@@ -68,8 +68,10 @@ Create a `GatewayPolicy` CRD that defines default and override settings for JWT 
 - `spec.targetRef.override.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
 - `spec.targetRef.default.jwt.providers`: Specifies a list of default providers and claims used to verify requests to the gateway.
 
-Below is an example of a Gateway and the GatewayPolicy being attached to it. In this setup every request coming through the listener must be signed by the `local` provider
-and must have a claim of `role` with a value of `user` _unless_ this is overridden by the HTTPRoutes attaching to the listener.
+The following examples configure a Gateway and the GatewayPolicy being attached to it so that every request coming through the listener must meet these conditions:
+
+- The request must be signed by the `local` provider
+- The request must have a claim of `role` with a value of `user` unless the HTTPRoute attached to the listener overrides it
 
 **Gateway:**
 ```yaml
