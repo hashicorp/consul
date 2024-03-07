@@ -34,12 +34,6 @@ Complete the following steps to use JWTs to verify requests:
 - Consul on Kubernetes CLI or Helm chart v1.3.0+
 - JWT details, such as claims and provider
 
-## The Setup
-
-In this document we will set up a JWTProvider using a local set of JWKs, define a GatewayPolicy to specify default and override settings for JWT verification,
-define a RouteAuthFilter to specify route-specific JWT verification settings, attach the GatewayPolicy to a gateway listener, and reference the RouteAuthFilter
-from an HTTPRoute attached to the listener.
-
 
 ## Define a JWTProvider
 
