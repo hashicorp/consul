@@ -119,7 +119,7 @@ For more information about the fields you can configure, refer to [`GatewayPolic
 
 ## Define a RouteAuthFilter
 
-Create an `RouteAuthFilter` values file and configure the following fields. Refer to [`RouteAuthFilter` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter) for details.
+Create an `RouteAuthFilter` CRD that defines overrides for the default JWT verification configured in the GatewayPolicy.
 
 - `kind`: Must be set to `RouteAuthFilter`
 - `metadata.name`: Specifies a name for the filter.
