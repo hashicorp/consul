@@ -134,11 +134,19 @@ The following working example enables both Consul Service Mesh and Consul API Ga
     apiGateway:
       manageExternalCRDs: false
       manageNonStandardCRDs: true
-  cni:
-    enabled: true
-    logLevel: info
-    cniBinDir: "/home/kubernetes/bin"
-    cniNetDir: "/etc/cni/net.d"
+    cni:
+      enabled: true
+      logLevel: debug
+      cniBinDir: "/home/kubernetes/bin"
+      cniNetDir: "/etc/cni/net.d"
+  server:
+    resources:
+      requests:
+        memory: "500Mi"
+        cpu: "500m"
+      limits:
+        memory: "500Mi"
+        cpu: "500m"
   ```
 </CodeBlockConfig>
 
