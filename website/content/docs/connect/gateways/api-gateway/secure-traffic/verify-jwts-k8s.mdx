@@ -41,6 +41,8 @@ Create a JWTProvider CRD that defines the JWT provider to verify claims against.
 
 In the following example, the JWTProvider CRD contains a local JWKS. In production environments, use a production-grade JWKs endpoint instead.
 
+<CodeBlockConfig filename="jwt-provider.yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: JWTProvider
@@ -53,11 +55,13 @@ spec:
       jwks: "ewogICAgImtleXMiOiBbCiAgICAgICAgewogICAgICAgICAgICAicCI6ICI5TTlWSVhJR0hpR3FlTnhseEJ2V0xFV09oUFh3dXhXZUpod01uM3dGdG9STEtfZmF6VWxjWEc1cUViLTdpMXo3VmlPUWVZRnh6WUZYTS1pbVU3OVFRa1dTVUVSazR2dHZuc2R5UnpUSnVPc3A0ZUhuWFVMSHJPOU51NkJ5bC1VeVprMzFvSnFGeGllM0pHQXlRLUM2OVF2NVFkVjFZV0hfVDkyTzk4d1hYZGMiLAogICAgICAgICAgICAia3R5IjogIlJTQSIsCiAgICAgICAgICAgICJxIjogInFIVnZBb3h0ckgxUTVza25veXNMMkhvbC1ubnU3ZlM3Mjg4clRGdE9jeG9Jb29nWXBKVTljemxwcjctSlo2bjc0TUViVHBBMHRkSUR5TEtQQ0xIN3JKTFRrZzBDZVZNQWpmY01zdkRUcWdFOHNBWE42bzd2ZjYya2hwcExYOHVCU3JxSHkyV1JhZXJsbDROU09hcmRGSkQ2MWhHSVF2cEpXRk4xazFTV3pWcyIsCiAgICAgICAgICAgICJkIjogIlp3elJsVklRZkg5ekZ6d1hOZ2hEMHhkZVctalBCbmRkWnJNZ0wwQ2JjeXZZYlg2X1c0ajlhM1dmYWpobmI2bTFILW9CWjRMczVmNXNRVTB2ZFJ2ZG1laFItUG43aWNRcUdURFNKUTYtdWVtNm15UVRWaEo2UmZiM0lINVJ2VDJTOXUzcVFDZWFadWN3aXFoZ1RCbFhnOWFfV0pwVHJYNFhPQ3JCR1ZsTng3Z2JETVJOamNEN0FnRkZ3S2p2TEZVdDRLTkZmdEJqaFF0TDFLQ2VwblNmamtvRm1RUTVlX3RSS2ozX2U1V3pNSkJkekpQejNkR2YxZEk3OF9wYmJFbmFMcWhqNWg0WUx2UU5JUUhVcURYSGx4ZDc1Qlh3aFJReE1nUDRfd1EwTFk2cVRKNGFDa2Q0RDJBTUtqMzJqeVFiVTRKTE9jQjFNMnZBRWFyc2NTU3l0USIsCiAgICAgICAgICAgICJlIjogIkFRQUIiLAogICAgICAgICAgICAidXNlIjogInNpZyIsCiAgICAgICAgICAgICJraWQiOiAiQy1FMW5DandnQkMtUHVHTTJPNDY3RlJEaEt4OEFrVmN0SVNBYm8zcmlldyIsCiAgICAgICAgICAgICJxaSI6ICJ0N2VOQjhQV21xVHdKREZLQlZKZExrZnJJT2drMFJ4MnREODBGNHB5cjhmNzRuNGlVWXFmWG1haVZtbGx2c2FlT3JlNHlIczQ4UE45NVZsZlVvS3Z6ZEJFaDNZTDFINGZTOGlYYXNzNGJiVnVuWHR4U0hMZFFPYUNZYUplSmhBbGMyUWQ4elR0NFFQWk9yRWVWLVJTYU0tN095ekkwUWtSSF9tcmk1YmRrOXMiLAogICAgICAgICAgICAiZHAiOiAiYnBLckQtVXhrRENDal81MFZLU0NFeE1Ec1Zob2VBZm1tNjMxb1o5aDhUTkZ4TUU1YVptbUJ2VzBJUG9wMm1PUF9qTW9FVWxfUG1RYUlBOEgtVEdqTFp2QTMxSlZBeFN3TU5aQzdwaVFPRjYzVnhneTZUTzlmb1hENVdndC1oLUNxU1N6T2V3eFdmUWNTMmpMcTA3NUFxOTYwTnA2SHhjbE8weUdRN1JDSlpjIiwKICAgICAgICAgICAgImFsZyI6ICJQUzI1NiIsCiAgICAgICAgICAgICJkcSI6ICJpdVZveGwwckFKSEM1c2JzbTZpZWQ3c2ZIVXIwS2Rja0hiVFBLb0lPU1BFcU5YaXBlT3BrWkdEdU55NWlDTXNyRnNHaDFrRW9kTkhZdE40ay1USm5KSDliV296SGdXbGloNnN2R1V0Zi1raFMxWC16ckxaMTJudzlyNDRBbjllWG54bjFaVXMxZm5OakltM3dtZ083algyTWxIeVlNVUZVd0RMd09xNEFPUWsiLAogICAgICAgICAgICAibiI6ICJvUmhjeUREdmp3NFZ4SHRRNTZhRDlNSmRTaWhWSk1nTHd1b2FCQVhhc0RjVDNEWVZjcENlVGxDMVBPdzdPNW1Ec2ZSWVFtcGpoendyRDVZWU8yeDE4REl4czdyNTNJdFMxRy1ybnQxQ1diVE9fUzFJT01DR2xxYzh5VWJnLUhSUkRETXQyb2V3TjJoRGtxYlBKVFJNbXpjRkpNMHRpTm1RZVVMcWViZEVYaWVUblJMT1BkMWg2ZmJycVNLS01mSXlIbGZ1WXFQc1VWSEdkMVBESGljZ3NMazFtZDhtYTNIS1hWM0hJdzZrdUV6R0hQb1gxNHo4YWF6RFFZWndUR3ZxVGlPLUdRUlVDZUJueVo4bVhyWnRmSjNqVk83UUhXcEx3MlM1VDVwVTRwcE0xQXppWTFxUDVfY3ZpOTNZT2Zrb09PalRTX3V3RENZWGFxWjB5bTJHYlEiCiAgICAgICAgfQogICAgXQp9Cg=="
 ```
 
+</CodeBlockConfig>
+
 For more information about the fields you can configure in this CRD, refer to [`JWTProvider` configuration reference](/consul/docs/connect/config-entries/jwtprovider).
 
 ## Define a GatewayPolicy
 
-Create a `GatewayPolicy` CRD that defines default and override settings for JWT verification. 
+Create a `GatewayPolicy` CRD that defines default and override settings for JWT verification.
 
 - `kind`: Must be set to `GatewayPolicy`
 - `metadata.name`: Specifies a name for the policy.
@@ -74,8 +78,9 @@ The following examples configure a Gateway and the GatewayPolicy being attached 
 - The request must have a claim of `role` with a value of `user` unless the HTTPRoute attached to the listener overrides it
 
 **Gateway:**
+<CodeBlockConfig filename="gateway.yaml">
+
 ```yaml
-// gateway.yaml
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: Gateway
 metadata:
@@ -88,9 +93,13 @@ spec:
       name: listener-one
 ```
 
+</CodeBlockConfig>
+
 **GatewayPolicy:**
+
+<CodeBlockConfig filename="gateway-policy.yaml">
+
 ```yaml
-// gateway-policy.yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: GatewayPolicy
 metadata:
@@ -115,6 +124,8 @@ spec:
           value: user
 ```
 
+</CodeBlockConfig>
+
 For more information about the fields you can configure, refer to [`GatewayPolicy` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy).
 
 ## Define a RouteAuthFilter
@@ -131,8 +142,10 @@ In the following example, the RouteAuthFilter overrides default settings set in 
 - The request must be signed by the `local` provider
 - The request must have a `role` claim
 - The value of the claim must be `admin`
+
+<CodeBlockConfig filename="route-auth-filter.yaml">
+
 ```yaml
-// route-auth-filter.yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: RouteAuthFilter
 metadata:
@@ -146,6 +159,8 @@ spec:
           - role
         value: admin
 ```
+
+</CodeBlockConfig>
 
 For more information about the fields you can configure, refer to [`RouteAuthFilter` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter).
 
@@ -165,6 +180,8 @@ The following example configures an HTTPRoute so that every request to `api-gate
 - The value of the claim must be `admin` .
 
 Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user`, as defined in the GatewayPolicy.
+
+<CodeBlockConfig filename="http-route.yaml">
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1beta1
@@ -199,22 +216,4 @@ spec:
           port: 8081
 ```
 
-## Apply the configurations
-
-Run the `kubectl apply` command and specify the values files to apply the configurations. The following example applies the above values files stored in a directory named `jwt-routes`:
-
-```shell-session
-$ kubectl apply -f jwt-routes
-```
-
-To test out the above configuration you can use the following JWTs that have been signed by the `local` provider:
-
-* role: admin
-```shell
-eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjExOGMwNDhmNzBkYWJjYTM2ZDA3ODE5Yzg3YTc0ODI2In0.eyJpc3MiOiJsb2NhbCIsInJvbGUiOiJhZG1pbiJ9.1Z5BOpIMRPK8Ccazqzjo1Jl0FgxyLfZpJn7oOxgkLjXF_KrBAAw-whQtsn73n3wHWVCzdEApiSkGPDDPjI5ZeQ
-```
-
-* role: user
-```shell
-eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjExOGMwNDhmNzBkYWJjYTM2ZDA3ODE5Yzg3YTc0ODI2In0.eyJpc3MiOiJsb2NhbCIsInJvbGUiOiJ1c2VyIn0.B10HBMx2CKT1k5mQA-1tZ6yV1_SyoFr5Ks54GDBmzdDmjyGk0v4_d2DU5i6R8hlO0NCbyQjHJFJcxTW6IYUYeg
-```
+</CodeBlockConfig>
