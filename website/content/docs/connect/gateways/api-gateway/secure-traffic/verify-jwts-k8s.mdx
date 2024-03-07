@@ -151,7 +151,7 @@ For more information about the fields you can configure, refer to [`RouteAuthFil
 
 ## Attach the auth filter to your HTTP routes
 
-In the `filters` field of your HTTP route configuration, add the following fields. Refer to the [`extensionRef` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes#rules-filters-extensionref) for details:
+In the `filters` field of your HTTPRoute configuration, define the filter behavior that results from JWT verification.
 
 - `type`: Specifies the type of filter you want to apply to the rule. Must be `ExtensionRef` for a RouteAuthFilter.
 - `extensionRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kuberenetes.io`.
