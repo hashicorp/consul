@@ -16,7 +16,7 @@ You can configure API gateways to use JWTs to verify incoming requests so that y
 
 - Listener defaults: Define basic defaults in a GatewayPolicy resource to apply them to all routes attached to a listener.
 - HTTP route-specific settings: You can define JWT authentication settings for specific HTTP routes. Route-specific JWT settings override default listener configurations.
-- Listener overrides: Define override settings that take precedence over default and route-specific configurations. This enables you to set enforceable policies for listeners via GatewayPolicy attachment.
+- Listener overrides: Define override settings in a GatewayPolicy resource that take precedence over default and route-specific configurations. Use override settings to set enforceable policies for listeners.
 
 
 Complete the following steps to use JWTs to verify requests:
