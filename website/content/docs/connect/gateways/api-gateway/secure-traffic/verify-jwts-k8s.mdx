@@ -37,9 +37,9 @@ Complete the following steps to use JWTs to verify requests:
 
 ## Define a JWTProvider
 
-Create a JWTProvider values file and configure the following fields. Refer to [`JWTProvider` configuration reference](/consul/docs/connect/config-entries/jwtprovider) for details. This is used to define the JWT provider that claims will be verified against.
+Create a JWTProvider CRD that defines the JWT provider to verify claims against.
 
-Below is an example of a JWT provider configuration that utilizes a local set of JWKs that we define inline. Do not use this configuration in a production environment. Instead, use a production-grade JWKs endpoint.
+In the following example, the JWTProvider CRD contains a local JWKS. In production environments, use a production-grade JWKs endpoint instead.
 ```yaml
 // jwt-provider.yaml
 apiVersion: consul.hashicorp.com/v1alpha1
