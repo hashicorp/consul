@@ -14,7 +14,7 @@ This topic describes how to use JSON web tokens (JWT) to verify requests to API 
 
 You can configure API gateways to use JWTs to verify incoming requests so that you can stop unverified traffic at the gateway. You can configure JWT verification at different levels:
 
-- Listener defaults: Define basic defaults that apply to all routes attached to a listener via GatewayPolicy attachment.
+- Listener defaults: Define basic defaults in a GatewayPolicy resource to apply them to all routes attached to a listener.
 - HTTP route-specific settings: You can define JWT authentication settings for specific HTTP routes. Route-specific JWT settings override default listener configurations.
 - Listener overrides: Define override settings that take precedence over default and route-specific configurations. This enables you to set enforceable policies for listeners via GatewayPolicy attachment.
 
