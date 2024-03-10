@@ -110,11 +110,11 @@ func (f *FSMHelper) StateAsMap() map[string][]interface{} {
 
 // StateAsMap converts Consul's state store to a JSON-able map format, similar to the Nomad example.
 func StateAsMap(store *state.Store) map[string][]interface{} {
-	var result map[string][]interface{}
-
 	// Example structure, adjust according to actual Consul StateStore structure and methods
-	result["Nodes"] = toArray(store.NodesState(nil))
-	result["Services"] = toArray(store.ServicesState(nil))
+	result := map[string][]interface{}{
+		"Nodes":    toArray(store.NodesState(nil)),
+		"Services": toArray(store.ServicesState(nil)),
+	}
 
 	// Optionally insert any enterprise-specific state components if applicable
 	return result
