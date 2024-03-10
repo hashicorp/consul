@@ -16,6 +16,7 @@ import (
 	osexec "os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -244,8 +245,7 @@ type CheckTTL struct {
 
 	timer *time.Timer
 
-	lastOutput     string
-	lastOutputLock sync.RWMutex
+	lastOutput atomic.Value
 
 	stop     bool
 	stopCh   chan struct{}
@@ -296,15 +296,14 @@ func (c *CheckTTL) run() {
 
 // getExpiredOutput formats the output for the case when the TTL is expired.
 func (c *CheckTTL) getExpiredOutput() string {
-	c.lastOutputLock.RLock()
-	defer c.lastOutputLock.RUnlock()
-
 	const prefix = "TTL expired"
-	if c.lastOutput == "" {
+
+	lastOutput, ok := c.lastOutput.Load().(string)
+	if !ok || lastOutput == "" {
 		return prefix
 	}
 
-	return fmt.Sprintf("%s (last output before timeout follows): %s", prefix, c.lastOutput)
+	return fmt.Sprintf("%s (last output before timeout follows): %s", prefix, lastOutput)
 }
 
 // SetStatus is used to update the status of the check,
@@ -322,9 +321,7 @@ func (c *CheckTTL) SetStatus(status, output string) string {
 	}
 	c.Notify.UpdateCheck(c.CheckID, status, output)
 	// Store the last output so we can retain it if the TTL expires.
-	c.lastOutputLock.Lock()
-	c.lastOutput = output
-	c.lastOutputLock.Unlock()
+	c.lastOutput.Store(output)
 
 	c.timer.Reset(c.TTL)
 	return output
