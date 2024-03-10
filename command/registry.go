@@ -132,6 +132,7 @@ import (
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
 	snaprestore "github.com/hashicorp/consul/command/snapshot/restore"
 	snapsave "github.com/hashicorp/consul/command/snapshot/save"
+	snapstate "github.com/hashicorp/consul/command/snapshot/state"
 	"github.com/hashicorp/consul/command/tls"
 	tlsca "github.com/hashicorp/consul/command/tls/ca"
 	tlscacreate "github.com/hashicorp/consul/command/tls/ca/create"
@@ -277,6 +278,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"services exported-services", func(ui cli.Ui) (cli.Command, error) { return exportedservices.New(ui), nil }},
 		entry{"snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil }},
 		entry{"snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil }},
+		entry{"snapshot state", func(ui cli.Ui) (cli.Command, error) { return snapstate.New(ui), nil }},
 		entry{"snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil }},
 		entry{"snapshot save", func(ui cli.Ui) (cli.Command, error) { return snapsave.New(ui), nil }},
 		entry{"tls", func(ui cli.Ui) (cli.Command, error) { return tls.New(), nil }},
