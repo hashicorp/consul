@@ -518,6 +518,12 @@ codegen: codegen-tools ## Deep copy
 	cd api && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
 	cd sdk && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
 
+.PHONY: go-gen-raftutil
+go-gen-raftutil: ## Check raft util msg type mapping are in-sync.
+	@echo "==> Checking raft util msg type mapping are in-sync..."
+	@go generate ./raftutil/
+	@if (git status -s ./raftutil| grep -q .go); then echo "raftutil helper message type mapping is out of sync. Run go generate ./... and push."; exit 0; fi
+
 print-%  : ; @echo $($*) ## utility to echo a makefile variable (i.e. 'make print-GOPATH')
 
 .PHONY: module-versions

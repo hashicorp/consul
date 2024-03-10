@@ -318,3 +318,28 @@ func indexUpdateMaxTxn(tx WriteTxn, idx uint64, key string) error {
 	}
 	return nil
 }
+
+// NodesState returns an iterator over all the nodes
+// Introduced the to allow for state inspection using consul snapshot state command.
+func (s *Store) NodesState(ws memdb.WatchSet) (memdb.ResultIterator, error) {
+	txn := s.db.ReadTxn()
+
+	// Walk the entire nodes table
+	iter, err := txn.Get("nodes", "id")
+	if err != nil {
+		return nil, err
+	}
+	ws.Add(iter.WatchCh())
+	return iter, nil
+}
+func (s *Store) ServicesState(ws memdb.WatchSet) (memdb.ResultIterator, error) {
+	txn := s.db.ReadTxn()
+
+	// Walk the entire nodes table
+	iter, err := txn.Get("services", "id")
+	if err != nil {
+		return nil, err
+	}
+	ws.Add(iter.WatchCh())
+	return iter, nil
+}

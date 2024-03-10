@@ -229,3 +229,28 @@ func Restore(logger hclog.Logger, in io.Reader, r *raft.Raft) error {
 
 	return nil
 }
+
+// CopySnapshot copies the snapshot content from snapshot archive to dest.
+// It will close the destination once complete.
+func CopySnapshot(in io.Reader, dest io.WriteCloser) (*raft.SnapshotMeta, error) {
+	defer dest.Close()
+
+	// Wrap the reader in a gzip decompressor.
+	decomp, err := gzip.NewReader(in)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress snapshot: %v", err)
+	}
+	defer decomp.Close()
+
+	// Read the archive, throwing away the snapshot data.
+	var metadata raft.SnapshotMeta
+	if err := read(decomp, &metadata, dest); err != nil {
+		return nil, fmt.Errorf("failed to read snapshot file: %v", err)
+	}
+
+	if err := concludeGzipRead(decomp); err != nil {
+		return nil, err
+	}
+
+	return &metadata, nil
+}

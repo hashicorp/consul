@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
@@ -43,6 +44,32 @@ func registerCommand(msg structs.MessageType, fn unboundCommand) {
 		panic(fmt.Errorf("Message %d is already registered", msg))
 	}
 	commands[msg] = fn
+}
+
+type FsmFilter struct {
+	evaluator *bexpr.Evaluator
+}
+
+func NewFSMFilter(expr string) (*FsmFilter, error) {
+	if expr == "" {
+		return nil, nil
+	}
+	evaluator, err := bexpr.CreateEvaluator(expr, &bexpr.EvaluatorConfig{MaxMatches: 0, MaxRawValueLength: 0})
+	if err != nil {
+		return nil, err
+	}
+	return &FsmFilter{evaluator: evaluator}, nil
+}
+
+func (f *FsmFilter) Include(item interface{}) bool {
+	if f == nil {
+		return true
+	}
+	ok, err := f.evaluator.Evaluate(item)
+	if !ok || err != nil {
+		return false
+	}
+	return true
 }
 
 // FSM implements a finite state machine that is used
@@ -283,6 +310,119 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	}
 
 	if err := restore.Commit(); err != nil {
+		return err
+	}
+	storageRestoration.Commit()
+
+	// External code might be calling State(), so we need to synchronize
+	// here to make sure we swap in the new state store atomically.
+	c.stateLock.Lock()
+	stateOld := c.state
+	c.state = stateNew
+
+	// Tell the EventPublisher to cycle anything watching these topics. Replacement
+	// of the state store means that indexes could have gone backwards and data changed.
+	//
+	// This needs to happen while holding the state lock to ensure its not racey. If we
+	// did this outside of the locked section closer to where we abandon the old store
+	// then there would be a possibility for new streams to be opened that would get
+	// a snapshot from the cache sourced from old data but would be receiving events
+	// for new data. To prevent that inconsistency we refresh the topics while holding
+	// the lock which ensures that any subscriptions to topics for FSM generated events
+	if c.deps.Publisher != nil {
+		c.deps.Publisher.RefreshAllTopics()
+	}
+	c.stateLock.Unlock()
+
+	// Signal that the old state store has been abandoned. This is required
+	// because we don't operate on it any more, we just throw it away, so
+	// blocking queries won't see any changes and need to be woken up.
+	stateOld.Abandon()
+
+	return nil
+}
+
+// RestoreWithFilter includes a set of bexpr filter evaluators, so
+// that we can create a FSM that excludes a portion of a snapshot
+// (typically for debugging and testing)
+func (c *FSM) RestoreWithFilter(old io.ReadCloser) error {
+	return c.restoreFilter(old)
+}
+
+func (c *FSM) restoreFilter(old io.ReadCloser) error {
+	defer old.Close()
+
+	stateNew := c.deps.NewStateStore()
+
+	// Set up a new restore transaction
+	restore := stateNew.Restore()
+	defer restore.Abort()
+
+	storageRestoration, err := c.deps.StorageBackend.Restore()
+	if err != nil {
+		return err
+	}
+	defer storageRestoration.Abort()
+
+	// Create a decoder
+	dec := codec.NewDecoder(old, structs.MsgpackHandle)
+
+	// Read in the header
+	var header *SnapshotHeader
+	if err := dec.Decode(&header); err != nil {
+		return err
+	}
+
+	// Populate the new state
+	msgType := make([]byte, 1)
+	for {
+		// Read the message type
+		_, err = old.Read(msgType)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		// Decode
+		snapType := structs.MessageType(msgType[0])
+		switch {
+		case snapType == structs.ChunkingStateType:
+			chunkState := &raftchunking.State{
+				ChunkMap: make(raftchunking.ChunkMap),
+			}
+			if err = dec.Decode(chunkState); err != nil {
+				return err
+			}
+			if err = c.chunker.RestoreState(chunkState); err != nil {
+				return err
+			}
+		case snapType == structs.ResourceOperationType:
+			var b []byte
+			if err = dec.Decode(&b); err != nil {
+				return err
+			}
+			if err = storageRestoration.Apply(b); err != nil {
+				return err
+			}
+		case restorers[snapType] != nil:
+			fn := restorers[snapType]
+			if err = fn(header, restore, dec); err != nil {
+				return err
+			}
+		default:
+			if structs.CEDowngrade && snapType >= 64 {
+				c.logger.Warn("ignoring enterprise message , for downgrading to oss", "type", snapType)
+				return nil
+			} else if snapType >= 64 {
+				return fmt.Errorf("msg type <%d> is a Consul Enterprise log entry. Consul CE cannot restore it", snapType)
+			} else {
+				return fmt.Errorf("Unrecognized msg type %d", snapType)
+			}
+		}
+	}
+
+	if err = restore.Commit(); err != nil {
 		return err
 	}
 	storageRestoration.Commit()
