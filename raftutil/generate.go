@@ -4,3 +4,4 @@
 package raftutil
 
 //go:generate ./gen_msgtypes.sh
+//go:generate ./gen_schema_tables.sh

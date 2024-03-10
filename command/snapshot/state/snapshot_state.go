@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/hashicorp/consul/raftutil"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/raftutil"
 	"github.com/mitchellh/cli"
 )
 

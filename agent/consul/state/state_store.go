@@ -325,7 +325,7 @@ func (s *Store) NodesState(ws memdb.WatchSet) (memdb.ResultIterator, error) {
 	txn := s.db.ReadTxn()
 
 	// Walk the entire nodes table
-	iter, err := txn.Get("nodes", "id")
+	iter, err := txn.Get(tableNodes, indexID)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +336,18 @@ func (s *Store) ServicesState(ws memdb.WatchSet) (memdb.ResultIterator, error) {
 	txn := s.db.ReadTxn()
 
 	// Walk the entire nodes table
-	iter, err := txn.Get("services", "id")
+	iter, err := txn.Get(tableServices, indexID)
+	if err != nil {
+		return nil, err
+	}
+	ws.Add(iter.WatchCh())
+	return iter, nil
+}
+func (s *Store) SnapshotState(ws memdb.WatchSet, table string) (memdb.ResultIterator, error) {
+	txn := s.db.ReadTxn()
+
+	// Walk the entire nodes table
+	iter, err := txn.Get(table, indexID)
 	if err != nil {
 		return nil, err
 	}

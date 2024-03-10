@@ -520,7 +520,7 @@ codegen: codegen-tools ## Deep copy
 
 .PHONY: go-gen-raftutil
 go-gen-raftutil: ## Check raft util msg type mapping are in-sync.
-	@echo "==> Checking raft util msg type mapping are in-sync..."
+	@echo "==> Checking raft util msg type and schema name mapping are in-sync..."
 	@go generate ./raftutil/
 	@if (git status -s ./raftutil| grep -q .go); then echo "raftutil helper message type mapping is out of sync. Run go generate ./... and push."; exit 0; fi
 
