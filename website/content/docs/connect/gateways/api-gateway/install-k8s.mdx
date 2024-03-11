@@ -70,9 +70,17 @@ The Consul API gateway ships with Consul and is automatically installed when you
          manageNonStandardCRDs: true
        cni:
          enabled: true
-         logLevel: info
+         logLevel: debug
          cniBinDir: "/home/kubernetes/bin"
          cniNetDir: "/etc/cni/net.d"
+     server:
+       resources:
+         requests:
+           memory: "500Mi"
+           cpu: "500m"
+         limits:
+           memory: "500Mi"
+           cpu: "500m"
      ```
     </CodeBlockConfig>
     </Tab>
