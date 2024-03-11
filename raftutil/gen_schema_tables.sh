@@ -37,9 +37,9 @@ echo "" >> "$output"
 echo "// AllTableNames holds all table names." >> "$output"
 echo "var AllTableNames = []TableName{" >> "$output"
 
-while read -r name; do
+sort -u "$tmp_names" | while read -r name; do
   echo "  $name," >> "$output"
-done < "$tmp_names"
+done
 
 echo "}" >> "$output"  # Close the slice
 
