@@ -24,7 +24,6 @@ type consulFSM interface {
 	raft.FSM
 	State() *state.Store
 	Restore(io.ReadCloser) error
-	RestoreWithFilter(io.ReadCloser) error
 }
 
 type FSMHelper struct {
@@ -109,19 +108,37 @@ func (f *FSMHelper) StateAsMap() map[string][]interface{} {
 }
 
 // StateAsMap converts Consul's state store to a JSON-able map format, similar to the Nomad example.
-func StateAsMap(store *state.Store) map[string][]interface{} {
-	result := map[string][]interface{}{
-		"Nodes":    nil,
-		"Services": nil,
-	}
-
-	for _, table := range AllTableNames {
-		result = append(result, toArray(store.SnapshotState(nil, string(table))))
-	}
+func StateAsMap(store *state.Store, filters ...string) map[string][]interface{} {
 	// Example structure, adjust according to actual Consul StateStore structure and methods
+	result := map[string][]interface{}{
+		"Nodes":              toArray(store.SnapshotState(nil, tableNodes)),
+		"Coordinates":        toArray(store.SnapshotState(nil, tableCoordinates)),
+		"Services":           toArray(store.SnapshotState(nil, tableServices)),
+		"GatewayServices":    toArray(store.SnapshotState(nil, tableGatewayServices)),
+		"ServiceIntentions":  toArray(store.SnapshotState(nil, tableConnectIntentions)),
+		"ACLTokens":          toArray(store.SnapshotState(nil, tableACLTokens)),
+		"ACLRoles":           toArray(store.SnapshotState(nil, tableACLRoles)),
+		"ACLPolicies":        toArray(store.SnapshotState(nil, tableACLPolicies)),
+		"ACLAuthMethods":     toArray(store.SnapshotState(nil, tableACLAuthMethods)),
+		"ACLBindingRules":    toArray(store.SnapshotState(nil, tableACLBindingRules)),
+		"KVs":                toArray(store.SnapshotState(nil, tableKVs)),
+		"ConfigEntries":      toArray(store.SnapshotState(nil, tableConfigEntries)),
+		"ConnectCAConfig":    toArray(store.SnapshotState(nil, tableConnectCAConfig)),
+		"ConnectCARoots":     toArray(store.SnapshotState(nil, tableConnectCARoots)),
+		"ConnectCALeafCerts": toArray(store.SnapshotState(nil, tableConnectCALeafCerts)),
+	}
+	if len(filters) == 0 {
+		return result
+	}
+	filtered := make(map[string][]interface{})
+	for _, filter := range filters {
+		if data, found := result[filter]; found {
+			filtered[filter] = data
+		}
+	}
 
-	// Optionally insert any enterprise-specific state components if applicable
-	return result
+	// TODO: Handle enterprise-specific state components
+	return filtered
 }
 
 func toArray(iter memdb.ResultIterator, err error) []interface{} {

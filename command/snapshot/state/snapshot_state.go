@@ -12,12 +12,47 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+// Define the set of valid keys
+var validKeys = map[string]bool{
+	"Nodes":              true,
+	"Coordinates":        true,
+	"Services":           true,
+	"GatewayServices":    true,
+	"ServiceIntentions":  true,
+	"ACLTokens":          true,
+	"ACLRoles":           true,
+	"ACLPolicies":        true,
+	"ACLAuthMethods":     true,
+	"ACLBindingRules":    true,
+	"KVs":                true,
+	"ConfigEntries":      true,
+	"ConnectCAConfig":    true,
+	"ConnectCARoots":     true,
+	"ConnectCALeafCerts": true,
+}
+
 // Run (snapshot state):
 // Dump state obtained from StateAsMap into a JSON format and print to stdout
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		c.UI.Error(err.Error())
 		return 1
+	}
+
+	filters := strings.Split(c.filterExpr, ",")
+	// Validate filters
+	if len(filters) > 1 {
+		for _, filter := range filters {
+			if _, ok := validKeys[filter]; !ok {
+				c.UI.Error(fmt.Sprintf("Invalid filter parameter passed: %q | Valid Filters: %s", filter, stringValidKeys()))
+				return 1
+			}
+		}
+	} else {
+		if _, ok := validKeys[filters[0]]; !ok {
+			c.UI.Error(fmt.Sprintf("Invalid filter parameter passed: %q | Valid Filters: %s", filters, stringValidKeys()))
+			return 1
+		}
 	}
 
 	// Check that we either got no filename or exactly one.
@@ -27,20 +62,20 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	path := c.flags.Args()[0]
-	f, err := os.Open(path)
+	snapshotFile, err := os.Open(path)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
 		return 1
 	}
-	defer f.Close()
+	defer snapshotFile.Close()
 
-	state, meta, err := raftutil.RestoreFromArchive(f)
+	state, meta, err := raftutil.RestoreFromArchive(snapshotFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to read archive file: %s", err))
 		return 1
 	}
 
-	sm := raftutil.StateAsMap(state)
+	sm := raftutil.StateAsMap(state, filters...)
 	sm["SnapshotMeta"] = []interface{}{meta}
 
 	enc := json.NewEncoder(os.Stdout)
@@ -65,13 +100,26 @@ type cmd struct {
 	help  string
 
 	// flags
-	format string
+	format     string
+	filterExpr string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.format, "format", PrettyFormat, fmt.Sprintf("Output format {%s}", strings.Join(GetSupportedFormats(), "|")))
+	c.flags.StringVar(
+		&c.filterExpr,
+		"filter",
+		"", "pass in filter string(s) for parsing snapshot state store")
 	c.help = flags.Usage(help, c.flags)
+}
+
+func stringValidKeys() string {
+	keys := make([]string, 0, len(validKeys))
+	for k := range validKeys {
+		keys = append(keys, k)
+	}
+	return strings.Join(keys, ", ")
 }
 
 func (c *cmd) Synopsis() string {
@@ -82,7 +130,7 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Displays information about a Consul snapshot file"
+const synopsis = "Displays information about a Consul snapshot file captured state"
 const help = `
 Usage: consul snapshot state [options] <file>
 

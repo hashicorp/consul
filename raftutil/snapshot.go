@@ -36,7 +36,7 @@ func RestoreFromArchive(archive io.Reader) (*state.Store, *raft.SnapshotMeta, er
 		}
 	}()
 
-	err = fsm.RestoreWithFilter(r)
+	err = fsm.Restore(r)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to restore from snapshot: %w", err)
 	}
