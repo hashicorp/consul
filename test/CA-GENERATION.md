@@ -22,5 +22,6 @@ if tests like `TestNewDialer_WithALPNWrapper` (or any other test using certifica
 
 ``` bash
 cd test/hostname/
-rm -rf *.pem *.crt *.key && ./generate.sh
+# Avoid deleting CertAuth.crt and privkey.pem since they're referenced in myca.conf
+rm -rf "[Bonnie|Betty|Bob|Alice].crt" *.key && ./generate.sh
 ```

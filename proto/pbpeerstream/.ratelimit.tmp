@@ -1,0 +1,1 @@
+[{"MethodName":"/hashicorp.consul.internal.peerstream.PeerStreamService/StreamResources","OperationType":"OPERATION_TYPE_READ","Enterprise":false},{"MethodName":"/hashicorp.consul.internal.peerstream.PeerStreamService/ExchangeSecret","OperationType":"OPERATION_TYPE_WRITE","Enterprise":false}]

@@ -1,0 +1,1 @@
+[{"MethodName":"/hashicorp.consul.acl.ACLService/Login","OperationType":"OPERATION_TYPE_WRITE","Enterprise":false},{"MethodName":"/hashicorp.consul.acl.ACLService/Logout","OperationType":"OPERATION_TYPE_WRITE","Enterprise":false}]

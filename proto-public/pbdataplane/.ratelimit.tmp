@@ -1,0 +1,1 @@
+[{"MethodName":"/hashicorp.consul.dataplane.DataplaneService/GetSupportedDataplaneFeatures","OperationType":"OPERATION_TYPE_READ","Enterprise":false},{"MethodName":"/hashicorp.consul.dataplane.DataplaneService/GetEnvoyBootstrapParams","OperationType":"OPERATION_TYPE_READ","Enterprise":false}]
