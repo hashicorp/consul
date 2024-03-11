@@ -18,9 +18,6 @@ html[data-route^='dc.services.instance'] .app-view > header dl {
   margin-bottom: 23px;
   margin-right: 50px;
 }
-html[data-route^='dc.services.index'] .link-to-hcp-banner {
-  margin: 0 -48px;
-}
 html[data-route^='dc.services.instance'] .app-view > header dt {
   font-weight: var(--token-typography-font-weight-bold);
 }
