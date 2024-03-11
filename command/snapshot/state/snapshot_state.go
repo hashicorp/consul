@@ -140,4 +140,12 @@ Usage: consul snapshot state [options] <file>
 
     $ consul snapshot state backup.snap
 
+  Save JSON representation of snapshot state to file
+
+    $ consul snapshot state backup.snap > snapshot-state.json
+
+  Inspect snapshot state with filtered return
+
+    $ consul snapshot state backup.snap -filter "Nodes, Services, ACLTokens"
+
 `

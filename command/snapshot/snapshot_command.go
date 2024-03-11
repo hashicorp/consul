@@ -49,6 +49,10 @@ Usage: consul snapshot <subcommand> [options] [args]
   Inspect a snapshot:
 
       $ consul snapshot inspect backup.snap
+  
+  Inspect snapshot state:
+      
+      $ consul snapshot state backup.snap
 
   Run a daemon process that locally saves a snapshot every hour (available only in
   Consul Enterprise) :
