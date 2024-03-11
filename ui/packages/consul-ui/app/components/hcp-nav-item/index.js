@@ -14,7 +14,6 @@ import { action } from '@ember/object';
 export default class HcpLinkItemComponent extends Component {
   @service env;
   @service('hcp-link-status') hcpLinkStatus;
-  @service('hcp-link-modal') hcpLinkModal;
 
   get alreadyLinked() {
     return this.args.linkData?.isLinked;
@@ -53,7 +52,6 @@ export default class HcpLinkItemComponent extends Component {
 
   @action
   onLinkToConsulCentral() {
-    this.hcpLinkModal.setResourceId(this.args.linkData?.resourceId);
-    this.hcpLinkModal.show();
+    // TODO: https://hashicorp.atlassian.net/browse/CC-7147 open the modal
   }
 }
