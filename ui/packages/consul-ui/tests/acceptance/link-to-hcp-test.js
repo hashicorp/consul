@@ -6,6 +6,7 @@
 import { module, test } from 'qunit';
 import { click, visit } from '@ember/test-helpers';
 import { setupApplicationTest } from 'ember-qunit';
+import HcpLinkModalService from 'consul-ui/services/hcp-link-modal';
 
 const bannerSelector = '[data-test-link-to-hcp-banner]';
 const linkToHcpSelector = '[data-test-link-to-hcp]';
@@ -14,10 +15,20 @@ const linkToHcpModalSelector = '[data-test-link-to-hcp-modal]';
 const linkToHcpModalCancelButtonSelector = '[data-test-link-to-hcp-modal-cancel-button]';
 module.skip('Acceptance | link to hcp', function (hooks) {
   setupApplicationTest(hooks);
+  const correctResourceId =
+    'organization/b4432207-bb9c-438e-a160-b98923efa979/project/4b09958c-fa91-43ab-8029-eb28d8cee9d4/hashicorp.consul.global-network-manager.cluster/test-from-api';
 
   hooks.beforeEach(function () {
     // clear local storage so we don't have any settings
     window.localStorage.clear();
+    this.owner.register(
+      'service:hcp-link-modal',
+      class extends HcpLinkModalService {
+        setResourceId(resourceId) {
+          super.setResourceId(correctResourceId);
+        }
+      }
+    );
   });
 
   test('the banner and nav item are initially displayed on services page', async function (assert) {

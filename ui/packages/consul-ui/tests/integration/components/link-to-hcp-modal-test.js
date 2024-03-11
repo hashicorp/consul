@@ -27,6 +27,8 @@ const modalGenerateTokenMissedPolicyAlertSelector =
   '[data-test-link-to-hcp-modal-missed-policy-alert]';
 const modalNextButtonSelector = '[data-test-link-to-hcp-modal-next-button]';
 const modalCancelButtonSelector = '[data-test-link-to-hcp-modal-cancel-button]';
+const resourceId =
+  'organization/b4432207-bb9c-438e-a160-b98923efa979/project/4b09958c-fa91-43ab-8029-eb28d8cee9d4/hashicorp.consul.global-network-manager.cluster/test-from-api';
 
 module('Integration | Component | link-to-hcp-modal', function (hooks) {
   let originalClipboardWriteText;
@@ -69,6 +71,7 @@ module('Integration | Component | link-to-hcp-modal', function (hooks) {
     this.owner.register(
       'service:hcp-link-modal',
       class Stub extends Service {
+        resourceId = resourceId;
         hide = hideModal;
       }
     );
