@@ -122,9 +122,7 @@
           class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
           as |SNL|
         >
-            <DataSource @src={{uri '/${partition}/*/${dc}/hcp-link' (hash dc=@dc partition=@partition name=@dc)}} as |hcpLink|>
-              <HcpNavItem @list={{SNL}} @linkData={{hcpLink.data}} />
-            </DataSource>
+          <HcpNavItem @list={{SNL}}/>
           <Consul::Datacenter::Selector
             @list={{SNL}}
             @dc={{@dc}}
