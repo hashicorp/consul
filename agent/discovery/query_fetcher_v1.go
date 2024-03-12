@@ -39,21 +39,21 @@ var DNSCounters = []prometheus.CounterDefinition{
 	},
 }
 
-// v1DataFetcherDynamicConfig is used to store the dynamic configuration of the V1 data fetcher.
-type v1DataFetcherDynamicConfig struct {
+// V1DataFetcherDynamicConfig is used to store the dynamic configuration of the V1 data fetcher.
+type V1DataFetcherDynamicConfig struct {
 	// Default request tenancy
-	datacenter string
+	Datacenter string
 
-	segmentName   string
-	nodeName      string
-	nodePartition string
+	SegmentName   string
+	NodeName      string
+	NodePartition string
 
 	// Catalog configuration
-	allowStale  bool
-	maxStale    time.Duration
-	useCache    bool
-	cacheMaxAge time.Duration
-	onlyPassing bool
+	AllowStale  bool
+	MaxStale    time.Duration
+	UseCache    bool
+	CacheMaxAge time.Duration
+	OnlyPassing bool
 }
 
 // V1DataFetcher is used to fetch data from the V1 catalog.
@@ -93,17 +93,21 @@ func NewV1DataFetcher(config *config.RuntimeConfig,
 
 // LoadConfig loads the configuration for the V1 data fetcher.
 func (f *V1DataFetcher) LoadConfig(config *config.RuntimeConfig) {
-	dynamicConfig := &v1DataFetcherDynamicConfig{
-		allowStale:  config.DNSAllowStale,
-		maxStale:    config.DNSMaxStale,
-		useCache:    config.DNSUseCache,
-		cacheMaxAge: config.DNSCacheMaxAge,
-		onlyPassing: config.DNSOnlyPassing,
-		datacenter:  config.Datacenter,
-		segmentName: config.SegmentName,
-		nodeName:    config.NodeName,
+	dynamicConfig := &V1DataFetcherDynamicConfig{
+		AllowStale:  config.DNSAllowStale,
+		MaxStale:    config.DNSMaxStale,
+		UseCache:    config.DNSUseCache,
+		CacheMaxAge: config.DNSCacheMaxAge,
+		OnlyPassing: config.DNSOnlyPassing,
+		Datacenter:  config.Datacenter,
+		SegmentName: config.SegmentName,
+		NodeName:    config.NodeName,
 	}
 	f.dynamicConfig.Store(dynamicConfig)
+}
+
+func (f *V1DataFetcher) GetConfig() *V1DataFetcherDynamicConfig {
+	return f.dynamicConfig.Load().(*V1DataFetcherDynamicConfig)
 }
 
 // FetchNodes fetches A/AAAA/CNAME
@@ -113,7 +117,7 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 		return nil, ErrNotFound
 	}
 
-	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
+	cfg := f.dynamicConfig.Load().(*V1DataFetcherDynamicConfig)
 	// Make an RPC request
 	args := &structs.NodeSpecificRequest{
 		Datacenter: req.Tenancy.Datacenter,
@@ -121,7 +125,7 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 		Node:       req.Name,
 		QueryOptions: structs.QueryOptions{
 			Token:      ctx.Token,
-			AllowStale: cfg.allowStale,
+			AllowStale: cfg.AllowStale,
 		},
 		EnterpriseMeta: queryTenancyToEntMeta(req.Tenancy),
 	}
@@ -160,14 +164,14 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 // FetchEndpoints fetches records for A/AAAA/CNAME or SRV requests for services
 func (f *V1DataFetcher) FetchEndpoints(ctx Context, req *QueryPayload, lookupType LookupType) ([]*Result, error) {
 	f.logger.Trace(fmt.Sprintf("FetchEndpoints - req: %+v / lookupType: %+v", req, lookupType))
-	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
+	cfg := f.dynamicConfig.Load().(*V1DataFetcherDynamicConfig)
 	return f.fetchService(ctx, req, cfg, lookupType)
 }
 
 // FetchVirtualIP fetches A/AAAA records for virtual IPs
 func (f *V1DataFetcher) FetchVirtualIP(ctx Context, req *QueryPayload) (*Result, error) {
 	args := structs.ServiceSpecificRequest{
-		// The datacenter of the request is not specified because cross-datacenter virtual IP
+		// The Datacenter of the request is not specified because cross-Datacenter virtual IP
 		// queries are not supported. This guard rail is in place because virtual IPs are allocated
 		// within a DC, therefore their uniqueness is not guaranteed globally.
 		PeerName:       req.Tenancy.Peer,
@@ -200,16 +204,16 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 		return nil, ErrNotSupported
 	}
 
-	configCtx := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
+	configCtx := f.dynamicConfig.Load().(*V1DataFetcherDynamicConfig)
 	targetIP := ip.String()
 
 	var results []*Result
 
 	args := structs.DCSpecificRequest{
-		Datacenter: configCtx.datacenter,
+		Datacenter: configCtx.Datacenter,
 		QueryOptions: structs.QueryOptions{
 			Token:      reqCtx.Token,
-			AllowStale: configCtx.allowStale,
+			AllowStale: configCtx.AllowStale,
 		},
 	}
 	var out structs.IndexedNodes
@@ -229,7 +233,7 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 					Tenancy: ResultTenancy{
 						Namespace:  f.defaultEnterpriseMeta.NamespaceOrDefault(),
 						Partition:  f.defaultEnterpriseMeta.PartitionOrDefault(),
-						Datacenter: configCtx.datacenter,
+						Datacenter: configCtx.Datacenter,
 					},
 				})
 				return results, nil
@@ -239,10 +243,10 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 
 	// only look into the services if we didn't find a node
 	sargs := structs.ServiceSpecificRequest{
-		Datacenter: configCtx.datacenter,
+		Datacenter: configCtx.Datacenter,
 		QueryOptions: structs.QueryOptions{
 			Token:      reqCtx.Token,
-			AllowStale: configCtx.allowStale,
+			AllowStale: configCtx.AllowStale,
 		},
 		ServiceAddress: targetIP,
 		EnterpriseMeta: *f.defaultEnterpriseMeta.WithWildcardNamespace(),
@@ -293,7 +297,7 @@ func (f *V1DataFetcher) FetchWorkload(ctx Context, req *QueryPayload) (*Result, 
 // FetchPreparedQuery evaluates the results of a prepared query.
 // deprecated in V2
 func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error) {
-	cfg := f.dynamicConfig.Load().(*v1DataFetcherDynamicConfig)
+	cfg := f.dynamicConfig.Load().(*V1DataFetcherDynamicConfig)
 
 	// Execute the prepared query.
 	args := structs.PreparedQueryExecuteRequest{
@@ -301,8 +305,8 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 		QueryIDOrName: req.Name,
 		QueryOptions: structs.QueryOptions{
 			Token:      ctx.Token,
-			AllowStale: cfg.allowStale,
-			MaxAge:     cfg.cacheMaxAge,
+			AllowStale: cfg.AllowStale,
+			MaxAge:     cfg.CacheMaxAge,
 		},
 
 		// Always pass the local agent through. In the DNS interface, there
@@ -310,10 +314,10 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 		// send the local agent's data through to allow distance sorting
 		// relative to ourself on the server side.
 		Agent: structs.QuerySource{
-			Datacenter:    cfg.datacenter,
-			Segment:       cfg.segmentName,
-			Node:          cfg.nodeName,
-			NodePartition: cfg.nodePartition,
+			Datacenter:    cfg.Datacenter,
+			Segment:       cfg.SegmentName,
+			Node:          cfg.NodeName,
+			NodePartition: cfg.NodePartition,
 		},
 		Source: structs.QuerySource{
 			Ip: req.SourceIP.String(),
@@ -367,11 +371,11 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 
 // executePreparedQuery is used to execute a PreparedQuery against the Consul catalog.
 // If the config is set to UseCache, it will use agent cache.
-func (f *V1DataFetcher) executePreparedQuery(cfg *v1DataFetcherDynamicConfig, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
+func (f *V1DataFetcher) executePreparedQuery(cfg *V1DataFetcherDynamicConfig, args structs.PreparedQueryExecuteRequest) (*structs.PreparedQueryExecuteResponse, error) {
 	var out structs.PreparedQueryExecuteResponse
 
 RPC:
-	if cfg.useCache {
+	if cfg.UseCache {
 		raw, m, err := f.getFromCacheFunc(context.TODO(), cachetype.PreparedQueryName, &args)
 		if err != nil {
 			return nil, err
@@ -396,7 +400,7 @@ RPC:
 
 	// Verify that request is not too stale, redo the request.
 	if args.AllowStale {
-		if out.LastContact > cfg.maxStale {
+		if out.LastContact > cfg.MaxStale {
 			args.AllowStale = false
 			f.logger.Warn("Query results too stale, re-requesting")
 			goto RPC
@@ -489,10 +493,10 @@ func makeTaggedAddressesFromStrings(tagged map[string]string) map[string]*Tagged
 
 // fetchNode is used to look up a node in the Consul catalog within NodeServices.
 // If the config is set to UseCache, it will get the record from the agent cache.
-func (f *V1DataFetcher) fetchNode(cfg *v1DataFetcherDynamicConfig, args *structs.NodeSpecificRequest) (*structs.IndexedNodeServices, error) {
+func (f *V1DataFetcher) fetchNode(cfg *V1DataFetcherDynamicConfig, args *structs.NodeSpecificRequest) (*structs.IndexedNodeServices, error) {
 	var out structs.IndexedNodeServices
 
-	useCache := cfg.useCache
+	useCache := cfg.UseCache
 RPC:
 	if useCache {
 		raw, _, err := f.getFromCacheFunc(context.TODO(), cachetype.NodeServicesName, args)
@@ -513,7 +517,7 @@ RPC:
 
 	// Verify that request is not too stale, redo the request
 	if args.AllowStale {
-		if out.LastContact > cfg.maxStale {
+		if out.LastContact > cfg.MaxStale {
 			args.AllowStale = false
 			useCache = false
 			f.logger.Warn("Query results too stale, re-requesting")
@@ -527,7 +531,7 @@ RPC:
 }
 
 func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload,
-	cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
+	cfg *V1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
 	f.logger.Trace("fetchService", "req", req)
 	if req.Tenancy.SamenessGroup == "" {
 		return f.fetchServiceBasedOnTenancy(ctx, req, cfg, lookupType)
@@ -538,7 +542,7 @@ func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload,
 
 // fetchServiceBasedOnTenancy is used to look up a service in the Consul catalog based on its tenancy or default tenancy.
 func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayload,
-	cfg *v1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
+	cfg *V1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
 	f.logger.Trace(fmt.Sprintf("fetchServiceBasedOnTenancy - req: %+v", req))
 	if req.Tenancy.SamenessGroup != "" {
 		return nil, errors.New("sameness groups are not allowed for service lookups based on tenancy")
@@ -563,10 +567,10 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 		TagFilter:   req.Tag != "",
 		QueryOptions: structs.QueryOptions{
 			Token:            ctx.Token,
-			AllowStale:       cfg.allowStale,
-			MaxAge:           cfg.cacheMaxAge,
-			UseCache:         cfg.useCache,
-			MaxStaleDuration: cfg.maxStale,
+			AllowStale:       cfg.AllowStale,
+			MaxAge:           cfg.CacheMaxAge,
+			UseCache:         cfg.UseCache,
+			MaxStaleDuration: cfg.MaxStale,
 		},
 		EnterpriseMeta: queryTenancyToEntMeta(req.Tenancy),
 	}
@@ -588,7 +592,7 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 	// We copy the slice to avoid modifying the result if it comes from the cache
 	nodes := make(structs.CheckServiceNodes, len(out.Nodes))
 	copy(nodes, out.Nodes)
-	out.Nodes = nodes.Filter(cfg.onlyPassing)
+	out.Nodes = nodes.Filter(cfg.OnlyPassing)
 	if err != nil {
 		return nil, fmt.Errorf("rpc request failed: %w", err)
 	}

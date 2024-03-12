@@ -9,12 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/test-integ/topoutil"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-
-	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 // The commonTopo comprises 3 agent servers and 3 nodes to run workload

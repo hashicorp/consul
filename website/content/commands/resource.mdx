@@ -9,9 +9,13 @@ description: >-
 
 Command: `consul resource`
 
-Use the `resource` command to apply, list, read, and delete resources when interacting with Consul's v2 catalog through the command line. For more information, refer to [v2 catalog API](/consul/docs/concept/catalog/v2).
+<Note>
 
-The `consul resource` command has usage limitations in Consul v1.17.0. The CLI does not accept the partition and namespace arguments, but the v2 catalog outputs this information when you add the `read` or `list` subcommand. In addition, do not use the `apply` and `delete` commands with Consul on Kubernetes in this release. Use the `kubectl` command to apply or delete resources instead. Refer to [configure multi-port services](/consul/docs/k8s/multiport/configure) for an example of the workflow to apply resources.
+You must enable the [v2 catalog API](/consul/docs/concept/catalog/v2) to use this command.
+
+</Note>
+
+Use the `resource` command to apply, list, read, and delete resources when interacting with Consul's v2 catalog through the command line. For more information, refer to [v2 catalog API](/consul/docs/concept/catalog/v2).
 
 ## Usage
 
@@ -27,8 +31,6 @@ Subcommands:
     list      Read all resources by type
     read      Read resource information
 ```
-
-On Kubernetes deployments, you must use a `kubectl exec` command to open a shell to the Consul server's container before you can run this Consul CLI command.
 
 ## Subcommands
 
@@ -82,7 +84,7 @@ $ consul resource delete -f=trafficpermissions.hcl
 
 `consul resource list` outputs information about resources according to the type of resource and the location where the resource is applied. 
 
-This command must be issued with a resource type. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can list information about services with `catalog.v2beta1.Service` and TCP routes with `mesh.v2beta1.TCPRoute`. Refer to [v2 catalog](/consul/docs/architecture/catalog/v2#catalog-structure) for more information.
+This command must be issued with a resource type. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can list information about services with `catalog.v2beta1.Service` and TCP routes with `mesh.v2beta1.TCPRoute`. Refer to [v2 catalog](/consul/docs/architecture/v2/catalog#catalog-structure) for more information.
 
 Do not include a resource name when listing resources.
 
@@ -302,7 +304,7 @@ $ consul resource list catalog.v2beta1.Service
 
 `consul resource read` outputs information about resources according to the type and name of the resource.
 
-This command must be issued with a resource type and a resource name. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can read information about services with `catalog.v2beta1.Service`, TCP routes with `mesh.v2beta1.TCPRoute`, and traffic permissions with `auth.v2beta1.TrafficPermissions`. Refer to [v2 catalog](/consul/docs/architecture/catalog/v2#catalog-structure) for more information. 
+This command must be issued with a resource type and a resource name. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can read information about services with `catalog.v2beta1.Service`, TCP routes with `mesh.v2beta1.TCPRoute`, and traffic permissions with `auth.v2beta1.TrafficPermissions`. Refer to [v2 catalog](/consul/docs/architecture/v2/catalog#catalog-structure) for more information. 
 
 The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `read` command:
 

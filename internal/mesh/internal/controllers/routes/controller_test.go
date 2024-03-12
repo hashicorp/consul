@@ -42,7 +42,7 @@ type testResourceRef struct {
 	barServiceRef *pbresource.Reference
 }
 
-func (suite *controllerSuite) SetupTest() {
+func (suite *controllerSuite) SetupSubTest() {
 	suite.ctx = testutil.TestContext(suite.T())
 	suite.tenancies = rtest.TestTenancies()
 
@@ -1349,264 +1349,265 @@ func (suite *controllerSuite) TestController() {
 
 func (suite *controllerSuite) TestController_Failover() {
 	for _, tenancy := range suite.tenancies {
+		suite.Run(suite.appendTenancyInfo(tenancy), func() {
+			computedRoutesID := rtest.Resource(pbmesh.ComputedRoutesType, "api").
+				WithTenancy(tenancy).
+				ID()
 
-		computedRoutesID := rtest.Resource(pbmesh.ComputedRoutesType, "api").
-			WithTenancy(tenancy).
-			ID()
+			apiServiceRef := resource.Reference(rtest.Resource(pbcatalog.ServiceType, "api").WithTenancy(tenancy).ID(), "")
 
-		apiServiceRef := resource.Reference(rtest.Resource(pbcatalog.ServiceType, "api").WithTenancy(tenancy).ID(), "")
-
-		apiServiceData := &pbcatalog.Service{
-			Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
-			Ports: []*pbcatalog.ServicePort{
-				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH}},
-		}
-
-		_ = rtest.Resource(pbcatalog.ServiceType, "api").
-			WithTenancy(tenancy).
-			WithData(suite.T(), apiServiceData).
-			Write(suite.T(), suite.client)
-
-		var lastVersion string
-		testutil.RunStep(suite.T(), "default http route without failover policy", func(t *testing.T) {
-			// Check that the computed routes resource exists and it has one port that is the default.
-			expect := &pbmesh.ComputedRoutes{
-				BoundReferences: []*pbresource.Reference{
-					apiServiceRef,
-				},
-				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
-					"http": {
-						UsingDefaultConfig: true,
-						Config: &pbmesh.ComputedPortRoutes_Http{
-							Http: &pbmesh.ComputedHTTPRoute{
-								Rules: []*pbmesh.ComputedHTTPRouteRule{{
-									Matches: []*pbmesh.HTTPRouteMatch{{
-										Path: &pbmesh.HTTPPathMatch{
-											Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
-											Value: "/",
-										},
-									}},
-									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
-										BackendTarget: backendName("api", "http", apiServiceRef.Tenancy),
-									}},
-								}},
-							},
-						},
-						ParentRef: newParentRef(apiServiceRef, "http"),
-						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
-						Targets: map[string]*pbmesh.BackendTargetDetails{
-							backendName("api", "http", apiServiceRef.Tenancy): {
-								Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
-								MeshPort:          "mesh",
-								BackendRef:        newBackendRef(apiServiceRef, "http", ""),
-								DestinationConfig: defaultDestConfig(),
-							},
-						},
-					},
-				},
+			apiServiceData := &pbcatalog.Service{
+				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"api-"}},
+				Ports: []*pbcatalog.ServicePort{
+					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH}},
 			}
 
-			lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
-		})
+			_ = rtest.Resource(pbcatalog.ServiceType, "api").
+				WithTenancy(tenancy).
+				WithData(suite.T(), apiServiceData).
+				Write(suite.T(), suite.client)
 
-		failoverPolicyData := &pbcatalog.ComputedFailoverPolicy{
-			PortConfigs: map[string]*pbcatalog.FailoverConfig{
-				"http": {
-					Destinations: []*pbcatalog.FailoverDestination{
-						{
-							Ref:  apiServiceRef,
-							Port: "http",
+			var lastVersion string
+			testutil.RunStep(suite.T(), "default http route without failover policy", func(t *testing.T) {
+				// Check that the computed routes resource exists and it has one port that is the default.
+				expect := &pbmesh.ComputedRoutes{
+					BoundReferences: []*pbresource.Reference{
+						apiServiceRef,
+					},
+					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+						"http": {
+							UsingDefaultConfig: true,
+							Config: &pbmesh.ComputedPortRoutes_Http{
+								Http: &pbmesh.ComputedHTTPRoute{
+									Rules: []*pbmesh.ComputedHTTPRouteRule{{
+										Matches: []*pbmesh.HTTPRouteMatch{{
+											Path: &pbmesh.HTTPPathMatch{
+												Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+												Value: "/",
+											},
+										}},
+										BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+											BackendTarget: backendName("api", "http", apiServiceRef.Tenancy),
+										}},
+									}},
+								},
+							},
+							ParentRef: newParentRef(apiServiceRef, "http"),
+							Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
+							Targets: map[string]*pbmesh.BackendTargetDetails{
+								backendName("api", "http", apiServiceRef.Tenancy): {
+									Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+									MeshPort:          "mesh",
+									BackendRef:        newBackendRef(apiServiceRef, "http", ""),
+									DestinationConfig: defaultDestConfig(),
+								},
+							},
+						},
+					},
+				}
+
+				lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
+			})
+
+			failoverPolicyData := &pbcatalog.ComputedFailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{
+							{
+								Ref:  apiServiceRef,
+								Port: "http",
+							},
 						},
 					},
 				},
-			},
-			BoundReferences: []*pbresource.Reference{apiServiceRef},
-		}
+				BoundReferences: []*pbresource.Reference{apiServiceRef},
+			}
 
-		_ = rtest.Resource(pbcatalog.ComputedFailoverPolicyType, "api").
-			WithTenancy(tenancy).
-			WithData(suite.T(), failoverPolicyData).
-			Write(suite.T(), suite.client)
+			_ = rtest.Resource(pbcatalog.ComputedFailoverPolicyType, "api").
+				WithTenancy(tenancy).
+				WithData(suite.T(), failoverPolicyData).
+				Write(suite.T(), suite.client)
 
-		testutil.RunStep(suite.T(), "with failover policy", func(t *testing.T) {
-			// Check that the computed routes resource exists and it has one port that is the default.
-			expect := &pbmesh.ComputedRoutes{
-				BoundReferences: []*pbresource.Reference{
-					newRef(pbcatalog.ComputedFailoverPolicyType, "api", tenancy),
-					apiServiceRef,
-				},
-				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
-					"http": {
-						UsingDefaultConfig: true,
-						Config: &pbmesh.ComputedPortRoutes_Http{
-							Http: &pbmesh.ComputedHTTPRoute{
-								Rules: []*pbmesh.ComputedHTTPRouteRule{{
-									Matches: []*pbmesh.HTTPRouteMatch{{
-										Path: &pbmesh.HTTPPathMatch{
-											Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
-											Value: "/",
-										},
+			testutil.RunStep(suite.T(), "with failover policy", func(t *testing.T) {
+				// Check that the computed routes resource exists and it has one port that is the default.
+				expect := &pbmesh.ComputedRoutes{
+					BoundReferences: []*pbresource.Reference{
+						newRef(pbcatalog.ComputedFailoverPolicyType, "api", tenancy),
+						apiServiceRef,
+					},
+					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+						"http": {
+							UsingDefaultConfig: true,
+							Config: &pbmesh.ComputedPortRoutes_Http{
+								Http: &pbmesh.ComputedHTTPRoute{
+									Rules: []*pbmesh.ComputedHTTPRouteRule{{
+										Matches: []*pbmesh.HTTPRouteMatch{{
+											Path: &pbmesh.HTTPPathMatch{
+												Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+												Value: "/",
+											},
+										}},
+										BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+											BackendTarget: backendName("api", "http", apiServiceRef.Tenancy),
+										}},
 									}},
-									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
-										BackendTarget: backendName("api", "http", apiServiceRef.Tenancy),
-									}},
-								}},
+								},
 							},
-						},
-						ParentRef: newParentRef(apiServiceRef, "http"),
-						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
-						Targets: map[string]*pbmesh.BackendTargetDetails{
-							backendName("api", "http", apiServiceRef.Tenancy): {
-								Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
-								MeshPort:          "mesh",
-								BackendRef:        newBackendRef(apiServiceRef, "http", ""),
-								DestinationConfig: defaultDestConfig(),
-								FailoverConfig: &pbmesh.ComputedFailoverConfig{
-									Destinations: []*pbmesh.ComputedFailoverDestination{
-										{BackendTarget: backendName("api", "http", tenancy)},
+							ParentRef: newParentRef(apiServiceRef, "http"),
+							Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
+							Targets: map[string]*pbmesh.BackendTargetDetails{
+								backendName("api", "http", apiServiceRef.Tenancy): {
+									Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+									MeshPort:          "mesh",
+									BackendRef:        newBackendRef(apiServiceRef, "http", ""),
+									DestinationConfig: defaultDestConfig(),
+									FailoverConfig: &pbmesh.ComputedFailoverConfig{
+										Destinations: []*pbmesh.ComputedFailoverDestination{
+											{BackendTarget: backendName("api", "http", tenancy)},
+										},
 									},
 								},
 							},
 						},
 					},
+				}
+
+				lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
+			})
+
+			otherServiceRef := resource.Reference(rtest.Resource(pbcatalog.ServiceType, "other").WithTenancy(tenancy).ID(), "")
+
+			otherServiceData := &pbcatalog.Service{
+				Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"other-"}},
+				Ports: []*pbcatalog.ServicePort{
+					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			}
+			otherService := rtest.Resource(pbcatalog.ServiceType, "other").
+				WithData(suite.T(), otherServiceData).
+				WithTenancy(tenancy).
+				Write(suite.T(), suite.client)
 
-			lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
-		})
-
-		otherServiceRef := resource.Reference(rtest.Resource(pbcatalog.ServiceType, "other").WithTenancy(tenancy).ID(), "")
-
-		otherServiceData := &pbcatalog.Service{
-			Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"other-"}},
-			Ports: []*pbcatalog.ServicePort{
-				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-			},
-		}
-		otherService := rtest.Resource(pbcatalog.ServiceType, "other").
-			WithData(suite.T(), otherServiceData).
-			WithTenancy(tenancy).
-			Write(suite.T(), suite.client)
-
-		failoverPolicyData = &pbcatalog.ComputedFailoverPolicy{
-			PortConfigs: map[string]*pbcatalog.FailoverConfig{
-				"http": {
-					Destinations: []*pbcatalog.FailoverDestination{
-						{
-							Ref:  otherServiceRef,
-							Port: "http",
+			failoverPolicyData = &pbcatalog.ComputedFailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {
+						Destinations: []*pbcatalog.FailoverDestination{
+							{
+								Ref:  otherServiceRef,
+								Port: "http",
+							},
 						},
 					},
 				},
-			},
-			BoundReferences: []*pbresource.Reference{otherServiceRef},
-		}
+				BoundReferences: []*pbresource.Reference{otherServiceRef},
+			}
 
-		_ = rtest.Resource(pbcatalog.ComputedFailoverPolicyType, "api").
-			WithTenancy(tenancy).
-			WithData(suite.T(), failoverPolicyData).
-			Write(suite.T(), suite.client)
+			_ = rtest.Resource(pbcatalog.ComputedFailoverPolicyType, "api").
+				WithTenancy(tenancy).
+				WithData(suite.T(), failoverPolicyData).
+				Write(suite.T(), suite.client)
 
-		testutil.RunStep(suite.T(), "with other service and updated failover policy", func(t *testing.T) {
-			// Check that the computed routes resource exists and it has one port that is the default.
-			expect := &pbmesh.ComputedRoutes{
-				BoundReferences: []*pbresource.Reference{
-					newRef(pbcatalog.ComputedFailoverPolicyType, "api", tenancy),
-					apiServiceRef,
-					otherServiceRef,
-				},
-				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
-					"http": {
-						UsingDefaultConfig: true,
-						Config: &pbmesh.ComputedPortRoutes_Http{
-							Http: &pbmesh.ComputedHTTPRoute{
-								Rules: []*pbmesh.ComputedHTTPRouteRule{{
-									Matches: []*pbmesh.HTTPRouteMatch{{
-										Path: &pbmesh.HTTPPathMatch{
-											Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
-											Value: "/",
-										},
+			testutil.RunStep(suite.T(), "with other service and updated failover policy", func(t *testing.T) {
+				// Check that the computed routes resource exists and it has one port that is the default.
+				expect := &pbmesh.ComputedRoutes{
+					BoundReferences: []*pbresource.Reference{
+						newRef(pbcatalog.ComputedFailoverPolicyType, "api", tenancy),
+						apiServiceRef,
+						otherServiceRef,
+					},
+					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+						"http": {
+							UsingDefaultConfig: true,
+							Config: &pbmesh.ComputedPortRoutes_Http{
+								Http: &pbmesh.ComputedHTTPRoute{
+									Rules: []*pbmesh.ComputedHTTPRouteRule{{
+										Matches: []*pbmesh.HTTPRouteMatch{{
+											Path: &pbmesh.HTTPPathMatch{
+												Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+												Value: "/",
+											},
+										}},
+										BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+											BackendTarget: backendName("api", "http", apiServiceRef.Tenancy),
+										}},
 									}},
-									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
-										BackendTarget: backendName("api", "http", apiServiceRef.Tenancy),
-									}},
-								}},
-							},
-						},
-						ParentRef: newParentRef(apiServiceRef, "http"),
-						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
-						Targets: map[string]*pbmesh.BackendTargetDetails{
-							backendName("api", "http", apiServiceRef.Tenancy): {
-								Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
-								MeshPort:          "mesh",
-								BackendRef:        newBackendRef(apiServiceRef, "http", ""),
-								DestinationConfig: defaultDestConfig(),
-								FailoverConfig: &pbmesh.ComputedFailoverConfig{
-									Destinations: []*pbmesh.ComputedFailoverDestination{
-										{BackendTarget: backendName("other", "http", tenancy)},
-									},
 								},
 							},
-							backendName("other", "http", otherServiceRef.Tenancy): {
-								Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_INDIRECT,
-								MeshPort:          "mesh",
-								BackendRef:        newBackendRef(otherServiceRef, "http", ""),
-								DestinationConfig: defaultDestConfig(),
-							},
-						},
-					},
-				},
-			}
-
-			lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
-		})
-
-		suite.T().Log("delete other service")
-		suite.client.MustDelete(suite.T(), otherService.Id)
-
-		testutil.RunStep(suite.T(), "api computed routes is recoinciled", func(t *testing.T) {
-			// Check that the computed routes resource exists and it has one port that is the default.
-			expect := &pbmesh.ComputedRoutes{
-				BoundReferences: []*pbresource.Reference{
-					newRef(pbcatalog.ComputedFailoverPolicyType, "api", tenancy),
-					apiServiceRef,
-				},
-				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
-					"http": {
-						UsingDefaultConfig: true,
-						Config: &pbmesh.ComputedPortRoutes_Http{
-							Http: &pbmesh.ComputedHTTPRoute{
-								Rules: []*pbmesh.ComputedHTTPRouteRule{{
-									Matches: []*pbmesh.HTTPRouteMatch{{
-										Path: &pbmesh.HTTPPathMatch{
-											Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
-											Value: "/",
+							ParentRef: newParentRef(apiServiceRef, "http"),
+							Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
+							Targets: map[string]*pbmesh.BackendTargetDetails{
+								backendName("api", "http", apiServiceRef.Tenancy): {
+									Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+									MeshPort:          "mesh",
+									BackendRef:        newBackendRef(apiServiceRef, "http", ""),
+									DestinationConfig: defaultDestConfig(),
+									FailoverConfig: &pbmesh.ComputedFailoverConfig{
+										Destinations: []*pbmesh.ComputedFailoverDestination{
+											{BackendTarget: backendName("other", "http", tenancy)},
 										},
-									}},
-									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
-										BackendTarget: backendName("api", "http", apiServiceRef.Tenancy),
-									}},
-								}},
-							},
-						},
-						ParentRef: newParentRef(apiServiceRef, "http"),
-						Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
-						Targets: map[string]*pbmesh.BackendTargetDetails{
-							backendName("api", "http", apiServiceRef.Tenancy): {
-								Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
-								MeshPort:          "mesh",
-								BackendRef:        newBackendRef(apiServiceRef, "http", ""),
-								DestinationConfig: defaultDestConfig(),
-								FailoverConfig:    &pbmesh.ComputedFailoverConfig{},
+									},
+								},
+								backendName("other", "http", otherServiceRef.Tenancy): {
+									Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_INDIRECT,
+									MeshPort:          "mesh",
+									BackendRef:        newBackendRef(otherServiceRef, "http", ""),
+									DestinationConfig: defaultDestConfig(),
+								},
 							},
 						},
 					},
-				},
-			}
+				}
 
-			lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
+				lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
+			})
+
+			suite.T().Log("delete other service")
+			suite.client.MustDelete(suite.T(), otherService.Id)
+
+			testutil.RunStep(suite.T(), "api computed routes is recoinciled", func(t *testing.T) {
+				// Check that the computed routes resource exists and it has one port that is the default.
+				expect := &pbmesh.ComputedRoutes{
+					BoundReferences: []*pbresource.Reference{
+						newRef(pbcatalog.ComputedFailoverPolicyType, "api", tenancy),
+						apiServiceRef,
+					},
+					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+						"http": {
+							UsingDefaultConfig: true,
+							Config: &pbmesh.ComputedPortRoutes_Http{
+								Http: &pbmesh.ComputedHTTPRoute{
+									Rules: []*pbmesh.ComputedHTTPRouteRule{{
+										Matches: []*pbmesh.HTTPRouteMatch{{
+											Path: &pbmesh.HTTPPathMatch{
+												Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+												Value: "/",
+											},
+										}},
+										BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+											BackendTarget: backendName("api", "http", apiServiceRef.Tenancy),
+										}},
+									}},
+								},
+							},
+							ParentRef: newParentRef(apiServiceRef, "http"),
+							Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
+							Targets: map[string]*pbmesh.BackendTargetDetails{
+								backendName("api", "http", apiServiceRef.Tenancy): {
+									Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+									MeshPort:          "mesh",
+									BackendRef:        newBackendRef(apiServiceRef, "http", ""),
+									DestinationConfig: defaultDestConfig(),
+									FailoverConfig:    &pbmesh.ComputedFailoverConfig{},
+								},
+							},
+						},
+					},
+				}
+
+				lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, lastVersion, expect)
+			})
 		})
 	}
 }
