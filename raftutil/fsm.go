@@ -9,15 +9,14 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/hashicorp/consul/agent/consul/fsm"
-	"github.com/hashicorp/consul/agent/consul/state"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
-
-	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
+
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/state"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 )
 
 type consulFSM interface {
@@ -127,7 +126,7 @@ func StateAsMap(store *state.Store, filters ...string) map[string][]interface{} 
 		"ConnectCARoots":     toArray(store.SnapshotState(nil, tableConnectCARoots)),
 		"ConnectCALeafCerts": toArray(store.SnapshotState(nil, tableConnectCALeafCerts)),
 	}
-	if len(filters) == 0 {
+	if filters[0] == "" {
 		return result
 	}
 	filtered := make(map[string][]interface{})

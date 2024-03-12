@@ -94,6 +94,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.0 // indirect
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452 // indirect
+	github.com/mitchellh/pointerstructure v1.2.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect

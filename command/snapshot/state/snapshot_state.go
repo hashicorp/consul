@@ -7,9 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/raftutil"
-	"github.com/mitchellh/cli"
 )
 
 // Define the set of valid keys
@@ -48,11 +49,11 @@ func (c *cmd) Run(args []string) int {
 				return 1
 			}
 		}
-	} else {
-		if _, ok := validKeys[filters[0]]; !ok {
-			c.UI.Error(fmt.Sprintf("Invalid filter parameter passed: %q | Valid Filters: %s", filters, stringValidKeys()))
-			return 1
-		}
+	} else if filters[0] == "" {
+		c.UI.Warn("Filter parameter not passed in, parsing full snapshot backup (may result in excessive output)")
+	} else if _, ok := validKeys[filters[0]]; !ok {
+		c.UI.Error(fmt.Sprintf("Invalid filter parameter passed: %q | Valid Filters: %s", filters, stringValidKeys()))
+		return 1
 	}
 
 	// Check that we either got no filename or exactly one.
