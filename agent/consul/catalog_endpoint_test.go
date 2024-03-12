@@ -3345,10 +3345,11 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceName("api", nil),
-				Gateway:     structs.NewServiceName("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				ServiceKind: structs.GatewayServiceKindService,
+				Service:         structs.NewServiceName("api", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 		}
 
@@ -3568,16 +3569,18 @@ service "gateway" {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceName("db", nil),
-				Gateway:     structs.NewServiceName("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				ServiceKind: structs.GatewayServiceKindService,
+				Service:         structs.NewServiceName("db", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
-				Service:     structs.NewServiceName("db_replica", nil),
-				Gateway:     structs.NewServiceName("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				ServiceKind: structs.GatewayServiceKindUnknown,
+				Service:         structs.NewServiceName("db_replica", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				ServiceKind:     structs.GatewayServiceKindUnknown,
+				AutoHostRewrite: true,
 			},
 		}
 

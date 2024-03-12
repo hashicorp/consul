@@ -719,14 +719,15 @@ func (g *GatewayService) Clone() *GatewayService {
 		Port:        g.Port,
 		Protocol:    g.Protocol,
 		// See https://github.com/go101/go101/wiki/How-to-efficiently-clone-a-slice%3F
-		Hosts:        append(g.Hosts[:0:0], g.Hosts...),
-		CAFile:       g.CAFile,
-		CertFile:     g.CertFile,
-		KeyFile:      g.KeyFile,
-		SNI:          g.SNI,
-		FromWildcard: g.FromWildcard,
-		RaftIndex:    g.RaftIndex,
-		ServiceKind:  g.ServiceKind,
+		Hosts:           append(g.Hosts[:0:0], g.Hosts...),
+		CAFile:          g.CAFile,
+		CertFile:        g.CertFile,
+		KeyFile:         g.KeyFile,
+		SNI:             g.SNI,
+		FromWildcard:    g.FromWildcard,
+		RaftIndex:       g.RaftIndex,
+		ServiceKind:     g.ServiceKind,
+		AutoHostRewrite: g.AutoHostRewrite,
 	}
 }
 
