@@ -133,8 +133,6 @@ Usage: `consul snapshot agent [options]`
   Config files referenced using `-config-dir` and `-config-file` have the following
   format (shown populated with default values):
 
-~> Top-level single snapshot destinations in a config file are deprecated and will be removed in a future version. Move top-level `local_storage`, `aws_storage`, `azure_blob_storage`, and `google_storage` config objects to `snapshot_agent -> backup_destinations` instead.
-
 ```json
 {
   "snapshot_agent": {
@@ -272,23 +270,17 @@ if desired.
 - `login-meta` - Metadata to set on the token, formatted as key=value. This flag may be provided multiple times.
 
 #### Local Storage Options
-
-~> This option is deprecated when used with a top-level `local_storage` object in a config file. Use `snapshot_agent -> backup_destinations -> local_storage[0]` in a config file instead.
+This option cannot be used when using `backup_destinations` in a config file.
 
 - `-local-path` - Location to store snapshots locally. The default behavior
   of the snapshot agent is to store snapshots locally in this directory. Defaults
   to "." to use the current working directory. If an alternate remote storage 
   option is configured, then local storage will be disabled and this option will 
-  be ignored. This option cannot be used when using `backup_destinations` in a 
-  config file.
+  be ignored.
 
 #### S3 Storage Options
-
-~> These options are deprecated when used with a top-level `aws_storage` object in a config file. Use `snapshot_agent -> backup_destinations -> aws_storage[0]` in a config file instead.
-
+These options cannot be used when using `backup_destinations` in a config file.
 Note that despite the AWS references, any S3-compatible endpoint can be specified with `-aws-s3-endpoint`.
-
-Theses option cannot be used when using `backup_destinations` in a config file.
 
 - `-aws-access-key-id`, `-aws-secret-access-key` and `-aws-session-token` - These arguments supply static
   authentication information for connecting to S3. These may also be supplied using
@@ -382,13 +374,11 @@ The following example IAM policy document assumes that the `aws-s3-bucket` is `c
 
 #### Azure Blob Storage options
 
-~> These options are deprecated when used with a top-level `azure_blob_storage` object in a config file. Use `snapshot_agent -> backup_destinations -> azure_blob_storage[0]` in a config file instead.
-
 ** Note: This currently only works on non-Solaris platforms due to library limitations **
 
 From Consul Enterprise version `1.5.0` onwards, you can store snapshots in Azure Blob storage.
 
-These option cannot be used when using `backup_destinations` in a config file.
+These options cannot be used when using `backup_destinations` in a config file.
 
 - `-azure-blob-account-name` and `-azure-blob-account-key` - These arguments supply
   authentication information for connecting to Azure Blob storage.
@@ -401,8 +391,6 @@ These option cannot be used when using `backup_destinations` in a config file.
 
 #### Google Cloud Storage options
 
-~> This option is deprecated when used with a top-level `google_storage` object in a config file. Use `snapshot_agent -> backup_destinations -> google_storage[0]` in a config file instead.
-
 From Consul Enterprise version `1.6.1` onwards, you can store snapshots in Google Cloud Storage. Authentication relies on automatic discovery through the sdk as described [here](https://cloud.google.com/docs/authentication/production):
 
 
@@ -412,9 +400,11 @@ From Consul Enterprise version `1.6.1` onwards, you can store snapshots in Googl
 
 - If ADC can't use either of the above credentials, an error occurs.
 
+This option cannot be used when using `backup_destinations` in a config file.
+
 This integration needs the following information:
 
-- `-gcs-bucket` supplies the bucket to use. This option cannot be used when using `backup_destinations` in a config file.
+- `-gcs-bucket` supplies the bucket to use.
 
 #### API Options
 
