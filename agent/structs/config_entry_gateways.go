@@ -979,6 +979,16 @@ func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
 	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
 
+func (a *APIGatewayTLSConfiguration) ToGatewayTLSConfig() GatewayTLSConfig {
+	return GatewayTLSConfig{
+		Enabled:       true,
+		SDS:           nil,
+		TLSMinVersion: a.MinVersion,
+		TLSMaxVersion: a.MaxVersion,
+		CipherSuites:  a.CipherSuites,
+	}
+}
+
 // ServiceRouteReferences is a map with a key of ServiceName type for a routed to service from a
 // bound gateway listener with a value being a slice of resource references of the routes that reference the service
 type ServiceRouteReferences map[ServiceName][]ResourceReference

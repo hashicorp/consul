@@ -120,7 +120,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				// construct SNI filter chains
 				l.FilterChains, err = makeInlineOverrideFilterChains(
 					cfgSnap,
-					cfgSnap.APIGateway.TLSConfig,
+					listenerCfg.TLS,
 					listenerKey.Protocol,
 					listenerFilterOpts{
 						useRDS:          useRDS,
@@ -232,7 +232,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
+				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, listenerCfg.TLS, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -401,7 +401,7 @@ func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfigurati
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
 func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
-	tlsCfg structs.GatewayTLSConfig,
+	tlsCfg structs.APIGatewayTLSConfiguration,
 	protocol string,
 	filterOpts listenerFilterOpts,
 	certs []structs.ConfigEntry,
@@ -436,53 +436,41 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 		return nil
 	}
 
-	constructCert := func(ce structs.ConfigEntry) (*envoy_tls_v3.TlsCertificate, error) {
-		switch tce := ce.(type) {
+	constructTLSContext := func(tlsConfig structs.APIGatewayTLSConfiguration, certConfig structs.ConfigEntry) (*envoy_tls_v3.CommonTlsContext, error) {
+		switch tce := certConfig.(type) {
 		case *structs.InlineCertificateConfigEntry:
-			return &envoy_tls_v3.TlsCertificate{
-				CertificateChain: &envoy_core_v3.DataSource{
-					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: lib.EnsureTrailingNewline(tce.Certificate),
-					},
-				},
-				PrivateKey: &envoy_core_v3.DataSource{
-					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: lib.EnsureTrailingNewline(tce.PrivateKey),
+			return &envoy_tls_v3.CommonTlsContext{
+				TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig()),
+				TlsCertificates: []*envoy_tls_v3.TlsCertificate{
+					{
+						CertificateChain: &envoy_core_v3.DataSource{
+							Specifier: &envoy_core_v3.DataSource_InlineString{
+								InlineString: lib.EnsureTrailingNewline(tce.Certificate),
+							},
+						},
+						PrivateKey: &envoy_core_v3.DataSource{
+							Specifier: &envoy_core_v3.DataSource_InlineString{
+								InlineString: lib.EnsureTrailingNewline(tce.PrivateKey),
+							},
+						},
 					},
 				},
 			}, nil
 		case *structs.FileSystemCertificateConfigEntry:
-			return &envoy_tls_v3.TlsCertificate{
-				CertificateChain: &envoy_core_v3.DataSource{
-					Specifier: &envoy_core_v3.DataSource_Filename{
-						Filename: tce.Certificate,
-					},
-				},
-				PrivateKey: &envoy_core_v3.DataSource{
-					Specifier: &envoy_core_v3.DataSource_Filename{
-						Filename: tce.PrivateKey,
-					},
-				},
-			}, nil
+			ctx := makeCommonTLSContextFromFiles("", tce.Certificate, tce.PrivateKey)
+			ctx.TlsParams = makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig())
+			return ctx, nil
 		default:
 			return nil, fmt.Errorf("unsupported config entry kind %s", tce.GetKind())
 		}
 	}
 
-	multipleCerts := len(certs) > 1
-
 	for _, cert := range certs {
-		tlsCert, err := constructCert(cert)
+		// TODO Delivering via SDS is semi-required in order to get file system watches today.
+		//   https://github.com/envoyproxy/envoy/issues/10387
+		tlsContext, err := constructTLSContext(tlsCfg, cert)
 		if err != nil {
 			continue
-		}
-
-		// TODO(nathancoleman) Look into using makeCommonTLSContextFromGatewayTLSConfig.
-		// Delivering via SDS is semi-required in order to get file system watches today.
-		// https://github.com/envoyproxy/envoy/issues/10387
-		tlsContext := &envoy_tls_v3.CommonTlsContext{
-			TlsParams:       makeTLSParametersFromGatewayTLSConfig(tlsCfg),
-			TlsCertificates: []*envoy_tls_v3.TlsCertificate{tlsCert},
 		}
 
 		if err := constructChain(cert.GetName(), nil, tlsContext); err != nil {
@@ -490,9 +478,9 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 		}
 	}
 
-	if multipleCerts {
+	if len(certs) > 1 {
 		// if we have more than one cert, add a default handler that uses the leaf cert from connect
-		if err := constructChain("default", nil, makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(tlsCfg))); err != nil {
+		if err := constructChain("default", nil, makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig()))); err != nil {
 			return nil, err
 		}
 	}
