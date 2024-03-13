@@ -4,13 +4,21 @@
 package usagemetrics
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
 )
 
 type mockStateProvider struct {
@@ -38,4 +46,76 @@ func assertEqualGaugeMaps(t *testing.T, expectedMap, foundMap map[string]metrics
 		}
 		assert.Equal(t, expected, foundMap[key], "gauge key mismatch on %q", key)
 	}
+}
+
+func BenchmarkRunOnce(b *testing.B) {
+	const index = 123
+
+	store := state.NewStateStore(nil)
+
+	// This loop generates:
+	//
+	//	4 (service kind) * 100 (service) * 5 * (node) = 2000 proxy services. And 500 non-proxy services.
+	for _, kind := range []structs.ServiceKind{
+		// These will be included in the count.
+		structs.ServiceKindConnectProxy,
+		structs.ServiceKindIngressGateway,
+		structs.ServiceKindTerminatingGateway,
+		structs.ServiceKindMeshGateway,
+
+		// This one will not.
+		structs.ServiceKindTypical,
+	} {
+		for i := 0; i < 100; i++ {
+			serviceName := fmt.Sprintf("%s-%d", kind, i)
+
+			for j := 0; j < 5; j++ {
+				nodeName := fmt.Sprintf("%s-node-%d", serviceName, j)
+
+				require.NoError(b, store.EnsureRegistration(index, &structs.RegisterRequest{
+					Node: nodeName,
+					Service: &structs.NodeService{
+						ID:      serviceName,
+						Service: serviceName,
+						Kind:    kind,
+					},
+				}))
+			}
+		}
+	}
+
+	benchmarkRunOnce(b, store)
+}
+
+func benchmarkRunOnce(b *testing.B, store *state.Store) {
+	b.Helper()
+
+	config := lib.TelemetryConfig{
+		MetricsPrefix: "consul",
+		FilterDefault: true,
+		PrometheusOpts: prometheus.PrometheusOpts{
+			Expiration: time.Second * 30,
+			Name:       "consul",
+		},
+	}
+
+	lib.InitTelemetry(config, hclog.NewNullLogger())
+
+	um, err := NewUsageMetricsReporter(&Config{
+		stateProvider:  benchStateProvider(func() *state.Store { return store }),
+		logger:         hclog.NewNullLogger(),
+		getMembersFunc: func() []serf.Member { return nil },
+	})
+	require.NoError(b, err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		um.runOnce()
+	}
+}
+
+type benchStateProvider func() *state.Store
+
+func (b benchStateProvider) State() *state.Store {
+	return b()
 }

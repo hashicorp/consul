@@ -1,0 +1,7 @@
+```release-note:breaking-change
+telemetry: State store usage metrics with a double `consul` element in the metric name have been removed. Please use the same metric without the second `consul` instead. As an example instead of `consul.consul.state.config_entries` use `consul.state.config_entries`
+```
+
+```release-note: improvement
+telemetry: Improved the performance usage metrics emission by not outputting redundant metrics.
+```

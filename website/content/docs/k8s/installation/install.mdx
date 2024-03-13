@@ -104,7 +104,7 @@ NAME: consul
 ...
 ```
 
-### Install Consul on OpenShift clusters
+### Install Consul on Red Hat OpenShift
 
 [Red Hat OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift) is a security-conscious, opinionated wrapper for Kubernetes. To install Consul on OpenShift-managed Kubernetes, set `global.openshift.enabled=true` in your [custom installation](#custom-installation) values file:
 
@@ -134,11 +134,19 @@ The following working example enables both Consul Service Mesh and Consul API Ga
     apiGateway:
       manageExternalCRDs: false
       manageNonStandardCRDs: true
-  cni:
-    enabled: true
-    logLevel: info
-    cniBinDir: "/home/kubernetes/bin"
-    cniNetDir: "/etc/cni/net.d"
+    cni:
+      enabled: true
+      logLevel: debug
+      cniBinDir: "/home/kubernetes/bin"
+      cniNetDir: "/etc/cni/net.d"
+  server:
+    resources:
+      requests:
+        memory: "500Mi"
+        cpu: "500m"
+      limits:
+        memory: "500Mi"
+        cpu: "500m"
   ```
 </CodeBlockConfig>
 

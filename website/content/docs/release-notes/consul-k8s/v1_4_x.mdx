@@ -1,0 +1,50 @@
+---
+layout: docs
+page_title: 1.4.x
+description: >-
+  Consul on Kubernetes release notes for version 1.4.x
+---
+
+# Consul on Kubernetes 1.4.0
+
+We are pleased to announce the following Consul updates.
+
+## Release highlights
+
+- **Consul catalog v2 API updates:** Additional improvements were made to the v2 catalog API, which supports [registering a service with multiple ports or selecting a workload using multiple services on Kubernetes deployments](/consul/docs/k8s/multiport). End user facing changes include the ability to use a service's ports in xRoute configurations as opposed to the workload port for reference in the parentRef stanza of the xRoute configuration, and the change in Traffic Permissions to only allow `ACTION_DENY` for Consul Enterprise as it will enable future governance related workflows.
+
+  The v2 catalog API is currently available for Consul on Kubernetes deployments only. Refer to [Consul v2 architecture](/consul/docs/architecture/v2) for more information.
+
+- **Consul Long Term Support (LTS) (Enterprise):** Consul Enterprise users can now receive Long Term Support for approximately 2 years on some Consul releases, starting with Consul Enterprise v1.15. During the LTS window, eligible fixes are provided through a new minor release on the affected LTS release branch.
+
+  An LTS release is planned for every 3 releases, and it is maintained until it is 6 releases from the latest major release. For example, Consul Enterprise v1.15.x, v1.18x, and v1.21.x are the next three planned releases. The LTS period for Consul Enterprise v1.15.x ends when Consul Enterprise v1.21.0 releases.
+
+ For more information, refer to [Consul Enterprise Long Term Support](/consul/docs/enterprise/long-term-support).
+
+- **Fault injection (Enterprise):** For Enterprise users, Consul’s service mesh now supports managing traffic with fault injection behavior that is defined in an upstream service’s service defaults CRD. Supported fault injection behavior includes delaying, aborting, and rate limiting traffic between services. You can use fault injection to test your network’s resilience under different conditions.
+
+  For more information, refer to [fault injection](/consul/docs/connect/manage-traffic/fault-injection).
+
+## Supported software
+
+This version of Kubernetes supports the following software versions:
+
+- Consul 1.18.x
+- Consul Dataplane v1.4.x. Refer to [Envoy and Consul Dataplane](/consul/docs/v1.18.x/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version.
+- Kubernetes 1.26.x - 1.29.x
+- kubectl 1.26.x - 1.29.x
+- Helm 3.11.3+
+
+Refer to [Supported Consul and Kubernetes versions](/consul/docs/v1.18.x/k8s/compatibility#supported-consul-and-kubernetes-versions) for more information.
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+<Note> These links take you to the changelogs on the GitHub website. </Note>
+
+- [1.4.0](https://github.com/hashicorp/consul-k8s/releases/tag/v1.4.0)

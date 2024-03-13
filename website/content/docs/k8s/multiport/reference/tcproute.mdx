@@ -8,7 +8,7 @@ description: The TCPRoute resource CRD configures L4 TCP behavior within the ser
 
 This page provides reference information for the `TCPRoute` resource, which defines Transport Layer (L4) TCP traffic within the service mesh.
 
-This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
+This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/v2/catalog). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
@@ -60,7 +60,7 @@ metadata:
   namespace: <namespace>
 spec:
   parentRefs:
-    port: <portNameRoutedFrom>
+    port: <portRoutedFrom>
     - ref:
       name: <nameRoutedFrom>
       type: 
@@ -71,7 +71,7 @@ spec:
     - backendRefs:
       - backendRef:
         datacenter: <datacenterRoutedTo>
-        port: <portNameRoutedTo>
+        port: <portRoutedTo>
         ref:
           name: <nameRoutedTo>
           type:
@@ -147,7 +147,7 @@ When using this CRD, the `spec` field closely resembles the `TCPRoute` GAMMA res
 
 ### `spec.parentRefs`
 
-Specifies the services and other resources to attach the route to. You can only define one `parentsRefs` configuration for each route. To attach the route to multiple resources, specify additional [`spec.parentRefs.ref`](#spec-parentrefs-ref) configurations in the `parentsRefs` block. You can only specify the name of one port for the route. Any resources that send traffic through the route use the same port.
+Specifies the services and other resources to attach the route to. You can only define one `parentsRefs` configuration for each route. To attach the route to multiple resources, specify additional [`spec.parentRefs.ref`](#spec-parentrefs-ref) configurations in the `parentsRefs` block. You can only specify one port for the route. Any resources that send traffic through the route use the same port.
 
 #### Values
 
@@ -157,7 +157,9 @@ Specifies the services and other resources to attach the route to. You can only 
 
 ### `spec.parentRefs.port`
 
-Specifies the name of the port that the configuration applies to.
+Specifies the port for the Consul service that the configuration applies to. This parameter can be either a virtual port number, such as a Kubernetes service port, or a non-numeric target port value representing a named workload port.
+
+If you are not targeting a virtual port, specify the workload port name directly.
 
 #### Values
 
@@ -239,7 +241,9 @@ Specifies the name of the Consul datacenter that registered the Service backend 
 
 ### `spec.rules.backendRefs.backendRef.port`
 
-Specifies the name of the port for the Consul service that the configuration routes traffic to.
+Specifies the port for the Consul service that the configuration routes traffic to. This parameter can be either a virtual port number, such as a Kubernetes service port, or a non-numeric target port value representing a named workload port.
+
+If you are not targeting a virtual port, specify the workload port name directly.
 
 #### Values
 
@@ -298,7 +302,7 @@ The following examples demonstrate common TCPRoute CRD configuration patterns fo
 
 ### Split TCP traffic between two ports
 
-The following example splits traffic for the `api` service. TCP traffic for services registered to the Consul catalog that are available at the `api` port is split so that 50% of the traffic routes to the service at the `api` port and 50% routes to the service at the `admin` port.
+The following example splits traffic for the `api` service. TCP traffic for services registered to the Consul catalog that are available at the `api-workload` port is split so that 50% of the traffic routes to the service at the `api-workload` port and 50% routes to the service at the `admin-workload` port.
 
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1
@@ -314,8 +318,8 @@ spec:
           groupVersion: v2beta1
           kind: Service
         name: api
-      # The configuration targets the workload port, not the service port.
-      port: "api"
+      # The virtual port number for the "api-workload" target port.
+      port: "80"
   rules:
     - backendRefs:
       - backendRef:
@@ -325,8 +329,8 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          # The configuration targets the workload port, not the service port.
-          port: "api"
+          # The virtual port number for the "api-workload" target port.
+          port: "80"
         weight: 50
       - backendRef:
           ref: 
@@ -335,7 +339,7 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          # The configuration targets the workload port, not the service port.
-          port: "admin"
+          # The virtual port number for the "admin-workload" target port.
+          port: "90"
         weight: 50
 ```
