@@ -25,6 +25,12 @@ In previous versions, Consul emitted redundant state store usage metrics that co
 
 As of Consul v1.19, Consul does not emit the redundant metric with the double `consul.consul` in its name. Any monitoring alerts and dashboards that you may have utilizing these metrics may require edits to update to the simplified metric name.
 
+### Legacy API Gateway Removal
+In previous versions, Consul supported the helm chart stanza .Values.apiGateway. This was [deprecated in Consul v1.16.0](https://developer.hashicorp.com/consul/docs/release-notes/consul/v1_16_x#what-s-deprecated).
+As of Consul v1.19.0, this has been removed. If you are using the legacy API Gateway,
+you must migrate to [connectInject.apiGateway](https://github.com/hashicorp/consul-k8s/blob/main/charts/consul/values.yaml#L2368) before upgrading to Consul v1.19.0.
+
+
 ## Consul 1.17.x
 
 ### Known issues
