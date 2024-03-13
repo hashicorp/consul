@@ -77,16 +77,16 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	if len(c.flags.Args()) > 0 {
-		c.UI.Error(fmt.Sprintf("Should have no non-flag arguments."))
+		c.UI.Error("Should have no non-flag arguments.")
 		return 1
 	}
 
 	if c.authMethodName == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-method' flag"))
+		c.UI.Error("Missing required '-method' flag")
 		return 1
 	}
 	if c.tokenSinkFile == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-token-sink-file' flag"))
+		c.UI.Error("Missing required '-token-sink-file' flag")
 		return 1
 	}
 
