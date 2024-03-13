@@ -11,24 +11,5 @@
             @isHrefExternal={{true}}
             data-test-back-to-hcp
         />
-    {{else}}
-        {{#if this.shouldDisplayNavLinkItem}}
-            {{#if this.alreadyLinked}}
-                <SNL.Link
-                    @text="HCP Consul Central"
-                    @href={{hcp-resource-id-to-link @linkData.resourceId}}
-                    @isHrefExternal={{true}}
-                    @badge="Linked"
-                    data-test-linked-cluster-hcp-link
-                />
-            {{else}}
-                <SNL.Item data-test-link-to-hcp>
-                    <button type="button" class="hds-side-nav__list-item-link hcp-nav-item" {{on "click" this.onLinkToConsulCentral}}>
-                        <Hds::Text::Body @size='200'>Link to HCP Consul Central</Hds::Text::Body>
-                        <FlightIcon class='w-4 h-4' @size='24' @name='arrow-right'/>
-                    </button>
-                </SNL.Item>
-            {{/if}}
-        {{/if}}
     {{/if}}
 {{/let}}
