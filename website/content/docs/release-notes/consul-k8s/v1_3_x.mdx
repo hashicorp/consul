@@ -35,7 +35,7 @@ Catalog v2 supports multi-port application deployments with a single Envoy proxy
 
 ## What's removed
 
-- **Legacy API Gateway support is removed**: The Consul API Gateway that was previously packaged as consul-api-gateway and released separately from Consul K8s is now removed, and was previously deprecated in Consul 1.16.x. This is referred to as the "legacy" API Gateway. Native API Gateway [installation](https://developer.hashicorp.com/consul/docs/connect/gateways/api-gateway/install-k8s) and configuration using the [`connectInject.apiGateway` stanza](https://developer.hashicorp.com/consul/docs/k8s/helm#apigateway) is now required as of Consul 1.17.0. 
+- **Legacy API Gateway support is removed**: The Consul API Gateway that was previously packaged as `consul-api-gateway`, released separately from Consul K8s, and deprecated in Consul v1.16.x is now removed. This gateway is referred to as the _legacy API Gateway_. As of Consul v1.17.0, you must [install the _native API Gateway_](/consul/docs/connect/gateways/api-gateway/install-k8s) and configure it using the [`connectInject.apiGateway` stanza](/consul/docs/k8s/helm#apigateway). 
 
 ## Upgrading
 
