@@ -12,8 +12,6 @@ import (
 	"log"
 	"net/http"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 // copied from testutil to break circular dependency
@@ -223,7 +221,7 @@ func (s *TestServer) encodePayload(payload interface{}) (io.Reader, error) {
 	var encoded bytes.Buffer
 	enc := json.NewEncoder(&encoded)
 	if err := enc.Encode(payload); err != nil {
-		return nil, errors.Wrap(err, "failed to encode payload")
+		return nil, fmt.Errorf("failed to encode payload: %w", err)
 	}
 	return &encoded, nil
 }
