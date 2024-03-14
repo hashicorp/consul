@@ -31,6 +31,11 @@ Catalog v2 supports multi-port application deployments with a single Envoy proxy
 - kubectl 1.24.x - 1.27.x
 - Helm 3.6+
 
+
+## What's removed
+
+- **Legacy API Gateway support is removed**: The Consul API Gateway that was previously packaged as consul-api-gateway and released separately from Consul K8s is now removed, and was previously deprecated in Consul 1.16.x. This is referred to as the "legacy" API Gateway. Native API Gateway [installation](https://developer.hashicorp.com/consul/docs/connect/gateways/api-gateway/install-k8s) and configuration using the [`connectInject.apiGateway` stanza](https://developer.hashicorp.com/consul/docs/k8s/helm#apigateway) is now required as of Consul 1.17.0. 
+
 ## Upgrading
 
 For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
