@@ -343,7 +343,7 @@ spec:
 `9090` and will also select the same pods.
 
 ~> Kubernetes 1.24+ only
-In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each multi-port service that references the ServiceAccount, and the Kubernetes secret must have the same name as the ServiceAccount:
+In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each additional Consul service associated with the pod in order to expose the Kubernetes ServiceAccount token to the Consul dataplane container running under the pod serviceAccount.  The Kubernetes secret name must match the ServiceAccount name:
 
 <CodeBlockConfig filename="multiport-web-secret.yaml">
 
@@ -354,7 +354,7 @@ metadata:
   name: web
   annotations:
     kubernetes.io/service-account.name: web
-  type: kubernetes.io/service-account-token
+type: kubernetes.io/service-account-token
 ---
 apiVersion: v1
 kind: Secret
@@ -362,7 +362,7 @@ metadata:
   name: web-admin
   annotations:
     kubernetes.io/service-account.name: web-admin
-  type: kubernetes.io/service-account-token
+type: kubernetes.io/service-account-token
 ```
 
 </CodeBlockConfig>
