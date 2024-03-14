@@ -22,7 +22,7 @@ var update = flag.Bool("update", false, "update golden files")
 // to the value of actual.
 func Get(t *testing.T, actual, filename string) string {
 	t.Helper()
-	return string(GetBytes(t, actual, filename))
+	return string(GetBytes(t, []byte(actual), filename))
 }
 
 // GetBytes reads the expected value from the file at filename and returns the
@@ -30,7 +30,7 @@ func Get(t *testing.T, actual, filename string) string {
 //
 // If the `-update` flag is used with `go test`, the golden file will be updated
 // to the value of actual.
-func GetBytes(t *testing.T, actual, filename string) []byte {
+func GetBytes(t *testing.T, actual []byte, filename string) []byte {
 	t.Helper()
 
 	path := filepath.Join("testdata", filename)
@@ -38,7 +38,7 @@ func GetBytes(t *testing.T, actual, filename string) []byte {
 		if dir := filepath.Dir(path); dir != "." {
 			require.NoError(t, os.MkdirAll(dir, 0755))
 		}
-		err := os.WriteFile(path, []byte(actual), 0644)
+		err := os.WriteFile(path, actual, 0644)
 		require.NoError(t, err)
 	}
 
