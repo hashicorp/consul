@@ -6,6 +6,7 @@ package serverdiscovery
 import (
 	"context"
 	"errors"
+	"math/rand"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
@@ -130,6 +131,10 @@ func eventToResponse(req *pbserverdiscovery.WatchServersRequest, event stream.Ev
 		})
 	}
 
+	// Shuffle servers so that consul-dataplane doesn't consistently choose the same connections on startup.
+	rand.Shuffle(len(servers), func(i, j int) {
+		servers[i], servers[j] = servers[j], servers[i]
+	})
 	return &pbserverdiscovery.WatchServersResponse{
 		Servers: servers,
 	}, nil

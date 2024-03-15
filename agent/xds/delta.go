@@ -79,7 +79,10 @@ func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
 				close(reqCh)
 				return
 			}
-			reqCh <- req
+			select {
+			case <-stream.Context().Done():
+			case reqCh <- req:
+			}
 		}
 	}()
 
