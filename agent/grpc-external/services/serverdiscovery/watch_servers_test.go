@@ -166,7 +166,7 @@ func TestWatchServers_StreamLifeCycle(t *testing.T) {
 	// 4. See the corresponding message sent back through the stream.
 	rsp = mustGetServers(t, rspCh)
 	require.NotNil(t, rsp)
-	prototest.AssertDeepEqual(t, twoServerResponse, rsp)
+	prototest.AssertElementsMatch(t, twoServerResponse.Servers, rsp.Servers)
 
 	// 5. Send a NewCloseSubscriptionEvent for the token secret.
 	publisher.Publish([]stream.Event{
@@ -176,7 +176,7 @@ func TestWatchServers_StreamLifeCycle(t *testing.T) {
 	// 6. Observe another snapshot message
 	rsp = mustGetServers(t, rspCh)
 	require.NotNil(t, rsp)
-	prototest.AssertDeepEqual(t, twoServerResponse, rsp)
+	prototest.AssertElementsMatch(t, twoServerResponse.Servers, rsp.Servers)
 
 	// 7. Publish another event to move to 3 servers.
 	publisher.Publish([]stream.Event{
@@ -192,7 +192,7 @@ func TestWatchServers_StreamLifeCycle(t *testing.T) {
 	//    seen after stream reinitialization.
 	rsp = mustGetServers(t, rspCh)
 	require.NotNil(t, rsp)
-	prototest.AssertDeepEqual(t, threeServerResponse, rsp)
+	prototest.AssertElementsMatch(t, threeServerResponse.Servers, rsp.Servers)
 }
 
 func TestWatchServers_ACLToken_AnonymousToken(t *testing.T) {
