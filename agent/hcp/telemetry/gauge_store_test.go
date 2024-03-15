@@ -30,7 +30,7 @@ func TestGaugeStore(t *testing.T) {
 	// Should store a new gauge.
 	val, ok := gaugeStore.LoadAndDelete("test")
 	require.True(t, ok)
-	require.Equal(t, val.Value, 1.23)
+	require.Equal(t, 1.23, val.Value)
 	require.Equal(t, val.Attributes, attributes)
 
 	// Gauge with key "test" have been deleted.
@@ -44,7 +44,7 @@ func TestGaugeStore(t *testing.T) {
 	// Gauge with key "duplicate" should hold the latest (last seen) value.
 	val, ok = gaugeStore.LoadAndDelete("duplicate")
 	require.True(t, ok)
-	require.Equal(t, val.Value, 6.7)
+	require.Equal(t, 6.7, val.Value)
 }
 
 func TestGaugeCallback_Failure(t *testing.T) {

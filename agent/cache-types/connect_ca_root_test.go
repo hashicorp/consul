@@ -38,7 +38,7 @@ func TestConnectCARoot(t *testing.T) {
 		MinIndex: 24,
 		Timeout:  1 * time.Second,
 	}, &structs.DCSpecificRequest{Datacenter: "dc1"})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, cache.FetchResult{
 		Value: resp,
 		Index: 48,
@@ -53,7 +53,7 @@ func TestConnectCARoot_badReqType(t *testing.T) {
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
 		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
-	require.NotNil(t, err)
+	require.Error(t, err)
 	require.Contains(t, err.Error(), "wrong type")
 
 }

@@ -4,15 +4,16 @@
 linters:
   disable-all: true
   enable:
-    - gofmt
-    - govet
-    - unconvert
-    - staticcheck
-    - ineffassign
-    - unparam
-    - forbidigo
-    - gomodguard
     - depguard
+    - forbidigo
+    - gofmt
+    - gomodguard
+    - govet
+    - ineffassign
+    - staticcheck
+    - testifylint
+    - unconvert
+    - unparam
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
@@ -106,6 +107,22 @@ linters-settings:
           desc: "only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc"
         - pkg: github.com/golang/protobuf
           desc: "only use google.golang.org/protobuf"
+  testifylint:
+    disable:
+      - error-is-as
+      - float-compare
+      - go-require
+      - require-error
+    enable:
+      - bool-compare
+      - compares
+      - empty
+      - error-nil
+      - expected-actual
+      - len
+      - suite-dont-use-pkg
+      - suite-extra-assert-call
+      - suite-thelper
 
 run:
   timeout: 10m

@@ -655,7 +655,7 @@ func TestHealthServiceNodes(t *testing.T) {
 			require.Len(t, nodes, 1)
 		} else {
 			require.NotNil(t, nodes)
-			require.Len(t, nodes, 0)
+			require.Empty(t, nodes)
 		}
 
 		req, err = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1"+peerQuerySuffix(peerName), nil)
@@ -669,7 +669,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		// Should be a non-nil empty list
 		nodes = obj.(structs.CheckServiceNodes)
 		require.NotNil(t, nodes)
-		require.Len(t, nodes, 0)
+		require.Empty(t, nodes)
 	}
 
 	// TODO(peering): will have to seed this data differently in the future
@@ -699,7 +699,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		require.Equal(t, peerName, nodes[0].Service.PeerName)
 		require.Equal(t, "test", nodes[0].Service.Service)
 		require.NotNil(t, nodes[0].Checks)
-		require.Len(t, nodes[0].Checks, 0)
+		require.Empty(t, nodes[0].Checks)
 	}
 
 	for _, peerName := range testingPeerNames {
@@ -878,7 +878,7 @@ use_streaming_backend = true
 			verify(t, 2, nodes)
 
 			idx := getIndex(t, resp)
-			require.True(t, idx > 0)
+			require.Greater(t, idx, 0)
 
 			// errCh collects errors from goroutines since it's unsafe for them to use
 			// t to fail tests directly.
@@ -930,17 +930,17 @@ use_streaming_backend = true
 				obj, err := a.srv.HealthServiceNodes(resp, req)
 				require.NoError(t, err)
 				elapsed := time.Since(start)
-				require.True(t, elapsed > sleep, "request should block for at "+
+				require.Greater(t, elapsed, sleep, "request should block for at "+
 					" least as long as sleep. sleep=%s, elapsed=%s", sleep, elapsed)
 
-				require.True(t, elapsed < timeout, "request should unblock before"+
+				require.Less(t, elapsed, timeout, "request should unblock before"+
 					" it timed out. timeout=%s, elapsed=%s", timeout, elapsed)
 
 				nodes := obj.(structs.CheckServiceNodes)
 				verify(t, 3, nodes)
 
 				newIdx := getIndex(t, resp)
-				require.True(t, idx < newIdx, "index should have increased."+
+				require.Less(t, idx, newIdx, "index should have increased."+
 					"idx=%d, newIdx=%d", idx, newIdx)
 
 				require.Equal(t, tc.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
@@ -963,7 +963,7 @@ use_streaming_backend = true
 				elapsed := time.Since(start)
 				// Note that servers add jitter to timeout requested but don't remove it
 				// so this should always be true.
-				require.True(t, elapsed > timeout, "request should block for at "+
+				require.Greater(t, elapsed, timeout, "request should block for at "+
 					" least as long as timeout. timeout=%s, elapsed=%s", timeout, elapsed)
 
 				nodes := obj.(structs.CheckServiceNodes)
@@ -1075,7 +1075,7 @@ use_streaming_backend = true
 				require.Equal(t, "blocking-query", resp.Header().Get("X-Consul-Query-Backend"))
 
 				idx := getIndex(t, resp)
-				require.True(t, idx > 0)
+				require.Greater(t, idx, 0)
 
 				lastIndex = idx
 			})
@@ -1116,7 +1116,7 @@ use_streaming_backend = true
 					require.NoError(t, err)
 				}
 
-				require.Len(t, out, 0)
+				require.Empty(t, out)
 				require.Equal(t, tc.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
 			})
 		})
@@ -1171,7 +1171,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 				require.NoError(t, err)
 
 				lastIndex = getIndex(t, resp)
-				require.True(t, lastIndex > 0)
+				require.Greater(t, lastIndex, 0)
 
 				// Should be a non-nil empty list
 				nodes := obj.(structs.CheckServiceNodes)
@@ -1179,7 +1179,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 				require.Empty(t, nodes)
 			})
 
-			require.True(t, lastIndex > 0, "lastindex = %d", lastIndex)
+			require.Greater(t, lastIndex, 0, "lastindex = %d", lastIndex)
 
 			testutil.RunStep(t, "register item 1", func(t *testing.T) {
 				args := &structs.RegisterRequest{
@@ -1602,10 +1602,10 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	require.Len(t, nodes1, 1)
 	node1 := nodes1[0]
 	require.NotNil(t, node1.Node)
-	require.Equal(t, node1.Node.Address, "127.0.0.2")
+	require.Equal(t, "127.0.0.2", node1.Node.Address)
 	require.NotNil(t, node1.Service)
-	require.Equal(t, node1.Service.Address, "1.2.3.4")
-	require.Equal(t, node1.Service.Port, 80)
+	require.Equal(t, "1.2.3.4", node1.Service.Address)
+	require.Equal(t, 80, node1.Service.Port)
 
 	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
@@ -1619,10 +1619,10 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 	require.Len(t, nodes2, 1)
 	node2 := nodes2[0]
 	require.NotNil(t, node2.Node)
-	require.Equal(t, node2.Node.Address, "127.0.0.1")
+	require.Equal(t, "127.0.0.1", node2.Node.Address)
 	require.NotNil(t, node2.Service)
-	require.Equal(t, node2.Service.Address, "127.0.0.1")
-	require.Equal(t, node2.Service.Port, 8080)
+	require.Equal(t, "127.0.0.1", node2.Service.Address)
+	require.Equal(t, 8080, node2.Service.Port)
 }
 
 func TestHealthConnectServiceNodes(t *testing.T) {
@@ -1638,20 +1638,20 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	// Request
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/health/connect/%s?dc=dc1", args.Service.Proxy.DestinationServiceName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	// Should be a non-nil empty list for checks
 	nodes := obj.(structs.CheckServiceNodes)
 	assert.Len(t, nodes, 1)
-	assert.Len(t, nodes[0].Checks, 0)
+	assert.Empty(t, nodes[0].Checks)
 }
 
 func TestHealthIngressServiceNodes(t *testing.T) {
@@ -1703,7 +1703,7 @@ func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
 		Entry:      cfgArgs,
 	}
 	var outB bool
-	require.Nil(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &outB))
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &outB))
 	require.True(t, outB)
 
 	checkResults := func(t *testing.T, obj interface{}) {
@@ -1734,7 +1734,7 @@ func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
 		assertIndex(t, resp)
 
 		nodes := obj.(structs.CheckServiceNodes)
-		require.Len(t, nodes, 0)
+		require.Empty(t, nodes)
 	}))
 
 	require.True(t, t.Run("test caching miss", func(t *testing.T) {
@@ -1831,19 +1831,19 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 		Status:    api.HealthCritical,
 	}
 	var out struct{}
-	assert.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	t.Run("bc_no_query_value", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", fmt.Sprintf(
 			"/v1/health/connect/%s?passing", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assertIndex(t, resp)
 
 		// Should be 0 health check for consul
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(t, nodes, 0)
+		assert.Empty(t, nodes)
 	})
 
 	t.Run("passing_true", func(t *testing.T) {
@@ -1851,12 +1851,12 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 			"/v1/health/connect/%s?passing=true", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assertIndex(t, resp)
 
 		// Should be 0 health check for consul
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(t, nodes, 0)
+		assert.Empty(t, nodes)
 	})
 
 	t.Run("passing_false", func(t *testing.T) {
@@ -1864,7 +1864,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 			"/v1/health/connect/%s?passing=false", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assertIndex(t, resp)
 
 		// Should be 1
@@ -1877,7 +1877,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 			"/v1/health/connect/%s?passing=nope-nope", args.Service.Proxy.DestinationServiceName), nil)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.HealthConnectServiceNodes(resp, req)
-		assert.NotNil(t, err)
+		require.Error(t, err)
 		assert.True(t, isHTTPBadRequest(err))
 
 		assert.True(t, strings.Contains(err.Error(), "Invalid value for ?passing"))

@@ -206,7 +206,7 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 					Partition: k.partition,
 					Namespace: k.namespace,
 				}))
-				require.Nil(r, err, "reading peering data")
+				require.NoError(r, err, "reading peering data")
 				require.NotNilf(r, peering, "peering not found %q", k.peer)
 				assert.Len(r, peering.StreamStatus.ExportedServices, v, "peering exported services")
 			})

@@ -455,7 +455,7 @@ func TestACL_filterMembers(t *testing.T) {
 
 	var members []serf.Member
 	require.NoError(t, a.filterMembers(nodeROSecret, &members))
-	require.Len(t, members, 0)
+	require.Empty(t, members)
 
 	members = []serf.Member{
 		{Name: "Node 1"},
@@ -464,8 +464,8 @@ func TestACL_filterMembers(t *testing.T) {
 	}
 	require.NoError(t, a.filterMembers(nodeROSecret, &members))
 	require.Len(t, members, 2)
-	require.Equal(t, members[0].Name, "Node 1")
-	require.Equal(t, members[1].Name, "Node 2")
+	require.Equal(t, "Node 1", members[0].Name)
+	require.Equal(t, "Node 2", members[1].Name)
 }
 
 func TestACL_filterServicesWithAuthorizer(t *testing.T) {

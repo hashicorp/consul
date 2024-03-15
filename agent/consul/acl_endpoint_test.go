@@ -50,9 +50,9 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	// level checks on the ACL since we don't have control over the UUID or
 	// Raft indexes at this level.
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
-	require.Equal(t, 36, len(out.AccessorID))
+	require.Len(t, out.AccessorID, 36)
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
-	require.True(t, out.CreateIndex > 0)
+	require.Greater(t, out.CreateIndex, 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
 
 	// Finally, make sure that another attempt is rejected.
@@ -69,10 +69,10 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	oldID := out.AccessorID
 	// Finally, make sure that another attempt is rejected.
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
-	require.Equal(t, 36, len(out.AccessorID))
+	require.Len(t, out.AccessorID, 36)
 	require.NotEqual(t, oldID, out.AccessorID)
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
-	require.True(t, out.CreateIndex > 0)
+	require.Greater(t, out.CreateIndex, 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
 }
 
@@ -96,9 +96,9 @@ func TestACLEndpoint_ProvidedBootstrapTokens(t *testing.T) {
 	var out structs.ACLToken
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
 	require.Equal(t, out.SecretID, arg.BootstrapSecret)
-	require.Equal(t, 36, len(out.AccessorID))
+	require.Len(t, out.AccessorID, 36)
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
-	require.True(t, out.CreateIndex > 0)
+	require.Greater(t, out.CreateIndex, 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
 }
 
@@ -595,7 +595,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
-		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, "foobar", token.Description)
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		require.Len(t, token.NodeIdentities, 1)
 		require.Equal(t, "foo", token.NodeIdentities[0].NodeName)
@@ -639,7 +639,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
-		require.Equal(t, token.Description, "new-description")
+		require.Equal(t, "new-description", token.Description)
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		require.Empty(t, token.NodeIdentities)
 	})
@@ -684,10 +684,10 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
-		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, "foobar", token.Description)
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 
-		require.Len(t, token.Policies, 0)
+		require.Empty(t, token.Policies)
 	})
 
 	t.Run("Create it using Roles linked by id and name", func(t *testing.T) {
@@ -730,10 +730,10 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
-		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, "foobar", token.Description)
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 
-		require.Len(t, token.Roles, 0)
+		require.Empty(t, token.Roles)
 	})
 
 	t.Run("Create it with AuthMethod set outside of login", func(t *testing.T) {
@@ -841,7 +841,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		token := tokenResp.Token
 
 		require.NotNil(t, token)
-		require.Len(t, token.Roles, 0)
+		require.Empty(t, token.Roles)
 		require.Equal(t, "updated token", token.Description)
 		require.True(t, token.Local)
 		require.Equal(t, methodToken.SecretID, token.SecretID)
@@ -886,7 +886,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := a.TokenSet(&req, &resp)
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 
 	for _, test := range []struct {
@@ -942,7 +942,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				require.NotNil(t, token)
 				require.ElementsMatch(t, req.ACLToken.ServiceIdentities, token.ServiceIdentities)
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			}
 		})
 	}
@@ -1060,7 +1060,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			if test.errString != "" {
 				testutil.RequireErrorContains(t, err, test.errString)
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			}
 		})
 
@@ -1082,7 +1082,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			if test.errString != "" {
 				testutil.RequireErrorContains(t, err, test.errStringTTL)
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			}
 		})
 	}
@@ -1132,7 +1132,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
-		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, "foobar", token.Description)
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		requireTimeEquals(t, &expectExpTime, resp.ExpirationTime)
 
@@ -1165,7 +1165,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
-		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, "foobar", token.Description)
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		requireTimeEquals(t, &expTime, resp.ExpirationTime)
 
@@ -1215,7 +1215,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
-		require.Equal(t, token.Description, "new-description-1")
+		require.Equal(t, "new-description-1", token.Description)
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		requireTimeEquals(t, &expTime, resp.ExpirationTime)
 	})
@@ -1243,7 +1243,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
-		require.Equal(t, token.Description, "new-description-2")
+		require.Equal(t, "new-description-2", token.Description)
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		requireTimeEquals(t, &expTime, resp.ExpirationTime)
 	})
@@ -1391,7 +1391,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 		require.NotNil(t, token)
 		require.Equal(t, req.ACLToken.AccessorID, token.AccessorID)
 		require.Equal(t, req.ACLToken.SecretID, token.SecretID)
-		require.Equal(t, token.Description, "foobar")
+		require.Equal(t, "foobar", token.Description)
 	})
 
 	// Reserved AccessorID
@@ -1632,7 +1632,7 @@ func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 
 	tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", acl.AnonymousTokenID)
 	require.NoError(t, err)
-	require.Equal(t, len(tokenResp.Token.Policies), 1)
+	require.Len(t, tokenResp.Token.Policies, 1)
 	require.Equal(t, tokenResp.Token.Policies[0].ID, policy.ID)
 
 }
@@ -2146,9 +2146,9 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		policy := policyResp.Policy
 
 		require.NotNil(t, policy.ID)
-		require.Equal(t, policy.Description, "foobar")
-		require.Equal(t, policy.Name, "baz")
-		require.Equal(t, policy.Rules, "service \"\" { policy = \"read\" }")
+		require.Equal(t, "foobar", policy.Description)
+		require.Equal(t, "baz", policy.Name)
+		require.Equal(t, "service \"\" { policy = \"read\" }", policy.Rules)
 
 		policyID = policy.ID
 	})
@@ -2192,9 +2192,9 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		policy := policyResp.Policy
 
 		require.NotNil(t, policy.ID)
-		require.Equal(t, policy.Description, "bat")
-		require.Equal(t, policy.Name, "bar")
-		require.Equal(t, policy.Rules, "service \"\" { policy = \"write\" }")
+		require.Equal(t, "bat", policy.Description)
+		require.Equal(t, "bar", policy.Name)
+		require.Equal(t, "service \"\" { policy = \"write\" }", policy.Rules)
 	})
 }
 
@@ -2572,8 +2572,8 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		role := roleResp.Role
 
 		require.NotNil(t, role.ID)
-		require.Equal(t, role.Description, "foobar")
-		require.Equal(t, role.Name, "baz")
+		require.Equal(t, "foobar", role.Description)
+		require.Equal(t, "baz", role.Name)
 		require.Len(t, role.Policies, 1)
 		require.Equal(t, testPolicy1.ID, role.Policies[0].ID)
 		require.Len(t, role.NodeIdentities, 1)
@@ -2610,8 +2610,8 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		role := roleResp.Role
 
 		require.NotNil(t, role.ID)
-		require.Equal(t, role.Description, "bat")
-		require.Equal(t, role.Name, "bar")
+		require.Equal(t, "bat", role.Description)
+		require.Equal(t, "bar", role.Name)
 		require.Len(t, role.Policies, 1)
 		require.Equal(t, testPolicy2.ID, role.Policies[0].ID)
 		require.Empty(t, role.NodeIdentities)
@@ -2656,10 +2656,10 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		role := roleResp.Role
 
 		require.NotNil(t, role.ID)
-		require.Equal(t, role.Description, "foobar")
-		require.Equal(t, role.Name, "baz")
+		require.Equal(t, "foobar", role.Description)
+		require.Equal(t, "baz", role.Name)
 
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 	})
 
 	roleNameGen := func(t *testing.T) string {
@@ -2703,7 +2703,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		resp := structs.ACLRole{}
 
 		err := a.RoleSet(&req, &resp)
-		require.NotNil(t, err)
+		require.Error(t, err)
 	})
 
 	for _, test := range []struct {
@@ -2757,7 +2757,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 				role := roleResp.Role
 				require.ElementsMatch(t, req.Role.ServiceIdentities, role.ServiceIdentities)
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			}
 		})
 	}
@@ -3121,9 +3121,9 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
-		require.Equal(t, method.Name, "test")
-		require.Equal(t, method.Description, "test")
-		require.Equal(t, method.Type, "testing")
+		require.Equal(t, "test", method.Name)
+		require.Equal(t, "test", method.Description)
+		require.Equal(t, "testing", method.Type)
 	})
 
 	t.Run("Update fails; not allowed to change types", func(t *testing.T) {
@@ -3162,10 +3162,10 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
-		require.Equal(t, method.Name, "test")
-		require.Equal(t, method.DisplayName, "updated display name 1")
-		require.Equal(t, method.Description, "test modified 1")
-		require.Equal(t, method.Type, "testing")
+		require.Equal(t, "test", method.Name)
+		require.Equal(t, "updated display name 1", method.DisplayName)
+		require.Equal(t, "test modified 1", method.Description)
+		require.Equal(t, "testing", method.Type)
 	})
 
 	t.Run("Update - specify type", func(t *testing.T) {
@@ -3188,10 +3188,10 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
-		require.Equal(t, method.Name, "test")
-		require.Equal(t, method.DisplayName, "updated display name 2")
-		require.Equal(t, method.Description, "test modified 2")
-		require.Equal(t, method.Type, "testing")
+		require.Equal(t, "test", method.Name)
+		require.Equal(t, "updated display name 2", method.DisplayName)
+		require.Equal(t, "test modified 2", method.Description)
+		require.Equal(t, "testing", method.Type)
 	})
 
 	t.Run("Create with no name", func(t *testing.T) {
@@ -3269,7 +3269,7 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 				method := methodResp.AuthMethod
 
 				require.Equal(t, method.Name, test.name)
-				require.Equal(t, method.Type, "testing")
+				require.Equal(t, "testing", method.Type)
 			} else {
 				require.Error(t, err)
 			}
@@ -3295,10 +3295,10 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
-		require.Equal(t, method.Name, "test")
-		require.Equal(t, method.Description, "test")
-		require.Equal(t, method.Type, "testing")
-		require.Equal(t, method.MaxTokenTTL, 5*time.Minute)
+		require.Equal(t, "test", method.Name)
+		require.Equal(t, "test", method.Description)
+		require.Equal(t, "testing", method.Type)
+		require.Equal(t, 5*time.Minute, method.MaxTokenTTL)
 	})
 
 	t.Run("Update - change MaxTokenTTL", func(t *testing.T) {
@@ -3322,11 +3322,11 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		require.NoError(t, err)
 		method := methodResp.AuthMethod
 
-		require.Equal(t, method.Name, "test")
-		require.Equal(t, method.DisplayName, "updated display name 2")
-		require.Equal(t, method.Description, "test modified 2")
-		require.Equal(t, method.Type, "testing")
-		require.Equal(t, method.MaxTokenTTL, 8*time.Minute)
+		require.Equal(t, "test", method.Name)
+		require.Equal(t, "updated display name 2", method.DisplayName)
+		require.Equal(t, "test modified 2", method.Description)
+		require.Equal(t, "testing", method.Type)
+		require.Equal(t, 8*time.Minute, method.MaxTokenTTL)
 	})
 
 	t.Run("Create with MaxTokenTTL too small", func(t *testing.T) {
@@ -3623,7 +3623,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		rule := ruleResp.BindingRule
 
 		require.NotEmpty(t, rule.ID)
-		require.Equal(t, rule.Description, "foobar")
+		require.Equal(t, "foobar", rule.Description)
 		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
 		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
 		require.Equal(t, structs.BindingRuleBindTypeService, rule.BindType)
@@ -3656,7 +3656,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		rule := ruleResp.BindingRule
 
 		require.NotEmpty(t, rule.ID)
-		require.Equal(t, rule.Description, "foobar")
+		require.Equal(t, "foobar", rule.Description)
 		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
 		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
 		require.Equal(t, structs.BindingRuleBindTypeNode, rule.BindType)
@@ -3687,7 +3687,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		rule := ruleResp.BindingRule
 
 		require.NotEmpty(t, rule.ID)
-		require.Equal(t, rule.Description, "foobar policy")
+		require.Equal(t, "foobar policy", rule.Description)
 		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
 		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
 		require.Equal(t, structs.BindingRuleBindTypePolicy, rule.BindType)
@@ -3721,7 +3721,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		rule := ruleResp.BindingRule
 
 		require.NotEmpty(t, rule.ID)
-		require.Equal(t, rule.Description, "templated policy binding rule")
+		require.Equal(t, "templated policy binding rule", rule.Description)
 		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
 		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
 		require.Equal(t, structs.BindingRuleBindTypeTemplatedPolicy, rule.BindType)
@@ -3761,7 +3761,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		rule := ruleResp.BindingRule
 
 		require.NotEmpty(t, rule.ID)
-		require.Equal(t, rule.Description, "foobar modified 1")
+		require.Equal(t, "foobar modified 1", rule.Description)
 		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
 		require.Equal(t, "serviceaccount.namespace==def", rule.Selector)
 		require.Equal(t, structs.BindingRuleBindTypeRole, rule.BindType)
@@ -3793,7 +3793,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		rule := ruleResp.BindingRule
 
 		require.NotEmpty(t, rule.ID)
-		require.Equal(t, rule.Description, "foobar modified 2")
+		require.Equal(t, "foobar modified 2", rule.Description)
 		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
 		require.Equal(t, "serviceaccount.namespace==def", rule.Selector)
 		require.Equal(t, structs.BindingRuleBindTypeRole, rule.BindType)
@@ -4250,7 +4250,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 		resp = structs.ACLAuthMethodListResponse{}
 		require.NoError(t, aclEp.AuthMethodList(&req, &resp))
-		require.Len(t, resp.AuthMethods, 0)
+		require.Empty(t, resp.AuthMethods)
 	})
 
 	var ruleID string
@@ -4351,7 +4351,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 		resp = structs.ACLBindingRuleListResponse{}
 		require.NoError(t, aclEp.BindingRuleList(&req, &resp))
-		require.Len(t, resp.BindingRules, 0)
+		require.Empty(t, resp.BindingRules)
 	})
 
 	var remoteToken *structs.ACLToken
@@ -4736,7 +4736,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.ServiceIdentities, 0)
+		require.Empty(t, resp.ServiceIdentities)
 		require.Len(t, resp.Roles, 1)
 		role := resp.Roles[0]
 		require.Equal(t, vaultRoleID, role.ID)
@@ -4760,9 +4760,9 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
 		require.Len(t, resp.ServiceIdentities, 1)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "method-monolith", svcid.ServiceName)
 	})
 
@@ -4805,7 +4805,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, monolithRoleID, role.ID)
 		require.Equal(t, "method-monolith", role.Name)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "method-monolith", svcid.ServiceName)
 	})
 
@@ -4825,10 +4825,10 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		require.Len(t, resp.ServiceIdentities, 1)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "method-db", svcid.ServiceName)
 	})
 
@@ -4888,10 +4888,10 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		require.Len(t, resp.ServiceIdentities, 1)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "method-db", svcid.ServiceName)
 	})
 
@@ -5234,10 +5234,10 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		require.Len(t, resp.ServiceIdentities, 1)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "demo", svcid.ServiceName)
 	})
 
@@ -5266,10 +5266,10 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		require.Len(t, resp.ServiceIdentities, 1)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "alternate-name", svcid.ServiceName)
 	})
 }
@@ -5412,10 +5412,10 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 				require.Equal(t, method.Name, resp.AuthMethod)
 				require.Equal(t, `token created via login`, resp.Description)
 				require.True(t, resp.Local)
-				require.Len(t, resp.Roles, 0)
+				require.Empty(t, resp.Roles)
 				require.Len(t, resp.ServiceIdentities, 1)
 				svcid := resp.ServiceIdentities[0]
-				require.Len(t, svcid.Datacenters, 0)
+				require.Empty(t, svcid.Datacenters)
 				require.Equal(t, "test--jeff2--engineering", svcid.ServiceName)
 			})
 		})

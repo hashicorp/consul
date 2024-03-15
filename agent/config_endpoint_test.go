@@ -99,7 +99,7 @@ func TestConfig_Get(t *testing.T) {
 		value := obj.(structs.ConfigEntry)
 		require.Equal(t, structs.ServiceDefaults, value.GetKind())
 		entry := value.(*structs.ServiceConfigEntry)
-		require.Equal(t, entry.Name, "foo")
+		require.Equal(t, "foo", entry.Name)
 	})
 	t.Run("list both service entries", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/config/service-defaults", nil)
@@ -109,8 +109,8 @@ func TestConfig_Get(t *testing.T) {
 
 		value := obj.([]structs.ConfigEntry)
 		require.Len(t, value, 2)
-		require.Equal(t, value[0].(*structs.ServiceConfigEntry).Name, "bar")
-		require.Equal(t, value[1].(*structs.ServiceConfigEntry).Name, "foo")
+		require.Equal(t, "bar", value[0].(*structs.ServiceConfigEntry).Name)
+		require.Equal(t, "foo", value[1].(*structs.ServiceConfigEntry).Name)
 	})
 	t.Run("get global proxy config", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/config/proxy-defaults/global", nil)
@@ -119,7 +119,7 @@ func TestConfig_Get(t *testing.T) {
 		require.NoError(t, err)
 
 		value := obj.(structs.ConfigEntry)
-		require.Equal(t, value.GetKind(), structs.ProxyDefaults)
+		require.Equal(t, structs.ProxyDefaults, value.GetKind())
 		entry := value.(*structs.ProxyConfigEntry)
 		require.Equal(t, structs.ProxyConfigGlobal, entry.Name)
 		require.Contains(t, entry.Config, "foo")
@@ -129,7 +129,7 @@ func TestConfig_Get(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/config/", nil)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.Config(resp, req)
-		require.Error(t, errors.New("Must provide either a kind or both kind and name"), err)
+		require.ErrorIs(t, errors.New("Must provide either a kind or both kind and name"), err)
 	})
 	t.Run("get the single mesh config", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/config/mesh/mesh", nil)
@@ -215,7 +215,7 @@ func TestConfig_Delete(t *testing.T) {
 		require.Equal(t, structs.ServiceDefaults, out.Kind)
 		require.Len(t, out.Entries, 1)
 		entry := out.Entries[0].(*structs.ServiceConfigEntry)
-		require.Equal(t, entry.Name, "foo")
+		require.Equal(t, "foo", entry.Name)
 	}
 }
 
@@ -337,7 +337,7 @@ func TestConfig_Apply(t *testing.T) {
 		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
 		require.NotNil(t, out.Entry)
 		entry := out.Entry.(*structs.ServiceConfigEntry)
-		require.Equal(t, entry.Name, "foo")
+		require.Equal(t, "foo", entry.Name)
 	}
 }
 
@@ -723,7 +723,7 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 			require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
 			require.NotNil(t, out.Entry)
 			entry := out.Entry.(*structs.ServiceConfigEntry)
-			require.Equal(t, entry.Name, "foo")
+			require.Equal(t, "foo", entry.Name)
 		}
 	})
 }

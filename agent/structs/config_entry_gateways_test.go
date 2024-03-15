@@ -1649,7 +1649,7 @@ func Test_ServiceRouteReferences_AddService(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tc.subject.AddService(key, tc.routeRef)
 
-			require.Equal(t, tc.subject, tc.expectedRefs)
+			require.Equal(t, tc.expectedRefs, tc.subject)
 		})
 	}
 }
@@ -1784,7 +1784,7 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tc.subject.RemoveRouteRef(tc.routeRef)
 
-			require.Equal(t, tc.subject, tc.expectedRefs)
+			require.Equal(t, tc.expectedRefs, tc.subject)
 		})
 	}
 }

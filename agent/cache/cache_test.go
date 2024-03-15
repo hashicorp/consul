@@ -396,7 +396,7 @@ func TestCacheGet_blockingIndexError(t *testing.T) {
 
 	// Check the number
 	actual := atomic.LoadUint32(&retries)
-	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
+	require.Less(t, actual, 10, fmt.Sprintf("actual: %d", actual))
 }
 
 // Test that if a Type returns an empty value on Fetch that the previous
@@ -610,7 +610,7 @@ func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 
 	// Check the number
 	actual := atomic.LoadUint32(&retries)
-	require.True(t, actual < 10, fmt.Sprintf("actual: %d", actual))
+	require.Less(t, actual, 10, fmt.Sprintf("actual: %d", actual))
 }
 
 // Test that a badly behaved RPC that returns 0 index will perform a backoff.
@@ -654,7 +654,7 @@ func TestCacheGet_periodicRefreshBadRPCZeroIndexErrorBackoff(t *testing.T) {
 
 	// Check the number
 	actual := atomic.LoadUint32(&retries)
-	require.True(t, actual < 10, fmt.Sprintf("%d retries, should be < 10", actual))
+	require.Less(t, actual, 10, fmt.Sprintf("%d retries, should be < 10", actual))
 }
 
 // Test that fetching with no index makes an initial request with no index, but
@@ -690,7 +690,7 @@ func TestCacheGet_noIndexSetsOne(t *testing.T) {
 			if isFirst == 1 {
 				assert.Equal(t, uint64(0), opts.MinIndex)
 			} else {
-				assert.True(t, opts.MinIndex > 0, "minIndex > 0")
+				assert.Greater(t, opts.MinIndex, 0, "minIndex > 0")
 			}
 		})
 
@@ -712,7 +712,7 @@ func TestCacheGet_noIndexSetsOne(t *testing.T) {
 			if isFirst == 1 {
 				assert.Equal(t, uint64(0), opts.MinIndex)
 			} else {
-				assert.True(t, opts.MinIndex > 0, "minIndex > 0")
+				assert.Greater(t, opts.MinIndex, 0, "minIndex > 0")
 			}
 		})
 
@@ -799,7 +799,7 @@ func TestCacheGet_expire(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 42, result)
 	require.True(t, meta.Hit)
-	require.True(t, meta.Age > 5*time.Millisecond)
+	require.Greater(t, meta.Age, 5*time.Millisecond)
 
 	// Sleep for the expiry
 	time.Sleep(500 * time.Millisecond)
@@ -1328,7 +1328,7 @@ func TestCacheGet_refreshAge(t *testing.T) {
 		require.Equal(t, 8, result)
 		require.True(t, meta.Hit)
 		// Age should be non-zero since background refresh was "active"
-		require.True(t, meta.Age > 0)
+		require.Greater(t, meta.Age, 0)
 		lastAge = meta.Age
 	}
 	// Wait a bit longer - age should increase by at least this much
@@ -1338,7 +1338,7 @@ func TestCacheGet_refreshAge(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 8, result)
 		require.True(t, meta.Hit)
-		require.True(t, meta.Age > (lastAge+(1*time.Millisecond)))
+		require.Greater(t, meta.Age, (lastAge + (1 * time.Millisecond)))
 	}
 
 	// Now unfail the background refresh
@@ -1415,7 +1415,7 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 8, result)
 		require.True(t, meta.Hit)
-		require.True(t, meta.Age > (5*time.Millisecond))
+		require.Greater(t, meta.Age, (5 * time.Millisecond))
 		lastAge = meta.Age
 	}
 
@@ -1428,7 +1428,7 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 		require.Equal(t, 8, result)
 		require.False(t, meta.Hit)
 		// Age should smaller again
-		require.True(t, meta.Age < lastAge)
+		require.Less(t, meta.Age, lastAge)
 	}
 
 	{
@@ -1443,7 +1443,7 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 8, result)
 		require.True(t, meta.Hit)
-		require.True(t, meta.Age > (5*time.Millisecond))
+		require.Greater(t, meta.Age, (5 * time.Millisecond))
 		lastAge = meta.Age
 	}
 
@@ -1457,7 +1457,7 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 		require.Equal(t, 8, result)
 		require.False(t, meta.Hit)
 		// Age should smaller again
-		require.True(t, meta.Age < lastAge)
+		require.Less(t, meta.Age, lastAge)
 	}
 }
 
@@ -1543,7 +1543,7 @@ func TestCacheReload(t *testing.T) {
 
 	_, meta, err := c.Get(context.Background(), "t1", TestRequest(t, RequestInfo{Key: "hello1", MinIndex: uint64(1)}))
 	require.NoError(t, err)
-	require.Equal(t, meta.Index, uint64(42))
+	require.Equal(t, uint64(42), meta.Index)
 
 	testEntry := func(t *testing.T, doTest func(t *testing.T, entry cacheEntry)) {
 		c.entriesLock.Lock()
@@ -1559,21 +1559,21 @@ func TestCacheReload(t *testing.T) {
 	}
 	testEntry(t, func(t *testing.T, entry cacheEntry) {
 		require.Equal(t, entry.FetchRateLimiter.Limit(), rate.Limit(1))
-		require.Equal(t, entry.FetchRateLimiter.Burst(), 1)
+		require.Equal(t, 1, entry.FetchRateLimiter.Burst())
 	})
 
 	// Modify only rateLimit
 	require.True(t, c.ReloadOptions(Options{EntryFetchRate: rate.Limit(100), EntryFetchMaxBurst: 1}))
 	testEntry(t, func(t *testing.T, entry cacheEntry) {
 		require.Equal(t, entry.FetchRateLimiter.Limit(), rate.Limit(100))
-		require.Equal(t, entry.FetchRateLimiter.Burst(), 1)
+		require.Equal(t, 1, entry.FetchRateLimiter.Burst())
 	})
 
 	// Modify only Burst
 	require.True(t, c.ReloadOptions(Options{EntryFetchRate: rate.Limit(100), EntryFetchMaxBurst: 5}))
 	testEntry(t, func(t *testing.T, entry cacheEntry) {
 		require.Equal(t, entry.FetchRateLimiter.Limit(), rate.Limit(100))
-		require.Equal(t, entry.FetchRateLimiter.Burst(), 5)
+		require.Equal(t, 5, entry.FetchRateLimiter.Burst())
 	})
 
 	// Modify only Burst and Limit at the same time
@@ -1581,7 +1581,7 @@ func TestCacheReload(t *testing.T) {
 
 	testEntry(t, func(t *testing.T, entry cacheEntry) {
 		require.Equal(t, entry.FetchRateLimiter.Limit(), rate.Limit(1000))
-		require.Equal(t, entry.FetchRateLimiter.Burst(), 42)
+		require.Equal(t, 42, entry.FetchRateLimiter.Burst())
 	})
 }
 
@@ -1752,7 +1752,7 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 	// get the background refresh going
 	result, _, err := c.Get(ctx, "t", makeRequest(1))
 	require.NoError(t, err)
-	require.Equal(t, true, result)
+	require.True(t, result.(bool))
 
 	waitUntilFetching := func(expectValue bool) {
 		retry.Run(t, func(t *retry.R) {

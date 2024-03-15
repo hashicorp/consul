@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -69,16 +68,16 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 
 	// Create a temporary directory for storing the certs
 	td, err := os.MkdirTemp("", "consul")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(td)
 
 	// Write the cert
 	xcbundle := []byte(ca1.RootCert)
 	xcbundle = append(xcbundle, '\n')
 	xcbundle = append(xcbundle, []byte(ca2.SigningCert)...)
-	assert.Nil(t, os.WriteFile(filepath.Join(td, "ca.pem"), xcbundle, 0644))
-	assert.Nil(t, os.WriteFile(filepath.Join(td, "leaf1.pem"), []byte(leaf1), 0644))
-	assert.Nil(t, os.WriteFile(filepath.Join(td, "leaf2.pem"), []byte(leaf2), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(td, "ca.pem"), xcbundle, 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(td, "leaf1.pem"), []byte(leaf1), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(td, "leaf2.pem"), []byte(leaf2), 0644))
 
 	// OpenSSL verify the cross-signed leaf (leaf2)
 	{
@@ -87,7 +86,7 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 		cmd.Dir = td
 		output, err := cmd.Output()
 		t.Log(string(output))
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	// OpenSSL verify the old leaf (leaf1)
@@ -97,7 +96,7 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 		cmd.Dir = td
 		output, err := cmd.Output()
 		t.Log(string(output))
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	}
 }
 

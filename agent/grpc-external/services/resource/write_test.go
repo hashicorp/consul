@@ -510,7 +510,7 @@ func TestWrite_NoData(t *testing.T) {
 	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 	require.NoError(t, err)
 	require.NotEmpty(t, rsp.Resource.Version)
-	require.Equal(t, rsp.Resource.Id.Name, "jazz")
+	require.Equal(t, "jazz", rsp.Resource.Id.Name)
 }
 
 func TestWrite_Owner_Immutable(t *testing.T) {

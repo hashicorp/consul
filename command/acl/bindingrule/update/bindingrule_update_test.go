@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -87,7 +86,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Cannot update a binding rule without specifying the -id parameter")
 	})
 
@@ -105,7 +104,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Error determining binding rule ID")
 	})
 
@@ -123,7 +122,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Binding rule not found with ID")
 	})
 
@@ -187,7 +186,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Error determining binding rule ID")
 	})
 
@@ -205,7 +204,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Selector is invalid")
 	})
 
@@ -226,7 +225,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -259,7 +258,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -293,7 +292,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -327,7 +326,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -363,7 +362,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -395,7 +394,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -427,7 +426,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -459,7 +458,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -491,7 +490,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -524,7 +523,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -558,7 +557,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -576,7 +575,7 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		output := ui.OutputWriter.String()
 		var jsonOutput json.RawMessage
 		err = json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -640,7 +639,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Cannot update a binding rule without specifying the -id parameter")
 	})
 
@@ -659,7 +658,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Error determining binding rule ID")
 	})
 
@@ -678,7 +677,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Binding rule not found with ID")
 	})
 
@@ -744,7 +743,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Error determining binding rule ID")
 	})
 
@@ -766,7 +765,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Selector is invalid")
 	})
 
@@ -788,7 +787,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -822,7 +821,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -858,7 +857,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -895,7 +894,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -928,7 +927,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(
@@ -960,7 +959,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-bind-name' flag")
 	})
 
@@ -981,7 +980,7 @@ func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		rule, _, err := client.ACL().BindingRuleRead(

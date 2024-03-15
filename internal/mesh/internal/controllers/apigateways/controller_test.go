@@ -95,8 +95,8 @@ func (suite *apigatewayControllerSuite) TestReconciler_Reconcile() {
 
 			dec, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, suite.client, resource.ReplaceType(pbcatalog.ServiceType, req.ID))
 			require.NoError(t, err)
-			require.Equal(t, dec.Data.Ports, expectedWrittenService.Ports)
-			require.Equal(t, dec.Data.Workloads, expectedWrittenService.Workloads)
+			require.Equal(t, expectedWrittenService.Ports, dec.Data.Ports)
+			require.Equal(t, expectedWrittenService.Workloads, dec.Data.Workloads)
 		})
 
 		testutil.RunStep(suite.T(), "api-gateway does not exist", func(t *testing.T) {

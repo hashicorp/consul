@@ -120,7 +120,7 @@ func TestValidateProxyConfiguration_MissingBothDynamicAndBootstrapConfig(t *test
 			Wrapped: errMissingProxyConfigData,
 		},
 	)
-	require.Equal(t, err, expError)
+	require.Equal(t, expError, err)
 }
 
 func TestValidateProxyConfiguration_AllFieldsInvalid(t *testing.T) {
@@ -235,7 +235,7 @@ func TestValidateProxyConfiguration_AllFieldsInvalid(t *testing.T) {
 		},
 	)
 
-	require.Equal(t, err, expError)
+	require.Equal(t, expError, err)
 }
 
 func TestValidateProxyConfiguration_AllFieldsValid(t *testing.T) {

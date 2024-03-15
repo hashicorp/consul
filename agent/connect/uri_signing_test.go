@@ -14,7 +14,7 @@ import (
 func TestSpiffeIDSigningForCluster(t *testing.T) {
 	// For now it should just append .consul to the ID.
 	id := SpiffeIDSigningForCluster(TestClusterID)
-	assert.Equal(t, id.URI().String(), "spiffe://"+TestClusterID+".consul")
+	assert.Equal(t, "spiffe://"+TestClusterID+".consul", id.URI().String())
 }
 
 // fakeCertURI is a CertURI implementation that our implementation doesn't know

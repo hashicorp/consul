@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	mockpbresource "github.com/hashicorp/consul/grpcmocks/proto-public/pbresource"
@@ -40,9 +39,9 @@ func (suite *cacheClientSuite) SetupTest() {
 	client := mockpbresource.NewResourceServiceClient(suite.T())
 	suite.mclient = client.EXPECT()
 
-	require.NoError(suite.T(), suite.cache.AddIndex(pbdemo.AlbumType, namePrefixIndexer()))
-	require.NoError(suite.T(), suite.cache.AddIndex(pbdemo.AlbumType, releaseYearIndexer()))
-	require.NoError(suite.T(), suite.cache.AddIndex(pbdemo.AlbumType, tracksIndexer()))
+	suite.Require().NoError(suite.cache.AddIndex(pbdemo.AlbumType, namePrefixIndexer()))
+	suite.Require().NoError(suite.cache.AddIndex(pbdemo.AlbumType, releaseYearIndexer()))
+	suite.Require().NoError(suite.cache.AddIndex(pbdemo.AlbumType, tracksIndexer()))
 
 	suite.album1 = resourcetest.Resource(pbdemo.AlbumType, "one").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
@@ -89,10 +88,10 @@ func (suite *cacheClientSuite) performWrite(res *pbresource.Resource, shouldErro
 	// Now use the wrapper client to perform the request
 	out, err := suite.client.Write(context.Background(), req)
 	if shouldError {
-		require.ErrorIs(suite.T(), err, fakeWrappedErr)
-		require.Nil(suite.T(), out)
+		suite.Require().ErrorIs(err, fakeWrappedErr)
+		suite.Require().Nil(out)
 	} else {
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		prototest.AssertDeepEqual(suite.T(), res, out.Resource)
 	}
 }
@@ -116,11 +115,11 @@ func (suite *cacheClientSuite) performDelete(id *pbresource.ID, shouldError bool
 	// Now use the wrapper client to perform the request
 	out, err := suite.client.Delete(context.Background(), req)
 	if shouldError {
-		require.ErrorIs(suite.T(), err, fakeWrappedErr)
-		require.Nil(suite.T(), out)
+		suite.Require().ErrorIs(err, fakeWrappedErr)
+		suite.Require().Nil(out)
 	} else {
-		require.NoError(suite.T(), err)
-		require.NotNil(suite.T(), out)
+		suite.Require().NoError(err)
+		suite.Require().NotNil(out)
 	}
 }
 
@@ -147,10 +146,10 @@ func (suite *cacheClientSuite) performWriteStatus(res *pbresource.Resource, key 
 	// Now use the wrapper client to perform the request
 	out, err := suite.client.WriteStatus(context.Background(), req)
 	if shouldError {
-		require.ErrorIs(suite.T(), err, fakeWrappedErr)
-		require.Nil(suite.T(), out)
+		suite.Require().ErrorIs(err, fakeWrappedErr)
+		suite.Require().Nil(out)
 	} else {
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		prototest.AssertDeepEqual(suite.T(), res, out.Resource)
 	}
 }
@@ -172,8 +171,8 @@ func (suite *cacheClientSuite) TestWrite_Ok() {
 
 	// now ensure the entry was updated in the cache
 	res, err := suite.cache.Get(suite.album1.Id.Type, "id", suite.album1.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(res)
 	prototest.AssertDeepEqual(suite.T(), newRes, res)
 }
 
@@ -191,8 +190,8 @@ func (suite *cacheClientSuite) TestWrite_Error() {
 
 	// now ensure the entry was not updated in the cache
 	res, err := suite.cache.Get(suite.album1.Id.Type, "id", suite.album1.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(res)
 	prototest.AssertDeepEqual(suite.T(), suite.album1, res)
 }
 
@@ -213,10 +212,10 @@ func (suite *cacheClientSuite) TestWriteStatus_Ok() {
 
 	// now ensure the entry was updated in the cache
 	res, err := suite.cache.Get(suite.album1.Id.Type, "id", suite.album1.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(res)
 	_, updated := res.Status["testing"]
-	require.True(suite.T(), updated)
+	suite.Require().True(updated)
 }
 
 func (suite *cacheClientSuite) TestWriteStatus_Error() {
@@ -236,10 +235,10 @@ func (suite *cacheClientSuite) TestWriteStatus_Error() {
 
 	// now ensure the entry was not updated in the cache
 	res, err := suite.cache.Get(suite.album1.Id.Type, "id", suite.album1.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(res)
 	_, updated := res.Status["testing"]
-	require.False(suite.T(), updated)
+	suite.Require().False(updated)
 }
 
 func (suite *cacheClientSuite) TestDelete_Ok() {
@@ -247,8 +246,8 @@ func (suite *cacheClientSuite) TestDelete_Ok() {
 
 	// now ensure the entry was removed from the cache
 	res, err := suite.cache.Get(suite.album1.Id.Type, "id", suite.album1.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheClientSuite) TestDelete_Error() {
@@ -256,8 +255,8 @@ func (suite *cacheClientSuite) TestDelete_Error() {
 
 	// now ensure the entry was NOT removed from the cache
 	res, err := suite.cache.Get(suite.album1.Id.Type, "id", suite.album1.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(res)
 }
 
 func TestCacheClient(t *testing.T) {

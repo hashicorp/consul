@@ -432,7 +432,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		if len(val) != 0 {
 			t.Fatalf("bad: %v", val)
 		}
-		require.Len(t, val, 0)
+		require.Empty(t, val)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
@@ -775,7 +775,7 @@ func TestAgent_Service(t *testing.T) {
 				require.Equal(t, tt.wantCode, resp.Code, "body: %s", resp.Body.String())
 			}
 			if tt.wantWait != 0 {
-				assert.True(t, elapsed >= tt.wantWait, "should have waited at least %s, "+
+				assert.GreaterOrEqual(t, elapsed, tt.wantWait, "should have waited at least %s, "+
 					"took %s", tt.wantWait, elapsed)
 			}
 
@@ -1428,7 +1428,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 			t.Fatalf("Err: %v", err)
 		}
 
-		require.Len(t, val, 0)
+		require.Empty(t, val)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
@@ -2107,7 +2107,7 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 		if err := dec.Decode(&val); err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		require.Len(t, val, 0)
+		require.Empty(t, val)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
@@ -3589,7 +3589,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	require.Equal(t, http.StatusOK, resp.Code)
 
 	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
-	require.Equal(t, 3, len(checks))
+	require.Len(t, checks, 3)
 
 	checkIDs := []string{}
 	for id := range checks {
@@ -6960,7 +6960,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	assert.True(t, issued.ModifyIndex > 0)
+	assert.Greater(t, issued.ModifyIndex, 0)
 	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
@@ -7109,7 +7109,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	assert.True(t, issued.ModifyIndex > 0)
+	assert.Greater(t, issued.ModifyIndex, 0)
 	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
@@ -7344,7 +7344,7 @@ func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) 
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	assert.True(t, issued.ModifyIndex > 0)
+	assert.Greater(t, issued.ModifyIndex, 0)
 	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
@@ -7480,7 +7480,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	requireLeafValidUnderCA(t, issued, dc1_ca1)
 
 	// Verify blocking index
-	assert.True(t, issued.ModifyIndex > 0)
+	assert.Greater(t, issued.ModifyIndex, 0)
 	assert.Equal(t, fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
@@ -7728,7 +7728,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionAllow
 
-		require.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &ixnId))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &ixnId))
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
@@ -7778,7 +7778,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 		req.Intention.DestinationName = target
 		req.Intention.Action = structs.IntentionActionDeny
 
-		require.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &ixnId))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &ixnId))
 	}
 
 	// Short sleep lets the cache background refresh happen
@@ -7831,7 +7831,7 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionDeny
 
 		var reply string
-		assert.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	args := &structs.ConnectAuthorizeRequest{
@@ -7949,7 +7949,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 		req.Intention.Action = structs.IntentionActionAllow
 
 		var reply string
-		assert.Nil(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 	}
 
 	// Web should be allowed
@@ -8145,7 +8145,7 @@ func TestAgent_Host(t *testing.T) {
 	resp := httptest.NewRecorder()
 	// TODO: AgentHost should write to response so that we can test using ServeHTTP()
 	respRaw, err := a.srv.AgentHost(resp, req)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotNil(t, respRaw)
 
@@ -8184,7 +8184,7 @@ func TestAgent_HostBadACL(t *testing.T) {
 	resp := httptest.NewRecorder()
 	// TODO: AgentHost should write to response so that we can test using ServeHTTP()
 	_, err := a.srv.AgentHost(resp, req)
-	assert.EqualError(t, err, "ACL not found")
+	require.EqualError(t, err, "ACL not found")
 	assert.Equal(t, http.StatusOK, resp.Code)
 }
 
@@ -8206,7 +8206,7 @@ func TestAgent_Version(t *testing.T) {
 	// req.Header.Add("X-Consul-Token", "initial-management")
 	resp := httptest.NewRecorder()
 	respRaw, err := a.srv.AgentVersion(resp, req)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotNil(t, respRaw)
 

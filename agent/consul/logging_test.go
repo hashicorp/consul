@@ -20,7 +20,7 @@ func TestLoggerStore_Named(t *testing.T) {
 
 	l1 := store.Named("test1")
 	l2 := store.Named("test2")
-	require.Truef(t, l1 != l2,
+	require.NotEqualf(t, l1, l2,
 		"expected %p and %p to have a different memory address",
 		l1,
 		l2,
@@ -36,7 +36,7 @@ func TestLoggerStore_NamedCache(t *testing.T) {
 
 	l1 := store.Named("test")
 	l2 := store.Named("test")
-	require.Truef(t, l1 == l2,
+	require.Equalf(t, l1, l2,
 		"expected %p and %p to have the same memory address",
 		l1,
 		l2,

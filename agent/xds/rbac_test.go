@@ -1744,7 +1744,7 @@ func TestJWTClaimsToPrincipals(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			principal := jwtClaimsToPrincipals(tt.claims, tt.metadataPayloadKey)
-			require.Equal(t, principal, tt.expected)
+			require.Equal(t, tt.expected, principal)
 		})
 	}
 }

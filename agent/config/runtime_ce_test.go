@@ -112,8 +112,8 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		patchLoadOptsShims(&opts)
 		result, err := Load(opts)
 		require.NoError(t, err)
-		require.Len(t, result.Warnings, 0)
-		require.Equal(t, false, result.RuntimeConfig.Reporting.License.Enabled)
+		require.Empty(t, result.Warnings)
+		require.False(t, result.RuntimeConfig.Reporting.License.Enabled)
 	})
 
 	t.Run("load from HCL defaults to false", func(t *testing.T) {
@@ -136,8 +136,8 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		patchLoadOptsShims(&opts)
 		result, err := Load(opts)
 		require.NoError(t, err)
-		require.Len(t, result.Warnings, 0)
-		require.Equal(t, false, result.RuntimeConfig.Reporting.License.Enabled)
+		require.Empty(t, result.Warnings)
+		require.False(t, result.RuntimeConfig.Reporting.License.Enabled)
 	})
 
 	t.Run("with value set returns warning and defaults to false", func(t *testing.T) {
@@ -164,6 +164,6 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result.Warnings, 1)
 		require.Contains(t, result.Warnings[0], "\"reporting.license.enabled\" is a Consul Enterprise configuration and will have no effect")
-		require.Equal(t, false, result.RuntimeConfig.Reporting.License.Enabled)
+		require.False(t, result.RuntimeConfig.Reporting.License.Enabled)
 	})
 }

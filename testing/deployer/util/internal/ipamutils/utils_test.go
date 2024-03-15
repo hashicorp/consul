@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func initBroadPredefinedNetworks() []*net.IPNet {
@@ -88,7 +89,7 @@ func TestDefaultNetwork(t *testing.T) {
 
 func TestConfigGlobalScopeDefaultNetworks(t *testing.T) {
 	err := ConfigGlobalScopeDefaultNetworks([]*NetworkToSplit{{"30.0.0.0/8", 24}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	originalGlobalScopeNetworks := initGlobalScopeNetworks()
 	m := make(map[string]bool)

@@ -1412,7 +1412,7 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 			}
 
 			data, _, err := client.Agent().Service(tc.id, nil)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			assert.NotNil(t, data)
 			assert.Equal(t, tc.kind, data.Kind)
@@ -1494,7 +1494,7 @@ func TestEnvoy_proxyRegistration(t *testing.T) {
 			}
 
 			result, err := c.proxyRegistration(&tc.args.svcForProxy)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			tc.testFn(t, tc.args, result)
 		})
 	}
@@ -1904,9 +1904,9 @@ func TestCheckEnvoyVersionCompatibility(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			actual, err := checkEnvoyVersionCompatibility(tc.envoyVersion, tc.unsupportedList)
 			if tc.isErrorExpected {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 			assert.Equal(t, tc.expectedCompat, actual)
 		})

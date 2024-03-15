@@ -126,18 +126,18 @@ func (suite *xdsControllerTestSuite) TestReconcile_NoProxyStateTemplate() {
 
 		suite.mapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
 		suite.leafMapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
-		require.False(suite.T(), suite.mapper.IsEmpty())
-		require.False(suite.T(), suite.leafMapper.IsEmpty())
+		suite.Require().False(suite.mapper.IsEmpty())
+		suite.Require().False(suite.leafMapper.IsEmpty())
 
 		// Run the reconcile, and since no ProxyStateTemplate is stored, this simulates a deletion.
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: proxyStateTemplateId,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Assert that nothing is tracked in the endpoints mapper.
-		require.True(suite.T(), suite.mapper.IsEmpty())
-		require.True(suite.T(), suite.leafMapper.IsEmpty())
+		suite.Require().True(suite.mapper.IsEmpty())
+		suite.Require().True(suite.leafMapper.IsEmpty())
 	})
 }
 
@@ -163,10 +163,10 @@ func (suite *xdsControllerTestSuite) TestReconcile_RemoveTrackingProxiesNotConne
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: proxyStateTemplate.Id,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Assert that nothing is tracked in the mapper.
-		require.True(suite.T(), suite.mapper.IsEmpty())
+		suite.Require().True(suite.mapper.IsEmpty())
 	})
 }
 
@@ -184,7 +184,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_PushChangeError() {
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: suite.fooProxyStateTemplate.Id,
 		})
-		require.Error(suite.T(), err)
+		suite.Require().Error(err)
 
 		// Assert on the status reflecting endpoint not found.
 		suite.client.RequireStatusCondition(suite.T(), suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedPushChangeFailed(status.KeyFromID(suite.fooProxyStateTemplate.Id)))
@@ -223,7 +223,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_MissingEndpoint() {
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: fooProxyStateTemplate.Id,
 		})
-		require.Error(suite.T(), err)
+		suite.Require().Error(err)
 
 		// Assert on the status reflecting endpoint not found.
 		suite.client.RequireStatusCondition(suite.T(), fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedErrorReadingEndpoints(status.KeyFromID(fooEndpointsId), "rpc error: code = NotFound desc = resource not found"))
@@ -267,7 +267,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: fooProxyStateTemplate.Id,
 		})
-		require.Error(suite.T(), err)
+		suite.Require().Error(err)
 
 		// Assert on the status reflecting endpoint couldn't be read.
 		suite.client.RequireStatusCondition(suite.T(), fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedErrorReadingEndpoints(
@@ -290,7 +290,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateComputesEnd
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: suite.fooProxyStateTemplate.Id,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Assert on the status.
 		suite.client.RequireStatusCondition(suite.T(), suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
@@ -311,7 +311,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateComputesLea
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: suite.fooProxyStateTemplate.Id,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Assert on the status.
 		suite.client.RequireStatusCondition(suite.T(), suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
@@ -322,8 +322,8 @@ func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateComputesLea
 		for k, l := range actualLeafs {
 			pemDecode, _ := pem.Decode([]byte(l.Cert))
 			cert, err := x509.ParseCertificate(pemDecode.Bytes)
-			require.NoError(suite.T(), err)
-			require.Equal(suite.T(), cert.URIs[0].String(), suite.expectedFooProxyStateSpiffes[k])
+			suite.Require().NoError(err)
+			suite.Require().Equal(cert.URIs[0].String(), suite.expectedFooProxyStateSpiffes[k])
 		}
 	})
 }
@@ -338,7 +338,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateSetsTrustBu
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: suite.fooProxyStateTemplate.Id,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Assert on the status.
 		suite.client.RequireStatusCondition(suite.T(), suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
@@ -363,7 +363,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_MultipleProxyStateTemplatesCo
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: suite.fooProxyStateTemplate.Id,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Assert on the status.
 		suite.client.RequireStatusCondition(suite.T(), suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
@@ -376,7 +376,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_MultipleProxyStateTemplatesCo
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: suite.barProxyStateTemplate.Id,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Assert on the status.
 		suite.client.RequireStatusCondition(suite.T(), suite.barProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
@@ -684,7 +684,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeLeafReferencesDeleteP
 			Id: suite.fooProxyStateTemplate.Id,
 		}
 		_, err := suite.client.Delete(suite.ctx, req)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Ensure the leaf certificate watches were cancelled since we deleted the leaf reference.
 		retry.Run(suite.T(), func(r *retry.R) {
@@ -723,7 +723,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeEndpointForProxyConne
 
 		// Wait for the proxy state template to be re-evaluated.
 		proxyStateTemp := suite.client.WaitForNewVersion(suite.T(), suite.fooProxyStateTemplate.Id, suite.fooProxyStateTemplate.Version)
-		require.NotNil(suite.T(), proxyStateTemp)
+		suite.Require().NotNil(proxyStateTemp)
 	})
 }
 
@@ -1124,7 +1124,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_prevWatchesToCancel() {
 
 		for _, tc := range cases {
 			toCancel := prevWatchesToCancel(tc.old, convert(tc.new))
-			require.ElementsMatch(suite.T(), toCancel, tc.expect)
+			suite.Require().ElementsMatch(toCancel, tc.expect)
 		}
 	})
 }
@@ -1207,15 +1207,15 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 				err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 					ID: proxyStateTemplate.Id,
 				})
-				require.NoError(suite.T(), err)
-				require.NotNil(suite.T(), proxyStateTemplate)
+				suite.Require().NoError(err)
+				suite.Require().NotNil(proxyStateTemplate)
 
 				// Get the reconciled proxyStateTemplate to check the reconcile results.
 				reconciledPS := suite.updater.Get(proxyStateTemplate.Id.Name)
 
 				// Verify leaf cert contents then hard code them for comparison
 				// and downstream tests since they change from test run to test run.
-				require.NotEmpty(suite.T(), reconciledPS.LeafCertificates)
+				suite.Require().NotEmpty(reconciledPS.LeafCertificates)
 				reconciledPS.LeafCertificates = map[string]*pbproxystate.LeafCertificate{
 					"test-identity": {
 						Cert: "-----BEGIN CERTIFICATE-----\nMIICDjCCAbWgAwIBAgIBAjAKBggqhkjOPQQDAjAUMRIwEAYDVQQDEwlUZXN0IENB\nIDEwHhcNMjMxMDE2MTYxMzI5WhcNMjMxMDE2MTYyMzI5WjAAMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9\nta/bGT+5orZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJaOCAQowggEGMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQg3ogXVz9cqaK2B6xdiJYMa5NtT0KkYv7BA2dR7h9EcwUw\nKwYDVR0jBCQwIoAgq+C1mPlPoGa4lt7sSft1goN5qPGyBIB/3mUHJZKSFY8wbwYD\nVR0RAQH/BGUwY4Zhc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1\nNTU1NTU1NTU1LmNvbnN1bC9hcC9kZWZhdWx0L25zL2RlZmF1bHQvaWRlbnRpdHkv\ndGVzdC1pZGVudGl0eTAKBggqhkjOPQQDAgNHADBEAiB6L+t5bzRrBPhiQYNeA7fF\nUCuLWrdjW4Xbv3SLg0IKMgIgfRC5hEx+DqzQxTCP4sexX3hVWMjKoWmHdwiUcg+K\n/IE=\n-----END CERTIFICATE-----\n",
@@ -1226,7 +1226,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 				// Compare actual vs expected.
 				actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
 				expected := golden.Get(suite.T(), actual, name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden")
-				require.JSONEq(suite.T(), expected, actual)
+				suite.Require().JSONEq(expected, actual)
 			})
 		}
 	})

@@ -60,7 +60,7 @@ func TestTokenListCommand_Pretty(t *testing.T) {
 		)
 		tokenIds = append(tokenIds, token.AccessorID)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	args := []string{
@@ -69,7 +69,7 @@ func TestTokenListCommand_Pretty(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 
@@ -114,7 +114,7 @@ func TestTokenListCommand_JSON(t *testing.T) {
 		)
 		tokenIds = append(tokenIds, token.AccessorID)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	args := []string{
@@ -124,7 +124,7 @@ func TestTokenListCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	var jsonOutput []api.ACLTokenListEntry

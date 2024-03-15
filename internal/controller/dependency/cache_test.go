@@ -54,8 +54,8 @@ func (suite *cacheSuite) TestGetMapper_ModErr() {
 		suite.res,
 	)
 
-	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	suite.Require().Nil(reqs)
+	suite.Require().ErrorIs(err, injectedErr)
 }
 
 func (suite *cacheSuite) TestGetMapper_CacheErr() {
@@ -76,8 +76,8 @@ func (suite *cacheSuite) TestGetMapper_CacheErr() {
 		suite.res,
 	)
 
-	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	suite.Require().Nil(reqs)
+	suite.Require().ErrorIs(err, injectedErr)
 }
 
 func (suite *cacheSuite) TestGetMapper_Ok() {
@@ -101,8 +101,8 @@ func (suite *cacheSuite) TestGetMapper_Ok() {
 		suite.res,
 	)
 
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, 1)
+	suite.Require().NoError(err)
+	suite.Require().Len(reqs, 1)
 	prototest.AssertDeepEqual(suite.T(), out.Id, reqs[0].ID)
 }
 
@@ -118,8 +118,8 @@ func (suite *cacheSuite) TestListMapper_ModErr() {
 		suite.res,
 	)
 
-	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	suite.Require().Nil(reqs)
+	suite.Require().ErrorIs(err, injectedErr)
 }
 
 func (suite *cacheSuite) TestListMapper_CacheErr() {
@@ -140,8 +140,8 @@ func (suite *cacheSuite) TestListMapper_CacheErr() {
 		suite.res,
 	)
 
-	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	suite.Require().Nil(reqs)
+	suite.Require().ErrorIs(err, injectedErr)
 }
 
 func (suite *cacheSuite) TestListMapper_Ok() {
@@ -173,8 +173,8 @@ func (suite *cacheSuite) TestListMapper_Ok() {
 		suite.res,
 	)
 
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, 2)
+	suite.Require().NoError(err)
+	suite.Require().Len(reqs, 2)
 	expected := []controller.Request{
 		{ID: out.Id},
 		{ID: out2.Id},
@@ -194,8 +194,8 @@ func (suite *cacheSuite) TestParentsMapper_ModErr() {
 		suite.res,
 	)
 
-	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	suite.Require().Nil(reqs)
+	suite.Require().ErrorIs(err, injectedErr)
 }
 
 func (suite *cacheSuite) TestParentsMapper_CacheErr() {
@@ -216,8 +216,8 @@ func (suite *cacheSuite) TestParentsMapper_CacheErr() {
 		suite.res,
 	)
 
-	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	suite.Require().Nil(reqs)
+	suite.Require().ErrorIs(err, injectedErr)
 }
 
 func (suite *cacheSuite) TestParentsMapper_Ok() {
@@ -249,8 +249,8 @@ func (suite *cacheSuite) TestParentsMapper_Ok() {
 		suite.res,
 	)
 
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, 2)
+	suite.Require().NoError(err)
+	suite.Require().Len(reqs, 2)
 	expected := []controller.Request{
 		{ID: out.Id},
 		{ID: out2.Id},
@@ -270,8 +270,8 @@ func (suite *cacheSuite) TestListTransform_ModErr() {
 		suite.res,
 	)
 
-	require.Nil(suite.T(), reqs)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	suite.Require().Nil(reqs)
+	suite.Require().ErrorIs(err, injectedErr)
 }
 
 func (suite *cacheSuite) TestListTransform_CacheErr() {
@@ -292,8 +292,8 @@ func (suite *cacheSuite) TestListTransform_CacheErr() {
 		suite.res,
 	)
 
-	require.Nil(suite.T(), resources)
-	require.ErrorIs(suite.T(), err, injectedErr)
+	suite.Require().Nil(resources)
+	suite.Require().ErrorIs(err, injectedErr)
 }
 
 func (suite *cacheSuite) TestListTransform_Ok() {
@@ -321,7 +321,7 @@ func (suite *cacheSuite) TestListTransform_Ok() {
 		suite.res,
 	)
 
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), expected, resources)
 }
 

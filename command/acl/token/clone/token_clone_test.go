@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
@@ -110,7 +109,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Empty(t, ui.ErrorWriter.String())
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 
 		cloned := parseCloneOutput(t, ui.OutputWriter.String())
 
@@ -144,7 +143,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		cloned := parseCloneOutput(t, ui.OutputWriter.String())
@@ -225,12 +224,12 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Empty(t, ui.ErrorWriter.String())
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 
 		output := ui.OutputWriter.String()
 		var jsonOutput json.RawMessage
 		err = json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	// clone without description
@@ -247,11 +246,11 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Empty(t, ui.ErrorWriter.String())
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 
 		output := ui.OutputWriter.String()
 		var jsonOutput json.RawMessage
 		err = json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }

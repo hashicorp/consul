@@ -40,5 +40,5 @@ func TestDNS_Recursor_StrategySequential(t *testing.T) {
 
 	// The list of recursors should match the order in which they were defined
 	// in the configuration
-	require.Equal(t, recursorsToQuery, expectedRecursors)
+	require.Equal(t, expectedRecursors, recursorsToQuery)
 }

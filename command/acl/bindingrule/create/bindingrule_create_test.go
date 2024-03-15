@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -70,7 +69,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-method' flag")
 	})
 
@@ -86,7 +85,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-bind-type' flag")
 	})
 
@@ -102,7 +101,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-bind-name' flag")
 	})
 
@@ -120,7 +119,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Cannot specify -bind-vars when -bind-type is not templated-policy")
 	})
 
@@ -138,7 +137,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Selector is invalid")
 	})
 
@@ -155,7 +154,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 	})
 
@@ -173,7 +172,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 	})
 
@@ -191,7 +190,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 	})
 
@@ -209,7 +208,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 	})
 
@@ -226,7 +225,7 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "templated policy failed validation")
 	})
 }
@@ -278,12 +277,12 @@ func TestBindingRuleCreateCommand_JSON(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
 		var jsonOutput json.RawMessage
 		err := json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }

@@ -26,7 +26,7 @@ import (
 
 // GetEnvoyListenerTCPFilters validates that proxy was configured with tcp protocol and one rbac listener filter
 func GetEnvoyListenerTCPFilters(t *testing.T, adminPort int) {
-	require.True(t, adminPort > 0)
+	require.Greater(t, adminPort, 0)
 
 	GetEnvoyListenerTCPFiltersWithClient(
 		t,
@@ -77,7 +77,7 @@ func GetEnvoyListenerTCPFiltersWithClient(
 // AssertUpstreamEndpointStatus validates that proxy was configured with provided clusterName in the healthStatus
 func AssertUpstreamEndpointStatus(t *testing.T, adminPort int, clusterName, healthStatus string, count int) {
 	t.Helper()
-	require.True(t, adminPort > 0)
+	require.Greater(t, adminPort, 0)
 	AssertUpstreamEndpointStatusWithClient(
 		t,
 		cleanhttp.DefaultClient(),
@@ -122,7 +122,7 @@ func AssertUpstreamEndpointStatusWithClient(
 		require.Len(r, results, 1, "clusters: "+clusters) // the final part of the pipeline is "length" which only ever returns 1 result
 
 		result, err := strconv.Atoi(results[0])
-		assert.NoError(r, err)
+		require.NoError(r, err)
 		require.Equal(r, count, result, "original results: %v", clusters)
 	})
 }
@@ -352,6 +352,6 @@ func AssertServiceHasHealthyInstances(t *testing.T, node libcluster.Agent, servi
 		for _, v := range services {
 			fmt.Printf("%s service status: %s\n", v.Service.ID, v.Checks.AggregatedStatus())
 		}
-		require.Equal(r, count, len(services))
+		require.Len(r, services, count)
 	})
 }

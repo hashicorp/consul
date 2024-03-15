@@ -269,7 +269,7 @@ func TestRequestRecorder(t *testing.T) {
 
 			require.Equal(t, o.key, metricRPCRequest)
 			require.LessOrEqual(t, o.elapsed, float32(time.Now().Sub(start).Microseconds())/1000)
-			require.Equal(t, o.labels, tc.expectedLabels)
+			require.Equal(t, tc.expectedLabels, o.labels)
 
 		})
 	}

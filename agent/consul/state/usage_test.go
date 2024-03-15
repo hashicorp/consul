@@ -21,16 +21,16 @@ func TestStateStore_Usage_NodeUsage(t *testing.T) {
 	// No nodes have been registered, and thus no usage entry exists
 	idx, usage, err := s.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(0))
-	require.Equal(t, usage.Nodes, 0)
+	require.Equal(t, uint64(0), idx)
+	require.Equal(t, 0, usage.Nodes)
 
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
 	idx, usage, err = s.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(1))
-	require.Equal(t, usage.Nodes, 2)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, 2, usage.Nodes)
 }
 
 func TestStateStore_Usage_NodeUsage_Delete(t *testing.T) {
@@ -41,14 +41,14 @@ func TestStateStore_Usage_NodeUsage_Delete(t *testing.T) {
 
 	idx, usage, err := s.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(1))
-	require.Equal(t, usage.Nodes, 2)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, 2, usage.Nodes)
 
 	require.NoError(t, s.DeleteNode(2, "node2", nil, ""))
 	idx, usage, err = s.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(2))
-	require.Equal(t, usage.Nodes, 1)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, 1, usage.Nodes)
 }
 
 // Test that nodes added/deleted from peers are not counted.
@@ -83,16 +83,16 @@ func TestStateStore_Usage_PeeringUsage(t *testing.T) {
 	// No nodes have been registered, and thus no usage entry exists
 	idx, usage, err := s.PeeringUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(0))
-	require.Equal(t, usage.Peerings, 0)
+	require.Equal(t, uint64(0), idx)
+	require.Equal(t, 0, usage.Peerings)
 
 	testRegisterPeering(t, s, 0, "test-peering1")
 	testRegisterPeering(t, s, 1, "test-peering2")
 
 	idx, usage, err = s.PeeringUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(1))
-	require.Equal(t, usage.Peerings, 2)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, 2, usage.Peerings)
 }
 
 func TestStateStore_Usage_PeeringUsage_Delete(t *testing.T) {
@@ -103,8 +103,8 @@ func TestStateStore_Usage_PeeringUsage_Delete(t *testing.T) {
 
 	idx, usage, err := s.PeeringUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(1))
-	require.Equal(t, usage.Peerings, 2)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, 2, usage.Peerings)
 
 	require.NoError(t, s.PeeringTerminateByID(2, peering2.ID))
 	idx, usage, err = s.PeeringUsage()
@@ -119,8 +119,8 @@ func TestStateStore_Usage_KVUsage(t *testing.T) {
 	// No keys have been registered, and thus no usage entry exists
 	idx, usage, err := s.KVUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(0))
-	require.Equal(t, usage.KVCount, 0)
+	require.Equal(t, uint64(0), idx)
+	require.Equal(t, 0, usage.KVCount)
 
 	testSetKey(t, s, 0, "key-1", "0", nil)
 	testSetKey(t, s, 1, "key-2", "0", nil)
@@ -128,8 +128,8 @@ func TestStateStore_Usage_KVUsage(t *testing.T) {
 
 	idx, usage, err = s.KVUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(2))
-	require.Equal(t, usage.KVCount, 2)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, 2, usage.KVCount)
 }
 
 func TestStateStore_Usage_KVUsage_Delete(t *testing.T) {
@@ -141,14 +141,14 @@ func TestStateStore_Usage_KVUsage_Delete(t *testing.T) {
 
 	idx, usage, err := s.KVUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(2))
-	require.Equal(t, usage.KVCount, 2)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, 2, usage.KVCount)
 
 	require.NoError(t, s.KVSDelete(3, "key-2", nil))
 	idx, usage, err = s.KVUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(3))
-	require.Equal(t, usage.KVCount, 1)
+	require.Equal(t, uint64(3), idx)
+	require.Equal(t, 1, usage.KVCount)
 }
 
 func TestStateStore_Usage_ServiceUsageEmpty(t *testing.T) {
@@ -157,9 +157,9 @@ func TestStateStore_Usage_ServiceUsageEmpty(t *testing.T) {
 	// No services have been registered, and thus no usage entry exists
 	idx, usage, err := s.ServiceUsage(nil, true)
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(0))
-	require.Equal(t, usage.Services, 0)
-	require.Equal(t, usage.ServiceInstances, 0)
+	require.Equal(t, uint64(0), idx)
+	require.Equal(t, 0, usage.Services)
+	require.Equal(t, 0, usage.ServiceInstances)
 	for k := range usage.ConnectServiceInstances {
 		require.Equal(t, 0, usage.ConnectServiceInstances[k])
 	}
@@ -188,7 +188,7 @@ func TestStateStore_Usage_ServiceUsage(t *testing.T) {
 	ws := memdb.NewWatchSet()
 	idx, usage, err := s.ServiceUsage(ws, true)
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(20))
+	require.Equal(t, uint64(20), idx)
 	require.Equal(t, 9, usage.Services)
 	require.Equal(t, 13, usage.ServiceInstances)
 	require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
@@ -234,7 +234,7 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 
 	idx, usage, err := s.ServiceUsage(nil, true)
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(4))
+	require.Equal(t, uint64(4), idx)
 	require.Equal(t, 3, usage.Services)
 	require.Equal(t, 4, usage.ServiceInstances)
 	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
@@ -245,9 +245,9 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 
 	idx, usage, err = s.ServiceUsage(nil, true)
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(4))
-	require.Equal(t, usage.Services, 0)
-	require.Equal(t, usage.ServiceInstances, 0)
+	require.Equal(t, uint64(4), idx)
+	require.Equal(t, 0, usage.Services)
+	require.Equal(t, 0, usage.ServiceInstances)
 	for k := range usage.ConnectServiceInstances {
 		require.Equal(t, 0, usage.ConnectServiceInstances[k])
 	}
@@ -321,15 +321,15 @@ func TestStateStore_Usage_Restore(t *testing.T) {
 
 	idx, nodeUsage, err := s.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(9))
-	require.Equal(t, nodeUsage.Nodes, 1)
+	require.Equal(t, uint64(9), idx)
+	require.Equal(t, 1, nodeUsage.Nodes)
 
 	idx, usage, err := s.ServiceUsage(nil, true)
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(9))
-	require.Equal(t, usage.Services, 1)
-	require.Equal(t, usage.ServiceInstances, 2)
-	require.Equal(t, usage.BillableServiceInstances, 2)
+	require.Equal(t, uint64(9), idx)
+	require.Equal(t, 1, usage.Services)
+	require.Equal(t, 2, usage.ServiceInstances)
+	require.Equal(t, 2, usage.BillableServiceInstances)
 }
 
 func TestStateStore_Usage_updateUsage_Underflow(t *testing.T) {
@@ -427,10 +427,10 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 		// We renamed a service with a single instance, so we maintain 1 service.
 		idx, usage, err := s.ServiceUsage(nil, true)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(2))
-		require.Equal(t, usage.Services, 1)
-		require.Equal(t, usage.ServiceInstances, 1)
-		require.Equal(t, usage.BillableServiceInstances, 1)
+		require.Equal(t, uint64(2), idx)
+		require.Equal(t, 1, usage.Services)
+		require.Equal(t, 1, usage.ServiceInstances)
+		require.Equal(t, 1, usage.BillableServiceInstances)
 	})
 
 	t.Run("update service to be connect native", func(t *testing.T) {
@@ -448,9 +448,9 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 		// We renamed a service with a single instance, so we maintain 1 service.
 		idx, usage, err := s.ServiceUsage(nil, true)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(3))
-		require.Equal(t, usage.Services, 1)
-		require.Equal(t, usage.ServiceInstances, 1)
+		require.Equal(t, uint64(3), idx)
+		require.Equal(t, 1, usage.Services)
+		require.Equal(t, 1, usage.ServiceInstances)
 		require.Equal(t, 1, usage.ConnectServiceInstances[connectNativeInstancesTable])
 		require.Equal(t, 1, usage.BillableServiceInstances)
 	})
@@ -470,9 +470,9 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 		// We renamed a service with a single instance, so we maintain 1 service.
 		idx, usage, err := s.ServiceUsage(nil, true)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(4))
-		require.Equal(t, usage.Services, 1)
-		require.Equal(t, usage.ServiceInstances, 1)
+		require.Equal(t, uint64(4), idx)
+		require.Equal(t, 1, usage.Services)
+		require.Equal(t, 1, usage.ServiceInstances)
 		require.Equal(t, 0, usage.ConnectServiceInstances[connectNativeInstancesTable])
 		require.Equal(t, 1, usage.BillableServiceInstances)
 	})
@@ -502,9 +502,9 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 
 		idx, usage, err := s.ServiceUsage(nil, true)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(6))
-		require.Equal(t, usage.Services, 2)
-		require.Equal(t, usage.ServiceInstances, 3)
+		require.Equal(t, uint64(6), idx)
+		require.Equal(t, 2, usage.Services)
+		require.Equal(t, 3, usage.ServiceInstances)
 		require.Equal(t, 2, usage.ConnectServiceInstances[connectNativeInstancesTable])
 		require.Equal(t, 3, usage.BillableServiceInstances)
 
@@ -521,9 +521,9 @@ func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 
 		idx, usage, err = s.ServiceUsage(nil, true)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(7))
-		require.Equal(t, usage.Services, 3)
-		require.Equal(t, usage.ServiceInstances, 3)
+		require.Equal(t, uint64(7), idx)
+		require.Equal(t, 3, usage.Services)
+		require.Equal(t, 3, usage.ServiceInstances)
 		require.Equal(t, 2, usage.ConnectServiceInstances[connectNativeInstancesTable])
 		require.Equal(t, 3, usage.BillableServiceInstances)
 
@@ -548,9 +548,9 @@ func TestStateStore_Usage_ServiceUsage_updatingConnectProxy(t *testing.T) {
 		// We renamed a service with a single instance, so we maintain 1 service.
 		idx, usage, err := s.ServiceUsage(nil, true)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(2))
-		require.Equal(t, usage.Services, 1)
-		require.Equal(t, usage.ServiceInstances, 1)
+		require.Equal(t, uint64(2), idx)
+		require.Equal(t, 1, usage.Services)
+		require.Equal(t, 1, usage.ServiceInstances)
 		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 		require.Equal(t, 0, usage.BillableServiceInstances)
 	})
@@ -575,9 +575,9 @@ func TestStateStore_Usage_ServiceUsage_updatingConnectProxy(t *testing.T) {
 
 		idx, usage, err := s.ServiceUsage(nil, true)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(4))
-		require.Equal(t, usage.Services, 2)
-		require.Equal(t, usage.ServiceInstances, 3)
+		require.Equal(t, uint64(4), idx)
+		require.Equal(t, 2, usage.Services)
+		require.Equal(t, 3, usage.ServiceInstances)
 		require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 		require.Equal(t, 1, usage.BillableServiceInstances)
 
@@ -591,9 +591,9 @@ func TestStateStore_Usage_ServiceUsage_updatingConnectProxy(t *testing.T) {
 
 		idx, usage, err = s.ServiceUsage(nil, true)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(5))
-		require.Equal(t, usage.Services, 3)
-		require.Equal(t, usage.ServiceInstances, 3)
+		require.Equal(t, uint64(5), idx)
+		require.Equal(t, 3, usage.Services)
+		require.Equal(t, 3, usage.ServiceInstances)
 		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 		require.Equal(t, 2, usage.BillableServiceInstances)
 	})

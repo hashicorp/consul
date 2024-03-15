@@ -39,7 +39,7 @@ func TestIntentionList(t *testing.T) {
 
 		value := obj.(structs.Intentions)
 		require.NotNil(t, value)
-		require.Len(t, value, 0)
+		require.Empty(t, value)
 	})
 
 	t.Run("values", func(t *testing.T) {
@@ -736,7 +736,7 @@ func TestIntentionDeleteExact(t *testing.T) {
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.IntentionExact(resp, req)
 		require.NoError(t, err) // by-name deletions are idempotent
-		require.Equal(t, true, obj)
+		require.True(t, obj.(bool))
 	})
 
 	exact := ixn.ToExact()
@@ -794,7 +794,7 @@ func TestIntentionDeleteExact(t *testing.T) {
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.IntentionExact(resp, req)
 		require.NoError(t, err)
-		require.Equal(t, true, obj)
+		require.True(t, obj.(bool))
 
 		// Verify the intention is gone
 		{
@@ -865,7 +865,7 @@ func TestIntentionSpecificDelete(t *testing.T) {
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionSpecific(resp, req)
 	require.NoError(t, err)
-	require.Equal(t, true, obj)
+	require.True(t, obj.(bool))
 
 	// Verify the intention is gone
 	{

@@ -788,7 +788,7 @@ func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, ex
 		chk.CheckID = types.CheckID(fmt.Sprintf("check-%d", serviceNum))
 	}
 	err := agent.addServiceFromSource(srv, []*structs.CheckType{chk}, false, "", ConfigSourceLocal)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	return func(r *retry.R) {
 		t.Helper()
 		found := false
@@ -833,9 +833,9 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 	unlockIndexOnNode := func() {
 		// We ensure to not block and update Agent's index
 		srv.Tags = []string{fmt.Sprintf("tag-%s", time.Now())}
-		assert.NoError(t, a.waitForUp())
+		require.NoError(t, a.waitForUp())
 		err := a.addServiceFromSource(srv, []*structs.CheckType{}, false, "", ConfigSourceLocal)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 	shutdownAgent := func() {
 		// This is to be sure Alias Checks on remote won't be blocked during 1 min
@@ -848,9 +848,9 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 	defer shutdownAgent()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	assert.NoError(t, a.waitForUp())
+	require.NoError(t, a.waitForUp())
 	err := a.addServiceFromSource(srv, []*structs.CheckType{}, false, "", ConfigSourceLocal)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	retry.Run(t, func(r *retry.R) {
 		r.Helper()
@@ -860,7 +860,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		args.AllowStale = true
 		var out structs.IndexedNodeServices
 		err := a.RPC(context.Background(), "Catalog.NodeServices", &args, &out)
-		assert.NoError(r, err)
+		require.NoError(r, err)
 		foundService := false
 		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMetaInDefaultPartition())
 		for _, srv := range out.NodeServices.Services {
@@ -1151,7 +1151,7 @@ func TestAddServiceIPv4TaggedDefault(t *testing.T) {
 	}
 
 	err := a.addServiceFromSource(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
 	require.NotNil(t, ns)
@@ -1184,7 +1184,7 @@ func TestAddServiceIPv6TaggedDefault(t *testing.T) {
 	}
 
 	err := a.addServiceFromSource(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
 	require.NotNil(t, ns)
@@ -1223,7 +1223,7 @@ func TestAddServiceIPv4TaggedSet(t *testing.T) {
 	}
 
 	err := a.addServiceFromSource(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
 	require.NotNil(t, ns)
@@ -1262,7 +1262,7 @@ func TestAddServiceIPv6TaggedSet(t *testing.T) {
 	}
 
 	err := a.addServiceFromSource(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
 	require.NotNil(t, ns)
@@ -3432,7 +3432,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 
 	// Make sure it's there and there's no critical check yet.
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
+	require.Empty(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), "should not have critical checks")
 
 	// Wait for the check TTL to fail but before the check is reaped.
 	time.Sleep(100 * time.Millisecond)
@@ -3444,7 +3444,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
+	require.Empty(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), "should not have critical checks")
 
 	// Wait for the check TTL to fail again.
 	time.Sleep(100 * time.Millisecond)
@@ -3454,7 +3454,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 	// Wait for the reap.
 	time.Sleep(400 * time.Millisecond)
 	requireServiceMissing(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
+	require.Empty(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), "should not have critical checks")
 }
 
 func TestAgent_Service_NoReap(t *testing.T) {
@@ -3489,7 +3489,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 
 	// Make sure it's there and there's no critical check yet.
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0)
+	require.Empty(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()))
 
 	// Wait for the check TTL to fail.
 	time.Sleep(200 * time.Millisecond)
@@ -4067,7 +4067,7 @@ func TestAgent_SecurityChecks(t *testing.T) {
 	data := make([]byte, 0, 8192)
 	buf := &syncBuffer{b: bytes.NewBuffer(data)}
 	a.LogOutput = buf
-	assert.NoError(t, a.Start(t))
+	require.NoError(t, a.Start(t))
 	assert.Contains(t, buf.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
 }
 
@@ -4160,7 +4160,7 @@ func testAgent_ReloadConfigAndKeepChecksStatus(t *testing.T, extraHCL string) {
 
 	// Make sure check is passing before we reload.
 	gotChecks := a.State.Checks(nil)
-	require.Equal(t, 1, len(gotChecks), "Should have a check registered, but had %#v", gotChecks)
+	require.Len(t, gotChecks, 1, "Should have a check registered, but had %#v", gotChecks)
 	for id, check := range gotChecks {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
 	}
@@ -4294,7 +4294,7 @@ func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
 		},
 	)
 	require.NoError(t, a.reloadConfigInternal(c))
-	require.Equal(t, true, a.enableDebug.Load())
+	require.True(t, a.enableDebug.Load())
 
 	c = TestConfig(
 		testutil.Logger(t),
@@ -4305,7 +4305,7 @@ func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
 		},
 	)
 	require.NoError(t, a.reloadConfigInternal(c))
-	require.Equal(t, false, a.enableDebug.Load())
+	require.False(t, a.enableDebug.Load())
 }
 
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
@@ -4692,12 +4692,12 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
-		require.Equal(r, chks[0].ProxyHTTP, "http://localhost:21500/mypath?query")
+		require.Equal(r, "http://localhost:21500/mypath?query", chks[0].ProxyHTTP)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("http", nil))
-		require.Equal(r, hc.ExposedPort, 21500)
+		require.Equal(r, 21500, hc.ExposedPort)
 	})
 
 	retry.Run(t, func(r *retry.R) {
@@ -4705,12 +4705,12 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 		// GRPC check will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks.
 		// Note that this relies on listener ports auto-incrementing in a.listenerPortLocked.
-		require.Equal(r, chks[1].ProxyGRPC, "localhost:21501/myservice")
+		require.Equal(r, "localhost:21501/myservice", chks[1].ProxyGRPC)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("grpc", nil))
-		require.Equal(r, hc.ExposedPort, 21501)
+		require.Equal(r, 21501, hc.ExposedPort)
 	})
 
 	// Re-register a proxy and disable exposing HTTP checks.
@@ -4744,7 +4744,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("http", nil))
-		require.Equal(r, hc.ExposedPort, 0)
+		require.Equal(r, 0, hc.ExposedPort)
 	})
 
 	retry.Run(t, func(r *retry.R) {
@@ -4756,7 +4756,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("grpc", nil))
-		require.Equal(r, hc.ExposedPort, 0)
+		require.Equal(r, 0, hc.ExposedPort)
 	})
 }
 
@@ -4845,24 +4845,24 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
-		require.Equal(r, chks[0].ProxyHTTP, "http://localhost:21500/mypath?query")
+		require.Equal(r, "http://localhost:21500/mypath?query", chks[0].ProxyHTTP)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("http", nil))
-		require.Equal(r, hc.ExposedPort, 21500)
+		require.Equal(r, 21500, hc.ExposedPort)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
 
 		// GRPC check will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks.
-		require.Equal(r, chks[1].ProxyGRPC, "localhost:21501/myservice")
+		require.Equal(r, "localhost:21501/myservice", chks[1].ProxyGRPC)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("grpc", nil))
-		require.Equal(r, hc.ExposedPort, 21501)
+		require.Equal(r, 21501, hc.ExposedPort)
 	})
 }
 

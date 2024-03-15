@@ -10,6 +10,7 @@ import (
 
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
@@ -53,7 +54,7 @@ func TestPolicyDeleteCommand(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -62,7 +63,7 @@ func TestPolicyDeleteCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()

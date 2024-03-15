@@ -772,7 +772,7 @@ func TestVaultCAProvider_AliCloudAuthClient(t *testing.T) {
 
 				queries := requrl.Query()
 				require.Subset(t, queries, c.expQry, "query missing fields")
-				require.Equal(t, requrl.Hostname(), "sts.test-region.aliyuncs.com")
+				require.Equal(t, "sts.test-region.aliyuncs.com", requrl.Hostname())
 			}
 		})
 	}

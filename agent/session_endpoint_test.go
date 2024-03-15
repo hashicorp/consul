@@ -279,7 +279,7 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.SessionCreate(resp, req)
 		require.NoError(r, err)
-		require.Equal(r, resp.Code, http.StatusOK)
+		require.Equal(r, http.StatusOK, resp.Code)
 
 		want := structs.Session{
 			ID:         obj.(sessionCreateResponse).ID,
@@ -320,7 +320,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.SessionCreate(resp, req)
 			require.NoError(r, err)
-			require.Equal(r, resp.Code, http.StatusOK, resp.Body.String())
+			require.Equal(r, http.StatusOK, resp.Code, resp.Body.String())
 
 			want := structs.Session{
 				ID:         obj.(sessionCreateResponse).ID,
@@ -350,7 +350,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.SessionCreate(resp, req)
 			require.NoError(r, err)
-			require.Equal(r, resp.Code, http.StatusOK)
+			require.Equal(r, http.StatusOK, resp.Code)
 
 			want := structs.Session{
 				ID:         obj.(sessionCreateResponse).ID,
@@ -381,7 +381,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.SessionCreate(resp, req)
 			require.NoError(r, err)
-			require.Equal(r, resp.Code, http.StatusOK)
+			require.Equal(r, http.StatusOK, resp.Code)
 
 			want := structs.Session{
 				ID:         obj.(sessionCreateResponse).ID,
@@ -518,7 +518,7 @@ func TestSessionCustomTTL(t *testing.T) {
 		}
 		respObj, ok = obj.(structs.Sessions)
 		require.True(r, ok, "unexpected type: %T", obj)
-		require.Len(r, respObj, 0)
+		require.Empty(r, respObj)
 	})
 }
 

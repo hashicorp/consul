@@ -82,7 +82,7 @@ func TestGRPCMiddleware_restrictPeeringEndpoints(t *testing.T) {
 			if tc.expectErr == "" {
 				require.NoError(t, err)
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectErr)
 			}
 		})

@@ -55,7 +55,7 @@ func TestStore_IntentionGet_none(t *testing.T) {
 		idx, _, res, err := s.IntentionGet(ws, testUUID())
 		assert.Equal(t, uint64(1), idx)
 		assert.Nil(t, res)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -66,7 +66,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 		// Call Get to populate the watch set
 		ws := memdb.NewWatchSet()
 		_, _, _, err := s.IntentionGet(ws, testUUID())
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Build a valid intention
 		var (
@@ -820,7 +820,7 @@ func TestStore_LegacyIntentionSet_emptyId(t *testing.T) {
 	require.Contains(t, err.Error(), ErrMissingIntentionID.Error())
 
 	// Index is not updated if nothing is saved.
-	require.Equal(t, s.maxIndex(tableConnectIntentions), uint64(0))
+	require.Equal(t, uint64(0), s.maxIndex(tableConnectIntentions))
 	require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 
 	require.False(t, watchFired(ws), "watch fired")
@@ -1782,8 +1782,8 @@ func TestStore_IntentionMatch_WatchesDuringUpgrade(t *testing.T) {
 	ws := memdb.NewWatchSet()
 	_, matches, err := s.IntentionMatch(ws, &args)
 	require.NoError(t, err)
-	require.Len(t, matches, 1)    // one request gets one response
-	require.Len(t, matches[0], 0) // but no intentions
+	require.Len(t, matches, 1)   // one request gets one response
+	require.Empty(t, matches[0]) // but no intentions
 
 	disableLegacyIntentions(s)
 	conf := &structs.ServiceIntentionsConfigEntry{
@@ -1835,7 +1835,7 @@ func TestStore_LegacyIntention_Snapshot_Restore(t *testing.T) {
 	require.NoError(t, s.LegacyIntentionDelete(7, ixns[0].ID))
 
 	// Verify the snapshot.
-	require.Equal(t, snap.LastIndex(), uint64(6))
+	require.Equal(t, uint64(6), snap.LastIndex())
 
 	// Expect them sorted in insertion order
 	expected := structs.Intentions{
@@ -1891,7 +1891,7 @@ func TestStore_LegacyIntention_Snapshot_Restore(t *testing.T) {
 		entMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
 		idx, actual, fromConfig, err := s.Intentions(nil, entMeta)
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(6))
+		require.Equal(t, uint64(6), idx)
 		require.False(t, fromConfig)
 		require.Equal(t, expected, actual)
 	}()

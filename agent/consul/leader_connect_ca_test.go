@@ -22,7 +22,6 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
@@ -357,7 +356,7 @@ func TestCAManager_Initialize(t *testing.T) {
 	errCh := make(chan error)
 	go func() {
 		err := manager.Initialize()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		errCh <- err
 	}()
 
@@ -416,7 +415,7 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	// make sure we get an error about the state being occupied.
 	go func() {
 		require.EqualValues(t, caStateRenewIntermediate, manager.state)
-		require.Error(t, errors.New("already in state"), manager.UpdateConfiguration(&structs.CARequest{}))
+		require.ErrorIs(t, errors.New("already in state"), manager.UpdateConfiguration(&structs.CARequest{}))
 	}()
 
 	waitForCh(t, delegate.callbackCh, "forwardDC/ConnectCA.SignIntermediate")
@@ -1092,7 +1091,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 		var resp error
 		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", req, &resp)
 		require.NoError(t, err)
-		require.Nil(t, resp)
+		require.NoError(t, resp)
 
 		roots = structs.IndexedCARoots{}
 		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
@@ -1167,7 +1166,7 @@ func TestCAManager_Initialize_Vault_WithExternalTrustedCA(t *testing.T) {
 		var resp error
 		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", req, &resp)
 		require.NoError(t, err)
-		require.Nil(t, resp)
+		require.NoError(t, resp)
 
 		roots = structs.IndexedCARoots{}
 		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)

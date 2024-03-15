@@ -236,7 +236,7 @@ func Test_FetchWorkload(t *testing.T) {
 			df := NewV2DataFetcher(rc, client, logger)
 
 			result, err := df.FetchWorkload(tc.context, tc.queryPayload)
-			require.True(t, errors.Is(err, tc.expectedErr))
+			require.ErrorIs(t, err, tc.expectedErr)
 			require.Equal(t, tc.expectedResult, result)
 		})
 	}
@@ -741,7 +741,7 @@ func Test_V2FetchEndpoints(t *testing.T) {
 			df := NewV2DataFetcher(tc.rc, client, logger)
 
 			result, err := df.FetchEndpoints(tc.context, tc.queryPayload, LookupTypeService)
-			require.True(t, errors.Is(err, tc.expectedErr))
+			require.ErrorIs(t, err, tc.expectedErr)
 
 			if tc.verifyShuffle {
 				require.NotEqualf(t, tc.expectedResult, result, "expected result to be shuffled. There is a small probability that it shuffled back to the original order. In that case, you may want to play the lottery.")

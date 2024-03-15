@@ -125,5 +125,5 @@ func TestAPI_ConfigEntries_InlineCertificate(t *testing.T) {
 
 	// try to get it
 	_, _, err = configEntries.Get(InlineCertificate, cert1.Name, nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 }

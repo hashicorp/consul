@@ -54,7 +54,7 @@ func PeeringExportsOpts(t *testing.T, client *api.Client, peerName string, expor
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
 		peering, _, err := client.Peerings().Read(context.Background(), peerName, opts)
-		require.Nil(r, err, "reading peering data")
+		require.NoError(r, err, "reading peering data")
 		require.NotNilf(r, peering, "peering not found %q", peerName)
 		assert.Len(r, peering.StreamStatus.ExportedServices, exports, "peering exported services")
 	})

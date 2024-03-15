@@ -188,10 +188,12 @@ func (suite *selectionTrackerSuite) TearDownTest() {
 }
 
 func (suite *selectionTrackerSuite) requireMappedIDs(t *testing.T, workload *pbresource.Resource, ids ...*pbresource.ID) {
+	suite.T().Helper()
+
 	t.Helper()
 
 	reqs, err := suite.tracker.MapWorkload(context.Background(), suite.rt, workload)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	require.Len(t, reqs, len(ids))
 	for _, id := range ids {
 		prototest.AssertContainsElement(t, reqs, controller.Request{ID: id})
@@ -203,7 +205,7 @@ func (suite *selectionTrackerSuite) requireMappedIDsAllTenancies(t *testing.T, w
 
 	for i := range suite.executedTenancies {
 		reqs, err := suite.tracker.MapWorkload(context.Background(), suite.rt, workloads[i])
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		require.Len(t, reqs, len(ids))
 		for _, id := range ids {
 			prototest.AssertContainsElement(t, reqs, controller.Request{ID: id[i]})

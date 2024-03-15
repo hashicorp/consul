@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -101,10 +100,10 @@ func (suite *controllerSuite) TestController_Ok() {
 
 	tsRes := suite.client.WaitForResourceExists(suite.T(), &pbresource.ID{Name: "global", Type: pbhcp.TelemetryStateType})
 	decodedState, err := resource.Decode[*pbhcp.TelemetryState](tsRes)
-	require.NoError(suite.T(), err)
-	require.Equal(suite.T(), link.GetData().GetResourceId(), decodedState.GetData().ResourceId)
-	require.Equal(suite.T(), "xxx", decodedState.GetData().ClientId)
-	require.Equal(suite.T(), "http://localhost/test", decodedState.GetData().Metrics.Endpoint)
+	suite.Require().NoError(err)
+	suite.Require().Equal(link.GetData().GetResourceId(), decodedState.GetData().ResourceId)
+	suite.Require().Equal("xxx", decodedState.GetData().ClientId)
+	suite.Require().Equal("http://localhost/test", decodedState.GetData().Metrics.Endpoint)
 
 	suite.client.MustDelete(suite.T(), link.Id)
 	suite.client.WaitForDeletion(suite.T(), tsRes.Id)
@@ -169,6 +168,6 @@ func (suite *controllerSuite) writeLinkResource() *types.DecodedLink {
 
 	suite.T().Cleanup(suite.deleteResourceFunc(res.Id))
 	link, err := resource.Decode[*pbhcp.Link](res)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	return link
 }

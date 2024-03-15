@@ -41,7 +41,7 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 	client := testClient(t, server)
 	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 4, len(resp.SupportedDataplaneFeatures))
+	require.Len(t, resp.SupportedDataplaneFeatures, 4)
 
 	for _, feature := range resp.SupportedDataplaneFeatures {
 		switch feature.GetFeatureName() {
@@ -75,7 +75,7 @@ func TestSupportedDataplaneFeatures_ACLsDisabled(t *testing.T) {
 	client := testClient(t, server)
 	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 4, len(resp.SupportedDataplaneFeatures))
+	require.Len(t, resp.SupportedDataplaneFeatures, 4)
 }
 
 func TestSupportedDataplaneFeatures_InvalidACLToken(t *testing.T) {

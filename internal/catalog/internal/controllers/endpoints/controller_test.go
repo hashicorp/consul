@@ -462,9 +462,11 @@ func (suite *controllerSuite) SetupTest() {
 }
 
 func (suite *controllerSuite) requireEndpoints(resource *pbresource.Resource, expected ...*pbcatalog.Endpoint) {
+	suite.T().Helper()
+
 	var svcEndpoints pbcatalog.ServiceEndpoints
-	require.NoError(suite.T(), resource.Data.UnmarshalTo(&svcEndpoints))
-	require.Len(suite.T(), svcEndpoints.Endpoints, len(expected))
+	suite.Require().NoError(resource.Data.UnmarshalTo(&svcEndpoints))
+	suite.Require().Len(svcEndpoints.Endpoints, len(expected))
 	prototest.AssertElementsMatch(suite.T(), expected, svcEndpoints.Endpoints)
 }
 
@@ -476,7 +478,7 @@ func (suite *controllerSuite) TestReconcile_ServiceNotFound() {
 
 		// Because the endpoints don't exist, this reconcile call not error but also shouldn't do anything useful.
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -499,7 +501,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_NoEndpoints() {
 		endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, "test").WithTenancy(tenancy).ID()
 
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpointsID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionUnmanaged)
 	})
@@ -528,7 +530,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_ManagedEndpoints() {
 			Write(suite.T(), suite.client)
 
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		// the status should indicate the services endpoints are not being managed
 		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionUnmanaged)
 		// endpoints under management should be deleted
@@ -557,7 +559,7 @@ func (suite *controllerSuite) TestReconcile_NoSelector_UnmanagedEndpoints() {
 			Write(suite.T(), suite.client)
 
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		// the status should indicate the services endpoints are not being managed
 		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionUnmanaged)
 		// unmanaged endpoints should not be deleted when the service is unmanaged
@@ -595,7 +597,7 @@ func (suite *controllerSuite) TestReconcile_Managed_NoPreviousEndpoints() {
 			Write(suite.T(), suite.client)
 
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpointsID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Verify that the services status has been set to indicate endpoints are automatically managed.
 		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionManaged)
@@ -605,8 +607,8 @@ func (suite *controllerSuite) TestReconcile_Managed_NoPreviousEndpoints() {
 
 		var endpoints pbcatalog.ServiceEndpoints
 		err = res.Data.UnmarshalTo(&endpoints)
-		require.NoError(suite.T(), err)
-		require.Len(suite.T(), endpoints.Endpoints, 1)
+		suite.Require().NoError(err)
+		suite.Require().Len(endpoints.Endpoints, 1)
 	})
 	// We are not going to retest that the workloads to endpoints conversion process
 	// The length check should be sufficient to prove the endpoints are being
@@ -648,15 +650,15 @@ func (suite *controllerSuite) TestReconcile_Managed_ExistingEndpoints() {
 			Write(suite.T(), suite.client)
 
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionManaged)
 		res := suite.client.RequireResourceMeta(suite.T(), endpoints.Id, endpointsMetaManagedBy, ControllerID)
 
 		var newEndpoints pbcatalog.ServiceEndpoints
 		err = res.Data.UnmarshalTo(&newEndpoints)
-		require.NoError(suite.T(), err)
-		require.Len(suite.T(), newEndpoints.Endpoints, 1)
+		suite.Require().NoError(err)
+		suite.Require().Len(newEndpoints.Endpoints, 1)
 	})
 }
 

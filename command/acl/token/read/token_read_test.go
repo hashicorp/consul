@@ -55,7 +55,7 @@ func TestTokenReadCommand_Pretty(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -64,7 +64,7 @@ func TestTokenReadCommand_Pretty(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
@@ -102,7 +102,7 @@ func TestTokenReadCommand_JSON(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -112,7 +112,7 @@ func TestTokenReadCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	var jsonOutput json.RawMessage
@@ -149,7 +149,7 @@ func TestTokenReadCommand_Self(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -158,7 +158,7 @@ func TestTokenReadCommand_Self(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()

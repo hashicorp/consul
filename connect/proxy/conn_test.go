@@ -26,17 +26,17 @@ func testConnPairSetup(t *testing.T) (net.Conn, net.Conn, func()) {
 	t.Helper()
 
 	l, err := net.Listen("tcp", "localhost:0")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ch := make(chan net.Conn, 1)
 	go func() {
 		src, err := l.Accept()
-		require.Nil(t, err)
+		require.NoError(t, err)
 		ch <- src
 	}()
 
 	dst, err := net.Dial("tcp", l.Addr().String())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	src := <-ch
 
@@ -82,16 +82,16 @@ func TestConn(t *testing.T) {
 	dstR := bufio.NewReader(dst)
 
 	_, err := src.Write([]byte("ping 1\n"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	_, err = dst.Write([]byte("ping 2\n"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	got, err := dstR.ReadString('\n')
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "ping 1\n", got)
 
 	got, err = srcR.ReadString('\n')
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "ping 2\n", got)
 
 	retry.Run(t, func(r *retry.R) {
@@ -101,16 +101,16 @@ func TestConn(t *testing.T) {
 	})
 
 	_, err = src.Write([]byte("pong 1\n"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	_, err = dst.Write([]byte("pong 2\n"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	got, err = dstR.ReadString('\n')
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "pong 1\n", got)
 
 	got, err = srcR.ReadString('\n')
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "pong 2\n", got)
 
 	retry.Run(t, func(r *retry.R) {
@@ -122,7 +122,7 @@ func TestConn(t *testing.T) {
 	c.Close()
 
 	ret := <-retCh
-	require.Nil(t, ret, "Close() should not cause error return")
+	require.NoError(t, ret, "Close() should not cause error return")
 }
 
 func TestConnSrcClosing(t *testing.T) {
@@ -140,15 +140,15 @@ func TestConnSrcClosing(t *testing.T) {
 	dstR := bufio.NewReader(dst)
 
 	_, err := src.Write([]byte("ping 1\n"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	_, err = dst.Write([]byte("ping 2\n"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	got, err := dstR.ReadString('\n')
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "ping 1\n", got)
 	got, err = srcR.ReadString('\n')
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "ping 2\n", got)
 
 	// If we close the src conn, we expect CopyBytes to return and dst to be
@@ -178,15 +178,15 @@ func TestConnDstClosing(t *testing.T) {
 	dstR := bufio.NewReader(dst)
 
 	_, err := src.Write([]byte("ping 1\n"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	_, err = dst.Write([]byte("ping 2\n"))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	got, err := dstR.ReadString('\n')
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "ping 1\n", got)
 	got, err = srcR.ReadString('\n')
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "ping 2\n", got)
 
 	// If we close the dst conn, we expect CopyBytes to return and src to be

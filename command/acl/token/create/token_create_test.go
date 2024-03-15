@@ -229,7 +229,7 @@ func TestTokenCreateCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		var jsonOutput json.RawMessage

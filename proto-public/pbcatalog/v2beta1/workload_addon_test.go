@@ -215,7 +215,7 @@ func TestGetFirstNonExternalMeshAddress(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			actualAddress := c.workload.GetFirstNonExternalMeshAddress()
-			require.Equal(t, actualAddress, c.expAddress)
+			require.Equal(t, c.expAddress, actualAddress)
 		})
 	}
 }

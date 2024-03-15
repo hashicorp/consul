@@ -18,7 +18,7 @@ import (
 func TestHostStats_CPU(t *testing.T) {
 	logger := testutil.Logger(t)
 	cwd, err := os.Getwd()
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	hs := initCollector(logger, cwd)
 
 	// Collect twice so we can calculate percents we need to generate some work

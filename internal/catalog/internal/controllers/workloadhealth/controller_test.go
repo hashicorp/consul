@@ -174,7 +174,7 @@ func (suite *workloadHealthControllerTestSuite) testReconcileWithNode(nodeHealth
 		ID: workload.Id,
 	})
 
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	return suite.checkWorkloadStatus(workload.Id, status)
 }
@@ -204,7 +204,7 @@ func (suite *workloadHealthControllerTestSuite) testReconcileWithoutNode(workloa
 		ID: workload.Id,
 	})
 
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	// Read the resource back so we can detect the status changes
 	return suite.checkWorkloadStatus(workload.Id, status)
@@ -219,12 +219,12 @@ func (suite *workloadHealthControllerTestSuite) checkWorkloadStatus(id *pbresour
 		Id: id,
 	})
 
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	actualStatus, found := rsp.Resource.Status[ControllerID]
-	require.True(suite.T(), found)
-	require.Equal(suite.T(), rsp.Resource.Generation, actualStatus.ObservedGeneration)
-	require.Len(suite.T(), actualStatus.Conditions, 1)
+	suite.Require().True(found)
+	suite.Require().Equal(rsp.Resource.Generation, actualStatus.ObservedGeneration)
+	suite.Require().Len(actualStatus.Conditions, 1)
 	prototest.AssertDeepEqual(suite.T(), status, actualStatus.Conditions[0])
 
 	return rsp.Resource
@@ -378,8 +378,8 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileReadError() {
 		id := resourceID(fakeType, "blah", tenancy)
 
 		err := suite.ctl.Reconcile(context.Background(), controller.Request{ID: id})
-		require.Error(suite.T(), err)
-		require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
+		suite.Require().Error(err)
+		suite.Require().Equal(codes.InvalidArgument, status.Code(err))
 	})
 }
 
@@ -416,8 +416,8 @@ func (suite *workloadHealthControllerTestSuite) TestGetNodeHealthError() {
 			ID: workload.Id,
 		})
 
-		require.Error(suite.T(), err)
-		require.Equal(suite.T(), errNodeUnreconciled, err)
+		suite.Require().Error(err)
+		suite.Require().Equal(errNodeUnreconciled, err)
 	})
 }
 
@@ -437,7 +437,7 @@ func (suite *workloadHealthControllerTestSuite) TestReconcile_AvoidReconciliatio
 		res1 := suite.testReconcileWithoutNode(pbcatalog.Health_HEALTH_WARNING, tenancy, status)
 
 		err := suite.ctl.Reconcile(context.Background(), controller.Request{ID: res1.Id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// check that the status hasn't changed
 		res2 := suite.checkWorkloadStatus(res1.Id, status)
@@ -445,7 +445,7 @@ func (suite *workloadHealthControllerTestSuite) TestReconcile_AvoidReconciliatio
 		// If another status write was performed then the versions would differ. This
 		// therefore proves that after a second reconciliation without any change
 		// in status that the controller is not making extra status writes.
-		require.Equal(suite.T(), res1.Version, res2.Version)
+		suite.Require().Equal(res1.Version, res2.Version)
 	})
 }
 
@@ -579,9 +579,9 @@ func (suite *getWorkloadHealthTestSuite) TestListError() {
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		health, err := getWorkloadHealth(context.Background(), suite.runtime, resourceID(fakeType, "foo", tenancy))
 
-		require.Error(suite.T(), err)
-		require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
+		suite.Require().Error(err)
+		suite.Require().Equal(codes.InvalidArgument, status.Code(err))
+		suite.Require().Equal(pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
 }
 
@@ -595,8 +595,8 @@ func (suite *getWorkloadHealthTestSuite) TestNoHealthStatuses() {
 			Write(suite.T(), suite.client)
 
 		health, err := getWorkloadHealth(context.Background(), suite.runtime, workload.Id)
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_PASSING, health)
+		suite.Require().NoError(err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_PASSING, health)
 	})
 }
 
@@ -622,8 +622,8 @@ func (suite *getWorkloadHealthTestSuite) TestWithStatuses() {
 				suite.addHealthStatuses(workload.Id, tenancy, health)
 
 				actualHealth, err := getWorkloadHealth(context.Background(), suite.runtime, workload.Id)
-				require.NoError(suite.T(), err)
-				require.Equal(suite.T(), health, actualHealth)
+				suite.Require().NoError(err)
+				suite.Require().Equal(health, actualHealth)
 			})
 		}
 	})
@@ -646,8 +646,8 @@ func (suite *getNodeHealthTestSuite) TestNotfound() {
 		health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(pbcatalog.NodeType, "not-found", &pbresource.Tenancy{
 			Partition: tenancy.Partition,
 		}))
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
+		suite.Require().NoError(err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
 }
 
@@ -656,9 +656,9 @@ func (suite *getNodeHealthTestSuite) TestReadError() {
 	// its resource read call back to the caller.
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(fakeType, "not-found", tenancy))
-		require.Error(suite.T(), err)
-		require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
+		suite.Require().Error(err)
+		suite.Require().Equal(codes.InvalidArgument, status.Code(err))
+		suite.Require().Equal(pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
 }
 
@@ -676,9 +676,9 @@ func (suite *getNodeHealthTestSuite) TestUnreconciled() {
 			GetId()
 
 		health, err := getNodeHealth(context.Background(), suite.runtime, node)
-		require.Error(suite.T(), err)
-		require.Equal(suite.T(), errNodeUnreconciled, err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
+		suite.Require().Error(err)
+		suite.Require().Equal(errNodeUnreconciled, err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
 }
 
@@ -700,9 +700,9 @@ func (suite *getNodeHealthTestSuite) TestNoConditions() {
 			GetId()
 
 		health, err := getNodeHealth(context.Background(), suite.runtime, node)
-		require.Error(suite.T(), err)
-		require.Equal(suite.T(), errNodeHealthConditionNotFound, err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
+		suite.Require().Error(err)
+		suite.Require().Equal(errNodeHealthConditionNotFound, err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
 }
 
@@ -733,9 +733,9 @@ func (suite *getNodeHealthTestSuite) TestInvalidReason() {
 			GetId()
 
 		health, err := getNodeHealth(context.Background(), suite.runtime, node)
-		require.Error(suite.T(), err)
-		require.Equal(suite.T(), errNodeHealthInvalid, err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
+		suite.Require().Error(err)
+		suite.Require().Equal(errNodeHealthInvalid, err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
 }
 

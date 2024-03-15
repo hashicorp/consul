@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/internal/controller/cache/cachemock"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -67,8 +66,10 @@ func (suite *cloningReadOnlyCacheSuite) makeMockIterator(resources ...*pbresourc
 }
 
 func (suite *cloningReadOnlyCacheSuite) requireEqualNotSame(expected, actual *pbresource.Resource) {
-	require.Equal(suite.T(), expected, actual)
-	require.NotSame(suite.T(), expected, actual)
+	suite.T().Helper()
+
+	suite.Require().Equal(expected, actual)
+	suite.Require().NotSame(expected, actual)
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestGet_Ok() {
@@ -77,7 +78,7 @@ func (suite *cloningReadOnlyCacheSuite) TestGet_Ok() {
 		Return(suite.res1, nil)
 
 	actual, err := suite.ccache.Get(suite.rtype, indexName, "ok")
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	suite.requireEqualNotSame(suite.res1, actual)
 }
 
@@ -87,8 +88,8 @@ func (suite *cloningReadOnlyCacheSuite) TestGet_Error() {
 		Return(nil, injectedError)
 
 	actual, err := suite.ccache.Get(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), actual)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(actual)
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestList_Ok() {
@@ -99,8 +100,8 @@ func (suite *cloningReadOnlyCacheSuite) TestList_Ok() {
 		Return(preClone, nil)
 
 	postClone, err := suite.ccache.List(suite.rtype, indexName, "ok")
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), postClone, len(preClone))
+	suite.Require().NoError(err)
+	suite.Require().Len(postClone, len(preClone))
 	for i, actual := range postClone {
 		suite.requireEqualNotSame(preClone[i], actual)
 	}
@@ -112,8 +113,8 @@ func (suite *cloningReadOnlyCacheSuite) TestList_Error() {
 		Return(nil, injectedError)
 
 	actual, err := suite.ccache.List(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), actual)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(actual)
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestParents_Ok() {
@@ -124,8 +125,8 @@ func (suite *cloningReadOnlyCacheSuite) TestParents_Ok() {
 		Return(preClone, nil)
 
 	postClone, err := suite.ccache.Parents(suite.rtype, indexName, "ok")
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), postClone, len(preClone))
+	suite.Require().NoError(err)
+	suite.Require().Len(postClone, len(preClone))
 	for i, actual := range postClone {
 		suite.requireEqualNotSame(preClone[i], actual)
 	}
@@ -137,8 +138,8 @@ func (suite *cloningReadOnlyCacheSuite) TestParents_Error() {
 		Return(nil, injectedError)
 
 	actual, err := suite.ccache.Parents(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), actual)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(actual)
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestListIterator_Ok() {
@@ -147,12 +148,12 @@ func (suite *cloningReadOnlyCacheSuite) TestListIterator_Ok() {
 		Return(suite.makeMockIterator(suite.res1, suite.res2), nil)
 
 	iter, err := suite.ccache.ListIterator(suite.rtype, indexName, "ok")
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	suite.requireEqualNotSame(suite.res1, iter.Next())
 	suite.requireEqualNotSame(suite.res2, iter.Next())
-	require.Nil(suite.T(), iter.Next())
+	suite.Require().Nil(iter.Next())
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestListIterator_Error() {
@@ -161,8 +162,8 @@ func (suite *cloningReadOnlyCacheSuite) TestListIterator_Error() {
 		Return(nil, injectedError)
 
 	actual, err := suite.ccache.ListIterator(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), actual)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(actual)
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestParentsIterator_Ok() {
@@ -171,12 +172,12 @@ func (suite *cloningReadOnlyCacheSuite) TestParentsIterator_Ok() {
 		Return(suite.makeMockIterator(suite.res1, suite.res2), nil)
 
 	iter, err := suite.ccache.ParentsIterator(suite.rtype, indexName, "ok")
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	suite.requireEqualNotSame(suite.res1, iter.Next())
 	suite.requireEqualNotSame(suite.res2, iter.Next())
-	require.Nil(suite.T(), iter.Next())
+	suite.Require().Nil(iter.Next())
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestParentsIterator_Error() {
@@ -185,8 +186,8 @@ func (suite *cloningReadOnlyCacheSuite) TestParentsIterator_Error() {
 		Return(nil, injectedError)
 
 	actual, err := suite.ccache.ParentsIterator(suite.rtype, indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), actual)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(actual)
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestQuery_Ok() {
@@ -195,12 +196,12 @@ func (suite *cloningReadOnlyCacheSuite) TestQuery_Ok() {
 		Return(suite.makeMockIterator(suite.res1, suite.res2), nil)
 
 	iter, err := suite.ccache.Query(indexName, "ok")
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	suite.requireEqualNotSame(suite.res1, iter.Next())
 	suite.requireEqualNotSame(suite.res2, iter.Next())
-	require.Nil(suite.T(), iter.Next())
+	suite.Require().Nil(iter.Next())
 }
 
 func (suite *cloningReadOnlyCacheSuite) TestQuery_Error() {
@@ -209,6 +210,6 @@ func (suite *cloningReadOnlyCacheSuite) TestQuery_Error() {
 		Return(nil, injectedError)
 
 	actual, err := suite.ccache.Query(indexName, "error")
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), actual)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(actual)
 }

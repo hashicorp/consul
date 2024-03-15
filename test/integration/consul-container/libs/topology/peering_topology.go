@@ -216,7 +216,7 @@ func NewClusterWithConfig(
 		err     error
 	)
 	require.NotEmpty(t, config.BuildOpts.Datacenter)
-	require.True(t, config.NumServers > 0)
+	require.Greater(t, config.NumServers, 0)
 
 	opts := libcluster.BuildOptions{
 		Datacenter:             config.BuildOpts.Datacenter,

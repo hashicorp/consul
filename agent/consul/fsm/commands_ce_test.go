@@ -1114,7 +1114,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Create a new intention.
 	ixn := structs.IntentionRequest{
@@ -1128,14 +1128,14 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Nil(t, fsm.Apply(makeLog(buf)))
 	}
 
 	// Verify it's in the state store.
 	{
 		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
@@ -1148,14 +1148,14 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 	ixn.Intention.SourceName = "api"
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Nil(t, fsm.Apply(makeLog(buf)))
 	}
 
 	// Verify the update.
 	{
 		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
@@ -1167,14 +1167,14 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 	ixn.Op = structs.IntentionOpDelete
 	{
 		buf, err := structs.Encode(structs.IntentionRequestType, ixn)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Nil(t, fsm.Apply(makeLog(buf)))
 	}
 
 	// Make sure it's gone.
 	{
 		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Nil(t, actual)
 	}
 }
@@ -1184,7 +1184,7 @@ func TestFSM_CAConfig(t *testing.T) {
 
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Set the autopilot config using a request.
 	req := structs.CARequest{
@@ -1199,7 +1199,7 @@ func TestFSM_CAConfig(t *testing.T) {
 		},
 	}
 	buf, err := structs.Encode(structs.ConnectCARequestType, req)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	resp := fsm.Apply(makeLog(buf))
 	if _, ok := resp.(error); ok {
 		t.Fatalf("bad: %v", resp)
@@ -1240,7 +1240,7 @@ func TestFSM_CAConfig(t *testing.T) {
 	}
 
 	_, config, err = fsm.state.CAConfig(nil)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	if config.Provider != "static" {
 		t.Fatalf("bad: %v", config.Provider)
 	}
@@ -1251,7 +1251,7 @@ func TestFSM_CARoots(t *testing.T) {
 
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Roots
 	ca1 := connect.TestCA(t, nil)
@@ -1266,14 +1266,14 @@ func TestFSM_CARoots(t *testing.T) {
 
 	{
 		buf, err := structs.Encode(structs.ConnectCARequestType, req)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.True(t, fsm.Apply(makeLog(buf)).(bool))
 	}
 
 	// Verify it's in the state store.
 	{
 		_, roots, err := fsm.state.CARoots(nil)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Len(t, roots, 2)
 	}
 }
@@ -1283,7 +1283,7 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Provider state.
 	expected := &structs.CAConsulProviderState{
@@ -1304,14 +1304,14 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 
 	{
 		buf, err := structs.Encode(structs.ConnectCARequestType, req)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.True(t, fsm.Apply(makeLog(buf)).(bool))
 	}
 
 	// Verify it's in the state store.
 	{
 		_, state, err := fsm.state.CAProviderState("foo")
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expected, state)
 	}
 }
@@ -1697,7 +1697,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 		_, checks, err := fsm2.state.NodeChecks(nil, fmt.Sprintf("foo%d", i), nil, "")
 		require.NoError(t, err)
 		require.NotNil(t, checks)
-		assert.Equal(t, string(checks[0].CheckID), "db")
+		assert.Equal(t, "db", string(checks[0].CheckID))
 	}
 }
 

@@ -52,7 +52,7 @@ func TestManager_changingRoots(t *testing.T) {
 		require.NoError(t, result.Err)
 		require.NotNil(t, result.Value)
 		requireLeafValidUnderCA(t, result.Value, caRoot)
-		require.True(t, result.Index > 0)
+		require.Greater(t, result.Index, 0)
 
 		idx = result.Index
 	}
@@ -75,7 +75,7 @@ func TestManager_changingRoots(t *testing.T) {
 	case result := <-getCh:
 		require.NoError(t, result.Err)
 		require.NotNil(t, result.Value)
-		require.True(t, result.Index > idx)
+		require.Greater(t, result.Index, idx)
 		requireLeafValidUnderCA(t, result.Value, caRoot2)
 	}
 
@@ -130,7 +130,7 @@ func TestManager_changingRootsJitterBetweenCalls(t *testing.T) {
 	case result := <-getCh:
 		require.NoError(t, result.Err)
 		require.NotNil(t, result.Value)
-		require.True(t, result.Index > 0)
+		require.Greater(t, result.Index, 0)
 		requireLeafValidUnderCA(t, result.Value, caRoot)
 		idx = result.Index
 		issued = result.Value
@@ -178,7 +178,7 @@ func TestManager_changingRootsJitterBetweenCalls(t *testing.T) {
 				require.NotNil(t, result.Value)
 				requireLeafValidUnderCA(t, result.Value, caRoot2)
 				// Should not have been delivered before the delay
-				require.True(t, time.Since(earliestRootDelivery) > TestOverrideCAChangeInitialDelay)
+				require.Greater(t, time.Since(earliestRootDelivery), TestOverrideCAChangeInitialDelay)
 				// All good. We are done!
 				rootsDelivered = true
 			} else {
@@ -187,7 +187,7 @@ func TestManager_changingRootsJitterBetweenCalls(t *testing.T) {
 				require.Equal(t, idx, result.Index)
 				requireLeafValidUnderCA(t, result.Value, caRoot)
 				// Sanity check we blocked for the whole timeout
-				require.Truef(t, timeTaken > req.MaxQueryTime,
+				require.Greaterf(t, timeTaken, req.MaxQueryTime,
 					"should block for at least %s, returned after %s",
 					req.MaxQueryTime, timeTaken)
 				// Sanity check that the forceExpireAfter state was set correctly
@@ -248,7 +248,7 @@ func TestManager_changingRootsBetweenBlockingCalls(t *testing.T) {
 		require.NoError(t, result.Err)
 		require.NotNil(t, result.Value)
 		requireLeafValidUnderCA(t, result.Value, caRoot)
-		require.True(t, result.Index > 0)
+		require.Greater(t, result.Index, 0)
 		idx = result.Index
 		issued = result.Value
 	}
@@ -265,7 +265,7 @@ func TestManager_changingRootsBetweenBlockingCalls(t *testing.T) {
 		// Still the initial cached result
 		require.Equal(t, idx, result.Index)
 		// Sanity check that it waited
-		require.True(t, time.Since(start) > req.MaxQueryTime)
+		require.Greater(t, time.Since(start), req.MaxQueryTime)
 	}
 
 	// No active requests, simulate root change now
@@ -282,9 +282,9 @@ func TestManager_changingRootsBetweenBlockingCalls(t *testing.T) {
 		require.NoError(t, result.Err)
 		require.NotEqual(t, issued, result.Value)
 		requireLeafValidUnderCA(t, result.Value, caRoot2)
-		require.True(t, result.Index > idx)
+		require.Greater(t, result.Index, idx)
 		// Sanity check that we didn't wait too long
-		require.True(t, time.Since(earliestRootDelivery) < req.MaxQueryTime)
+		require.Less(t, time.Since(earliestRootDelivery), req.MaxQueryTime)
 	}
 }
 
@@ -345,7 +345,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 	case result := <-getCh:
 		require.NoError(t, result.Err)
 		require.NotNil(t, result.Value)
-		require.True(t, result.Index > 0)
+		require.Greater(t, result.Index, 0)
 		idx = result.Index
 		issued = result.Value
 	}
@@ -369,7 +369,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 		// We should block for _at least_ one jitter period since we set that to
 		// 100ms and in test override mode we always pick the max jitter not a
 		// random amount.
-		require.True(t, time.Since(earliestRootDelivery) > 100*time.Millisecond)
+		require.Greater(t, time.Since(earliestRootDelivery), 100*time.Millisecond)
 		require.Equal(t, uint64(2), signer.GetSignCallErrorCount())
 
 		require.NoError(t, result.Err)
@@ -388,7 +388,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 		t.Fatal("shouldn't block too long waiting for fetch")
 	case result := <-getCh:
 		// We should block for _at least_ two jitter periods now.
-		require.True(t, time.Since(earliestRootDelivery) > 200*time.Millisecond)
+		require.Greater(t, time.Since(earliestRootDelivery), 200*time.Millisecond)
 		require.Equal(t, uint64(3), signer.GetSignCallErrorCount())
 
 		require.NoError(t, result.Err)
@@ -408,13 +408,13 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 		t.Fatal("shouldn't block too long waiting for fetch")
 	case result := <-getCh:
 		// We should block for _at least_ three jitter periods now.
-		require.True(t, time.Since(earliestRootDelivery) > 300*time.Millisecond)
+		require.Greater(t, time.Since(earliestRootDelivery), 300*time.Millisecond)
 		require.Equal(t, uint64(3), signer.GetSignCallErrorCount())
 
 		require.NoError(t, result.Err)
 		require.NotEqual(t, issued, result.Value)
 		// 3 since the rootCA change used 2
-		require.True(t, result.Index > idx)
+		require.Greater(t, result.Index, idx)
 	}
 }
 
@@ -602,7 +602,7 @@ func TestManager_expiringLeaf(t *testing.T) {
 	case result := <-getCh:
 		require.NoError(t, result.Err)
 		require.NotNil(t, result.Value)
-		require.True(t, result.Index > 0)
+		require.Greater(t, result.Index, 0)
 		idx = result.Index
 		issued = result.Value
 	}
@@ -616,7 +616,7 @@ func TestManager_expiringLeaf(t *testing.T) {
 	case result := <-getCh:
 		require.NoError(t, result.Err)
 		require.NotEqual(t, issued, result.Value)
-		require.True(t, result.Index > idx)
+		require.Greater(t, result.Index, idx)
 		requireLeafValidUnderCA(t, result.Value, caRoot)
 		idx = result.Index
 	}
@@ -654,7 +654,7 @@ func TestManager_DNSSANForService(t *testing.T) {
 	pemBlock, _ := pem.Decode([]byte(caReq.CSR))
 	csr, err := x509.ParseCertificateRequest(pemBlock.Bytes)
 	require.NoError(t, err)
-	require.Equal(t, csr.DNSNames, []string{"test.example.com"})
+	require.Equal(t, []string{"test.example.com"}, csr.DNSNames)
 }
 
 func TestManager_workflow_good(t *testing.T) {
@@ -689,7 +689,7 @@ func TestManager_workflow_good(t *testing.T) {
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	require.True(t, issued.ModifyIndex > 0)
+	require.Greater(t, issued.ModifyIndex, 0)
 	require.Equal(t, issued.ModifyIndex, meta.Index)
 
 	index := meta.Index
@@ -838,7 +838,7 @@ func TestManager_workflow_goodNotLocal(t *testing.T) {
 	requireLeafValidUnderCA(t, issued, ca1)
 
 	// Verify blocking index
-	require.True(t, issued.ModifyIndex > 0)
+	require.Greater(t, issued.ModifyIndex, 0)
 	require.Equal(t, issued.ModifyIndex, meta.Index)
 
 	// Fetch it again

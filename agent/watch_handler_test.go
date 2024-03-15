@@ -98,8 +98,8 @@ func TestMakeWatchPlan(t *testing.T) {
 				"handler":      "./script.sh",
 			},
 			expected: func(t *testing.T, plan *watch.Plan) {
-				require.Equal(t, plan.HandlerType, "script")
-				require.Equal(t, plan.Exempt["handler"], "./script.sh")
+				require.Equal(t, "script", plan.HandlerType)
+				require.Equal(t, "./script.sh", plan.Exempt["handler"])
 			},
 		},
 		{
@@ -111,8 +111,8 @@ func TestMakeWatchPlan(t *testing.T) {
 				"args":         "./script.sh",
 			},
 			expected: func(t *testing.T, plan *watch.Plan) {
-				require.Equal(t, plan.HandlerType, "script")
-				require.Equal(t, plan.Exempt["args"], []string{"./script.sh"})
+				require.Equal(t, "script", plan.HandlerType)
+				require.Equal(t, []string{"./script.sh"}, plan.Exempt["args"])
 			},
 		},
 		{
@@ -124,8 +124,8 @@ func TestMakeWatchPlan(t *testing.T) {
 				"args":         []interface{}{"./script.sh", "arg1"},
 			},
 			expected: func(t *testing.T, plan *watch.Plan) {
-				require.Equal(t, plan.HandlerType, "script")
-				require.Equal(t, plan.Exempt["args"], []string{"./script.sh", "arg1"})
+				require.Equal(t, "script", plan.HandlerType)
+				require.Equal(t, []string{"./script.sh", "arg1"}, plan.Exempt["args"])
 			},
 		},
 		{
@@ -137,8 +137,8 @@ func TestMakeWatchPlan(t *testing.T) {
 				"args":         []string{"./script.sh", "arg1"},
 			},
 			expected: func(t *testing.T, plan *watch.Plan) {
-				require.Equal(t, plan.HandlerType, "script")
-				require.Equal(t, plan.Exempt["args"], []string{"./script.sh", "arg1"})
+				require.Equal(t, "script", plan.HandlerType)
+				require.Equal(t, []string{"./script.sh", "arg1"}, plan.Exempt["args"])
 			},
 		},
 		{

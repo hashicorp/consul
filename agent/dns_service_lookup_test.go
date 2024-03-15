@@ -464,7 +464,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 				args.Service.Address = ""
 				args.Service.Port = 12345
 				var out struct{}
-				require.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 			}
 
 			// Look up the service
@@ -477,7 +477,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 
 				c := new(dns.Client)
 				in, _, err := c.Exchange(m, a.DNSAddr())
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Len(t, in.Answer, 1)
 
 				srvRec, ok := in.Answer[0].(*dns.SRV)
@@ -511,7 +511,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 			{
 				args := structs.TestRegisterIngressGateway(t)
 				var out struct{}
-				require.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 			}
 
 			// Register db service
@@ -528,7 +528,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 				}
 
 				var out struct{}
-				require.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 			}
 
 			// Register proxy-defaults with 'http' protocol
@@ -546,7 +546,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 					WriteRequest: structs.WriteRequest{Token: "root"},
 				}
 				var out bool
-				require.Nil(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &out))
+				require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &out))
 				require.True(t, out)
 			}
 
@@ -573,7 +573,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 					Entry:      args,
 				}
 				var out bool
-				require.Nil(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &out))
+				require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", req, &out))
 				require.True(t, out)
 			}
 
@@ -591,7 +591,7 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 
 					c := new(dns.Client)
 					in, _, err := c.Exchange(m, a.DNSAddr())
-					require.Nil(t, err)
+					require.NoError(t, err)
 					require.Len(t, in.Answer, 1)
 
 					cnameRec, ok := in.Answer[0].(*dns.A)
@@ -2598,7 +2598,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 			in, _, err := c.Exchange(m, a.DNSAddr())
 			require.NoError(t, err)
 
-			require.Equal(t, 2, len(in.Answer))
+			require.Len(t, in.Answer, 2)
 			ips := []string{in.Answer[0].(*dns.A).A.String(), in.Answer[1].(*dns.A).A.String()}
 			sort.Strings(ips)
 			require.Equal(t, []string{"127.0.0.1", "127.0.0.2"}, ips)
@@ -3064,7 +3064,7 @@ func checkDNSService(
 
 					t.Logf("DNS Response for %+v - %+v", m, in)
 
-					require.Equal(t, expectedResultsCount, len(in.Answer),
+					require.Len(t, in.Answer, expectedResultsCount,
 						"%d/%d answers received for type %v for %s (%s)", len(in.Answer), expectedResultsCount, qType, question, protocol)
 				})
 			}

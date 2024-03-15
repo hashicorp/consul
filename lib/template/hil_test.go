@@ -147,8 +147,8 @@ func TestInterpolateHIL(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, test.exp, out)
 			} else {
-				require.NotNil(t, err)
-				require.Equal(t, out, "")
+				require.Error(t, err)
+				require.Equal(t, "", out)
 			}
 		})
 		t.Run(name+" lower=true", func(t *testing.T) {
@@ -157,8 +157,8 @@ func TestInterpolateHIL(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, test.expLower, out)
 			} else {
-				require.NotNil(t, err)
-				require.Equal(t, out, "")
+				require.Error(t, err)
+				require.Equal(t, "", out)
 			}
 		})
 	}

@@ -85,8 +85,8 @@ func Test_InitConsulService(t *testing.T) {
 		require.NoError(r, err)
 
 		// Spot check the Service
-		require.Equal(r, service.GetWorkloads().GetPrefixes(), []string{consulWorkloadPrefix})
-		require.GreaterOrEqual(r, len(service.GetPorts()), 1)
+		require.Equal(r, []string{consulWorkloadPrefix}, service.GetWorkloads().GetPrefixes())
+		require.NotEmpty(r, service.GetPorts())
 
 		//Since we're not running a full agent w/ serf, we can't check for valid endpoints
 	})
@@ -1649,7 +1649,7 @@ func TestLeader_EnableVirtualIPs(t *testing.T) {
 	sn := structs.ServiceName{Name: "api"}
 	key := structs.ServiceGatewayVirtualIPTag(sn)
 	require.Contains(t, node.TaggedAddresses, key)
-	require.Equal(t, node.TaggedAddresses[key].Address, "240.0.0.1")
+	require.Equal(t, "240.0.0.1", node.TaggedAddresses[key].Address)
 
 	// Make sure the baz service (only referenced in the config entry so far)
 	// has a virtual IP.
@@ -1682,7 +1682,7 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 		_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
 		require.NoError(r, err)
 		require.NotNil(r, anon)
-		require.Len(r, anon.Policies, 0)
+		require.Empty(r, anon.Policies)
 	})
 
 	reqToken := structs.ACLTokenSetRequest{

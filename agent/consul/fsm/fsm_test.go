@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type MockSink struct {
@@ -44,7 +45,7 @@ func TestFSM_IgnoreUnknown(t *testing.T) {
 	t.Parallel()
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Create a new reap request
 	type UnknownRequest struct {
@@ -53,7 +54,7 @@ func TestFSM_IgnoreUnknown(t *testing.T) {
 	req := UnknownRequest{Foo: "bar"}
 	msgType := structs.IgnoreUnknownTypeFlag | 75
 	buf, err := structs.Encode(msgType, req)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	// Apply should work, even though not supported
 	resp := fsm.Apply(makeLog(buf))
@@ -63,6 +64,6 @@ func TestFSM_IgnoreUnknown(t *testing.T) {
 
 func TestFSM_NilLogger(t *testing.T) {
 	fsm, err := New(nil, nil)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, fsm)
 }

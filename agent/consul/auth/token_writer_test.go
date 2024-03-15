@@ -4,7 +4,6 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -684,7 +683,7 @@ func TestTokenWriter_Delete(t *testing.T) {
 		})
 		err := writer.Delete(generateID(t), false)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, acl.ErrNotFound))
+		require.ErrorIs(t, err, acl.ErrNotFound)
 	})
 
 	t.Run("logout requires token to be created by login", func(t *testing.T) {
@@ -703,7 +702,7 @@ func TestTokenWriter_Delete(t *testing.T) {
 		})
 		err := writer.Delete(token.SecretID, true)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, acl.ErrPermissionDenied))
+		require.ErrorIs(t, err, acl.ErrPermissionDenied)
 		require.Contains(t, err.Error(), "wasn't created via login")
 	})
 }

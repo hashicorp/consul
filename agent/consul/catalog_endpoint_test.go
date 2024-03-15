@@ -415,7 +415,7 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 
 	// Register
 	var out struct{}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -423,7 +423,7 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
@@ -451,7 +451,7 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 	// Register
 	var out struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out)
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "DestinationServiceName")
 }
 
@@ -508,7 +508,7 @@ node "foo" {
 	args.Service.Service = "foo"
 	args.Service.Proxy.DestinationServiceName = "foo"
 	args.WriteRequest.Token = token
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 }
 
 func TestCatalog_Register_ConnectNative(t *testing.T) {
@@ -529,7 +529,7 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 
 	// Register
 	var out struct{}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -537,7 +537,7 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(t, structs.ServiceKindTypical, v.ServiceKind)
@@ -873,7 +873,7 @@ func TestCatalog_ListNodes(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, out.Index, out.QueryMeta.Index)
-		require.Len(t, out.Nodes, 0)
+		require.Empty(t, out.Nodes)
 		require.True(t, out.QueryMeta.NotModified, "NotModified should be true")
 	})
 }
@@ -1453,7 +1453,7 @@ func TestCatalog_ListServices(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, out.Index, out.QueryMeta.Index)
-		require.Len(t, out.Services, 0)
+		require.Empty(t, out.Services)
 		require.True(t, out.QueryMeta.NotModified, "NotModified should be true")
 	})
 }
@@ -1552,12 +1552,12 @@ func TestCatalog_ListServices_Filter(t *testing.T) {
 		args.Filter = "NodeMeta.os == NoSuchOS"
 		out = new(structs.IndexedServices)
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, out))
-		require.Len(t, out.Services, 0)
+		require.Empty(t, out.Services)
 
 		args.Filter = "NodeMeta.NoSuchMetadata == linux"
 		out = new(structs.IndexedServices)
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, out))
-		require.Len(t, out.Services, 0)
+		require.Empty(t, out.Services)
 
 		args.Filter = "InvalidField == linux"
 		out = new(structs.IndexedServices)
@@ -1943,7 +1943,7 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	require.NoError(t, err)
 
 	// nodes should be filtered, even when using the old ServiceTag field
-	require.Equal(t, 1, len(out.ServiceNodes))
+	require.Len(t, out.ServiceNodes, 1)
 	require.Equal(t, "db1", out.ServiceNodes[0].ServiceID)
 
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
@@ -1958,7 +1958,7 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	out = structs.IndexedServiceNodes{}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(out.ServiceNodes))
+	require.Len(t, out.ServiceNodes, 1)
 	require.Equal(t, "db2", out.ServiceNodes[0].ServiceID)
 
 	// no tag, both instances
@@ -1969,7 +1969,7 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	out = structs.IndexedServiceNodes{}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(out.ServiceNodes))
+	require.Len(t, out.ServiceNodes, 2)
 
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
 	// with 1.2.x is not required.
@@ -2212,7 +2212,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2221,7 +2221,7 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 		TagFilter:   false,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
@@ -2254,7 +2254,7 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a proxy for api
 		args = structs.TestRegisterRequestProxy(t)
@@ -2265,7 +2265,7 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service "web"
 		args = structs.TestRegisterRequest(t)
@@ -2274,7 +2274,7 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a proxy for web
 		args = structs.TestRegisterRequestProxy(t)
@@ -2283,7 +2283,7 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a gateway for web
 		args = &structs.RegisterRequest{
@@ -2301,7 +2301,7 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 				ServiceID: args.Service.Service,
 			},
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		entryArgs := &structs.ConfigEntryRequest{
 			Op:         structs.ConfigEntryUpsert,
@@ -2317,7 +2317,7 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 			},
 		}
 		var entryResp bool
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
 	}
 
 	retry.Run(t, func(r *retry.R) {
@@ -2328,7 +2328,7 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 			ServiceName: "web",
 		}
 		var resp structs.IndexedServiceNodes
-		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 		assert.Len(r, resp.ServiceNodes, 2)
 
 		// Check sidecar
@@ -2366,7 +2366,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 	// Register the proxy service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// Register the service
 	{
@@ -2374,7 +2374,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 		args := structs.TestRegisterRequest(t)
 		args.Service.Service = dst
 		var out struct{}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 	}
 
 	// List
@@ -2384,7 +2384,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 		ServiceName: args.Service.Proxy.DestinationServiceName,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(t, structs.ServiceKindConnectProxy, v.ServiceKind)
@@ -2395,7 +2395,7 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 		Datacenter:  "dc1",
 		ServiceName: args.Service.Proxy.DestinationServiceName,
 	}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.ServiceNodes, 1)
 	v = resp.ServiceNodes[0]
 	assert.Equal(t, args.Service.Proxy.DestinationServiceName, v.ServiceName)
@@ -2423,7 +2423,7 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 	args := structs.TestRegisterRequest(t)
 	args.Service.Connect.Native = true
 	var out struct{}
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2432,7 +2432,7 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 		ServiceName: args.Service.Service,
 	}
 	var resp structs.IndexedServiceNodes
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	require.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	require.Equal(t, args.Service.Service, v.ServiceName)
@@ -2442,7 +2442,7 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 		Datacenter:  "dc1",
 		ServiceName: args.Service.Service,
 	}
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	require.Len(t, resp.ServiceNodes, 1)
 	v = resp.ServiceNodes[0]
 	require.Equal(t, args.Service.Service, v.ServiceName)
@@ -2515,7 +2515,7 @@ node "foo" {
 	}
 	var resp structs.IndexedServiceNodes
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	require.Len(t, resp.ServiceNodes, 0)
+	require.Empty(t, resp.ServiceNodes)
 
 	// List w/ token. This should work since we're requesting "foo", but should
 	// also only contain the proxies with names that adhere to our ACL.
@@ -2552,7 +2552,7 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 	args := structs.TestRegisterRequest(t)
 	args.Service.Connect.Native = true
 	var out struct{}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.ServiceSpecificRequest{
@@ -2561,7 +2561,7 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 		TagFilter:   false,
 	}
 	var resp structs.IndexedServiceNodes
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.ServiceNodes, 1)
 	v := resp.ServiceNodes[0]
 	assert.Equal(t, args.Service.Connect.Native, v.ServiceConnect.Native)
@@ -2640,7 +2640,7 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.NodeSpecificRequest{
@@ -2648,7 +2648,7 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 		Node:       args.Node,
 	}
 	var resp structs.IndexedNodeServices
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
 
 	assert.Len(t, resp.NodeServices.Services, 1)
 	v := resp.NodeServices.Services[args.Service.Service]
@@ -2674,7 +2674,7 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 	// Register the service
 	args := structs.TestRegisterRequest(t)
 	var out struct{}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", args, &out))
 
 	// List
 	req := structs.NodeSpecificRequest{
@@ -2682,7 +2682,7 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 		Node:       args.Node,
 	}
 	var resp structs.IndexedNodeServices
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.NodeServices", &req, &resp))
 
 	assert.Len(t, resp.NodeServices.Services, 1)
 	v := resp.NodeServices.Services[args.Service.Service]
@@ -3104,7 +3104,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service "db"
 		args = structs.TestRegisterRequest(t)
@@ -3114,7 +3114,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service "redis"
 		args = structs.TestRegisterRequest(t)
@@ -3124,7 +3124,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a gateway
 		args = &structs.RegisterRequest{
@@ -3142,7 +3142,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 				ServiceID: "gateway",
 			},
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		entryArgs := &structs.ConfigEntryRequest{
 			Op:         structs.ConfigEntryUpsert,
@@ -3172,7 +3172,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 			},
 		}
 		var entryResp bool
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
 	}
 
 	retry.Run(t, func(r *retry.R) {
@@ -3182,7 +3182,7 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 			ServiceName: "gateway",
 		}
 		var resp structs.IndexedGatewayServices
-		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 3)
 
 		expect := structs.GatewayServices{
@@ -3254,7 +3254,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a terminating gateway
 		args = &structs.RegisterRequest{
@@ -3272,7 +3272,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 				ServiceID: "gateway",
 			},
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		entryArgs := &structs.ConfigEntryRequest{
 			Op:         structs.ConfigEntryUpsert,
@@ -3288,7 +3288,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 			},
 		}
 		var entryResp bool
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
 
 		// Register a service "db"
 		args = structs.TestRegisterRequest(t)
@@ -3298,7 +3298,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register an ingress gateway
 		args = &structs.RegisterRequest{
@@ -3316,7 +3316,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 				ServiceID: "ingress",
 			},
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		entryArgs = &structs.ConfigEntryRequest{
 			Op:         structs.ConfigEntryUpsert,
@@ -3334,7 +3334,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 				},
 			},
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
 	}
 
 	retry.Run(t, func(r *retry.R) {
@@ -3343,7 +3343,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 			ServiceName: "gateway",
 		}
 		var resp structs.IndexedGatewayServices
-		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 1)
 
 		expect := structs.GatewayServices{
@@ -3363,7 +3363,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 		assert.Equal(r, expect, resp.Services)
 
 		req.ServiceName = "ingress"
-		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 1)
 
 		expect = structs.GatewayServices{
@@ -3390,7 +3390,7 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 	}
 	var resp structs.IndexedGatewayServices
 	err := msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, resp.Services)
 	// Ensure that the index is not zero so that a blocking query still gets the
 	// latest GatewayServices index
@@ -3429,7 +3429,7 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 			ServiceID: args.Service.Service,
 		}
 		args.Token = "root"
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service "db"
 		args = structs.TestRegisterRequest(t)
@@ -3440,7 +3440,7 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 			ServiceID: args.Service.Service,
 		}
 		args.Token = "root"
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service "redis"
 		args = structs.TestRegisterRequest(t)
@@ -3451,7 +3451,7 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 			ServiceID: args.Service.Service,
 		}
 		args.Token = "root"
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a gateway
 		args = &structs.RegisterRequest{
@@ -3470,7 +3470,7 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 			},
 		}
 		args.Token = "root"
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		entryArgs := &structs.ConfigEntryRequest{
 			Op:         structs.ConfigEntryUpsert,
@@ -3503,7 +3503,7 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 		}
 
 		var entryResp bool
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
 	}
 
 	rules := `
@@ -3542,8 +3542,8 @@ service "gateway" {
 			QueryOptions: structs.QueryOptions{Token: gwToken.SecretID},
 		}
 		var resp structs.IndexedGatewayServices
-		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
-		assert.Len(r, resp.Services, 0)
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
+		assert.Empty(r, resp.Services)
 		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
@@ -3566,7 +3566,7 @@ service "gateway" {
 			QueryOptions: structs.QueryOptions{Token: validToken.SecretID},
 		}
 		var resp structs.IndexedGatewayServices
-		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
 		assert.Len(r, resp.Services, 2)
 		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 

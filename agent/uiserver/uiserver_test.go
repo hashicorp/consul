@@ -462,10 +462,10 @@ func TestCompiledJS(t *testing.T) {
 			h.ServeHTTP(rec, req)
 
 			require.Equal(t, http.StatusOK, rec.Code)
-			require.Equal(t, rec.Result().Header["Content-Type"][0], "application/javascript")
+			require.Equal(t, "application/javascript", rec.Result().Header["Content-Type"][0])
 			wantCompiled, err := os.ReadFile("testdata/compiled-metrics-providers-golden.js")
 			require.NoError(t, err)
-			require.Equal(t, rec.Body.String(), string(wantCompiled))
+			require.Equal(t, string(wantCompiled), rec.Body.String())
 		})
 	}
 

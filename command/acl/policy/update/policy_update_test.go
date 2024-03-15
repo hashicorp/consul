@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPolicyUpdateCommand_noTabs(t *testing.T) {
@@ -51,7 +52,7 @@ func TestPolicyUpdateCommand(t *testing.T) {
 
 	rules := []byte("service \"\" { policy = \"write\" }")
 	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Create a policy
 	client := a.Client()
@@ -60,7 +61,7 @@ func TestPolicyUpdateCommand(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -71,7 +72,7 @@ func TestPolicyUpdateCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 }
 
@@ -101,7 +102,7 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 
 	rules := []byte("service \"\" { policy = \"write\" }")
 	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Create a policy
 	client := a.Client()
@@ -110,7 +111,7 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -122,10 +123,10 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	var jsonOutput json.RawMessage
 	err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

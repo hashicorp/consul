@@ -376,7 +376,7 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedError)
 			} else {
-				require.Equal(t, res, tt.expected)
+				require.Equal(t, tt.expected, res)
 			}
 		})
 	}
@@ -429,7 +429,7 @@ func TestMakeLocalJWKS(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedError)
 			} else {
-				require.Equal(t, res, tt.expected)
+				require.Equal(t, tt.expected, res)
 			}
 		})
 	}
@@ -481,7 +481,7 @@ func TestMakeRemoteJWKS(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			res := makeRemoteJWKS(tt.jwks, tt.providerName)
-			require.Equal(t, res, tt.expected)
+			require.Equal(t, tt.expected, res)
 		})
 	}
 }
@@ -532,7 +532,7 @@ func TestBuildJWTRetryPolicy(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			res := buildJWTRetryPolicy(tt.retryPolicy)
 
-			require.Equal(t, res, tt.expected)
+			require.Equal(t, tt.expected, res)
 		})
 	}
 }
@@ -568,7 +568,7 @@ func TestHasJWTconfig(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			res := hasJWTconfig(tt.perms)
-			require.Equal(t, res, tt.expected)
+			require.Equal(t, tt.expected, res)
 		})
 	}
 }

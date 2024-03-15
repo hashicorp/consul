@@ -705,7 +705,7 @@ func TestConfigEntry_List_Filter(t *testing.T) {
 
 			var out structs.IndexedConfigEntries
 			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.List", &args, &out))
-			require.Equal(t, out.Entries, c.expected)
+			require.Equal(t, c.expected, out.Entries)
 		})
 	}
 }
@@ -1916,7 +1916,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		))
 
 		// Should block at least 100ms
-		require.True(t, time.Since(start) >= 100*time.Millisecond, "too fast")
+		require.GreaterOrEqual(t, time.Since(start), 100*time.Millisecond, "too fast")
 
 		// Check the indexes
 		require.Equal(t, out.Index, index+1)
@@ -1981,7 +1981,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		))
 
 		// Should block at least 100ms
-		require.True(t, time.Since(start) >= 100*time.Millisecond, "too fast")
+		require.GreaterOrEqual(t, time.Since(start), 100*time.Millisecond, "too fast")
 
 		// Check the indexes
 		require.Equal(t, out.Index, index+1)
@@ -2102,7 +2102,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		))
 
 		// Should block at least 100ms
-		require.True(t, time.Since(start) >= 100*time.Millisecond, "too fast")
+		require.GreaterOrEqual(t, time.Since(start), 100*time.Millisecond, "too fast")
 
 		// Check the indexes
 		require.Equal(t, out.Index, index+1)
@@ -2181,7 +2181,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 		))
 
 		// Should block at least 100ms
-		require.True(t, time.Since(start) >= 100*time.Millisecond, "too fast")
+		require.GreaterOrEqual(t, time.Since(start), 100*time.Millisecond, "too fast")
 
 		// Check the indexes
 		require.Equal(t, out.Index, index+1)

@@ -586,7 +586,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 
 			// Ensure the cert is valid now and expires within the correct limit.
 			now := time.Now()
-			require.True(t, parsed.NotAfter.Sub(now) < time.Hour)
+			require.Less(t, parsed.NotAfter.Sub(now), time.Hour)
 			require.True(t, parsed.NotBefore.Before(now))
 
 			// Make sure we can validate the cert as expected.
@@ -612,7 +612,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 			require.NotEqual(t, firstSerial, parsed.SerialNumber.Uint64())
 
 			// Ensure the cert is valid now and expires within the correct limit.
-			require.True(t, time.Until(parsed.NotAfter) < time.Hour)
+			require.Less(t, time.Until(parsed.NotAfter), time.Hour)
 			require.True(t, parsed.NotBefore.Before(time.Now()))
 
 			// Make sure we can validate the cert as expected.

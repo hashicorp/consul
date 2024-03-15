@@ -139,7 +139,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(t, elapsed >= 200*time.Millisecond,
+		require.GreaterOrEqual(t, elapsed, 200*time.Millisecond,
 			"Fetch should have blocked until timeout")
 
 		require.Equal(t, req.QueryOptions.MinQueryIndex, result.Index, "result index should not have changed")
@@ -163,9 +163,9 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(t, elapsed >= 200*time.Millisecond,
+		require.GreaterOrEqual(t, elapsed, 200*time.Millisecond,
 			"Fetch should have blocked until the event was delivered")
-		require.True(t, elapsed < time.Second,
+		require.Less(t, elapsed, time.Second,
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(4), result.Index, "result index should not have changed")
@@ -189,7 +189,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(t, elapsed >= 200*time.Millisecond,
+		require.GreaterOrEqual(t, elapsed, 200*time.Millisecond,
 			"Fetch should have blocked until timeout")
 
 		require.Equal(t, req.QueryOptions.MinQueryIndex, result.Index,
@@ -207,7 +207,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		result, err = store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed = time.Since(start)
-		require.True(t, elapsed < time.Second,
+		require.Less(t, elapsed, time.Second,
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(10), result.Index, "result index should not have changed")
@@ -236,9 +236,9 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		result, err := store.Get(ctx, req)
 		require.Error(t, err)
 		elapsed := time.Since(start)
-		require.True(t, elapsed >= 200*time.Millisecond,
+		require.GreaterOrEqual(t, elapsed, 200*time.Millisecond,
 			"Fetch should have blocked until error was sent")
-		require.True(t, elapsed < time.Second,
+		require.Less(t, elapsed, time.Second,
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, req.QueryOptions.MinQueryIndex, result.Index, "result index should not have changed")
@@ -253,7 +253,7 @@ func testHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T, peerNam
 		result, err = store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed = time.Since(start)
-		require.True(t, elapsed < time.Second, "Fetch should have returned before the timeout")
+		require.Less(t, elapsed, time.Second, "Fetch should have returned before the timeout")
 
 		require.Equal(t, req.QueryOptions.MinQueryIndex+5, result.Index, "result index should not have changed")
 		lastResultValue = result.Value.(*structs.IndexedCheckServiceNodes).Nodes
@@ -354,9 +354,9 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(t, elapsed >= 200*time.Millisecond,
+		require.GreaterOrEqual(t, elapsed, 200*time.Millisecond,
 			"Fetch should have blocked until the event was delivered")
-		require.True(t, elapsed < time.Second,
+		require.Less(t, elapsed, time.Second,
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(20), result.Index)
@@ -386,7 +386,7 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(t, elapsed < time.Second,
+		require.Less(t, elapsed, time.Second,
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(50), result.Index)
@@ -413,7 +413,7 @@ func testHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T, peerName
 		result, err := store.Get(ctx, req)
 		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(t, elapsed < time.Second,
+		require.Less(t, elapsed, time.Second,
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(50), result.Index)

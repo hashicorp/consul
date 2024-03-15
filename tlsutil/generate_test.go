@@ -23,14 +23,14 @@ import (
 
 func TestSerialNumber(t *testing.T) {
 	n1, err := GenerateSerialNumber()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	n2, err := GenerateSerialNumber()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEqual(t, n1, n2)
 
 	n3, err := GenerateSerialNumber()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEqual(t, n1, n3)
 	require.NotEqual(t, n2, n3)
 
@@ -39,7 +39,7 @@ func TestSerialNumber(t *testing.T) {
 func TestGeneratePrivateKey(t *testing.T) {
 	t.Parallel()
 	_, p, err := GeneratePrivateKey()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEmpty(t, p)
 	require.Contains(t, p, "BEGIN EC PRIVATE KEY")
 	require.Contains(t, p, "END EC PRIVATE KEY")
@@ -47,7 +47,7 @@ func TestGeneratePrivateKey(t *testing.T) {
 	block, _ := pem.Decode([]byte(p))
 	pk, err := x509.ParseECPrivateKey(block.Bytes)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pk)
 	require.Equal(t, 256, pk.Params().BitSize)
 }
@@ -81,15 +81,15 @@ func TestGenerateCA(t *testing.T) {
 
 	t.Run("valid key", func(t *testing.T) {
 		ca, pk, err := GenerateCA(CAOpts{})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotEmpty(t, ca)
 		require.NotEmpty(t, pk)
 
 		cert, err := parseCert(ca)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
-		require.Equal(t, true, cert.IsCA)
-		require.Equal(t, true, cert.BasicConstraintsValid)
+		require.True(t, cert.IsCA)
+		require.True(t, cert.BasicConstraintsValid)
 
 		require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
 		require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
@@ -106,8 +106,8 @@ func TestGenerateCA(t *testing.T) {
 		cert, err := parseCert(ca)
 		require.NoError(t, err)
 		require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
-		require.Equal(t, true, cert.IsCA)
-		require.Equal(t, true, cert.BasicConstraintsValid)
+		require.True(t, cert.IsCA)
+		require.True(t, cert.BasicConstraintsValid)
 
 		require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
 		require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
@@ -119,9 +119,9 @@ func TestGenerateCA(t *testing.T) {
 func TestGenerateCert(t *testing.T) {
 	t.Parallel()
 	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	ca, _, err := GenerateCA(CAOpts{Signer: signer})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	DNSNames := []string{"server.dc1.consul"}
 	IPAddresses := []net.IP{net.ParseIP("123.234.243.213")}
@@ -131,24 +131,24 @@ func TestGenerateCert(t *testing.T) {
 		Signer: signer, CA: ca, Name: name, Days: 365,
 		DNSNames: DNSNames, IPAddresses: IPAddresses, ExtKeyUsage: extKeyUsage,
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEmpty(t, certificate)
 	require.NotEmpty(t, pk)
 
 	cert, err := parseCert(certificate)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, name, cert.Subject.CommonName)
-	require.Equal(t, true, cert.BasicConstraintsValid)
+	require.True(t, cert.BasicConstraintsValid)
 	signee, err := ParseSigner(pk)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	certID, err := keyID(signee.Public())
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, certID, cert.SubjectKeyId)
 	caID, err := keyID(signer.Public())
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, caID, cert.AuthorityKeyId)
 	require.Contains(t, cert.Issuer.CommonName, "Consul Agent CA")
-	require.Equal(t, false, cert.IsCA)
+	require.False(t, cert.IsCA)
 
 	require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
 	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)

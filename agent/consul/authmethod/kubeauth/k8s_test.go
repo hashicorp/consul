@@ -239,7 +239,7 @@ func TestNewValidator(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, v)
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Nil(t, v)
 			}
 		})

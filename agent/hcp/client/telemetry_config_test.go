@@ -337,7 +337,7 @@ func TestConvertMetricLabels(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			labels := convertMetricLabels(tc.payloadLabels, tc.cfg)
-			require.Equal(t, labels, tc.expectedLabels)
+			require.Equal(t, tc.expectedLabels, labels)
 		})
 	}
 }

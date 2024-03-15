@@ -89,7 +89,7 @@ func TestEchoConn(t testing.T, conn net.Conn, prefix string) {
 	// Write some bytes and read them back
 	n, err := conn.Write([]byte("Hello World"))
 	require.Equal(t, 11, n)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expectLen := 11 + len(prefix)
 
@@ -99,7 +99,7 @@ func TestEchoConn(t testing.T, conn net.Conn, prefix string) {
 	got := 0
 	for got < expectLen {
 		n, err = conn.Read(buf[got:])
-		require.Nilf(t, err, "err: %s", err)
+		require.NoErrorf(t, err, "err: %s", err)
 		got += n
 	}
 	require.Equal(t, expectLen, got)

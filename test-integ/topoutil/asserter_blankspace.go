@@ -77,7 +77,7 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 	if useHTTP2 {
 		// We can't use the forward proxy for http2, so use the exposed port on localhost instead.
 		exposedPort := node.ExposedPort(internalPort)
-		require.True(t, exposedPort > 0)
+		require.Greater(t, exposedPort, 0)
 
 		addr = fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
 
@@ -156,13 +156,13 @@ func (a *Asserter) checkBlankspaceNameViaTCPWithCallback(
 
 	require.False(t, dest.Implied, "helper does not support tproxy yet")
 	port := dest.LocalPort
-	require.True(t, port > 0)
+	require.Greater(t, port, 0)
 
 	node := workload.Node
 
 	// We can't use the forward proxy for TCP yet, so use the exposed port on localhost instead.
 	exposedPort := node.ExposedPort(port)
-	require.True(t, exposedPort > 0)
+	require.Greater(t, exposedPort, 0)
 
 	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
 
@@ -224,13 +224,13 @@ func (a *Asserter) checkBlankspaceNameViaGRPCWithCallback(
 
 	require.False(t, dest.Implied, "helper does not support tproxy yet")
 	port := dest.LocalPort
-	require.True(t, port > 0)
+	require.Greater(t, port, 0)
 
 	node := workload.Node
 
 	// We can't use the forward proxy for gRPC yet, so use the exposed port on localhost instead.
 	exposedPort := node.ExposedPort(port)
-	require.True(t, exposedPort > 0)
+	require.Greater(t, exposedPort, 0)
 
 	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
 

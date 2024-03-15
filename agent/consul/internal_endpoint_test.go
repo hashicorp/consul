@@ -106,7 +106,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &req, &out))
 
 		nodes := out.Dump
-		require.Equal(t, 1, len(nodes))
+		require.Len(t, nodes, 1)
 		require.Equal(t, "foo", nodes[0].Node)
 		require.Equal(t, "peer1", nodes[0].PeerName)
 	})
@@ -310,8 +310,8 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		}
 
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
-		require.Len(t, out3.Dump, 0)
-		require.Len(t, out3.ImportedDump, 0)
+		require.Empty(t, out3.Dump)
+		require.Empty(t, out3.ImportedDump)
 	})
 
 	t.Run("filter look for peer nodes (non local nodes)", func(t *testing.T) {
@@ -321,7 +321,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		}
 
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
-		require.Len(t, out3.Dump, 0)
+		require.Empty(t, out3.Dump)
 		require.Len(t, out3.ImportedDump, 1)
 	})
 
@@ -332,7 +332,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		}
 
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req2, &out3))
-		require.Len(t, out3.Dump, 0)
+		require.Empty(t, out3.Dump)
 		require.Len(t, out3.ImportedDump, 1)
 	})
 }
@@ -1400,9 +1400,9 @@ func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
 
 	nodes := out.Dump
 	require.Len(t, nodes, 1)
-	require.Equal(t, nodes[0].Node.Node, "bar")
-	require.Equal(t, nodes[0].Service.Service, "db")
-	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
+	require.Equal(t, "bar", nodes[0].Node.Node)
+	require.Equal(t, "db", nodes[0].Service.Service)
+	require.Equal(t, api.HealthWarning, nodes[0].Checks[0].Status)
 	require.True(t, out.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 }
 
@@ -1761,9 +1761,9 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 
 	nodes := out.Dump
 	require.Len(t, nodes, 1)
-	require.Equal(t, nodes[0].Node.Node, "bar")
-	require.Equal(t, nodes[0].Service.Service, "db")
-	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
+	require.Equal(t, "bar", nodes[0].Node.Node)
+	require.Equal(t, "db", nodes[0].Service.Service)
+	require.Equal(t, api.HealthWarning, nodes[0].Checks[0].Status)
 }
 
 func TestInternal_ServiceDump_Peering(t *testing.T) {
@@ -1799,7 +1799,7 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 		nodes := doRequest(t, "", false)
 		// redis (3), web (3), critical (1), warning (1) and consul (1)
 		require.Len(t, nodes.Nodes, 9)
-		require.Len(t, nodes.ImportedNodes, 0)
+		require.Empty(t, nodes.ImportedNodes)
 	})
 
 	addPeerService(t, codec)
@@ -1825,16 +1825,16 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 		// redis (3), web (3), critical (1), warning (1) and consul (1)
 		require.Len(t, nodes.Nodes, 9)
 		// service (1)
-		require.Len(t, nodes.ImportedNodes, 0)
+		require.Empty(t, nodes.ImportedNodes)
 	})
 
 	t.Run("peerings w filter", func(t *testing.T) {
 		nodes := doRequest(t, "Node.PeerName == foo", false)
-		require.Len(t, nodes.Nodes, 0)
-		require.Len(t, nodes.ImportedNodes, 0)
+		require.Empty(t, nodes.Nodes)
+		require.Empty(t, nodes.ImportedNodes)
 
 		nodes2 := doRequest(t, "Node.PeerName == peer1", false)
-		require.Len(t, nodes2.Nodes, 0)
+		require.Empty(t, nodes2.Nodes)
 		require.Len(t, nodes2.ImportedNodes, 1)
 	})
 }
@@ -1936,7 +1936,7 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 			req.Intention.DestinationName = v
 
 			var reply string
-			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
 
 			req = structs.IntentionRequest{
 				Datacenter: "dc1",
@@ -1945,7 +1945,7 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 			}
 			req.Intention.SourceName = v
 			req.Intention.DestinationName = "api"
-			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
 		}
 	}
 
@@ -1964,7 +1964,7 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 		},
 	}
 	var reply structs.IndexedIntentions
-	assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.GatewayIntentions", &req, &reply))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.GatewayIntentions", &req, &reply))
 	assert.Len(t, reply.Intentions, 3)
 
 	// Only intentions with linked services as a destination should be returned, and wildcard matches should be deduped
@@ -2052,7 +2052,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 			req.Intention.DestinationName = v
 
 			var reply string
-			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
 
 			req = structs.IntentionRequest{
 				Datacenter:   "dc1",
@@ -2062,7 +2062,7 @@ func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
 			}
 			req.Intention.SourceName = v
 			req.Intention.DestinationName = "api"
-			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
 		}
 	}
 
@@ -2088,7 +2088,7 @@ service_prefix "terminating-gateway" { policy = "read" }
 		QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
 	}
 	var reply structs.IndexedIntentions
-	assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.GatewayIntentions", &req, &reply))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.GatewayIntentions", &req, &reply))
 	assert.Len(t, reply.Intentions, 2)
 
 	// Only intentions for redis should be returned, due to ACLs
@@ -2151,7 +2151,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			// foo/api, foo/api-proxy
 			require.Len(r, out.ServiceTopology.Upstreams, 2)
-			require.Len(r, out.ServiceTopology.Downstreams, 0)
+			require.Empty(r, out.ServiceTopology.Downstreams)
 
 			expectUp := map[string]structs.IntentionDecisionSummary{
 				api.String(): {
@@ -2299,7 +2299,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			require.False(r, out.QueryMeta.ResultsFilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
-			require.Len(r, out.ServiceTopology.Upstreams, 0)
+			require.Empty(r, out.ServiceTopology.Upstreams)
 
 			// bar/web, bar/web-proxy, baz/web, baz/web-proxy
 			require.Len(r, out.ServiceTopology.Downstreams, 4)
@@ -2439,7 +2439,7 @@ service "web" { policy = "read" }
 		require.Equal(t, "web", out.ServiceTopology.Upstreams[0].Service.Service)
 		require.Equal(t, "web", out.ServiceTopology.Upstreams[1].Service.Service)
 
-		require.Len(t, out.ServiceTopology.Downstreams, 0)
+		require.Empty(t, out.ServiceTopology.Downstreams)
 	})
 
 	t.Run("web can't read redis", func(t *testing.T) {
@@ -2456,7 +2456,7 @@ service "web" { policy = "read" }
 		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The redis upstream gets filtered out but the api and proxy downstream are returned
-		require.Len(t, out.ServiceTopology.Upstreams, 0)
+		require.Empty(t, out.ServiceTopology.Upstreams)
 		require.Len(t, out.ServiceTopology.Downstreams, 2)
 	})
 

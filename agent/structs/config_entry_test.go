@@ -216,14 +216,14 @@ func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configE
 					t.Run(a.name, func(t *testing.T) {
 						canRead := tc.entry.CanRead(a.authorizer)
 						if a.canRead {
-							require.Nil(t, canRead)
+							require.NoError(t, canRead)
 						} else {
 							require.Error(t, canRead)
 							require.True(t, acl.IsErrPermissionDenied(canRead))
 						}
 						canWrite := tc.entry.CanWrite(a.authorizer)
 						if a.canWrite {
-							require.Nil(t, canWrite)
+							require.NoError(t, canWrite)
 						} else {
 							require.Error(t, canWrite)
 							require.True(t, acl.IsErrPermissionDenied(canWrite))

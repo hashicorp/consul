@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,7 +56,7 @@ func TestRoleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Must specify either the -id or -name parameters")
 	})
 
@@ -75,7 +74,7 @@ func TestRoleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Role not found with ID")
 	})
 
@@ -90,7 +89,7 @@ func TestRoleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Role not found with name")
 	})
 
@@ -119,7 +118,7 @@ func TestRoleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -152,7 +151,7 @@ func TestRoleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -185,7 +184,7 @@ func TestRoleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -241,7 +240,7 @@ func TestRoleReadCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -250,6 +249,6 @@ func TestRoleReadCommand_JSON(t *testing.T) {
 
 		var jsonOutput json.RawMessage
 		err = json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }

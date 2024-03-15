@@ -68,7 +68,7 @@ func TestStateCommand_Pretty(t *testing.T) {
 
 	code := cmd.Run(args)
 	require.Empty(t, ui.ErrorWriter.String())
-	require.Equal(t, code, 0)
+	require.Equal(t, 0, code)
 	output := ui.OutputWriter.String()
 
 	// Just a few quick checks to ensure we got output
@@ -98,7 +98,7 @@ func TestStateCommand_JSON(t *testing.T) {
 
 	code := cmd.Run(args)
 	require.Empty(t, ui.ErrorWriter.String())
-	require.Equal(t, code, 0)
+	require.Equal(t, 0, code)
 	output := ui.OutputWriter.String()
 
 	var state api.AutopilotState

@@ -545,7 +545,7 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	// Glob ignores file system errors
 	for _, v := range profiles {
 		fs, _ := filepath.Glob(fmt.Sprintf("%s/*r/%s", outputPath, v))
-		require.True(t, len(fs) == 0)
+		require.Empty(t, fs)
 	}
 
 	errOutput := ui.ErrorWriter.String()

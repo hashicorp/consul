@@ -25,8 +25,8 @@ func TestDevModeHasNoServices(t *testing.T) {
 	}
 	result, err := config.Load(opts)
 	require.NoError(t, err)
-	require.Len(t, result.Warnings, 0)
-	require.Len(t, result.RuntimeConfig.Services, 0)
+	require.Empty(t, result.Warnings)
+	require.Empty(t, result.RuntimeConfig.Services)
 }
 
 func TestInvalidNodeNameWarning(t *testing.T) {

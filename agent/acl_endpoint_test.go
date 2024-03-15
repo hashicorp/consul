@@ -264,10 +264,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, policyInput.Description, policy.Description)
 			require.Equal(t, policyInput.Rules, policy.Rules)
 			require.Equal(t, policyInput.Datacenters, policy.Datacenters)
-			require.True(t, policy.CreateIndex > 0)
+			require.Greater(t, policy.CreateIndex, 0)
 			require.Equal(t, policy.CreateIndex, policy.ModifyIndex)
 			require.NotNil(t, policy.Hash)
-			require.NotEqual(t, policy.Hash, []byte{})
+			require.NotEqual(t, []byte{}, policy.Hash)
 
 			idMap["policy-test"] = policy.ID
 			policyMap[policy.ID] = policy
@@ -294,10 +294,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, policyInput.Description, policy.Description)
 			require.Equal(t, policyInput.Rules, policy.Rules)
 			require.Equal(t, policyInput.Datacenters, policy.Datacenters)
-			require.True(t, policy.CreateIndex > 0)
+			require.Greater(t, policy.CreateIndex, 0)
 			require.Equal(t, policy.CreateIndex, policy.ModifyIndex)
 			require.NotNil(t, policy.Hash)
-			require.NotEqual(t, policy.Hash, []byte{})
+			require.NotEqual(t, []byte{}, policy.Hash)
 
 			idMap["policy-minimal"] = policy.ID
 			policyMap[policy.ID] = policy
@@ -324,10 +324,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, policyInput.Description, policy.Description)
 			require.Equal(t, policyInput.Rules, policy.Rules)
 			require.Equal(t, policyInput.Datacenters, policy.Datacenters)
-			require.True(t, policy.CreateIndex > 0)
+			require.Greater(t, policy.CreateIndex, 0)
 			require.Equal(t, policy.CreateIndex, policy.ModifyIndex)
 			require.NotNil(t, policy.Hash)
-			require.NotEqual(t, policy.Hash, []byte{})
+			require.NotEqual(t, []byte{}, policy.Hash)
 
 			idMap["policy-read-all-nodes"] = policy.ID
 			policyMap[policy.ID] = policy
@@ -382,10 +382,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, policyInput.Description, policy.Description)
 			require.Equal(t, policyInput.Rules, policy.Rules)
 			require.Equal(t, policyInput.Datacenters, policy.Datacenters)
-			require.True(t, policy.CreateIndex > 0)
-			require.True(t, policy.CreateIndex < policy.ModifyIndex)
+			require.Greater(t, policy.CreateIndex, 0)
+			require.Less(t, policy.CreateIndex, policy.ModifyIndex)
 			require.NotNil(t, policy.Hash)
-			require.NotEqual(t, policy.Hash, []byte{})
+			require.NotEqual(t, []byte{}, policy.Hash)
 
 			idMap["policy-read-all-nodes"] = policy.ID
 			policyMap[policy.ID] = policy
@@ -522,10 +522,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, roleInput.Description, role.Description)
 			require.Equal(t, roleInput.Policies, role.Policies)
 			require.Equal(t, roleInput.NodeIdentities, role.NodeIdentities)
-			require.True(t, role.CreateIndex > 0)
+			require.Greater(t, role.CreateIndex, 0)
 			require.Equal(t, role.CreateIndex, role.ModifyIndex)
 			require.NotNil(t, role.Hash)
-			require.NotEqual(t, role.Hash, []byte{})
+			require.NotEqual(t, []byte{}, role.Hash)
 
 			idMap["role-test"] = role.ID
 			roleMap[role.ID] = role
@@ -555,10 +555,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, roleInput.Name, role.Name)
 			require.Equal(t, roleInput.Description, role.Description)
 			require.Equal(t, roleInput.ServiceIdentities, role.ServiceIdentities)
-			require.True(t, role.CreateIndex > 0)
+			require.Greater(t, role.CreateIndex, 0)
 			require.Equal(t, role.CreateIndex, role.ModifyIndex)
 			require.NotNil(t, role.Hash)
-			require.NotEqual(t, role.Hash, []byte{})
+			require.NotEqual(t, []byte{}, role.Hash)
 
 			idMap["role-service-id-web"] = role.ID
 			roleMap[role.ID] = role
@@ -626,10 +626,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, roleInput.Policies, role.Policies)
 			require.Equal(t, roleInput.ServiceIdentities, role.ServiceIdentities)
 			require.Equal(t, roleInput.NodeIdentities, role.NodeIdentities)
-			require.True(t, role.CreateIndex > 0)
-			require.True(t, role.CreateIndex < role.ModifyIndex)
+			require.Greater(t, role.CreateIndex, 0)
+			require.Less(t, role.CreateIndex, role.ModifyIndex)
 			require.NotNil(t, role.Hash)
-			require.NotEqual(t, role.Hash, []byte{})
+			require.NotEqual(t, []byte{}, role.Hash)
 
 			idMap["role-test"] = role.ID
 			roleMap[role.ID] = role
@@ -757,10 +757,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
 			require.Equal(t, tokenInput.NodeIdentities, token.NodeIdentities)
-			require.True(t, token.CreateIndex > 0)
+			require.Greater(t, token.CreateIndex, 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 
 			idMap["token-test"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
@@ -795,10 +795,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Len(t, token.SecretID, 36)
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
-			require.True(t, token.CreateIndex > 0)
+			require.Greater(t, token.CreateIndex, 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 
 			idMap["token-local"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
@@ -857,10 +857,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.NotEqual(t, baseToken.SecretID, token.SecretID)
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, baseToken.Policies, token.Policies)
-			require.True(t, token.CreateIndex > 0)
+			require.Greater(t, token.CreateIndex, 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 
 			idMap["token-cloned"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
@@ -899,10 +899,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
 			require.Equal(t, tokenInput.NodeIdentities, token.NodeIdentities)
-			require.True(t, token.CreateIndex > 0)
-			require.True(t, token.CreateIndex < token.ModifyIndex)
+			require.Greater(t, token.CreateIndex, 0)
+			require.Less(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 			require.NotEqual(t, token.Hash, originalToken.Hash)
 
 			tokenMap[token.AccessorID] = token
@@ -941,10 +941,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
 			require.Equal(t, tokenInput.NodeIdentities, token.NodeIdentities)
-			require.True(t, token.CreateIndex > 0)
-			require.True(t, token.CreateIndex < token.ModifyIndex)
+			require.Greater(t, token.CreateIndex, 0)
+			require.Less(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 			require.NotEqual(t, token.Hash, originalToken.Hash)
 
 			tokenMap[token.AccessorID] = token
@@ -1067,10 +1067,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Len(t, token.SecretID, 36)
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
-			require.True(t, token.CreateIndex > 0)
+			require.Greater(t, token.CreateIndex, 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 
 			idMap["token-test"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
@@ -1106,10 +1106,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Len(t, token.AccessorID, 36)
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
-			require.True(t, token.CreateIndex > 0)
+			require.Greater(t, token.CreateIndex, 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 
 			idMap["token-test"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
@@ -1146,10 +1146,10 @@ func TestACL_HTTP(t *testing.T) {
 			require.Equal(t, tokenInput.AccessorID, token.AccessorID)
 			require.Equal(t, tokenInput.Description, token.Description)
 			require.Equal(t, tokenInput.Policies, token.Policies)
-			require.True(t, token.CreateIndex > 0)
+			require.Greater(t, token.CreateIndex, 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 
 			idMap["token-test"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
@@ -1534,7 +1534,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Equal(t, methodInput.Type, method.Type)
 			require.Equal(t, methodInput.Description, method.Description)
 			require.Equal(t, methodInput.Config, method.Config)
-			require.True(t, method.CreateIndex > 0)
+			require.Greater(t, method.CreateIndex, 0)
 			require.Equal(t, method.CreateIndex, method.ModifyIndex)
 
 			methodMap[method.Name] = method
@@ -1565,7 +1565,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Equal(t, methodInput.Type, method.Type)
 			require.Equal(t, methodInput.Description, method.Description)
 			require.Equal(t, methodInput.Config, method.Config)
-			require.True(t, method.CreateIndex > 0)
+			require.Greater(t, method.CreateIndex, 0)
 			require.Equal(t, method.CreateIndex, method.ModifyIndex)
 
 			methodMap[method.Name] = method
@@ -1632,8 +1632,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Equal(t, methodInput.Type, method.Type)
 			require.Equal(t, methodInput.Description, method.Description)
 			require.Equal(t, methodInput.Config, method.Config)
-			require.True(t, method.CreateIndex > 0)
-			require.True(t, method.CreateIndex < method.ModifyIndex)
+			require.Greater(t, method.CreateIndex, 0)
+			require.Less(t, method.CreateIndex, method.ModifyIndex)
 
 			methodMap[method.Name] = method
 		})
@@ -1730,7 +1730,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Equal(t, ruleInput.Selector, rule.Selector)
 			require.Equal(t, ruleInput.BindType, rule.BindType)
 			require.Equal(t, ruleInput.BindName, rule.BindName)
-			require.True(t, rule.CreateIndex > 0)
+			require.Greater(t, rule.CreateIndex, 0)
 			require.Equal(t, rule.CreateIndex, rule.ModifyIndex)
 
 			idMap["rule-test"] = rule.ID
@@ -1762,7 +1762,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Equal(t, ruleInput.Selector, rule.Selector)
 			require.Equal(t, ruleInput.BindType, rule.BindType)
 			require.Equal(t, ruleInput.BindName, rule.BindName)
-			require.True(t, rule.CreateIndex > 0)
+			require.Greater(t, rule.CreateIndex, 0)
 			require.Equal(t, rule.CreateIndex, rule.ModifyIndex)
 
 			idMap["rule-other"] = rule.ID
@@ -1819,8 +1819,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Equal(t, ruleInput.Selector, rule.Selector)
 			require.Equal(t, ruleInput.BindType, rule.BindType)
 			require.Equal(t, ruleInput.BindName, rule.BindName)
-			require.True(t, rule.CreateIndex > 0)
-			require.True(t, rule.CreateIndex < rule.ModifyIndex)
+			require.Greater(t, rule.CreateIndex, 0)
+			require.Less(t, rule.CreateIndex, rule.ModifyIndex)
 
 			idMap["rule-test"] = rule.ID
 			ruleMap[rule.ID] = rule
@@ -1935,15 +1935,15 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Len(t, token.SecretID, 36)
 			require.Equal(t, `token created via login: {"foo":"bar"}`, token.Description)
 			require.True(t, token.Local)
-			require.Len(t, token.Policies, 0)
-			require.Len(t, token.Roles, 0)
+			require.Empty(t, token.Policies)
+			require.Empty(t, token.Roles)
 			require.Len(t, token.ServiceIdentities, 1)
 			require.Equal(t, "demo1", token.ServiceIdentities[0].ServiceName)
-			require.Len(t, token.ServiceIdentities[0].Datacenters, 0)
-			require.True(t, token.CreateIndex > 0)
+			require.Empty(t, token.ServiceIdentities[0].Datacenters)
+			require.Greater(t, token.CreateIndex, 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 
 			idMap["token-test-1"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
@@ -1969,15 +1969,15 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Len(t, token.SecretID, 36)
 			require.Equal(t, `token created via login: {"blah":"woot"}`, token.Description)
 			require.True(t, token.Local)
-			require.Len(t, token.Policies, 0)
-			require.Len(t, token.Roles, 0)
+			require.Empty(t, token.Policies)
+			require.Empty(t, token.Roles)
 			require.Len(t, token.ServiceIdentities, 1)
 			require.Equal(t, "demo2", token.ServiceIdentities[0].ServiceName)
-			require.Len(t, token.ServiceIdentities[0].Datacenters, 0)
-			require.True(t, token.CreateIndex > 0)
+			require.Empty(t, token.ServiceIdentities[0].Datacenters)
+			require.Greater(t, token.CreateIndex, 0)
 			require.Equal(t, token.CreateIndex, token.ModifyIndex)
 			require.NotNil(t, token.Hash)
-			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, []byte{}, token.Hash)
 
 			idMap["token-test-2"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
@@ -1991,7 +1991,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.NoError(t, err)
 			tokens, ok := raw.(structs.ACLTokenListStubs)
 			require.True(t, ok)
-			require.Len(t, tokens, 0)
+			require.Empty(t, tokens)
 		})
 
 		t.Run("List Tokens by (correct) Method", func(t *testing.T) {
@@ -2184,10 +2184,10 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 				require.Equal(t, method.Name, token.AuthMethod)
 				require.Equal(t, `token created via login`, token.Description)
 				require.True(t, token.Local)
-				require.Len(t, token.Roles, 0)
+				require.Empty(t, token.Roles)
 				require.Len(t, token.ServiceIdentities, 1)
 				svcid := token.ServiceIdentities[0]
-				require.Len(t, svcid.Datacenters, 0)
+				require.Empty(t, svcid.Datacenters)
 				require.Equal(t, "test--jeff2--engineering", svcid.ServiceName)
 
 				// and delete it

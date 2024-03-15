@@ -83,7 +83,7 @@ func TestCARootsSnapshot(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(1), idx)
 
-		require.Equal(t, buf.events, [][]stream.Event{
+		require.Equal(t, [][]stream.Event{
 			{
 				{
 					Topic: EventTopicCARoots,
@@ -93,7 +93,7 @@ func TestCARootsSnapshot(t *testing.T) {
 					},
 				},
 			},
-		})
+		}, buf.events)
 	})
 }
 

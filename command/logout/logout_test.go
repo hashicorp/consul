@@ -57,7 +57,7 @@ func TestLogoutCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "401 (Supplied token does not exist)")
 	})
 
@@ -74,7 +74,7 @@ func TestLogoutCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
 	})
 
@@ -94,7 +94,7 @@ func TestLogoutCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied: token wasn't created via login)")
 	})
 
@@ -152,7 +152,7 @@ func TestLogoutCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 	})
 }
@@ -187,7 +187,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "401 (Supplied token does not exist)")
 	})
 
@@ -204,7 +204,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
 	})
 
@@ -224,7 +224,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied: token wasn't created via login)")
 	})
 
@@ -289,7 +289,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 	})
 }

@@ -227,7 +227,7 @@ func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_NoService
 
 		decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
 		workloadPorts, err := workloadPortProtocolsFromService(suite.rt, decWorkload)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		prototest.AssertDeepEqual(suite.T(), pbcatalog.Protocol_PROTOCOL_TCP, workloadPorts["tcp"].GetProtocol())
 	})
 }
@@ -255,7 +255,7 @@ func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_ServiceNo
 		decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
 
 		workloadPorts, err := workloadPortProtocolsFromService(suite.rt, decWorkload)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		prototest.AssertDeepEqual(suite.T(), pbcatalog.Protocol_PROTOCOL_TCP, workloadPorts["tcp"].GetProtocol())
 	})
 }
@@ -323,7 +323,7 @@ func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService() {
 		}
 
 		workloadPorts, err := workloadPortProtocolsFromService(suite.rt, decWorkload)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		prototest.AssertDeepEqual(suite.T(), expWorkloadPorts, workloadPorts)
 	})
@@ -402,7 +402,7 @@ func (suite *controllerTestSuite) TestReconcile_NoExistingProxyStateTemplate() {
 		suite.reconcileOnce(resourceID(pbmesh.ProxyStateTemplateType, api.workloadID.Name, tenancy))
 
 		res := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, api.workloadID.Name, tenancy))
-		require.NotNil(suite.T(), res.Data)
+		suite.Require().NotNil(res.Data)
 		prototest.AssertDeepEqual(suite.T(), api.workloadID, res.Owner)
 	})
 }
@@ -430,20 +430,20 @@ func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithU
 		suite.reconcileOnce(resourceID(pbmesh.ProxyStateTemplateType, updatedWorkloadID.Name, tenancy))
 
 		res := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, updatedWorkloadID.Name, tenancy))
-		require.NotNil(suite.T(), res.Data)
+		suite.Require().NotNil(res.Data)
 		prototest.AssertDeepEqual(suite.T(), updatedWorkloadID, res.Owner)
 
 		var updatedProxyStateTemplate pbmesh.ProxyStateTemplate
 		err := res.Data.UnmarshalTo(&updatedProxyStateTemplate)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Check that our value is updated in the proxy state template.
-		require.Len(suite.T(), updatedProxyStateTemplate.ProxyState.Listeners, 1)
-		require.Len(suite.T(), updatedProxyStateTemplate.ProxyState.Listeners[0].Routers, 1)
+		suite.Require().Len(updatedProxyStateTemplate.ProxyState.Listeners, 1)
+		suite.Require().Len(updatedProxyStateTemplate.ProxyState.Listeners[0].Routers, 1)
 
 		l4InboundRouter := updatedProxyStateTemplate.ProxyState.Listeners[0].
 			Routers[0].GetL4()
-		require.NotNil(suite.T(), l4InboundRouter)
+		suite.Require().NotNil(l4InboundRouter)
 	})
 }
 
@@ -628,7 +628,7 @@ func (suite *controllerTestSuite) TestController() {
 			// Delete the proxy state template resource and check that it gets regenerated.
 			suite.rt.Logger.Trace("deleting web proxy")
 			_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: webProxyStateTemplateID})
-			require.NoError(suite.T(), err)
+			suite.Require().NoError(err)
 
 			webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
@@ -984,8 +984,10 @@ func (suite *controllerTestSuite) runTestCaseWithTenancies(t func(*pbresource.Te
 }
 
 func (suite *controllerTestSuite) reconcileOnce(id *pbresource.ID) {
+	suite.T().Helper()
+
 	err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: id})
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	suite.T().Cleanup(func() {
 		suite.client.CleanupDelete(suite.T(), id)
 	})

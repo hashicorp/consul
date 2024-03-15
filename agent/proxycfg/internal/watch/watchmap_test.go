@@ -133,7 +133,7 @@ func TestMap_ForEachE(t *testing.T) {
 			return nil
 		})
 		require.Equal(t, 3, count)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	// returning an error should exit immediately

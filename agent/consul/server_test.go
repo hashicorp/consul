@@ -1335,7 +1335,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 
 		require.Error(t, err, "need err when provider func is nil")
-		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
+		require.Equal(t, "cannot initialize server without an RPC request recorder provider", err.Error())
 
 		t.Cleanup(func() {
 			if s1 != nil {
@@ -1354,7 +1354,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
-		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
+		require.Equal(t, "cannot initialize server with a nil RPC request recorder", err.Error())
 
 		t.Cleanup(func() {
 			if s2 != nil {
@@ -2104,7 +2104,7 @@ func TestServer_hcpManager(t *testing.T) {
 	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcpclient.ServerStatus) bool {
 		return status.ID == string(conf1.NodeID)
 	})).Run(func(ctx context.Context, status *hcpclient.ServerStatus) {
-		require.Equal(t, status.LanAddress, "127.0.0.2")
+		require.Equal(t, "127.0.0.2", status.LanAddress)
 	}).Call.Return(nil)
 
 	// Configure the server for the ManagementTokenUpserterFn

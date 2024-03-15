@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/hashicorp/consul/acl"
@@ -72,7 +71,7 @@ func (suite *controllerSuite) TestReconcile_V1ExportsExist() {
 			Name:    types.ComputedExportedServicesName,
 		}
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: resID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -92,7 +91,7 @@ func (suite *controllerSuite) TestReconcile_GetExportedServicesConfigEntry_Error
 			Name:    types.ComputedExportedServicesName,
 		}
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: resID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -120,7 +119,7 @@ func (suite *controllerSuite) TestReconcile_DeleteConfig_MissingResources() {
 			Name:    types.ComputedExportedServicesName,
 		}
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: resID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -182,7 +181,7 @@ func (suite *controllerSuite) TestReconcile_NewExport_PartitionExport() {
 			Name:    types.ComputedExportedServicesName,
 		}
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: cesID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -244,7 +243,7 @@ func (suite *controllerSuite) TestReconcile_NewExport_PeerExport() {
 			Name:    types.ComputedExportedServicesName,
 		}
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: cesID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -306,7 +305,7 @@ func (suite *controllerSuite) TestReconcile_NewExport_SamenessGroupsExport() {
 			Name:    types.ComputedExportedServicesName,
 		}
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: cesID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -407,7 +406,7 @@ func (suite *controllerSuite) TestReconcile_MultipleExports() {
 			Return(nil)
 
 		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: cesID})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 

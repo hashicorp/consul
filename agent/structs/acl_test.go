@@ -43,7 +43,7 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 		token := &ACLToken{}
 
 		policyIDs := token.PolicyIDs()
-		require.Len(t, policyIDs, 0)
+		require.Empty(t, policyIDs)
 	})
 }
 
@@ -238,10 +238,10 @@ func TestStructs_ACLTokens_Sort(t *testing.T) {
 	}
 
 	tokens.Sort()
-	require.Equal(t, tokens[0].AccessorID, "614a4cef-9149-4271-b878-7edb1ad661f8")
-	require.Equal(t, tokens[1].AccessorID, "6bd01084-1695-43b8-898d-b2dd7874754d")
-	require.Equal(t, tokens[2].AccessorID, "9db509a9-c809-48c1-895d-99f845b7a9d5")
-	require.Equal(t, tokens[3].AccessorID, "c9dd9980-8d54-472f-9e5e-74c02143e1f4")
+	require.Equal(t, "614a4cef-9149-4271-b878-7edb1ad661f8", tokens[0].AccessorID)
+	require.Equal(t, "6bd01084-1695-43b8-898d-b2dd7874754d", tokens[1].AccessorID)
+	require.Equal(t, "9db509a9-c809-48c1-895d-99f845b7a9d5", tokens[2].AccessorID)
+	require.Equal(t, "c9dd9980-8d54-472f-9e5e-74c02143e1f4", tokens[3].AccessorID)
 }
 
 func TestStructs_ACLTokenListStubs_Sort(t *testing.T) {
@@ -262,10 +262,10 @@ func TestStructs_ACLTokenListStubs_Sort(t *testing.T) {
 	}
 
 	tokens.Sort()
-	require.Equal(t, tokens[0].AccessorID, "614a4cef-9149-4271-b878-7edb1ad661f8")
-	require.Equal(t, tokens[1].AccessorID, "6bd01084-1695-43b8-898d-b2dd7874754d")
-	require.Equal(t, tokens[2].AccessorID, "9db509a9-c809-48c1-895d-99f845b7a9d5")
-	require.Equal(t, tokens[3].AccessorID, "c9dd9980-8d54-472f-9e5e-74c02143e1f4")
+	require.Equal(t, "614a4cef-9149-4271-b878-7edb1ad661f8", tokens[0].AccessorID)
+	require.Equal(t, "6bd01084-1695-43b8-898d-b2dd7874754d", tokens[1].AccessorID)
+	require.Equal(t, "9db509a9-c809-48c1-895d-99f845b7a9d5", tokens[2].AccessorID)
+	require.Equal(t, "c9dd9980-8d54-472f-9e5e-74c02143e1f4", tokens[3].AccessorID)
 }
 
 func TestStructs_ACLPolicy_Stub(t *testing.T) {
@@ -356,10 +356,10 @@ func TestStructs_ACLPolicies_Sort(t *testing.T) {
 	}
 
 	policies.Sort()
-	require.Equal(t, policies[0].ID, "614a4cef-9149-4271-b878-7edb1ad661f8")
-	require.Equal(t, policies[1].ID, "6bd01084-1695-43b8-898d-b2dd7874754d")
-	require.Equal(t, policies[2].ID, "9db509a9-c809-48c1-895d-99f845b7a9d5")
-	require.Equal(t, policies[3].ID, "c9dd9980-8d54-472f-9e5e-74c02143e1f4")
+	require.Equal(t, "614a4cef-9149-4271-b878-7edb1ad661f8", policies[0].ID)
+	require.Equal(t, "6bd01084-1695-43b8-898d-b2dd7874754d", policies[1].ID)
+	require.Equal(t, "9db509a9-c809-48c1-895d-99f845b7a9d5", policies[2].ID)
+	require.Equal(t, "c9dd9980-8d54-472f-9e5e-74c02143e1f4", policies[3].ID)
 }
 
 func TestStructs_ACLPolicyListStubs_Sort(t *testing.T) {
@@ -380,10 +380,10 @@ func TestStructs_ACLPolicyListStubs_Sort(t *testing.T) {
 	}
 
 	policies.Sort()
-	require.Equal(t, policies[0].ID, "614a4cef-9149-4271-b878-7edb1ad661f8")
-	require.Equal(t, policies[1].ID, "6bd01084-1695-43b8-898d-b2dd7874754d")
-	require.Equal(t, policies[2].ID, "9db509a9-c809-48c1-895d-99f845b7a9d5")
-	require.Equal(t, policies[3].ID, "c9dd9980-8d54-472f-9e5e-74c02143e1f4")
+	require.Equal(t, "614a4cef-9149-4271-b878-7edb1ad661f8", policies[0].ID)
+	require.Equal(t, "6bd01084-1695-43b8-898d-b2dd7874754d", policies[1].ID)
+	require.Equal(t, "9db509a9-c809-48c1-895d-99f845b7a9d5", policies[2].ID)
+	require.Equal(t, "c9dd9980-8d54-472f-9e5e-74c02143e1f4", policies[3].ID)
 }
 
 func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {

@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -176,11 +175,11 @@ func TestRoleCreateCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		var jsonOutput json.RawMessage
 		err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 }

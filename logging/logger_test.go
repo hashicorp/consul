@@ -6,7 +6,6 @@ package logging
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"os"
 	"testing"
 
@@ -122,9 +121,9 @@ func TestLogger_SetupLoggerWithJSON(t *testing.T) {
 	err = json.Unmarshal(buf.Bytes(), &jsonOutput)
 	require.NoError(t, err)
 	require.Contains(t, jsonOutput, "@level")
-	require.Equal(t, jsonOutput["@level"], "warn")
+	require.Equal(t, "warn", jsonOutput["@level"])
 	require.Contains(t, jsonOutput, "@message")
-	require.Equal(t, jsonOutput["@message"], "test warn msg")
+	require.Equal(t, "test warn msg", jsonOutput["@message"])
 }
 
 func TestLogger_SetupLoggerWithValidLogPath(t *testing.T) {
@@ -152,7 +151,7 @@ func TestLogger_SetupLoggerWithInValidLogPath(t *testing.T) {
 
 	logger, err := Setup(cfg, &buf)
 	require.Error(t, err)
-	require.True(t, errors.Is(err, os.ErrNotExist))
+	require.ErrorIs(t, err, os.ErrNotExist)
 	require.Nil(t, logger)
 }
 
@@ -171,6 +170,6 @@ func TestLogger_SetupLoggerWithInValidLogPathPermission(t *testing.T) {
 
 	logger, err := Setup(cfg, &buf)
 	require.Error(t, err)
-	require.True(t, errors.Is(err, os.ErrPermission))
+	require.ErrorIs(t, err, os.ErrPermission)
 	require.Nil(t, logger)
 }

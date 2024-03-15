@@ -26,7 +26,7 @@ func TestAgent_consulConfig_Reporting(t *testing.T) {
 	`
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
-	require.Equal(t, false, a.consulConfig().Reporting.License.Enabled)
+	require.False(t, a.consulConfig().Reporting.License.Enabled)
 }
 
 func TestAgent_consulConfig_Reporting_Default(t *testing.T) {
@@ -41,5 +41,5 @@ func TestAgent_consulConfig_Reporting_Default(t *testing.T) {
 	`
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
-	require.Equal(t, false, a.consulConfig().Reporting.License.Enabled)
+	require.False(t, a.consulConfig().Reporting.License.Enabled)
 }

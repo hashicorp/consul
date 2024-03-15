@@ -45,20 +45,20 @@ func TestPrimitives(t *testing.T) {
 	err := Unmarshal([]byte(hcl), &out)
 	require.NoError(t, err)
 
-	require.Equal(t, out.DoubleVal, float64(1.234))
-	require.Equal(t, out.FloatVal, float32(2.345))
-	require.Equal(t, out.Int32Val, int32(536870912))
-	require.Equal(t, out.Int64Val, int64(25769803776))
-	require.Equal(t, out.Uint32Val, uint32(2148532224))
-	require.Equal(t, out.Uint64Val, uint64(9223372041149743104))
-	require.Equal(t, out.Sint32Val, int32(536870912))
-	require.Equal(t, out.Sint64Val, int64(25769803776))
-	require.Equal(t, out.Fixed32Val, uint32(2148532224))
-	require.Equal(t, out.Fixed64Val, uint64(9223372041149743104))
-	require.Equal(t, out.Sfixed32Val, int32(536870912))
-	require.Equal(t, out.Sfixed64Val, int64(25769803776))
-	require.Equal(t, out.BoolVal, true)
-	require.Equal(t, out.StringVal, "foo")
+	require.Equal(t, float64(1.234), out.DoubleVal)
+	require.Equal(t, float32(2.345), out.FloatVal)
+	require.Equal(t, int32(536870912), out.Int32Val)
+	require.Equal(t, int64(25769803776), out.Int64Val)
+	require.Equal(t, uint32(2148532224), out.Uint32Val)
+	require.Equal(t, uint64(9223372041149743104), out.Uint64Val)
+	require.Equal(t, int32(536870912), out.Sint32Val)
+	require.Equal(t, int64(25769803776), out.Sint64Val)
+	require.Equal(t, uint32(2148532224), out.Fixed32Val)
+	require.Equal(t, uint64(9223372041149743104), out.Fixed64Val)
+	require.Equal(t, int32(536870912), out.Sfixed32Val)
+	require.Equal(t, int64(25769803776), out.Sfixed64Val)
+	require.True(t, out.BoolVal)
+	require.Equal(t, "foo", out.StringVal)
 	require.Equal(t, out.ByteVal, []byte("bar"))
 }
 
@@ -97,16 +97,16 @@ func TestNestedAndCollections(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, out.Primitives)
-	require.Equal(t, out.Primitives.Uint32Val, uint32(42))
+	require.Equal(t, uint32(42), out.Primitives.Uint32Val)
 	require.NotNil(t, out.PrimitivesMap)
-	require.Equal(t, out.PrimitivesMap["foo"].Uint32Val, uint32(42))
+	require.Equal(t, uint32(42), out.PrimitivesMap["foo"].Uint32Val)
 	require.NotNil(t, out.ProtocolMap)
-	require.Equal(t, out.ProtocolMap["foo"], testproto.Protocol_PROTOCOL_TCP)
+	require.Equal(t, testproto.Protocol_PROTOCOL_TCP, out.ProtocolMap["foo"])
 	require.Len(t, out.PrimitivesList, 2)
-	require.Equal(t, out.PrimitivesList[0].Uint32Val, uint32(42))
-	require.Equal(t, out.PrimitivesList[1].Uint32Val, uint32(56))
+	require.Equal(t, uint32(42), out.PrimitivesList[0].Uint32Val)
+	require.Equal(t, uint32(56), out.PrimitivesList[1].Uint32Val)
 	require.Len(t, out.IntList, 2)
-	require.Equal(t, out.IntList[1], int32(2))
+	require.Equal(t, int32(2), out.IntList[1])
 }
 
 func TestNestedAndCollections_AttributeSyntax(t *testing.T) {
@@ -147,16 +147,16 @@ func TestNestedAndCollections_AttributeSyntax(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, out.Primitives)
-	require.Equal(t, out.Primitives.Uint32Val, uint32(42))
+	require.Equal(t, uint32(42), out.Primitives.Uint32Val)
 	require.NotNil(t, out.PrimitivesMap)
-	require.Equal(t, out.PrimitivesMap["foo"].Uint32Val, uint32(42))
+	require.Equal(t, uint32(42), out.PrimitivesMap["foo"].Uint32Val)
 	require.NotNil(t, out.ProtocolMap)
-	require.Equal(t, out.ProtocolMap["foo"], testproto.Protocol_PROTOCOL_TCP)
+	require.Equal(t, testproto.Protocol_PROTOCOL_TCP, out.ProtocolMap["foo"])
 	require.Len(t, out.PrimitivesList, 2)
-	require.Equal(t, out.PrimitivesList[0].Uint32Val, uint32(42))
-	require.Equal(t, out.PrimitivesList[1].Uint32Val, uint32(56))
+	require.Equal(t, uint32(42), out.PrimitivesList[0].Uint32Val)
+	require.Equal(t, uint32(56), out.PrimitivesList[1].Uint32Val)
 	require.Len(t, out.IntList, 2)
-	require.Equal(t, out.IntList[1], int32(2))
+	require.Equal(t, int32(2), out.IntList[1])
 }
 
 func TestPrimitiveWrappers(t *testing.T) {
@@ -176,14 +176,14 @@ func TestPrimitiveWrappers(t *testing.T) {
 
 	err := Unmarshal([]byte(hcl), &out)
 	require.NoError(t, err)
-	require.Equal(t, out.DoubleVal.Value, float64(1.234))
-	require.Equal(t, out.FloatVal.Value, float32(2.345))
-	require.Equal(t, out.Int32Val.Value, int32(536870912))
-	require.Equal(t, out.Int64Val.Value, int64(25769803776))
-	require.Equal(t, out.Uint32Val.Value, uint32(2148532224))
-	require.Equal(t, out.Uint64Val.Value, uint64(9223372041149743104))
-	require.Equal(t, out.BoolVal.Value, true)
-	require.Equal(t, out.StringVal.Value, "foo")
+	require.Equal(t, float64(1.234), out.DoubleVal.Value)
+	require.Equal(t, float32(2.345), out.FloatVal.Value)
+	require.Equal(t, int32(536870912), out.Int32Val.Value)
+	require.Equal(t, int64(25769803776), out.Int64Val.Value)
+	require.Equal(t, uint32(2148532224), out.Uint32Val.Value)
+	require.Equal(t, uint64(9223372041149743104), out.Uint64Val.Value)
+	require.True(t, out.BoolVal.Value)
+	require.Equal(t, "foo", out.StringVal.Value)
 	require.Equal(t, out.BytesVal.Value, []byte("bar"))
 }
 
@@ -199,9 +199,9 @@ func TestNonDynamicWellKnown(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, out.EmptyVal)
 	require.NotNil(t, out.TimestampVal)
-	require.Equal(t, out.TimestampVal.AsTime(), time.Date(2023, 2, 27, 12, 34, 56, 789000000, time.UTC))
+	require.Equal(t, time.Date(2023, 2, 27, 12, 34, 56, 789000000, time.UTC), out.TimestampVal.AsTime())
 	require.NotNil(t, out.DurationVal)
-	require.Equal(t, out.DurationVal.AsDuration(), time.Second*12)
+	require.Equal(t, time.Second*12, out.DurationVal.AsDuration())
 }
 
 func TestInvalidTimestamp(t *testing.T) {
@@ -273,13 +273,13 @@ func TestOneOf(t *testing.T) {
 
 	err := Unmarshal([]byte(hcl1), &out)
 	require.NoError(t, err)
-	require.Equal(t, out.GetInt32Val(), int32(3))
+	require.Equal(t, int32(3), out.GetInt32Val())
 
 	err = Unmarshal([]byte(hcl2), &out)
 	require.NoError(t, err)
 	primitives := out.GetPrimitives()
 	require.NotNil(t, primitives)
-	require.Equal(t, primitives.Int32Val, int32(3))
+	require.Equal(t, int32(3), primitives.Int32Val)
 
 	err = Unmarshal([]byte(hcl3), &out)
 	require.Error(t, err)
@@ -308,7 +308,7 @@ func TestAny(t *testing.T) {
 	err := Unmarshal([]byte(hcl), &out)
 	require.NoError(t, err)
 	require.NotNil(t, out.AnyVal)
-	require.Equal(t, out.AnyVal.TypeUrl, "hashicorp.consul.internal.protohcl.testproto.Primitives")
+	require.Equal(t, "hashicorp.consul.internal.protohcl.testproto.Primitives", out.AnyVal.TypeUrl)
 
 	raw, err := anypb.UnmarshalNew(out.AnyVal, proto.UnmarshalOptions{})
 	require.NoError(t, err)
@@ -316,7 +316,7 @@ func TestAny(t *testing.T) {
 
 	primitives, ok := raw.(*testproto.Primitives)
 	require.True(t, ok)
-	require.Equal(t, primitives.Uint32Val, uint32(42))
+	require.Equal(t, uint32(42), primitives.Uint32Val)
 }
 
 func TestAnyTypeDynamicWellKnown(t *testing.T) {
@@ -334,7 +334,7 @@ func TestAnyTypeDynamicWellKnown(t *testing.T) {
 	err := Unmarshal([]byte(hcl), &out)
 	require.NoError(t, err)
 	require.NotNil(t, out.AnyVal)
-	require.Equal(t, out.AnyVal.TypeUrl, "hashicorp.consul.internal.protohcl.testproto.DynamicWellKnown")
+	require.Equal(t, "hashicorp.consul.internal.protohcl.testproto.DynamicWellKnown", out.AnyVal.TypeUrl)
 
 	raw, err := anypb.UnmarshalNew(out.AnyVal, proto.UnmarshalOptions{})
 	require.NoError(t, err)
@@ -349,7 +349,7 @@ func TestAnyTypeDynamicWellKnown(t *testing.T) {
 
 	primitives, ok := res.(*testproto.Primitives)
 	require.True(t, ok)
-	require.Equal(t, primitives.Uint32Val, uint32(42))
+	require.Equal(t, uint32(42), primitives.Uint32Val)
 }
 
 func TestAnyTypeNestedAndCollections(t *testing.T) {
@@ -366,7 +366,7 @@ func TestAnyTypeNestedAndCollections(t *testing.T) {
 	err := Unmarshal([]byte(hcl), &out)
 	require.NoError(t, err)
 	require.NotNil(t, out.AnyVal)
-	require.Equal(t, out.AnyVal.TypeUrl, "hashicorp.consul.internal.protohcl.testproto.NestedAndCollections")
+	require.Equal(t, "hashicorp.consul.internal.protohcl.testproto.NestedAndCollections", out.AnyVal.TypeUrl)
 
 	raw, err := anypb.UnmarshalNew(out.AnyVal, proto.UnmarshalOptions{})
 	require.NoError(t, err)
@@ -375,7 +375,7 @@ func TestAnyTypeNestedAndCollections(t *testing.T) {
 	nestedCollections, ok := raw.(*testproto.NestedAndCollections)
 	require.True(t, ok)
 	require.NotNil(t, nestedCollections.Primitives)
-	require.Equal(t, nestedCollections.Primitives.Uint32Val, uint32(42))
+	require.Equal(t, uint32(42), nestedCollections.Primitives.Uint32Val)
 }
 
 func TestAnyTypeErrors(t *testing.T) {
@@ -576,9 +576,9 @@ func TestFunctionExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, out.Primitives)
-	require.Equal(t, out.Primitives.StringVal, "test")
-	require.Equal(t, out.Primitives.Int32Val, int32(10))
-	require.Equal(t, out.Primitives.BoolVal, false)
+	require.Equal(t, "test", out.Primitives.StringVal)
+	require.Equal(t, int32(10), out.Primitives.Int32Val)
+	require.False(t, out.Primitives.BoolVal)
 }
 
 func TestSkipFields(t *testing.T) {

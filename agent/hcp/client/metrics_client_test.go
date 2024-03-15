@@ -77,7 +77,7 @@ func TestExportMetrics(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			randomBody := randStringRunes(1000)
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, r.Header.Get("content-type"), "application/x-protobuf")
+				require.Equal(t, "application/x-protobuf", r.Header.Get("content-type"))
 
 				body := colpb.ExportMetricsServiceResponse{}
 				bytes, err := proto.Marshal(&body)
@@ -149,7 +149,7 @@ func TestTruncate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			truncatedBody := truncate(tc.body, defaultErrRespBodyLength)
 			truncatedRunes := []rune(truncatedBody)
-			require.Equal(t, len(truncatedRunes), tc.expectedSize)
+			require.Len(t, truncatedRunes, tc.expectedSize)
 		})
 	}
 }

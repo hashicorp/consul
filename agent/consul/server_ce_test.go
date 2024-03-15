@@ -28,7 +28,7 @@ func TestAgent_ReloadConfig_Reporting(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s.RPC, "dc1")
 
-	require.Equal(t, false, s.config.Reporting.License.Enabled)
+	require.False(t, s.config.Reporting.License.Enabled)
 
 	rc := ReloadableConfig{
 		Reporting: Reporting{
@@ -41,5 +41,5 @@ func TestAgent_ReloadConfig_Reporting(t *testing.T) {
 	require.NoError(t, s.ReloadConfig(rc))
 
 	// Check config reload is no-op
-	require.Equal(t, false, s.config.Reporting.License.Enabled)
+	require.False(t, s.config.Reporting.License.Enabled)
 }

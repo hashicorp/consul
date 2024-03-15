@@ -10,6 +10,7 @@ import (
 
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
@@ -53,7 +54,7 @@ func TestTokenDeleteCommand(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -62,7 +63,7 @@ func TestTokenDeleteCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
@@ -73,6 +74,6 @@ func TestTokenDeleteCommand(t *testing.T) {
 		token.AccessorID,
 		&api.QueryOptions{Token: "root"},
 	)
-	assert.ErrorContains(t, err, "Unexpected response code: 403")
-	assert.ErrorContains(t, err, "ACL not found")
+	require.ErrorContains(t, err, "Unexpected response code: 403")
+	require.ErrorContains(t, err, "ACL not found")
 }

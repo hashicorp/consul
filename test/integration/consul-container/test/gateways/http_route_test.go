@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
@@ -670,7 +669,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		if entry == nil {
 			return false
 		}
@@ -686,9 +685,9 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 
 	// fetch gateway listener ports
 	gatewayOnePort, err := gatewayOneService.GetPort(listenerOnePort)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	gatewayTwoPort, err := gatewayTwoService.GetPort(listenerTwoPort)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// hit service by requesting root path
 	// TODO: testName field in checkOptions struct looked to be unused, is it needed?
@@ -713,7 +712,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(route))
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		if entry == nil {
 			return false
 		}

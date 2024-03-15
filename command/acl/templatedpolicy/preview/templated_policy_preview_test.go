@@ -54,7 +54,7 @@ func TestTemplatedPolicyPreviewCommand(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 1)
+		assert.Equal(t, 1, code)
 		assert.Contains(t, ui.ErrorWriter.String(), "Cannot preview a templated policy without specifying -name or -file")
 	})
 
@@ -68,7 +68,7 @@ func TestTemplatedPolicyPreviewCommand(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 1)
+		assert.Equal(t, 1, code)
 		assert.Contains(t, ui.ErrorWriter.String(), "Failed to generate the templated policy preview")
 	})
 
@@ -83,7 +83,7 @@ func TestTemplatedPolicyPreviewCommand(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 		output := ui.OutputWriter.String()
 		require.Contains(t, output, "synthetic policy generated from templated policy: builtin/node")
@@ -103,7 +103,7 @@ func TestTemplatedPolicyPreviewCommand(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 		output := ui.OutputWriter.String()
 		require.Contains(t, output, "synthetic policy generated from templated policy: builtin/service")
@@ -126,7 +126,7 @@ func TestTemplatedPolicyPreviewCommand(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 1)
+		assert.Equal(t, 1, code)
 		assert.Contains(t, ui.ErrorWriter.String(), "Can only preview a single templated policy at a time.")
 	})
 }
@@ -160,7 +160,7 @@ func TestTemplatedPolicyPreviewCommand_JSON(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 1)
+		assert.Equal(t, 1, code)
 		assert.Contains(t, ui.ErrorWriter.String(), "Cannot preview a templated policy without specifying -name or -file")
 	})
 
@@ -175,7 +175,7 @@ func TestTemplatedPolicyPreviewCommand_JSON(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 1)
+		assert.Equal(t, 1, code)
 		assert.Contains(t, ui.ErrorWriter.String(), "Failed to generate the templated policy preview")
 	})
 
@@ -191,7 +191,7 @@ func TestTemplatedPolicyPreviewCommand_JSON(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 		output := ui.OutputWriter.String()
 		require.Contains(t, output, "synthetic policy generated from templated policy: builtin/node")
@@ -199,6 +199,6 @@ func TestTemplatedPolicyPreviewCommand_JSON(t *testing.T) {
 		// ensure valid json
 		var jsonOutput json.RawMessage
 		err := json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }

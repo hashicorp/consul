@@ -15,7 +15,6 @@ import (
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -59,9 +58,9 @@ func (suite *expanderSuite) Test_ComputeFailoverDestinationsFromSamenessGroup() 
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		Build()
 	decFp, err := resource.Decode[*pbcatalog.FailoverPolicy](fp)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	dests, sg, err := suite.samenessGroupExpander.ComputeFailoverDestinationsFromSamenessGroup(suite.rt, decFp.Id, "sg1", "http")
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dests)
-	require.Equal(suite.T(), "", sg)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dests)
+	suite.Require().Equal("", sg)
 }

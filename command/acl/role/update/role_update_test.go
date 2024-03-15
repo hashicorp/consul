@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -104,7 +103,7 @@ func TestRoleUpdateCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Role not found with ID")
 	})
 
@@ -302,7 +301,7 @@ func TestRoleUpdateCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Role not found with ID")
 	})
 
@@ -319,12 +318,12 @@ func TestRoleUpdateCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		var jsonOutput json.RawMessage
 		err := json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -411,7 +410,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Role not found with ID")
 	})
 
@@ -430,7 +429,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		role, _, err := client.ACL().RoleRead(
@@ -441,7 +440,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
 		require.Len(t, role.Policies, 1)
-		require.Len(t, role.ServiceIdentities, 0)
+		require.Empty(t, role.ServiceIdentities)
 	})
 
 	t.Run("update with policy by id", func(t *testing.T) {
@@ -459,7 +458,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		role, _, err := client.ACL().RoleRead(
@@ -470,7 +469,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
 		require.Len(t, role.Policies, 1)
-		require.Len(t, role.ServiceIdentities, 0)
+		require.Empty(t, role.ServiceIdentities)
 	})
 
 	t.Run("update with service identity", func(t *testing.T) {
@@ -488,7 +487,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		role, _, err := client.ACL().RoleRead(
@@ -498,7 +497,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 		require.Len(t, role.ServiceIdentities, 1)
 	})
 
@@ -517,7 +516,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		role, _, err := client.ACL().RoleRead(
@@ -527,7 +526,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 		require.Len(t, role.ServiceIdentities, 1)
 	})
 
@@ -547,7 +546,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		role, _, err := client.ACL().RoleRead(
@@ -557,7 +556,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 		require.Len(t, role.TemplatedPolicies, 1)
 	})
 
@@ -577,7 +576,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		role, _, err := client.ACL().RoleRead(
@@ -587,7 +586,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 		require.Len(t, role.TemplatedPolicies, 1)
 	})
 }

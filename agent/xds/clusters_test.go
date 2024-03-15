@@ -468,9 +468,9 @@ func TestParseJWTRemoteURL(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, host, tt.expectedHost)
-				require.Equal(t, scheme, tt.expectedScheme)
-				require.Equal(t, port, tt.expectedPort)
+				require.Equal(t, tt.expectedHost, host)
+				require.Equal(t, tt.expectedScheme, scheme)
+				require.Equal(t, tt.expectedPort, port)
 			}
 		})
 	}

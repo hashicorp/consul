@@ -65,7 +65,7 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Cannot update an auth method without specifying the -name parameter")
 	})
 
@@ -81,7 +81,7 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Auth method not found with name")
 	})
 
@@ -121,7 +121,7 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		got := getTestMethod(t, client, name)
@@ -152,7 +152,7 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		got := getTestMethod(t, client, name)
@@ -203,7 +203,7 @@ func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Cannot update an auth method without specifying the -name parameter")
 	})
 
@@ -244,7 +244,7 @@ func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
 		code := cmd.Run(args)
 		output := ui.OutputWriter.String()
 
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		var jsonOutput json.RawMessage
@@ -294,7 +294,7 @@ func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Cannot update an auth method without specifying the -name parameter")
 	})
 
@@ -311,7 +311,7 @@ func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Auth method not found with name")
 	})
 
@@ -350,7 +350,7 @@ func TestAuthMethodUpdateCommand_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: %s", ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		got := getTestMethod(t, client, name)
@@ -432,7 +432,7 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		got := getTestMethod(t, client, name)
@@ -477,7 +477,7 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		method, _, err := client.ACL().AuthMethodRead(
@@ -512,7 +512,7 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		method, _, err := client.ACL().AuthMethodRead(
@@ -547,7 +547,7 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		method, _, err := client.ACL().AuthMethodRead(
@@ -582,7 +582,7 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		method, _, err := client.ACL().AuthMethodRead(
@@ -669,7 +669,7 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-kubernetes-host' flag")
 	})
 
@@ -690,7 +690,7 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-kubernetes-ca-cert' flag")
 	})
 
@@ -711,7 +711,7 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-kubernetes-service-account-jwt' flag")
 	})
 
@@ -733,7 +733,7 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		method, _, err := client.ACL().AuthMethodRead(
@@ -773,7 +773,7 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		method, _, err := client.ACL().AuthMethodRead(

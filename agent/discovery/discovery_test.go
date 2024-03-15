@@ -57,7 +57,7 @@ func TestQueryByName(t *testing.T) {
 		results, err := qp.QueryByName(&q, testContext)
 		if tc.expectedError != nil {
 			require.Error(t, err)
-			require.True(t, errors.Is(err, tc.expectedError))
+			require.ErrorIs(t, err, tc.expectedError)
 			require.Nil(t, results)
 			return
 		}
@@ -188,7 +188,7 @@ func TestQueryByIP(t *testing.T) {
 		results, err := qp.QueryByIP(testIP, testContext)
 		if tc.expectedError != nil {
 			require.Error(t, err)
-			require.True(t, errors.Is(err, tc.expectedError))
+			require.ErrorIs(t, err, tc.expectedError)
 			require.Nil(t, results)
 			return
 		}

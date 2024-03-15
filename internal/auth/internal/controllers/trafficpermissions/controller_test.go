@@ -72,9 +72,11 @@ func (suite *controllerSuite) SetupTest() {
 }
 
 func (suite *controllerSuite) requireTrafficPermissionsTracking(tp *pbresource.Resource, ids ...*pbresource.ID) {
+	suite.T().Helper()
+
 	reqs, err := suite.mapper.MapTrafficPermissions(suite.ctx, suite.rt, tp)
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, len(ids))
+	suite.Require().NoError(err)
+	suite.Require().Len(reqs, len(ids))
 	for _, id := range ids {
 		prototest.AssertContainsElement(suite.T(), reqs, controller.Request{ID: id})
 	}
@@ -84,10 +86,12 @@ func (suite *controllerSuite) requireTrafficPermissionsTracking(tp *pbresource.R
 }
 
 func (suite *controllerSuite) requireCTP(resource *pbresource.Resource, allowExpected []*pbauth.Permission, denyExpected []*pbauth.Permission) {
+	suite.T().Helper()
+
 	dec := rtest.MustDecode[*pbauth.ComputedTrafficPermissions](suite.T(), resource)
 	ctp := dec.Data
-	require.Len(suite.T(), ctp.AllowPermissions, len(allowExpected))
-	require.Len(suite.T(), ctp.DenyPermissions, len(denyExpected))
+	suite.Require().Len(ctp.AllowPermissions, len(allowExpected))
+	suite.Require().Len(ctp.DenyPermissions, len(denyExpected))
 	prototest.AssertElementsMatch(suite.T(), allowExpected, ctp.AllowPermissions)
 	prototest.AssertElementsMatch(suite.T(), denyExpected, ctp.DenyPermissions)
 }
@@ -139,7 +143,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_NoReferencingTrafficPermis
 		id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Ensure that the CTP was created
 		ctp := suite.client.RequireResourceExists(suite.T(), id)
@@ -446,14 +450,14 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 		id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi1ID)
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// delete the workload identity
 		suite.client.MustDelete(suite.T(), wi.Id)
 
 		// re-reconcile: should untrack the CTP
 		err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -464,18 +468,18 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_NoReferencing
 		id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// delete the workload identity
 		suite.client.MustDelete(suite.T(), wi.Id)
 
 		// re-reconcile: should untrack the CTP
 		err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// there should not be any traffic permissions to compute
 		tps := suite.mapper.GetTrafficPermissionsForCTP(id)
-		require.Len(suite.T(), tps, 0)
+		suite.Require().Empty(tps)
 	})
 }
 
@@ -486,7 +490,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 		id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		ctpResource := suite.client.RequireResourceExists(suite.T(), id)
 		assertCTPDefaultStatus(suite.T(), ctpResource, true)
@@ -529,7 +533,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 		suite.requireTrafficPermissionsTracking(tp2, id)
 
 		err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Ensure that the CTP was updated
 		ctpResource = suite.client.RequireResourceExists(suite.T(), id)
@@ -557,7 +561,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 		suite.requireTrafficPermissionsTracking(tp3, id)
 
 		err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Ensure that the CTP was updated
 		ctpResource = suite.client.RequireResourceExists(suite.T(), id)
@@ -571,7 +575,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 		suite.client.MustDelete(suite.T(), tp3.Id)
 
 		err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		ctpResource = suite.client.RequireResourceExists(suite.T(), id)
 		suite.requireCTP(ctpResource, []*pbauth.Permission{}, []*pbauth.Permission{})
@@ -587,7 +591,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		id := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wi.Id)
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// create traffic permissions
 		p1 := &pbauth.Permission{
@@ -630,7 +634,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		suite.requireTrafficPermissionsTracking(tp2, id)
 
 		err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		ctp := suite.client.RequireResourceExists(suite.T(), id)
 		suite.requireCTP(ctp, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{})
@@ -640,7 +644,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		suite.client.MustDelete(suite.T(), tp2.Id)
 
 		err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Ensure that the CTP was updated
 		ctp = suite.client.RequireResourceExists(suite.T(), id)
@@ -648,8 +652,8 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 
 		// Ensure TP2 is untracked
 		newTps := suite.mapper.GetTrafficPermissionsForCTP(ctp.Id)
-		require.Len(suite.T(), newTps, 1)
-		require.Equal(suite.T(), newTps[0].Name, tp1.Id.Name)
+		suite.Require().Len(newTps, 1)
+		suite.Require().Equal(newTps[0].Name, tp1.Id.Name)
 	})
 }
 
@@ -708,8 +712,8 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 			Type:    pbauth.ComputedTrafficPermissionsType,
 			Tenancy: resource.DefaultNamespacedTenancy(),
 		})
-		require.NoError(suite.T(), err)
-		require.Empty(suite.T(), rsp.Resources)
+		suite.Require().NoError(err)
+		suite.Require().Empty(rsp.Resources)
 	})
 }
 

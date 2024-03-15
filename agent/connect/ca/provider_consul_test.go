@@ -194,7 +194,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 				// Ensure the cert is valid now and expires within the correct limit.
 				now := time.Now()
-				require.True(t, parsed.NotAfter.Sub(now) < time.Hour)
+				require.Less(t, parsed.NotAfter.Sub(now), time.Hour)
 				require.True(t, parsed.NotBefore.Before(now))
 			}
 
@@ -219,7 +219,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				requireNotEncoded(t, parsed.AuthorityKeyId)
 
 				// Ensure the cert is valid now and expires within the correct limit.
-				require.True(t, time.Until(parsed.NotAfter) < 3*24*time.Hour)
+				require.Less(t, time.Until(parsed.NotAfter), 3*24*time.Hour)
 				require.True(t, parsed.NotBefore.Before(time.Now()))
 			}
 
@@ -248,7 +248,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 				// Ensure the cert is valid now and expires within the correct limit.
 				now := time.Now()
-				require.True(t, parsed.NotAfter.Sub(now) < time.Hour)
+				require.Less(t, parsed.NotAfter.Sub(now), time.Hour)
 				require.True(t, parsed.NotBefore.Before(now))
 			}
 		})

@@ -6,7 +6,6 @@ package cache_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/hashicorp/consul/internal/controller/cache"
@@ -32,24 +31,24 @@ func (suite *decodedSuite) SetupTest() {
 	suite.rc = cachemock.NewReadOnlyCache(suite.T())
 	suite.iter = cachemock.NewResourceIterator(suite.T())
 	artist, err := demo.GenerateV2Artist()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	suite.artistGood, err = resource.Decode[*pbdemo.Artist](artist)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	artist2, err := demo.GenerateV2Artist()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	suite.artistGood2, err = resource.Decode[*pbdemo.Artist](artist2)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	suite.artistBad, err = demo.GenerateV2Album(artist.Id)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 }
 
 func (suite *decodedSuite) TestGetDecoded_Ok() {
 	suite.rc.EXPECT().Get(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(suite.artistGood.Resource, nil)
 
 	dec, err := cache.GetDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec.Data)
 }
@@ -58,24 +57,24 @@ func (suite *decodedSuite) TestGetDecoded_DecodeError() {
 	suite.rc.EXPECT().Get(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(suite.artistBad, nil)
 
 	dec, err := cache.GetDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.Error(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().Error(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestGetDecoded_CacheError() {
 	suite.rc.EXPECT().Get(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
 
 	dec, err := cache.GetDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), dec)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestGetDecoded_Nil() {
 	suite.rc.EXPECT().Get(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, nil)
 
 	dec, err := cache.GetDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestListDecoded_Ok() {
@@ -83,8 +82,8 @@ func (suite *decodedSuite) TestListDecoded_Ok() {
 		Return([]*pbresource.Resource{suite.artistGood.Resource, suite.artistGood2.Resource}, nil)
 
 	dec, err := cache.ListDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), dec, 2)
+	suite.Require().NoError(err)
+	suite.Require().Len(dec, 2)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec[0].Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec[0].Data)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood2.Resource, dec[1].Resource)
@@ -96,24 +95,24 @@ func (suite *decodedSuite) TestListDecoded_DecodeError() {
 		Return([]*pbresource.Resource{suite.artistGood.Resource, suite.artistBad}, nil)
 
 	dec, err := cache.ListDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.Error(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().Error(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestListDecoded_CacheError() {
 	suite.rc.EXPECT().List(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
 
 	dec, err := cache.ListDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), dec)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestListDecoded_Nil() {
 	suite.rc.EXPECT().List(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, nil)
 
 	dec, err := cache.ListDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestListIteratorDecoded_Ok() {
@@ -124,22 +123,22 @@ func (suite *decodedSuite) TestListIteratorDecoded_Ok() {
 		Return(suite.iter, nil)
 
 	iter, err := cache.ListIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	dec, err := iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood2.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood2.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestListIteratorDecoded_DecodeError() {
@@ -150,37 +149,37 @@ func (suite *decodedSuite) TestListIteratorDecoded_DecodeError() {
 		Return(suite.iter, nil)
 
 	iter, err := cache.ListIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	dec, err := iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.Error(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().Error(err)
+	suite.Require().Nil(dec)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestListIteratorDecoded_CacheError() {
 	suite.rc.EXPECT().ListIterator(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
 
 	iter, err := cache.ListIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), iter)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(iter)
 }
 
 func (suite *decodedSuite) TestListIteratorDecoded_Nil() {
 	suite.rc.EXPECT().ListIterator(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, nil)
 
 	dec, err := cache.ListIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestParentsDecoded_Ok() {
@@ -188,8 +187,8 @@ func (suite *decodedSuite) TestParentsDecoded_Ok() {
 		Return([]*pbresource.Resource{suite.artistGood.Resource, suite.artistGood2.Resource}, nil)
 
 	dec, err := cache.ParentsDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), dec, 2)
+	suite.Require().NoError(err)
+	suite.Require().Len(dec, 2)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec[0].Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec[0].Data)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood2.Resource, dec[1].Resource)
@@ -201,24 +200,24 @@ func (suite *decodedSuite) TestParentsDecoded_DecodeError() {
 		Return([]*pbresource.Resource{suite.artistGood.Resource, suite.artistBad}, nil)
 
 	dec, err := cache.ParentsDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.Error(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().Error(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestParentsDecoded_CacheError() {
 	suite.rc.EXPECT().Parents(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
 
 	dec, err := cache.ParentsDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), dec)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestParentsDecoded_Nil() {
 	suite.rc.EXPECT().Parents(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, nil)
 
 	dec, err := cache.ParentsDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestParentsIteratorDecoded_Ok() {
@@ -229,22 +228,22 @@ func (suite *decodedSuite) TestParentsIteratorDecoded_Ok() {
 		Return(suite.iter, nil)
 
 	iter, err := cache.ParentsIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	dec, err := iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood2.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood2.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestParentsIteratorDecoded_DecodeError() {
@@ -255,37 +254,37 @@ func (suite *decodedSuite) TestParentsIteratorDecoded_DecodeError() {
 		Return(suite.iter, nil)
 
 	iter, err := cache.ParentsIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	dec, err := iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.Error(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().Error(err)
+	suite.Require().Nil(dec)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestParentsIteratorDecoded_CacheError() {
 	suite.rc.EXPECT().ParentsIterator(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, injectedError)
 
 	iter, err := cache.ParentsIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), iter)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(iter)
 }
 
 func (suite *decodedSuite) TestParentsIteratorDecoded_Nil() {
 	suite.rc.EXPECT().ParentsIterator(pbdemo.ArtistType, "id", suite.artistGood.Id).Return(nil, nil)
 
 	dec, err := cache.ParentsIteratorDecoded[*pbdemo.Artist](suite.rc, pbdemo.ArtistType, "id", suite.artistGood.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestQueryDecoded_Ok() {
@@ -296,22 +295,22 @@ func (suite *decodedSuite) TestQueryDecoded_Ok() {
 		Return(suite.iter, nil)
 
 	iter, err := cache.QueryDecoded[*pbdemo.Artist](suite.rc, "query", "blah")
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	dec, err := iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood2.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood2.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestQueryDecoded_DecodeError() {
@@ -322,37 +321,37 @@ func (suite *decodedSuite) TestQueryDecoded_DecodeError() {
 		Return(suite.iter, nil)
 
 	iter, err := cache.QueryDecoded[*pbdemo.Artist](suite.rc, "query", "blah")
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	dec, err := iter.Next()
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Resource, dec.Resource)
 	prototest.AssertDeepEqual(suite.T(), suite.artistGood.Data, dec.Data)
 
 	dec, err = iter.Next()
-	require.Error(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().Error(err)
+	suite.Require().Nil(dec)
 
 	dec, err = iter.Next()
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestQueryDecoded_CacheError() {
 	suite.rc.EXPECT().Query("query", "blah").Return(nil, injectedError)
 
 	dec, err := cache.QueryDecoded[*pbdemo.Artist](suite.rc, "query", "blah")
-	require.ErrorIs(suite.T(), err, injectedError)
-	require.Nil(suite.T(), dec)
+	suite.Require().ErrorIs(err, injectedError)
+	suite.Require().Nil(dec)
 }
 
 func (suite *decodedSuite) TestQueryDecoded_Nil() {
 	suite.rc.EXPECT().Query("query", "blah").Return(nil, nil)
 
 	dec, err := cache.QueryDecoded[*pbdemo.Artist](suite.rc, "query", "blah")
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), dec)
+	suite.Require().NoError(err)
+	suite.Require().Nil(dec)
 }
 
 func TestDecodedCache(t *testing.T) {

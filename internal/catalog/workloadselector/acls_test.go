@@ -6,7 +6,6 @@ package workloadselector
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/hashicorp/consul/acl"
@@ -59,7 +58,7 @@ func (suite *aclHookSuite) TestReadHook_Allowed() {
 		Return(acl.Allow).
 		Once()
 
-	require.NoError(suite.T(), suite.hooks.Read(suite.authz, suite.ctx, suite.res.Id, nil))
+	suite.Require().NoError(suite.hooks.Read(suite.authz, suite.ctx, suite.res.Id, nil))
 }
 
 func (suite *aclHookSuite) TestReadHook_Denied() {
@@ -67,7 +66,7 @@ func (suite *aclHookSuite) TestReadHook_Denied() {
 		Return(acl.Deny).
 		Once()
 
-	require.Error(suite.T(), suite.hooks.Read(suite.authz, suite.ctx, suite.res.Id, nil))
+	suite.Require().Error(suite.hooks.Read(suite.authz, suite.ctx, suite.res.Id, nil))
 }
 
 func (suite *aclHookSuite) TestWriteHook_ServiceWriteDenied() {
@@ -75,7 +74,7 @@ func (suite *aclHookSuite) TestWriteHook_ServiceWriteDenied() {
 		Return(acl.Deny).
 		Once()
 
-	require.Error(suite.T(), suite.hooks.Write(suite.authz, suite.ctx, suite.res))
+	suite.Require().Error(suite.hooks.Write(suite.authz, suite.ctx, suite.res))
 }
 
 func (suite *aclHookSuite) TestWriteHook_ServiceReadNameDenied() {
@@ -87,7 +86,7 @@ func (suite *aclHookSuite) TestWriteHook_ServiceReadNameDenied() {
 		Return(acl.Deny).
 		Once()
 
-	require.Error(suite.T(), suite.hooks.Write(suite.authz, suite.ctx, suite.res))
+	suite.Require().Error(suite.hooks.Write(suite.authz, suite.ctx, suite.res))
 }
 
 func (suite *aclHookSuite) TestWriteHook_ServiceReadPrefixDenied() {
@@ -103,7 +102,7 @@ func (suite *aclHookSuite) TestWriteHook_ServiceReadPrefixDenied() {
 		Return(acl.Deny).
 		Once()
 
-	require.Error(suite.T(), suite.hooks.Write(suite.authz, suite.ctx, suite.res))
+	suite.Require().Error(suite.hooks.Write(suite.authz, suite.ctx, suite.res))
 }
 
 func (suite *aclHookSuite) TestWriteHook_Allowed() {
@@ -119,5 +118,5 @@ func (suite *aclHookSuite) TestWriteHook_Allowed() {
 		Return(acl.Allow).
 		Once()
 
-	require.NoError(suite.T(), suite.hooks.Write(suite.authz, suite.ctx, suite.res))
+	suite.Require().NoError(suite.hooks.Write(suite.authz, suite.ctx, suite.res))
 }

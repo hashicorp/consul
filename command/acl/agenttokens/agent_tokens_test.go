@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAgentTokensCommand_noTabs(t *testing.T) {
@@ -52,7 +53,7 @@ func TestAgentTokensCommand(t *testing.T) {
 		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// default token
 	{
@@ -63,7 +64,7 @@ func TestAgentTokensCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 	}
 
@@ -76,7 +77,7 @@ func TestAgentTokensCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 	}
 
@@ -89,7 +90,7 @@ func TestAgentTokensCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 	}
 
@@ -102,7 +103,7 @@ func TestAgentTokensCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 	}
 }

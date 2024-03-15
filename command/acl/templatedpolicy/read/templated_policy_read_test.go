@@ -53,7 +53,7 @@ func TestTemplatedPolicyReadCommand(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 1)
+		assert.Equal(t, 1, code)
 		assert.Contains(t, ui.ErrorWriter.String(), "Must specify the -name parameter")
 	})
 
@@ -67,7 +67,7 @@ func TestTemplatedPolicyReadCommand(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -105,7 +105,7 @@ func TestTemplatedPolicyReadCommand_JSON(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 1)
+		assert.Equal(t, 1, code)
 		assert.Contains(t, ui.ErrorWriter.String(), "Must specify the -name parameter")
 	})
 
@@ -120,14 +120,14 @@ func TestTemplatedPolicyReadCommand_JSON(t *testing.T) {
 
 		cmd := New(ui)
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
 		var templatedPolicy api.ACLTemplatedPolicyResponse
 		err := json.Unmarshal([]byte(output), &templatedPolicy)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, structs.ACLTemplatedPolicyNodeSchema, templatedPolicy.Schema)
 		assert.Equal(t, api.ACLTemplatedPolicyNodeName, templatedPolicy.TemplateName)
 	})

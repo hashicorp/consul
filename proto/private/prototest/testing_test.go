@@ -34,9 +34,9 @@ func TestDiffElements_noProtobufs(t *testing.T) {
 	run := func(t *testing.T, tc testcase) {
 		diff := diffElements(tc.a, tc.b)
 		if tc.notSame {
-			require.False(t, diff == "", "expected not to be the same")
+			require.NotEqual(t, "", diff, "expected not to be the same")
 		} else {
-			require.True(t, diff == "", "expected to be the same")
+			require.Equal(t, "", diff, "expected to be the same")
 		}
 	}
 

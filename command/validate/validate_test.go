@@ -38,7 +38,7 @@ func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 
 	fp := filepath.Join(td, "config.json")
 	err := os.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	require.Nilf(t, err, "err: %s", err)
+	require.NoErrorf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{fp}
@@ -53,7 +53,7 @@ func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t *testing.T) {
 
 	fp := filepath.Join(td, "json.conf")
 	err := os.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	require.Nilf(t, err, "err: %s", err)
+	require.NoErrorf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "json", fp}
@@ -68,7 +68,7 @@ func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
 
 	fp := filepath.Join(td, "hcl.conf")
 	err := os.WriteFile(fp, []byte("bind_addr = \"10.0.0.1\"\ndata_dir = \""+td+"\""), 0644)
-	require.Nilf(t, err, "err: %s", err)
+	require.NoErrorf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "hcl", fp}
@@ -83,7 +83,7 @@ func TestValidateCommand_SucceedWithJSONAsHCL(t *testing.T) {
 
 	fp := filepath.Join(td, "json.conf")
 	err := os.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	require.Nilf(t, err, "err: %s", err)
+	require.NoErrorf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "hcl", fp}
@@ -97,7 +97,7 @@ func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 
 	err := os.WriteFile(filepath.Join(td, "config.json"), []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	require.Nilf(t, err, "err: %s", err)
+	require.NoErrorf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{td}
@@ -112,7 +112,7 @@ func TestValidateCommand_FailForInvalidJSONConfigFormat(t *testing.T) {
 
 	fp := filepath.Join(td, "hcl.conf")
 	err := os.WriteFile(fp, []byte(`bind_addr = "10.0.0.1"\ndata_dir = "`+td+`"`), 0644)
-	require.Nilf(t, err, "err: %s", err)
+	require.NoErrorf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
 	args := []string{"--config-format", "json", fp}
@@ -127,7 +127,7 @@ func TestValidateCommand_Quiet(t *testing.T) {
 
 	fp := filepath.Join(td, "config.json")
 	err := os.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
-	require.Nilf(t, err, "err: %s", err)
+	require.NoErrorf(t, err, "err: %s", err)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui)

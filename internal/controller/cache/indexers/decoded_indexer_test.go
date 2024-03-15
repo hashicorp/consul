@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -49,8 +48,8 @@ func (suite *decodedSingleIndexerSuite) TestFromArgs() {
 		Once()
 
 	val, err := suite.index.FromArgs("blah", 1, true)
-	require.NoError(suite.T(), err)
-	require.Equal(suite.T(), []byte("foo"), val)
+	suite.Require().NoError(err)
+	suite.Require().Equal([]byte("foo"), val)
 }
 
 func (suite *decodedSingleIndexerSuite) TestFromArgs_Error() {
@@ -60,8 +59,8 @@ func (suite *decodedSingleIndexerSuite) TestFromArgs_Error() {
 		Once()
 
 	val, err := suite.index.FromArgs("blah", 1, true)
-	require.ErrorIs(suite.T(), err, fakeTestError)
-	require.Nil(suite.T(), val)
+	suite.Require().ErrorIs(err, fakeTestError)
+	suite.Require().Nil(val)
 }
 
 func (suite *decodedSingleIndexerSuite) TestFromResource() {
@@ -79,9 +78,9 @@ func (suite *decodedSingleIndexerSuite) TestFromResource() {
 		Once()
 
 	indexed, val, err := suite.index.FromResource(res)
-	require.True(suite.T(), indexed)
-	require.NoError(suite.T(), err)
-	require.Equal(suite.T(), []byte{1, 2, 3}, val)
+	suite.Require().True(indexed)
+	suite.Require().NoError(err)
+	suite.Require().Equal([]byte{1, 2, 3}, val)
 }
 
 func (suite *decodedSingleIndexerSuite) TestFromResource_Error() {
@@ -99,9 +98,9 @@ func (suite *decodedSingleIndexerSuite) TestFromResource_Error() {
 		Once()
 
 	indexed, val, err := suite.index.FromResource(res)
-	require.False(suite.T(), indexed)
-	require.ErrorIs(suite.T(), err, fakeTestError)
-	require.Nil(suite.T(), val)
+	suite.Require().False(indexed)
+	suite.Require().ErrorIs(err, fakeTestError)
+	suite.Require().Nil(val)
 }
 
 func (suite *decodedSingleIndexerSuite) TestFromResource_DecodeError() {
@@ -113,9 +112,9 @@ func (suite *decodedSingleIndexerSuite) TestFromResource_DecodeError() {
 
 	var expectedErr resource.ErrDataParse
 	indexed, val, err := suite.index.FromResource(res)
-	require.False(suite.T(), indexed)
-	require.ErrorAs(suite.T(), err, &expectedErr)
-	require.Nil(suite.T(), val)
+	suite.Require().False(indexed)
+	suite.Require().ErrorAs(err, &expectedErr)
+	suite.Require().Nil(val)
 }
 
 func (suite *decodedSingleIndexerSuite) TestIntegration() {
@@ -139,7 +138,7 @@ func (suite *decodedSingleIndexerSuite) TestIntegration() {
 		Once()
 
 	txn := idx.Txn()
-	require.NoError(suite.T(), txn.Insert(res))
+	suite.Require().NoError(txn.Insert(res))
 	txn.Commit()
 
 	suite.args.EXPECT().
@@ -148,7 +147,7 @@ func (suite *decodedSingleIndexerSuite) TestIntegration() {
 		Once()
 
 	r, err := idx.Txn().Get("fake")
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), res, r)
 }
 
@@ -181,8 +180,8 @@ func (suite *decodedMultiIndexerSuite) TestFromArgs() {
 		Once()
 
 	val, err := suite.index.FromArgs("blah", 1, true)
-	require.NoError(suite.T(), err)
-	require.Equal(suite.T(), []byte("foo"), val)
+	suite.Require().NoError(err)
+	suite.Require().Equal([]byte("foo"), val)
 }
 
 func (suite *decodedMultiIndexerSuite) TestFromArgs_Error() {
@@ -192,8 +191,8 @@ func (suite *decodedMultiIndexerSuite) TestFromArgs_Error() {
 		Once()
 
 	val, err := suite.index.FromArgs("blah", 1, true)
-	require.ErrorIs(suite.T(), err, fakeTestError)
-	require.Nil(suite.T(), val)
+	suite.Require().ErrorIs(err, fakeTestError)
+	suite.Require().Nil(val)
 }
 
 func (suite *decodedMultiIndexerSuite) TestFromResource() {
@@ -211,9 +210,9 @@ func (suite *decodedMultiIndexerSuite) TestFromResource() {
 		Once()
 
 	indexed, val, err := suite.index.FromResource(res)
-	require.True(suite.T(), indexed)
-	require.NoError(suite.T(), err)
-	require.Equal(suite.T(), [][]byte{{1, 2}, {3}}, val)
+	suite.Require().True(indexed)
+	suite.Require().NoError(err)
+	suite.Require().Equal([][]byte{{1, 2}, {3}}, val)
 }
 
 func (suite *decodedMultiIndexerSuite) TestFromResource_Error() {
@@ -231,9 +230,9 @@ func (suite *decodedMultiIndexerSuite) TestFromResource_Error() {
 		Once()
 
 	indexed, val, err := suite.index.FromResource(res)
-	require.False(suite.T(), indexed)
-	require.ErrorIs(suite.T(), err, fakeTestError)
-	require.Nil(suite.T(), val)
+	suite.Require().False(indexed)
+	suite.Require().ErrorIs(err, fakeTestError)
+	suite.Require().Nil(val)
 }
 
 func (suite *decodedMultiIndexerSuite) TestFromResource_DecodeError() {
@@ -245,9 +244,9 @@ func (suite *decodedMultiIndexerSuite) TestFromResource_DecodeError() {
 
 	var expectedErr resource.ErrDataParse
 	indexed, val, err := suite.index.FromResource(res)
-	require.False(suite.T(), indexed)
-	require.ErrorAs(suite.T(), err, &expectedErr)
-	require.Nil(suite.T(), val)
+	suite.Require().False(indexed)
+	suite.Require().ErrorAs(err, &expectedErr)
+	suite.Require().Nil(val)
 }
 
 func (suite *decodedMultiIndexerSuite) TestIntegration() {
@@ -271,7 +270,7 @@ func (suite *decodedMultiIndexerSuite) TestIntegration() {
 		Once()
 
 	txn := idx.Txn()
-	require.NoError(suite.T(), txn.Insert(res))
+	suite.Require().NoError(txn.Insert(res))
 	txn.Commit()
 
 	suite.args.EXPECT().
@@ -286,10 +285,10 @@ func (suite *decodedMultiIndexerSuite) TestIntegration() {
 
 	txn = idx.Txn()
 	r, err := txn.Get("fake")
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), res, r)
 
 	r, err = txn.Get("fake2")
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), res, r)
 }

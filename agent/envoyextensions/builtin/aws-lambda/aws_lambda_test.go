@@ -207,10 +207,10 @@ func TestPatchCluster(t *testing.T) {
 				Message:       tc.input,
 			})
 			if tc.isErrExpected {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.False(t, patchSuccess)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.True(t, patchSuccess)
 				assert.Equal(t, expectedCluster, patchedCluster)
 			}

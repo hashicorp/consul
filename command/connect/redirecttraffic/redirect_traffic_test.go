@@ -54,7 +54,7 @@ func TestRun_FlagValidation(t *testing.T) {
 			cmd := New(ui)
 
 			code := cmd.Run(c.args)
-			require.Equal(t, code, 1)
+			require.Equal(t, 1, code)
 			require.Contains(t, ui.ErrorWriter.String(), c.expError)
 		})
 	}

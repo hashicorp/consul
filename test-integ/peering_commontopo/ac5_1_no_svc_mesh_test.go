@@ -124,7 +124,7 @@ func (s *ac5_1NoSvcMeshSuite) testProxyDisabledInDC2(t *testing.T, cl *api.Clien
 				Peer: peer,
 			})
 			require.NoError(r, err, "error reading service data")
-			require.Greater(r, len(services), 0, "did not find service(s) in catalog")
+			require.NotEmpty(r, services, "did not find service(s) in catalog")
 		})
 		require.NotContains(t, services, expected, fmt.Sprintf("error: should not create proxy for service: %s", services))
 	})

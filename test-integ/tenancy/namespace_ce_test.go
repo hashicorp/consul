@@ -59,7 +59,7 @@ func TestNamespaceLifecycle(t *testing.T) {
 	}
 
 	// Verify test setup
-	require.Equal(t, len(tenants), numNamespaces*numServices)
+	require.Len(t, tenants, numNamespaces*numServices)
 
 	// List namespaces
 	listRsp, err := client.List(client.Context(t), &pbresource.ListRequest{

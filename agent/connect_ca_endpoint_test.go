@@ -59,7 +59,7 @@ func TestConnectCARoots_list(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.ConnectCARoots(resp, req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	value := obj.(structs.IndexedCARoots)
 	assert.Equal(t, value.ActiveRootID, ca2.ID)
@@ -288,7 +288,7 @@ func TestConnectCARoots_PEMEncoding(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, obj, "Endpoint returned an object for serialization when it should have returned nil and written to the responses")
 	resp := recorder.Result()
-	require.Equal(t, resp.Header.Get("Content-Type"), "application/pem-certificate-chain")
+	require.Equal(t, "application/pem-certificate-chain", resp.Header.Get("Content-Type"))
 
 	data, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)

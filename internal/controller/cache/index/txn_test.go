@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/internal/controller/cache/index/indexmock"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -62,8 +61,8 @@ func (suite *txnSuite) TestGet() {
 		Once()
 
 	actual, err := suite.index.Txn().Get(suite.r1.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), actual)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(actual)
 	prototest.AssertDeepEqual(suite.T(), suite.r1, actual)
 }
 
@@ -74,8 +73,8 @@ func (suite *txnSuite) TestGet_NotFound() {
 		Once()
 
 	actual, err := suite.index.Txn().Get(suite.r1.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), actual)
+	suite.Require().NoError(err)
+	suite.Require().Nil(actual)
 }
 
 func (suite *txnSuite) TestGet_Error() {
@@ -85,8 +84,8 @@ func (suite *txnSuite) TestGet_Error() {
 		Once()
 
 	actual, err := suite.index.Txn().Get(suite.r1.Id)
-	require.ErrorIs(suite.T(), err, fakeTestError)
-	require.Nil(suite.T(), actual)
+	suite.Require().ErrorIs(err, fakeTestError)
+	suite.Require().Nil(actual)
 }
 
 func (suite *txnSuite) TestListIterator() {
@@ -101,26 +100,26 @@ func (suite *txnSuite) TestListIterator() {
 		Once()
 
 	iter, err := suite.index.Txn().ListIterator(refQuery)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	r := iter.Next()
-	require.NotNil(suite.T(), r)
+	suite.Require().NotNil(r)
 	prototest.AssertDeepEqual(suite.T(), suite.r1, r)
 
 	r = iter.Next()
-	require.NotNil(suite.T(), r)
+	suite.Require().NotNil(r)
 	prototest.AssertDeepEqual(suite.T(), suite.r11, r)
 
 	r = iter.Next()
-	require.NotNil(suite.T(), r)
+	suite.Require().NotNil(r)
 	prototest.AssertDeepEqual(suite.T(), suite.r123, r)
 
 	r = iter.Next()
-	require.NotNil(suite.T(), r)
+	suite.Require().NotNil(r)
 	prototest.AssertDeepEqual(suite.T(), suite.r2, r)
 
 	r = iter.Next()
-	require.Nil(suite.T(), r)
+	suite.Require().Nil(r)
 }
 
 func (suite *txnSuite) TestListIterator_Error() {
@@ -131,8 +130,8 @@ func (suite *txnSuite) TestListIterator_Error() {
 		Once()
 
 	iter, err := suite.index.Txn().ListIterator("sentinel")
-	require.ErrorIs(suite.T(), err, fakeTestError)
-	require.Nil(suite.T(), iter)
+	suite.Require().ErrorIs(err, fakeTestError)
+	suite.Require().Nil(iter)
 }
 
 func (suite *txnSuite) TestParentsIterator() {
@@ -143,18 +142,18 @@ func (suite *txnSuite) TestParentsIterator() {
 		Once()
 
 	iter, err := suite.index.Txn().ParentsIterator(suite.r123.Id)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	r := iter.Next()
-	require.NotNil(suite.T(), r)
+	suite.Require().NotNil(r)
 	prototest.AssertDeepEqual(suite.T(), suite.r1, r)
 
 	r = iter.Next()
-	require.NotNil(suite.T(), r)
+	suite.Require().NotNil(r)
 	prototest.AssertDeepEqual(suite.T(), suite.r123, r)
 
 	r = iter.Next()
-	require.Nil(suite.T(), r)
+	suite.Require().Nil(r)
 }
 
 func (suite *txnSuite) TestParentsIterator_Error() {
@@ -165,8 +164,8 @@ func (suite *txnSuite) TestParentsIterator_Error() {
 		Once()
 
 	iter, err := suite.index.Txn().ParentsIterator("sentinel")
-	require.ErrorIs(suite.T(), err, fakeTestError)
-	require.Nil(suite.T(), iter)
+	suite.Require().ErrorIs(err, fakeTestError)
+	suite.Require().Nil(iter)
 }
 
 func (suite *txnSuite) TestInsert_MissingRequiredIndex() {
@@ -176,8 +175,8 @@ func (suite *txnSuite) TestInsert_MissingRequiredIndex() {
 		Once()
 
 	err := suite.index.Txn().Insert(suite.r1)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, MissingRequiredIndexError{Name: "test"})
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, MissingRequiredIndexError{Name: "test"})
 }
 
 func (suite *txnSuite) TestInsert_IndexError() {
@@ -187,8 +186,8 @@ func (suite *txnSuite) TestInsert_IndexError() {
 		Once()
 
 	err := suite.index.Txn().Insert(suite.r1)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, fakeTestError)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, fakeTestError)
 }
 
 func (suite *txnSuite) TestInsert_UpdateInternalSlice() {
@@ -212,8 +211,8 @@ func (suite *txnSuite) TestInsert_UpdateInternalSlice() {
 
 	// Actually index the resource
 	txn := suite.index.Txn()
-	require.NoError(suite.T(), txn.Insert(newR))
-	require.NoError(suite.T(), txn.Insert(newR1))
+	suite.Require().NoError(txn.Insert(newR))
+	suite.Require().NoError(txn.Insert(newR1))
 	txn.Commit()
 
 	// No validate that the insertions worked correctly.
@@ -222,7 +221,7 @@ func (suite *txnSuite) TestInsert_UpdateInternalSlice() {
 		RunAndReturn(PrefixReferenceOrIDFromArgs).
 		Once()
 	iter, err := suite.index.Txn().ListIterator(newR1.Id)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	var resources []*pbresource.Resource
 	for r := iter.Next(); r != nil; r = iter.Next() {
@@ -241,7 +240,7 @@ func (suite *txnSuite) TestDelete() {
 
 	// perform the deletion
 	txn := suite.index.Txn()
-	require.NoError(suite.T(), txn.Delete(suite.r1))
+	suite.Require().NoError(txn.Delete(suite.r1))
 	txn.Commit()
 
 	// expect to index the ID during the query
@@ -252,8 +251,8 @@ func (suite *txnSuite) TestDelete() {
 
 	// ensure that the deletion worked
 	res, err := suite.index.Txn().Get(suite.r1.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().Nil(res)
 }
 
 func (suite *txnSuite) TestDelete_NotFound() {
@@ -265,7 +264,7 @@ func (suite *txnSuite) TestDelete_NotFound() {
 
 	// attempt the deletion
 	txn := suite.index.Txn()
-	require.NoError(suite.T(), txn.Delete(res))
+	suite.Require().NoError(txn.Delete(res))
 	txn.Commit()
 }
 
@@ -286,7 +285,7 @@ func (suite *txnSuite) TestDelete_IdxPresentValNotFound() {
 		Once()
 
 	txn := suite.index.Txn()
-	require.NoError(suite.T(), txn.Delete(newR))
+	suite.Require().NoError(txn.Delete(newR))
 	txn.Commit()
 }
 
@@ -301,7 +300,7 @@ func (suite *txnSuite) TestDelete_SliceModifications() {
 			Once()
 
 		txn := suite.index.Txn()
-		require.NoError(suite.T(), txn.Insert(r))
+		suite.Require().NoError(txn.Insert(r))
 		txn.Commit()
 
 		return r
@@ -321,7 +320,7 @@ func (suite *txnSuite) TestDelete_SliceModifications() {
 		Return(true, commonIndex, nil).
 		Once()
 
-	require.NoError(suite.T(), txn.Delete(fr1))
+	suite.Require().NoError(txn.Delete(fr1))
 
 	// excercise deletion of the last slice element
 	suite.indexer.EXPECT().
@@ -329,7 +328,7 @@ func (suite *txnSuite) TestDelete_SliceModifications() {
 		Return(true, commonIndex, nil).
 		Once()
 
-	require.NoError(suite.T(), txn.Delete(fr5))
+	suite.Require().NoError(txn.Delete(fr5))
 
 	// excercise deletion from the middle of the list
 	suite.indexer.EXPECT().
@@ -337,7 +336,7 @@ func (suite *txnSuite) TestDelete_SliceModifications() {
 		Return(true, commonIndex, nil).
 		Once()
 
-	require.NoError(suite.T(), txn.Delete(fr3))
+	suite.Require().NoError(txn.Delete(fr3))
 
 	txn.Commit()
 
@@ -348,8 +347,8 @@ func (suite *txnSuite) TestDelete_SliceModifications() {
 		Once()
 
 	iter, err := suite.index.Txn().ListIterator(fr2.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), iter)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(iter)
 
 	var resources []*pbresource.Resource
 	for r := iter.Next(); r != nil; r = iter.Next() {
@@ -366,8 +365,8 @@ func (suite *txnSuite) TestDelete_MissingRequiredIndex() {
 		Once()
 
 	err := suite.index.Txn().Delete(suite.r1)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, MissingRequiredIndexError{Name: "test"})
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, MissingRequiredIndexError{Name: "test"})
 }
 
 func (suite *txnSuite) TestDelete_IndexError() {
@@ -377,6 +376,6 @@ func (suite *txnSuite) TestDelete_IndexError() {
 		Once()
 
 	err := suite.index.Txn().Delete(suite.r1)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, fakeTestError)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, fakeTestError)
 }

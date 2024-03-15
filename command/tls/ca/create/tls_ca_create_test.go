@@ -47,7 +47,7 @@ func TestCACreateCommand(t *testing.T) {
 			func(t *testing.T, cert *x509.Certificate) {
 				require.Equal(t, 1825*24*time.Hour, time.Until(cert.NotAfter).Round(24*time.Hour))
 				require.False(t, cert.PermittedDNSDomainsCritical)
-				require.Len(t, cert.PermittedDNSDomains, 0)
+				require.Empty(t, cert.PermittedDNSDomains)
 			},
 		},
 		{"ca options",
@@ -75,7 +75,7 @@ func TestCACreateCommand(t *testing.T) {
 			"foo-agent-ca-key.pem",
 			func(t *testing.T, cert *x509.Certificate) {
 				require.Len(t, cert.URIs, 1)
-				require.Equal(t, cert.URIs[0].String(), "spiffe://uuid.foo")
+				require.Equal(t, "spiffe://uuid.foo", cert.URIs[0].String())
 			},
 		},
 		{"with common-name",
@@ -85,7 +85,7 @@ func TestCACreateCommand(t *testing.T) {
 			"consul-agent-ca.pem",
 			"consul-agent-ca-key.pem",
 			func(t *testing.T, cert *x509.Certificate) {
-				require.Equal(t, cert.Subject.CommonName, "foo")
+				require.Equal(t, "foo", cert.Subject.CommonName)
 			},
 		},
 		{"without common-name",

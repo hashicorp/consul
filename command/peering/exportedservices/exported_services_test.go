@@ -123,7 +123,7 @@ func TestExportedServicesCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, 0, code)
-		require.Equal(t, ui.ErrorWriter.String(), "")
+		require.Equal(t, "", ui.ErrorWriter.String())
 	})
 
 	t.Run("exported-services with pretty print", func(t *testing.T) {

@@ -117,7 +117,7 @@ func (suite *gatewayproxyControllerSuite) TestReconciler_Reconcile() {
 			require.NoError(t, err)
 			require.NotNil(t, dec)
 			require.Equal(t, dec.Id.Name, expectedWrittenResource.Id.Name)
-			require.Equal(t, dec.Metadata, expectedWrittenResource.Metadata)
+			require.Equal(t, expectedWrittenResource.Metadata, dec.Metadata)
 			require.Equal(t, dec.Owner.Name, expectedWrittenResource.Owner.Name)
 		})
 	})

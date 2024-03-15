@@ -64,7 +64,7 @@ func TestEventSnapshot(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			require.True(t, tc.updatesBeforeSnap < 999,
+			require.Less(t, tc.updatesBeforeSnap, 999,
 				"bad test param updatesBeforeSnap must be less than the snapshot"+
 					" index (%d) minus one (%d), got: %d", snapIndex, snapIndex-1,
 				tc.updatesBeforeSnap)

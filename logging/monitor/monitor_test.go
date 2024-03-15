@@ -178,6 +178,6 @@ func TestMonitor_WriteStopped(t *testing.T) {
 
 	mwriter.Stop()
 	n, err := mwriter.Write([]byte("write after close"))
-	require.Equal(t, n, 0)
+	require.Equal(t, 0, n)
 	require.EqualError(t, err, "monitor stopped")
 }

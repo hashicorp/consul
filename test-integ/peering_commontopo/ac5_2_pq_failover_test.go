@@ -262,7 +262,7 @@ func (s *ac5_2PQFailoverSuite) testPreparedQueryZeroFailover(t *testing.T, cl *a
 		queryDef, _, err := cl.PreparedQuery().Get(def.ID, nil)
 		require.NoError(t, err)
 		require.Len(t, queryDef, 1, "expected 1 prepared query")
-		require.Equal(t, 2, len(queryDef[0].Service.Failover.Targets), "expected 2 prepared query failover targets to dc2 and dc3")
+		require.Len(t, queryDef[0].Service.Failover.Targets, 2, "expected 2 prepared query failover targets to dc2 and dc3")
 
 		retry.RunWith(&retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}, t, func(r *retry.R) {
 			queryResult, _, err := cl.PreparedQuery().Execute(def.ID, nil)
@@ -406,6 +406,6 @@ func assertServiceHealth(t *testing.T, cl *api.Client, serverSVC string, count i
 			nil,
 		)
 		require.NoError(r, err)
-		require.Equal(r, count, len(svcs))
+		require.Len(r, svcs, count)
 	})
 }

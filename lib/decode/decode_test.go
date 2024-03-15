@@ -133,7 +133,7 @@ func TestHookTranslateKeys(t *testing.T) {
 			require.NoError(t, err)
 
 			require.NoError(t, decoder.Decode(tc.data))
-			require.Equal(t, cfg, tc.expected, "decode metadata: %#v", md)
+			require.Equal(t, tc.expected, cfg, "decode metadata: %#v", md)
 		})
 	}
 }
@@ -206,7 +206,7 @@ func TestHookTranslateKeys_DoesNotModifySourceData(t *testing.T) {
 			"oldtwo": "value2",
 		},
 	}
-	require.Equal(t, raw, expected)
+	require.Equal(t, expected, raw)
 }
 
 type translateExample struct {
@@ -283,7 +283,7 @@ sub {
 			},
 		},
 	}
-	require.Equal(t, target, expected)
+	require.Equal(t, expected, target)
 }
 
 func decodeHCLToMapStructure(source string, target interface{}) error {
@@ -337,7 +337,7 @@ func TestHookWeakDecodeFromSlice_DoesNotModifySliceTargetsFromSliceInterface(t *
 			Item: Item{Name: "subitem"},
 		},
 	}
-	require.Equal(t, target, expected)
+	require.Equal(t, expected, target)
 }
 
 func TestHookWeakDecodeFromSlice_ErrorsWithMultipleNestedBlocks(t *testing.T) {
@@ -368,7 +368,7 @@ item {
 	expected := &nested{
 		Item: Item{Name: "first"},
 	}
-	require.Equal(t, target, expected)
+	require.Equal(t, expected, target)
 }
 
 func TestHookWeakDecodeFromSlice_NestedOpaqueConfig(t *testing.T) {
@@ -404,7 +404,7 @@ service {
 			},
 		},
 	}
-	require.Equal(t, target, expected)
+	require.Equal(t, expected, target)
 }
 
 func TestFieldTags(t *testing.T) {

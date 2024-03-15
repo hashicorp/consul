@@ -747,7 +747,7 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 	if !ok {
 		t.Fatalf("bad type: %T", obj)
 	}
-	require.Equal(t, 2, len(txnResp.Results))
+	require.Len(t, txnResp.Results, 2)
 
 	index := txnResp.Results[0].Service.ModifyIndex
 	expected := structs.TxnResponse{

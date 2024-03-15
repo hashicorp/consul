@@ -169,7 +169,7 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 			foundI = i
 		}
 	}
-	require.Equal(t, found, 1)
+	require.Equal(t, 1, found)
 	// remove found entry
 	ceAsES.Services = append(ceAsES.Services[:foundI], ceAsES.Services[foundI+1:]...)
 	_, _, err = clPeer.ConfigEntries().Set(ceAsES, nil)
@@ -188,7 +188,7 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 			Peer:      LocalPeerName(peer, "default"),
 		}))
 		require.NoError(r, err)
-		assert.Equal(r, len(svcs), 0, "health entry for imported service gone")
+		assert.Empty(r, svcs, "health entry for imported service gone")
 	})
 }
 

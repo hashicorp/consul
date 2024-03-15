@@ -44,7 +44,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 		nodes, meta, err := catalog.Nodes(nil)
 		require.NoError(r, err)
 		require.Len(r, nodes, 1)
-		require.True(r, meta.LastIndex >= 1, "Last index must be greater than 1")
+		require.GreaterOrEqual(r, meta.LastIndex, 1, "Last index must be greater than 1")
 
 		// The raft indexes are not relevant for this test.
 		got := nodes[0]
@@ -410,9 +410,9 @@ func TestAPI_CatalogService_SingleTag(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.Service("foo", "bar", nil)
 		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEqual(r, 0, meta.LastIndex)
 		require.Len(r, services, 1)
-		require.Equal(r, services[0].ServiceID, "foo1")
+		require.Equal(r, "foo1", services[0].ServiceID)
 		require.Equal(r, locality, services[0].ServiceLocality)
 	})
 }
@@ -449,7 +449,7 @@ func TestAPI_CatalogService_MultipleTags(t *testing.T) {
 		services, meta, err := catalog.ServiceMultipleTags("foo", []string{"bar"}, nil)
 
 		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEqual(r, 0, meta.LastIndex)
 
 		// Should be 2 services with the `bar` tag
 		require.Len(r, services, 2)
@@ -460,11 +460,11 @@ func TestAPI_CatalogService_MultipleTags(t *testing.T) {
 		services, meta, err := catalog.ServiceMultipleTags("foo", []string{"bar", "v2"}, nil)
 
 		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEqual(r, 0, meta.LastIndex)
 
 		// Should be exactly 1 service, named "foo2"
 		require.Len(r, services, 1)
-		require.Equal(r, services[0].ServiceID, "foo2")
+		require.Equal(r, "foo2", services[0].ServiceID)
 	})
 }
 
@@ -1238,7 +1238,7 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 	}
 	retry.Run(t, func(r *retry.R) {
 		resp, _, err := catalog.GatewayServices("terminating", nil)
-		assert.NoError(r, err)
+		require.NoError(r, err)
 		assert.Equal(r, expect, resp)
 	})
 }
@@ -1301,7 +1301,7 @@ func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
 	}
 	retry.Run(t, func(r *retry.R) {
 		resp, _, err := catalog.GatewayServices("ingress", nil)
-		assert.NoError(r, err)
+		require.NoError(r, err)
 		assert.Equal(r, expect, resp)
 	})
 }

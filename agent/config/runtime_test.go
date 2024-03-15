@@ -6174,7 +6174,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		fs := flag.NewFlagSet("", flag.ContinueOnError)
 		AddFlags(fs, &opts)
 		require.NoError(t, fs.Parse(tc.args))
-		require.Len(t, fs.Args(), 0)
+		require.Empty(t, fs.Args())
 
 		for i, data := range tc.source(format) {
 			opts.sources = append(opts.sources, FileSource{
@@ -7448,7 +7448,7 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 	require.Equal(t, "", cfg.TLSConfig.CertFile)
 	require.Equal(t, "", cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
-	require.Equal(t, true, cfg.TLSConfig.InsecureSkipVerify)
+	require.True(t, cfg.TLSConfig.InsecureSkipVerify)
 
 	rt.TLS.HTTPS.VerifyOutgoing = true
 	cfg, err = rt.APIConfig(true)
@@ -7460,7 +7460,7 @@ func TestRuntime_APIConfigHTTPS(t *testing.T) {
 	require.Equal(t, rt.TLS.HTTPS.CertFile, cfg.TLSConfig.CertFile)
 	require.Equal(t, rt.TLS.HTTPS.KeyFile, cfg.TLSConfig.KeyFile)
 	require.Equal(t, rt.Datacenter, cfg.Datacenter)
-	require.Equal(t, false, cfg.TLSConfig.InsecureSkipVerify)
+	require.False(t, cfg.TLSConfig.InsecureSkipVerify)
 }
 
 func TestRuntime_APIConfigHTTP(t *testing.T) {

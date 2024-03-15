@@ -41,7 +41,7 @@ func TestSubscription(t *testing.T) {
 	got, err := sub.Next(ctx)
 	elapsed := time.Since(start)
 	require.NoError(t, err)
-	require.True(t, elapsed < 200*time.Millisecond,
+	require.Less(t, elapsed, 200*time.Millisecond,
 		"Event should have been delivered immediately, took %s", elapsed)
 	require.Equal(t, index, got.Index)
 
@@ -56,9 +56,9 @@ func TestSubscription(t *testing.T) {
 	got, err = sub.Next(ctx)
 	elapsed = time.Since(start)
 	require.NoError(t, err)
-	require.True(t, elapsed > 200*time.Millisecond,
+	require.Greater(t, elapsed, 200*time.Millisecond,
 		"Event should have been delivered after blocking 200ms, took %s", elapsed)
-	require.True(t, elapsed < 2*time.Second,
+	require.Less(t, elapsed, 2*time.Second,
 		"Event should have been delivered after short time, took %s", elapsed)
 	require.Equal(t, index, got.Index)
 
@@ -69,7 +69,7 @@ func TestSubscription(t *testing.T) {
 	got, err = sub.Next(ctx)
 	elapsed = time.Since(start)
 	require.NoError(t, err)
-	require.True(t, elapsed < 200*time.Millisecond,
+	require.Less(t, elapsed, 200*time.Millisecond,
 		"Event should have been delivered immediately, took %s", elapsed)
 	require.Equal(t, index, got.Index)
 	require.Equal(t, "test", got.Payload.(simplePayload).key)
@@ -83,9 +83,9 @@ func TestSubscription(t *testing.T) {
 	_, err = sub.Next(ctx)
 	elapsed = time.Since(start)
 	require.Error(t, err)
-	require.True(t, elapsed > 200*time.Millisecond,
+	require.Greater(t, elapsed, 200*time.Millisecond,
 		"Event should have been delivered after blocking 200ms, took %s", elapsed)
-	require.True(t, elapsed < 2*time.Second,
+	require.Less(t, elapsed, 2*time.Second,
 		"Event should have been delivered after short time, took %s", elapsed)
 }
 
@@ -115,7 +115,7 @@ func TestSubscription_Close(t *testing.T) {
 	got, err := sub.Next(ctx)
 	elapsed := time.Since(start)
 	require.NoError(t, err)
-	require.True(t, elapsed < 200*time.Millisecond,
+	require.Less(t, elapsed, 200*time.Millisecond,
 		"Event should have been delivered immediately, took %s", elapsed)
 	require.Equal(t, index, got.Index)
 
@@ -130,9 +130,9 @@ func TestSubscription_Close(t *testing.T) {
 	elapsed = time.Since(start)
 	require.Error(t, err)
 	require.Equal(t, ErrSubForceClosed, err)
-	require.True(t, elapsed > 200*time.Millisecond,
+	require.Greater(t, elapsed, 200*time.Millisecond,
 		"Reload should have happened after blocking 200ms, took %s", elapsed)
-	require.True(t, elapsed < 2*time.Second,
+	require.Less(t, elapsed, 2*time.Second,
 		"Reload should have been delivered after short time, took %s", elapsed)
 }
 

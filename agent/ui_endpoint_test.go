@@ -173,17 +173,17 @@ func TestUINodes(t *testing.T) {
 	require.Len(t, nodes[0].Checks, 1)
 	require.Equal(t, "test", nodes[1].Node)
 	require.NotNil(t, nodes[1].Services)
-	require.Len(t, nodes[1].Services, 0)
+	require.Empty(t, nodes[1].Services)
 	require.NotNil(t, nodes[1].Checks)
-	require.Len(t, nodes[1].Checks, 0)
+	require.Empty(t, nodes[1].Checks)
 
 	// peered node
 	require.Equal(t, "foo-peer", nodes[2].Node)
 	require.Equal(t, "peer1", nodes[2].PeerName)
 	require.NotNil(t, nodes[2].Services)
-	require.Len(t, nodes[2].Services, 0)
+	require.Empty(t, nodes[2].Services)
 	require.NotNil(t, nodes[1].Checks)
-	require.Len(t, nodes[2].Services, 0)
+	require.Empty(t, nodes[2].Services)
 
 	// check for consul-version in node meta
 	require.Equal(t, nodes[0].Meta[structs.MetaConsulVersion], a.Config.Version)
@@ -230,7 +230,7 @@ func TestUINodes_Filter(t *testing.T) {
 	// Should be 2 nodes, and all the empty lists should be non-nil
 	nodes := obj.(structs.NodeDump)
 	require.Len(t, nodes, 1)
-	require.Equal(t, nodes[0].Node, "test")
+	require.Equal(t, "test", nodes[0].Node)
 	require.Empty(t, nodes[0].Services)
 	require.Empty(t, nodes[0].Checks)
 }
@@ -249,7 +249,7 @@ func TestUINodeInfo(t *testing.T) {
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UINodeInfo(resp, req)
 	require.NoError(t, err)
-	require.Equal(t, resp.Code, http.StatusOK)
+	require.Equal(t, http.StatusOK, resp.Code)
 	assertIndex(t, resp)
 
 	// Should be 1 node for the server
@@ -697,7 +697,7 @@ func TestUIServices(t *testing.T) {
 		require.NotNil(t, obj)
 
 		summary := obj.([]*ServiceListingSummary)
-		require.Len(t, summary, 0)
+		require.Empty(t, summary)
 	})
 }
 
@@ -872,7 +872,7 @@ func TestUIExportedServices(t *testing.T) {
 		require.NoError(t, decoder.Decode(&summary))
 		assertIndex(t, resp)
 
-		require.Len(t, summary, 0)
+		require.Empty(t, summary)
 	})
 }
 
@@ -947,7 +947,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/terminating-gateway", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.UIGatewayServicesNodes(resp, req)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, obj)
 	}
 
@@ -983,7 +983,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/terminating-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	summary := obj.([]*ServiceSummary)
@@ -1140,7 +1140,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/ingress-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	// Construct expected addresses so that differences between CE/Ent are
@@ -1278,7 +1278,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-intentions/terminating-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayIntentions(resp, req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	intentions := obj.(structs.Intentions)
@@ -1908,13 +1908,13 @@ func TestUIServiceTopology(t *testing.T) {
 			obj, err := a.srv.UIServiceTopology(resp, tc.httpReq)
 
 			if tc.wantErr != "" {
-				assert.NotNil(r, err)
+				require.Error(r, err)
 				assert.Nil(r, tc.want) // should not define a non-nil want
 				require.Contains(r, err.Error(), tc.wantErr)
 				require.Nil(r, obj)
 				return
 			}
-			assert.Nil(r, err)
+			require.NoError(r, err)
 
 			require.NoError(r, checkIndex(resp))
 			require.NotNil(r, obj)
@@ -2447,7 +2447,7 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.UIServiceTopology(resp, tc.httpReq)
-			assert.Nil(r, err)
+			require.NoError(r, err)
 
 			if tc.wantErr != "" {
 				assert.Nil(r, tc.want) // should not define a non-nil want

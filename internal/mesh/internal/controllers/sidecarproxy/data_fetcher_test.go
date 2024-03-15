@@ -249,7 +249,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			api1ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api1ComputedRoutesID,
 				resourcetest.MustDecode[*pbcatalog.Service](suite.T(), apiNonTCPService),
 			)
-			require.NotNil(suite.T(), api1ComputedRoutes)
+			suite.Require().NotNil(api1ComputedRoutes)
 
 			// This destination points to TCP, but the computed routes is stale and only knows about HTTP.
 			destinations, err := fetchComputedExplicitDestinationsData(suite.rt, webWrk, mgwMode)
@@ -268,11 +268,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			api1ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api1ComputedRoutesID,
 				resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 			)
-			require.NotNil(suite.T(), api1ComputedRoutes)
+			suite.Require().NotNil(api1ComputedRoutes)
 			api2ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api2ComputedRoutesID,
 				resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 			)
-			require.NotNil(suite.T(), api2ComputedRoutes)
+			suite.Require().NotNil(api2ComputedRoutes)
 
 			expectedDestinations := []*intermediate.Destination{
 				{
@@ -362,15 +362,15 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 		api1ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api1ComputedRoutesID,
 			resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 		)
-		require.NotNil(suite.T(), api1ComputedRoutes)
+		suite.Require().NotNil(api1ComputedRoutes)
 		api2ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api2ComputedRoutesID,
 			resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 		)
-		require.NotNil(suite.T(), api2ComputedRoutes)
+		suite.Require().NotNil(api2ComputedRoutes)
 		api3ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api3ComputedRoutesID,
 			resourcetest.MustDecode[*pbcatalog.Service](suite.T(), api3Service),
 		)
-		require.NotNil(suite.T(), api3ComputedRoutes)
+		suite.Require().NotNil(api3ComputedRoutes)
 
 		cidID := &pbresource.ID{
 			Type:    pbmesh.ComputedImplicitDestinationsType,
@@ -451,7 +451,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 		actualDestinations, err := fetchComputedImplicitDestinationsData(
 			suite.rt, webWrk, mgwMode, slices.Clone(existingDestinations),
 		)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		existingDestinations = append(existingDestinations, &intermediate.Destination{
 			// implicit

@@ -52,7 +52,7 @@ func TestTemplatedPolicyListCommand(t *testing.T) {
 
 	cmd := New(ui)
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
@@ -88,7 +88,7 @@ func TestTemplatedPolicyListCommand_JSON(t *testing.T) {
 
 	cmd := New(ui)
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 	require.Contains(t, output, api.ACLTemplatedPolicyServiceName)
@@ -96,7 +96,7 @@ func TestTemplatedPolicyListCommand_JSON(t *testing.T) {
 
 	var jsonOutput map[string]api.ACLTemplatedPolicyResponse
 	err := json.Unmarshal([]byte(output), &jsonOutput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	outputTemplate := jsonOutput[api.ACLTemplatedPolicyDNSName]
 	assert.Equal(t, structs.ACLTemplatedPolicyNoRequiredVariablesSchema, outputTemplate.Schema)
 }

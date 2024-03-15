@@ -2592,7 +2592,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.Len(t, resp, 0)
+		require.Empty(t, resp)
 	})
 
 	testutil.RunStep(t, "registering service does not yield trust bundles", func(t *testing.T) {
@@ -2613,7 +2613,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 
 		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
-		require.Len(t, resp, 0)
+		require.Empty(t, resp)
 		require.Equal(t, lastIdx-2, idx)
 	})
 
@@ -2631,7 +2631,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 
 		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
-		require.Len(t, resp, 0)
+		require.Empty(t, resp)
 		require.Equal(t, lastIdx-3, idx)
 	})
 
@@ -2658,7 +2658,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.Len(t, resp, 0)
+		require.Empty(t, resp)
 	})
 
 	testutil.RunStep(t, "trust bundles are returned after they are created", func(t *testing.T) {
@@ -2689,7 +2689,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 		idx, resp, err := store.TrustBundleListByService(ws, "foo", "dc1", entMeta)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
-		require.Len(t, resp, 0)
+		require.Empty(t, resp)
 	})
 
 	testutil.RunStep(t, "trust bundles are returned after config entry is restored", func(t *testing.T) {

@@ -101,14 +101,14 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var reply structs.CAConfiguration
-		assert.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
 
 		actual, err := ca.ParseConsulCAConfig(reply.Config)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		expected, err := ca.ParseConsulCAConfig(s1.config.CAConfig.Config)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, reply.Provider, s1.config.CAConfig.Provider)
-		assert.Equal(t, actual, expected)
+		assert.Equal(t, expected, actual)
 	}
 
 	testState := map[string]string{"foo": "bar"}
@@ -141,14 +141,14 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var reply structs.CAConfiguration
-		assert.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
 
 		actual, err := ca.ParseConsulCAConfig(reply.Config)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		expected, err := ca.ParseConsulCAConfig(newConfig.Config)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, reply.Provider, newConfig.Provider)
-		assert.Equal(t, actual, expected)
+		assert.Equal(t, expected, actual)
 		assert.Equal(t, testState, reply.State)
 	}
 }
@@ -288,7 +288,7 @@ func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
 		expected, err := ca.ParseConsulCAConfig(s1.config.CAConfig.Config)
 		require.NoError(t, err)
 		require.Equal(t, reply.Provider, s1.config.CAConfig.Provider)
-		require.Equal(t, actual, expected)
+		require.Equal(t, expected, actual)
 	}
 
 	// Update to a new CA with different key. This should fail since the existing
@@ -424,7 +424,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 				Datacenter: "dc1",
 			}
 			var rootList structs.IndexedCARoots
-			require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
 			assert.Len(t, rootList.Roots, 1)
 			oldRoot := rootList.Roots[0]
 
@@ -449,7 +449,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 					Datacenter: "dc1",
 				}
 				var reply structs.IndexedCARoots
-				require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
+				require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
 				assert.Len(t, reply.Roots, 2)
 
 				for _, r := range reply.Roots {
@@ -497,7 +497,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 				expected, err := ca.ParseConsulCAConfig(newConfig.Config)
 				require.NoError(t, err)
 				assert.Equal(t, reply.Provider, newConfig.Provider)
-				assert.Equal(t, actual, expected)
+				assert.Equal(t, expected, actual)
 			})
 
 			testutil.RunStep(t, "verify that new leaf certs get the cross-signed intermediate bundled", func(t *testing.T) {
@@ -715,7 +715,7 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 	// Update the secondary CA config to use a new private key, which should
 	// cause a re-signing with a new intermediate.
 	_, newKey, err := connect.GeneratePrivateKey()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
@@ -741,7 +741,7 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 			Datacenter: "secondary",
 		}
 		var reply structs.IndexedCARoots
-		require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
 		require.Len(t, reply.Roots, 1)
 		require.Len(t, reply.Roots[0].IntermediateCerts, 1)
 		newIntermediatePEM = reply.Roots[0].IntermediateCerts[0]
@@ -762,7 +762,7 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 		expected, err := ca.ParseConsulCAConfig(newConfig.Config)
 		require.NoError(t, err)
 		assert.Equal(t, reply.Provider, newConfig.Provider)
-		assert.Equal(t, actual, expected)
+		assert.Equal(t, expected, actual)
 	}
 
 	// Verify that new leaf certs get the new intermediate bundled
@@ -879,7 +879,7 @@ func TestConnectCASign(t *testing.T) {
 
 			var reply2 structs.IssuedCert
 			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply2))
-			require.True(t, reply2.ModifyIndex > reply.ModifyIndex)
+			require.Greater(t, reply2.ModifyIndex, reply.ModifyIndex)
 
 			// Get the current CA
 			state := s1.fsm.State()
@@ -988,8 +988,8 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 	// check that some limiting is being applied. Note that we can't just measure
 	// the time it took to send them all and infer how many should have succeeded
 	// without some complex modeling of the token bucket algorithm.
-	require.Truef(t, successCount >= 1, "at least 1 CSRs should have succeeded, got %d", successCount)
-	require.Truef(t, limitedCount >= 7, "at least 7 CSRs should have been rate limited, got %d", limitedCount)
+	require.GreaterOrEqualf(t, successCount, 1, "at least 1 CSRs should have succeeded, got %d", successCount)
+	require.GreaterOrEqualf(t, limitedCount, 7, "at least 7 CSRs should have been rate limited, got %d", limitedCount)
 }
 
 func TestConnectCASign_concurrencyLimit(t *testing.T) {
@@ -1097,7 +1097,7 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 	// requests were serialized.
 	t.Logf("min=%s, max=%s", minTime, maxTime)
 	//t.Fail() // Uncomment to see the time spread logged
-	require.Truef(t, successCount >= 1, "at least 1 CSRs should have succeeded, got %d", successCount)
+	require.GreaterOrEqualf(t, successCount, 1, "at least 1 CSRs should have succeeded, got %d", successCount)
 }
 
 func TestConnectCASignValidation(t *testing.T) {

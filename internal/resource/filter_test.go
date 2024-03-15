@@ -22,7 +22,7 @@ func TestFilterResourcesByMetadata(t *testing.T) {
 	}
 
 	create := func(name string, kvs ...string) *pbresource.Resource {
-		require.True(t, len(kvs)%2 == 0)
+		require.Equal(t, 0, len(kvs)%2)
 
 		meta := make(map[string]string)
 		for i := 0; i < len(kvs); i += 2 {
@@ -129,7 +129,7 @@ func TestFilterMatchesResourceMetadata(t *testing.T) {
 	}
 
 	create := func(name string, kvs ...string) *pbresource.Resource {
-		require.True(t, len(kvs)%2 == 0)
+		require.Equal(t, 0, len(kvs)%2)
 
 		meta := make(map[string]string)
 		for i := 0; i < len(kvs); i += 2 {

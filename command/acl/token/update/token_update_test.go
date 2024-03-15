@@ -399,7 +399,7 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		assert.Equal(t, code, 0)
+		assert.Equal(t, 0, code)
 		assert.Empty(t, ui.ErrorWriter.String())
 
 		var jsonOutput json.RawMessage

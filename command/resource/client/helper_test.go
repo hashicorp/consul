@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTValue(t *testing.T) {
@@ -14,9 +15,9 @@ func TestTValue(t *testing.T) {
 		var tv TValue[string]
 
 		err := tv.Set("testString")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
-		assert.Equal(t, *tv.v, "testString")
+		assert.Equal(t, "testString", *tv.v)
 	})
 
 	t.Run("String: merge", func(t *testing.T) {
@@ -27,7 +28,7 @@ func TestTValue(t *testing.T) {
 		tv.v = &testStr
 		tv.Merge(&onto)
 
-		assert.Equal(t, onto, "testString")
+		assert.Equal(t, "testString", onto)
 	})
 
 	t.Run("String: merge nil", func(t *testing.T) {
@@ -38,23 +39,23 @@ func TestTValue(t *testing.T) {
 		tv.v = &testStr
 		err := tv.Merge(onto)
 
-		assert.Equal(t, err.Error(), "onto is nil")
+		assert.Equal(t, "onto is nil", err.Error())
 	})
 
 	t.Run("Get string", func(t *testing.T) {
 		var tv TValue[string]
 		testStr := "testString"
 		tv.v = &testStr
-		assert.Equal(t, tv.String(), "testString")
+		assert.Equal(t, "testString", tv.String())
 	})
 
 	t.Run("Bool: set", func(t *testing.T) {
 		var tv TValue[bool]
 
 		err := tv.Set("true")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
-		assert.Equal(t, *tv.v, true)
+		assert.True(t, *tv.v)
 	})
 
 	t.Run("Bool: merge", func(t *testing.T) {
@@ -65,6 +66,6 @@ func TestTValue(t *testing.T) {
 		tv.v = &testBool
 		tv.Merge(&onto)
 
-		assert.Equal(t, onto, true)
+		assert.True(t, onto)
 	})
 }

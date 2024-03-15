@@ -65,7 +65,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-type' flag")
 	})
 
@@ -80,7 +80,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-name' flag")
 	})
 
@@ -96,7 +96,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Invalid Auth Method: Type should be one of")
 	})
 
@@ -115,7 +115,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		got := getTestMethod(t, client, name)
@@ -144,7 +144,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: "+ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: "+ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		got := getTestMethod(t, client, name)
@@ -174,7 +174,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0, "err: "+ui.ErrorWriter.String())
+		require.Equal(t, 0, code, "err: "+ui.ErrorWriter.String())
 		require.Empty(t, ui.ErrorWriter.String())
 
 		got := getTestMethod(t, client, name)
@@ -220,7 +220,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-type' flag")
 	})
 
@@ -242,7 +242,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		code := cmd.Run(args)
 		out := ui.OutputWriter.String()
 
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Contains(t, out, name)
 
@@ -278,7 +278,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		code := cmd.Run(args)
 		out := ui.OutputWriter.String()
 
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Contains(t, out, name)
 
@@ -328,7 +328,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 		code := cmd.Run(args)
 		out := ui.OutputWriter.String()
 
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Contains(t, out, name)
 
@@ -395,7 +395,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-kubernetes-host' flag")
 	})
 
@@ -413,7 +413,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-kubernetes-ca-cert' flag")
 	})
 
@@ -434,7 +434,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-kubernetes-service-account-jwt' flag")
 	})
 
@@ -489,7 +489,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		got := getTestMethod(t, client, name)

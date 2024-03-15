@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -59,7 +58,7 @@ func TestAuthMethodReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Must specify the -name parameter")
 	})
 
@@ -74,7 +73,7 @@ func TestAuthMethodReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Auth method not found with name")
 	})
 
@@ -110,7 +109,7 @@ func TestAuthMethodReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -172,7 +171,7 @@ func TestAuthMethodReadCommand_JSON(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -180,6 +179,6 @@ func TestAuthMethodReadCommand_JSON(t *testing.T) {
 
 		var jsonOutput json.RawMessage
 		err := json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }

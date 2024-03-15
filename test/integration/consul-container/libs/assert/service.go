@@ -54,7 +54,7 @@ func CatalogV2ServiceDoesNotExist(t *testing.T, client pbresource.ResourceServic
 			Name:    svc,
 			Tenancy: tenancy,
 		})
-		require.NotNil(r, err, "error reading service data")
+		require.Error(r, err, "error reading service data")
 		require.Nil(r, got2, "unexpectedly found ServiceEndpoints resource for %q", svc)
 	})
 }

@@ -1146,8 +1146,8 @@ func TestPeeringService_List(t *testing.T) {
 		require.NoError(t, err)
 
 		// The query should return after the async change, but before the timeout
-		require.True(t, time.Since(marker) >= 100*time.Millisecond)
-		require.True(t, time.Since(marker) < 1*time.Second)
+		require.GreaterOrEqual(t, time.Since(marker), 100*time.Millisecond)
+		require.Less(t, time.Since(marker), 1*time.Second)
 
 		// Verify query results
 		meta, err := external.QueryMetaFromGRPCMeta(header)
@@ -1299,8 +1299,8 @@ func TestPeeringService_TrustBundleRead(t *testing.T) {
 		require.NoError(t, err)
 
 		// The query should return after the async change, but before the timeout
-		require.True(t, time.Since(marker) >= 100*time.Millisecond)
-		require.True(t, time.Since(marker) < 1*time.Second)
+		require.GreaterOrEqual(t, time.Since(marker), 100*time.Millisecond)
+		require.Less(t, time.Since(marker), 1*time.Second)
 
 		// Verify query results
 		meta, err := external.QueryMetaFromGRPCMeta(header)
@@ -1521,8 +1521,8 @@ func TestPeeringService_TrustBundleListByService(t *testing.T) {
 		require.NoError(t, err)
 
 		// The query should return after the async change, but before the timeout
-		require.True(t, time.Since(marker) >= 100*time.Millisecond)
-		require.True(t, time.Since(marker) < 1*time.Second)
+		require.GreaterOrEqual(t, time.Since(marker), 100*time.Millisecond)
+		require.Less(t, time.Since(marker), 1*time.Second)
 
 		// Verify query results
 		meta, err := external.QueryMetaFromGRPCMeta(header)

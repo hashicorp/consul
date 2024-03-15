@@ -74,12 +74,12 @@ func (suite *gatherWorkloadsDataSuite) TestGetWorkloadData() {
 	// unique workloads are returned and that they are ordered.
 
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		require.NotNil(suite.T(), suite.apiService)
+		suite.Require().NotNil(suite.apiService)
 
 		data, err := GetWorkloadsWithSelector(suite.cache, suite.apiService)
 
-		require.NoError(suite.T(), err)
-		require.Len(suite.T(), data, 5)
+		suite.Require().NoError(err)
+		suite.Require().Len(data, 5)
 		requireDecodedWorkloadEquals(suite.T(), suite.api1Workload, data[0])
 		requireDecodedWorkloadEquals(suite.T(), suite.api1Workload, data[0])
 		requireDecodedWorkloadEquals(suite.T(), suite.api123Workload, data[1])
@@ -93,12 +93,12 @@ func (suite *gatherWorkloadsDataSuite) TestGetWorkloadDataWithFilter() {
 	// This is like TestGetWorkloadData except it exercises the post-read
 	// filter on the selector.
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		require.NotNil(suite.T(), suite.apiServiceSubset)
+		suite.Require().NotNil(suite.apiServiceSubset)
 
 		data, err := GetWorkloadsWithSelector(suite.cache, suite.apiServiceSubset)
 
-		require.NoError(suite.T(), err)
-		require.Len(suite.T(), data, 2)
+		suite.Require().NoError(err)
+		suite.Require().Len(data, 2)
 		requireDecodedWorkloadEquals(suite.T(), suite.api123Workload, data[0])
 		requireDecodedWorkloadEquals(suite.T(), suite.web1Workload, data[1])
 	})
@@ -231,11 +231,13 @@ func (suite *gatherWorkloadsDataSuite) setupResourcesWithTenancy(tenancy *pbreso
 }
 
 func (suite *gatherWorkloadsDataSuite) cleanupResources() {
-	require.NoError(suite.T(), suite.cache.Delete(suite.api1Workload.Resource))
-	require.NoError(suite.T(), suite.cache.Delete(suite.api2Workload.Resource))
-	require.NoError(suite.T(), suite.cache.Delete(suite.api123Workload.Resource))
-	require.NoError(suite.T(), suite.cache.Delete(suite.web1Workload.Resource))
-	require.NoError(suite.T(), suite.cache.Delete(suite.web2Workload.Resource))
+	suite.T().Helper()
+
+	suite.Require().NoError(suite.cache.Delete(suite.api1Workload.Resource))
+	suite.Require().NoError(suite.cache.Delete(suite.api2Workload.Resource))
+	suite.Require().NoError(suite.cache.Delete(suite.api123Workload.Resource))
+	suite.Require().NoError(suite.cache.Delete(suite.web1Workload.Resource))
+	suite.Require().NoError(suite.cache.Delete(suite.web2Workload.Resource))
 }
 
 func (suite *gatherWorkloadsDataSuite) runTestCaseWithTenancies(testFunc func(*pbresource.Tenancy)) {

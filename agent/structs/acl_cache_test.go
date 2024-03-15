@@ -104,7 +104,7 @@ func TestStructs_ACLCaches(t *testing.T) {
 		entry := cache.GetAuthorizer("foo")
 		require.NotNil(t, entry)
 		require.NotNil(t, entry.Authorizer)
-		require.True(t, entry.Authorizer == acl.DenyAll())
+		require.Equal(t, entry.Authorizer, acl.DenyAll())
 	})
 
 	t.Run("Roles", func(t *testing.T) {

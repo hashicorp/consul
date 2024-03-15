@@ -54,7 +54,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Must specify the -id or -name parameters")
 	})
 
@@ -83,7 +83,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -123,7 +123,7 @@ func TestRoleDeleteCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()

@@ -37,7 +37,7 @@ func TestSubscriptionState_Events(t *testing.T) {
 		}()
 
 		got := drainEvents(t, ch)
-		require.Len(t, got, 0)
+		require.Empty(t, got)
 	})
 
 	meshNode1 := &pbservice.CheckServiceNode{
@@ -92,7 +92,7 @@ func TestSubscriptionState_Events(t *testing.T) {
 		}()
 
 		got := drainEvents(t, ch)
-		require.Len(t, got, 0)
+		require.Empty(t, got)
 	})
 
 	webNode1 := &pbservice.CheckServiceNode{

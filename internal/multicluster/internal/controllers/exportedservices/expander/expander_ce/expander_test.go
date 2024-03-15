@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -49,9 +48,9 @@ func (suite *expanderSuite) TestExpand_NoSamenessGroupsPresent() {
 	}
 
 	expandedConsumers, err := suite.samenessGroupExpander.Expand(consumers, nil)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
-	require.Equal(suite.T(), []string{"peer-1", "peer-2", "peer-3"}, expandedConsumers.Peers)
-	require.Nil(suite.T(), expandedConsumers.Partitions)
-	require.Len(suite.T(), expandedConsumers.MissingSamenessGroups, 0)
+	suite.Require().Equal([]string{"peer-1", "peer-2", "peer-3"}, expandedConsumers.Peers)
+	suite.Require().Nil(expandedConsumers.Partitions)
+	suite.Require().Empty(expandedConsumers.MissingSamenessGroups)
 }

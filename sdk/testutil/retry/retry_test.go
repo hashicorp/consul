@@ -56,7 +56,7 @@ func TestBasics(t *testing.T) {
 				return
 			}
 		})
-		assert.Equal(t, i, 2)
+		assert.Equal(t, 2, i)
 	})
 
 	t.Run("Fatal returns from func, but does not fail test", func(t *testing.T) {
@@ -73,9 +73,9 @@ func TestBasics(t *testing.T) {
 		})
 
 		assert.False(t, gotHere)
-		assert.Equal(t, i, 2)
+		assert.Equal(t, 2, i)
 		// surprisingly, r.FailNow() *does not* trigger ft.FailNow()!
-		assert.Equal(t, ft.fails, 0)
+		assert.Equal(t, 0, ft.fails)
 	})
 
 	t.Run("Func being run can panic with struct{}{}", func(t *testing.T) {
@@ -208,7 +208,7 @@ func TestCleanup(t *testing.T) {
 		require.Equal(t, 3, cleanupsExecuted)
 		// ensure that r.Stop hadn't been called. If it was then we would
 		// have log output
-		require.Len(t, ft.out, 0)
+		require.Empty(t, ft.out)
 	})
 
 	t.Run("passthrough-to-t", func(t *testing.T) {

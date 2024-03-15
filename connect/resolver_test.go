@@ -35,7 +35,7 @@ func TestStaticResolver_Resolve(t *testing.T) {
 				CertURI: tt.fields.CertURI,
 			}
 			addr, certURI, err := sr.Resolve(context.Background())
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, sr.Addr, addr)
 			require.Equal(t, sr.CertURI, certURI)
 		})
@@ -54,7 +54,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 	cfg := api.DefaultConfig()
 	cfg.Address = agent.HTTPAddr()
 	client, err := api.NewClient(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Setup a service with a connect proxy instance
 	regSrv := &api.AgentServiceRegistration{
@@ -62,7 +62,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		Port: 8080,
 	}
 	err = client.Agent().ServiceRegister(regSrv)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	regProxy := &api.AgentServiceRegistration{
 		Kind: "connect-proxy",
@@ -76,14 +76,14 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		},
 	}
 	err = client.Agent().ServiceRegister(regProxy)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// And another proxy so we can test handling with multiple endpoints returned
 	regProxy.Port = 9091
 	regProxy.ID = "web-proxy-2"
 	regProxy.Meta = map[string]string{}
 	err = client.Agent().ServiceRegister(regProxy)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Add a native service
 	{
@@ -251,11 +251,11 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			defer cancel()
 			gotAddr, gotCertURI, err := cr.Resolve(ctx)
 			if tt.wantErr {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, tt.wantCertURI, gotCertURI)
 			if len(tt.addrs) > 0 {
 				require.Contains(t, tt.addrs, gotAddr)

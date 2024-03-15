@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -56,9 +55,9 @@ type kindSuite struct {
 func (suite *kindSuite) SetupTest() {
 	suite.k = newKindIndices()
 
-	require.NoError(suite.T(), suite.k.addIndex(namePrefixIndexer()))
-	require.NoError(suite.T(), suite.k.addIndex(releaseYearIndexer()))
-	require.NoError(suite.T(), suite.k.addIndex(tracksIndexer()))
+	suite.Require().NoError(suite.k.addIndex(namePrefixIndexer()))
+	suite.Require().NoError(suite.k.addIndex(releaseYearIndexer()))
+	suite.Require().NoError(suite.k.addIndex(tracksIndexer()))
 
 	suite.album1 = resourcetest.Resource(pbdemo.AlbumType, "one").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
@@ -96,77 +95,77 @@ func (suite *kindSuite) SetupTest() {
 		}).
 		Build()
 
-	require.NoError(suite.T(), suite.k.insert(suite.album1))
-	require.NoError(suite.T(), suite.k.insert(suite.album2))
-	require.NoError(suite.T(), suite.k.insert(suite.album3))
-	require.NoError(suite.T(), suite.k.insert(suite.album4))
+	suite.Require().NoError(suite.k.insert(suite.album1))
+	suite.Require().NoError(suite.k.insert(suite.album2))
+	suite.Require().NoError(suite.k.insert(suite.album3))
+	suite.Require().NoError(suite.k.insert(suite.album4))
 }
 
 func (suite *kindSuite) TestGet() {
 	res, err := suite.k.get("id", suite.album1.Id)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.album1, res)
 
 	res, err = suite.k.get("year", int32(2022))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.album3, res)
 
 	res, err = suite.k.get("tracks", "fangorn")
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.album2, res)
 }
 
 func (suite *kindSuite) TestGet_IndexNotFound() {
 	res, err := suite.k.get("blah", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, IndexNotFoundError{name: "blah"})
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, IndexNotFoundError{name: "blah"})
+	suite.Require().Nil(res)
 }
 
 func (suite *kindSuite) TestList() {
 	resources, err := expandIterator(suite.k.listIterator("year", int32(2023)))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album1, suite.album2}, resources)
 
 	resources, err = expandIterator(suite.k.listIterator("tracks", "f", true))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album1, suite.album2, suite.album4}, resources)
 }
 
 func (suite *kindSuite) TestList_IndexNotFound() {
 	res, err := expandIterator(suite.k.listIterator("blah", suite.album1.Id))
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, IndexNotFoundError{name: "blah"})
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, IndexNotFoundError{name: "blah"})
+	suite.Require().Nil(res)
 }
 
 func (suite *kindSuite) TestParents() {
 	resources, err := expandIterator(suite.k.parentsIterator("name_prefix", "food"))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album3, suite.album4}, resources)
 }
 
 func (suite *kindSuite) TestParents_IndexNotFound() {
 	res, err := expandIterator(suite.k.parentsIterator("blah", suite.album1.Id))
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, IndexNotFoundError{name: "blah"})
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, IndexNotFoundError{name: "blah"})
+	suite.Require().Nil(res)
 }
 func (suite *kindSuite) TestDelete() {
 	err := suite.k.delete(suite.album1)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	res, err := suite.k.get("id", suite.album1.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().Nil(res)
 
 	resources, err := expandIterator(suite.k.listIterator("year", int32(2023)))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album2}, resources)
 
 	resources, err = expandIterator(suite.k.parentsIterator("name_prefix", "onesie"))
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), resources)
+	suite.Require().NoError(err)
+	suite.Require().Nil(resources)
 }
 
 func (suite *kindSuite) TestInsertIndexError() {
@@ -176,27 +175,27 @@ func (suite *kindSuite) TestInsertIndexError() {
 			WithData(suite.T(), &pbdemo.Concept{}).
 			Build())
 
-	require.Error(suite.T(), err)
-	require.ErrorAs(suite.T(), err, &IndexError{})
+	suite.Require().Error(err)
+	suite.Require().ErrorAs(err, &IndexError{})
 }
 
 func (suite *kindSuite) TestGetIndexError() {
 	val, err := suite.k.get("year", "blah")
-	require.Error(suite.T(), err)
-	require.ErrorAs(suite.T(), err, &IndexError{})
-	require.Nil(suite.T(), val)
+	suite.Require().Error(err)
+	suite.Require().ErrorAs(err, &IndexError{})
+	suite.Require().Nil(val)
 }
 
 func (suite *kindSuite) TestListIteratorIndexError() {
 	vals, err := suite.k.listIterator("year", "blah")
-	require.Error(suite.T(), err)
-	require.ErrorAs(suite.T(), err, &IndexError{})
-	require.Nil(suite.T(), vals)
+	suite.Require().Error(err)
+	suite.Require().ErrorAs(err, &IndexError{})
+	suite.Require().Nil(vals)
 }
 
 func (suite *kindSuite) TestParentsIteratorIndexError() {
 	vals, err := suite.k.parentsIterator("year", "blah")
-	require.Error(suite.T(), err)
-	require.ErrorAs(suite.T(), err, &IndexError{})
-	require.Nil(suite.T(), vals)
+	suite.Require().Error(err)
+	suite.Require().ErrorAs(err, &IndexError{})
+	suite.Require().Nil(vals)
 }

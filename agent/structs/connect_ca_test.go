@@ -162,7 +162,7 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 				require.False(t, tt.wantErr)
 				return
 			}
-			require.Equal(t, err.Error(), tt.wantMsg)
+			require.Equal(t, tt.wantMsg, err.Error())
 		})
 	}
 }

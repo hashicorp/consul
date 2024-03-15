@@ -645,7 +645,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	state2 := s2.fsm.State()
 	_, roots2, err := state2.CARoots(nil)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(roots2))
+	require.Len(t, roots2, 2)
 
 	newRoot := roots2[0]
 	oldRoot := roots2[1]
@@ -1223,7 +1223,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
 	require.Len(t, rootList.Roots, 1)
 	oldRoot := rootList.Roots[0]
 
@@ -1296,7 +1296,7 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
 	require.Len(t, rootList.Roots, 1)
 
 	// Update the provider config to use a new private key, which should
@@ -1678,7 +1678,7 @@ func TestConnectCA_ConfigurationSet_ForceWithoutCrossSigning(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
 	require.Len(t, rootList.Roots, 1)
 	oldRoot := rootList.Roots[0]
 
@@ -1755,7 +1755,7 @@ func TestConnectCA_ConfigurationSet_Vault_ForceWithoutCrossSigning(t *testing.T)
 		Datacenter: "dc1",
 	}
 	var rootList structs.IndexedCARoots
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
 	require.Len(t, rootList.Roots, 1)
 	oldRoot := rootList.Roots[0]
 

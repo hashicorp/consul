@@ -10,7 +10,7 @@ import (
 	"testing"
 	time "time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // A property-based test to ensure that under heavy concurrent use trivial
@@ -87,6 +87,6 @@ func TestEventBufferFuzz(t *testing.T) {
 	// Wait for all readers to finish one way or other
 	for i := 0; i < nReaders; i++ {
 		err := <-errCh
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 }

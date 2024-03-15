@@ -744,7 +744,7 @@ func TestHealth_ServiceNodes_BlockingQuery_withFilter(t *testing.T) {
 		}
 
 		require.Equal(t, structs.QueryBackendBlocking, out.Backend)
-		require.Len(t, out.Nodes, 0)
+		require.Empty(t, out.Nodes)
 	})
 }
 
@@ -808,10 +808,10 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 
 	nodes := out2.Nodes
 	require.Len(t, nodes, 1)
-	require.Equal(t, nodes[0].Node.Node, "foo")
+	require.Equal(t, "foo", nodes[0].Node.Node)
 	require.Contains(t, nodes[0].Service.Tags, "v2")
 	require.Contains(t, nodes[0].Service.Tags, "primary")
-	require.Equal(t, nodes[0].Checks[0].Status, api.HealthPassing)
+	require.Equal(t, api.HealthPassing, nodes[0].Checks[0].Status)
 }
 
 func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
@@ -1089,7 +1089,7 @@ node "foo" {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.ID,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service
 		args = structs.TestRegisterRequestProxy(t)
@@ -1101,7 +1101,7 @@ node "foo" {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service
 		args = structs.TestRegisterRequestProxy(t)
@@ -1113,7 +1113,7 @@ node "foo" {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 	}
 
 	// List w/ token. This should disallow because we don't have permission
@@ -1125,8 +1125,8 @@ node "foo" {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	var resp structs.IndexedCheckServiceNodes
-	assert.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp), "Permission denied")
-	assert.Len(t, resp.Nodes, 0)
+	require.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp), "Permission denied")
+	assert.Empty(t, resp.Nodes)
 
 	// List w/ token. This should work since we're requesting "foo", but should
 	// also only contain the proxies with names that adhere to our ACL.
@@ -1136,7 +1136,7 @@ node "foo" {
 		ServiceName:  "foo",
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
-	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.Nodes, 1)
 }
 
@@ -1166,7 +1166,7 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a proxy for api
 		args = structs.TestRegisterRequestProxy(t)
@@ -1177,7 +1177,7 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a service "web"
 		args = structs.TestRegisterRequest(t)
@@ -1186,7 +1186,7 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a proxy for web
 		args = structs.TestRegisterRequestProxy(t)
@@ -1195,7 +1195,7 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: args.Service.Service,
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		// Register a gateway for web
 		args = &structs.RegisterRequest{
@@ -1213,7 +1213,7 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 				ServiceID: args.Service.Service,
 			},
 		}
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
 
 		entryArgs := &structs.ConfigEntryRequest{
 			Op:         structs.ConfigEntryUpsert,
@@ -1229,7 +1229,7 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 			},
 		}
 		var entryResp bool
-		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
 	}
 
 	retry.Run(t, func(r *retry.R) {
@@ -1240,7 +1240,7 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 			ServiceName: "web",
 		}
 		var resp structs.IndexedCheckServiceNodes
-		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
+		require.NoError(r, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
 		assert.Len(r, resp.Nodes, 2)
 
 		// Check sidecar
@@ -1289,7 +1289,7 @@ func TestHealth_ServiceNodes_Ingress(t *testing.T) {
 		},
 	}
 	var out struct{}
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
 	arg = structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -1306,7 +1306,7 @@ func TestHealth_ServiceNodes_Ingress(t *testing.T) {
 			ServiceID: "ingress-gateway",
 		},
 	}
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
 	// Register ingress-gateway config entry
 	{
@@ -1329,7 +1329,7 @@ func TestHealth_ServiceNodes_Ingress(t *testing.T) {
 			Entry:      args,
 		}
 		var out bool
-		require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
 		require.True(t, out)
 	}
 
@@ -1339,14 +1339,14 @@ func TestHealth_ServiceNodes_Ingress(t *testing.T) {
 		ServiceName: "db",
 		Ingress:     true,
 	}
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
 
 	nodes := out2.Nodes
 	require.Len(t, nodes, 2)
-	require.Equal(t, nodes[0].Node.Node, "bar")
-	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
-	require.Equal(t, nodes[1].Node.Node, "foo")
-	require.Equal(t, nodes[1].Checks[0].Status, api.HealthPassing)
+	require.Equal(t, "bar", nodes[0].Node.Node)
+	require.Equal(t, api.HealthWarning, nodes[0].Checks[0].Status)
+	require.Equal(t, "foo", nodes[1].Node.Node)
+	require.Equal(t, api.HealthPassing, nodes[1].Checks[0].Status)
 }
 
 func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
@@ -1391,7 +1391,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out struct{}
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
 	arg = structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -1408,7 +1408,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
 
 	// Register proxy-defaults with 'http' protocol
 	{
@@ -1425,7 +1425,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out bool
-		require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
 		require.True(t, out)
 	}
 
@@ -1453,7 +1453,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out bool
-		require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
 		require.True(t, out)
 	}
 
@@ -1465,7 +1465,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		Ingress:     true,
 	}
 	require.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2), "Permission denied")
-	require.Len(t, out2.Nodes, 0)
+	require.Empty(t, out2.Nodes)
 
 	// Requesting a service that is not covered by the token's policy
 	req = structs.ServiceSpecificRequest{
@@ -1475,7 +1475,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token.SecretID},
 	}
 	require.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2), "Permission denied")
-	require.Len(t, out2.Nodes, 0)
+	require.Empty(t, out2.Nodes)
 
 	// Requesting service covered by the token's policy
 	req = structs.ServiceSpecificRequest{
@@ -1484,14 +1484,14 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		Ingress:      true,
 		QueryOptions: structs.QueryOptions{Token: token.SecretID},
 	}
-	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
 
 	nodes := out2.Nodes
 	require.Len(t, nodes, 2)
-	require.Equal(t, nodes[0].Node.Node, "bar")
-	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
-	require.Equal(t, nodes[1].Node.Node, "foo")
-	require.Equal(t, nodes[1].Checks[0].Status, api.HealthPassing)
+	require.Equal(t, "bar", nodes[0].Node.Node)
+	require.Equal(t, api.HealthWarning, nodes[0].Checks[0].Status)
+	require.Equal(t, "foo", nodes[1].Node.Node)
+	require.Equal(t, api.HealthPassing, nodes[1].Checks[0].Status)
 }
 
 func TestHealth_NodeChecks_FilterACL(t *testing.T) {

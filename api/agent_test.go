@@ -169,7 +169,7 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	require.Equal(t, 1, len(members))
+	require.Len(t, members, 1)
 
 	members, err = agent.MembersOpts(MembersOpts{
 		WAN:    true,
@@ -178,7 +178,7 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	require.Equal(t, 0, len(members))
+	require.Empty(t, members)
 
 	_, err = agent.MembersOpts(MembersOpts{
 		WAN:    true,
@@ -272,14 +272,14 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	}
 
 	state, out, err := agent.AgentHealthServiceByID("foo")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, out)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, out.Service.Port)
 	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, outs[0].Service.Port)
@@ -425,19 +425,19 @@ func TestAPI_AgentServices(t *testing.T) {
 	}
 
 	state, out, err := agent.AgentHealthServiceByID("foo2")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Nil(t, out)
 	require.Equal(t, HealthCritical, state)
 
 	state, out, err = agent.AgentHealthServiceByID("foo")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, out)
 	require.Equal(t, HealthCritical, state)
 	require.Equal(t, 8000, out.Service.Port)
 	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthCritical, state)
 	require.Equal(t, 8000, outs[0].Service.Port)
@@ -727,10 +727,10 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	require.NotNil(t, services["foo2"].TaggedAddresses)
 	require.Contains(t, services["foo2"].TaggedAddresses, "lan")
 	require.Contains(t, services["foo2"].TaggedAddresses, "wan")
-	require.Equal(t, services["foo2"].TaggedAddresses["lan"].Address, "192.168.0.43")
-	require.Equal(t, services["foo2"].TaggedAddresses["lan"].Port, 8000)
-	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Address, "198.18.0.1")
-	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Port, 80)
+	require.Equal(t, "192.168.0.43", services["foo2"].TaggedAddresses["lan"].Address)
+	require.Equal(t, 8000, services["foo2"].TaggedAddresses["lan"].Port)
+	require.Equal(t, "198.18.0.1", services["foo2"].TaggedAddresses["wan"].Address)
+	require.Equal(t, 80, services["foo2"].TaggedAddresses["wan"].Port)
 
 	if err := agent.ServiceDeregister("foo1"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -922,7 +922,7 @@ func TestAPI_AgentService(t *testing.T) {
 	_, _, err = agent.Service("foo", &opts)
 	elapsed := time.Since(start)
 	require.NoError(t, err)
-	require.True(t, elapsed >= opts.WaitTime)
+	require.GreaterOrEqual(t, elapsed, opts.WaitTime)
 }
 
 func TestAPI_AgentSetTTLStatus(t *testing.T) {
@@ -1793,7 +1793,7 @@ func TestAPI_AgentConnectCARoots_list(t *testing.T) {
 	s.WaitForSerfCheck(t)
 	list, meta, err := agent.ConnectCARoots(nil)
 	require.NoError(t, err)
-	require.True(t, meta.LastIndex > 0)
+	require.Greater(t, meta.LastIndex, 0)
 	require.Len(t, list.Roots, 1)
 }
 
@@ -1817,7 +1817,7 @@ func TestAPI_AgentConnectCALeaf(t *testing.T) {
 
 	leaf, meta, err := agent.ConnectCALeaf("foo", nil)
 	require.NoError(t, err)
-	require.True(t, meta.LastIndex > 0)
+	require.Greater(t, meta.LastIndex, 0)
 	// Sanity checks here as we have actual certificate validation checks at many
 	// other levels.
 	require.NotEmpty(t, leaf.SerialNumber)
@@ -1825,7 +1825,7 @@ func TestAPI_AgentConnectCALeaf(t *testing.T) {
 	require.NotEmpty(t, leaf.PrivateKeyPEM)
 	require.Equal(t, "foo", leaf.Service)
 	require.True(t, strings.HasSuffix(leaf.ServiceURI, "/svc/foo"))
-	require.True(t, leaf.ModifyIndex > 0)
+	require.Greater(t, leaf.ModifyIndex, 0)
 	require.True(t, leaf.ValidAfter.Before(time.Now()))
 	require.True(t, leaf.ValidBefore.After(time.Now()))
 }
@@ -1844,9 +1844,9 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 		ClientCertURI: "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/ny1/svc/web",
 	}
 	auth, err := agent.ConnectAuthorize(params)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.True(t, auth.Authorized)
-	require.Equal(t, auth.Reason, "Default behavior configured by ACLs")
+	require.Equal(t, "Default behavior configured by ACLs", auth.Reason)
 }
 
 func TestAPI_AgentHealthServiceOpts(t *testing.T) {
@@ -1861,7 +1861,7 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 
 		opts := &QueryOptions{Namespace: defaultNamespace}
 		state, out, err := agent.AgentHealthServiceByIDOpts(serviceID, opts)
-		require.Nil(t, err, msg, "err")
+		require.NoError(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
 		if !shouldExist {
 			require.Nil(t, out, msg, "shouldExist")
@@ -1875,12 +1875,12 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 
 		opts := &QueryOptions{Namespace: defaultNamespace}
 		state, outs, err := agent.AgentHealthServiceByNameOpts(serviceName, opts)
-		require.Nil(t, err, msg, "err")
+		require.NoError(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
 		if !shouldExist {
-			require.Equal(t, 0, len(outs), msg, "output")
+			require.Empty(t, outs, msg, "output")
 		} else {
-			require.True(t, len(outs) > 0, msg, "output")
+			require.NotEmpty(t, outs, msg, "output")
 			for _, o := range outs {
 				require.Equal(t, serviceName, o.Service.Service, msg, "output")
 			}
@@ -1904,22 +1904,22 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 		},
 	}
 	err := agent.ServiceRegister(reg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	requireServiceHealthID(t, testServiceID1, HealthCritical, true)
 	requireServiceHealthName(t, testServiceName, HealthCritical, true)
 
 	err = agent.WarnTTL(fmt.Sprintf("service:%s", testServiceID1), "I am warn")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	requireServiceHealthName(t, testServiceName, HealthWarning, true)
 	requireServiceHealthID(t, testServiceID1, HealthWarning, true)
 
 	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID1), "I am good :)")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	requireServiceHealthName(t, testServiceName, HealthPassing, true)
 	requireServiceHealthID(t, testServiceID1, HealthPassing, true)
 
 	err = agent.FailTTL(fmt.Sprintf("service:%s", testServiceID1), "I am dead.")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	requireServiceHealthName(t, testServiceName, HealthCritical, true)
 	requireServiceHealthID(t, testServiceID1, HealthCritical, true)
 
@@ -1933,19 +1933,19 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 		},
 	}
 	err = agent.ServiceRegister(reg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	requireServiceHealthName(t, testServiceName, HealthCritical, true)
 
 	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID1), "I am good :)")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	requireServiceHealthName(t, testServiceName, HealthCritical, true)
 
 	err = agent.WarnTTL(fmt.Sprintf("service:%s", testServiceID2), "I am warn")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	requireServiceHealthName(t, testServiceName, HealthWarning, true)
 
 	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID2), "I am good :)")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	requireServiceHealthName(t, testServiceName, HealthPassing, true)
 }
 

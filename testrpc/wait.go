@@ -238,8 +238,8 @@ func WaitForACLReplication(t *testing.T, rpc rpcFn, dc string, expectedReplicati
 
 		require.Equal(r, expectedReplicationType, reply.ReplicationType)
 		require.True(r, reply.Running, "Server not running new replicator yet")
-		require.True(r, reply.ReplicatedIndex >= minPolicyIndex, "Server hasn't replicated enough policies")
-		require.True(r, reply.ReplicatedTokenIndex >= minTokenIndex, "Server hasn't replicated enough tokens")
-		require.True(r, reply.ReplicatedRoleIndex >= minRoleIndex, "Server hasn't replicated enough roles")
+		require.GreaterOrEqual(r, reply.ReplicatedIndex, minPolicyIndex, "Server hasn't replicated enough policies")
+		require.GreaterOrEqual(r, reply.ReplicatedTokenIndex, minTokenIndex, "Server hasn't replicated enough tokens")
+		require.GreaterOrEqual(r, reply.ReplicatedRoleIndex, minRoleIndex, "Server hasn't replicated enough roles")
 	})
 }

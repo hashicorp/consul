@@ -317,7 +317,7 @@ func TestCatalogNodes_Filter(t *testing.T) {
 
 	v, ok := nodes[0].Meta["somekey"]
 	require.True(t, ok)
-	require.Equal(t, v, "somevalue")
+	require.Equal(t, "somevalue", v)
 }
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
@@ -1068,9 +1068,9 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	require.True(t, ok, "obj1 is not a structs.ServiceNodes")
 	require.Len(t, nodes1, 1)
 	node1 := nodes1[0]
-	require.Equal(t, node1.Address, "127.0.0.2")
-	require.Equal(t, node1.ServiceAddress, "1.2.3.4")
-	require.Equal(t, node1.ServicePort, 80)
+	require.Equal(t, "127.0.0.2", node1.Address)
+	require.Equal(t, "1.2.3.4", node1.ServiceAddress)
+	require.Equal(t, 80, node1.ServicePort)
 
 	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
@@ -1083,9 +1083,9 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 	require.True(t, ok, "obj2 is not a structs.ServiceNodes")
 	require.Len(t, nodes2, 1)
 	node2 := nodes2[0]
-	require.Equal(t, node2.Address, "127.0.0.1")
-	require.Equal(t, node2.ServiceAddress, "127.0.0.1")
-	require.Equal(t, node2.ServicePort, 8080)
+	require.Equal(t, "127.0.0.1", node2.Address)
+	require.Equal(t, "127.0.0.1", node2.ServiceAddress)
+	require.Equal(t, 8080, node2.ServicePort)
 }
 
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
@@ -1197,13 +1197,13 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/service/%s", args.Service.Service), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogServiceNodes(resp, req)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	nodes := obj.(structs.ServiceNodes)
@@ -1297,7 +1297,7 @@ func validateMergeCentralConfigResponse(t *testing.T, v *structs.ServiceNode,
 	// validate service defaults are resolved in the merged service config
 	// expected number of upstreams = (number of upstreams defined in the register request proxy config +
 	//	1 centrally configured default from service defaults)
-	require.Equal(t, len(registerServiceReq.Service.Proxy.Upstreams)+1, len(v.ServiceProxy.Upstreams))
+	require.Len(t, v.ServiceProxy.Upstreams, len(registerServiceReq.Service.Proxy.Upstreams)+1)
 	for _, up := range v.ServiceProxy.Upstreams {
 		if up.DestinationType != "" && up.DestinationType != structs.UpstreamDestTypeService {
 			continue
@@ -1472,13 +1472,13 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 	args := structs.TestRegisterRequestProxy(t)
 	args.Service.Address = "127.0.0.55"
 	var out struct{}
-	assert.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/connect/%s", args.Service.Proxy.DestinationServiceName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogConnectServiceNodes(resp, req)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	nodes := obj.(structs.ServiceNodes)
@@ -1793,13 +1793,13 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 	// Register
 	args := structs.TestRegisterRequestProxy(t)
 	var out struct{}
-	assert.Nil(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(
 		"/v1/catalog/node/%s", args.Node), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.CatalogNodeServices(resp, req)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assertIndex(t, resp)
 
 	ns := obj.(*structs.NodeServices)
@@ -1875,7 +1875,7 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	service1, ok := obj1.(*structs.NodeServices)
 	require.True(t, ok, "obj1 is not a *structs.NodeServices")
 	require.NotNil(t, service1.Node)
-	require.Equal(t, service1.Node.Address, "127.0.0.2")
+	require.Equal(t, "127.0.0.2", service1.Node.Address)
 	require.Len(t, service1.Services, 1)
 	ns1, ok := service1.Services["http_wan_translation_test"]
 	require.True(t, ok, "Missing service http_wan_translation_test")
@@ -1892,12 +1892,12 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	service2 := obj2.(*structs.NodeServices)
 	require.True(t, ok, "obj2 is not a *structs.NodeServices")
 	require.NotNil(t, service2.Node)
-	require.Equal(t, service2.Node.Address, "127.0.0.1")
+	require.Equal(t, "127.0.0.1", service2.Node.Address)
 	require.Len(t, service2.Services, 1)
 	ns2, ok := service2.Services["http_wan_translation_test"]
 	require.True(t, ok, "Missing service http_wan_translation_test")
-	require.Equal(t, ns2.Address, "127.0.0.1")
-	require.Equal(t, ns2.Port, 8080)
+	require.Equal(t, "127.0.0.1", ns2.Address)
+	require.Equal(t, 8080, ns2.Port)
 }
 
 func TestCatalog_GatewayServices_Terminating(t *testing.T) {
@@ -1920,7 +1920,7 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 		ServiceID: args.Service.Service,
 	}
 	var out struct{}
-	assert.NoError(t, a.RPC(context.Background(), "Catalog.Register", &args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &args, &out))
 
 	// Associate the gateway and api/redis services
 	entryArgs := &structs.ConfigEntryRequest{
@@ -1949,13 +1949,13 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 		},
 	}
 	var entryResp bool
-	assert.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &entryArgs, &entryResp))
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &entryArgs, &entryResp))
 
 	retry.Run(t, func(r *retry.R) {
 		req, _ := http.NewRequest("GET", "/v1/catalog/gateway-services/terminating", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.CatalogGatewayServices(resp, req)
-		assert.NoError(r, err)
+		require.NoError(r, err)
 
 		header := resp.Header().Get("X-Consul-Index")
 		if header == "" || header == "0" {

@@ -22,12 +22,12 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	// Create
 	ixn := testIntention()
 	id, _, err := connect.IntentionCreate(ixn, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
 	// List it
 	list, _, err := connect.Intentions(nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, list, 1)
 
 	actual := list[0]
@@ -43,7 +43,7 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 
 	// Get it
 	actual, _, err = connect.IntentionGet(id, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, ixn, actual)
 
 	// Update it
@@ -61,11 +61,11 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 
 	// Delete it
 	_, err = connect.IntentionDelete(id, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Get it (should be gone)
 	actual, _, err = connect.IntentionGet(id, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Nil(t, actual)
 }
 
@@ -109,7 +109,7 @@ func TestAPI_ConnectIntentionMatch(t *testing.T) {
 			ixn.DestinationNS = v[0]
 			ixn.DestinationName = v[1]
 			id, _, err := connect.IntentionCreate(ixn, nil)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotEmpty(t, id)
 		}
 	}
@@ -119,7 +119,7 @@ func TestAPI_ConnectIntentionMatch(t *testing.T) {
 		By:    IntentionMatchDestination,
 		Names: []string{"bar"},
 	}, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, 1)
 
 	var actual [][]string
@@ -159,7 +159,7 @@ func TestAPI_ConnectIntentionCheck(t *testing.T) {
 			ixn.DestinationName = v[3]
 			ixn.Action = IntentionAction(v[4])
 			id, _, err := connect.IntentionCreate(ixn, nil)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotEmpty(t, id)
 		}
 	}

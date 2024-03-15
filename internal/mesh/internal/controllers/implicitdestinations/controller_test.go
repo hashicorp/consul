@@ -182,7 +182,7 @@ func (suite *controllerSuite) createTrafficPermissions(
 	// Insert just enough to get the default one made for free.
 	for _, n := range defaults {
 		some := tpByDest[n]
-		require.Empty(suite.T(), some)
+		suite.Require().Empty(some)
 		tpByDest[n] = nil
 	}
 
@@ -753,8 +753,10 @@ func (suite *controllerSuite) TestReconcile_CIDUpdate_Multiple_Workloads_Service
 }
 
 func (suite *controllerSuite) reconcileOnce(id *pbresource.ID) {
+	suite.T().Helper()
+
 	err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: id})
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	suite.T().Cleanup(func() {
 		suite.client.CleanupDelete(suite.T(), id)
 	})
@@ -1496,7 +1498,7 @@ func TestController_DefaultDeny(t *testing.T) {
 
 func (suite *controllerSuite) runStep(name string, fn func()) {
 	suite.T().Helper()
-	require.True(suite.T(), suite.Run(name, fn))
+	suite.Require().True(suite.Run(name, fn))
 }
 
 func requireNewCIDVersion(
@@ -1562,7 +1564,7 @@ func (suite *controllerSuite) assertMapper(
 ) {
 	suite.T().Helper()
 	reqs, err := ctl.DryRunMapper(suite.ctx, res)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	var got []*pbresource.ID
 	for _, req := range reqs {

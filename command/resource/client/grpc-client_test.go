@@ -49,7 +49,7 @@ func TestResourceRead(t *testing.T) {
 
 		readRsp, err := gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 		require.NoError(t, err)
-		require.Equal(t, proto.Equal(readRsp.Resource.Id.Type, demo.TypeV2Artist), true)
+		require.True(t, proto.Equal(readRsp.Resource.Id.Type, demo.TypeV2Artist))
 		prototest.AssertDeepEqual(t, writeRsp.Resource, readRsp.Resource)
 	})
 }
@@ -140,7 +140,7 @@ func TestResourceReadInTLS(t *testing.T) {
 
 			readRsp, err := gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 			require.NoError(t, err)
-			require.Equal(t, proto.Equal(readRsp.Resource.Id.Type, demo.TypeV2Artist), true)
+			require.True(t, proto.Equal(readRsp.Resource.Id.Type, demo.TypeV2Artist))
 			prototest.AssertDeepEqual(t, writeRsp.Resource, readRsp.Resource)
 		})
 	}

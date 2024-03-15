@@ -92,8 +92,8 @@ func Test_txn_Commit(t *testing.T) {
 	require.NotNil(t, next)
 
 	val := next.(TestObject)
-	require.Equal(t, val.ID, "1")
-	require.Equal(t, val.Foo, "foo")
+	require.Equal(t, "1", val.ID)
+	require.Equal(t, "foo", val.Foo)
 
 	err = group.Wait()
 	require.NoError(t, err)

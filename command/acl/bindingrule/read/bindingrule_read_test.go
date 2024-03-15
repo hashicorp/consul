@@ -85,7 +85,7 @@ func TestBindingRuleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Must specify the -id parameter")
 	})
 
@@ -103,7 +103,7 @@ func TestBindingRuleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1)
+		require.Equal(t, 1, code)
 		require.Contains(t, ui.ErrorWriter.String(), "Binding rule not found with ID")
 	})
 
@@ -120,7 +120,7 @@ func TestBindingRuleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -141,7 +141,7 @@ func TestBindingRuleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()
@@ -163,7 +163,7 @@ func TestBindingRuleReadCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 
 		output := ui.OutputWriter.String()

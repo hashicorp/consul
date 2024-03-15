@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 
@@ -93,10 +92,10 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoExportedServices() {
 			WithData(suite.T(), oldCESData).
 			WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
 			Write(suite.T(), suite.client)
-		require.NotNil(suite.T(), oldCES)
+		suite.Require().NotNil(oldCES)
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: oldCES.Id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), oldCES.Id)
 	})
@@ -131,7 +130,7 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoMatchingServices() {
 			WithData(suite.T(), oldCESData).
 			WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
 			Write(suite.T(), suite.client)
-		require.NotNil(suite.T(), oldCES)
+		suite.Require().NotNil(oldCES)
 
 		exportedSvcData := &pbmulticluster.ExportedServices{
 			Services: []string{"random-service-1", "random-service-2"},
@@ -159,7 +158,7 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoMatchingServices() {
 		}
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: oldCES.Id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), oldCES.Id)
 	})
@@ -200,7 +199,7 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES() {
 			WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
 			WithStatus(statusKey, oldStatus).
 			Write(suite.T(), suite.client)
-		require.NotNil(suite.T(), oldCES)
+		suite.Require().NotNil(oldCES)
 
 		// Export the svc-0 service to just a peer
 		exportedSvcData := &pbmulticluster.ExportedServices{
@@ -238,7 +237,7 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES() {
 			Write(suite.T(), suite.client)
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: oldCES.Id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Checking no-op with version
 		suite.client.RequireVersionUnchanged(suite.T(), oldCES.Id, oldCES.Version)
@@ -275,7 +274,7 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES_WithStatusUpdate()
 			WithData(suite.T(), oldCESData).
 			WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
 			Write(suite.T(), suite.client)
-		require.NotNil(suite.T(), oldCES)
+		suite.Require().NotNil(oldCES)
 
 		// Export the svc-0 service to just a peer
 		exportedSvcData := &pbmulticluster.ExportedServices{
@@ -315,12 +314,12 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES_WithStatusUpdate()
 		passThroughClient := newPassThroughResourceClient(suite.client)
 		rt := suite.controllerRuntimeWithPassThroughClient(passThroughClient)
 		err := suite.reconciler.Reconcile(suite.ctx, rt, controller.Request{ID: oldCES.Id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Checking version change to ensure that the status gets updated
 		newCES := suite.client.RequireVersionChanged(suite.T(), oldCES.Id, oldCES.Version)
 		rtest.RequireStatusCondition(suite.T(), newCES, statusKey, conditionComputed())
-		require.Equal(suite.T(), 0, passThroughClient.writesCount)
+		suite.Require().Equal(0, passThroughClient.writesCount)
 	})
 }
 
@@ -362,10 +361,10 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 		}
 
 		id := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).ID()
-		require.NotNil(suite.T(), id)
+		suite.Require().NotNil(id)
 
 		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		res := suite.client.RequireResourceExists(suite.T(), id)
 		computedCES := suite.getComputedExportedSvcData(res)
@@ -447,7 +446,7 @@ func (suite *controllerSuite) TestController() {
 		id := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").WithTenancy(&pbresource.Tenancy{
 			Partition: tenancy.Partition,
 		}).ID()
-		require.NotNil(suite.T(), id)
+		suite.Require().NotNil(id)
 
 		svc1 := suite.writeService("svc1", tenancy)
 		exportedSvcData := &pbmulticluster.ExportedServices{
@@ -464,7 +463,7 @@ func (suite *controllerSuite) TestController() {
 		}
 
 		expSvc := suite.writeExportedService("expsvc", tenancy, exportedSvcData)
-		require.NotNil(suite.T(), expSvc)
+		suite.Require().NotNil(expSvc)
 
 		res := suite.client.WaitForResourceExists(suite.T(), id)
 		computedCES := suite.getComputedExportedSvcData(res)

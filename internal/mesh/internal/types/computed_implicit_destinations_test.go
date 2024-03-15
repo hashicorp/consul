@@ -189,7 +189,7 @@ func TestComputedImplicitDestinationsACLs(t *testing.T) {
 				t.Fatal("should be denied")
 			}
 		case DEFAULT:
-			require.Nil(t, got, "expected fallthrough decision")
+			require.NoError(t, got, "expected fallthrough decision")
 		default:
 			t.Fatalf("unexpected expectation: %q", expect)
 		}

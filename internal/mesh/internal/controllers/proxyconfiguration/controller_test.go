@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -74,7 +73,7 @@ func (suite *controllerTestSuite) TestReconcile_NoWorkload() {
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: id,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), id)
 	})
@@ -99,7 +98,7 @@ func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cpcID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), cpcID)
 	})
@@ -113,28 +112,28 @@ func (suite *controllerTestSuite) TestReconcile_HappyPath() {
 			WithData(suite.T(), suite.proxyCfg1).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.proxyConfigMapper.MapToComputedType(suite.ctx, suite.runtime, pCfg1)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		pCfg2 := resourcetest.Resource(pbmesh.ProxyConfigurationType, "cfg2").
 			WithTenancy(tenancy).
 			WithData(suite.T(), suite.proxyCfg2).
 			Write(suite.T(), suite.client)
 		_, err = suite.ctl.proxyConfigMapper.MapToComputedType(suite.ctx, suite.runtime, pCfg2)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		pCfg3 := resourcetest.Resource(pbmesh.ProxyConfigurationType, "cfg3").
 			WithTenancy(tenancy).
 			WithData(suite.T(), suite.proxyCfg3).
 			Write(suite.T(), suite.client)
 		_, err = suite.ctl.proxyConfigMapper.MapToComputedType(suite.ctx, suite.runtime, pCfg3)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		cpcID := resource.ReplaceType(pbmesh.ComputedProxyConfigurationType, suite.workloadRes.Id)
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cpcID,
 		})
 
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.requireComputedProxyConfiguration(suite.T(), cpcID)
 	})
@@ -148,7 +147,7 @@ func (suite *controllerTestSuite) TestReconcile_NoProxyConfigs() {
 			WithData(suite.T(), suite.proxyCfg1).
 			Build()
 		_, err := suite.ctl.proxyConfigMapper.MapToComputedType(suite.ctx, suite.runtime, pCfg1)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		cpcID := resourcetest.Resource(pbmesh.ComputedProxyConfigurationType, suite.workloadRes.Id.Name).
 			WithTenancy(tenancy).
@@ -157,7 +156,7 @@ func (suite *controllerTestSuite) TestReconcile_NoProxyConfigs() {
 			ID: cpcID,
 		})
 
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), cpcID)
 	})

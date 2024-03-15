@@ -64,7 +64,7 @@ func verifyAuthorizerChain(t *testing.T, expected resolver.Result, actual resolv
 		actualAuthz := actualChain[idx]
 
 		// pointer equality - because we want to verify authorizer reuse
-		require.True(t, expectedAuthz == actualAuthz, "Authorizer pointers are not equal")
+		require.Equal(t, expectedAuthz, actualAuthz, "Authorizer pointers are not equal")
 	}
 }
 
@@ -733,7 +733,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 
 	authz, err := r.ResolveToken("does not exist")
 	require.Equal(t, resolver.Result{Authorizer: acl.ManageAll()}, authz)
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func TestACLResolver_ResolveRootACL(t *testing.T) {
@@ -902,7 +902,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz2, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
-		require.False(t, authz == authz2)
+		require.NotEqual(t, authz, authz2)
 		require.Equal(t, acl.Deny, authz2.NodeWrite("foo", nil))
 	})
 
@@ -1089,7 +1089,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		// the go routine spawned will eventually return with a authz that doesn't have the policy
 		retry.Run(t, func(t *retry.R) {
 			authz3, err := r.ResolveToken("found")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, authz3)
 			assert.Equal(t, acl.Deny, authz3.NodeWrite("foo", nil))
 		})
@@ -1133,7 +1133,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		// the go routine spawned will eventually return with a authz that doesn't have the policy
 		retry.Run(t, func(t *retry.R) {
 			authz3, err := r.ResolveToken("found-role")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, authz3)
 			assert.Equal(t, acl.Deny, authz3.NodeWrite("foo", nil))
 		})
@@ -1240,7 +1240,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		// the go routine spawned will eventually return and this will be a not found error
 		retry.Run(t, func(t *retry.R) {
 			_, err := r.ResolveToken("found")
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.True(t, acl.IsErrNotFound(err))
 		})
 
@@ -1507,8 +1507,8 @@ func TestACLResolver_Client(t *testing.T) {
 
 		require.True(t, modified)
 		require.True(t, deleted)
-		require.Equal(t, tokenReads, int32(2))
-		require.Equal(t, policyResolves, int32(3))
+		require.Equal(t, int32(2), tokenReads)
+		require.Equal(t, int32(3), policyResolves)
 	})
 
 	t.Run("Concurrent-Token-Resolve", func(t *testing.T) {

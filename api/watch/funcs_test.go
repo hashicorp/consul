@@ -295,7 +295,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -666,7 +666,7 @@ func TestServiceWatch(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -757,7 +757,7 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -922,7 +922,7 @@ func TestChecksWatch_State(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -1003,7 +1003,7 @@ func TestChecksWatch_Service(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -1083,7 +1083,7 @@ func TestChecksWatch_Service_Filter(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -1187,7 +1187,7 @@ func TestChecksWatch_Filter(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -1291,7 +1291,7 @@ func TestChecksWatch_Filter_by_ServiceNameStatus(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -1354,7 +1354,7 @@ func TestEventWatch(t *testing.T) {
 
 	{
 		v := wakeups[0]
-		require.Len(t, v, 0)
+		require.Empty(t, v)
 	}
 	{
 		v := wakeups[1]
@@ -1442,7 +1442,7 @@ func TestConnectLeafWatch(t *testing.T) {
 			Port: 9090,
 		}
 		err := agent.ServiceRegister(&reg)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	var (

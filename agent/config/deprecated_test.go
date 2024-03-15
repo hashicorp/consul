@@ -85,7 +85,7 @@ raft_boltdb {
 	// defaults makes this test difficult to read. So as a workaround, compare
 	// specific values.
 	rt := result.RuntimeConfig
-	require.Equal(t, true, rt.ACLsEnabled)
+	require.True(t, rt.ACLsEnabled)
 	require.Equal(t, "dcone", rt.PrimaryDatacenter)
 	require.Equal(t, "token1", rt.ACLTokens.ACLAgentToken)
 	require.Equal(t, "token2", rt.ACLTokens.ACLDefaultToken)
@@ -93,7 +93,7 @@ raft_boltdb {
 	require.Equal(t, "deny", rt.ACLResolverSettings.ACLDefaultPolicy)
 	require.Equal(t, "async-cache", rt.ACLResolverSettings.ACLDownPolicy)
 	require.Equal(t, 3*time.Hour, rt.ACLResolverSettings.ACLTokenTTL)
-	require.Equal(t, true, rt.ACLEnableKeyListPolicy)
+	require.True(t, rt.ACLEnableKeyListPolicy)
 
 	for _, l := range []tlsutil.ProtocolConfig{rt.TLS.InternalRPC, rt.TLS.GRPC, rt.TLS.HTTPS} {
 		require.Equal(t, "some-ca-file", l.CAFile)
@@ -136,7 +136,7 @@ enable_acl_replication = true
 	// defaults makes this test difficult to read. So as a workaround, compare
 	// specific values.
 	rt := result.RuntimeConfig
-	require.Equal(t, true, rt.ACLTokenReplication)
+	require.True(t, rt.ACLTokenReplication)
 }
 
 func TestLoad_DeprecatedConfig_ACLMasterTokens(t *testing.T) {

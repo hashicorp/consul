@@ -49,7 +49,7 @@ func TestBootstrapCommand_Pretty(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 	assert.Contains(t, output, "Bootstrap Token")
@@ -81,7 +81,7 @@ func TestBootstrapCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 	assert.Contains(t, output, "Bootstrap Token")
@@ -113,12 +113,12 @@ func TestBootstrapCommand_Initial(t *testing.T) {
 
 	// Create temp file
 	f, err := os.CreateTemp("", "consul-token.token")
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	defer os.Remove(f.Name())
 
 	// Write the token to the file
 	err = os.WriteFile(f.Name(), []byte("2b778dd9-f5f1-6f29-b4b4-9a5fa948757a"), 0700)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -127,7 +127,7 @@ func TestBootstrapCommand_Initial(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 	assert.Contains(t, output, "Bootstrap Token")

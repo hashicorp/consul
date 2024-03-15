@@ -27,8 +27,8 @@ func TestJitter(t *testing.T) {
 		baseTime := 5000 * time.Millisecond
 		maxTime := 5500 * time.Millisecond
 		newTime := jitter(baseTime)
-		require.True(t, newTime > baseTime)
-		require.True(t, newTime <= maxTime)
+		require.Greater(t, newTime, baseTime)
+		require.LessOrEqual(t, newTime, maxTime)
 	})
 
 	repeat(t, "100 percent", func(t *testing.T) {
@@ -36,8 +36,8 @@ func TestJitter(t *testing.T) {
 		baseTime := 1234 * time.Millisecond
 		maxTime := 2468 * time.Millisecond
 		newTime := jitter(baseTime)
-		require.True(t, newTime > baseTime)
-		require.True(t, newTime <= maxTime)
+		require.Greater(t, newTime, baseTime)
+		require.LessOrEqual(t, newTime, maxTime)
 	})
 
 	repeat(t, "overflow", func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestWaiter_Delay(t *testing.T) {
 		}
 
 		delay := w.delay()
-		require.True(t, delay > 20*time.Second, "expected delay %v to be greater than MaxWait %v", delay, w.MaxWait)
+		require.Greater(t, delay, 20*time.Second, "expected delay %v to be greater than MaxWait %v", delay, w.MaxWait)
 	})
 }
 
@@ -135,7 +135,7 @@ func TestWaiter_Wait(t *testing.T) {
 		elapsed, err := runWait(ctx, w)
 		require.NoError(t, err)
 		assertApproximateDuration(t, elapsed, time.Millisecond)
-		require.Equal(t, w.failures, uint(1))
+		require.Equal(t, uint(1), w.failures)
 	})
 
 	t.Run("max failures", func(t *testing.T) {
@@ -146,7 +146,7 @@ func TestWaiter_Wait(t *testing.T) {
 		elapsed, err := runWait(ctx, w)
 		require.NoError(t, err)
 		assertApproximateDuration(t, elapsed, 100*time.Millisecond)
-		require.Equal(t, w.failures, uint(201))
+		require.Equal(t, uint(201), w.failures)
 	})
 
 	t.Run("context deadline", func(t *testing.T) {
@@ -157,7 +157,7 @@ func TestWaiter_Wait(t *testing.T) {
 		elapsed, err := runWait(ctx, w)
 		require.Equal(t, err, context.DeadlineExceeded)
 		assertApproximateDuration(t, elapsed, 5*time.Millisecond)
-		require.Equal(t, w.failures, uint(201))
+		require.Equal(t, uint(201), w.failures)
 	})
 }
 
@@ -188,7 +188,7 @@ func TestWaiter_RetryLoop(t *testing.T) {
 		err := w.RetryLoop(ctx, func() error {
 			return fmt.Errorf("operation not successful")
 		})
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.EqualError(t, err, "could not retry operation: operation not successful")
 	})
 }

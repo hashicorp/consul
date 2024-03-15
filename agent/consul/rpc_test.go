@@ -209,7 +209,7 @@ func TestRPC_getLeader_ErrLeaderNotTracked(t *testing.T) {
 
 	isLeader, meta, err := follower.getLeader()
 	require.Error(t, err)
-	require.True(t, errors.Is(err, structs.ErrLeaderNotTracked))
+	require.ErrorIs(t, err, structs.ErrLeaderNotTracked)
 	require.Nil(t, meta)
 	require.False(t, isLeader)
 }
@@ -321,7 +321,7 @@ func TestServer_blockingQuery(t *testing.T) {
 		assert.Equal(t, 2, calls)
 		assert.Equal(t, uint64(1), meta.Index,
 			"expect fake index of 1 to force client to block on next update")
-		assert.True(t, t1.Sub(t0) > 20*time.Millisecond,
+		assert.Greater(t, t1.Sub(t0), 20*time.Millisecond,
 			"should have actually blocked waiting for timeout")
 
 	})
@@ -452,7 +452,7 @@ func TestServer_blockingQuery(t *testing.T) {
 
 		start := time.Now()
 		err := s.blockingQuery(&opts, &meta, fn)
-		require.True(t, time.Since(start) < opts.MaxQueryTime, "query timed out")
+		require.Less(t, time.Since(start), opts.MaxQueryTime, "query timed out")
 		require.NoError(t, err)
 		require.Equal(t, 2, calls)
 	})
@@ -477,7 +477,7 @@ func TestServer_blockingQuery(t *testing.T) {
 
 		start := time.Now()
 		err := s.blockingQuery(&opts, &meta, fn)
-		require.True(t, time.Since(start) < opts.MaxQueryTime, "query timed out")
+		require.Less(t, time.Since(start), opts.MaxQueryTime, "query timed out")
 		require.NoError(t, err)
 		require.Equal(t, 2, calls)
 	})
@@ -1003,7 +1003,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
 		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, kvPolicy.ID, &acl.EnterpriseMeta{})
-		require.Nil(r, err)
+		require.NoError(r, err)
 		require.NotNil(r, p)
 	})
 
@@ -1136,7 +1136,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 	// Wait for it to replicate
 	retry.Run(t, func(r *retry.R) {
 		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &acl.EnterpriseMeta{})
-		require.Nil(r, err)
+		require.NoError(r, err)
 		require.NotNil(r, p)
 	})
 

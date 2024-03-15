@@ -88,7 +88,7 @@ func TestStore_IntegrationWithBackend(t *testing.T) {
 
 	for i, consumer := range consumers {
 		t.Run(fmt.Sprintf("consumer %d", i), func(t *testing.T) {
-			require.True(t, len(consumer.states) > 2, "expected more than %d events", len(consumer.states))
+			require.Greater(t, len(consumer.states), 2, "expected more than %d events", len(consumer.states))
 
 			expected := producers[state.EventSubjectService{Key: consumer.srvName}.String()].nodesByIndex
 			for idx, nodes := range consumer.states {

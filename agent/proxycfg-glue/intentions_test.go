@@ -68,8 +68,8 @@ func TestServerIntentions(t *testing.T) {
 		require.Len(t, result, 1)
 
 		intention := result[0]
-		require.Equal(t, intention.DestinationName, serviceName)
-		require.Equal(t, intention.SourceName, "db")
+		require.Equal(t, serviceName, intention.DestinationName)
+		require.Equal(t, "db", intention.SourceName)
 	})
 
 	testutil.RunStep(t, "updating an intention", func(t *testing.T) {
@@ -92,7 +92,7 @@ func TestServerIntentions(t *testing.T) {
 
 		for i, src := range []string{"api", "db"} {
 			intention := result[i]
-			require.Equal(t, intention.DestinationName, serviceName)
+			require.Equal(t, serviceName, intention.DestinationName)
 			require.Equal(t, intention.SourceName, src)
 		}
 	})
@@ -101,7 +101,7 @@ func TestServerIntentions(t *testing.T) {
 		require.NoError(t, store.DeleteConfigEntry(nextIndex(), structs.ServiceIntentions, serviceName, nil))
 
 		result := getEventResult[structs.SimplifiedIntentions](t, eventCh)
-		require.Len(t, result, 0)
+		require.Empty(t, result)
 	})
 }
 
@@ -149,7 +149,7 @@ func TestServerIntentions_ACLDeny(t *testing.T) {
 
 	testutil.RunStep(t, "initial snapshot", func(t *testing.T) {
 		result := getEventResult[structs.SimplifiedIntentions](t, eventCh)
-		require.Len(t, result, 0)
+		require.Empty(t, result)
 	})
 }
 

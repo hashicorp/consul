@@ -13,39 +13,39 @@ import (
 func TestServiceAddressValue_Value(t *testing.T) {
 	t.Run("nil receiver", func(t *testing.T) {
 		var addr *ServiceAddressValue
-		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultGatewayPort})
+		require.Equal(t, api.ServiceAddress{Port: defaultGatewayPort}, addr.Value())
 	})
 
 	t.Run("default value", func(t *testing.T) {
 		addr := &ServiceAddressValue{}
-		require.Equal(t, addr.Value(), api.ServiceAddress{Port: defaultGatewayPort})
+		require.Equal(t, api.ServiceAddress{Port: defaultGatewayPort}, addr.Value())
 	})
 
 	t.Run("set value", func(t *testing.T) {
 		addr := &ServiceAddressValue{}
 		require.NoError(t, addr.Set("localhost:3333"))
-		require.Equal(t, addr.Value(), api.ServiceAddress{
+		require.Equal(t, api.ServiceAddress{
 			Address: "localhost",
 			Port:    3333,
-		})
+		}, addr.Value())
 	})
 }
 
 func TestServiceAddressValue_String(t *testing.T) {
 	t.Run("nil receiver", func(t *testing.T) {
 		var addr *ServiceAddressValue
-		require.Equal(t, addr.String(), ":8443")
+		require.Equal(t, ":8443", addr.String())
 	})
 
 	t.Run("default value", func(t *testing.T) {
 		addr := &ServiceAddressValue{}
-		require.Equal(t, addr.String(), ":8443")
+		require.Equal(t, ":8443", addr.String())
 	})
 
 	t.Run("set value", func(t *testing.T) {
 		addr := &ServiceAddressValue{}
 		require.NoError(t, addr.Set("localhost:3333"))
-		require.Equal(t, addr.String(), "localhost:3333")
+		require.Equal(t, "localhost:3333", addr.String())
 	})
 }
 
@@ -103,7 +103,7 @@ func TestServiceAddressValue_Set(t *testing.T) {
 				return
 			}
 
-			require.Equal(t, addr.Value(), tc.expectedValue)
+			require.Equal(t, tc.expectedValue, addr.Value())
 		})
 	}
 }

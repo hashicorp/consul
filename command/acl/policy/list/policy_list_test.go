@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPolicyListCommand_noTabs(t *testing.T) {
@@ -59,7 +60,7 @@ func TestPolicyListCommand(t *testing.T) {
 		)
 		policyIDs = append(policyIDs, policy.ID)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	args := []string{
@@ -68,7 +69,7 @@ func TestPolicyListCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 
@@ -113,7 +114,7 @@ func TestPolicyListCommand_JSON(t *testing.T) {
 		)
 		policyIDs = append(policyIDs, policy.ID)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	args := []string{
@@ -123,7 +124,7 @@ func TestPolicyListCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 	output := ui.OutputWriter.String()
 
@@ -134,5 +135,5 @@ func TestPolicyListCommand_JSON(t *testing.T) {
 
 	var jsonOutput json.RawMessage
 	err := json.Unmarshal([]byte(output), &jsonOutput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

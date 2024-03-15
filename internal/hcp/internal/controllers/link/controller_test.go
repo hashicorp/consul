@@ -105,9 +105,9 @@ func (suite *controllerSuite) TestController_Ok() {
 	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionLinked(linkData.ResourceId))
 	var updatedLink pbhcp.Link
 	updatedLinkResource := suite.client.WaitForNewVersion(suite.T(), link.Id, link.Version)
-	require.NoError(suite.T(), updatedLinkResource.Data.UnmarshalTo(&updatedLink))
-	require.Equal(suite.T(), "http://test.com", updatedLink.HcpClusterUrl)
-	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE, updatedLink.AccessLevel)
+	suite.Require().NoError(updatedLinkResource.Data.UnmarshalTo(&updatedLink))
+	suite.Require().Equal("http://test.com", updatedLink.HcpClusterUrl)
+	suite.Require().Equal(pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE, updatedLink.AccessLevel)
 }
 
 func (suite *controllerSuite) TestController_Initialize() {
@@ -147,12 +147,12 @@ func (suite *controllerSuite) TestController_Initialize() {
 	// Check that created link has expected values
 	var link pbhcp.Link
 	err := r.Data.UnmarshalTo(&link)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
-	require.Equal(suite.T(), cloudCfg.ResourceID, link.ResourceId)
-	require.Equal(suite.T(), cloudCfg.ClientID, link.ClientId)
-	require.Equal(suite.T(), cloudCfg.ClientSecret, link.ClientSecret)
-	require.Equal(suite.T(), types.MetadataSourceConfig, r.Metadata[types.MetadataSourceKey])
+	suite.Require().Equal(cloudCfg.ResourceID, link.ResourceId)
+	suite.Require().Equal(cloudCfg.ClientID, link.ClientId)
+	suite.Require().Equal(cloudCfg.ClientSecret, link.ClientSecret)
+	suite.Require().Equal(types.MetadataSourceConfig, r.Metadata[types.MetadataSourceKey])
 
 	// Wait for link to be connected successfully
 	suite.client.WaitForStatusCondition(suite.T(), id, StatusKey, ConditionLinked(link.ResourceId))

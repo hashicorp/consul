@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadGRPCConfig(t *testing.T) {
 	t.Run("Default Config", func(t *testing.T) {
 		// Test when defaultConfig is nil
 		config, err := LoadGRPCConfig(nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, GetDefaultGRPCConfig(), config)
 	})
 
@@ -32,7 +33,7 @@ func TestLoadGRPCConfig(t *testing.T) {
 
 		// Load and validate the configuration
 		config, err := LoadGRPCConfig(nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		expectedConfig := &GRPCConfig{
 			Address:       "localhost:8500",
 			GRPCTLS:       true,
@@ -54,7 +55,7 @@ func TestLoadGRPCConfig(t *testing.T) {
 
 		// Load and expect an error
 		config, err := LoadGRPCConfig(nil)
-		assert.Error(t, err, "failed to parse CONSUL_GRPC_TLS: strconv.ParseBool: parsing \"invalid_boolean_value\": invalid syntax")
+		require.Error(t, err, "failed to parse CONSUL_GRPC_TLS: strconv.ParseBool: parsing \"invalid_boolean_value\": invalid syntax")
 		assert.Nil(t, config)
 	})
 }

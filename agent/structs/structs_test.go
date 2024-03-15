@@ -1220,7 +1220,7 @@ func TestStructs_NodeService_ValidateConnectProxyWithAgentAutoAssign(t *testing.
 		ns.Port = 0
 
 		err := ns.ValidateForAgent()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -1362,7 +1362,7 @@ func TestStructs_NodeService_ConnectNativeEmptyPortError(t *testing.T) {
 	ns.Connect.Native = true
 	ns.Port = 0
 	err := ns.Validate()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Port or SocketPath must be set for a Connect native service.")
 }
 

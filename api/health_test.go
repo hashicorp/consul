@@ -360,9 +360,9 @@ func TestAPI_HealthService_SingleTag(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.Service("foo", "bar", true, nil)
 		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEqual(r, 0, meta.LastIndex)
 		require.Len(r, services, 1)
-		require.Equal(r, services[0].Service.ID, "foo1")
+		require.Equal(r, "foo1", services[0].Service.ID)
 
 		for _, check := range services[0].Checks {
 			if check.CheckID == "service:foo1" && check.Type != "ttl" {
@@ -409,7 +409,7 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 		services, meta, err := health.ServiceMultipleTags("foo", []string{"bar"}, true, nil)
 
 		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEqual(r, 0, meta.LastIndex)
 		require.Len(r, services, 2)
 	})
 
@@ -418,9 +418,9 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 		services, meta, err := health.ServiceMultipleTags("foo", []string{"bar", "v2"}, true, nil)
 
 		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEqual(r, 0, meta.LastIndex)
 		require.Len(r, services, 1)
-		require.Equal(r, services[0].Service.ID, "foo2")
+		require.Equal(r, "foo2", services[0].Service.ID)
 	})
 }
 
@@ -439,9 +439,9 @@ func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 		// consul service should always exist...
 		checks, meta, err := health.Service("consul", "", true, &QueryOptions{NodeMeta: meta})
 		require.NoError(r, err)
-		require.NotEqual(r, meta.LastIndex, 0)
-		require.NotEqual(r, len(checks), 0)
-		require.Equal(r, checks[0].Node.Datacenter, "dc1")
+		require.NotEqual(r, 0, meta.LastIndex)
+		require.NotEmpty(r, checks)
+		require.Equal(r, "dc1", checks[0].Node.Datacenter)
 		require.Contains(r, checks[0].Node.TaggedAddresses, "wan")
 	})
 }
@@ -600,7 +600,7 @@ func TestAPI_HealthIngress(t *testing.T) {
 		// Should be exactly 1 service - the original shouldn't show up as a connect
 		// endpoint, only it's proxy.
 		require.Len(r, services, 1)
-		require.Equal(r, services[0].Node.Datacenter, "dc1")
+		require.Equal(r, "dc1", services[0].Node.Datacenter)
 		require.Equal(r, services[0].Service.Service, gatewayReg.Name)
 	})
 }

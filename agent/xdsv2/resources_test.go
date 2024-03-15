@@ -96,7 +96,7 @@ func (suite *resourceTestSuite) TestAllResourcesFromIR_XDSGoldenFileInputs() {
 				ps := jsonToProxyState(suite.T(), inputValueInput)
 				generator := NewResourceGenerator(testutil.Logger(suite.T()))
 				resources, err := generator.AllResourcesFromIR(&proxytracker.ProxyState{ProxyState: ps})
-				require.NoError(suite.T(), err)
+				suite.Require().NoError(err)
 
 				// Assert.
 				// Assert all resources were generated.
@@ -108,7 +108,7 @@ func (suite *resourceTestSuite) TestAllResourcesFromIR_XDSGoldenFileInputs() {
 					// TODO(proxystate): add in future
 					//xdscommon.SecretType,
 				}
-				require.Len(suite.T(), resources, len(typeUrls))
+				suite.Require().Len(resources, len(typeUrls))
 
 				// Assert each resource type has actual XDS matching expected XDS.
 				for _, typeUrl := range typeUrls {

@@ -191,8 +191,8 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	resp, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
 	require.Equal(t, "server-1", resp.ServerName)
-	require.True(t, atomic.LoadInt32(&srv.rpc.tlsConnEstablished) > 0)
-	require.True(t, atomic.LoadInt32(&srv.rpc.alpnConnEstablished) == 0)
+	require.Greater(t, atomic.LoadInt32(&srv.rpc.tlsConnEstablished), 0)
+	require.Equal(t, 0, atomic.LoadInt32(&srv.rpc.alpnConnEstablished))
 }
 
 func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T) {
@@ -270,8 +270,8 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	resp, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
 	require.Equal(t, "bob", resp.ServerName)
-	require.True(t, atomic.LoadInt32(&srv.rpc.tlsConnEstablished) == 0)
-	require.True(t, atomic.LoadInt32(&srv.rpc.alpnConnEstablished) > 0)
+	require.Equal(t, 0, atomic.LoadInt32(&srv.rpc.tlsConnEstablished))
+	require.Greater(t, atomic.LoadInt32(&srv.rpc.alpnConnEstablished), 0)
 }
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {

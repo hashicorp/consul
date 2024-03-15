@@ -162,10 +162,10 @@ func TestCommand_Flags_TaggedAddresses(t *testing.T) {
 	require.Len(t, svc.TaggedAddresses, 2)
 	require.Contains(t, svc.TaggedAddresses, "lan")
 	require.Contains(t, svc.TaggedAddresses, "v6")
-	require.Equal(t, svc.TaggedAddresses["lan"].Address, "127.0.0.1")
-	require.Equal(t, svc.TaggedAddresses["lan"].Port, 1234)
-	require.Equal(t, svc.TaggedAddresses["v6"].Address, "2001:db8::12")
-	require.Equal(t, svc.TaggedAddresses["v6"].Port, 1234)
+	require.Equal(t, "127.0.0.1", svc.TaggedAddresses["lan"].Address)
+	require.Equal(t, 1234, svc.TaggedAddresses["lan"].Port)
+	require.Equal(t, "2001:db8::12", svc.TaggedAddresses["v6"].Address)
+	require.Equal(t, 1234, svc.TaggedAddresses["v6"].Port)
 }
 
 func TestCommand_FileWithUnnamedCheck(t *testing.T) {

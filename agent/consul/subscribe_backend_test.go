@@ -371,7 +371,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	// Sanity check that at least some non-snapshot messages were delivered. We
 	// can't know exactly how many because it's timing dependent based on when
 	// each subscribers snapshot occurs.
-	require.True(t, atomic.LoadUint64(&updateCount) > 0,
+	require.Greater(t, atomic.LoadUint64(&updateCount), 0,
 		"at least some of the subscribers should have received non-snapshot updates")
 }
 

@@ -56,7 +56,7 @@ func TestLoginCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-method' flag")
 	})
 
@@ -73,7 +73,7 @@ func TestLoginCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-token-sink-file' flag")
 	})
 
@@ -91,7 +91,7 @@ func TestLoginCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-bearer-token-file' flag")
 	})
 
@@ -111,7 +111,7 @@ func TestLoginCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "Cannot use '-bearer-token-file' flag with '-aws-auto-bearer-token'")
 	})
 
@@ -136,7 +136,7 @@ func TestLoginCommand(t *testing.T) {
 		} {
 			ui := cli.NewMockUi()
 			code := New(ui).Run(append(baseArgs, extraArgs...))
-			require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+			require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 			require.Contains(t, ui.ErrorWriter.String(), "Missing '-aws-auto-bearer-token' flag")
 		}
 	})
@@ -154,17 +154,17 @@ func TestLoginCommand(t *testing.T) {
 
 		ui := cli.NewMockUi()
 		code := New(ui).Run(append(baseArgs, "-aws-access-key-id", "some-key"))
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "Missing '-aws-secret-access-key' flag")
 
 		ui = cli.NewMockUi()
 		code = New(ui).Run(append(baseArgs, "-aws-secret-access-key", "some-key"))
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "Missing '-aws-access-key-id' flag")
 
 		ui = cli.NewMockUi()
 		code = New(ui).Run(append(baseArgs, "-aws-session-token", "some-token"))
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(),
 			"Missing '-aws-access-key-id' and '-aws-secret-access-key' flags")
 
@@ -189,7 +189,7 @@ func TestLoginCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "No bearer token found in")
 	})
 
@@ -210,7 +210,7 @@ func TestLoginCommand(t *testing.T) {
 		}
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
+		require.Equal(t, 1, code, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found: auth method \"test\" not found")
 	})
 

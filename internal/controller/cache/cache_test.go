@@ -174,13 +174,13 @@ type cacheSuite struct {
 func (suite *cacheSuite) SetupTest() {
 	suite.c = New()
 
-	require.NoError(suite.T(), suite.c.AddIndex(pbdemo.AlbumType, namePrefixIndexer()))
-	require.NoError(suite.T(), suite.c.AddQuery(okQueryName, func(c ReadOnlyCache, args ...any) (ResourceIterator, error) {
+	suite.Require().NoError(suite.c.AddIndex(pbdemo.AlbumType, namePrefixIndexer()))
+	suite.Require().NoError(suite.c.AddQuery(okQueryName, func(c ReadOnlyCache, args ...any) (ResourceIterator, error) {
 		return c.ParentsIterator(pbdemo.AlbumType, "name_prefix", args...)
 	}))
-	require.NoError(suite.T(), suite.c.AddIndex(pbdemo.AlbumType, releaseYearIndexer()))
-	require.NoError(suite.T(), suite.c.AddQuery(errQueryName, errQuery))
-	require.NoError(suite.T(), suite.c.AddIndex(pbdemo.AlbumType, tracksIndexer()))
+	suite.Require().NoError(suite.c.AddIndex(pbdemo.AlbumType, releaseYearIndexer()))
+	suite.Require().NoError(suite.c.AddQuery(errQueryName, errQuery))
+	suite.Require().NoError(suite.c.AddIndex(pbdemo.AlbumType, tracksIndexer()))
 
 	suite.album1 = resourcetest.Resource(pbdemo.AlbumType, "one").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
@@ -218,136 +218,136 @@ func (suite *cacheSuite) SetupTest() {
 		}).
 		Build()
 
-	require.NoError(suite.T(), suite.c.Insert(suite.album1))
-	require.NoError(suite.T(), suite.c.Insert(suite.album2))
-	require.NoError(suite.T(), suite.c.Insert(suite.album3))
-	require.NoError(suite.T(), suite.c.Insert(suite.album4))
+	suite.Require().NoError(suite.c.Insert(suite.album1))
+	suite.Require().NoError(suite.c.Insert(suite.album2))
+	suite.Require().NoError(suite.c.Insert(suite.album3))
+	suite.Require().NoError(suite.c.Insert(suite.album4))
 }
 
 func (suite *cacheSuite) TestGet() {
 	res, err := suite.c.Get(pbdemo.AlbumType, "id", suite.album1.Id)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.album1, res)
 
 	res, err = suite.c.Get(pbdemo.AlbumType, "year", int32(2022))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.album3, res)
 
 	res, err = suite.c.Get(pbdemo.AlbumType, "tracks", "fangorn")
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertDeepEqual(suite.T(), suite.album2, res)
 }
 
 func (suite *cacheSuite) TestGet_NilType() {
 	res, err := suite.c.Get(nil, "id", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, TypeUnspecifiedError)
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, TypeUnspecifiedError)
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestGet_UncachedType() {
 	res, err := suite.c.Get(pbdemo.ArtistType, "id", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, TypeNotIndexedError)
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, TypeNotIndexedError)
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestGet_IndexNotFound() {
 	res, err := suite.c.Get(pbdemo.AlbumType, "blah", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, IndexNotFoundError{name: "blah"})
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, IndexNotFoundError{name: "blah"})
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestList() {
 	resources, err := suite.c.List(pbdemo.AlbumType, "year", int32(2023))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album1, suite.album2}, resources)
 
 	resources, err = suite.c.List(pbdemo.AlbumType, "tracks", "f", true)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album1, suite.album2, suite.album4}, resources)
 }
 
 func (suite *cacheSuite) TestList_NilType() {
 	res, err := suite.c.List(nil, "id", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, TypeUnspecifiedError)
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, TypeUnspecifiedError)
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestList_UncachedType() {
 	res, err := suite.c.List(pbdemo.ArtistType, "id", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, TypeNotIndexedError)
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, TypeNotIndexedError)
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestList_IndexNotFound() {
 	res, err := suite.c.List(pbdemo.AlbumType, "blah", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, IndexNotFoundError{name: "blah"})
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, IndexNotFoundError{name: "blah"})
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestParents() {
 	resources, err := suite.c.Parents(pbdemo.AlbumType, "name_prefix", "food")
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album3, suite.album4}, resources)
 }
 
 func (suite *cacheSuite) TestQuery() {
 	resources, err := expandIterator(suite.c.Query(okQueryName, "food"))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album3, suite.album4}, resources)
 }
 
 func (suite *cacheSuite) TestParents_NilType() {
 	res, err := suite.c.Parents(nil, "id", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, TypeUnspecifiedError)
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, TypeUnspecifiedError)
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestParents_UncachedType() {
 	res, err := suite.c.Parents(pbdemo.ArtistType, "id", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, TypeNotIndexedError)
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, TypeNotIndexedError)
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestParents_IndexNotFound() {
 	res, err := suite.c.Parents(pbdemo.AlbumType, "blah", suite.album1.Id)
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, IndexNotFoundError{name: "blah"})
-	require.Nil(suite.T(), res)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, IndexNotFoundError{name: "blah"})
+	suite.Require().Nil(res)
 }
 
 func (suite *cacheSuite) TestInsert_UncachedType() {
 	err := suite.c.Insert(resourcetest.Resource(pbdemo.ArtistType, "blah").Build())
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, TypeNotIndexedError)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, TypeNotIndexedError)
 }
 
 func (suite *cacheSuite) TestDelete() {
 	err := suite.c.Delete(suite.album1)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	res, err := suite.c.Get(pbdemo.AlbumType, "id", suite.album1.Id)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), res)
+	suite.Require().NoError(err)
+	suite.Require().Nil(res)
 
 	resources, err := suite.c.List(pbdemo.AlbumType, "year", int32(2023))
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 	prototest.AssertElementsMatch(suite.T(), []*pbresource.Resource{suite.album2}, resources)
 
 	resources, err = suite.c.Parents(pbdemo.AlbumType, "name_prefix", "onesie")
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), resources)
+	suite.Require().NoError(err)
+	suite.Require().Nil(resources)
 }
 
 func (suite *cacheSuite) TestDelete_UncachedType() {
 	err := suite.c.Delete(resourcetest.Resource(pbdemo.ArtistType, "blah").Build())
-	require.Error(suite.T(), err)
-	require.ErrorIs(suite.T(), err, TypeNotIndexedError)
+	suite.Require().Error(err)
+	suite.Require().ErrorIs(err, TypeNotIndexedError)
 }

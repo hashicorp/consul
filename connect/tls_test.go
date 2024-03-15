@@ -67,9 +67,9 @@ func Test_verifyServerCertMatchesURI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := verifyServerCertMatchesURI(tt.certs, tt.expected)
 			if tt.wantErr {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			} else {
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -130,9 +130,9 @@ func TestClientSideVerifier(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := clientSideVerifier(tt.tlsCfg, tt.rawCerts)
 			if tt.wantErr == "" {
-				require.Nil(t, err)
+				require.NoError(t, err)
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)
 			}
 		})
@@ -256,9 +256,9 @@ func TestServerSideVerifier(t *testing.T) {
 			v := newServerSideVerifier(testutil.Logger(t), client, tt.service)
 			err := v(tt.tlsCfg, tt.rawCerts)
 			if tt.wantErr == "" {
-				require.Nil(t, err)
+				require.NoError(t, err)
 			} else {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.wantErr)
 			}
 		})
@@ -283,17 +283,17 @@ func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
 	var err error
 	if expect.GetCertificate != nil {
 		expectLeaf, err = expect.GetCertificate(nil)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	} else if len(expect.Certificates) > 0 {
 		expectLeaf = &expect.Certificates[0]
 	}
 
 	gotLeaf, err := got.GetCertificate(nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, expectLeaf, gotLeaf)
 
 	gotLeaf, err = got.GetClientCertificate(nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, expectLeaf, gotLeaf)
 }
 
@@ -315,7 +315,7 @@ func requireCorrectVerifier(t *testing.T, expect, got *tls.Config,
 	ch chan *tls.Config) {
 
 	err := got.VerifyPeerCertificate(nil, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	verifierCfg := <-ch
 	// The tls.Cfg passed to verifyFunc should be the expected (current) value.
 	requireEqualTLSConfig(t, expect, verifierCfg)
@@ -358,7 +358,7 @@ func TestDynamicTLSConfig(t *testing.T) {
 
 	// Now change the roots as if we just loaded new roots from Consul
 	err := c.SetRoots(newCfg.RootCAs)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// The dynamic config should have the new roots, but old leaf
 	gotAfter := c.Get(verify2)
@@ -375,7 +375,7 @@ func TestDynamicTLSConfig(t *testing.T) {
 
 	// Now change the leaf
 	err = c.SetLeaf(&newCfg.Certificates[0])
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// The dynamic config should have the new roots, AND new leaf
 	gotAfterLeaf := c.Get(verify3)

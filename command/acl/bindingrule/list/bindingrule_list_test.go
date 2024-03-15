@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -110,7 +109,7 @@ func TestBindingRuleListCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		output := ui.OutputWriter.String()
 
@@ -131,7 +130,7 @@ func TestBindingRuleListCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		output := ui.OutputWriter.String()
 
@@ -154,7 +153,7 @@ func TestBindingRuleListCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		output := ui.OutputWriter.String()
 
@@ -177,7 +176,7 @@ func TestBindingRuleListCommand(t *testing.T) {
 		cmd := New(ui)
 
 		code := cmd.Run(args)
-		require.Equal(t, code, 0)
+		require.Equal(t, 0, code)
 		require.Empty(t, ui.ErrorWriter.String())
 		output := ui.OutputWriter.String()
 
@@ -188,6 +187,6 @@ func TestBindingRuleListCommand(t *testing.T) {
 
 		var jsonOutput json.RawMessage
 		err := json.Unmarshal([]byte(output), &jsonOutput)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }

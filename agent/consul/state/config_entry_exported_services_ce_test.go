@@ -308,7 +308,7 @@ func TestStore_getUniqueExportedServices(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, 2, len(resp))
+	require.Len(t, resp, 2)
 
 	for idx, expSvc := range expected {
 		require.Equal(t, expSvc.Name, resp[idx].Name)

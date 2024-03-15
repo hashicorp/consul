@@ -68,7 +68,7 @@ func v1ServiceExportsShimTests(t *testing.T, shim *v1ServiceExportsShim, configs
 
 	for _, entMeta := range partitions {
 		exportedServices, err := shim.GetExportedServicesConfigEntry(ctx, entMeta.PartitionOrDefault(), entMeta)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Nil(t, exportedServices)
 	}
 

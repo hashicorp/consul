@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPolicyReadCommand_noTabs(t *testing.T) {
@@ -53,7 +54,7 @@ func TestPolicyReadCommand(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test querying by id field
 	args := []string{
@@ -63,7 +64,7 @@ func TestPolicyReadCommand(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
@@ -79,7 +80,7 @@ func TestPolicyReadCommand(t *testing.T) {
 
 	cmd = New(ui)
 	code = cmd.Run(argsName)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output = ui.OutputWriter.String()
@@ -95,7 +96,7 @@ func TestPolicyReadCommand(t *testing.T) {
 
 	cmd = New(ui)
 	code = cmd.Run(argsName)
-	assert.Equal(t, code, 1)
+	assert.Equal(t, 1, code)
 }
 
 func TestPolicyReadCommand_JSON(t *testing.T) {
@@ -127,7 +128,7 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 		&api.ACLPolicy{Name: "test-policy"},
 		&api.WriteOptions{Token: "root"},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -137,7 +138,7 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 	}
 
 	code := cmd.Run(args)
-	assert.Equal(t, code, 0)
+	assert.Equal(t, 0, code)
 	assert.Empty(t, ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
@@ -146,5 +147,5 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 
 	var jsonOutput json.RawMessage
 	err = json.Unmarshal([]byte(output), &jsonOutput)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

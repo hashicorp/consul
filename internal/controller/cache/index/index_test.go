@@ -122,7 +122,7 @@ func TestSingleIndexWrapper(t *testing.T) {
 		indexed, vals, err := wrapper.FromResource(res)
 		require.False(t, indexed)
 		require.Nil(t, vals)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("FromResource ok", func(t *testing.T) {

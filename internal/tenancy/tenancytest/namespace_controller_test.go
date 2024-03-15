@@ -91,7 +91,7 @@ func (ts *nsTestSuite) TestNamespaceController_HappyPath() {
 
 	// Delete the namespace
 	_, err := ts.client.Delete(ts.ctx, &pbresource.DeleteRequest{Id: ns1.Id})
-	require.NoError(ts.T(), err)
+	ts.Require().NoError(err)
 
 	// Wait for the namespace to be deleted
 	ts.client.WaitForDeletion(ts.T(), ns1.Id)
@@ -144,7 +144,7 @@ func (ts *nsTestSuite) TestNamespaceController_DeleteBlockedByTenantsWithFinaliz
 	artist2 = ts.client.RequireResourceExists(ts.T(), artist2.Id)
 	resource.RemoveFinalizer(artist2, "finalizer2")
 	_, err := ts.client.Write(ts.ctx, &pbresource.WriteRequest{Resource: artist2})
-	require.NoError(ts.T(), err)
+	ts.Require().NoError(err)
 
 	// The final reconcile should delete artist since it was marked for deletion and
 	// and has no finalizers. Given no more tenants, wait for namespace to be deleted.

@@ -114,8 +114,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoNode() {
 		ref.Uid = ulid.Make().String()
 		health, err := getNodeHealth(suite.runtime, ref)
 
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_PASSING, health)
+		suite.Require().NoError(err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_PASSING, health)
 	})
 }
 
@@ -123,8 +123,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 
 		health, err := getNodeHealth(suite.runtime, suite.nodeNoHealth)
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_PASSING, health)
+		suite.Require().NoError(err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_PASSING, health)
 	})
 }
 
@@ -132,8 +132,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthPassingStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 
 		health, err := getNodeHealth(suite.runtime, suite.nodePassing)
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_PASSING, health)
+		suite.Require().NoError(err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_PASSING, health)
 	})
 }
 
@@ -141,8 +141,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthCriticalStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 
 		health, err := getNodeHealth(suite.runtime, suite.nodeCritical)
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
+		suite.Require().NoError(err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
 }
 
@@ -150,8 +150,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthWarningStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 
 		health, err := getNodeHealth(suite.runtime, suite.nodeWarning)
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_WARNING, health)
+		suite.Require().NoError(err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_WARNING, health)
 	})
 }
 
@@ -159,8 +159,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthMaintenanceStatus()
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 
 		health, err := getNodeHealth(suite.runtime, suite.nodeMaintenance)
-		require.NoError(suite.T(), err)
-		require.Equal(suite.T(), pbcatalog.Health_HEALTH_MAINTENANCE, health)
+		suite.Require().NoError(err)
+		suite.Require().Equal(pbcatalog.Health_HEALTH_MAINTENANCE, health)
 	})
 }
 
@@ -173,7 +173,7 @@ func (suite *nodeHealthControllerTestSuite) TestReconcileNodeNotFound() {
 				Partition: tenancy.Partition,
 			}),
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 	})
 }
 
@@ -183,17 +183,17 @@ func (suite *nodeHealthControllerTestSuite) testReconcileStatus(id *pbresource.I
 	err := suite.ctl.Reconcile(context.Background(), controller.Request{
 		ID: id,
 	})
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	rsp, err := suite.resourceClient.Read(context.Background(), &pbresource.ReadRequest{
 		Id: id,
 	})
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	nodeHealthStatus, found := rsp.Resource.Status[StatusKey]
-	require.True(suite.T(), found)
-	require.Equal(suite.T(), rsp.Resource.Generation, nodeHealthStatus.ObservedGeneration)
-	require.Len(suite.T(), nodeHealthStatus.Conditions, 1)
+	suite.Require().True(found)
+	suite.Require().Equal(rsp.Resource.Generation, nodeHealthStatus.ObservedGeneration)
+	suite.Require().Len(nodeHealthStatus.Conditions, 1)
 	prototest.AssertDeepEqual(suite.T(),
 		nodeHealthStatus.Conditions[0],
 		expectedStatus)
@@ -269,7 +269,7 @@ func (suite *nodeHealthControllerTestSuite) TestReconcile_AvoidRereconciliationW
 		// If another status write was performed then the versions would differ. This
 		// therefore proves that after a second reconciliation without any change in status
 		// that we are not making subsequent status writes.
-		require.Equal(suite.T(), res1.Version, res2.Version)
+		suite.Require().Equal(res1.Version, res2.Version)
 	})
 }
 

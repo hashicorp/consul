@@ -38,7 +38,7 @@ func TestNewNodeIDFromConfig(t *testing.T) {
 	t.Run("running again should get the NodeID that was persisted to disk", func(t *testing.T) {
 		nodeID, err := newNodeIDFromConfig(cfg, logger)
 		require.NoError(t, err)
-		require.NotEqual(t, nodeID, "")
+		require.NotEqual(t, "", nodeID)
 		require.Equal(t, nodeID, randomNodeID)
 	})
 
@@ -78,7 +78,7 @@ func TestNewNodeIDFromConfig(t *testing.T) {
 
 		nodeID, err := newNodeIDFromConfig(cfg, logger)
 		require.NoError(t, err)
-		require.Equal(t, string(nodeID), "adf4238a-882b-9ddc-4a9d-5b6758e4159e")
+		require.Equal(t, "adf4238a-882b-9ddc-4a9d-5b6758e4159e", string(nodeID))
 	})
 }
 

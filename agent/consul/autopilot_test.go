@@ -91,7 +91,7 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 			break
 		}
 	}
-	require.NotEqual(t, leaderIndex, -1)
+	require.NotEqual(t, -1, leaderIndex)
 
 	// Shutdown two non-leader servers
 	killed := make(map[string]struct{})

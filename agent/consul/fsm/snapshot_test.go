@@ -84,7 +84,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName("web", nil)}
 	vip, err := fsm.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.1")
+	require.Equal(t, "240.0.0.1", vip)
 
 	fsm.state.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
 	fsm.state.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
@@ -453,7 +453,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("foo", nil)}
 	vip, err = fsm.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.2")
+	require.Equal(t, "240.0.0.2", vip)
 
 	// mesh config entry
 	meshConfig := &structs.MeshConfigEntry{
@@ -480,7 +480,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("frontend", nil)}
 	vip, err = fsm.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.3")
+	require.Equal(t, "240.0.0.3", vip)
 
 	fsm.state.EnsureService(30, "foo", &structs.NodeService{
 		ID:      "backend",
@@ -492,7 +492,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("backend", nil)}
 	vip, err = fsm.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.4")
+	require.Equal(t, "240.0.0.4", vip)
 
 	_, serviceNames, err := fsm.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
 	require.NoError(t, err)
@@ -554,7 +554,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	require.NoError(t, fsm.state.EnsureConfigEntry(34, resolverEntry))
 	vip, err = fsm.state.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.NewServiceName("goo", nil)})
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.5")
+	require.Equal(t, "240.0.0.5", vip)
 
 	// Resources
 	resource, err := storageBackend.WriteCAS(context.Background(), &pbresource.Resource{
@@ -679,23 +679,23 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("web", nil)}
 	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.1")
+	require.Equal(t, "240.0.0.1", vip)
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("foo", nil)}
 	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.2")
+	require.Equal(t, "240.0.0.2", vip)
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("frontend", nil)}
 	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.3")
+	require.Equal(t, "240.0.0.3", vip)
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("backend", nil)}
 	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.4")
+	require.Equal(t, "240.0.0.4", vip)
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("goo", nil)}
 	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.5")
+	require.Equal(t, "240.0.0.5", vip)
 
 	// Verify key is set
 	_, d, err := fsm2.state.KVSGet(nil, "/test", nil)
@@ -749,7 +749,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	canBootstrap, index, err := fsm2.state.CanBootstrapACLToken()
 	require.NoError(t, err)
 	require.False(t, canBootstrap)
-	require.True(t, index > 0)
+	require.Greater(t, index, 0)
 
 	// Verify ACL Role is restored
 	_, role2, err := fsm2.state.ACLRoleGetByID(nil, role.ID, nil)
@@ -846,7 +846,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	// Verify usage data is correctly updated
 	idx, nodeUsage, err := fsm2.state.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, len(nodes), nodeUsage.Nodes)
+	require.Len(t, nodes, nodeUsage.Nodes)
 	require.NotZero(t, idx)
 
 	// Verify system metadata is restored.

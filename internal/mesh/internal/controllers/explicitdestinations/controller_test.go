@@ -399,18 +399,18 @@ func (suite *controllerTestSuite) TestReconcile_NoWorkload() {
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: id,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), id)
 
 		// Check that we're not tracking services for this workload anymore.
 		reqs, err := suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService1)
-		require.NoError(suite.T(), err)
-		require.Nil(suite.T(), reqs)
+		suite.Require().NoError(err)
+		suite.Require().Nil(reqs)
 
 		reqs, err = suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService2)
-		require.NoError(suite.T(), err)
-		require.Nil(suite.T(), reqs)
+		suite.Require().NoError(err)
+		suite.Require().Nil(reqs)
 	})
 }
 
@@ -440,18 +440,18 @@ func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cdID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 
 		// Check that we're not tracking services for this workload anymore.
 		reqs, err := suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService1)
-		require.NoError(suite.T(), err)
-		require.Nil(suite.T(), reqs)
+		suite.Require().NoError(err)
+		suite.Require().Nil(reqs)
 
 		reqs, err = suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService2)
-		require.NoError(suite.T(), err)
-		require.Nil(suite.T(), reqs)
+		suite.Require().NoError(err)
+		suite.Require().Nil(reqs)
 	})
 }
 
@@ -495,14 +495,14 @@ func (suite *controllerTestSuite) TestReconcile_HappyPath() {
 			WithData(suite.T(), suite.dest2).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d2)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		d1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
 			WithTenancy(tenancy).
 			WithData(suite.T(), suite.dest1).
 			Write(suite.T(), suite.client)
 		_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d1)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.writeServices(suite.T(), tenancy)
 		suite.writeComputedRoutes(suite.T(), tenancy)
@@ -512,7 +512,7 @@ func (suite *controllerTestSuite) TestReconcile_HappyPath() {
 			ID: cdID,
 		})
 
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.requireComputedDestinations(suite.T(), cdID)
 		suite.client.RequireStatusCondition(suite.T(), d1.Id, ControllerName, ConditionDestinationsAccepted())
@@ -526,7 +526,7 @@ func (suite *controllerTestSuite) TestReconcile_NoDestinations() {
 			WithData(suite.T(), suite.dest1).
 			Build()
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
 			WithTenancy(tenancy).
@@ -535,7 +535,7 @@ func (suite *controllerTestSuite) TestReconcile_NoDestinations() {
 			ID: cdID,
 		})
 
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 	})
@@ -550,7 +550,7 @@ func (suite *controllerTestSuite) TestReconcile_AllDestinationsInvalid() {
 			WithData(suite.T(), suite.dest1).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
 			WithTenancy(tenancy).
@@ -559,7 +559,7 @@ func (suite *controllerTestSuite) TestReconcile_AllDestinationsInvalid() {
 			ID: cdID,
 		})
 
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 	})
@@ -572,7 +572,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ConflictingDestinat
 			WithData(suite.T(), suite.dest1).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest1)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Write a conflicting destinations resource.
 		destData := proto.Clone(suite.dest2).(*pbmesh.Destinations)
@@ -583,7 +583,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ConflictingDestinat
 			WithData(suite.T(), destData).
 			Write(suite.T(), suite.client)
 		_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest2)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
 			WithTenancy(tenancy).
@@ -591,7 +591,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ConflictingDestinat
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cdID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 
 		// Expect that the status on both resource is updated showing conflict.
@@ -606,12 +606,12 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ConflictingDestinat
 			WithData(suite.T(), suite.dest2).
 			Write(suite.T(), suite.client)
 		_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest2)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cdID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		// Expect status on both to be updated to say that there's no conflict.
 		suite.client.RequireStatusCondition(suite.T(), dest1.Id, ControllerName,
@@ -628,14 +628,14 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_NoService() {
 			WithData(suite.T(), suite.dest2).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client).Id
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cdID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 
 		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
@@ -650,7 +650,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ServiceNotOnMesh() 
 			WithData(suite.T(), suite.dest2).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
 			WithTenancy(tenancy).
@@ -672,7 +672,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ServiceNotOnMesh() 
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cdID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 
 		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
@@ -687,7 +687,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_DestinationPortIsMe
 			WithData(suite.T(), suite.dest2).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
 			WithTenancy(tenancy).
@@ -709,7 +709,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_DestinationPortIsMe
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cdID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 
 		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
@@ -724,7 +724,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ComputedRoutesNotFo
 			WithData(suite.T(), suite.dest2).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
 			WithTenancy(tenancy).
@@ -750,7 +750,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ComputedRoutesNotFo
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cdID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 
 		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
@@ -765,7 +765,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ComputedRoutesPortN
 			WithData(suite.T(), suite.dest2).
 			Write(suite.T(), suite.client)
 		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 
 		destService := resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
 			WithTenancy(tenancy).
@@ -805,7 +805,7 @@ func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ComputedRoutesPortN
 		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 			ID: cdID,
 		})
-		require.NoError(suite.T(), err)
+		suite.Require().NoError(err)
 		suite.client.RequireResourceNotFound(suite.T(), cdID)
 
 		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,

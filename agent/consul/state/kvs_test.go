@@ -368,11 +368,11 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 		Key:   "foo",
 		Value: []byte("bar"),
 	}
-	require.Nil(t, s.KVSSet(1, entry))
-	require.Nil(t, s.KVSSet(2, entry))
+	require.NoError(t, s.KVSSet(1, entry))
+	require.NoError(t, s.KVSSet(2, entry))
 
 	idx, _, err = s.KVSGet(ws, entry.Key, nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, uint64(1), idx)
 }

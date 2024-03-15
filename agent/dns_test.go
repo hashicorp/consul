@@ -545,14 +545,14 @@ func TestDNS_VirtualIPLookup(t *testing.T) {
 
 			run := func(t *testing.T, tc testCase) {
 				var out struct{}
-				require.Nil(t, a.RPC(context.Background(), "Catalog.Register", tc.reg, &out))
+				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", tc.reg, &out))
 
 				m := new(dns.Msg)
 				m.SetQuestion(tc.question, dns.TypeA)
 
 				c := new(dns.Client)
 				in, _, err := c.Exchange(m, a.DNSAddr())
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Len(t, in.Answer, 1)
 
 				aRec, ok := in.Answer[0].(*dns.A)
@@ -1000,7 +1000,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 							require.Equal(t, question, aRec.Hdr.Name)
 							require.Equal(t, tc.expectedServiceIPv4Address, aRec.A.String())
 						} else {
-							require.Len(t, in.Answer, 0)
+							require.Empty(t, in.Answer)
 						}
 
 						m = new(dns.Msg)
@@ -1018,7 +1018,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 							require.Equal(t, question, aRec.Hdr.Name)
 							require.Equal(t, tc.expectedServiceIPv6Address, aRec.AAAA.String())
 						} else {
-							require.Len(t, in.Answer, 0)
+							require.Empty(t, in.Answer)
 						}
 					}
 
@@ -1038,7 +1038,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 						require.Equal(t, "foo.node.consul.", aRec.Hdr.Name)
 						require.Equal(t, tc.expectedNodeIPv4Address, aRec.A.String())
 					} else {
-						require.Len(t, in.Answer, 0)
+						require.Empty(t, in.Answer)
 					}
 
 					m = new(dns.Msg)
@@ -1056,7 +1056,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 						require.Equal(t, "foo.node.consul.", aRec.Hdr.Name)
 						require.Equal(t, tc.expectedNodeIPv6Address, aRec.AAAA.String())
 					} else {
-						require.Len(t, in.Answer, 0)
+						require.Empty(t, in.Answer)
 					}
 				})
 			}
@@ -1679,7 +1679,7 @@ func TestDNS_AddressLookupANY(t *testing.T) {
 
 				require.NoError(t, err)
 				require.Len(t, in.Answer, 1)
-				require.Equal(t, in.Answer[0].Header().Rrtype, dns.TypeA)
+				require.Equal(t, dns.TypeA, in.Answer[0].Header().Rrtype)
 				aRec, ok := in.Answer[0].(*dns.A)
 				require.True(t, ok)
 				require.Equal(t, aRec.A.To4().String(), answer)
@@ -1832,9 +1832,9 @@ func TestDNS_NonExistentDC_Server(t *testing.T) {
 			}
 
 			require.Equal(t, dns.RcodeNameError, in.Rcode)
-			require.Equal(t, 0, len(in.Answer))
-			require.Equal(t, 0, len(in.Extra))
-			require.Equal(t, 1, len(in.Ns))
+			require.Empty(t, in.Answer)
+			require.Empty(t, in.Extra)
+			require.Len(t, in.Ns, 1)
 			soa := in.Ns[0].(*dns.SOA)
 			require.Equal(t, "consul.", soa.Hdr.Name)
 			require.Equal(t, "ns.consul.", soa.Ns)
@@ -2305,7 +2305,7 @@ func TestDNS_AltDomain_DCName_Overlap(t *testing.T) {
 
 				aRec, ok := in.Answer[0].(*dns.A)
 				require.True(t, ok)
-				require.Equal(t, aRec.A.To4().String(), "127.0.0.1")
+				require.Equal(t, "127.0.0.1", aRec.A.To4().String())
 			}
 		})
 	}
@@ -2498,7 +2498,7 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 			c := new(dns.Client)
 			resp, _, err := c.Exchange(req, a.DNSAddr())
 			require.NoError(t, err)
-			require.True(t, resp.Len() < 2048)
+			require.Less(t, resp.Len(), 2048)
 		})
 	}
 }
@@ -2654,7 +2654,7 @@ func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 				t.Fatalf("Bad %#v", *resp)
 			}
 			require.LessOrEqual(t, resp.Len(), defaultMaxUDPSize)
-			require.Len(t, resp.Ns, 0)
+			require.Empty(t, resp.Ns)
 		})
 	}
 }
@@ -2706,7 +2706,7 @@ func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
 				t.Fatalf("Bad %#v", *resp)
 			}
 			require.LessOrEqual(t, resp.Len(), 65523)
-			require.Len(t, resp.Ns, 0)
+			require.Empty(t, resp.Ns)
 		})
 	}
 }
@@ -2715,7 +2715,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 	t.Helper()
 	result, err := config.Load(config.LoadOpts{HCL: []string{hcl}})
 	require.NoError(t, err)
-	require.Len(t, result.Warnings, 0)
+	require.Empty(t, result.Warnings)
 	return result.RuntimeConfig
 }
 
@@ -3742,15 +3742,15 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 func TestDNS_ECSNotGlobalError(t *testing.T) {
 	t.Run("wrap nil", func(t *testing.T) {
 		e := ecsNotGlobalError{}
-		require.True(t, errors.Is(e, errECSNotGlobal))
-		require.False(t, errors.Is(e, fmt.Errorf("some other error")))
-		require.Equal(t, nil, errors.Unwrap(e))
+		require.ErrorIs(t, e, errECSNotGlobal)
+		require.NotErrorIs(t, e, fmt.Errorf("some other error"))
+		require.NoError(t, errors.Unwrap(e))
 	})
 
 	t.Run("wrap some error", func(t *testing.T) {
 		e := ecsNotGlobalError{error: errNameNotFound}
-		require.True(t, errors.Is(e, errECSNotGlobal))
-		require.False(t, errors.Is(e, fmt.Errorf("some other error")))
+		require.ErrorIs(t, e, errECSNotGlobal)
+		require.NotErrorIs(t, e, fmt.Errorf("some other error"))
 		require.Equal(t, errNameNotFound, errors.Unwrap(e))
 	})
 }

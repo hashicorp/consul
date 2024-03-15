@@ -567,7 +567,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 					}
 				} else if tc.listEmpty {
 					require.NoError(t, err)
-					require.Len(t, out.States, 0)
+					require.Empty(t, out.States)
 				} else {
 					require.NoError(t, err)
 
@@ -589,7 +589,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 
 				if tc.gwListEmpty {
 					require.NoError(t, err)
-					require.Len(t, out.DatacenterNodes, 0)
+					require.Empty(t, out.DatacenterNodes)
 				} else {
 					require.NoError(t, err)
 					require.Equal(t, expectedMeshGateways.DatacenterNodes, out.DatacenterNodes)
@@ -866,7 +866,7 @@ func federationStateUpsert(t *testing.T, codec rpc.ClientCodec, token string, fe
 
 func zeroFedStateIndexes(t *testing.T, fedState *structs.FederationState) {
 	require.NotNil(t, fedState)
-	require.True(t, fedState.PrimaryModifyIndex > 0, "this should be set")
+	require.Greater(t, fedState.PrimaryModifyIndex, 0, "this should be set")
 	fedState.PrimaryModifyIndex = 0          // zero out so the equality works
 	fedState.RaftIndex = structs.RaftIndex{} // zero these out so the equality works
 }
