@@ -6,12 +6,14 @@ package proxytracker
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/lib/channels"
 	"sync"
+
+	"github.com/hashicorp/consul/lib/channels"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/internal/controller"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
@@ -87,13 +89,17 @@ func NewProxyTracker(cfg ProxyTrackerConfig) *ProxyTracker {
 
 // Watch connects a proxy with ProxyTracker and returns the consumer a channel to receive updates,
 // a channel to notify of xDS terminated session, and a cancel function to cancel the watch.
-func (pt *ProxyTracker) Watch(proxyID *pbresource.ID,
-	nodeName string, token string) (<-chan proxysnapshot.ProxySnapshot,
-	limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error) {
+func (pt *ProxyTracker) Watch(proxyID *pbresource.ID, nodeName string, token string) (
+	<-chan proxysnapshot.ProxySnapshot,
+	limiter.SessionTerminatedChan,
+	proxycfg.SrcTerminatedChan,
+	proxysnapshot.CancelFunc,
+	error,
+) {
 	pt.config.Logger.Trace("watch initiated", "proxyID", proxyID, "nodeName", nodeName)
 	if err := pt.validateWatchArgs(proxyID, nodeName); err != nil {
 		pt.config.Logger.Error("args failed validation", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	// Begin a session with the xDS session concurrency limiter.
 	//
@@ -101,7 +107,7 @@ func (pt *ProxyTracker) Watch(proxyID *pbresource.ID,
 	session, err := pt.config.SessionLimiter.BeginSession()
 	if err != nil {
 		pt.config.Logger.Error("failed to begin session with xDS session concurrency limiter", err)
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// This buffering is crucial otherwise we'd block immediately trying to
@@ -132,11 +138,11 @@ func (pt *ProxyTracker) Watch(proxyID *pbresource.ID,
 	if err != nil {
 		pt.config.Logger.Error("failed to notify controller of new proxy connection", err)
 		pt.cancelWatchLocked(proxyReferenceKey, watchData.notifyCh, session)
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	pt.config.Logger.Trace("controller notified of watch created", "proxyID", proxyID, "nodeName", nodeName)
 
-	return proxyStateChan, session.Terminated(), cancel, nil
+	return proxyStateChan, session.Terminated(), nil, cancel, nil
 }
 
 // notifyNewProxyChannel attempts to send a message to newProxyConnectionCh and will return an error if there's no receiver.

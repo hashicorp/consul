@@ -87,7 +87,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 			// Prior to fixes in https://github.com/hashicorp/consul/pull/16497
 			// this call to Watch() would deadlock.
 			var err error
-			ch, stc, cancel, err = cfg.Watch(rtest.Resource(pbmesh.ProxyConfigurationType, sid.ID).ID(), a.config.NodeName, token)
+			ch, stc, _, cancel, err = cfg.Watch(rtest.Resource(pbmesh.ProxyConfigurationType, sid.ID).ID(), a.config.NodeName, token)
 			require.NoError(t, err)
 		}
 		select {

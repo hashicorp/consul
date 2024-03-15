@@ -5,9 +5,10 @@ package proxycfg
 
 import (
 	"errors"
-	"github.com/hashicorp/consul/lib/channels"
 	"runtime/debug"
 	"sync"
+
+	"github.com/hashicorp/consul/lib/channels"
 
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
@@ -37,6 +38,10 @@ type ProxyID struct {
 // such as the agent's local state or the catalog. It's used to prevent sources
 // from overwriting each other's registrations.
 type ProxySource string
+
+// SrcTerminatedChan indicates that the config-source for the proxycfg is no longer running
+// and will stop receiving updates when it is closed.
+type SrcTerminatedChan <-chan struct{}
 
 // Manager provides an API with which proxy services can be registered, and
 // coordinates the fetching (and refreshing) of intentions, upstreams, discovery
