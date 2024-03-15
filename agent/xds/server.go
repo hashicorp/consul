@@ -20,9 +20,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -83,7 +84,7 @@ type ACLResolverFunc func(id string) (acl.Authorizer, error)
 // ProxyConfigSource is the interface xds.Server requires to consume proxy
 // config updates.
 type ProxyWatcher interface {
-	Watch(proxyID *pbresource.ID, nodeName string, token string) (<-chan proxysnapshot.ProxySnapshot, limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error)
+	Watch(proxyID *pbresource.ID, nodeName string, token string) (<-chan proxysnapshot.ProxySnapshot, limiter.SessionTerminatedChan, proxycfg.SrcTerminatedChan, proxysnapshot.CancelFunc, error)
 }
 
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
