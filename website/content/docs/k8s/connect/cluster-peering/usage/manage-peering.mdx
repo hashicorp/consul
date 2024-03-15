@@ -25,7 +25,7 @@ To reset the cluster peering connection, you need to generate a new peering toke
   apiVersion: consul.hashicorp.com/v1alpha1
   kind: PeeringAcceptor
   metadata:
-    name: cluster-02
+    name: dc2-default
     annotations:
       consul.hashicorp.com/peering-version: "1" ## The peering version you want to set, must be in quotes
   spec:
@@ -51,7 +51,7 @@ In Consul on Kubernetes deployments, you can list all active peering connections
   ```shell-session
   $ consul peering list
   Name        State    Imported Svcs  Exported Svcs  Meta
-  cluster-02  ACTIVE   0              2              env=production
+  dc2-default  ACTIVE   0              2              env=production
   cluster-03  PENDING  0              0
   ```
 
@@ -64,8 +64,8 @@ In Consul on Kubernetes deployments, you can get information about individual pe
 1. Run the [`consul peering read` CLI command](/consul/commands/peering/read).
 
   ```shell-session
-  $ consul peering read -name cluster-02
-  Name:         cluster-02
+  $ consul peering read -name dc2-default
+  Name:         dc2-default
   ID:           3b001063-8079-b1a6-764c-738af5a39a97
   State:        ACTIVE
   Meta:
@@ -100,7 +100,7 @@ To end a peering connection in Kubernetes deployments, delete both the `PeeringA
   $ kubectl --context $CLUSTER1_CONTEXT delete --filename acceptor.yaml
   ````
 
-To confirm that you deleted your peering connection in `cluster-01`, query the `/health` HTTP endpoint:
+To confirm that you deleted your peering connection in `dc1-default`, query the `/health` HTTP endpoint:
 
 1. Exec into the server pod for the first cluster.
 
@@ -117,5 +117,5 @@ To confirm that you deleted your peering connection in `cluster-01`, query the `
 1. Query the `/health` HTTP endpoint. Peered services with deleted connections should no longe appear.
 
   ```shell-session
-  $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
+  $ curl "localhost:8500/v1/health/connect/backend?peer=dc2-default"
   ```
