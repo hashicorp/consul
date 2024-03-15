@@ -7,33 +7,34 @@ description: >-
 
 # Cluster peering best practices
 
-This page describes recommendations and best practices when using cluster peering in your Consul deployments. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
+This page describes recommendations and best practices when using cluster peering connections between datacenters in your Consul deployments. To learn more about Consul's cluster peering feature, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
 
 ## Requirements
 
-Consul's default configuration supports cluster peering connections directly between clusters. In production environments, we recommend using mesh gateways to securely route service mesh traffic between partitions with cluster peering connections.
-
-In addition, make sure your Consul environment meets the following prerequisites:
+Your Consul environment must meet the following prerequisites:
 
 - Consul v1.14 or higher.
-- A local Consul agent is required to manage mesh gateway configurations.
+- When cluster peering connections use non-default admin partitions, the clusters require an Enterprise license.
+- When the service mesh is enabled, a local Consul agent is required to manage mesh gateway configurations.
+
+Consul's default configuration supports cluster peering connections directly between clusters. In production environments, we recommend using mesh gateways to securely route service mesh traffic between partitions with cluster peering connections. When Consul's service mesh is not enabled, service discovery between peered clusters is considered secure without mesh gateways. Refer to [cluster peering overview](/consul/docs/conect/cluster-peering#compared-with-wan-federation) for more information about the role mesh gateways play in securing traffic between clusters.
 
 ## Best practices
 
 We suggest the following best practices for Consul cluster peering connections.
 
-- When you generate peering tokens, use the following naming convention: `<remote-dc-name>.<remote-partition-name>`.
-  - For example, the instructions to [create a cluster peering connection](/consul/docs/connect/cluster-peering/usage) begin by generating a peering token for `dc1` that assigns the name `dc2-default` to the peer cluster. As a result, many commands and configuration use `Peer: "dc2-default"` to refer to the remote cluster.
-  - This naming convention simplifies the creation and usage of sameness groups. Because a separate peering token is exchanged for each peered cluster in the group and each cluster requires a configuration entry that defines the group from its perspective, a uniform naming convention for cluster peers lowers the modifications required to each configuration entry.
-- Use mesh gateways to secure east-west traffic between peered clusters in production environments.
+- When you generate peering tokens, use the following naming convention: `<remote-dc-name>-<remote-partition-name>`.
+  - For example, the instructions to [create a cluster peering connection](/consul/docs/connect/cluster-peering/usage) begin by generating a peering token in `dc1` that assigns the name `dc2-default` to the peer cluster. As a result, commands and configurations use `Peer: "dc2-default"` to refer to the remote cluster.
+  - This naming convention simplifies the creation and usage of sameness groups. Because a separate peering token is exchanged for each peered cluster in the group and each cluster requires a configuration entry that defines the group from its perspective, a uniform naming convention for cluster peers lowers the number of modifications each configuration entry requires.
+- Use mesh gateways to secure east-west service mesh traffic between peered clusters in production environments.
 - Delete peering tokens after you terminate cluster peering connections. Unmanaged token sprawl may negatively impact the security of a Consul deployment operating in a production environment.
 
 ## Mesh gateway recommendations
 
 When cluster peering through mesh gateways, consider the following deployment recommendaitons.
 
-- Register a mesh gateway as a Consul service in order to export services to peers in other regions or cloud providers.
-- Register the mesh gateway in the same Consul admin partition as the exported services and their `exported-services` configuration entry. An Enterprise license is required to use multiple admin partitions with a single cluster of Consul servers.
+- You must register a mesh gateway as a Consul service before you can export services to peers in other regions or cloud providers.
+- Register the mesh gateway in the same Consul admin partition as the exported services and their `exported-services` configuration entry.
 - Define the `Proxy.Config` block in the mesh gateway configuration using opaque parameters compatible with your proxy. Refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional Envoy proxy configuration information.
 
 ### Mesh gateway modes
@@ -49,7 +50,7 @@ Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) 
 
 ## Sidecar proxy recommendations
 
-You must configure the Envoy proxies that function as sidecars in your service mesh in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/services/usage/define-services).
+You must configure the Envoy proxies that function as sidecars in your service mesh in order to properly route traffic to peers. Sidecar proxy behavior is configured in a [service definition](/consul/docs/services/usage/define-services).
 
 - Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams`](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) documentation for details.
 - The `proxy.upstreams.destination_name` parameter is always required.
@@ -58,7 +59,7 @@ You must configure the Envoy proxies that function as sidecars in your service m
 
 ## ACL recommendations
 
-When ACLs are enabled, add tokens to grant the following permissions:
+When ACLs are enabled, add tokens to grant the following permissions.
 
 - Grant `service:write` permissions to services that define mesh gateways in their server definition.
 - Grant `service:read` permissions for all services on the partition.
