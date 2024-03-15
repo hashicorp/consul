@@ -833,6 +833,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			Segment:       a.config.SegmentName,
 			Node:          a.config.NodeName,
 			NodePartition: a.config.PartitionOrEmpty(),
+			DisableNode:   true, // Disable for agentless so that streaming RPCs can be used.
 		},
 		DNSConfig: proxycfg.DNSConfig{
 			Domain:    a.config.DNSDomain,
