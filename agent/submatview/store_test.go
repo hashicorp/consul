@@ -509,7 +509,7 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 
 	store.lock.Lock()
 	defer store.lock.Unlock()
-	require.Len(t, store.byKey, 0)
+	require.Empty(t, store.byKey)
 	require.Equal(t, ttlcache.NotIndexed, e.expiry.Index())
 }
 
@@ -544,7 +544,7 @@ func TestStore_Run_FailingMaterializer(t *testing.T) {
 			store.lock.Lock()
 			defer store.lock.Unlock()
 
-			require.Len(r, store.byKey, 0)
+			require.Empty(r, store.byKey)
 		})
 	})
 
@@ -561,7 +561,7 @@ func TestStore_Run_FailingMaterializer(t *testing.T) {
 			store.lock.Lock()
 			defer store.lock.Unlock()
 
-			require.Len(r, store.byKey, 0)
+			require.Empty(r, store.byKey)
 		})
 	})
 }

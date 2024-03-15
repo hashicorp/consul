@@ -53,5 +53,5 @@ func (suite *expanderSuite) TestExpand_NoSamenessGroupsPresent() {
 
 	require.Equal(suite.T(), []string{"peer-1", "peer-2", "peer-3"}, expandedConsumers.Peers)
 	require.Nil(suite.T(), expandedConsumers.Partitions)
-	require.Len(suite.T(), expandedConsumers.MissingSamenessGroups, 0)
+	require.Empty(suite.T(), expandedConsumers.MissingSamenessGroups)
 }

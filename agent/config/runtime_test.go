@@ -6174,7 +6174,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		fs := flag.NewFlagSet("", flag.ContinueOnError)
 		AddFlags(fs, &opts)
 		require.NoError(t, fs.Parse(tc.args))
-		require.Len(t, fs.Args(), 0)
+		require.Empty(t, fs.Args())
 
 		for i, data := range tc.source(format) {
 			opts.sources = append(opts.sources, FileSource{

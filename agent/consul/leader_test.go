@@ -86,7 +86,7 @@ func Test_InitConsulService(t *testing.T) {
 
 		// Spot check the Service
 		require.Equal(r, service.GetWorkloads().GetPrefixes(), []string{consulWorkloadPrefix})
-		require.GreaterOrEqual(r, len(service.GetPorts()), 1)
+		require.NotEmpty(r, service.GetPorts())
 
 		//Since we're not running a full agent w/ serf, we can't check for valid endpoints
 	})
@@ -1682,7 +1682,7 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 		_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
 		require.NoError(r, err)
 		require.NotNil(r, anon)
-		require.Len(r, anon.Policies, 0)
+		require.Empty(r, anon.Policies)
 	})
 
 	reqToken := structs.ACLTokenSetRequest{

@@ -141,8 +141,8 @@ func useRPC(t *testing.T, c *Client, err error) {
 	store, ok := c.ViewStore.(*fakeViewStore)
 	require.True(t, ok, "test setup error, expected *fakeViewSTore, got %T", c.ViewStore)
 
-	require.Len(t, cache.calls, 0)
-	require.Len(t, store.calls, 0)
+	require.Empty(t, cache.calls)
+	require.Empty(t, store.calls)
 	require.Equal(t, []string{"ConfigEntry.Get"}, rpc.calls)
 }
 
@@ -160,8 +160,8 @@ func useStreaming(t *testing.T, c *Client, err error) {
 	store, ok := c.ViewStore.(*fakeViewStore)
 	require.True(t, ok, "test setup error, expected *fakeViewSTore, got %T", c.ViewStore)
 
-	require.Len(t, cache.calls, 0)
-	require.Len(t, rpc.calls, 0)
+	require.Empty(t, cache.calls)
+	require.Empty(t, rpc.calls)
 	require.Len(t, store.calls, 1)
 }
 
@@ -179,8 +179,8 @@ func useCache(t *testing.T, c *Client, err error) {
 	store, ok := c.ViewStore.(*fakeViewStore)
 	require.True(t, ok, "test setup error, expected *fakeViewSTore, got %T", c.ViewStore)
 
-	require.Len(t, rpc.calls, 0)
-	require.Len(t, store.calls, 0)
+	require.Empty(t, rpc.calls)
+	require.Empty(t, store.calls)
 	require.Equal(t, []string{"cache-no-streaming"}, cache.calls)
 }
 

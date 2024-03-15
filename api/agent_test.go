@@ -169,7 +169,7 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	require.Equal(t, 1, len(members))
+	require.Len(t, members, 1)
 
 	members, err = agent.MembersOpts(MembersOpts{
 		WAN:    true,
@@ -178,7 +178,7 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	require.Equal(t, 0, len(members))
+	require.Empty(t, members)
 
 	_, err = agent.MembersOpts(MembersOpts{
 		WAN:    true,
@@ -1878,7 +1878,7 @@ func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
 		if !shouldExist {
-			require.Equal(t, 0, len(outs), msg, "output")
+			require.Empty(t, outs, msg, "output")
 		} else {
 			require.True(t, len(outs) > 0, msg, "output")
 			for _, o := range outs {

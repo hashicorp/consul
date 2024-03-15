@@ -187,7 +187,7 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 	// Ensure endpoints exist and have health status, which is required for inclusion in DNS results.
 	retry.Run(t, func(r *retry.R) {
 		endpoints := readResource(r, client, resource.ReplaceType(pbcatalog.ServiceEndpointsType, dbServiceId), new(pbcatalog.ServiceEndpoints)).(*pbcatalog.ServiceEndpoints)
-		require.Equal(r, 3, len(endpoints.GetEndpoints()))
+		require.Len(r, endpoints.GetEndpoints(), 3)
 		for _, e := range endpoints.GetEndpoints() {
 			require.True(r,
 				// We only return results for passing and warning health checks.
@@ -216,9 +216,9 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 					t.Fatalf("err: %v", err)
 				}
 
-				require.Equal(t, 0, len(in.Answer), "Bad: %s", in.String())
-				require.Equal(t, 0, len(in.Extra), "Bad: %s", in.String())
-				require.Equal(t, 1, len(in.Ns), "Bad: %s", in.String())
+				require.Empty(t, in.Answer, "Bad: %s", in.String())
+				require.Empty(t, in.Extra, "Bad: %s", in.String())
+				require.Len(t, in.Ns, 1, "Bad: %s", in.String())
 
 				soaRec, ok := in.Ns[0].(*dns.SOA)
 				require.True(t, ok, "Bad: %s", in.Ns[0].String())
@@ -258,12 +258,12 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 				}
 
 				// Expect 1 result per port, per workload.
-				require.Equal(t, 9, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
-				require.Equal(t, 9, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
+				require.Len(t, in.Answer, 9, "answer count did not match expected\n\n%s", in.String())
+				require.Len(t, in.Extra, 9, "extra answer count did not match expected\n\n%s", in.String())
 			} else {
 				// Expect 1 result per port, per workload, up to the default limit of 3. In practice the results are truncated at 2.
-				require.Equal(t, 2, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
-				require.Equal(t, 2, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
+				require.Len(t, in.Answer, 2, "answer count did not match expected\n\n%s", in.String())
+				require.Len(t, in.Extra, 2, "extra answer count did not match expected\n\n%s", in.String())
 			}
 		}
 
@@ -292,8 +292,8 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 				require.EqualValues(t, 0, a.Hdr.Ttl, "Bad: %s", a.Original.String())
 
 				// Expect 1 result per port.
-				require.Equal(t, 3, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
-				require.Equal(t, 3, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
+				require.Len(t, in.Answer, 3, "answer count did not match expected\n\n%s", in.String())
+				require.Len(t, in.Extra, 3, "extra answer count did not match expected\n\n%s", in.String())
 			}
 		}
 
@@ -325,11 +325,11 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 
 				// Expect 1 answer per workload. For A records, expect 2 answers because there's 2 IPv4 workloads.
 				if dnsType == dns.TypeA {
-					require.Equal(t, 2, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
+					require.Len(t, in.Answer, 2, "answer count did not match expected\n\n%s", in.String())
 				} else {
-					require.Equal(t, 1, len(in.Answer), "answer count did not match expected\n\n%s", in.String())
+					require.Len(t, in.Answer, 1, "answer count did not match expected\n\n%s", in.String())
 				}
-				require.Equal(t, 0, len(in.Extra), "extra answer count did not match expected\n\n%s", in.String())
+				require.Empty(t, in.Extra, "extra answer count did not match expected\n\n%s", in.String())
 			}
 		}
 
@@ -347,7 +347,7 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 
-			require.Equal(t, 1, len(in.Ns), "Bad: %s", in.String())
+			require.Len(t, in.Ns, 1, "Bad: %s", in.String())
 
 			soaRec, ok := in.Ns[0].(*dns.SOA)
 			require.True(t, ok, "Bad: %s", in.Ns[0].String())
@@ -377,7 +377,7 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 					t.Fatalf("err: %v", err)
 				}
 
-				require.Equal(t, 1, len(in.Answer), "Bad: %s", in.String())
+				require.Len(t, in.Answer, 1, "Bad: %s", in.String())
 
 				a := findAorAAAAForName(t, in, in.Answer, question)
 				require.Equal(t, workloadHost, a.AorAAAA.String(), "Bad: %s", a.Original.String())
@@ -397,7 +397,7 @@ func TestDNS_CatalogV2_Basic(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 
-			require.Equal(t, 0, len(in.Answer), "Bad: %s", in.String())
+			require.Empty(t, in.Answer, "Bad: %s", in.String())
 			require.Equal(t, dns.RcodeNameError, in.Rcode, "Bad: %s", in.String())
 		}
 	}

@@ -1543,7 +1543,7 @@ func TestIntentionGet_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
 		require.True(t, acl.IsErrPermissionDenied(err))
-		require.Len(t, resp.Intentions, 0)
+		require.Empty(t, resp.Intentions)
 	})
 
 	t.Run("Read by ID with token should work", func(t *testing.T) {
@@ -1572,7 +1572,7 @@ func TestIntentionGet_acl(t *testing.T) {
 		var resp structs.IndexedIntentions
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp)
 		require.True(t, acl.IsErrPermissionDenied(err))
-		require.Len(t, resp.Intentions, 0)
+		require.Empty(t, resp.Intentions)
 	})
 
 	t.Run("Read by Exact with token should work", func(t *testing.T) {
@@ -1616,7 +1616,7 @@ func TestIntentionList(t *testing.T) {
 		var resp structs.IndexedIntentions
 		require.Nil(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.NotNil(t, resp.Intentions)
-		require.Len(t, resp.Intentions, 0)
+		require.Empty(t, resp.Intentions)
 	}
 }
 
@@ -1663,7 +1663,7 @@ func TestIntentionList_acl(t *testing.T) {
 		}
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
-		require.Len(t, resp.Intentions, 0)
+		require.Empty(t, resp.Intentions)
 		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
 	})
 
@@ -1928,7 +1928,7 @@ func TestIntentionMatch_acl(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp)
 		require.Error(t, err)
 		require.True(t, acl.IsErrPermissionDenied(err))
-		require.Len(t, resp.Matches, 0)
+		require.Empty(t, resp.Matches)
 	}
 
 	// Test with proper token

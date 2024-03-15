@@ -655,7 +655,7 @@ func TestHealthServiceNodes(t *testing.T) {
 			require.Len(t, nodes, 1)
 		} else {
 			require.NotNil(t, nodes)
-			require.Len(t, nodes, 0)
+			require.Empty(t, nodes)
 		}
 
 		req, err = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1"+peerQuerySuffix(peerName), nil)
@@ -669,7 +669,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		// Should be a non-nil empty list
 		nodes = obj.(structs.CheckServiceNodes)
 		require.NotNil(t, nodes)
-		require.Len(t, nodes, 0)
+		require.Empty(t, nodes)
 	}
 
 	// TODO(peering): will have to seed this data differently in the future
@@ -699,7 +699,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		require.Equal(t, peerName, nodes[0].Service.PeerName)
 		require.Equal(t, "test", nodes[0].Service.Service)
 		require.NotNil(t, nodes[0].Checks)
-		require.Len(t, nodes[0].Checks, 0)
+		require.Empty(t, nodes[0].Checks)
 	}
 
 	for _, peerName := range testingPeerNames {
@@ -1116,7 +1116,7 @@ use_streaming_backend = true
 					require.NoError(t, err)
 				}
 
-				require.Len(t, out, 0)
+				require.Empty(t, out)
 				require.Equal(t, tc.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
 			})
 		})
@@ -1651,7 +1651,7 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	// Should be a non-nil empty list for checks
 	nodes := obj.(structs.CheckServiceNodes)
 	assert.Len(t, nodes, 1)
-	assert.Len(t, nodes[0].Checks, 0)
+	assert.Empty(t, nodes[0].Checks)
 }
 
 func TestHealthIngressServiceNodes(t *testing.T) {
@@ -1734,7 +1734,7 @@ func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
 		assertIndex(t, resp)
 
 		nodes := obj.(structs.CheckServiceNodes)
-		require.Len(t, nodes, 0)
+		require.Empty(t, nodes)
 	}))
 
 	require.True(t, t.Run("test caching miss", func(t *testing.T) {
@@ -1843,7 +1843,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 
 		// Should be 0 health check for consul
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(t, nodes, 0)
+		assert.Empty(t, nodes)
 	})
 
 	t.Run("passing_true", func(t *testing.T) {
@@ -1856,7 +1856,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 
 		// Should be 0 health check for consul
 		nodes := obj.(structs.CheckServiceNodes)
-		assert.Len(t, nodes, 0)
+		assert.Empty(t, nodes)
 	})
 
 	t.Run("passing_false", func(t *testing.T) {

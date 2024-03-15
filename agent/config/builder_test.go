@@ -195,12 +195,12 @@ func TestBuilder_unixPermissionsVal(t *testing.T) {
 	require.NoError(t, b.err)
 	_ = b.unixPermissionsVal("local_bind_socket_mode", &goodmode)
 	require.NoError(t, b.err)
-	require.Len(t, b.Warnings, 0)
+	require.Empty(t, b.Warnings)
 
 	_ = b.unixPermissionsVal("local_bind_socket_mode", &badmode)
 	require.NotNil(t, b.err)
 	require.Contains(t, b.err.Error(), "local_bind_socket_mode: invalid mode")
-	require.Len(t, b.Warnings, 0)
+	require.Empty(t, b.Warnings)
 }
 
 func patchLoadOptsShims(opts *LoadOpts) {
@@ -360,7 +360,7 @@ func TestBuilder_ServiceVal_with_Check(t *testing.T) {
 		},
 	})
 	require.NoError(t, b.err)
-	require.Equal(t, 1, len(svc.Checks))
+	require.Len(t, svc.Checks, 1)
 	require.Equal(t, "localhost:53", svc.Checks[0].UDP)
 }
 

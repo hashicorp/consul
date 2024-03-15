@@ -116,7 +116,7 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 	require.Equal(t, "e9d33298-6490-4466-99cb-ba93af64fa76", deletions[0])
 
 	deletions, updates = diffACLPolicies(local, nil, 28)
-	require.Len(t, updates, 0)
+	require.Empty(t, updates)
 	require.Len(t, deletions, 4)
 	require.ElementsMatch(t, deletions, []string{
 		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
@@ -125,7 +125,7 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 		"e9d33298-6490-4466-99cb-ba93af64fa76"})
 
 	deletions, updates = diffACLPolicies(nil, remote, 28)
-	require.Len(t, deletions, 0)
+	require.Empty(t, deletions)
 	require.Len(t, updates, 4)
 	require.ElementsMatch(t, updates, []string{
 		"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
@@ -268,7 +268,7 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 		res := diffACLTokens(local, nil, 28)
 		require.Equal(t, 1, res.LocalSkipped)
 		require.Equal(t, 0, res.RemoteSkipped)
-		require.Len(t, res.LocalUpserts, 0)
+		require.Empty(t, res.LocalUpserts)
 		require.Len(t, res.LocalDeletes, 4)
 		require.ElementsMatch(t, res.LocalDeletes, []string{
 			"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
@@ -281,7 +281,7 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 		res := diffACLTokens(nil, remote, 28)
 		require.Equal(t, 0, res.LocalSkipped)
 		require.Equal(t, 1, res.RemoteSkipped)
-		require.Len(t, res.LocalDeletes, 0)
+		require.Empty(t, res.LocalDeletes)
 		require.Len(t, res.LocalUpserts, 5)
 		require.ElementsMatch(t, res.LocalUpserts, []string{
 			"72fac6a3-a014-41c8-9cb2-8d9a5e935f3d",

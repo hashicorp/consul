@@ -408,7 +408,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 			res := got.Result.(*pbservice.IndexedCheckServiceNodes)
 			require.Equal(t, uint64(0), res.Index)
 
-			require.Len(t, res.Nodes, 0)
+			require.Empty(t, res.Nodes)
 		})
 	})
 
@@ -421,7 +421,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 				res := got.Result.(*pbservice.IndexedCheckServiceNodes)
 				require.Equal(t, uint64(0), res.Index)
 
-				require.Len(t, res.Nodes, 0)
+				require.Empty(t, res.Nodes)
 			},
 		)
 	})
@@ -1223,7 +1223,7 @@ func checkEvent(
 	serviceKindPairs ...string) {
 	t.Helper()
 
-	require.True(t, len(serviceKindPairs) == 2*expectNodes, "sanity check")
+	require.Len(t, serviceKindPairs, 2*expectNodes, "sanity check")
 
 	require.Equal(t, correlationID, got.CorrelationID)
 
@@ -1231,7 +1231,7 @@ func checkEvent(
 	require.Equal(t, uint64(0), evt.Index)
 
 	if expectNodes == 0 {
-		require.Len(t, evt.Nodes, 0)
+		require.Empty(t, evt.Nodes)
 	} else {
 		require.Len(t, evt.Nodes, expectNodes)
 

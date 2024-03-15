@@ -47,7 +47,7 @@ func TestCACreateCommand(t *testing.T) {
 			func(t *testing.T, cert *x509.Certificate) {
 				require.Equal(t, 1825*24*time.Hour, time.Until(cert.NotAfter).Round(24*time.Hour))
 				require.False(t, cert.PermittedDNSDomainsCritical)
-				require.Len(t, cert.PermittedDNSDomains, 0)
+				require.Empty(t, cert.PermittedDNSDomains)
 			},
 		},
 		{"ca options",

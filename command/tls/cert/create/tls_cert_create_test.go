@@ -231,7 +231,7 @@ func TestTlsCertCreateCommand_fileCreate(t *testing.T) {
 					[]x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 					cert.ExtKeyUsage)
 			case "cli":
-				require.Len(t, cert.ExtKeyUsage, 0)
+				require.Empty(t, cert.ExtKeyUsage)
 			}
 			require.False(t, cert.IsCA)
 			require.Equal(t, tc.expectDNS, cert.DNSNames)

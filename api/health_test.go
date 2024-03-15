@@ -440,7 +440,7 @@ func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 		checks, meta, err := health.Service("consul", "", true, &QueryOptions{NodeMeta: meta})
 		require.NoError(r, err)
 		require.NotEqual(r, meta.LastIndex, 0)
-		require.NotEqual(r, len(checks), 0)
+		require.NotEmpty(r, checks)
 		require.Equal(r, checks[0].Node.Datacenter, "dc1")
 		require.Contains(r, checks[0].Node.TaggedAddresses, "wan")
 	})

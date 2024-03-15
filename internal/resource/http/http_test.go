@@ -565,7 +565,7 @@ func TestResourceListHandler(t *testing.T) {
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
 
 		resources, _ := result["resources"].([]any)
-		require.Len(t, resources, 0)
+		require.Empty(t, resources)
 	})
 
 	t.Run("should return empty list when name prefix matches don't match", func(t *testing.T) {
@@ -584,7 +584,7 @@ func TestResourceListHandler(t *testing.T) {
 		require.NoError(t, json.NewDecoder(rsp.Body).Decode(&result))
 
 		resources, _ := result["resources"].([]any)
-		require.Len(t, resources, 0)
+		require.Empty(t, resources)
 
 		// clean up
 		deleteResource(t, handler, nil)

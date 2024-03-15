@@ -2091,7 +2091,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 	t.Helper()
 	result, err := config.Load(config.LoadOpts{HCL: []string{hcl}})
 	require.NoError(t, err)
-	require.Len(t, result.Warnings, 0)
+	require.Empty(t, result.Warnings)
 	return result.RuntimeConfig
 }
 

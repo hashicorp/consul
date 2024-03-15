@@ -50,7 +50,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 			in, _, err := c.Exchange(m, a.DNSAddr())
 			require.NoError(t, err)
 			require.Len(t, in.Answer, 2)
-			require.Len(t, in.Extra, 0)
+			require.Empty(t, in.Extra)
 
 			aRec, ok := in.Answer[0].(*dns.A)
 			require.True(t, ok, "First answer is not an A record")
@@ -91,7 +91,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 			in, _, err = c.Exchange(m, a.DNSAddr())
 			require.NoError(t, err)
 			require.Len(t, in.Answer, 2)
-			require.Len(t, in.Extra, 0)
+			require.Empty(t, in.Extra)
 
 			aRec, ok = in.Answer[0].(*dns.A)
 			require.True(t, ok, "First answer is not an A record")
@@ -565,7 +565,7 @@ func TestDNS_NodeLookup_A_SuppressTXT(t *testing.T) {
 			require.Equal(t, wantAnswer, in.Answer)
 
 			// ensure TXT RR suppression
-			require.Len(t, in.Extra, 0)
+			require.Empty(t, in.Extra)
 		})
 	}
 }

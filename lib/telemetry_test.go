@@ -30,7 +30,7 @@ func TestConfigureSinks(t *testing.T) {
 	sinks, err := configureSinks(cfg, nil, extraSinks)
 	require.Error(t, err)
 	// 4 sinks: statsd, statsite, inmem, extra sink (blackhole)
-	require.Equal(t, 4, len(sinks))
+	require.Len(t, sinks, 4)
 
 	cfg = TelemetryConfig{
 		DogstatsdAddr: "",

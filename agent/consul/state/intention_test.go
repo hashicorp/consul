@@ -1782,8 +1782,8 @@ func TestStore_IntentionMatch_WatchesDuringUpgrade(t *testing.T) {
 	ws := memdb.NewWatchSet()
 	_, matches, err := s.IntentionMatch(ws, &args)
 	require.NoError(t, err)
-	require.Len(t, matches, 1)    // one request gets one response
-	require.Len(t, matches[0], 0) // but no intentions
+	require.Len(t, matches, 1)   // one request gets one response
+	require.Empty(t, matches[0]) // but no intentions
 
 	disableLegacyIntentions(s)
 	conf := &structs.ServiceIntentionsConfigEntry{

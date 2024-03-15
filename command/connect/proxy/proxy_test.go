@@ -32,7 +32,7 @@ func TestCommandConfigWatcher(t *testing.T) {
 			Flags: []string{"-service", "web"},
 			Test: func(t *testing.T, cfg *proxy.Config) {
 				require.Equal(t, 0, cfg.PublicListener.BindPort)
-				require.Len(t, cfg.Upstreams, 0)
+				require.Empty(t, cfg.Upstreams)
 			},
 		},
 
@@ -57,7 +57,7 @@ func TestCommandConfigWatcher(t *testing.T) {
 			Test: func(t *testing.T, cfg *proxy.Config) {
 				// -service-addr has no affect since -listen isn't set
 				require.Equal(t, 0, cfg.PublicListener.BindPort)
-				require.Len(t, cfg.Upstreams, 0)
+				require.Empty(t, cfg.Upstreams)
 			},
 		},
 
@@ -69,7 +69,7 @@ func TestCommandConfigWatcher(t *testing.T) {
 				"-listen", ":4567",
 			},
 			Test: func(t *testing.T, cfg *proxy.Config) {
-				require.Len(t, cfg.Upstreams, 0)
+				require.Empty(t, cfg.Upstreams)
 
 				require.Equal(t, "", cfg.PublicListener.BindAddress)
 				require.Equal(t, 4567, cfg.PublicListener.BindPort)

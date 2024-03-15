@@ -352,6 +352,6 @@ func AssertServiceHasHealthyInstances(t *testing.T, node libcluster.Agent, servi
 		for _, v := range services {
 			fmt.Printf("%s service status: %s\n", v.Service.ID, v.Checks.AggregatedStatus())
 		}
-		require.Equal(r, count, len(services))
+		require.Len(r, services, count)
 	})
 }

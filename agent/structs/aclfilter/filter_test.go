@@ -1237,8 +1237,8 @@ func TestACL_filterServiceTopology(t *testing.T) {
 		if !filtered {
 			t.Fatalf("should have been marked as filtered")
 		}
-		assert.Len(t, topo.Upstreams, 0)
-		assert.Len(t, topo.Upstreams, 0)
+		assert.Empty(t, topo.Upstreams)
+		assert.Empty(t, topo.Upstreams)
 	})
 
 	t.Run("only upstream permissions", func(t *testing.T) {
@@ -1266,7 +1266,7 @@ service "foo" {
 			t.Fatalf("should have been marked as filtered")
 		}
 		assert.Equal(t, original.Upstreams, topo.Upstreams)
-		assert.Len(t, topo.Downstreams, 0)
+		assert.Empty(t, topo.Downstreams)
 	})
 
 	t.Run("only downstream permissions", func(t *testing.T) {
@@ -1294,7 +1294,7 @@ service "bar" {
 			t.Fatalf("should have been marked as filtered")
 		}
 		assert.Equal(t, original.Downstreams, topo.Downstreams)
-		assert.Len(t, topo.Upstreams, 0)
+		assert.Empty(t, topo.Upstreams)
 	})
 
 	t.Run("upstream and downstream permissions", func(t *testing.T) {
@@ -1754,7 +1754,7 @@ func TestACL_filterNodes(t *testing.T) {
 	filt = New(acl.DenyAll(), nil)
 	removed = filt.filterNodes(&nodes)
 	require.True(t, removed)
-	require.Len(t, nodes, 0)
+	require.Empty(t, nodes)
 }
 
 func TestACL_filterIndexedNodesWithGateways(t *testing.T) {

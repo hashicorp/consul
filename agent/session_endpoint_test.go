@@ -518,7 +518,7 @@ func TestSessionCustomTTL(t *testing.T) {
 		}
 		respObj, ok = obj.(structs.Sessions)
 		require.True(r, ok, "unexpected type: %T", obj)
-		require.Len(r, respObj, 0)
+		require.Empty(r, respObj)
 	})
 }
 

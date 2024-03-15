@@ -101,7 +101,7 @@ func TestServerIntentions(t *testing.T) {
 		require.NoError(t, store.DeleteConfigEntry(nextIndex(), structs.ServiceIntentions, serviceName, nil))
 
 		result := getEventResult[structs.SimplifiedIntentions](t, eventCh)
-		require.Len(t, result, 0)
+		require.Empty(t, result)
 	})
 }
 
@@ -149,7 +149,7 @@ func TestServerIntentions_ACLDeny(t *testing.T) {
 
 	testutil.RunStep(t, "initial snapshot", func(t *testing.T) {
 		result := getEventResult[structs.SimplifiedIntentions](t, eventCh)
-		require.Len(t, result, 0)
+		require.Empty(t, result)
 	})
 }
 

@@ -475,7 +475,7 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_NoReferencing
 
 		// there should not be any traffic permissions to compute
 		tps := suite.mapper.GetTrafficPermissionsForCTP(id)
-		require.Len(suite.T(), tps, 0)
+		require.Empty(suite.T(), tps)
 	})
 }
 

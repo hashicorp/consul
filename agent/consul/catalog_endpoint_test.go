@@ -873,7 +873,7 @@ func TestCatalog_ListNodes(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, out.Index, out.QueryMeta.Index)
-		require.Len(t, out.Nodes, 0)
+		require.Empty(t, out.Nodes)
 		require.True(t, out.QueryMeta.NotModified, "NotModified should be true")
 	})
 }
@@ -1453,7 +1453,7 @@ func TestCatalog_ListServices(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, out.Index, out.QueryMeta.Index)
-		require.Len(t, out.Services, 0)
+		require.Empty(t, out.Services)
 		require.True(t, out.QueryMeta.NotModified, "NotModified should be true")
 	})
 }
@@ -1552,12 +1552,12 @@ func TestCatalog_ListServices_Filter(t *testing.T) {
 		args.Filter = "NodeMeta.os == NoSuchOS"
 		out = new(structs.IndexedServices)
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, out))
-		require.Len(t, out.Services, 0)
+		require.Empty(t, out.Services)
 
 		args.Filter = "NodeMeta.NoSuchMetadata == linux"
 		out = new(structs.IndexedServices)
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, out))
-		require.Len(t, out.Services, 0)
+		require.Empty(t, out.Services)
 
 		args.Filter = "InvalidField == linux"
 		out = new(structs.IndexedServices)
@@ -1943,7 +1943,7 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	require.NoError(t, err)
 
 	// nodes should be filtered, even when using the old ServiceTag field
-	require.Equal(t, 1, len(out.ServiceNodes))
+	require.Len(t, out.ServiceNodes, 1)
 	require.Equal(t, "db1", out.ServiceNodes[0].ServiceID)
 
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
@@ -1958,7 +1958,7 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	out = structs.IndexedServiceNodes{}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(out.ServiceNodes))
+	require.Len(t, out.ServiceNodes, 1)
 	require.Equal(t, "db2", out.ServiceNodes[0].ServiceID)
 
 	// no tag, both instances
@@ -1969,7 +1969,7 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 	out = structs.IndexedServiceNodes{}
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(out.ServiceNodes))
+	require.Len(t, out.ServiceNodes, 2)
 
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
 	// with 1.2.x is not required.
@@ -2515,7 +2515,7 @@ node "foo" {
 	}
 	var resp structs.IndexedServiceNodes
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	require.Len(t, resp.ServiceNodes, 0)
+	require.Empty(t, resp.ServiceNodes)
 
 	// List w/ token. This should work since we're requesting "foo", but should
 	// also only contain the proxies with names that adhere to our ACL.
@@ -3543,7 +3543,7 @@ service "gateway" {
 		}
 		var resp structs.IndexedGatewayServices
 		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Catalog.GatewayServices", &req, &resp))
-		assert.Len(r, resp.Services, 0)
+		assert.Empty(r, resp.Services)
 		assert.True(r, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 

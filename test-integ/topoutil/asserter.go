@@ -6,6 +6,15 @@ package topoutil
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"regexp"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -16,14 +25,6 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
-	"regexp"
-	"strings"
-	"testing"
-	"time"
 )
 
 // Asserter is a utility to help in reducing boilerplate in invoking test
@@ -257,7 +258,7 @@ func (a *Asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.ID
 			}),
 		)
 		require.NoError(r, err)
-		assert.GreaterOrEqual(r, len(svcs), 1)
+		assert.NotEmpty(r, svcs)
 	})
 }
 
@@ -420,8 +421,8 @@ func (a *Asserter) HealthServiceEntries(t *testing.T, cluster string, node *topo
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
 		serviceEntries, _, err = health.Service(svc, "", passingOnly, opts)
 		require.NoError(r, err)
-		require.Equalf(r, expectedInstance, len(serviceEntries), "dc: %s, service: %s", cluster, serviceEntries[0].Service.Service)
-		require.Equalf(r, expectedChecks, len(serviceEntries[0].Checks), "dc: %s, service: %s", cluster, serviceEntries[0].Service.Service)
+		require.Lenf(r, serviceEntries, expectedInstance, "dc: %s, service: %s", cluster, serviceEntries[0].Service.Service)
+		require.Lenf(r, serviceEntries[0].Checks, expectedChecks, "dc: %s, service: %s", cluster, serviceEntries[0].Service.Service)
 	})
 
 	return serviceEntries
