@@ -2,7 +2,7 @@
 layout: docs
 page_title: Cluster peering best practices 
 description: >- 
-  Cluster peering connections in Consul interact with mesh gateways, sidecar proxies, exported services, and ACLs. Learn about the  requirements and best practices for these components.
+  Cluster peering connections in Consul interact with mesh gateways, sidecar proxies, exported services, and ACLs. Learn about the requirements and best practices for these components.
 ---
 
 # Cluster peering best practices
@@ -35,11 +35,10 @@ When cluster peering through mesh gateways, consider the following deployment re
 
 - You must register a mesh gateway as a Consul service before you can export services to peers in other regions or cloud providers.
 - Register the mesh gateway in the same Consul admin partition as the exported services and their `exported-services` configuration entry.
-- Define the `Proxy.Config` block in the mesh gateway configuration using opaque parameters compatible with your proxy. Refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional Envoy proxy configuration information.
 
 ### Mesh gateway modes
 
-By default, cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote). The `none` mode is invalid for mesh gateways with cluster peering connections.
+By default, cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway#modes). The `none` mode is invalid for mesh gateways with cluster peering connections.
 
 Depending on your network's requirements, consider the following recommendations for setting a datacenter's mesh gateway mode:
 
@@ -50,7 +49,7 @@ Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) 
 
 ## Sidecar proxy recommendations
 
-You must configure the Envoy proxies that function as sidecars in your service mesh in order to properly route traffic to peers. Sidecar proxy behavior is configured in a [service definition](/consul/docs/services/usage/define-services).
+You must configure the Envoy proxies that function as sidecars in your service mesh in order to properly route traffic to peers. You can configure sidecar proxy behavior in either a [service definition](/consul/docs/services/configuration/services-configuration-references) or a [`connect-proxy` CRD](/consul/docs/connect/proxies/proxy-config-reference).
 
 - Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams`](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) documentation for details.
 - The `proxy.upstreams.destination_name` parameter is always required.

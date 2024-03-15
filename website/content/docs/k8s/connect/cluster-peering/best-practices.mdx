@@ -1,0 +1,164 @@
+---
+layout: docs
+page_title: Cluster peering on Kubernetes best practices
+description: >- 
+  In Kubernetes deployments, cluster peering connections interact with mesh gateways, exported services, and ACLs. Learn about the requirements and best practices specific to k8s, including required Helm values and custom resource definitions (CRDs).
+---
+
+# Cluster peering on Kubernetes best practices
+
+This page describes recommendations and best practices when using Consul's cluster peering feature in Kubernetes deployments. To learn more about cluster peering between Consul datacenters, refer to [cluster peering overview](/consul/docs/connect/cluster-peering).
+
+## Requirements
+
+Your Consul environment must meet the following prerequisites:
+
+- Consul v1.14 or higher.
+- Consul on Kubernetes v1.0.0 or higher
+- At least two Kubernetes clusters
+- When cluster peering connections use non-default admin partitions, the Consul clusters require an Enterprise license.
+
+## Best practices
+
+We suggest the following best practices for Consul cluster peering connections.
+
+- When you generate peering tokens, use the following naming convention: `<remote-dc-name>-<remote-partition-name>`.
+  - For example, the instructions to [create a cluster peering connection](/consul/docs/k8s/connect/cluster-peering/usage) begin by generating a peering token in `dc1` that assigns the name `dc2-default` to the peer cluster. As a result, commands and configurations use `peer: dc2-default` to refer to the remote cluster.
+  - This naming convention simplifies the creation and usage of sameness groups. Because a separate peering token is exchanged for each peered cluster in the group and each cluster requires a configuration entry that defines the group from its perspective, a uniform naming convention for cluster peers lowers the number of modifications each configuration entry requires.
+- Use mesh gateways to secure east-west service mesh traffic between peered clusters in production environments.
+- Delete peering tokens after you terminate cluster peering connections. Unmanaged token sprawl may negatively impact the security of a Consul deployment operating in a production environment.
+
+## Helm recommendations
+
+Cluster peering is not enabled by default. Set `global.peering.enabled: true` in the Helm chart to enable cluster peering connections on Kubernetes.
+
+In production environments, we recommend using mesh gateways to securely route service mesh traffic between partitions with cluster peering connections. Set the following values in the Helm chart to enable mesh gateways:
+
+- [`global.tls.enabled: true`](/consul/docs/k8s/helm#v-global-tls-enabled)
+- [`meshGateway.enabled: true`](/consul/docs/k8s/helm#v-meshgateway-enabled)
+
+Refer to the following example for the minimal Helm requirements for cluster peering connections.
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+global:
+  name: consul
+  image: "hashicorp/consul:1.18.0"
+  peering:
+    enabled: true
+  tls:
+    enabled: true
+meshGateway:
+  enabled: true
+```
+
+</CodeBlockConfig>
+
+After mesh gateways are enabled in the Helm chart, you cannot use them until you separately [configure Mesh CRDs to peer through mesh gateways](#mesh-gateway-recommendations).
+
+### Annotation and label recommendations
+
+You must use [annotations and labels](/consul/docs/k8s/annotations-and-labels) in your Helm chart to configure the Envoy proxies that function as sidecars in your service mesh so that they can properly route traffic to upstream peers.
+
+Configure the `consul.hashicorp.com/connect-service-upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) documentation for details, including examples.
+
+## Peering CRD recommendations
+
+You must create the following CRDs in order to establish a cluster peering connection:
+
+- `PeeringAcceptor`: Generates a peering token and accepts an incoming peering connection.
+- `PeeringDialer`: Uses a peering token to make an outbound peering connection with the cluster that generated the token.
+
+The following example demonstrates the the minimal requirements for these CRDs.
+
+<CodeTabs tabs={[ "PeeringAcceptor", "PeeringDialer" ]}>
+
+<CodeBlockConfig filename="acceptor.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: PeeringAcceptor
+metadata:
+  name: dc2-default ## The name of the peer you want to connect to
+spec:
+  peer:
+    secret:
+      name: "peering-token"
+      key: "data"
+      backend: "kubernetes"
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="dialer.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: PeeringDialer
+metadata:
+  name: dc1-default ## The name of the peer you want to connect to
+spec:
+  peer:
+    secret:
+      name: "peering-token"
+      key: "data"
+      backend: "kubernetes"
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+## Mesh gateway recommendations
+
+After enabling mesh gateways in the Helm chart, you must apply a `Mesh` CRD to each cluster so that Consul uses mesh gateways for cluster peering connections.
+
+The following steps demonstrate the minimal requirements and processes to create a single CRD and apply it to each cluster.
+
+1. Create the `Mesh` custom resource with `peeringThroughMeshGateways` set to `true`.
+
+  <CodeBlockConfig filename="mesh.yaml">
+
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: Mesh
+  metadata:
+    name: mesh
+  spec:
+    peering:
+      peerThroughMeshGateways: true
+  ```
+
+  </CodeBlockConfig>
+
+1. Apply the mesh CRD to `dc1`.
+
+  ```shell-session
+  $ kubectl --context $CLUSTER1_CONTEXT apply -f mesh.yaml 
+  ```
+
+1. Apply the mesh CRD to `dc2`.
+
+  ```shell-session
+  $  kubectl --context $CLUSTER2_CONTEXT apply -f mesh.yaml 
+  ```
+
+<Note>
+
+  For help setting up the cluster context variables used in this example, refer to [assign cluster IDs to environmental variables](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering#assign-cluster-ids-to-environmental-variables).
+
+</Note>
+
+When cluster peering through mesh gateways, consider the following deployment recommendations:
+
+- Apply the `Mesh` CRD in the same admin partition as the exported services and their `ExportedServices` CRD.
+- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
+
+### Mesh gateway modes
+
+By default, all cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway#modes). Be aware of these additional requirements when changing a mesh gateway's mode.
+
+- For mesh gateways that connect peered clusters, you can set the `mode` as either `remote` or `local`.
+- The `none` mode is invalid for mesh gateways with cluster peering connections.
+
+To learn how to change the mesh gateway mode to `local` on your Kubernetes deployment, refer to [configure the mesh gateway mode for traffic between services](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering#configure-the-mesh-gateway-mode-for-traffic-between-services).
