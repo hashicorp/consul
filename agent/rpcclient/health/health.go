@@ -100,7 +100,12 @@ func (c *Client) Notify(
 }
 
 func (c *Client) useStreaming(req structs.ServiceSpecificRequest) bool {
-	return c.UseStreamingBackend && !req.Ingress && req.Source.Node == ""
+	return c.UseStreamingBackend &&
+		!req.Ingress &&
+		// Streaming is incompatible with NearestN queries (due to lack of ordering),
+		// so we can only use it if the NearestN would never work (Node == "")
+		// or if we explicitly say to ignore the Node field for queries (agentless xDS).
+		(req.Source.Node == "" || req.Source.DisableNode)
 }
 
 func (c *Client) newServiceRequest(req structs.ServiceSpecificRequest) serviceRequest {
