@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix xDS deadlock that could result in proxies being unable to start.
+```
