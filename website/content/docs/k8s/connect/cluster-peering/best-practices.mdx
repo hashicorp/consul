@@ -59,9 +59,9 @@ After mesh gateways are enabled in the Helm chart, you cannot use them until you
 
 ### Annotation and label recommendations
 
-You must use [annotations and labels](/consul/docs/k8s/annotations-and-labels) in your Helm chart to configure the Envoy proxies that function as sidecars in your service mesh so that they can properly route traffic to upstream peers.
+When transparent proxy is not enabled, you must use [annotations and labels](/consul/docs/k8s/annotations-and-labels) to define service upstreams so that the sidecars proxies in your service mesh can properly route traffic to upstream peers. Configure the `consul.hashicorp.com/connect-service-upstreams` parameter to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) documentation for details, including examples.
 
-Configure the `consul.hashicorp.com/connect-service-upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) documentation for details, including examples.
+When transparent proxy is enabled, annotations that explicitly declare service upstreams are optional. Refer to [transparent proxy overview](/consul/docs/k8s/connect/transparent-proxy) for more information.
 
 ## Peering CRD recommendations
 
