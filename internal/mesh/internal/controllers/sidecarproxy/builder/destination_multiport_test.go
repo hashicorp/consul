@@ -250,7 +250,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				})
 
 				actual := protoToJSON(t, proxyTmpl)
-				expected := JSONToProxyTemplate(t, golden.GetBytes(t, actual, name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden"))
+				expected := JSONToProxyTemplate(t, golden.GetBytes(t, []byte(actual), name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden"))
 
 				// sort routers on listener from golden file
 				expectedRouters := expected.ProxyState.Listeners[0].Routers

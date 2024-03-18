@@ -62,11 +62,7 @@ as |route|>
   (or route.params.nspace route.model.user.token.Namespace 'default')
 
 as |sort filters items partition nspace|}}
-{{#let route.params.dc as |dc|}}
-    <DataSource @src={{uri '/${partition}/*/${dc}/hcp-link' (hash dc=dc partition=partition name=dc) }} as |hcpLink|>
-        <LinkToHcpBanner @linkData={{hcpLink.data}}/>
-    </DataSource>
-{{/let}}
+
   <AppView>
     <BlockSlot @name="header">
         <h1>
