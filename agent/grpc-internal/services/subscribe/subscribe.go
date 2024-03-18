@@ -77,6 +77,12 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 		case errors.Is(err, stream.ErrSubForceClosed):
 			logger.Trace("subscription reset by server")
 			return status.Error(codes.Aborted, err.Error())
+		case errors.Is(err, stream.ErrACLChanged):
+			logger.Trace("ACL change occurred; re-authenticating")
+			authz, err = h.Backend.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
+			if err != nil {
+				return err
+			}
 		case err != nil:
 			return err
 		}
