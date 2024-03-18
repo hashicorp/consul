@@ -1,4 +1,5 @@
 <h1>
+  Test
   <img src="./website/public/img/logo.svg" align="left" height="46px" alt="Consul logo"/>
   <span>Consul</span>
 </h1>
