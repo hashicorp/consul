@@ -1,0 +1,7 @@
+```release-note:improvement
+api: Randomize the returned server list for the WatchServers gRPC endpoint.
+```
+
+```release-note:bug
+connect: Fix potential goroutine leak in xDS stream handling.
+```

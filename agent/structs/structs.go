@@ -582,7 +582,11 @@ type QuerySource struct {
 	Segment       string
 	Node          string
 	NodePartition string `json:",omitempty"`
-	Ip            string
+	// DisableNode indicates that the Node and NodePartition fields should not be used
+	// for determining the flow of the RPC. This is needed for agentless + wanfed to
+	// utilize streaming RPCs.
+	DisableNode bool `json:",omitempty"`
+	Ip          string
 }
 
 func (s QuerySource) NodeEnterpriseMeta() *acl.EnterpriseMeta {

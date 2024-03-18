@@ -43,6 +43,7 @@ import (
 )
 
 var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
+var errConfigSyncError = status.Errorf(codes.Internal, "config-source sync loop terminated due to error")
 
 // xdsProtocolLegacyChildResend enables the legacy behavior for the `ensureChildResend` function.
 // This environment variable exists as an escape hatch so that users can disable the behavior, if needed.
@@ -79,7 +80,10 @@ func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
 				close(reqCh)
 				return
 			}
-			reqCh <- req
+			select {
+			case <-stream.Context().Done():
+			case reqCh <- req:
+			}
 		}
 	}()
 
@@ -141,13 +145,14 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	// Loop state
 	var (
-		proxySnapshot proxysnapshot.ProxySnapshot
-		node          *envoy_config_core_v3.Node
-		stateCh       <-chan proxysnapshot.ProxySnapshot
-		drainCh       limiter.SessionTerminatedChan
-		watchCancel   func()
-		nonce         uint64 // xDS requires a unique nonce to correlate response/request pairs
-		ready         bool   // set to true after the first snapshot arrives
+		proxySnapshot    proxysnapshot.ProxySnapshot
+		node             *envoy_config_core_v3.Node
+		stateCh          <-chan proxysnapshot.ProxySnapshot
+		drainCh          limiter.SessionTerminatedChan
+		cfgSrcTerminated proxycfg.SrcTerminatedChan
+		watchCancel      func()
+		nonce            uint64 // xDS requires a unique nonce to correlate response/request pairs
+		ready            bool   // set to true after the first snapshot arrives
 
 		streamStartTime = time.Now()
 		streamStartOnce sync.Once
@@ -306,6 +311,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			resourceMap = newResourceMap
 			currentVersions = newVersions
 			ready = true
+		case <-cfgSrcTerminated:
+			// Ensure that we cancel and cleanup resources if the sync loop terminates for any reason.
+			// This is necessary to handle the scenario where an unexpected error occurs that the loop
+			// cannot recover from.
+			logger.Debug("config-source sync loop terminated due to error")
+			return errConfigSyncError
 		}
 
 		// Trigger state machine
@@ -332,7 +343,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
 
-			stateCh, drainCh, watchCancel, err = s.ProxyWatcher.Watch(proxyID, nodeName, options.Token)
+			stateCh, drainCh, cfgSrcTerminated, watchCancel, err = s.ProxyWatcher.Watch(proxyID, nodeName, options.Token)
 			switch {
 			case errors.Is(err, limiter.ErrCapacityReached):
 				return errOverwhelmed
