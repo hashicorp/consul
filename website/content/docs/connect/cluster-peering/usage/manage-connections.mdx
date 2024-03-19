@@ -22,9 +22,9 @@ You can list all active peering connections in a cluster.
 
   ```shell-session 
   $ consul peering list
-  Name        State    Imported Svcs  Exported Svcs  Meta
-  cluster-02  ACTIVE   0              2              env=production
-  cluster-03  PENDING  0              0
+  Name         State    Imported Svcs  Exported Svcs  Meta
+  dc2-default  ACTIVE   0              2              env=production
+  dc2-web      PENDING  0              0
   ```
 
 For more information, including optional flags and parameters, refer to the [`consul peering list` CLI command reference](/consul/commands/peering/list).
@@ -58,11 +58,11 @@ You can get information about individual peering connections between clusters.
 
 <Tab heading="Consul CLI" group="cli">
 
-The following example outputs information about a peering connection locally referred to as "cluster-02":
+The following example outputs information about a peering connection locally referred to as "dc2-default":
 
   ```shell-session
-  $ consul peering read -name cluster-02
-  Name:         cluster-02
+  $ consul peering read -name dc2-default
+  Name:         dc2-default
   ID:           3b001063-8079-b1a6-764c-738af5a39a97
   State:        ACTIVE
   Meta:
@@ -87,7 +87,7 @@ For more information, including optional flags and parameters, refer to the [`co
 <Tab heading="HTTP API" group="api">
 
   ```shell-session
-  $ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" http://127.0.0.1:8500/v1/peering/cluster-02
+  $ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" http://127.0.0.1:8500/v1/peering/dc2-default
   ```
 
 For more information, including optional parameters and sample responses, refer to the [`/peering` endpoint reference](/consul/api-docs/peering#read-a-peering-connection).
@@ -109,11 +109,11 @@ You can disconnect the peered clusters by deleting their connection. Deleting a 
 <Tabs>
 <Tab heading="Consul CLI" group="cli">
 
-  The following examples deletes a peering connection to a cluster locally referred to as "cluster-02":
+  The following examples deletes a peering connection to a cluster locally referred to as "dc2-default":
 
   ```shell-session 
-  $ consul peering delete -name cluster-02
-  Successfully submitted peering connection, cluster-02, for deletion
+  $ consul peering delete -name dc2-default
+  Successfully submitted peering connection, dc2-default, for deletion
   ```
 
 For more information, including optional flags and parameters, refer to the [`consul peering delete` CLI command reference](/consul/commands/peering/delete).
@@ -122,7 +122,7 @@ For more information, including optional flags and parameters, refer to the [`co
 <Tab heading="HTTP API" group="api">
 
   ```shell-session
-  $ curl --request DELETE --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" http://127.0.0.1:8500/v1/peering/cluster-02
+  $ curl --request DELETE --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" http://127.0.0.1:8500/v1/peering/dc2-default
   ```
 
 This endpoint does not return a response. For more information, including optional parameters, refer to the [`/peering` endpoint reference](/consul/api-docs/peering#delete-a-peering-connection).
