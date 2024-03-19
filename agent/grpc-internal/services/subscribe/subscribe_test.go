@@ -992,28 +992,28 @@ node "node1" {
 		}
 	})
 
-	testutil.RunStep(t, "invalid token should return an error", func(t *testing.T) {
-		// Re-subscribe because the previous test step terminated the stream.
-		chEvents = make(chan eventOrError, 0)
-		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
-		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
-			Topic: pbsubscribe.Topic_ServiceHealth,
-			Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
-				NamedSubject: &pbsubscribe.NamedSubject{
-					Key: "foo",
-				},
+	// Re-subscribe because the previous test step terminated the stream.
+	chEvents = make(chan eventOrError, 0)
+	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
+	streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
+		Topic: pbsubscribe.Topic_ServiceHealth,
+		Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+			NamedSubject: &pbsubscribe.NamedSubject{
+				Key: "foo",
 			},
-			Token: token,
-		})
-		require.NoError(t, err)
+		},
+		Token: token,
+	})
+	require.NoError(t, err)
 
-		go recvEvents(chEvents, streamHandle)
+	go recvEvents(chEvents, streamHandle)
 
-		// Stub out token authn function so that the token is no longer considered valid.
-		backend.resolveTokenAndDefaultMeta = func(t string, entMeta *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (acl.Authorizer, error) {
-			return nil, fmt.Errorf("ACL not found")
-		}
+	// Stub out token authn function so that the token is no longer considered valid.
+	backend.resolveTokenAndDefaultMeta = func(t string, entMeta *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (acl.Authorizer, error) {
+		return nil, fmt.Errorf("ACL not found")
+	}
 
+	testutil.RunStep(t, "invalid token should return an error", func(t *testing.T) {
 		// Force another ACL update.
 		tokenID, err := uuid.GenerateUUID()
 		require.NoError(t, err)
