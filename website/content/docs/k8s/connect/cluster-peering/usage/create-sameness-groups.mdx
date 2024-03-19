@@ -281,7 +281,7 @@ After you create each service intentions configuration entry, apply it to the Co
 $ kubectl apply -f api-intentions.yaml
 ```
 
-#### Create service intentions for cluster peers and sameness groups  as part of the same workflow
+#### Create service intentions for cluster peers and sameness groups as part of the same workflow
 
 Creating a cluster peering connection between two partitions and then adding the partitions to a sameness group requires that you write and apply two separate service intentions CRDs. One CRD authorizes services for the peer, and a second CRD authorizes services for other members of the group.
 
