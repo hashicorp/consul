@@ -242,4 +242,24 @@ module.exports = [
     destination: '/consul/docs/:version/architecture/catalog/v2/:slug',
     permanent: true
   },
+  {
+    source: '/consul/docs/connect/cluster-peering/tech-specs',
+    destination: '/consul/docs/connect/cluster-peering/best-practices',
+    permanent: true
+  },
+  {
+    source: '/consul/docs/k8s/connect/cluster-peering/tech-specs',
+    destination: '/consul/docs/k8s/connect/cluster-peering/best-practices',
+    permanent: true
+  },
+  {
+    source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17|18)\.x)/connect/cluster-peering/best-practices/:slug*',
+    destination: '/consul/docs/:version/connect/cluster-peering/tech-specs/:slug',
+    permanent: true
+  },
+  {
+    source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17|18)\.x)/k8s/connect/cluster-peering/best-practices/:slug*',
+    destination: '/consul/docs/:version/k8s/connect/cluster-peering/tech-specs/:slug',
+    permanent: true
+  },
 ]
