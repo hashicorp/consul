@@ -29,6 +29,7 @@ func TestCompile(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]compileTestCase{
+		"proxy defaults with router":                       testCase_ProxyDefaultsWithRouter(),
 		"router with defaults":                             testcase_JustRouterWithDefaults(),
 		"router with defaults and resolver":                testcase_RouterWithDefaults_NoSplit_WithResolver(),
 		"router with defaults and noop split":              testcase_RouterWithDefaults_WithNoopSplit_DefaultResolver(),
@@ -159,6 +160,70 @@ func TestCompile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testCase_ProxyDefaultsWithRouter() compileTestCase {
+	entries := newEntries()
+	setGlobalProxyProtocol(entries, "http")
+	setServiceProtocol(entries, "main", "")
+
+	entries.AddRouters(
+		&structs.ServiceRouterConfigEntry{
+			Kind: "service-router",
+			Name: "main",
+			Routes: []structs.ServiceRoute{
+				{
+					Match: &structs.ServiceRouteMatch{
+						HTTP: &structs.ServiceRouteHTTPMatch{},
+					},
+					Destination: &structs.ServiceRouteDestination{
+						RequestTimeout:        time.Minute,
+						RetryOnConnectFailure: true,
+					},
+				},
+			},
+		},
+	)
+
+	route := newDefaultServiceRoute("", "", "")
+	route.Destination.RetryOnConnectFailure = true
+	route.Destination.RequestTimeout = time.Minute
+	route.Match.HTTP.PathPrefix = ""
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http",
+		StartNode: "router:main.default.default",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main.default.default": {
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main.default.default",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: route,
+						NextNode:   "resolver:main.default.default.dc1",
+					},
+					{
+						Definition: newDefaultServiceRoute("main", "default", "default"),
+						NextNode:   "resolver:main.default.default.dc1",
+					},
+				},
+			},
+			"resolver:main.default.default.dc1": {
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.default.dc1": newTarget(structs.DiscoveryTargetOpts{Service: "main"}, nil),
+		},
+	}
+
+	return compileTestCase{entries: entries, expect: expect}
 }
 
 func testcase_JustRouterWithDefaults() compileTestCase {
