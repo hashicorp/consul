@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v3/jwt"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
