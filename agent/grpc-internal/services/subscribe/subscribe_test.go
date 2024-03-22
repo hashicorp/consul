@@ -6,6 +6,7 @@ package subscribe
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -323,17 +324,21 @@ func getEvent(t *testing.T, ch chan eventOrError) *pbsubscribe.Event {
 }
 
 type testBackend struct {
-	publisher   *stream.EventPublisher
-	store       *state.Store
-	authorizer  func(token string, entMeta *acl.EnterpriseMeta) acl.Authorizer
-	forwardConn *gogrpc.ClientConn
+	publisher                  *stream.EventPublisher
+	store                      *state.Store
+	authorizer                 func(token string, entMeta *acl.EnterpriseMeta) acl.Authorizer
+	resolveTokenAndDefaultMeta func(token string, entMeta *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (acl.Authorizer, error)
+	forwardConn                *gogrpc.ClientConn
 }
 
 func (b testBackend) ResolveTokenAndDefaultMeta(
 	token string,
 	entMeta *acl.EnterpriseMeta,
-	_ *acl.AuthorizerContext,
+	authCtx *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
+	if b.resolveTokenAndDefaultMeta != nil {
+		return b.resolveTokenAndDefaultMeta(token, entMeta, authCtx)
+	}
 	return b.authorizer(token, entMeta), nil
 }
 
@@ -984,6 +989,47 @@ node "node1" {
 			require.Equal(t, codes.Aborted, s.Code())
 		case <-time.After(2 * time.Second):
 			t.Fatalf("timeout waiting for aborted error")
+		}
+	})
+
+	// Re-subscribe because the previous test step terminated the stream.
+	chEvents = make(chan eventOrError, 0)
+	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
+	streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
+		Topic: pbsubscribe.Topic_ServiceHealth,
+		Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+			NamedSubject: &pbsubscribe.NamedSubject{
+				Key: "foo",
+			},
+		},
+		Token: token,
+	})
+	require.NoError(t, err)
+
+	go recvEvents(chEvents, streamHandle)
+
+	// Stub out token authn function so that the token is no longer considered valid.
+	backend.resolveTokenAndDefaultMeta = func(t string, entMeta *acl.EnterpriseMeta, _ *acl.AuthorizerContext) (acl.Authorizer, error) {
+		return nil, fmt.Errorf("ACL not found")
+	}
+
+	testutil.RunStep(t, "invalid token should return an error", func(t *testing.T) {
+		// Force another ACL update.
+		tokenID, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+
+		aclToken := &structs.ACLToken{
+			AccessorID: tokenID,
+			SecretID:   token,
+		}
+		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken))
+
+		select {
+		case item := <-chEvents:
+			require.Error(t, item.err, "got event instead of an error: %v", item.event)
+			require.EqualError(t, item.err, "rpc error: code = Unknown desc = ACL not found")
+		case <-time.After(2 * time.Second):
+			t.Fatalf("timeout waiting for ACL not found error")
 		}
 	})
 }

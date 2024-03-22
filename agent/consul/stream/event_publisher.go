@@ -393,7 +393,7 @@ func (s *subscriptions) closeSubscriptionsForTokens(tokenSecretIDs []string) {
 	for _, secretID := range tokenSecretIDs {
 		if subs, ok := s.byToken[secretID]; ok {
 			for _, sub := range subs {
-				sub.forceClose()
+				sub.closeACLChanged()
 			}
 		}
 	}

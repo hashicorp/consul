@@ -72,7 +72,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(t, stream.ErrSubForceClosed, err)
+	require.Equal(t, stream.ErrACLChanged, err)
 
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
@@ -101,7 +101,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh2)
-	require.Equal(t, stream.ErrSubForceClosed, err)
+	require.Equal(t, stream.ErrACLChanged, err)
 }
 
 func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
@@ -191,7 +191,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Ensure the reload event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(t, stream.ErrSubForceClosed, err)
+	require.Equal(t, stream.ErrACLChanged, err)
 
 	// Register another subscription.
 	subscription3 := &stream.SubscribeRequest{
@@ -381,7 +381,7 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 				}
 			}
 			require.Error(t, next.Err)
-			require.Equal(t, stream.ErrSubForceClosed, next.Err)
+			require.Equal(t, stream.ErrACLChanged, next.Err)
 			return
 		case <-time.After(100 * time.Millisecond):
 			t.Fatalf("no err after 100ms")

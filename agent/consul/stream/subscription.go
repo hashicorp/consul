@@ -25,9 +25,13 @@ const (
 	// will not return new events.
 	subStateUnsub = 2
 
-	// subStateShutting down indicates the subscription was closed due to
+	// subStateShuttingDown indicates the subscription was closed due to
 	// the server being shut down.
 	subStateShuttingDown = 3
+
+	// subStateACLChanged indicates the subscription was closed due to
+	// a change in ACLs.
+	subStateACLChanged = 4
 )
 
 // ErrSubForceClosed is a error signalling the subscription has been
@@ -38,6 +42,12 @@ var ErrSubForceClosed = errors.New("subscription closed by server, client must r
 // been closed because the server is shutting down. The client should
 // subscribe to a different server to get streaming event updates.
 var ErrShuttingDown = errors.New("subscription closed by server, server is shutting down")
+
+// ErrACLChanged is an error to signal that the subscription has
+// been closed because a change in ACL token or its associated roles or policies has occurred.
+// If the token or policy is no longer valid, the client should resubscribe using a valid token. Otherwise,
+// the client should resubscribe using the same token.
+var ErrACLChanged = errors.New("subscription closed by server, ACL change occurred")
 
 // Subscription provides events on a Topic. Events may be filtered by Key.
 // Events are returned by Next(), and may start with a Snapshot of events.
@@ -131,6 +141,8 @@ func (s *Subscription) requireStateOpen() error {
 		return ErrSubForceClosed
 	case subStateShuttingDown:
 		return ErrShuttingDown
+	case subStateACLChanged:
+		return ErrACLChanged
 	case subStateUnsub:
 		return fmt.Errorf("subscription was closed by unsubscribe")
 	default:
@@ -162,6 +174,14 @@ func (s *Subscription) forceClose() {
 // Close the subscription and indicate that the server is being shut down.
 func (s *Subscription) shutDown() {
 	if atomic.CompareAndSwapUint32(&s.state, subStateOpen, subStateShuttingDown) {
+		close(s.closed)
+	}
+}
+
+// Close the subscription and indicate that an ACL change occurred. This change may require
+// a client to subscribe with a new token or re-subscribe with an existing token.
+func (s *Subscription) closeACLChanged() {
+	if atomic.CompareAndSwapUint32(&s.state, subStateOpen, subStateACLChanged) {
 		close(s.closed)
 	}
 }

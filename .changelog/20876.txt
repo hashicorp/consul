@@ -1,0 +1,3 @@
+```release-note:bug
+streaming: Handle ACL errors consistently when blocking query timeout is reached.
+```
