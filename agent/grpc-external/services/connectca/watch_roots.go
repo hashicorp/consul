@@ -47,7 +47,7 @@ func (s *Server) WatchRoots(_ *pbconnectca.WatchRootsRequest, serverStream pbcon
 	for {
 		var err error
 		idx, err = s.serveRoots(options.Token, idx, serverStream, logger)
-		if errors.Is(err, stream.ErrSubForceClosed) {
+		if errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrACLChanged) {
 			logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt to re-auth and resume")
 		} else {
 			return err
@@ -90,7 +90,7 @@ func (s *Server) serveRoots(
 	for {
 		event, err := sub.Next(serverStream.Context())
 		switch {
-		case errors.Is(err, stream.ErrSubForceClosed):
+		case errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrACLChanged):
 			// If the subscription was closed because the state store was abandoned (e.g.
 			// following a snapshot restore) reset idx to ensure we don't skip over the
 			// new store's events.
