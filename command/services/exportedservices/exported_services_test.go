@@ -170,7 +170,7 @@ func TestExportedServices_JSON(t *testing.T) {
 	err = json.Unmarshal(ui.OutputWriter.Bytes(), &resp)
 	require.NoError(t, err)
 
-	require.Equal(t, 2, len(resp))
+	require.Len(t, resp, 2)
 	require.Equal(t, "db", resp[0].Service)
 	require.Equal(t, "web", resp[1].Service)
 	require.Equal(t, []string{"east", "west"}, resp[0].Consumers.Peers)
@@ -251,7 +251,7 @@ func TestExportedServices_filter(t *testing.T) {
 		err = json.Unmarshal(ui.OutputWriter.Bytes(), &resp)
 		require.NoError(t, err)
 
-		require.Equal(t, 2, len(resp))
+		require.Len(t, resp, 2)
 		require.Equal(t, "db", resp[0].Service)
 		require.Equal(t, "web", resp[1].Service)
 		require.Equal(t, []string{"east", "west"}, resp[0].Consumers.Peers)
@@ -276,7 +276,7 @@ func TestExportedServices_filter(t *testing.T) {
 		err = json.Unmarshal(ui.OutputWriter.Bytes(), &resp)
 		require.NoError(t, err)
 
-		require.Equal(t, 2, len(resp))
+		require.Len(t, resp, 2)
 		require.Equal(t, "backend", resp[0].Service)
 		require.Equal(t, "db", resp[1].Service)
 		require.Equal(t, []string{"west"}, resp[0].Consumers.Peers)
@@ -300,7 +300,7 @@ func TestExportedServices_filter(t *testing.T) {
 		err = json.Unmarshal(ui.OutputWriter.Bytes(), &resp)
 		require.NoError(t, err)
 
-		require.Equal(t, 1, len(resp))
+		require.Len(t, resp, 1)
 		require.Equal(t, "frontend", resp[0].Service)
 		require.Equal(t, []string{"peer1", "peer2"}, resp[0].Consumers.Peers)
 	})

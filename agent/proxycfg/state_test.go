@@ -771,8 +771,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedGateways, 6, "%+v", snap.ConnectProxy.WatchedGateways)
 				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 6, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
-				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+				require.Empty(t, snap.ConnectProxy.WatchedServiceChecks, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+				require.Empty(t, snap.ConnectProxy.PreparedQueryEndpoints, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
 				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
 				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
@@ -811,8 +811,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedGateways, 6, "%+v", snap.ConnectProxy.WatchedGateways)
 				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 6, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
-				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+				require.Empty(t, snap.ConnectProxy.WatchedServiceChecks, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+				require.Empty(t, snap.ConnectProxy.PreparedQueryEndpoints, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
 				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
 				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
@@ -1063,8 +1063,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedGateways, 4, "%+v", snap.ConnectProxy.WatchedGateways)
 				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 4, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
-				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+				require.Empty(t, snap.ConnectProxy.WatchedServiceChecks, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+				require.Empty(t, snap.ConnectProxy.PreparedQueryEndpoints, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
 				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
 				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
@@ -1096,8 +1096,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedGateways, 4, "%+v", snap.ConnectProxy.WatchedGateways)
 				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 4, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
-				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+				require.Empty(t, snap.ConnectProxy.WatchedServiceChecks, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+				require.Empty(t, snap.ConnectProxy.PreparedQueryEndpoints, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 
 				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.PeerUpstreamEndpoints.Len())
 				require.Equal(t, 1, snap.ConnectProxy.ConfigSnapshotUpstreams.UpstreamPeerTrustBundles.Len())
@@ -1339,7 +1339,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.MeshGateway.WatchedPeers, 2)
 						require.Len(t, snap.MeshGateway.WatchedPeeringServices, 2)
 						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-a"], 3)
-						require.Len(t, snap.MeshGateway.WatchedPeeringServices["peer-b"], 0)
+						require.Empty(t, snap.MeshGateway.WatchedPeeringServices["peer-b"])
 					},
 				},
 				{
@@ -1741,7 +1741,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without leaf is not valid")
 						require.True(t, snap.IngressGateway.HostsSet)
-						require.Len(t, snap.IngressGateway.Hosts, 0)
+						require.Empty(t, snap.IngressGateway.Hosts)
 						require.Len(t, snap.IngressGateway.Upstreams, 1)
 						key := IngressListenerKey{Protocol: "http", Port: 9999}
 						require.Equal(t, snap.IngressGateway.Upstreams[key], structs.Upstreams{
@@ -1922,8 +1922,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid())
-						require.Len(t, snap.IngressGateway.Upstreams, 0)
-						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 0)
+						require.Empty(t, snap.IngressGateway.Upstreams)
+						require.Empty(t, snap.IngressGateway.WatchedDiscoveryChains)
 						require.NotContains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
 					},
 				},
@@ -2015,8 +2015,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid())
-						require.Len(t, snap.IngressGateway.Upstreams, 0)
-						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 0)
+						require.Empty(t, snap.IngressGateway.Upstreams)
+						require.Empty(t, snap.IngressGateway.WatchedDiscoveryChains)
 						require.NotContains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
 					},
 				},
@@ -2100,7 +2100,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Empty(t, snap.TerminatingGateway.ValidServices())
 
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 1)
 						require.Contains(t, snap.TerminatingGateway.WatchedServices, db)
@@ -2131,7 +2131,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Empty(t, snap.TerminatingGateway.ValidServices())
 
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 3)
 						require.Contains(t, snap.TerminatingGateway.WatchedServices, db)
@@ -2190,7 +2190,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Empty(t, snap.TerminatingGateway.ValidServices())
 
 						require.Len(t, snap.TerminatingGateway.ServiceGroups, 1)
 						require.Equal(t, snap.TerminatingGateway.ServiceGroups[db],
@@ -2258,7 +2258,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Empty(t, snap.TerminatingGateway.ValidServices())
 
 						require.Len(t, snap.TerminatingGateway.ServiceGroups, 2)
 						expect := structs.CheckServiceNodes{
@@ -2315,7 +2315,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Empty(t, snap.TerminatingGateway.ValidServices())
 
 						require.Equal(t, snap.TerminatingGateway.ServiceLeaves[db], issuedCert)
 					},
@@ -2333,7 +2333,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Empty(t, snap.TerminatingGateway.ValidServices())
 
 						require.Len(t, snap.TerminatingGateway.Intentions, 1)
 						dbIxn, ok := snap.TerminatingGateway.Intentions[db]
@@ -2354,7 +2354,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Empty(t, snap.TerminatingGateway.ValidServices())
 
 						require.Len(t, snap.TerminatingGateway.ServiceConfigs, 1)
 						require.Equal(t, snap.TerminatingGateway.ServiceConfigs[db], dbConfig)
@@ -2422,7 +2422,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with service list is valid")
-						require.Len(t, snap.TerminatingGateway.ValidServices(), 0)
+						require.Empty(t, snap.TerminatingGateway.ValidServices())
 
 						// All the watches should have been cancelled for db
 						require.Len(t, snap.TerminatingGateway.WatchedServices, 1)
@@ -2441,10 +2441,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Contains(t, snap.TerminatingGateway.GatewayServices, billing)
 
 						// There was no update event for billing's leaf/endpoints/resolvers, so length is 0
-						require.Len(t, snap.TerminatingGateway.ServiceGroups, 0)
-						require.Len(t, snap.TerminatingGateway.ServiceLeaves, 0)
-						require.Len(t, snap.TerminatingGateway.ServiceResolvers, 0)
-						require.Len(t, snap.TerminatingGateway.HostnameServices, 0)
+						require.Empty(t, snap.TerminatingGateway.ServiceGroups)
+						require.Empty(t, snap.TerminatingGateway.ServiceLeaves)
+						require.Empty(t, snap.TerminatingGateway.ServiceResolvers)
+						require.Empty(t, snap.TerminatingGateway.HostnameServices)
 					},
 				},
 			},
@@ -3776,12 +3776,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.False(t, snap.Valid(), "should not be valid")
 						require.True(t, snap.MeshGateway.isEmpty())
 
-						require.Len(t, snap.ConnectProxy.DiscoveryChain, 0, "%+v", snap.ConnectProxy.DiscoveryChain)
-						require.Len(t, snap.ConnectProxy.WatchedDiscoveryChains, 0, "%+v", snap.ConnectProxy.WatchedDiscoveryChains)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 0, "%+v", snap.ConnectProxy.WatchedUpstreams)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 0, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
-						require.Len(t, snap.ConnectProxy.WatchedGateways, 0, "%+v", snap.ConnectProxy.WatchedGateways)
-						require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 0, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+						require.Empty(t, snap.ConnectProxy.DiscoveryChain, "%+v", snap.ConnectProxy.DiscoveryChain)
+						require.Empty(t, snap.ConnectProxy.WatchedDiscoveryChains, "%+v", snap.ConnectProxy.WatchedDiscoveryChains)
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreams, "%+v", snap.ConnectProxy.WatchedUpstreams)
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+						require.Empty(t, snap.ConnectProxy.WatchedGateways, "%+v", snap.ConnectProxy.WatchedGateways)
+						require.Empty(t, snap.ConnectProxy.WatchedGatewayEndpoints, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
 						// watch initialized
 						require.True(t, snap.ConnectProxy.UpstreamPeerTrustBundles.IsWatched("peer-a"))
@@ -3798,9 +3798,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						_, ok = snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
 						require.False(t, ok)
 
-						require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-						require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
-						require.Len(t, snap.ConnectProxy.InboundPeerTrustBundles, 0, "%+v", snap.ConnectProxy.InboundPeerTrustBundles)
+						require.Empty(t, snap.ConnectProxy.WatchedServiceChecks, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+						require.Empty(t, snap.ConnectProxy.PreparedQueryEndpoints, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
+						require.Empty(t, snap.ConnectProxy.InboundPeerTrustBundles, "%+v", snap.ConnectProxy.InboundPeerTrustBundles)
 						require.False(t, snap.ConnectProxy.InboundPeerTrustBundlesSet)
 					},
 				},
@@ -3947,10 +3947,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "should not be valid")
 
-						require.Len(t, snap.ConnectProxy.DiscoveryChain, 0, "%+v", snap.ConnectProxy.DiscoveryChain)
-						require.Len(t, snap.ConnectProxy.WatchedDiscoveryChains, 0, "%+v", snap.ConnectProxy.WatchedDiscoveryChains)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 0, "%+v", snap.ConnectProxy.WatchedUpstreams)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 0, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+						require.Empty(t, snap.ConnectProxy.DiscoveryChain, "%+v", snap.ConnectProxy.DiscoveryChain)
+						require.Empty(t, snap.ConnectProxy.WatchedDiscoveryChains, "%+v", snap.ConnectProxy.WatchedDiscoveryChains)
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreams, "%+v", snap.ConnectProxy.WatchedUpstreams)
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
 					},
 				},
 				{
@@ -4010,7 +4010,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, &expectUpstream, snap.ConnectProxy.UpstreamConfig[uid])
 
 						// No endpoints have arrived yet.
-						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[telemetryCollectorUID], 0, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+						require.Empty(t, snap.ConnectProxy.WatchedUpstreamEndpoints[telemetryCollectorUID], "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
 					},
 				},
 				{

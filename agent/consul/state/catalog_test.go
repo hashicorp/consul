@@ -2705,7 +2705,7 @@ func TestStateStore_DeleteService(t *testing.T) {
 		require.True(t, watchFired(ws))
 		_, kindServiceNames, err := s.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
 		require.NoError(t, err)
-		require.Len(t, kindServiceNames, 0)
+		require.Empty(t, kindServiceNames)
 	}
 
 	// Service doesn't exist.
@@ -2747,7 +2747,7 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	idx, nodes, err := s.ConnectServiceNodes(ws, "db", nil, "")
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Create some nodes and services.
 	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
@@ -2790,7 +2790,7 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 	idx, nodes, err := s.ConnectServiceNodes(ws, "db", nil, "")
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Create some nodes and services.
 	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
@@ -4201,7 +4201,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	idx, nodes, err := s.CheckConnectServiceNodes(ws, "db", nil, "")
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Create some nodes and services.
 	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
@@ -4246,7 +4246,7 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	idx, nodes, err := s.CheckConnectServiceNodes(ws, "db", nil, "")
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Create some nodes and services.
 	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
@@ -4280,7 +4280,7 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 	idx, nodes, err = s.CheckConnectServiceNodes(ws, "db", nil, "")
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(18))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Watch should fire when a gateway is added
 	assert.Nil(t, s.EnsureService(19, "bar", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
@@ -4570,10 +4570,10 @@ func TestStateStore_ServiceDump(t *testing.T) {
 			allFired:  true, // fires due to "index"
 			kindFired: true, // fires due to "index"
 			checkAll: func(t *testing.T, dump structs.CheckServiceNodes) {
-				require.Len(t, dump, 0)
+				require.Empty(t, dump)
 			},
 			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
-				require.Len(t, dump, 0)
+				require.Empty(t, dump)
 			},
 		},
 		{
@@ -4598,10 +4598,10 @@ func TestStateStore_ServiceDump(t *testing.T) {
 				require.Equal(t, "service1", dump[2].Service.Service)
 				require.Equal(t, "service1-sidecar-proxy", dump[3].Service.Service)
 
-				require.Len(t, dump[0].Checks, 0)
-				require.Len(t, dump[1].Checks, 0)
-				require.Len(t, dump[2].Checks, 0)
-				require.Len(t, dump[3].Checks, 0)
+				require.Empty(t, dump[0].Checks)
+				require.Empty(t, dump[1].Checks)
+				require.Empty(t, dump[2].Checks)
+				require.Empty(t, dump[3].Checks)
 			},
 			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
 				require.Len(t, dump, 2)
@@ -4612,8 +4612,8 @@ func TestStateStore_ServiceDump(t *testing.T) {
 				require.Equal(t, "service1-sidecar-proxy", dump[0].Service.Service)
 				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
 
-				require.Len(t, dump[0].Checks, 0)
-				require.Len(t, dump[1].Checks, 0)
+				require.Empty(t, dump[0].Checks)
+				require.Empty(t, dump[1].Checks)
 			},
 		},
 		{
@@ -4637,8 +4637,8 @@ func TestStateStore_ServiceDump(t *testing.T) {
 				require.Equal(t, "service1-sidecar-proxy", dump[3].Service.Service)
 
 				require.Len(t, dump[0].Checks, 1)
-				require.Len(t, dump[1].Checks, 0)
-				require.Len(t, dump[2].Checks, 0)
+				require.Empty(t, dump[1].Checks)
+				require.Empty(t, dump[2].Checks)
 				require.Len(t, dump[3].Checks, 1)
 
 				require.Equal(t, api.HealthCritical, dump[0].Checks[0].Status)
@@ -4653,7 +4653,7 @@ func TestStateStore_ServiceDump(t *testing.T) {
 				require.Equal(t, "service1-sidecar-proxy", dump[0].Service.Service)
 				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
 
-				require.Len(t, dump[0].Checks, 0)
+				require.Empty(t, dump[0].Checks)
 				require.Len(t, dump[1].Checks, 1)
 
 				require.Equal(t, api.HealthCritical, dump[1].Checks[0].Status)
@@ -5130,7 +5130,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	idx, nodes, err := s.GatewayServices(ws, "db", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Create some nodes
 	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
@@ -5562,7 +5562,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 	idx, out, err = s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(29))
-	assert.Len(t, out, 0)
+	assert.Empty(t, out)
 }
 
 func TestStateStore_ServiceGateways_Terminating(t *testing.T) {
@@ -5573,7 +5573,7 @@ func TestStateStore_ServiceGateways_Terminating(t *testing.T) {
 	idx, nodes, err := s.GatewayServices(ws, "db", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(0), idx)
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Create some nodes
 	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
@@ -5814,7 +5814,7 @@ func TestStateStore_ServiceGateways_Terminating(t *testing.T) {
 	assert.Nil(t, err)
 	// TODO: wildcards don't keep the same extinction index
 	assert.Equal(t, uint64(0), idx)
-	assert.Len(t, out, 0)
+	assert.Empty(t, out)
 
 	// Update the entry that only leaves one service
 	assert.Nil(t, s.EnsureConfigEntry(25, &structs.TerminatingGatewayConfigEntry{
@@ -5945,7 +5945,7 @@ func TestStateStore_ServiceGateways_Terminating(t *testing.T) {
 	idx, out, err = s.ServiceGateways(ws, "db", structs.ServiceKindTerminatingGateway, *structs.DefaultEnterpriseMetaInDefaultPartition())
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(28), idx)
-	assert.Len(t, out, 0)
+	assert.Empty(t, out)
 
 	// Deleting the config entry even with a node service should remove existing mappings
 	assert.Nil(t, s.EnsureService(29, "baz", &structs.NodeService{Kind: structs.ServiceKindTerminatingGateway, ID: "gateway", Service: "gateway", Port: 443}))
@@ -5956,7 +5956,7 @@ func TestStateStore_ServiceGateways_Terminating(t *testing.T) {
 	assert.Nil(t, err)
 	// TODO: similar to ingress, the index can backslide if the config is deleted.
 	assert.Equal(t, uint64(28), idx)
-	assert.Len(t, out, 0)
+	assert.Empty(t, out)
 }
 
 func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
@@ -5984,7 +5984,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 	idx, nodes, err := s.GatewayServices(ws, "gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Associate the first gateway with db
 	assert.Nil(t, s.EnsureConfigEntry(19, &structs.TerminatingGatewayConfigEntry{
@@ -6004,7 +6004,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 	idx, _, err = s.GatewayServices(otherWS, "other-gateway", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(19))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Associate the second gateway with wildcard
 	assert.Nil(t, s.EnsureConfigEntry(20, &structs.TerminatingGatewayConfigEntry{
@@ -6202,7 +6202,7 @@ func TestStateStore_CheckIngressServiceNodes(t *testing.T) {
 		require.Equal(t, uint64(18), idx)
 		// TODO(ingress): index goes backward when deleting last config entry
 		// require.Equal(t,uint64(11), idx)
-		require.Len(t, results, 0)
+		require.Empty(t, results)
 	})
 }
 
@@ -6266,7 +6266,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "nothingIngress", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(16), idx)
-		require.Len(t, results, 0)
+		require.Empty(t, results)
 	})
 
 	t.Run("wildcard gateway services", func(t *testing.T) {
@@ -6414,7 +6414,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "wildcardIngress", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(19), idx)
-		require.Len(t, results, 0)
+		require.Empty(t, results)
 	})
 
 	t.Run("update ingress1 with exact same config entry", func(t *testing.T) {
@@ -6499,7 +6499,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		idx, results, err := s.GatewayServices(ws, "ingress1", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(20), idx)
-		require.Len(t, results, 0)
+		require.Empty(t, results)
 	})
 }
 
@@ -6649,7 +6649,7 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx)
-		require.Len(t, results, 0)
+		require.Empty(t, results)
 	})
 
 	t.Run("service-defaults", func(t *testing.T) {
@@ -6978,7 +6978,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 	idx, nodes, err := s.DumpGatewayServices(ws)
 	assert.Nil(t, err)
 	assert.Equal(t, idx, uint64(0))
-	assert.Len(t, nodes, 0)
+	assert.Empty(t, nodes)
 
 	// Create some nodes
 	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
@@ -7402,7 +7402,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 		idx, out, err := s.DumpGatewayServices(ws)
 		assert.Nil(t, err)
 		assert.Equal(t, idx, uint64(28))
-		assert.Len(t, out, 0)
+		assert.Empty(t, out)
 	})
 }
 
@@ -7430,7 +7430,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 	idx, names, err := downstreamsFromRegistrationTxn(tx, ws, admin)
 	require.NoError(t, err)
 	assert.Zero(t, idx)
-	assert.Len(t, names, 0)
+	assert.Empty(t, names)
 
 	svc := structs.NodeService{
 		Kind:    structs.ServiceKindConnectProxy,
@@ -7850,7 +7850,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 	idx, names, err := upstreamsFromRegistrationTxn(tx, ws, web)
 	require.NoError(t, err)
 	assert.Zero(t, idx)
-	assert.Len(t, names, 0)
+	assert.Empty(t, names)
 
 	// Watch should fire since the admin <-> web pairing was inserted into the topology table
 	svc := structs.NodeService{
@@ -8015,7 +8015,7 @@ func TestCatalog_topologyCleanupPanic(t *testing.T) {
 	idx, names, err := upstreamsFromRegistrationTxn(tx, ws, web)
 	require.NoError(t, err)
 	assert.Zero(t, idx)
-	assert.Len(t, names, 0)
+	assert.Empty(t, names)
 
 	svc := structs.NodeService{
 		Kind:    structs.ServiceKindConnectProxy,
@@ -8092,7 +8092,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 	idx, names, err := upstreamsFromRegistrationTxn(tx, ws, ingress)
 	require.NoError(t, err)
 	assert.Zero(t, idx)
-	assert.Len(t, names, 0)
+	assert.Empty(t, names)
 
 	// Watch should fire since the ingress -> [web, api] mappings were inserted into the topology table
 	require.NoError(t, s.EnsureConfigEntry(2, &structs.IngressGatewayConfigEntry{
@@ -8191,7 +8191,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), idx)
-	require.Len(t, names, 0)
+	require.Empty(t, names)
 
 	// Adding a service will be covered by the ingress wildcard and added to the topology
 	svc := structs.NodeService{
@@ -8229,7 +8229,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
 	require.NoError(t, err)
 	require.Equal(t, uint64(6), idx)
-	require.Len(t, names, 0)
+	require.Empty(t, names)
 
 	// Now add a service again, to test the effect of deleting the config entry itself
 	require.NoError(t, s.EnsureConfigEntry(7, &structs.IngressGatewayConfigEntry{
@@ -8274,7 +8274,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
 	require.NoError(t, err)
 	require.Equal(t, uint64(8), idx)
-	require.Len(t, names, 0)
+	require.Empty(t, names)
 }
 
 func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
@@ -8422,7 +8422,7 @@ func TestCatalog_cleanupGatewayWildcards_proxy(t *testing.T) {
 	// make sure we no longer have any services
 	_, services, err = s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
 	require.NoError(t, err)
-	require.Len(t, services, 0)
+	require.Empty(t, services)
 }
 
 func TestCatalog_DownstreamsForService(t *testing.T) {

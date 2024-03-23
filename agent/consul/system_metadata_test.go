@@ -39,7 +39,7 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 	// Initially has no entries
 	_, entries, err := state.SystemMetadataList(nil)
 	require.NoError(t, err)
-	require.Len(t, entries, 0)
+	require.Empty(t, entries)
 
 	// Create 3
 	require.NoError(t, srv.SetSystemMetadataKey("key1", "val1"))

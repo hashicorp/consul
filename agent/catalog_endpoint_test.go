@@ -1297,7 +1297,7 @@ func validateMergeCentralConfigResponse(t *testing.T, v *structs.ServiceNode,
 	// validate service defaults are resolved in the merged service config
 	// expected number of upstreams = (number of upstreams defined in the register request proxy config +
 	//	1 centrally configured default from service defaults)
-	require.Equal(t, len(registerServiceReq.Service.Proxy.Upstreams)+1, len(v.ServiceProxy.Upstreams))
+	require.Len(t, v.ServiceProxy.Upstreams, len(registerServiceReq.Service.Proxy.Upstreams)+1)
 	for _, up := range v.ServiceProxy.Upstreams {
 		if up.DestinationType != "" && up.DestinationType != structs.UpstreamDestTypeService {
 			continue

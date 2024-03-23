@@ -140,7 +140,7 @@ func TestValidateEnterpriseConfigKeys(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			errs := validateEnterpriseConfigKeys(&tcase.config)
 			if len(tcase.badKeys) == 0 {
-				require.Len(t, errs, 0)
+				require.Empty(t, errs)
 				return
 			}
 

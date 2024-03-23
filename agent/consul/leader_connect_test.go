@@ -645,7 +645,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	state2 := s2.fsm.State()
 	_, roots2, err := state2.CARoots(nil)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(roots2))
+	require.Len(t, roots2, 2)
 
 	newRoot := roots2[0]
 	oldRoot := roots2[1]

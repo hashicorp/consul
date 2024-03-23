@@ -432,7 +432,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		if len(val) != 0 {
 			t.Fatalf("bad: %v", val)
 		}
-		require.Len(t, val, 0)
+		require.Empty(t, val)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
@@ -1428,7 +1428,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 			t.Fatalf("Err: %v", err)
 		}
 
-		require.Len(t, val, 0)
+		require.Empty(t, val)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
@@ -2107,7 +2107,7 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 		if err := dec.Decode(&val); err != nil {
 			t.Fatalf("Err: %v", err)
 		}
-		require.Len(t, val, 0)
+		require.Empty(t, val)
 		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
@@ -3589,7 +3589,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	require.Equal(t, http.StatusOK, resp.Code)
 
 	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
-	require.Equal(t, 3, len(checks))
+	require.Len(t, checks, 3)
 
 	checkIDs := []string{}
 	for id := range checks {

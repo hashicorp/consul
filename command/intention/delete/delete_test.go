@@ -157,6 +157,6 @@ func TestIntentionDelete(t *testing.T) {
 	{
 		ixns, _, err := client.Connect().Intentions(nil)
 		require.NoError(t, err)
-		require.Len(t, ixns, 0)
+		require.Empty(t, ixns)
 	}
 }

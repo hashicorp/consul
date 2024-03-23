@@ -2598,7 +2598,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 			in, _, err := c.Exchange(m, a.DNSAddr())
 			require.NoError(t, err)
 
-			require.Equal(t, 2, len(in.Answer))
+			require.Len(t, in.Answer, 2)
 			ips := []string{in.Answer[0].(*dns.A).A.String(), in.Answer[1].(*dns.A).A.String()}
 			sort.Strings(ips)
 			require.Equal(t, []string{"127.0.0.1", "127.0.0.2"}, ips)
@@ -3064,7 +3064,7 @@ func checkDNSService(
 
 					t.Logf("DNS Response for %+v - %+v", m, in)
 
-					require.Equal(t, expectedResultsCount, len(in.Answer),
+					require.Len(t, in.Answer, expectedResultsCount,
 						"%d/%d answers received for type %v for %s (%s)", len(in.Answer), expectedResultsCount, qType, question, protocol)
 				})
 			}

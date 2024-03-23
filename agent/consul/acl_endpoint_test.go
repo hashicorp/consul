@@ -50,7 +50,7 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	// level checks on the ACL since we don't have control over the UUID or
 	// Raft indexes at this level.
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
-	require.Equal(t, 36, len(out.AccessorID))
+	require.Len(t, out.AccessorID, 36)
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
 	require.True(t, out.CreateIndex > 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
@@ -69,7 +69,7 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	oldID := out.AccessorID
 	// Finally, make sure that another attempt is rejected.
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
-	require.Equal(t, 36, len(out.AccessorID))
+	require.Len(t, out.AccessorID, 36)
 	require.NotEqual(t, oldID, out.AccessorID)
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
 	require.True(t, out.CreateIndex > 0)
@@ -96,7 +96,7 @@ func TestACLEndpoint_ProvidedBootstrapTokens(t *testing.T) {
 	var out structs.ACLToken
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
 	require.Equal(t, out.SecretID, arg.BootstrapSecret)
-	require.Equal(t, 36, len(out.AccessorID))
+	require.Len(t, out.AccessorID, 36)
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
 	require.True(t, out.CreateIndex > 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
@@ -687,7 +687,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 
-		require.Len(t, token.Policies, 0)
+		require.Empty(t, token.Policies)
 	})
 
 	t.Run("Create it using Roles linked by id and name", func(t *testing.T) {
@@ -733,7 +733,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 
-		require.Len(t, token.Roles, 0)
+		require.Empty(t, token.Roles)
 	})
 
 	t.Run("Create it with AuthMethod set outside of login", func(t *testing.T) {
@@ -841,7 +841,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		token := tokenResp.Token
 
 		require.NotNil(t, token)
-		require.Len(t, token.Roles, 0)
+		require.Empty(t, token.Roles)
 		require.Equal(t, "updated token", token.Description)
 		require.True(t, token.Local)
 		require.Equal(t, methodToken.SecretID, token.SecretID)
@@ -1632,7 +1632,7 @@ func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 
 	tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", acl.AnonymousTokenID)
 	require.NoError(t, err)
-	require.Equal(t, len(tokenResp.Token.Policies), 1)
+	require.Len(t, tokenResp.Token.Policies, 1)
 	require.Equal(t, tokenResp.Token.Policies[0].ID, policy.ID)
 
 }
@@ -2659,7 +2659,7 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		require.Equal(t, role.Description, "foobar")
 		require.Equal(t, role.Name, "baz")
 
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 	})
 
 	roleNameGen := func(t *testing.T) string {
@@ -4250,7 +4250,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 		resp = structs.ACLAuthMethodListResponse{}
 		require.NoError(t, aclEp.AuthMethodList(&req, &resp))
-		require.Len(t, resp.AuthMethods, 0)
+		require.Empty(t, resp.AuthMethods)
 	})
 
 	var ruleID string
@@ -4351,7 +4351,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 		resp = structs.ACLBindingRuleListResponse{}
 		require.NoError(t, aclEp.BindingRuleList(&req, &resp))
-		require.Len(t, resp.BindingRules, 0)
+		require.Empty(t, resp.BindingRules)
 	})
 
 	var remoteToken *structs.ACLToken
@@ -4736,7 +4736,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.ServiceIdentities, 0)
+		require.Empty(t, resp.ServiceIdentities)
 		require.Len(t, resp.Roles, 1)
 		role := resp.Roles[0]
 		require.Equal(t, vaultRoleID, role.ID)
@@ -4760,9 +4760,9 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
 		require.Len(t, resp.ServiceIdentities, 1)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "method-monolith", svcid.ServiceName)
 	})
 
@@ -4805,7 +4805,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, monolithRoleID, role.ID)
 		require.Equal(t, "method-monolith", role.Name)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "method-monolith", svcid.ServiceName)
 	})
 
@@ -4825,10 +4825,10 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		require.Len(t, resp.ServiceIdentities, 1)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "method-db", svcid.ServiceName)
 	})
 
@@ -4888,10 +4888,10 @@ func TestACLEndpoint_Login(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		require.Len(t, resp.ServiceIdentities, 1)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "method-db", svcid.ServiceName)
 	})
 
@@ -5234,10 +5234,10 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		require.Len(t, resp.ServiceIdentities, 1)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "demo", svcid.ServiceName)
 	})
 
@@ -5266,10 +5266,10 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 		require.Equal(t, method.Name, resp.AuthMethod)
 		require.Equal(t, `token created via login: {"pod":"pod1"}`, resp.Description)
 		require.True(t, resp.Local)
-		require.Len(t, resp.Roles, 0)
+		require.Empty(t, resp.Roles)
 		require.Len(t, resp.ServiceIdentities, 1)
 		svcid := resp.ServiceIdentities[0]
-		require.Len(t, svcid.Datacenters, 0)
+		require.Empty(t, svcid.Datacenters)
 		require.Equal(t, "alternate-name", svcid.ServiceName)
 	})
 }
@@ -5412,10 +5412,10 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 				require.Equal(t, method.Name, resp.AuthMethod)
 				require.Equal(t, `token created via login`, resp.Description)
 				require.True(t, resp.Local)
-				require.Len(t, resp.Roles, 0)
+				require.Empty(t, resp.Roles)
 				require.Len(t, resp.ServiceIdentities, 1)
 				svcid := resp.ServiceIdentities[0]
-				require.Len(t, svcid.Datacenters, 0)
+				require.Empty(t, svcid.Datacenters)
 				require.Equal(t, "test--jeff2--engineering", svcid.ServiceName)
 			})
 		})

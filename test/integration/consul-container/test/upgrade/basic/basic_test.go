@@ -77,7 +77,7 @@ func checkServiceHealth(t *testing.T, client *api.Client, serviceName string, in
 		case err := <-errCh:
 			require.NoError(r, err)
 		case service := <-ch:
-			require.Equal(r, 1, len(service))
+			require.Len(r, service, 1)
 
 			index = service[0].Service.ModifyIndex
 			require.Equal(r, serviceName, service[0].Service.Service)

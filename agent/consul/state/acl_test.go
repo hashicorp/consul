@@ -497,8 +497,8 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 		require.Equal(t, uint64(2), rtoken.CreateIndex)
 		require.Equal(t, uint64(2), rtoken.ModifyIndex)
 		require.Equal(t, "test", rtoken.AuthMethod)
-		require.Len(t, rtoken.Policies, 0)
-		require.Len(t, rtoken.ServiceIdentities, 0)
+		require.Empty(t, rtoken.Policies)
+		require.Empty(t, rtoken.ServiceIdentities)
 		require.Len(t, rtoken.Roles, 1)
 		require.Equal(t, "node-read-role", rtoken.Roles[0].Name)
 	})
@@ -1273,7 +1273,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, token != retrieved)
-	require.Len(t, retrieved.Policies, 0)
+	require.Empty(t, retrieved.Policies)
 
 	// list tokens without stale links
 	// nolint:staticcheck
@@ -1285,7 +1285,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 		if tok.AccessorID == token.AccessorID {
 			// these pointers shouldn't be equal because the link should have been fixed
 			require.True(t, tok != token)
-			require.Len(t, tok.Policies, 0)
+			require.Empty(t, tok.Policies)
 			found = true
 			break
 		}
@@ -1301,7 +1301,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 		if tok.AccessorID == token.AccessorID {
 			// these pointers shouldn't be equal because the link should have been fixed
 			require.True(t, tok != token)
-			require.Len(t, tok.Policies, 0)
+			require.Empty(t, tok.Policies)
 			found = true
 			break
 		}
@@ -1404,7 +1404,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, token != retrieved)
-	require.Len(t, retrieved.Roles, 0)
+	require.Empty(t, retrieved.Roles)
 
 	// list tokens without stale links
 	// nolint:staticcheck
@@ -1416,7 +1416,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 		if tok.AccessorID == token.AccessorID {
 			// these pointers shouldn't be equal because the link should have been fixed
 			require.True(t, tok != token)
-			require.Len(t, tok.Roles, 0)
+			require.Empty(t, tok.Roles)
 			found = true
 			break
 		}
@@ -1432,7 +1432,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 		if tok.AccessorID == token.AccessorID {
 			// these pointers shouldn't be equal because the link should have been fixed
 			require.True(t, tok != token)
-			require.Len(t, tok.Roles, 0)
+			require.Empty(t, tok.Roles)
 			found = true
 			break
 		}
@@ -1653,7 +1653,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.Equal(t, "global-management", rpolicy.Name)
 		require.Equal(t, structs.ACLPolicyGlobalManagementDesc, rpolicy.Description)
 		require.Equal(t, structs.ACLPolicyGlobalManagementRules, rpolicy.Rules)
-		require.Len(t, rpolicy.Datacenters, 0)
+		require.Empty(t, rpolicy.Datacenters)
 		require.Equal(t, uint64(1), rpolicy.CreateIndex)
 		require.Equal(t, uint64(1), rpolicy.ModifyIndex)
 	})
@@ -2092,7 +2092,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			require.Equal(t, "test", rrole.Description)
 			require.Equal(t, uint64(3), rrole.CreateIndex)
 			require.Equal(t, uint64(3), rrole.ModifyIndex)
-			require.Len(t, rrole.ServiceIdentities, 0)
+			require.Empty(t, rrole.ServiceIdentities)
 			// require.ElementsMatch(t, role.Policies, rrole.Policies)
 			require.Len(t, rrole.Policies, 1)
 			require.Equal(t, "node-read", rrole.Policies[0].Name)
@@ -2147,7 +2147,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			require.Equal(t, "Modified", rrole.Description)
 			require.Equal(t, uint64(2), rrole.CreateIndex)
 			require.Equal(t, uint64(3), rrole.ModifyIndex)
-			require.Len(t, rrole.ServiceIdentities, 0)
+			require.Empty(t, rrole.ServiceIdentities)
 			require.Len(t, rrole.Policies, 1)
 			require.Equal(t, structs.ACLPolicyGlobalManagementID, rrole.Policies[0].ID)
 			require.Equal(t, "global-management", rrole.Policies[0].Name)
@@ -2518,7 +2518,7 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, role != retrieved)
-	require.Len(t, retrieved.Policies, 0)
+	require.Empty(t, retrieved.Policies)
 
 	// list roles without stale links
 	_, roles, err = s.ACLRoleList(nil, "", nil)
@@ -2529,7 +2529,7 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 		if r.ID == role.ID {
 			// these pointers shouldn't be equal because the link should have been fixed
 			require.True(t, r != role)
-			require.Len(t, r.Policies, 0)
+			require.Empty(t, r.Policies)
 			found = true
 			break
 		}
@@ -2545,7 +2545,7 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 		if r.ID == role.ID {
 			// these pointers shouldn't be equal because the link should have been fixed
 			require.True(t, r != role)
-			require.Len(t, r.Policies, 0)
+			require.Empty(t, r.Policies)
 			found = true
 			break
 		}
@@ -3846,11 +3846,11 @@ func TestTokenPoliciesIndex(t *testing.T) {
 	t.Run("no expiration", func(t *testing.T) {
 		dump, err := dumpItems("local")
 		require.NoError(t, err)
-		require.Len(t, dump, 0)
+		require.Empty(t, dump)
 
 		dump, err = dumpItems("global")
 		require.NoError(t, err)
-		require.Len(t, dump, 0)
+		require.Empty(t, dump)
 	})
 
 	{ // insert things with laddered expiration time, inserted in random order

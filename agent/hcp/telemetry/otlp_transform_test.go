@@ -273,7 +273,7 @@ func TestTransformOTLP(t *testing.T) {
 	// Metrics Test Case
 	m := metricsToPB(inputMetrics)
 	require.Equal(t, expectedMetrics, m)
-	require.Equal(t, len(expectedMetrics), 3)
+	require.Len(t, expectedMetrics, 3)
 
 	// Scope Metrics Test Case
 	sm := scopeMetricsToPB(inputScopeMetrics)

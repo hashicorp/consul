@@ -87,7 +87,7 @@ func TestDNS_CE_PeeredServices(t *testing.T) {
 				// Query the addr to make sure it's also valid.
 				q = dnsQuery(t, addr, dns.TypeA)
 				require.Len(t, q.Answer, 1)
-				require.Len(t, q.Extra, 0)
+				require.Empty(t, q.Extra)
 				assertARec(t, q.Answer[0], addr, "199.0.0.1")
 			})
 
@@ -107,7 +107,7 @@ func TestDNS_CE_PeeredServices(t *testing.T) {
 				// Query the node to make sure it's also valid.
 				q = dnsQuery(t, nodeName, dns.TypeA)
 				require.Len(t, q.Answer, 1)
-				require.Len(t, q.Extra, 0)
+				require.Empty(t, q.Extra)
 				assertARec(t, q.Answer[0], nodeName, "198.18.1.1")
 			})
 
@@ -119,7 +119,7 @@ func TestDNS_CE_PeeredServices(t *testing.T) {
 				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", req, &struct{}{}))
 				q := dnsQuery(t, "web-proxy.service.peer1.peer.consul.", dns.TypeSRV)
 				require.Len(t, q.Answer, 1)
-				require.Len(t, q.Extra, 0)
+				require.Empty(t, q.Extra)
 				assertSRVRec(t, q.Answer[0], "localhost.", 12345)
 			})
 
@@ -127,7 +127,7 @@ func TestDNS_CE_PeeredServices(t *testing.T) {
 				require.NoError(t, a.RPC(context.Background(), "Catalog.Register", makeReq(), &struct{}{}))
 				q := dnsQuery(t, "web-proxy.service.peer1.peer.consul.", dns.TypeA)
 				require.Len(t, q.Answer, 1)
-				require.Len(t, q.Extra, 0)
+				require.Empty(t, q.Extra)
 				assertARec(t, q.Answer[0], "web-proxy.service.peer1.peer.consul.", "199.0.0.1")
 			})
 		})

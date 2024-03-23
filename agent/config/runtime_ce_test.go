@@ -112,7 +112,7 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		patchLoadOptsShims(&opts)
 		result, err := Load(opts)
 		require.NoError(t, err)
-		require.Len(t, result.Warnings, 0)
+		require.Empty(t, result.Warnings)
 		require.Equal(t, false, result.RuntimeConfig.Reporting.License.Enabled)
 	})
 
@@ -136,7 +136,7 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		patchLoadOptsShims(&opts)
 		result, err := Load(opts)
 		require.NoError(t, err)
-		require.Len(t, result.Warnings, 0)
+		require.Empty(t, result.Warnings)
 		require.Equal(t, false, result.RuntimeConfig.Reporting.License.Enabled)
 	})
 

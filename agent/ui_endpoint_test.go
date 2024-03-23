@@ -173,17 +173,17 @@ func TestUINodes(t *testing.T) {
 	require.Len(t, nodes[0].Checks, 1)
 	require.Equal(t, "test", nodes[1].Node)
 	require.NotNil(t, nodes[1].Services)
-	require.Len(t, nodes[1].Services, 0)
+	require.Empty(t, nodes[1].Services)
 	require.NotNil(t, nodes[1].Checks)
-	require.Len(t, nodes[1].Checks, 0)
+	require.Empty(t, nodes[1].Checks)
 
 	// peered node
 	require.Equal(t, "foo-peer", nodes[2].Node)
 	require.Equal(t, "peer1", nodes[2].PeerName)
 	require.NotNil(t, nodes[2].Services)
-	require.Len(t, nodes[2].Services, 0)
+	require.Empty(t, nodes[2].Services)
 	require.NotNil(t, nodes[1].Checks)
-	require.Len(t, nodes[2].Services, 0)
+	require.Empty(t, nodes[2].Services)
 
 	// check for consul-version in node meta
 	require.Equal(t, nodes[0].Meta[structs.MetaConsulVersion], a.Config.Version)
@@ -697,7 +697,7 @@ func TestUIServices(t *testing.T) {
 		require.NotNil(t, obj)
 
 		summary := obj.([]*ServiceListingSummary)
-		require.Len(t, summary, 0)
+		require.Empty(t, summary)
 	})
 }
 
@@ -872,7 +872,7 @@ func TestUIExportedServices(t *testing.T) {
 		require.NoError(t, decoder.Decode(&summary))
 		assertIndex(t, resp)
 
-		require.Len(t, summary, 0)
+		require.Empty(t, summary)
 	})
 }
 

@@ -3432,7 +3432,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 
 	// Make sure it's there and there's no critical check yet.
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
+	require.Empty(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), "should not have critical checks")
 
 	// Wait for the check TTL to fail but before the check is reaped.
 	time.Sleep(100 * time.Millisecond)
@@ -3444,7 +3444,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
+	require.Empty(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), "should not have critical checks")
 
 	// Wait for the check TTL to fail again.
 	time.Sleep(100 * time.Millisecond)
@@ -3454,7 +3454,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 	// Wait for the reap.
 	time.Sleep(400 * time.Millisecond)
 	requireServiceMissing(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
+	require.Empty(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), "should not have critical checks")
 }
 
 func TestAgent_Service_NoReap(t *testing.T) {
@@ -3489,7 +3489,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 
 	// Make sure it's there and there's no critical check yet.
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0)
+	require.Empty(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()))
 
 	// Wait for the check TTL to fail.
 	time.Sleep(200 * time.Millisecond)
@@ -4160,7 +4160,7 @@ func testAgent_ReloadConfigAndKeepChecksStatus(t *testing.T, extraHCL string) {
 
 	// Make sure check is passing before we reload.
 	gotChecks := a.State.Checks(nil)
-	require.Equal(t, 1, len(gotChecks), "Should have a check registered, but had %#v", gotChecks)
+	require.Len(t, gotChecks, 1, "Should have a check registered, but had %#v", gotChecks)
 	for id, check := range gotChecks {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
 	}

@@ -116,7 +116,7 @@ func TestServerHealthBlocking(t *testing.T) {
 			result := getEventResult[*structs.IndexedCheckServiceNodes](t, eventCh)
 			require.Len(t, result.Nodes, 1)
 			result = getEventResult[*structs.IndexedCheckServiceNodes](t, filteredCh)
-			require.Len(t, result.Nodes, 0)
+			require.Empty(t, result.Nodes)
 		})
 
 		testutil.RunStep(t, "acl enforcement", func(t *testing.T) {
@@ -172,7 +172,7 @@ func TestServerHealthBlocking(t *testing.T) {
 			aclResolver.SwapAuthorizer(authzDeny)
 			time.Sleep(dataSource.watchTimeout)
 			result = getEventResult[*structs.IndexedCheckServiceNodes](t, aclAllowCh)
-			require.Len(t, result.Nodes, 0)
+			require.Empty(t, result.Nodes)
 
 			// Adding ACL permissions will send valid data
 			aclResolver.SwapAuthorizer(authzAllow)

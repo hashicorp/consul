@@ -567,7 +567,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 					}
 				} else if tc.listEmpty {
 					require.NoError(t, err)
-					require.Len(t, out.States, 0)
+					require.Empty(t, out.States)
 				} else {
 					require.NoError(t, err)
 
@@ -589,7 +589,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 
 				if tc.gwListEmpty {
 					require.NoError(t, err)
-					require.Len(t, out.DatacenterNodes, 0)
+					require.Empty(t, out.DatacenterNodes)
 				} else {
 					require.NoError(t, err)
 					require.Equal(t, expectedMeshGateways.DatacenterNodes, out.DatacenterNodes)

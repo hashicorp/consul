@@ -197,7 +197,7 @@ func TestServerTrustBundleList(t *testing.T) {
 			}))
 
 			result := getEventResult[*pbpeering.TrustBundleListByServiceResponse](t, eventCh)
-			require.Len(t, result.Bundles, 0)
+			require.Empty(t, result.Bundles)
 		})
 	})
 

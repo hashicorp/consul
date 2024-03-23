@@ -53,7 +53,7 @@ func TestAgentStructs_CheckTypes(t *testing.T) {
 			svc.Check = *tc.in
 			checks, err := svc.CheckTypes()
 			require.Error(t, err, tc.err.Error())
-			require.Len(t, checks, 0)
+			require.Empty(t, checks)
 		})
 
 	}

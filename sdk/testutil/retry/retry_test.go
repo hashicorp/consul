@@ -208,7 +208,7 @@ func TestCleanup(t *testing.T) {
 		require.Equal(t, 3, cleanupsExecuted)
 		// ensure that r.Stop hadn't been called. If it was then we would
 		// have log output
-		require.Len(t, ft.out, 0)
+		require.Empty(t, ft.out)
 	})
 
 	t.Run("passthrough-to-t", func(t *testing.T) {

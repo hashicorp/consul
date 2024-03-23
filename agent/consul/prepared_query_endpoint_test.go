@@ -1536,7 +1536,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		var reply structs.PreparedQueryExecuteResponse
 		err := msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply)
 		assert.EqualError(t, err, structs.ErrQueryNotFound.Error())
-		assert.Len(t, reply.Nodes, 0)
+		assert.Empty(t, reply.Nodes)
 	})
 
 	expectNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {

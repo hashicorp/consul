@@ -305,7 +305,7 @@ func TestAPI_ACLBootstrap(t *testing.T) {
 	// not bootstrapped, default allow
 	mems, err := c.Agent().Members(false)
 	require.NoError(t, err)
-	require.True(t, len(mems) == 1)
+	require.Len(t, mems, 1)
 
 	s.Stop()
 	c, s = makeNonBootstrappedACLClient(t, "deny")
@@ -700,7 +700,7 @@ func TestAPI_AuthMethod_List(t *testing.T) {
 	entries, _, err := acl.AuthMethodList(nil)
 	require.NoError(t, err)
 	require.NotNil(t, entries)
-	require.Equal(t, 2, len(entries))
+	require.Len(t, entries, 2)
 
 	{
 		entry := entries[0]

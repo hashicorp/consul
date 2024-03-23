@@ -1000,7 +1000,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 							require.Equal(t, question, aRec.Hdr.Name)
 							require.Equal(t, tc.expectedServiceIPv4Address, aRec.A.String())
 						} else {
-							require.Len(t, in.Answer, 0)
+							require.Empty(t, in.Answer)
 						}
 
 						m = new(dns.Msg)
@@ -1018,7 +1018,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 							require.Equal(t, question, aRec.Hdr.Name)
 							require.Equal(t, tc.expectedServiceIPv6Address, aRec.AAAA.String())
 						} else {
-							require.Len(t, in.Answer, 0)
+							require.Empty(t, in.Answer)
 						}
 					}
 
@@ -1038,7 +1038,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 						require.Equal(t, "foo.node.consul.", aRec.Hdr.Name)
 						require.Equal(t, tc.expectedNodeIPv4Address, aRec.A.String())
 					} else {
-						require.Len(t, in.Answer, 0)
+						require.Empty(t, in.Answer)
 					}
 
 					m = new(dns.Msg)
@@ -1056,7 +1056,7 @@ func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
 						require.Equal(t, "foo.node.consul.", aRec.Hdr.Name)
 						require.Equal(t, tc.expectedNodeIPv6Address, aRec.AAAA.String())
 					} else {
-						require.Len(t, in.Answer, 0)
+						require.Empty(t, in.Answer)
 					}
 				})
 			}
@@ -1832,9 +1832,9 @@ func TestDNS_NonExistentDC_Server(t *testing.T) {
 			}
 
 			require.Equal(t, dns.RcodeNameError, in.Rcode)
-			require.Equal(t, 0, len(in.Answer))
-			require.Equal(t, 0, len(in.Extra))
-			require.Equal(t, 1, len(in.Ns))
+			require.Empty(t, in.Answer)
+			require.Empty(t, in.Extra)
+			require.Len(t, in.Ns, 1)
 			soa := in.Ns[0].(*dns.SOA)
 			require.Equal(t, "consul.", soa.Hdr.Name)
 			require.Equal(t, "ns.consul.", soa.Ns)
@@ -2654,7 +2654,7 @@ func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 				t.Fatalf("Bad %#v", *resp)
 			}
 			require.LessOrEqual(t, resp.Len(), defaultMaxUDPSize)
-			require.Len(t, resp.Ns, 0)
+			require.Empty(t, resp.Ns)
 		})
 	}
 }
@@ -2706,7 +2706,7 @@ func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
 				t.Fatalf("Bad %#v", *resp)
 			}
 			require.LessOrEqual(t, resp.Len(), 65523)
-			require.Len(t, resp.Ns, 0)
+			require.Empty(t, resp.Ns)
 		})
 	}
 }
@@ -2715,7 +2715,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 	t.Helper()
 	result, err := config.Load(config.LoadOpts{HCL: []string{hcl}})
 	require.NoError(t, err)
-	require.Len(t, result.Warnings, 0)
+	require.Empty(t, result.Warnings)
 	return result.RuntimeConfig
 }
 

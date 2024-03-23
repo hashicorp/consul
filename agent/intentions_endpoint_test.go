@@ -39,7 +39,7 @@ func TestIntentionList(t *testing.T) {
 
 		value := obj.(structs.Intentions)
 		require.NotNil(t, value)
-		require.Len(t, value, 0)
+		require.Empty(t, value)
 	})
 
 	t.Run("values", func(t *testing.T) {

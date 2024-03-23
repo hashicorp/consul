@@ -231,8 +231,8 @@ func TestIngressGateway_SDS_UpgradeToTarget_fromLatest(t *testing.T) {
 			resp := mappedHTTPGET(t, urlbase, portMapped.Int(), nil, nil, httpClient)
 			defer resp.Body.Close()
 
-			require.Equal(t, 1, len(resp.TLS.PeerCertificates))
-			require.Equal(t, 1, len(resp.TLS.PeerCertificates[0].DNSNames))
+			require.Len(t, resp.TLS.PeerCertificates, 1)
+			require.Len(t, resp.TLS.PeerCertificates[0].DNSNames, 1)
 			assert.Equal(t, "*.ingress.consul", resp.TLS.PeerCertificates[0].DNSNames[0])
 		})
 
@@ -249,8 +249,8 @@ func TestIngressGateway_SDS_UpgradeToTarget_fromLatest(t *testing.T) {
 			resp := mappedHTTPGET(t, urlbase, portMapped.Int(), nil, nil, httpClient)
 			defer resp.Body.Close()
 
-			require.Equal(t, 1, len(resp.TLS.PeerCertificates))
-			require.Equal(t, 1, len(resp.TLS.PeerCertificates[0].DNSNames))
+			require.Len(t, resp.TLS.PeerCertificates, 1)
+			require.Len(t, resp.TLS.PeerCertificates[0].DNSNames, 1)
 			assert.Equal(t, hostnameWWW, resp.TLS.PeerCertificates[0].DNSNames[0])
 		})
 
@@ -267,8 +267,8 @@ func TestIngressGateway_SDS_UpgradeToTarget_fromLatest(t *testing.T) {
 			resp := mappedHTTPGET(t, urlbase, portMapped.Int(), nil, nil, httpClient)
 			defer resp.Body.Close()
 
-			require.Equal(t, 1, len(resp.TLS.PeerCertificates))
-			require.Equal(t, 1, len(resp.TLS.PeerCertificates[0].DNSNames))
+			require.Len(t, resp.TLS.PeerCertificates, 1)
+			require.Len(t, resp.TLS.PeerCertificates[0].DNSNames, 1)
 			assert.Equal(t, hostnameFoo, resp.TLS.PeerCertificates[0].DNSNames[0])
 		})
 	}

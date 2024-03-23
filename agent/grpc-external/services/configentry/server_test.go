@@ -159,7 +159,7 @@ func TestGetResolvedExportedServices_Index(t *testing.T) {
 	ctx := grpc.NewContextWithServerTransportStream(context.Background(), headerStream)
 	resp, err := server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 2, len(resp.Services))
+	require.Len(t, resp.Services, 2)
 	require.Equal(t, []string{"1"}, headerStream.MD.Get("index"))
 
 	// Updating the index
@@ -170,7 +170,7 @@ func TestGetResolvedExportedServices_Index(t *testing.T) {
 	ctx = grpc.NewContextWithServerTransportStream(context.Background(), headerStream)
 	resp, err = server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 2, len(resp.Services))
+	require.Len(t, resp.Services, 2)
 	require.Equal(t, []string{"2"}, headerStream.MD.Get("index"))
 }
 
@@ -225,7 +225,7 @@ func TestGetResolvedExportedServices_Metrics(t *testing.T) {
 	ctx := grpc.NewContextWithServerTransportStream(context.Background(), &testutils.MockServerTransportStream{})
 	resp, err := server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 2, len(resp.Services))
+	require.Len(t, resp.Services, 2)
 
 	// Checking if metrics were added
 	require.NotNil(t, sink.Data()[0].Samples[`consul.configentry.get_resolved_exported_services`])

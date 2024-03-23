@@ -149,7 +149,7 @@ func TestTruncate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			truncatedBody := truncate(tc.body, defaultErrRespBodyLength)
 			truncatedRunes := []rune(truncatedBody)
-			require.Equal(t, len(truncatedRunes), tc.expectedSize)
+			require.Len(t, truncatedRunes, tc.expectedSize)
 		})
 	}
 }

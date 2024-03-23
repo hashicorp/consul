@@ -247,7 +247,7 @@ func TestStore_CARootSet_emptyID(t *testing.T) {
 	ws = memdb.NewWatchSet()
 	_, roots, err := s.CARoots(ws)
 	assert.Nil(t, err)
-	assert.Len(t, roots, 0)
+	assert.Empty(t, roots)
 }
 
 func TestStore_CARootSet_noActive(t *testing.T) {

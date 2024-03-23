@@ -934,7 +934,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 				var nodes pbpeerstream.ExportedService
 				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
-				require.Len(t, nodes.Nodes, 0)
+				require.Empty(t, nodes.Nodes)
 			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
@@ -953,7 +953,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 				var nodes pbpeerstream.ExportedService
 				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
-				require.Len(t, nodes.Nodes, 0)
+				require.Empty(t, nodes.Nodes)
 			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLExportedServiceList, msg.GetResponse().ResourceURL)
@@ -1099,7 +1099,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 			var exportedServices pbpeerstream.ExportedServiceList
 			require.NoError(r, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
-			require.Len(r, exportedServices.Services, 0)
+			require.Empty(r, exportedServices.Services)
 		})
 	})
 }
@@ -2008,7 +2008,7 @@ func processResponse_ExportedServiceUpdates(
 			_, err = srv.processResponse(peerName, localEntMeta.PartitionOrDefault(), mst, resp)
 			require.NoError(t, err)
 			// Test the count and contents separately to ensure the count code path is hit.
-			require.Equal(t, mst.GetImportedServicesCount(), len(tc.exportedServices))
+			require.Len(t, tc.exportedServices, mst.GetImportedServicesCount())
 			require.ElementsMatch(t, mst.ImportedServices, tc.exportedServices)
 		}
 

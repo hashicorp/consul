@@ -97,7 +97,7 @@ func TestDeduplicate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			policies := tcase.templatedPolicies.Deduplicate()
 
-			require.Equal(t, tcase.expectedCount, len(policies))
+			require.Len(t, policies, tcase.expectedCount)
 		})
 	}
 }

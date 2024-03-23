@@ -111,14 +111,14 @@ func TestPrefixIndexFromRefOrID(t *testing.T) {
 func TestPrefixIndexFromTenancy(t *testing.T) {
 	t.Run("nil tenancy", func(t *testing.T) {
 		idx, done := prefixIndexFromTenancy(nil)
-		require.Len(t, idx, 0)
+		require.Empty(t, idx)
 		require.True(t, done)
 	})
 
 	t.Run("partition empty", func(t *testing.T) {
 		tenant := &pbresource.Tenancy{}
 		idx, done := prefixIndexFromTenancy(tenant)
-		require.Len(t, idx, 0)
+		require.Empty(t, idx)
 		require.True(t, done)
 	})
 
@@ -127,7 +127,7 @@ func TestPrefixIndexFromTenancy(t *testing.T) {
 			Partition: storage.Wildcard,
 		}
 		idx, done := prefixIndexFromTenancy(tenant)
-		require.Len(t, idx, 0)
+		require.Empty(t, idx)
 		require.True(t, done)
 	})
 

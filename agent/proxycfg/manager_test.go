@@ -467,8 +467,8 @@ func testManager_BasicLifecycle(
 	// Sanity check the state is clean
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	require.Len(t, m.proxies, 0)
-	require.Len(t, m.watchers, 0)
+	require.Empty(t, m.proxies)
+	require.Empty(t, m.watchers)
 }
 
 func assertWatchChanBlocks(t *testing.T, ch <-chan proxysnapshot.ProxySnapshot) {

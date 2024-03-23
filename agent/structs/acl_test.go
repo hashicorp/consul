@@ -43,7 +43,7 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 		token := &ACLToken{}
 
 		policyIDs := token.PolicyIDs()
-		require.Len(t, policyIDs, 0)
+		require.Empty(t, policyIDs)
 	})
 }
 

@@ -549,7 +549,7 @@ func httpClientWithCA(t *testing.T, reqHost string, cacertPEM string) *http.Clie
 			InsecureSkipVerify: true,
 			RootCAs:            pool,
 			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-				require.Equal(t, 1, len(rawCerts), "expected 1 cert")
+				require.Len(t, rawCerts, 1, "expected 1 cert")
 				cert, err := x509.ParseCertificate(rawCerts[0])
 				require.NoError(t, err)
 				for i, s := range cert.DNSNames {

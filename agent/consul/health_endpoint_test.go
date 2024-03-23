@@ -744,7 +744,7 @@ func TestHealth_ServiceNodes_BlockingQuery_withFilter(t *testing.T) {
 		}
 
 		require.Equal(t, structs.QueryBackendBlocking, out.Backend)
-		require.Len(t, out.Nodes, 0)
+		require.Empty(t, out.Nodes)
 	})
 }
 
@@ -1126,7 +1126,7 @@ node "foo" {
 	}
 	var resp structs.IndexedCheckServiceNodes
 	assert.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp), "Permission denied")
-	assert.Len(t, resp.Nodes, 0)
+	assert.Empty(t, resp.Nodes)
 
 	// List w/ token. This should work since we're requesting "foo", but should
 	// also only contain the proxies with names that adhere to our ACL.
@@ -1465,7 +1465,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		Ingress:     true,
 	}
 	require.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2), "Permission denied")
-	require.Len(t, out2.Nodes, 0)
+	require.Empty(t, out2.Nodes)
 
 	// Requesting a service that is not covered by the token's policy
 	req = structs.ServiceSpecificRequest{
@@ -1475,7 +1475,7 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token.SecretID},
 	}
 	require.ErrorContains(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2), "Permission denied")
-	require.Len(t, out2.Nodes, 0)
+	require.Empty(t, out2.Nodes)
 
 	// Requesting service covered by the token's policy
 	req = structs.ServiceSpecificRequest{

@@ -846,7 +846,7 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	// Verify usage data is correctly updated
 	idx, nodeUsage, err := fsm2.state.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, len(nodes), nodeUsage.Nodes)
+	require.Len(t, nodes, nodeUsage.Nodes)
 	require.NotZero(t, idx)
 
 	// Verify system metadata is restored.

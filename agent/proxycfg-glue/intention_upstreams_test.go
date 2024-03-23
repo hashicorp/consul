@@ -73,7 +73,7 @@ func TestServerIntentionUpstreams(t *testing.T) {
 	require.NoError(t, err)
 
 	result := getEventResult[*structs.IndexedServiceList](t, ch)
-	require.Len(t, result.Services, 0)
+	require.Empty(t, result.Services)
 
 	// Create an allow intention for the db service. This should *not* be filtered
 	// out because the ACL token *does* have read access on it.

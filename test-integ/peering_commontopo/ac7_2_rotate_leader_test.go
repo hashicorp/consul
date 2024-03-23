@@ -188,7 +188,7 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 			Peer:      LocalPeerName(peer, "default"),
 		}))
 		require.NoError(r, err)
-		assert.Equal(r, len(svcs), 0, "health entry for imported service gone")
+		assert.Empty(r, svcs, "health entry for imported service gone")
 	})
 }
 

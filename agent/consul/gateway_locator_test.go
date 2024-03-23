@@ -71,7 +71,7 @@ func TestGatewayLocator(t *testing.T) {
 
 				t.Run("before first run", func(t *testing.T) {
 					assert.False(t, g.DialPrimaryThroughLocalGateway()) // not important
-					assert.Len(t, tsd.Calls, 0)
+					assert.Empty(t, tsd.Calls)
 					assert.Equal(t, []string(nil), g.listGateways(false))
 					assert.Equal(t, []string(nil), g.listGateways(true))
 					assert.False(t, tsd.datacenterSupportsFederationStates())
@@ -112,7 +112,7 @@ func TestGatewayLocator(t *testing.T) {
 
 				t.Run("before first run", func(t *testing.T) {
 					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
-					assert.Len(t, tsd.Calls, 0)
+					assert.Empty(t, tsd.Calls)
 					assert.Equal(t, []string(nil), g.listGateways(false))
 					assert.Equal(t, []string(nil), g.listGateways(true))
 					assert.False(t, tsd.datacenterSupportsFederationStates())
@@ -157,7 +157,7 @@ func TestGatewayLocator(t *testing.T) {
 
 				t.Run("before first run", func(t *testing.T) {
 					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
-					assert.Len(t, tsd.Calls, 0)
+					assert.Empty(t, tsd.Calls)
 					assert.Equal(t, []string(nil), g.listGateways(false))
 					assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
 					assert.False(t, tsd.datacenterSupportsFederationStates())
@@ -205,7 +205,7 @@ func TestGatewayLocator(t *testing.T) {
 
 				t.Run("before first run", func(t *testing.T) {
 					assert.False(t, g.DialPrimaryThroughLocalGateway()) // not important
-					assert.Len(t, tsd.Calls, 0)
+					assert.Empty(t, tsd.Calls)
 					assert.Equal(t, []string(nil), g.listGateways(false))
 					assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
 					assert.False(t, tsd.datacenterSupportsFederationStates())
@@ -252,7 +252,7 @@ func TestGatewayLocator(t *testing.T) {
 
 				t.Run("before first run", func(t *testing.T) {
 					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
-					assert.Len(t, tsd.Calls, 0)
+					assert.Empty(t, tsd.Calls)
 					assert.Equal(t, []string(nil), g.listGateways(false))
 					assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
 					assert.False(t, tsd.datacenterSupportsFederationStates())
@@ -301,7 +301,7 @@ func TestGatewayLocator(t *testing.T) {
 
 		t.Run("before first run", func(t *testing.T) {
 			assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
-			assert.Len(t, tsd.Calls, 0)
+			assert.Empty(t, tsd.Calls)
 			assert.Equal(t, []string(nil), g.listGateways(false))
 			assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
 			assert.False(t, tsd.datacenterSupportsFederationStates())
@@ -349,7 +349,7 @@ func TestGatewayLocator(t *testing.T) {
 
 		t.Run("before first run", func(t *testing.T) {
 			assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
-			assert.Len(t, tsd.Calls, 0)
+			assert.Empty(t, tsd.Calls)
 			assert.Equal(t, []string(nil), g.listGateways(false))
 			assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
 			assert.False(t, tsd.datacenterSupportsFederationStates())
@@ -398,7 +398,7 @@ func TestGatewayLocator(t *testing.T) {
 
 		t.Run("before first run", func(t *testing.T) {
 			assert.False(t, g.DialPrimaryThroughLocalGateway()) // too many errors
-			assert.Len(t, tsd.Calls, 0)
+			assert.Empty(t, tsd.Calls)
 			assert.Equal(t, []string(nil), g.listGateways(false))
 			assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
 			assert.False(t, tsd.datacenterSupportsFederationStates())
@@ -450,7 +450,7 @@ func TestGatewayLocator(t *testing.T) {
 
 		t.Run("before first run", func(t *testing.T) {
 			assert.True(t, g.DialPrimaryThroughLocalGateway()) // all better again
-			assert.Len(t, tsd.Calls, 0)
+			assert.Empty(t, tsd.Calls)
 			assert.Equal(t, []string(nil), g.listGateways(false))
 			assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
 			assert.False(t, tsd.datacenterSupportsFederationStates())

@@ -74,7 +74,7 @@ func TestCacheNotify(t *testing.T) {
 	})
 
 	// There should be no more updates delivered yet
-	require.Len(t, ch, 0)
+	require.Empty(t, ch)
 
 	// Trigger blocking query to return a "change"
 	close(trigger[0])
@@ -125,7 +125,7 @@ func TestCacheNotify(t *testing.T) {
 	// it's only a sanity check, if we somehow _do_ get the change delivered later
 	// than 10ms the next value assertion will fail anyway.
 	time.Sleep(10 * time.Millisecond)
-	require.Len(t, ch, 0)
+	require.Empty(t, ch)
 
 	// Trigger final update
 	close(trigger[3])
@@ -204,7 +204,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 	})
 
 	// There should be no more updates delivered yet
-	require.Len(t, ch, 0)
+	require.Empty(t, ch)
 
 	// make sure the updates do not come too quickly
 	select {
@@ -229,7 +229,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 		require.NoError(t, result.Err)
 	}
 
-	require.Len(t, ch, 0)
+	require.Empty(t, ch)
 
 	// Register a second observer using same chan and request. Note that this is
 	// testing a few things implicitly:
@@ -247,7 +247,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 		Err:           nil,
 	})
 
-	require.Len(t, ch, 0)
+	require.Empty(t, ch)
 
 	// wait for the next batch of responses
 	events := make([]UpdateEvent, 0)

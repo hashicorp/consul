@@ -441,7 +441,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
 		require.Len(t, role.Policies, 1)
-		require.Len(t, role.ServiceIdentities, 0)
+		require.Empty(t, role.ServiceIdentities)
 	})
 
 	t.Run("update with policy by id", func(t *testing.T) {
@@ -470,7 +470,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
 		require.Len(t, role.Policies, 1)
-		require.Len(t, role.ServiceIdentities, 0)
+		require.Empty(t, role.ServiceIdentities)
 	})
 
 	t.Run("update with service identity", func(t *testing.T) {
@@ -498,7 +498,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 		require.Len(t, role.ServiceIdentities, 1)
 	})
 
@@ -527,7 +527,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 		require.Len(t, role.ServiceIdentities, 1)
 	})
 
@@ -557,7 +557,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 		require.Len(t, role.TemplatedPolicies, 1)
 	})
 
@@ -587,7 +587,7 @@ func TestRoleUpdateCommand_noMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, role)
 		require.Equal(t, "", role.Description)
-		require.Len(t, role.Policies, 0)
+		require.Empty(t, role.Policies)
 		require.Len(t, role.TemplatedPolicies, 1)
 	})
 }

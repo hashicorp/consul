@@ -352,7 +352,7 @@ func TestLeader_PeeringSync_Lifecycle_UnexportWhileDown(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		_, nodes, err := dialerRestart.fsm.State().CheckServiceNodes(nil, "foo", nil, "my-peer-acceptor")
 		require.NoError(r, err)
-		require.Len(r, nodes, 0)
+		require.Empty(r, nodes)
 	})
 }
 
@@ -659,15 +659,15 @@ func TestLeader_Peering_DeferredDeletion(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		_, csn, err := s1.fsm.State().ServiceDump(nil, "", false, defaultMeta, peerName)
 		require.NoError(r, err)
-		require.Len(r, csn, 0)
+		require.Empty(r, csn)
 
 		_, checks, err := s1.fsm.State().ChecksInState(nil, api.HealthAny, defaultMeta, peerName)
 		require.NoError(r, err)
-		require.Len(r, checks, 0)
+		require.Empty(r, checks)
 
 		_, nodes, err := s1.fsm.State().NodeDump(nil, defaultMeta, peerName)
 		require.NoError(r, err)
-		require.Len(r, nodes, 0)
+		require.Empty(r, nodes)
 
 		_, tb, err := s1.fsm.State().PeeringTrustBundleRead(nil, state.Query{Value: peerName})
 		require.NoError(r, err)
@@ -1306,13 +1306,13 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 				resp, err := peeringClient2.PeeringRead(context.Background(), &pbpeering.PeeringReadRequest{Name: "my-peer-s1"})
 				require.NoError(r, err)
 				require.NotNil(r, resp.Peering)
-				require.Equal(r, tc.expectedImportedServsCount, len(resp.Peering.StreamStatus.ImportedServices))
+				require.Len(r, resp.Peering.StreamStatus.ImportedServices, tc.expectedImportedServsCount)
 
 				// on List
 				resp2, err2 := peeringClient2.PeeringList(context.Background(), &pbpeering.PeeringListRequest{})
 				require.NoError(r, err2)
 				require.NotEmpty(r, resp2.Peerings)
-				require.Equal(r, tc.expectedExportedServsCount, len(resp2.Peerings[0].StreamStatus.ImportedServices))
+				require.Len(r, resp2.Peerings[0].StreamStatus.ImportedServices, tc.expectedExportedServsCount)
 			})
 
 			// Check that exported services count on S1 are what we expect
@@ -1321,13 +1321,13 @@ func TestLeader_Peering_ImportedExportedServicesCount(t *testing.T) {
 				resp, err := peeringClient.PeeringRead(context.Background(), &pbpeering.PeeringReadRequest{Name: "my-peer-s2"})
 				require.NoError(r, err)
 				require.NotNil(r, resp.Peering)
-				require.Equal(r, tc.expectedImportedServsCount, len(resp.Peering.StreamStatus.ExportedServices))
+				require.Len(r, resp.Peering.StreamStatus.ExportedServices, tc.expectedImportedServsCount)
 
 				// on List
 				resp2, err2 := peeringClient.PeeringList(context.Background(), &pbpeering.PeeringListRequest{})
 				require.NoError(r, err2)
 				require.NotEmpty(r, resp2.Peerings)
-				require.Equal(r, tc.expectedExportedServsCount, len(resp2.Peerings[0].StreamStatus.ExportedServices))
+				require.Len(r, resp2.Peerings[0].StreamStatus.ExportedServices, tc.expectedExportedServsCount)
 			})
 		})
 	}

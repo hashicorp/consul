@@ -169,7 +169,7 @@ func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 
 		server := dc.WorkloadsByID(s.serverSID)
 		require.Len(t, server, 1, "expected exactly one server")
-		require.Len(t, server[0].Destinations, 0, "expected no upstream for server")
+		require.Empty(t, server[0].Destinations, "expected no upstream for server")
 	})
 
 	t.Run("peered upstream exists in catalog", func(t *testing.T) {
