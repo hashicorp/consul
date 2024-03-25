@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -268,11 +267,8 @@ func fetchSingleDestinationData(
 				}
 			}
 
-			routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
-				Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID),
-				MeshPort:  routeTarget.MeshPort,
-				RoutePort: routeTarget.BackendRef.Port,
-			}
+			routeTarget.ServiceEndpointsId = resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
+			routeTarget.RoutePort = routeTarget.BackendRef.Port
 
 			// If the target service is in a different partition and the mesh gateway mode is
 			// "local" or "remote", use the ServiceEndpoints for the corresponding MeshGateway
@@ -284,26 +280,22 @@ func fetchSingleDestinationData(
 				switch mgwMode {
 				case pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_LOCAL:
 					// Use ServiceEndpoints for the MeshGateway in the source service's partition
-					routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
-						Id: &pbresource.ID{
-							Type:    pbcatalog.ServiceEndpointsType,
-							Name:    meshgateways.GatewayName,
-							Tenancy: proxyTenancy,
-						},
-						MeshPort:  meshgateways.LANPortName,
-						RoutePort: meshgateways.LANPortName,
+					routeTarget.ServiceEndpointsId = &pbresource.ID{
+						Type:    pbcatalog.ServiceEndpointsType,
+						Name:    meshgateways.GatewayName,
+						Tenancy: proxyTenancy,
 					}
+					routeTarget.MeshPort = meshgateways.LANPortName
+					routeTarget.RoutePort = meshgateways.LANPortName
 				case pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_REMOTE:
 					// Use ServiceEndpoints for the MeshGateway in the target service's partition
-					routeTarget.ServiceEndpointsRef = &pbproxystate.EndpointRef{
-						Id: &pbresource.ID{
-							Type:    pbcatalog.ServiceEndpointsType,
-							Name:    meshgateways.GatewayName,
-							Tenancy: targetServiceID.Tenancy,
-						},
-						MeshPort:  meshgateways.WANPortName,
-						RoutePort: meshgateways.WANPortName,
+					routeTarget.ServiceEndpointsId = &pbresource.ID{
+						Type:    pbcatalog.ServiceEndpointsType,
+						Name:    meshgateways.GatewayName,
+						Tenancy: targetServiceID.Tenancy,
 					}
+					routeTarget.MeshPort = meshgateways.WANPortName
+					routeTarget.RoutePort = meshgateways.WANPortName
 				}
 			}
 		}

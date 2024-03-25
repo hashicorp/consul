@@ -300,7 +300,11 @@ func (b *Builder) buildDestination(
 
 		// Original target is the first (or only) target.
 		endpointGroups = append(endpointGroups, egBase)
-		b.proxyStateTemplate.RequiredEndpoints[clusterName] = details.ServiceEndpointsRef
+		b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
+			Id:        details.ServiceEndpointsId,
+			MeshPort:  details.MeshPort,
+			RoutePort: details.RoutePort,
+		}
 
 		if details.FailoverConfig != nil {
 			failover := details.FailoverConfig
@@ -334,7 +338,11 @@ func (b *Builder) buildDestination(
 				egDest := b.newClusterEndpointGroup(destClusterName, destSNI, destPortName, destDetails.IdentityRefs, destConnectTimeout, destLoadBalancer)
 
 				endpointGroups = append(endpointGroups, egDest)
-				b.proxyStateTemplate.RequiredEndpoints[destClusterName] = destDetails.ServiceEndpointsRef
+				b.proxyStateTemplate.RequiredEndpoints[destClusterName] = &pbproxystate.EndpointRef{
+					Id:        destDetails.ServiceEndpointsId,
+					MeshPort:  destDetails.MeshPort,
+					RoutePort: destDetails.RoutePort,
+				}
 			}
 		}
 

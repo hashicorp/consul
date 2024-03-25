@@ -130,9 +130,9 @@ func validateComputedRoutes(res *DecodedComputedRoutes) error {
 					Wrapped: resource.ErrEmpty,
 				}))
 			}
-			if target.ServiceEndpointsRef != nil {
+			if target.ServiceEndpointsId != nil {
 				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
-					Name:    "service_endpoint_ref",
+					Name:    "service_endpoints_id",
 					Wrapped: fmt.Errorf("field should be empty"),
 				}))
 			}
