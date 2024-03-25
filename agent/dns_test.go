@@ -121,11 +121,11 @@ func dnsTXT(src string, txt []string) *dns.TXT {
 
 func getVersionHCL(enableV2 bool) map[string]string {
 	versions := map[string]string{
-		"DNS: v1 / Catalog: v1": "",
+		"DNS: v1 / Catalog: v1": "experiments=[\"v1dns\"]",
 	}
 
 	if enableV2 {
-		versions["DNS: v2 / Catalog: v1"] = `experiments=["v2dns"]`
+		versions["DNS: v2 / Catalog: v1"] = ""
 	}
 	return versions
 }
@@ -3338,6 +3338,7 @@ func TestDNS_V1ConfigReload(t *testing.T) {
 				min_ttl = 4
 			}
 		}
+		experiments = ["v1dns"]
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
