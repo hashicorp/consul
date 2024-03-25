@@ -9,9 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/protobuf/types/known/durationpb"
-
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/testing/golden"
@@ -24,7 +23,7 @@ import (
 )
 
 func TestBuildLocalApp(t *testing.T) {
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		cases := map[string]struct {
 			workload     *pbcatalog.Workload
 			ctp          *pbauth.ComputedTrafficPermissions
@@ -127,11 +126,11 @@ func TestBuildLocalApp(t *testing.T) {
 				require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 			})
 		}
-	}, t)
+	})
 }
 
 func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		cases := map[string]struct {
 			workload *pbcatalog.Workload
 			proxyCfg *pbmesh.ComputedProxyConfiguration
@@ -245,11 +244,11 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 				require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 			})
 		}
-	}, t)
+	})
 }
 
 func TestBuildTrafficPermissions(t *testing.T) {
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		testTrustDomain := "test.consul"
 
 		cases := map[string]struct {
@@ -1104,7 +1103,7 @@ func TestBuildTrafficPermissions(t *testing.T) {
 				}
 			})
 		}
-	}, t)
+	})
 }
 
 func testProxyStateTemplateID(tenancy *pbresource.Tenancy) *pbresource.ID {

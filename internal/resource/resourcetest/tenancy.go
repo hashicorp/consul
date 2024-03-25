@@ -81,10 +81,10 @@ func AppendTenancyInfo(name string, tenancy *pbresource.Tenancy) string {
 	return fmt.Sprintf("%s_%s_Namespace_%s_Partition", name, tenancy.Namespace, tenancy.Partition)
 }
 
-func RunWithTenancies(testFunc func(tenancy *pbresource.Tenancy), t *testing.T) {
+func RunWithTenancies(t *testing.T, testFunc func(t *testing.T, tenancy *pbresource.Tenancy)) {
 	for _, tenancy := range TestTenancies() {
 		t.Run(AppendTenancyInfo(t.Name(), tenancy), func(t *testing.T) {
-			testFunc(tenancy)
+			testFunc(t, tenancy)
 		})
 	}
 }

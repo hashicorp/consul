@@ -56,7 +56,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	types.Register(registry)
 	catalog.RegisterTypes(registry)
 
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		api1Service := resourcetest.Resource(pbcatalog.ServiceType, "api-1").
 			WithTenancy(tenancy).
 			WithData(t, serviceData).
@@ -444,12 +444,12 @@ func TestBuildExplicitDestinations(t *testing.T) {
 				require.JSONEq(t, expected, actual)
 			})
 		}
-	}, t)
+	})
 
 }
 
 func TestBuildImplicitDestinations(t *testing.T) {
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		api1Service := resourcetest.Resource(pbcatalog.ServiceType, "api-1").
 			WithTenancy(tenancy).
 			WithData(t, serviceData).
@@ -572,5 +572,5 @@ func TestBuildImplicitDestinations(t *testing.T) {
 				require.JSONEq(t, expected, actual)
 			})
 		}
-	}, t)
+	})
 }

@@ -30,7 +30,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		datacenter  = "dc1"
 	)
 
-	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	resourcetest.RunWithTenancies(t, func(t *testing.T, tenancy *pbresource.Tenancy) {
 		// TODO(rb/v2): add a fetchertest package to construct implicit upstreams
 		// correctly from inputs. the following is far too manual and error prone
 		// to be an accurate representation of what implicit upstreams look like.
@@ -262,5 +262,5 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 			})
 		}
-	}, t)
+	})
 }
