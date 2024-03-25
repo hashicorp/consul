@@ -48,8 +48,6 @@ DepMappers:
 */
 
 func Controller(globalDefaultAllow bool) *controller.Controller {
-	m := &mapAndTransformer{globalDefaultAllow: globalDefaultAllow}
-
 	boundRefsMapper := dependency.CacheListMapper(pbmesh.ComputedImplicitDestinationsType, boundRefsIndex.Name())
 
 	return controller.NewController(ControllerID,
@@ -62,18 +60,18 @@ func Controller(globalDefaultAllow bool) *controller.Controller {
 		).
 		WithWatch(pbauth.ComputedTrafficPermissionsType,
 			// BoundRefs: the WI source refs are interior up-pointers and may change.
-			dependency.MultiMapper(boundRefsMapper, m.MapComputedTrafficPermissions),
+			dependency.MultiMapper(boundRefsMapper, MapComputedTrafficPermissions(globalDefaultAllow)),
 			ctpBySourceWorkloadIdentityIndex,
 			ctpByWildcardSourceIndexCreator(globalDefaultAllow),
 		).
 		WithWatch(pbcatalog.ServiceType,
 			// BoundRefs: the WI slice in the status conds is an interior up-pointer and may change.
-			dependency.MultiMapper(boundRefsMapper, m.MapService),
+			dependency.MultiMapper(boundRefsMapper, MapService(globalDefaultAllow)),
 			serviceByWorkloadIdentityIndex,
 		).
 		WithWatch(pbmesh.ComputedRoutesType,
 			// BoundRefs: the backend services are interior up-pointers and may change.
-			dependency.MultiMapper(boundRefsMapper, m.MapComputedRoutes),
+			dependency.MultiMapper(boundRefsMapper, MapComputedRoutes(globalDefaultAllow)),
 			computedRoutesByBackendServiceIndex,
 		).
 		WithReconciler(&reconciler{

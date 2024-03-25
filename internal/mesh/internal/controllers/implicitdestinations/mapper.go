@@ -21,63 +21,65 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type mapAndTransformer struct {
-	globalDefaultAllow bool
-}
-
 // Note: these MapZZZ functions ignore the bound refs.
 
-func (m *mapAndTransformer) MapComputedTrafficPermissions(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+func MapComputedTrafficPermissions(globalDefaultAllow bool) controller.DependencyMapper {
 	// Summary: CTP <list> WI[source] <align> CID
 
 	dm := dependency.MapDecoded[*pbauth.ComputedTrafficPermissions](
 		// (1) turn CTP -> WI[source]
-		m.mapComputedTrafficPermissionsToSourceWorkloadIdentities,
+		mapComputedTrafficPermissionsToSourceWorkloadIdentities(globalDefaultAllow),
 	)
-	return dependency.WrapAndReplaceType(pbmesh.ComputedImplicitDestinationsType, dm)(ctx, rt, res)
+	return dependency.WrapAndReplaceType(pbmesh.ComputedImplicitDestinationsType, dm)
 }
 
-func (m *mapAndTransformer) MapService(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+func MapService(globalDefaultAllow bool) controller.DependencyMapper {
 	// Summary: SVC[backend] <list> WI[backend] <align> CTP <list> WI[source] <align> CID
 
 	dm := dependency.MapperWithTransform(
 		// (2) turn WI[backend] -> CTP -> WI[source]
-		m.mapBackendWorkloadIdentityToSourceWorkloadIdentity,
+		mapBackendWorkloadIdentityToSourceWorkloadIdentity(globalDefaultAllow),
 		// (1) turn SVC[backend] => WI[backend]
-		m.transformServiceToWorkloadIdentities,
+		transformServiceToWorkloadIdentities,
 	)
-	return dependency.WrapAndReplaceType(pbmesh.ComputedImplicitDestinationsType, dm)(ctx, rt, res)
+	return dependency.WrapAndReplaceType(pbmesh.ComputedImplicitDestinationsType, dm)
 }
 
-func (m *mapAndTransformer) MapComputedRoutes(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+func MapComputedRoutes(globalDefaultAllow bool) controller.DependencyMapper {
 	// Summary: CR <list> SVC[backend] <list> WI[backend] <align> CTP <list> WI[source] <align> CID
 
 	dm := dependency.MapperWithTransform(
 		// (3) turn WI[backend] -> CTP -> WI[source]
-		m.mapBackendWorkloadIdentityToSourceWorkloadIdentity,
+		mapBackendWorkloadIdentityToSourceWorkloadIdentity(globalDefaultAllow),
 		dependency.TransformChain(
 			// (1) Turn CR -> SVC[backend]
-			m.transformComputedRoutesToBackendServiceRefs,
+			transformComputedRoutesToBackendServiceRefs,
 			// (2) Turn SVC[backend] -> WI[backend]
-			m.transformServiceToWorkloadIdentities,
+			transformServiceToWorkloadIdentities,
 		),
 	)
-	return dependency.WrapAndReplaceType(pbmesh.ComputedImplicitDestinationsType, dm)(ctx, rt, res)
+	return dependency.WrapAndReplaceType(pbmesh.ComputedImplicitDestinationsType, dm)
 }
 
-func (m *mapAndTransformer) mapComputedTrafficPermissionsToSourceWorkloadIdentities(ctx context.Context, rt controller.Runtime, ctp *types.DecodedComputedTrafficPermissions) ([]controller.Request, error) {
-	refs, err := m.getSourceWorkloadIdentitiesFromCTPWithWildcardExpansion(rt.Cache, ctp)
-	if err != nil {
-		return nil, err
+func mapComputedTrafficPermissionsToSourceWorkloadIdentities(
+	globalDefaultAllow bool,
+) dependency.DecodedDependencyMapper[*pbauth.ComputedTrafficPermissions] {
+	return func(ctx context.Context, rt controller.Runtime, ctp *types.DecodedComputedTrafficPermissions,
+	) ([]controller.Request, error) {
+		refs, err := getSourceWorkloadIdentitiesFromCTPWithWildcardExpansion(rt.Cache, globalDefaultAllow, ctp)
+		if err != nil {
+			return nil, err
+		}
+		return controller.MakeRequests(pbauth.WorkloadIdentityType, refs), nil
 	}
-	return controller.MakeRequests(pbauth.WorkloadIdentityType, refs), nil
 }
 
-func (m *mapAndTransformer) getSourceWorkloadIdentitiesFromCTPWithWildcardExpansion(
+func getSourceWorkloadIdentitiesFromCTPWithWildcardExpansion(
 	cache cache.ReadOnlyCache,
+	globalDefaultAllow bool,
 	ctp *types.DecodedComputedTrafficPermissions,
 ) ([]*pbresource.Reference, error) {
-	if ctp.Data.IsDefault && m.globalDefaultAllow {
+	if ctp.Data.IsDefault && globalDefaultAllow {
 		return listAllWorkloadIdentities(cache, &pbresource.Tenancy{
 			Partition: storage.Wildcard,
 			Namespace: storage.Wildcard,
@@ -118,20 +120,26 @@ func (m *mapAndTransformer) getSourceWorkloadIdentitiesFromCTPWithWildcardExpans
 	return maps.Values(exact), nil
 }
 
-func (m *mapAndTransformer) mapBackendWorkloadIdentityToSourceWorkloadIdentity(ctx context.Context, rt controller.Runtime, wiRes *pbresource.Resource) ([]controller.Request, error) {
-	ctpID := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wiRes.Id)
+func mapBackendWorkloadIdentityToSourceWorkloadIdentity(
+	globalDefaultAllow bool,
+) controller.DependencyMapper {
+	ctpToWI := mapComputedTrafficPermissionsToSourceWorkloadIdentities(globalDefaultAllow)
 
-	ctp, err := cache.GetDecoded[*pbauth.ComputedTrafficPermissions](rt.Cache, pbauth.ComputedTrafficPermissionsType, "id", ctpID)
-	if err != nil {
-		return nil, err
-	} else if ctp == nil {
-		return nil, nil
+	return func(ctx context.Context, rt controller.Runtime, wiRes *pbresource.Resource) ([]controller.Request, error) {
+		ctpID := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, wiRes.Id)
+
+		ctp, err := cache.GetDecoded[*pbauth.ComputedTrafficPermissions](rt.Cache, pbauth.ComputedTrafficPermissionsType, "id", ctpID)
+		if err != nil {
+			return nil, err
+		} else if ctp == nil {
+			return nil, nil
+		}
+
+		return ctpToWI(ctx, rt, ctp)
 	}
-
-	return m.mapComputedTrafficPermissionsToSourceWorkloadIdentities(ctx, rt, ctp)
 }
 
-func (m *mapAndTransformer) transformServiceToWorkloadIdentities(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]*pbresource.Resource, error) {
+func transformServiceToWorkloadIdentities(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]*pbresource.Resource, error) {
 	// This is deliberately thin b/c WI's have no body, and we'll pass this to
 	// another transformer immediately anyway, so it's largely an opaque
 	// carrier for the WI name string only.
@@ -149,7 +157,7 @@ func (m *mapAndTransformer) transformServiceToWorkloadIdentities(ctx context.Con
 	return out, nil
 }
 
-func (m *mapAndTransformer) transformComputedRoutesToBackendServiceRefs(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]*pbresource.Resource, error) {
+func transformComputedRoutesToBackendServiceRefs(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]*pbresource.Resource, error) {
 	cr, err := resource.Decode[*pbmesh.ComputedRoutes](res)
 	if err != nil {
 		return nil, err
