@@ -495,6 +495,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					Definition: structs.HealthCheckDefinition{
+						TTL: time.Minute,
+					},
 				},
 			},
 		},
@@ -539,6 +542,11 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag1"},
 					Type:           "http",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					Definition: structs.HealthCheckDefinition{
+						HTTP:     "http://localhost:8100/",
+						Interval: 10 * time.Second,
+						Timeout:  3 * time.Second,
+					},
 				},
 			},
 		},
@@ -589,6 +597,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					Definition: structs.HealthCheckDefinition{
+						TTL: time.Minute,
+					},
 				},
 				"check-noname": {
 					Node:           "node1",
@@ -602,6 +613,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					Definition: structs.HealthCheckDefinition{
+						TTL: time.Minute,
+					},
 				},
 				"service:svcid2:3": {
 					Node:           "node1",
@@ -615,6 +629,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					Definition: structs.HealthCheckDefinition{
+						TTL: time.Minute,
+					},
 				},
 				"service:svcid2:4": {
 					Node:           "node1",
@@ -628,6 +645,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					Definition: structs.HealthCheckDefinition{
+						TTL: time.Minute,
+					},
 				},
 			},
 		},
@@ -1425,6 +1445,9 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceName:    "redis",
 		Type:           "ttl",
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		Definition: structs.HealthCheckDefinition{
+			TTL: time.Minute,
+		},
 	}
 	hchk2 := &structs.HealthCheck{Node: "node1",
 		CheckID:        "chk2",
@@ -1434,6 +1457,9 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceName:    "redis",
 		Type:           "ttl",
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		Definition: structs.HealthCheckDefinition{
+			TTL: 2 * time.Minute,
+		},
 	}
 
 	// register service with chk1
