@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/ipaddr"
 )
 
 func (ac *AutoConfig) autoEncryptInitialCerts(ctx context.Context) (*structs.SignedResponse, error) {
@@ -46,7 +46,7 @@ func (ac *AutoConfig) autoEncryptInitialCertsOnce(ctx context.Context, csr, key 
 	}
 	var resp structs.SignedResponse
 
-	servers, err := ac.joinHosts()
+	servers, err := ac.autoEncryptHosts()
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,10 @@ func (ac *AutoConfig) autoEncryptInitialCertsOnce(ctx context.Context, csr, key 
 	return nil, fmt.Errorf("No servers successfully responded to the auto-encrypt request")
 }
 
-func (ac *AutoConfig) joinHosts() ([]string, error) {
+// autoEncryptHosts is equivalent to autoConfigHosts, but for the auto-encrypt feature.
+// The key differences are that it gets its input from a different configuration setting,
+// and needs to discard port information.
+func (ac *AutoConfig) autoEncryptHosts() ([]string, error) {
 	// use servers known to gossip if there are any
 	if ac.acConfig.ServerProvider != nil {
 		if srv := ac.acConfig.ServerProvider.FindLANServer(); srv != nil {
@@ -90,18 +93,19 @@ func (ac *AutoConfig) joinHosts() ([]string, error) {
 	// The addresses we use for auto-encrypt are the retry join addresses.
 	// These are for joining serf and therefore we cannot rely on the
 	// ports for these. This loop strips any port that may have been specified and
-	// will let subsequent resolveAddr calls add on the default RPC port.
+	// will let subsequent resolveHost calls add on the default RPC port.
 	for _, addr := range hosts {
-		host, _, err := net.SplitHostPort(addr)
-		if err != nil {
-			if strings.Contains(err.Error(), "missing port in address") {
-				host = addr
-			} else {
+		// Using HasPort here ensures we don't try to call net.SplitHostPort with input that is valid in a retry_join
+		// configuration, such as bare IPv6 addresses, but which net.SplitHostPort will incorrectly reject.
+		if ipaddr.HasPort(addr) {
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
 				ac.logger.Warn("error splitting host address into IP and port", "address", addr, "error", err)
 				continue
 			}
+			addr = host
 		}
-		addrs = append(addrs, host)
+		addrs = append(addrs, addr)
 	}
 
 	if len(addrs) == 0 {

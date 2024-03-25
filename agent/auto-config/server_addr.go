@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-discover"
 	discoverk8s "github.com/hashicorp/go-discover/provider/k8s"
@@ -81,21 +82,22 @@ func (ac *AutoConfig) autoConfigHosts() ([]string, error) {
 // This will process any port in the input as well as looking up the hostname using
 // normal DNS resolution.
 func (ac *AutoConfig) resolveHost(hostPort string) []net.TCPAddr {
-	port := ac.config.ServerPort
+	// Input to this function may come from the server configuration file directly, or from autoEncryptHosts reading
+	// the retry_join configuration and chopping the ports off, or gossiped membership - we need to cater for presence
+	// or absence of port information. Using ipaddr.EnsurePort will take care of adding in a default port if needed,
+	// and correctly handle IPv6 literals, both with and without enclosing square brackets.
+	hostPort = ipaddr.EnsurePort(hostPort, ac.config.ServerPort)
+
 	host, portStr, err := net.SplitHostPort(hostPort)
 	if err != nil {
-		if strings.Contains(err.Error(), "missing port in address") {
-			host = hostPort
-		} else {
-			ac.logger.Warn("error splitting host address into IP and port", "address", hostPort, "error", err)
-			return nil
-		}
-	} else {
-		port, err = strconv.Atoi(portStr)
-		if err != nil {
-			ac.logger.Warn("Parsed port is not an integer", "port", portStr, "error", err)
-			return nil
-		}
+		ac.logger.Warn("error splitting host address into IP and port", "address", hostPort, "error", err)
+		return nil
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		ac.logger.Warn("Parsed port is not an integer", "port", portStr, "error", err)
+		return nil
 	}
 
 	// resolve the host to a list of IPs
