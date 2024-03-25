@@ -1318,6 +1318,13 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		EnterpriseMeta: key.EnterpriseMeta,
 		WriteRequest:   structs.WriteRequest{Token: st},
 	}
+	fallback_req := structs.DeregisterRequest{
+		Datacenter:     l.config.Datacenter,
+		Node:           l.config.NodeName,
+		ServiceID:      key.ID,
+		EnterpriseMeta: key.EnterpriseMeta,
+		WriteRequest:   structs.WriteRequest{Token: l.tokens.AgentToken()},
+	}
 	var out struct{}
 	err := l.Delegate.RPC(context.Background(), "Catalog.Deregister", &req, &out)
 	switch {
@@ -1334,8 +1341,41 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		}
 		l.logger.Info("Deregistered service", "service", key.ID)
 		return nil
+	case acl.IsErrNotFound(err):
+		// token might have sunken already, fallback to the default token
+		var out struct{}
+		err := l.Delegate.RPC("Catalog.Deregister", &fallback_req, &out)
+		switch {
+		case err == nil || strings.Contains(err.Error(), "Unknown service"):
+			delete(l.services, key)
+			// service deregister also deletes associated checks
+			for _, c := range l.checks {
+				if c.Deleted && c.Check != nil {
+					sid := c.Check.CompoundServiceID()
+					if sid.Matches(key) {
+						l.pruneCheck(c.Check.CompoundCheckID())
+					}
+				}
+			}
+			l.logger.Info("Deregistered service with fallback_req", "service", key.ID)
+			return nil
+		case acl.IsErrPermissionDenied(err):
+			// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
+			// todo(fs): some backoff strategy might be a better solution
+			l.services[key].InSync = true
+			accessorID := l.aclAccessorID(st)
+			l.logger.Warn("Service deregistration blocked by ACLs with fallback_req", "service", key.String(), "accessorID", accessorID)
+			metrics.IncrCounter([]string{"acl", "blocked", "service", "deregistration"}, 1)
+			return nil
 
-	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
+		default:
+			l.logger.Warn("Deregistering service failed with fallback_req.",
+				"service", key.String(),
+				"error", err,
+			)
+			return err
+		}
+	case acl.IsErrPermissionDenied(err):
 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[key].InSync = true
@@ -1530,12 +1570,26 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		SkipNodeUpdate:  l.nodeInfoInSync,
 	}
 
+	fallback_req := structs.RegisterRequest{
+		Datacenter:      l.config.Datacenter,
+		ID:              l.config.NodeID,
+		Node:            l.config.NodeName,
+		Address:         l.config.AdvertiseAddr,
+		TaggedAddresses: l.config.TaggedAddresses,
+		NodeMeta:        l.metadata,
+		Check:           c.Check,
+		EnterpriseMeta:  c.Check.EnterpriseMeta,
+		WriteRequest:    structs.WriteRequest{Token: l.tokens.UserToken()},
+		SkipNodeUpdate:  l.nodeInfoInSync,
+	}
+
 	serviceKey := structs.NewServiceID(c.Check.ServiceID, &key.EnterpriseMeta)
 
 	// Pull in the associated service if any
 	s := l.services[serviceKey]
 	if s != nil && !s.Deleted {
 		req.Service = s.Service
+		fallback_req.Service = s.Service
 	}
 
 	var out struct{}
@@ -1549,7 +1603,35 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		l.logger.Info("Synced check", "check", key.String())
 		return nil
 
-	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
+	case acl.IsErrNotFound(err):
+		// token might have sunken already, fallback to the default token
+		var out struct{}
+		err := l.Delegate.RPC("Catalog.Register", &fallback_req, &out)
+		switch {
+		case err == nil:
+			l.checks[key].InSync = true
+			// Given how the register API works, this info is also updated
+			// every time we sync a check.
+			l.nodeInfoInSync = true
+			l.logger.Info("Synced check with fallback_req", "check", key.String())
+			return nil
+		case acl.IsErrPermissionDenied(err):
+			// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
+			// todo(fs): some backoff strategy might be a better solution
+			l.checks[key].InSync = true
+			accessorID := l.aclAccessorID(ct)
+			l.logger.Warn("Check registration blocked by ACLs with fallback_req", "check", key.String(), "accessorID", accessorID)
+			metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
+			return nil
+		default:
+			l.logger.Warn("Syncing check failed with fallback_req.",
+				"check", key.String(),
+				"error", err,
+			)
+			return err
+		}
+
+	case acl.IsErrPermissionDenied(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
