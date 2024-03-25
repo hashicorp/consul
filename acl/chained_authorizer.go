@@ -113,6 +113,7 @@ func (c *ChainedAuthorizer) IdentityWriteAny(entCtx *AuthorizerContext) Enforcem
 // when no intentions match a Connect request.
 func (c *ChainedAuthorizer) IntentionDefaultAllow(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		//nolint:staticcheck
 		return authz.IntentionDefaultAllow(entCtx)
 	})
 }

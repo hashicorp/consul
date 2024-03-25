@@ -46,6 +46,8 @@ func (c *CloudConfig) Resource() (resource.Resource, error) {
 	return resource.FromString(c.ResourceID)
 }
 
+// HCPConfig returns a configuration to use with the HCP SDK. It assumes that the environment
+// variables for the HCP configuration have already been loaded and set in the CloudConfig.
 func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
 	if c.TLSConfig == nil {
 		c.TLSConfig = &tls.Config{}
@@ -62,7 +64,7 @@ func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfi
 	if c.ScadaAddress != "" {
 		opts = append(opts, hcpcfg.WithSCADA(c.ScadaAddress, c.TLSConfig))
 	}
-	opts = append(opts, hcpcfg.FromEnv(), hcpcfg.WithoutBrowserLogin())
+	opts = append(opts, hcpcfg.WithoutBrowserLogin())
 	return hcpcfg.NewHCPConfig(opts...)
 }
 

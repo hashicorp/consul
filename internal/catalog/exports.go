@@ -96,6 +96,10 @@ func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	return types.ValidateSelector(sel, allowEmpty)
 }
 
+func ValidatePortName(id string) error {
+	return types.ValidatePortName(id)
+}
+
 func ValidateServicePortID(id string) error {
 	return types.ValidateServicePortID(id)
 }

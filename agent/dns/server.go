@@ -5,6 +5,8 @@ package dns
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"net"
 
 	"github.com/miekg/dns"
@@ -22,6 +24,7 @@ import (
 type DNSRouter interface {
 	HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.Addr) *dns.Msg
 	ServeDNS(w dns.ResponseWriter, req *dns.Msg)
+	GetConfig() *RouterDynamicConfig
 	ReloadConfig(newCfg *config.RuntimeConfig) error
 }
 
@@ -36,11 +39,13 @@ type Server struct {
 
 // Config represent all the DNS configuration required to construct a DNS server.
 type Config struct {
-	AgentConfig *config.RuntimeConfig
-	EntMeta     acl.EnterpriseMeta
-	Logger      hclog.Logger
-	Processor   DiscoveryQueryProcessor
-	TokenFunc   func() string
+	AgentConfig                 *config.RuntimeConfig
+	EntMeta                     acl.EnterpriseMeta
+	Logger                      hclog.Logger
+	Processor                   DiscoveryQueryProcessor
+	TokenFunc                   func() string
+	TranslateAddressFunc        func(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string
+	TranslateServiceAddressFunc func(dc string, address string, taggedAddresses map[string]structs.ServiceAddress, accept dnsutil.TranslateAddressAccept) string
 }
 
 // NewServer creates a new DNS server.
@@ -89,6 +94,7 @@ func (d *Server) Shutdown() {
 			d.logger.Error("Error stopping DNS server", "error", err)
 		}
 	}
+	d.Router = nil
 }
 
 // GetAddr is a function to return the server address if is not nil.

@@ -9,13 +9,17 @@ import { tracked } from '@glimmer/tracking';
 const LOCAL_STORAGE_KEY = 'consul:hideHcpLinkBanner';
 
 export default class HcpLinkStatus extends Service {
-  @service('env') env;
+  @service abilities;
   @tracked
   userDismissedBanner = false;
 
   get shouldDisplayBanner() {
-    const hcpLinkEnabled = this.env.var('CONSUL_HCP_LINK_ENABLED');
-    return !this.userDismissedBanner && hcpLinkEnabled;
+    // With the death of Consul Central, we don't want to display the link nav item
+    return false;
+  }
+
+  get hasPermissionToLink() {
+    return this.abilities.can('write operators') && this.abilities.can('write acls');
   }
 
   constructor() {

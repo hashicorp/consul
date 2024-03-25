@@ -4,6 +4,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -1000,6 +1001,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DataDir:                                dataDir,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
+		DefaultIntentionPolicy:                 stringVal(c.DefaultIntentionPolicy),
 		DevMode:                                boolVal(b.opts.DevMode),
 		DisableAnonymousSignature:              boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                     boolVal(c.DisableCoordinates),
@@ -2580,11 +2582,37 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 }
 
 func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
+	// Load the same environment variables expected by hcp-sdk-go
+	envHostname, ok := os.LookupEnv("HCP_API_ADDRESS")
+	if !ok {
+		if legacyEnvHostname, ok := os.LookupEnv("HCP_API_HOST"); ok {
+			// Remove only https scheme prefixes from the deprecated environment
+			// variable for specifying the API host. Mirrors the same behavior as
+			// hcp-sdk-go.
+			if strings.HasPrefix(strings.ToLower(legacyEnvHostname), "https://") {
+				legacyEnvHostname = legacyEnvHostname[8:]
+			}
+			envHostname = legacyEnvHostname
+		}
+	}
+
+	var envTLSConfig *tls.Config
+	if os.Getenv("HCP_AUTH_TLS") == "insecure" ||
+		os.Getenv("HCP_SCADA_TLS") == "insecure" ||
+		os.Getenv("HCP_API_TLS") == "insecure" {
+		envTLSConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
 	val := hcpconfig.CloudConfig{
 		ResourceID:   os.Getenv("HCP_RESOURCE_ID"),
 		ClientID:     os.Getenv("HCP_CLIENT_ID"),
 		ClientSecret: os.Getenv("HCP_CLIENT_SECRET"),
+		AuthURL:      os.Getenv("HCP_AUTH_URL"),
+		Hostname:     envHostname,
+		ScadaAddress: os.Getenv("HCP_SCADA_ADDRESS"),
+		TLSConfig:    envTLSConfig,
 	}
+
 	// Node id might get overridden in setup.go:142
 	nodeID := stringVal(v.NodeID)
 	val.NodeID = types.NodeID(nodeID)
@@ -2594,20 +2622,29 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 		return val
 	}
 
-	val.AuthURL = stringVal(v.Cloud.AuthURL)
-	val.Hostname = stringVal(v.Cloud.Hostname)
-	val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
-
-	if resourceID := stringVal(v.Cloud.ResourceID); resourceID != "" {
-		val.ResourceID = resourceID
+	// Load configuration file variables for anything not set by environment variables
+	if val.AuthURL == "" {
+		val.AuthURL = stringVal(v.Cloud.AuthURL)
 	}
 
-	if clientID := stringVal(v.Cloud.ClientID); clientID != "" {
-		val.ClientID = clientID
+	if val.Hostname == "" {
+		val.Hostname = stringVal(v.Cloud.Hostname)
 	}
 
-	if clientSecret := stringVal(v.Cloud.ClientSecret); clientSecret != "" {
-		val.ClientSecret = clientSecret
+	if val.ScadaAddress == "" {
+		val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
+	}
+
+	if val.ResourceID == "" {
+		val.ResourceID = stringVal(v.Cloud.ResourceID)
+	}
+
+	if val.ClientID == "" {
+		val.ClientID = stringVal(v.Cloud.ClientID)
+	}
+
+	if val.ClientSecret == "" {
+		val.ClientSecret = stringVal(v.Cloud.ClientSecret)
 	}
 
 	return val

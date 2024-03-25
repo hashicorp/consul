@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -26,14 +25,13 @@ import (
 const ControllerName = "consul.io/gateway-proxy"
 
 // Controller is responsible for triggering reconciler for watched resources
-func Controller(cache *cache.Cache, trustDomainFetcher sidecarproxy.TrustDomainFetcher, dc string, defaultAllow bool) *controller.Controller {
+func Controller(trustDomainFetcher sidecarproxy.TrustDomainFetcher, dc string, defaultAllow bool) *controller.Controller {
 	// TODO NET-7016 Use caching functionality in NewController being implemented at time of writing
 	// TODO NET-7017 Add the host of other types we should watch
 	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithReconciler(&reconciler{
-			cache:          cache,
 			dc:             dc,
 			defaultAllow:   defaultAllow,
 			getTrustDomain: trustDomainFetcher,
@@ -43,7 +41,6 @@ func Controller(cache *cache.Cache, trustDomainFetcher sidecarproxy.TrustDomainF
 // reconciler is responsible for managing the ProxyStateTemplate for all
 // gateway types: mesh, api (future) and terminating (future).
 type reconciler struct {
-	cache          *cache.Cache
 	dc             string
 	defaultAllow   bool
 	getTrustDomain sidecarproxy.TrustDomainFetcher
@@ -58,7 +55,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	rt.Logger.Trace("reconciling proxy state template")
 
 	// Instantiate a data fetcher to fetch all reconciliation data.
-	dataFetcher := fetcher.New(rt.Client, r.cache)
+	dataFetcher := fetcher.New(rt.Client)
 
 	workloadID := resource.ReplaceType(pbcatalog.WorkloadType, req.ID)
 	workload, err := dataFetcher.FetchWorkload(ctx, workloadID)

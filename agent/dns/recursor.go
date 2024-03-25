@@ -31,7 +31,7 @@ func (r *recursor) handle(req *dns.Msg, cfgCtx *RouterDynamicConfig, remoteAddr 
 
 	network := "udp"
 	defer func(s time.Time) {
-		r.logger.Debug("request served from client",
+		r.logger.Trace("request served from client",
 			"question", q,
 			"network", network,
 			"latency", time.Since(s).String(),
@@ -55,7 +55,7 @@ func (r *recursor) handle(req *dns.Msg, cfgCtx *RouterDynamicConfig, remoteAddr 
 		resp, rtt, err = c.Exchange(req, recurseAddr)
 		// Check if the response is valid and has the desired Response code
 		if resp != nil && (resp.Rcode != dns.RcodeSuccess && resp.Rcode != dns.RcodeNameError) {
-			r.logger.Debug("recurse failed for question",
+			r.logger.Trace("recurse failed for question",
 				"question", q,
 				"rtt", rtt,
 				"recursor", recurseAddr,
@@ -71,7 +71,7 @@ func (r *recursor) handle(req *dns.Msg, cfgCtx *RouterDynamicConfig, remoteAddr 
 			resp.Compress = !cfgCtx.DisableCompression
 
 			// Forward the response
-			r.logger.Debug("recurse succeeded for question",
+			r.logger.Trace("recurse succeeded for question",
 				"question", q,
 				"rtt", rtt,
 				"recursor", recurseAddr,

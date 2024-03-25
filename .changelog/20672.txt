@@ -1,0 +1,3 @@
+```release-note: improvement
+xds: Improved the performance of xDS server side load balancing. Its slightly improved in Consul CE with drastic CPU usage reductions in Consul Enterprise.
+```

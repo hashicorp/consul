@@ -33,7 +33,7 @@ func parseLabels(labels []string) (*parsedLabels, bool) {
 				result.Namespace = labels[i]
 			case "ap":
 				result.Partition = labels[i]
-			case "dc": // TODO (v2-dns): This should also include "cluster" for the new notation.
+			case "dc", "cluster":
 				result.Datacenter = labels[i]
 			case "sg":
 				result.SamenessGroup = labels[i]
@@ -58,7 +58,7 @@ func parseLabels(labels []string) (*parsedLabels, bool) {
 			return nil, false
 		}
 
-		// Validation e need to validate that this a valid DNS including sg
+		// Validate that this a valid DNS including sg
 		if result.SamenessGroup != "" && (result.Datacenter != "" || result.Peer != "") {
 			return nil, false
 		}

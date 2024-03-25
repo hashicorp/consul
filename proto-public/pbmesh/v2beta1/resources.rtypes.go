@@ -12,14 +12,13 @@ const (
 
 	APIGatewayKind                   = "APIGateway"
 	ComputedExplicitDestinationsKind = "ComputedExplicitDestinations"
+	ComputedImplicitDestinationsKind = "ComputedImplicitDestinations"
 	ComputedProxyConfigurationKind   = "ComputedProxyConfiguration"
 	ComputedRoutesKind               = "ComputedRoutes"
 	DestinationPolicyKind            = "DestinationPolicy"
 	DestinationsKind                 = "Destinations"
 	DestinationsConfigurationKind    = "DestinationsConfiguration"
 	GRPCRouteKind                    = "GRPCRoute"
-	GatewayClassKind                 = "GatewayClass"
-	GatewayClassConfigKind           = "GatewayClassConfig"
 	HTTPRouteKind                    = "HTTPRoute"
 	MeshConfigurationKind            = "MeshConfiguration"
 	MeshGatewayKind                  = "MeshGateway"
@@ -39,6 +38,12 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         ComputedExplicitDestinationsKind,
+	}
+
+	ComputedImplicitDestinationsType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ComputedImplicitDestinationsKind,
 	}
 
 	ComputedProxyConfigurationType = &pbresource.Type{
@@ -75,18 +80,6 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         GRPCRouteKind,
-	}
-
-	GatewayClassType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         GatewayClassKind,
-	}
-
-	GatewayClassConfigType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         GatewayClassConfigKind,
 	}
 
 	HTTPRouteType = &pbresource.Type{

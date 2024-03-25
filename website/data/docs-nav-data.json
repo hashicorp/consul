@@ -103,15 +103,23 @@
         "path": "architecture"
       },
       {
-        "title": "Catalog",
+        "title": "v1 Catalog",
+        "path": "architecture/catalog"
+      },
+      {
+        "title": "v2 architecture",
         "routes": [
           {
-            "title": "v1 API",
-            "path": "architecture/catalog/v1"
+            "title": "Overview",
+            "path": "architecture/v2"
           },
           {
-            "title": "v2 API",
-            "path": "architecture/catalog/v2"
+            "title": "Catalog",
+            "path": "architecture/v2/catalog"
+          },
+          {
+            "title": "Resource groups",
+            "path": "architecture/v2/groups"
           }
         ]
       },
@@ -159,6 +167,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.18.x",
+            "path": "release-notes/consul/v1_18_x"
+          },
+          {
             "title": "v1.17.x",
             "path": "release-notes/consul/v1_17_x"
           },
@@ -199,6 +211,10 @@
       {
         "title": "Consul K8s",
         "routes": [
+          {
+            "title": "v1.4.x",
+            "path": "release-notes/consul-k8s/v1_4_x"
+          },
           {
             "title": "v1.3.x",
             "path": "release-notes/consul-k8s/v1_3_x"
@@ -659,6 +675,10 @@
           {
             "title": "Limit request rates to services",
             "path": "connect/manage-traffic/limit-request-rates"
+          },
+          {
+            "title": "Fault Injection",
+            "path": "connect/manage-traffic/fault-injection"
           },
           {
             "title": "Failover",
@@ -1536,7 +1556,7 @@
         ]
       },
       {
-        "title": "Multi-port services",
+        "title": "V2 Catalog API",
         "routes": [
           {
             "title": "Overview",
@@ -1547,16 +1567,12 @@
             "path": "k8s/multiport/configure"
           },
           {
-            "title": "Split TCP traffic between multi-port services",
+            "title": "Split TCP traffic between multiple ports",
             "path": "k8s/multiport/traffic-split"
           },
           {
             "title": "Reference",
             "routes": [
-              {
-                "title": "Consul resource command",
-                "path": "k8s/multiport/reference/resource-command"
-              },
               {
                 "title": "GRPCRoute resource",
                 "path": "k8s/multiport/reference/grpcroute"
@@ -1698,6 +1714,10 @@
     ]
   },
   {
+    "title": "Nomad",
+    "path": "nomad"
+  },
+  {
     "title": "AWS ECS",
     "routes": [
       {
@@ -1818,6 +1838,10 @@
         "path": "enterprise"
       },
       {
+        "title": "Long Term Support (LTS)",
+        "path": "enterprise/long-term-support"
+      },
+      {
         "title": "Admin Partitions",
         "path": "enterprise/admin-partitions"
       },
@@ -1836,6 +1860,10 @@
       {
         "title": "Enhanced Read Scalability",
         "path": "enterprise/read-scale"
+      },
+      {
+        "title": "Fault injection",
+        "href": "/docs/connect/manage-traffic/fault-injection"
       },
       {
         "title": "FIPS",

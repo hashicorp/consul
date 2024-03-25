@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -631,8 +632,7 @@ func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
 			expectErr: true,
 		},
 		"secondary server v2dns": {
-			hcl:       secondary + `experiments = ["v2dns"]`,
-			expectErr: true,
+			hcl: secondary + `experiments = ["v2dns"]`,
 		},
 		"secondary server v2tenancy": {
 			hcl:       secondary + `experiments = ["v2tenancy"]`,
@@ -705,5 +705,110 @@ func TestBuilder_WarnCloudConfigWithResourceApis(t *testing.T) {
 		} else {
 			require.NoError(t, err)
 		}
+	}
+}
+
+func TestBuilder_CloudConfigWithEnvironmentVars(t *testing.T) {
+	tests := map[string]struct {
+		hcl      string
+		env      map[string]string
+		expected hcpconfig.CloudConfig
+	}{
+		"ConfigurationOnly": {
+			hcl: `cloud{ resource_id = "config-resource-id" client_id = "config-client-id"
+			client_secret = "config-client-secret" auth_url = "auth.config.com"
+			hostname = "api.config.com" scada_address = "scada.config.com"}`,
+			expected: hcpconfig.CloudConfig{
+				ResourceID:   "config-resource-id",
+				ClientID:     "config-client-id",
+				ClientSecret: "config-client-secret",
+				AuthURL:      "auth.config.com",
+				Hostname:     "api.config.com",
+				ScadaAddress: "scada.config.com",
+			},
+		},
+		"EnvVarsOnly": {
+			env: map[string]string{
+				"HCP_RESOURCE_ID":   "env-resource-id",
+				"HCP_CLIENT_ID":     "env-client-id",
+				"HCP_CLIENT_SECRET": "env-client-secret",
+				"HCP_AUTH_URL":      "auth.env.com",
+				"HCP_API_ADDRESS":   "api.env.com",
+				"HCP_SCADA_ADDRESS": "scada.env.com",
+			},
+			expected: hcpconfig.CloudConfig{
+				ResourceID:   "env-resource-id",
+				ClientID:     "env-client-id",
+				ClientSecret: "env-client-secret",
+				AuthURL:      "auth.env.com",
+				Hostname:     "api.env.com",
+				ScadaAddress: "scada.env.com",
+			},
+		},
+		"EnvVarsOverrideConfig": {
+			hcl: `cloud{ resource_id = "config-resource-id" client_id = "config-client-id"
+			client_secret = "config-client-secret" auth_url = "auth.config.com"
+			hostname = "api.config.com" scada_address = "scada.config.com"}`,
+			env: map[string]string{
+				"HCP_RESOURCE_ID":   "env-resource-id",
+				"HCP_CLIENT_ID":     "env-client-id",
+				"HCP_CLIENT_SECRET": "env-client-secret",
+				"HCP_AUTH_URL":      "auth.env.com",
+				"HCP_API_ADDRESS":   "api.env.com",
+				"HCP_SCADA_ADDRESS": "scada.env.com",
+			},
+			expected: hcpconfig.CloudConfig{
+				ResourceID:   "env-resource-id",
+				ClientID:     "env-client-id",
+				ClientSecret: "env-client-secret",
+				AuthURL:      "auth.env.com",
+				Hostname:     "api.env.com",
+				ScadaAddress: "scada.env.com",
+			},
+		},
+		"Combination": {
+			hcl: `cloud{ resource_id = "config-resource-id" client_id = "config-client-id"
+				client_secret = "config-client-secret"}`,
+			env: map[string]string{
+				"HCP_AUTH_URL":      "auth.env.com",
+				"HCP_API_ADDRESS":   "api.env.com",
+				"HCP_SCADA_ADDRESS": "scada.env.com",
+			},
+			expected: hcpconfig.CloudConfig{
+				ResourceID:   "config-resource-id",
+				ClientID:     "config-client-id",
+				ClientSecret: "config-client-secret",
+				AuthURL:      "auth.env.com",
+				Hostname:     "api.env.com",
+				ScadaAddress: "scada.env.com",
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			for k, v := range tc.env {
+				t.Setenv(k, v)
+			}
+			devMode := true
+			builderOpts := LoadOpts{
+				DevMode: &devMode,
+				Overrides: []Source{
+					FileSource{
+						Name:   "overrides",
+						Format: "hcl",
+						Data:   tc.hcl,
+					},
+				},
+			}
+			loaded, err := Load(builderOpts)
+			require.NoError(t, err)
+
+			nodeName, err := os.Hostname()
+			require.NoError(t, err)
+			tc.expected.NodeName = nodeName
+
+			actual := loaded.RuntimeConfig.Cloud
+			require.Equal(t, tc.expected, actual)
+		})
 	}
 }

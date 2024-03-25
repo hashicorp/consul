@@ -20,236 +20,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-// TODO (v2-dns): requires PTR implementation
-func TestDNS_ServiceReverseLookup(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(true) {
-		t.Run(name, func(t *testing.T) {
-			a := NewTestAgent(t, experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			// Register a node with a service.
-			{
-				args := &structs.RegisterRequest{
-					Datacenter: "dc1",
-					Node:       "foo",
-					Address:    "127.0.0.1",
-					Service: &structs.NodeService{
-						Service: "db",
-						Tags:    []string{"primary"},
-						Port:    12345,
-						Address: "127.0.0.2",
-					},
-				}
-
-				var out struct{}
-				if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-					t.Fatalf("err: %v", err)
-				}
-			}
-
-			m := new(dns.Msg)
-			m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
-
-			c := new(dns.Client)
-			in, _, err := c.Exchange(m, a.DNSAddr())
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			if len(in.Answer) != 1 {
-				t.Fatalf("Bad: %#v", in)
-			}
-
-			ptrRec, ok := in.Answer[0].(*dns.PTR)
-			if !ok {
-				t.Fatalf("Bad: %#v", in.Answer[0])
-			}
-			if ptrRec.Ptr != serviceCanonicalDNSName("db", "service", "dc1", "consul", nil)+"." {
-				t.Fatalf("Bad: %#v", ptrRec)
-			}
-		})
-	}
-}
-
-// TODO (v2-dns): requires PTR implementation
-func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(true) {
-		t.Run(name, func(t *testing.T) {
-			a := NewTestAgent(t, experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			// Register a node with a service.
-			{
-				args := &structs.RegisterRequest{
-					Datacenter: "dc1",
-					Node:       "foo",
-					Address:    "2001:db8::1",
-					Service: &structs.NodeService{
-						Service: "db",
-						Tags:    []string{"primary"},
-						Port:    12345,
-						Address: "2001:db8::ff00:42:8329",
-					},
-				}
-
-				var out struct{}
-				if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-					t.Fatalf("err: %v", err)
-				}
-			}
-
-			m := new(dns.Msg)
-			m.SetQuestion("9.2.3.8.2.4.0.0.0.0.f.f.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.", dns.TypeANY)
-
-			c := new(dns.Client)
-			in, _, err := c.Exchange(m, a.DNSAddr())
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			if len(in.Answer) != 1 {
-				t.Fatalf("Bad: %#v", in)
-			}
-
-			ptrRec, ok := in.Answer[0].(*dns.PTR)
-			if !ok {
-				t.Fatalf("Bad: %#v", in.Answer[0])
-			}
-			if ptrRec.Ptr != serviceCanonicalDNSName("db", "service", "dc1", "consul", nil)+"." {
-				t.Fatalf("Bad: %#v", ptrRec)
-			}
-		})
-	}
-}
-
-// TODO (v2-dns): requires PTR implementation
-func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(true) {
-		t.Run(name, func(t *testing.T) {
-			a := NewTestAgent(t, `
-		domain = "custom"
-	`+experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			// Register a node with a service.
-			{
-				args := &structs.RegisterRequest{
-					Datacenter: "dc1",
-					Node:       "foo",
-					Address:    "127.0.0.1",
-					Service: &structs.NodeService{
-						Service: "db",
-						Tags:    []string{"primary"},
-						Port:    12345,
-						Address: "127.0.0.2",
-					},
-				}
-
-				var out struct{}
-				if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-					t.Fatalf("err: %v", err)
-				}
-			}
-
-			m := new(dns.Msg)
-			m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
-
-			c := new(dns.Client)
-			in, _, err := c.Exchange(m, a.DNSAddr())
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			if len(in.Answer) != 1 {
-				t.Fatalf("Bad: %#v", in)
-			}
-
-			ptrRec, ok := in.Answer[0].(*dns.PTR)
-			if !ok {
-				t.Fatalf("Bad: %#v", in.Answer[0])
-			}
-			if ptrRec.Ptr != serviceCanonicalDNSName("db", "service", "dc1", "custom", nil)+"." {
-				t.Fatalf("Bad: %#v", ptrRec)
-			}
-		})
-	}
-}
-
-// TODO (v2-dns): requires PTR implementation
-func TestDNS_ServiceReverseLookupNodeAddress(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(true) {
-		t.Run(name, func(t *testing.T) {
-			a := NewTestAgent(t, experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			// Register a node with a service.
-			{
-				args := &structs.RegisterRequest{
-					Datacenter: "dc1",
-					Node:       "foo",
-					Address:    "127.0.0.1",
-					Service: &structs.NodeService{
-						Service: "db",
-						Tags:    []string{"primary"},
-						Port:    12345,
-						Address: "127.0.0.1",
-					},
-				}
-
-				var out struct{}
-				if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-					t.Fatalf("err: %v", err)
-				}
-			}
-
-			m := new(dns.Msg)
-			m.SetQuestion("1.0.0.127.in-addr.arpa.", dns.TypeANY)
-
-			c := new(dns.Client)
-			in, _, err := c.Exchange(m, a.DNSAddr())
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			if len(in.Answer) != 1 {
-				t.Fatalf("Bad: %#v", in)
-			}
-
-			ptrRec, ok := in.Answer[0].(*dns.PTR)
-			if !ok {
-				t.Fatalf("Bad: %#v", in.Answer[0])
-			}
-			if ptrRec.Ptr != "foo.node.dc1.consul." {
-				t.Fatalf("Bad: %#v", ptrRec)
-			}
-		})
-	}
-}
-
 func TestDNS_ServiceLookupNoMultiCNAME(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -461,14 +231,12 @@ func TestDNS_ServiceLookupMultiAddrNoCNAME(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7640 - NS Record not populate on some invalid service / prepared query lookups.
 func TestDNS_ServiceLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -503,6 +271,9 @@ func TestDNS_ServiceLookup(t *testing.T) {
 						Name: "test",
 						Service: structs.ServiceQuery{
 							Service: "db",
+						},
+						DNS: structs.QueryDNSOptions{
+							TTL: "3s",
 						},
 					},
 				}
@@ -540,9 +311,6 @@ func TestDNS_ServiceLookup(t *testing.T) {
 				if srvRec.Target != "foo.node.dc1.consul." {
 					t.Fatalf("Bad: %#v", srvRec)
 				}
-				if srvRec.Hdr.Ttl != 0 {
-					t.Fatalf("Bad: %#v", in.Answer[0])
-				}
 
 				aRec, ok := in.Extra[0].(*dns.A)
 				if !ok {
@@ -554,9 +322,24 @@ func TestDNS_ServiceLookup(t *testing.T) {
 				if aRec.A.String() != "127.0.0.1" {
 					t.Fatalf("Bad: %#v", in.Extra[0])
 				}
-				if aRec.Hdr.Ttl != 0 {
-					t.Fatalf("Bad: %#v", in.Extra[0])
+
+				if strings.Contains(question, "query") {
+					// The query should have the TTL associated with the query registration.
+					if srvRec.Hdr.Ttl != 3 {
+						t.Fatalf("Bad: %#v", in.Answer[0])
+					}
+					if aRec.Hdr.Ttl != 3 {
+						t.Fatalf("Bad: %#v", in.Extra[0])
+					}
+				} else {
+					if srvRec.Hdr.Ttl != 0 {
+						t.Fatalf("Bad: %#v", in.Answer[0])
+					}
+					if aRec.Hdr.Ttl != 0 {
+						t.Fatalf("Bad: %#v", in.Extra[0])
+					}
 				}
+
 			}
 
 			// Lookup a non-existing service/query, we should receive an SOA.
@@ -657,15 +440,12 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7659 - Fix Ingress and Connect Service Lookups
 func TestDNS_ConnectServiceLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -711,15 +491,12 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7659 - Fix Ingress and Connect Service Lookups
 func TestDNS_IngressServiceLookup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1130,14 +907,12 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7636 - Implement target having encoded IP address
 func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1232,14 +1007,12 @@ func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7636 - Implement target having encoded IP address
 func TestDNS_AltDomain_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		alt_domain = "test-domain"
@@ -1341,7 +1114,6 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it
 func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1356,7 +1128,7 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	})
 	defer recursor.Shutdown()
 
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		               recursors = ["`+recursor.Addr+`"]
@@ -1463,14 +1235,12 @@ func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7636 - Implement target having encoded IP address
 func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -1565,14 +1335,12 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7636 - Implement target having encoded IP address
 func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		alt_domain = "test-domain"
@@ -1674,14 +1442,12 @@ func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns):  NET-7634 - Implement WAN translation
 func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a1 := NewTestAgent(t, `
 		datacenter = "dc1"
@@ -1993,7 +1759,7 @@ func TestDNS_ServiceLookup_CaseInsensitive(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it
+// V2 DNS: we have deprecated support for service tags w/ periods
 func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2074,14 +1840,12 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7632 - Fix node and prepared query lookups when question name has a period in it.
 func TestDNS_ServiceLookup_PreparedQueryNamePeriod(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2274,14 +2038,12 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7641 - Service lookups not properly de-duping SRV records
 func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2414,14 +2176,12 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7637 - implementing health filtering
 func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2579,14 +2339,12 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7637 - implementing health filtering
 func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2701,14 +2459,12 @@ func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7637 - implementing health filtering
 func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -2853,14 +2609,12 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7635 - Fix dns: overflowing header size in tests
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
@@ -2953,14 +2707,12 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7635 - Fix dns: overflowing header size in tests
 func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -3031,14 +2783,12 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7638 - Implemented truncated response
 func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		dns_config {
@@ -3244,7 +2994,7 @@ func checkDNSService(
 	expectedResultsCount int,
 	udpSize uint16,
 ) {
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 			a := NewTestAgent(t, `
 		node_name = "test-node"
@@ -3325,7 +3075,6 @@ func checkDNSService(
 	}
 }
 
-// TODO (v2-dns): NET-7633 - implement answer limits.
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -3412,14 +3161,12 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	}
 }
 
-// TODO (v2-dns): NET-7633 - implement answer limits.
 func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-	for name, experimentsHCL := range getVersionHCL(false) {
+	for name, experimentsHCL := range getVersionHCL(true) {
 		t.Run(name, func(t *testing.T) {
 
 			// Build a matrix of config parameters (udpAnswerLimit), and the
