@@ -4177,7 +4177,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						Mode: structs.MeshGatewayModeRemote,
 					},
 					Mode: structs.ProxyModeTransparent,
-					TransparentProxy: structs.TransparentProxyConfig{
+					TransparentProxy: &structs.TransparentProxyConfig{
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
 					},
@@ -4250,7 +4250,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						Mode: structs.MeshGatewayModeRemote,
 					},
 					Mode: structs.ProxyModeTransparent,
-					TransparentProxy: structs.TransparentProxyConfig{
+					TransparentProxy: &structs.TransparentProxyConfig{
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
 					},

@@ -3138,7 +3138,7 @@ func testcase_ServiceDefaultsTProxy() compileTestCase {
 		&structs.ServiceConfigEntry{
 			Kind: structs.ServiceDefaults,
 			Name: "main",
-			TransparentProxy: structs.TransparentProxyConfig{
+			TransparentProxy: &structs.TransparentProxyConfig{
 				DialedDirectly: true,
 			},
 		},
@@ -3215,7 +3215,7 @@ func testcase_ServiceDefaultsOverrideTProxy() compileTestCase {
 		&structs.ServiceConfigEntry{
 			Kind: structs.ServiceDefaults,
 			Name: "main",
-			TransparentProxy: structs.TransparentProxyConfig{
+			TransparentProxy: &structs.TransparentProxyConfig{
 				DialedDirectly: true,
 			},
 		},

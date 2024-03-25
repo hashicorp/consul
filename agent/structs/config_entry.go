@@ -163,20 +163,20 @@ type ServiceConfigEntry struct {
 	Kind                      string
 	Name                      string
 	Protocol                  string
-	Mode                      ProxyMode              `json:",omitempty"`
-	TransparentProxy          TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MutualTLSMode             MutualTLSMode          `json:",omitempty" alias:"mutual_tls_mode"`
-	MeshGateway               MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose                    ExposeConfig           `json:",omitempty"`
-	ExternalSNI               string                 `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig            *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
-	Destination               *DestinationConfig     `json:",omitempty"`
-	MaxInboundConnections     int                    `json:",omitempty" alias:"max_inbound_connections"`
-	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
-	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
-	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
-	RateLimits                *RateLimits            `json:",omitempty" alias:"rate_limits"`
-	EnvoyExtensions           EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
+	Mode                      ProxyMode               `json:",omitempty"`
+	TransparentProxy          *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode             MutualTLSMode           `json:",omitempty" alias:"mutual_tls_mode"`
+	MeshGateway               MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
+	Expose                    ExposeConfig            `json:",omitempty"`
+	ExternalSNI               string                  `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig            *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
+	Destination               *DestinationConfig      `json:",omitempty"`
+	MaxInboundConnections     int                     `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
+	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
+	RateLimits                *RateLimits             `json:",omitempty" alias:"rate_limits"`
+	EnvoyExtensions           EnvoyExtensions         `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
 	Hash               uint64            `json:",omitempty" hash:"ignore"`

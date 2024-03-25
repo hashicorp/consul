@@ -1285,7 +1285,7 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 					Kind:             structs.ServiceDefaults,
 					Name:             "foo",
 					Mode:             structs.ProxyModeTransparent,
-					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 808},
+					TransparentProxy: &structs.TransparentProxyConfig{OutboundListenerPort: 808},
 				},
 			},
 			request: structs.ServiceConfigRequest{
@@ -1338,7 +1338,7 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 					Kind: structs.ServiceDefaults,
 					Name: "foo",
 					Mode: structs.ProxyModeTransparent,
-					TransparentProxy: structs.TransparentProxyConfig{
+					TransparentProxy: &structs.TransparentProxyConfig{
 						OutboundListenerPort: 808,
 						DialedDirectly:       true,
 					},
@@ -1724,7 +1724,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 
 					// TransparentProxy on the config entry but not the config request
 					Mode: structs.ProxyModeTransparent,
-					TransparentProxy: structs.TransparentProxyConfig{
+					TransparentProxy: &structs.TransparentProxyConfig{
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
 					},
