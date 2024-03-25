@@ -166,7 +166,7 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Delete a centralized config entry"
 	help     = `
-Usage: consul config delete [options] ([-kind <config kind> -name <config name>] | [-f FILENAME])
+Usage: consul config delete [options] ([-kind <config kind> -name <config name>] | [-filename FILENAME])
 
   Deletes the configuration entry specified by the kind and name.
 
