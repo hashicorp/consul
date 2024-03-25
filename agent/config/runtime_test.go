@@ -3510,6 +3510,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					"enabled": true,
 					"ca_provider": "vault",
 					"ca_config": {
+						"address": "http://127.0.0.1:8200",
 						"ca_file": "/capath/ca.pem",
 						"ca_path": "/capath/",
 						"cert_file": "/certpath/cert.pem",
@@ -3527,6 +3528,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					enabled = true
 					ca_provider = "vault"
 					ca_config {
+						address = "http://127.0.0.1:8200"
 						ca_file = "/capath/ca.pem"
 						ca_path = "/capath/"
 						cert_file = "/certpath/cert.pem"
@@ -3544,6 +3546,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			rt.ConnectCAProvider = "vault"
 			rt.ConnectCAConfig = map[string]interface{}{
+				"Address":             "http://127.0.0.1:8200",
 				"CAFile":              "/capath/ca.pem",
 				"CAPath":              "/capath/",
 				"CertFile":            "/certpath/cert.pem",
@@ -3566,6 +3569,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					"enabled": true,
 					"ca_provider": "vault",
 					"ca_config": {
+						"address": "http://127.0.0.1:8200",
 						"ca_file": "/capath/ca.pem",
 						"ca_path": "/capath/",
 						"cert_file": "/certpath/cert.pem",
@@ -3584,6 +3588,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					enabled = true
 					ca_provider = "vault"
 					ca_config {
+						address = "http://127.0.0.1:8200"
 						ca_file = "/capath/ca.pem"
 						ca_path = "/capath/"
 						cert_file = "/certpath/cert.pem"
@@ -3602,6 +3607,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConnectEnabled = true
 			rt.ConnectCAProvider = "vault"
 			rt.ConnectCAConfig = map[string]interface{}{
+				"Address":             "http://127.0.0.1:8200",
 				"CAFile":              "/capath/ca.pem",
 				"CAPath":              "/capath/",
 				"CertFile":            "/certpath/cert.pem",
