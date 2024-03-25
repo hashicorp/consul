@@ -52,6 +52,7 @@ type VersionInfo struct {
 	Revision     string
 	Prerelease   string
 	FIPS         string `json:",omitempty"`
+	BuildArch    string
 	BuildDate    time.Time
 	RPC          RPCVersionInfo
 }
@@ -80,6 +81,7 @@ func (c *cmd) Run(args []string) int {
 		Revision:     version.GitCommit,
 		Prerelease:   version.VersionPrerelease,
 		BuildDate:    buildDate,
+		BuildArch:    version.BuildArch,
 		FIPS:         version.GetFIPSInfo(),
 		RPC: RPCVersionInfo{
 			Default: consul.DefaultRPCProtocol,
