@@ -447,6 +447,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `data_dir` Equivalent to the [`-data-dir` command-line flag](/consul/docs/agent/config/cli-flags#_data_dir).
 
+- `default_intention_policy` Controls how service-to-service traffic is authorized
+  in the absence of specific intentions.
+  Can be set to `allow`, `deny`, or left empty to default to [`acl.default_policy`](#acl_default_policy).
+
 - `disable_anonymous_signature` Disables providing an anonymous
   signature for de-duplication with the update check. See [`disable_update_check`](#disable_update_check).
 
