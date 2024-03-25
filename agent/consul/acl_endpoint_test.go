@@ -1327,7 +1327,24 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := a.TokenSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "Node identity is missing the datacenter field on this token")
+		testutil.RequireErrorContains(t, err, "datacenter cannot be empty")
+	})
+	t.Run("node identity - invalid format for datacenter", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "invalid<dc",
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLToken{}
+		err := a.TokenSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "datacenter can only contain lowercase alphanumeric")
 	})
 }
 
@@ -2169,6 +2186,36 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("Create with invalid dc name", func(t *testing.T) {
+		req := structs.ACLPolicySetRequest{
+			Datacenter: "dc1#dc2",
+			Policy: structs.ACLPolicy{
+				Description: "foobar",
+				Name:        "invalid_dc_name",
+				Rules:       "service \"\" { policy = \"read\" }",
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLPolicy{}
+		err := acl.PolicySet(&req, &resp)
+		require.Error(t, err)
+	})
+	t.Run("Update with invalid dc name", func(t *testing.T) {
+		req := structs.ACLPolicySetRequest{
+			Datacenter: "dc1#dc2",
+			Policy: structs.ACLPolicy{
+				ID:          policyID,
+				Description: "bat",
+				Name:        "bar",
+				Rules:       "service \"\" { policy = \"write\" }",
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLPolicy{}
+		err := acl.PolicySet(&req, &resp)
+		require.Error(t, err)
+	})
+
 	t.Run("Update it", func(t *testing.T) {
 		req := structs.ACLPolicySetRequest{
 			Datacenter: "dc1",
@@ -2617,6 +2664,26 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		require.Empty(t, role.NodeIdentities)
 	})
 
+	t.Run("Update role with invalid dc name", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1#dc2",
+			Role: structs.ACLRole{
+				ID:          roleID,
+				Description: "bat",
+				Name:        "bar",
+				Policies: []structs.ACLRolePolicyLink{
+					{
+						ID: testPolicy2.ID,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLRole{}
+		err := a.RoleSet(&req, &resp)
+		require.Error(t, err)
+	})
+
 	t.Run("Create it using Policies linked by id and name", func(t *testing.T) {
 		policy1, err := upsertTestPolicy(codec, TestDefaultInitialManagementToken, "dc1")
 		require.NoError(t, err)
@@ -2685,6 +2752,40 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 
 		err := a.RoleSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Service identity is missing the service name field")
+	})
+
+	t.Run("Create it with invalid service identity datacenter", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Description: "foobar",
+				Name:        roleNameGen(t),
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{ServiceName: "s3", Datacenters: []string{"dc1#notdc2"}},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLRole{}
+
+		err := a.RoleSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "datacenter can only contain lowercase alphanumeric")
+	})
+
+	t.Run("Update role with invalid dc name in service identity", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				ID: roleID,
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{ServiceName: "s4", Datacenters: []string{"dc1#notdc2"}},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLRole{}
+		err := a.RoleSet(&req, &resp)
+		require.Error(t, err)
 	})
 
 	t.Run("Create it with invalid service identity (too large)", func(t *testing.T) {
@@ -2880,7 +2981,45 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 		resp := structs.ACLRole{}
 
 		err := a.RoleSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "Node identity is missing the datacenter field on this role")
+		testutil.RequireErrorContains(t, err, "datacenter cannot be empty")
+	})
+
+	t.Run("invalid node identity - invalid datacenter", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Name: roleNameGen(t),
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "invalid<dc",
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLRole{}
+		err := a.RoleSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "datacenter can only contain lowercase alphanumeric")
+	})
+
+	t.Run("invalid node identity - empty datacenter", func(t *testing.T) {
+		req := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Name: roleNameGen(t),
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "",
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		resp := structs.ACLRole{}
+		err := a.RoleSet(&req, &resp)
+		testutil.RequireErrorContains(t, err, "datacenter cannot be empty")
 	})
 }
 
