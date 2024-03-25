@@ -23,8 +23,13 @@ func NewConfigSource(cfgMgr ConfigManager) *ConfigSource {
 	return &ConfigSource{cfgMgr}
 }
 
-func (m *ConfigSource) Watch(proxyID *pbresource.ID, nodeName string, _ string) (<-chan proxysnapshot.ProxySnapshot,
-	limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error) {
+func (m *ConfigSource) Watch(proxyID *pbresource.ID, nodeName string, _ string) (
+	<-chan proxysnapshot.ProxySnapshot,
+	limiter.SessionTerminatedChan,
+	proxycfg.SrcTerminatedChan,
+	proxysnapshot.CancelFunc,
+	error,
+) {
 	serviceID := structs.NewServiceID(proxyID.Name, catalog.GetEnterpriseMetaFromResourceID(proxyID))
 	watchCh, cancelWatch := m.manager.Watch(proxycfg.ProxyID{
 		ServiceID: serviceID,
@@ -36,5 +41,5 @@ func (m *ConfigSource) Watch(proxyID *pbresource.ID, nodeName string, _ string) 
 		// is checked before the watch is created).
 		Token: "",
 	})
-	return watchCh, nil, cancelWatch, nil
+	return watchCh, nil, nil, cancelWatch, nil
 }

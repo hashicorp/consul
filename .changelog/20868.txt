@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix issue where Consul-dataplane xDS sessions would not utilize the streaming backend for wan-federated queries.
+```

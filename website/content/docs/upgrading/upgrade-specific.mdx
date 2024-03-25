@@ -14,6 +14,17 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul v1.19.x
+
+### Metrics removal
+
+In previous versions, Consul emitted redundant state store usage metrics that contained two instances of `consul` in the metric name. As an example, config entry usage counts were emitted as both:
+
+- `consul.state.config_entries`
+- `consul.consul.state.config_entries`
+
+As of Consul v1.19, Consul does not emit the redundant metric with the double `consul.consul` in its name. Any monitoring alerts and dashboards that you may have utilizing these metrics may require edits to update to the simplified metric name.
+
 ## Consul 1.17.x
 
 ### Known issues

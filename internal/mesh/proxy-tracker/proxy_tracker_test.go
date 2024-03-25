@@ -37,7 +37,7 @@ func TestProxyTracker_Watch(t *testing.T) {
 	})
 
 	// Watch()
-	proxyStateChan, _, cancelFunc, err := pt.Watch(resourceID, "node 1", "token")
+	proxyStateChan, _, _, cancelFunc, err := pt.Watch(resourceID, "node 1", "token")
 	require.NoError(t, err)
 
 	// ensure New Proxy Connection message is sent
@@ -91,7 +91,7 @@ func TestProxyTracker_Watch_ErrorConsumerNotReady(t *testing.T) {
 	}
 
 	// Watch()
-	proxyStateChan, sessionTerminatedCh, cancelFunc, err := pt.Watch(resourceID, "node 1", "token")
+	proxyStateChan, sessionTerminatedCh, _, cancelFunc, err := pt.Watch(resourceID, "node 1", "token")
 	require.Nil(t, cancelFunc)
 	require.Nil(t, proxyStateChan)
 	require.Nil(t, sessionTerminatedCh)
@@ -146,7 +146,7 @@ func TestProxyTracker_Watch_ArgValidationErrors(t *testing.T) {
 		})
 
 		// Watch()
-		proxyStateChan, sessionTerminateCh, cancelFunc, err := pt.Watch(tc.proxyID, tc.nodeName, tc.token)
+		proxyStateChan, sessionTerminateCh, _, cancelFunc, err := pt.Watch(tc.proxyID, tc.nodeName, tc.token)
 		require.Error(t, err)
 		require.Equal(t, tc.expectedError, err)
 		require.Nil(t, proxyStateChan)
@@ -166,7 +166,7 @@ func TestProxyTracker_Watch_SessionLimiterError(t *testing.T) {
 	})
 
 	// Watch()
-	proxyStateChan, sessionTerminateCh, cancelFunc, err := pt.Watch(resourceID, "node 1", "token")
+	proxyStateChan, sessionTerminateCh, _, cancelFunc, err := pt.Watch(resourceID, "node 1", "token")
 	require.Error(t, err)
 	require.Equal(t, "kaboom", err.Error())
 	require.Nil(t, proxyStateChan)
@@ -190,7 +190,7 @@ func TestProxyTracker_PushChange(t *testing.T) {
 	})
 
 	// Watch()
-	proxyStateChan, _, _, err := pt.Watch(resourceID, "node 1", "token")
+	proxyStateChan, _, _, _, err := pt.Watch(resourceID, "node 1", "token")
 	require.NoError(t, err)
 
 	// PushChange
@@ -255,7 +255,7 @@ func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
 				session.On("Terminated").Return(channel).Maybe()
 				session.On("End").Return().Maybe()
 				limiter.On("BeginSession").Return(session, nil)
-				_, _, _, _ = pt.Watch(resourceID, "node 1", "token")
+				_, _, _, _, _ = pt.Watch(resourceID, "node 1", "token")
 			},
 		},
 	}
@@ -294,7 +294,7 @@ func TestProxyTracker_Shutdown(t *testing.T) {
 	})
 
 	// Watch()
-	proxyStateChan, _, _, err := pt.Watch(resourceID, "node 1", "token")
+	proxyStateChan, _, _, _, err := pt.Watch(resourceID, "node 1", "token")
 	require.NoError(t, err)
 
 	pt.Shutdown()
