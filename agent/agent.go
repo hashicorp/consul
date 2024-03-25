@@ -1004,7 +1004,7 @@ func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher, server *consul
 }
 
 func (a *Agent) listenAndServeGRPC(proxyTracker *proxytracker.ProxyTracker, server *consul.Server) error {
-	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
+	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 && a.scadaProvider == nil {
 		return nil
 	}
 	var proxyWatcher xds.ProxyWatcher
@@ -1058,6 +1058,13 @@ func (a *Agent) listenAndServeGRPC(proxyTracker *proxytracker.ProxyTracker, serv
 	// Only allow grpc_tls to spawn with a TLS listener.
 	if a.config.GRPCTLSPort > 0 {
 		if err := start("grpc_tls", a.config.GRPCTLSAddrs, middleware.ProtocolTLS); err != nil {
+			closeListeners(listeners)
+			return err
+		}
+	}
+	// Spawn plaintext listener for hcp scada listener
+	if a.scadaProvider != nil {
+		if err := start("grpc_scada", []net.Addr{scada.CAPCoreGRPC}, middleware.ProtocolPlaintext); err != nil {
 			closeListeners(listeners)
 			return err
 		}
