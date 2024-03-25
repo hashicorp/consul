@@ -110,6 +110,36 @@ func (suite *controllerSuite) TestController_Ok() {
 	require.Equal(suite.T(), pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE, updatedLink.AccessLevel)
 }
 
+func (suite *controllerSuite) TestController_RequeueAfterSuccess() {
+	mockClient, mockClientFn := mockHcpClientFn(suite.T())
+	readWrite := gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevelCONSULACCESSLEVELGLOBALREADWRITE
+	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
+		HCPPortalURL: "http://test.com",
+		AccessLevel:  &readWrite,
+	}, nil)
+
+	ctl := controller.NewTestController(LinkController(
+		false,
+		false,
+		mockClientFn,
+		config.CloudConfig{},
+	), suite.client)
+
+	linkData := &pbhcp.Link{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   types.GenerateTestResourceID(suite.T()),
+	}
+
+	link := rtest.Resource(pbhcp.LinkType, "global").
+		WithData(suite.T(), linkData).
+		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
+
+	require.ErrorIs(suite.T(), controller.RequeueAfterError(linkControllerPeriod), ctl.Reconcile(context.Background(), controller.Request{ID: link.Id}))
+}
+
 func (suite *controllerSuite) TestController_Initialize() {
 	// Run the controller manager with a configured link
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
