@@ -16,6 +16,8 @@ export default class BaseRoute extends Route {
   @service('repository/permission') permissions;
   @service('router') router;
   @service('routlet') routlet;
+  @service('flashMessages') notify;
+  @service store;
 
   _setRouteName() {
     super._setRouteName(...arguments);
@@ -29,6 +31,29 @@ export default class BaseRoute extends Route {
     if (typeof queryParams !== 'undefined') {
       this.queryParams = queryParams;
     }
+  }
+
+  @action
+  didTransition() {
+    // get certificate expiry details from store.
+    // if available and expiry is less than 29Days, then add to notification.
+    const certs = this.store.peekAll('certificate').toArray();
+
+    for (let i = 0; i < certs?.length; i++) {
+      if (certs[i].ExpiresInDays < 29) {
+        if (i === 0) {
+          this.notify.clearMessages();
+        }
+        this.notify.add({
+          type: 'warning',
+          sticky: true,
+          model: 'certificate',
+          item: certs[i],
+        });
+      }
+    }
+
+    return true;
   }
 
   redirect(model, transition) {
