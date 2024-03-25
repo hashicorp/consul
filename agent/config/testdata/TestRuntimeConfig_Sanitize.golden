@@ -509,7 +509,8 @@
             ],
             "BaseURL": "",
             "PathAllowlist": []
-        }
+        },
+        "MarkServiceStatusThreshold": 0.6
     },
     "UnixSocketGroup": "",
     "UnixSocketMode": "",

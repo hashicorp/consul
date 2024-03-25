@@ -40,6 +40,36 @@
       {{format-number @item.InstanceCount}}
       {{pluralize @item.InstanceCount 'instance' without-count=true}}
     </span>
+    {{#if (gt @item.MeshInstancesPassing 0)}}
+      <dl class='passing'>
+        <dt {{tooltip 'Each of these instances have all health checks passing.'}}></dt>
+        <dd>
+          {{format-number @item.MeshInstancesPassing}}
+          {{pluralize @item.MeshInstancesPassing 'instance' without-count=true}}
+          passing
+        </dd>
+      </dl>
+    {{/if}}
+    {{#if (gt @item.MeshInstancesCritical 0)}}
+      <dl class='critical'>
+        <dt {{tooltip 'Each of these instances have atleast one health check failing.'}}></dt>
+        <dd>
+          {{format-number @item.MeshInstancesCritical}}
+          {{pluralize @item.MeshInstancesCritical 'instance' without-count=true}}
+          critical
+        </dd>
+      </dl>
+    {{/if}}
+    {{#if (gt @item.MeshInstancesWarning 0)}}
+      <dl class='warning'>
+        <dt {{tooltip 'Each of these instances have atleast one warning health check.'}}></dt>
+        <dd>
+          {{format-number @item.MeshInstancesWarning}}
+          {{pluralize @item.MeshInstancesWarning 'instance' without-count=true}}
+          warning
+        </dd>
+      </dl>
+    {{/if}}
   {{/if}}
   {{! we are displaying imported-services - don't show bucket-list }}
   {{#unless @isPeerDetail}}
