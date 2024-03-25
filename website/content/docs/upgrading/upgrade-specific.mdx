@@ -27,12 +27,12 @@ As of Consul v1.19, Consul does not emit the redundant metric with the double `c
 
 ### Legacy API Gateway Removal
 The Consul Kubernetes Helm chart stanza
-[`.Values.apiGateway`](/consul/docs/v1.16.x/k8s/helm#apigateway-1)
+[`.apiGateway`](/consul/docs/v1.16.x/k8s/helm#apigateway-1)
 is removed in Consul v1.19.0. If using that stanza, migrate to the
 [`connectInject.apiGateway`](/consul/docs/k8s/helm#v-connectinject-apigateway)
 stanza before upgrading to Consul v1.19 or later.
 
-The `.Values.apiGateway` stanza is associated with the legacy API gateway that was
+The `.apiGateway` stanza is associated with the legacy API gateway that was
 [deprecated in Consul v1.16.0](https://developer.hashicorp.com/consul/docs/release-notes/consul/v1_16_x#what-s-deprecated).
 The Kubernetes-only legacy API gateway is superseded by the modern, multi-runtime
 [API gateway](/consul/docs/connect/config-entries/api-gateway).
