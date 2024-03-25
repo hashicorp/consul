@@ -218,7 +218,7 @@ RateLimits = {
   ]
 }
 UpstreamConfig = {
-  Overrides = {
+  Overrides = [{
     Name             = "<name of upstreams to override>"
     Namespace        = "<namespace containing upstreams to override>"
     Peer             = "<peer name of upstream service>"
@@ -240,7 +240,7 @@ UpstreamConfig = {
       MaxEjectionPercent      = 10
       BaseEjectionTime        = "30s"
     }
-  }
+  }]
   Defaults = {
     Protocol         = "<default protocol for upstream traffic>"
     ConnectTimeoutMs = 5000
@@ -407,7 +407,7 @@ spec:
 	"Protocol": "tcp",
 	"BalanceInboundConnections": "exact_balance",
 	"Mode": "<mode for directing traffic>",
-  "RateLimits": {
+	"RateLimits": {
     "InstanceLevel": {
       "RequestsPerSecond": 100,
       "RequestsMaxBurst": 200,
@@ -445,27 +445,27 @@ spec:
 				"MaxEjectionPercent": 10,
 				"BaseEjectionTime": "30s"
 			}
-		}]
-	},
-	"Defaults": {
-		"Protocol": "<protocol for the upstream listener>",
-		"ConnectTimeoutMs": 5000,
-		"MeshGateway": {
-			"Mode": "<mode for mesh gateway services>"
-		},
-		"BalanceOutboundConnections": "exact_balance",
-		"Limits": {
-			"MaxConnections": 0,
-			"MaxPendingRequests": 0,
-			"MaxConcurrentRequests": 0
-		},
-		"PassiveHealthCheck": {
-			"Interval": "0s",
-			"MaxFailures": 0,
-			"EnforcingConsecutive5xx": 100,
-			"MaxEjectionPercent": 10,
-			"BaseEjectionTime": "30s"
-		}
+		}],
+	  "Defaults": {
+		  "Protocol": "<protocol for the upstream listener>",
+		  "ConnectTimeoutMs": 5000,
+		  "MeshGateway": {
+		  	"Mode": "<mode for mesh gateway services>"
+	  	},
+	  	"BalanceOutboundConnections": "exact_balance",
+	  	"Limits": {
+  			"MaxConnections": 0,
+  			"MaxPendingRequests": 0,
+  			"MaxConcurrentRequests": 0
+  		},
+  		"PassiveHealthCheck": {
+  			"Interval": "0s",
+  			"MaxFailures": 0,
+  			"EnforcingConsecutive5xx": 100,
+	  		"MaxEjectionPercent": 10,
+	  		"BaseEjectionTime": "30s"
+	  	}
+    }
 	},
 	"TransparentProxy": {
 		"OutboundListenerPort": 15001,
