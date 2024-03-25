@@ -772,6 +772,7 @@ func TestStore_ServiceDefaults_Kind_Destination_Wildcard(t *testing.T) {
 					CreateIndex: 8,
 					ModifyIndex: 8,
 				},
+				AutoHostRewrite: true,
 			},
 		}
 		require.Equal(t, expected, gatewayServices)
@@ -819,6 +820,7 @@ func TestStore_ServiceDefaults_Kind_Destination_Wildcard(t *testing.T) {
 					CreateIndex: 7,
 					ModifyIndex: 7,
 				},
+				AutoHostRewrite: true,
 			},
 		}
 		require.Equal(t, expected, gatewayServices)
@@ -843,6 +845,7 @@ func TestStore_ServiceDefaults_Kind_Destination_Wildcard(t *testing.T) {
 					CreateIndex: 7,
 					ModifyIndex: 9,
 				},
+				AutoHostRewrite: true,
 			},
 		}
 		require.Equal(t, expected, gatewayServices)

@@ -3757,14 +3757,15 @@ func terminatingConfigGatewayServices(
 			return false, nil, fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.Name, err)
 		}
 		mapping := &structs.GatewayService{
-			Gateway:     gateway,
-			Service:     structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
-			GatewayKind: structs.ServiceKindTerminatingGateway,
-			KeyFile:     svc.KeyFile,
-			CertFile:    svc.CertFile,
-			CAFile:      svc.CAFile,
-			SNI:         svc.SNI,
-			ServiceKind: kind,
+			Gateway:         gateway,
+			Service:         structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
+			GatewayKind:     structs.ServiceKindTerminatingGateway,
+			KeyFile:         svc.KeyFile,
+			CertFile:        svc.CertFile,
+			CAFile:          svc.CAFile,
+			SNI:             svc.SNI,
+			ServiceKind:     kind,
+			AutoHostRewrite: !svc.DisableAutoHostRewrite,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)

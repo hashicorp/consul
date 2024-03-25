@@ -158,11 +158,13 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 				"error", err,
 			)
 		}
+		service := cfgSnap.TerminatingGateway.GatewayServices[svc]
+		autoHostRewrite := service.AutoHostRewrite
 		if !structs.IsProtocolHTTPLike(cfg.Protocol) {
 			// Routes can only be defined for HTTP services
 			continue
 		}
-		routes, err := s.makeRoutes(cfgSnap, svc, clusterName, true)
+		routes, err := s.makeRoutes(cfgSnap, svc, clusterName, autoHostRewrite)
 		if err != nil {
 			return nil, err
 		}
@@ -231,7 +233,7 @@ func (s *ResourceGenerator) makeRoutes(
 	// If there is a service-resolver for this service then also setup routes for each subset
 	for name := range resolver.Subsets {
 		clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, true)
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite)
 		if err != nil {
 			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			return nil, err

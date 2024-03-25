@@ -5197,7 +5197,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 21,
 				ModifyIndex: 21,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5207,7 +5208,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 21,
 				ModifyIndex: 21,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5241,7 +5243,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 21,
 				ModifyIndex: 21,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5251,7 +5254,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 21,
 				ModifyIndex: 21,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5302,7 +5306,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5312,7 +5317,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5340,7 +5346,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5350,7 +5357,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 		{
 			Service:      structs.NewServiceName("redis", nil),
@@ -5365,7 +5373,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 23,
 				ModifyIndex: 23,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5393,7 +5402,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 		{
 			Service:     structs.NewServiceName("db", nil),
@@ -5403,7 +5413,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 22,
 				ModifyIndex: 22,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5435,7 +5446,8 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 25,
 				ModifyIndex: 25,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5467,6 +5479,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 26,
 				ModifyIndex: 26,
 			},
+			AutoHostRewrite: true,
 		},
 		{
 			Service:      structs.NewServiceName("db", nil),
@@ -5477,6 +5490,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 26,
 				ModifyIndex: 26,
 			},
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -5504,6 +5518,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 26,
 				ModifyIndex: 26,
 			},
+			AutoHostRewrite: true,
 		},
 		{
 			Service:      structs.NewServiceName("db", nil),
@@ -5514,6 +5529,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 26,
 				ModifyIndex: 26,
 			},
+			AutoHostRewrite: true,
 		},
 		{
 			Service:      structs.NewServiceName("destination1", nil),
@@ -5525,6 +5541,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				CreateIndex: 27,
 				ModifyIndex: 27,
 			},
+			AutoHostRewrite: true,
 		},
 	}
 	assert.ElementsMatch(t, expectWildcardIncludesDest, out)
@@ -6018,7 +6035,8 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 				CreateIndex: 19,
 				ModifyIndex: 19,
 			},
-			ServiceKind: structs.GatewayServiceKindService,
+			ServiceKind:     structs.GatewayServiceKindService,
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -6040,6 +6058,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 				CreateIndex: 20,
 				ModifyIndex: 20,
 			},
+			AutoHostRewrite: true,
 		},
 		{
 			Service:      structs.NewServiceName("db", nil),
@@ -6050,6 +6069,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 				CreateIndex: 20,
 				ModifyIndex: 20,
 			},
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -6077,6 +6097,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 				CreateIndex: 19,
 				ModifyIndex: 20,
 			},
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -6097,6 +6118,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 				CreateIndex: 20,
 				ModifyIndex: 20,
 			},
+			AutoHostRewrite: true,
 		},
 	}
 	assert.Equal(t, expect, out)
@@ -7016,6 +7038,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 		// Read everything back.
 		ws = memdb.NewWatchSet()
 		idx, out, err := s.DumpGatewayServices(ws)
+		fmt.Println(out)
 		assert.Nil(t, err)
 		assert.Equal(t, idx, uint64(21))
 		assert.Len(t, out, 2)
@@ -7033,7 +7056,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -7043,7 +7067,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -7077,6 +7102,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 		assert.False(t, watchFired(ws))
 
 		idx, out, err := s.DumpGatewayServices(ws)
+		fmt.Println(out)
 		assert.Nil(t, err)
 		assert.Equal(t, idx, uint64(21))
 		assert.Len(t, out, 2)
@@ -7094,7 +7120,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -7104,7 +7131,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -7134,7 +7162,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -7144,7 +7173,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
 				Service:      structs.NewServiceName("redis", nil),
@@ -7159,7 +7189,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 22,
 					ModifyIndex: 22,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -7189,7 +7220,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
 				Service:     structs.NewServiceName("db", nil),
@@ -7199,7 +7231,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 21,
 					ModifyIndex: 21,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -7233,7 +7266,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 24,
 					ModifyIndex: 24,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 		}
 		assert.Equal(t, expect, out)
@@ -7291,7 +7325,8 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					CreateIndex: 24,
 					ModifyIndex: 24,
 				},
-				ServiceKind: structs.GatewayServiceKindService,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
 				Service:     structs.NewServiceName("api", nil),

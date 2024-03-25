@@ -1,0 +1,3 @@
+```release-note:improvement
+connect: Add ability to disable Auto Host Header Rewrite on Terminating Gateway at the service level
+```
