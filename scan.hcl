@@ -15,9 +15,10 @@
 # unlike the scans configured here, will block releases in CRT.
 
 repository {
-  go_modules   = true
-  npm          = true
-  osv          = true
+  go_modules              = true
+  npm                     = true
+  osv                     = true
+  go_stdlib_version_file  = ".go-version"
 
   secrets {
     all = true
