@@ -402,6 +402,11 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 	}, true)
 	panicIfErr(err)
 
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicFileSystemCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().FileSystemCertificateSnapshot(req, buf)
+	}, true)
+	panicIfErr(err)
+
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicInlineCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().InlineCertificateSnapshot(req, buf)
 	}, true)

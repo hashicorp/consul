@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/lib"
 
 	"golang.org/x/exp/maps"
 
@@ -35,13 +36,19 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		listenerKey := readyListener.listenerKey
 		boundListener := readyListener.boundListenerCfg
 
-		var certs []structs.InlineCertificateConfigEntry
+		// Collect the referenced certificate config entries
+		var certs []structs.ConfigEntry
 		for _, certRef := range boundListener.Certificates {
-			cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef)
-			if !ok {
-				continue
+			switch certRef.Kind {
+			case structs.InlineCertificate:
+				if cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef); ok {
+					certs = append(certs, cert)
+				}
+			case structs.FileSystemCertificate:
+				if cert, ok := cfgSnap.APIGateway.FSCertificates.Get(certRef); ok {
+					certs = append(certs, cert)
+				}
 			}
-			certs = append(certs, *cert)
 		}
 
 		isAPIGatewayWithTLS := len(boundListener.Certificates) > 0
@@ -113,7 +120,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				// construct SNI filter chains
 				l.FilterChains, err = makeInlineOverrideFilterChains(
 					cfgSnap,
-					cfgSnap.APIGateway.TLSConfig,
+					listenerCfg.TLS,
 					listenerKey.Protocol,
 					listenerFilterOpts{
 						useRDS:          useRDS,
@@ -225,7 +232,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
+				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, listenerCfg.TLS, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -394,10 +401,10 @@ func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfigurati
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
 func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
-	tlsCfg structs.GatewayTLSConfig,
+	tlsCfg structs.APIGatewayTLSConfiguration,
 	protocol string,
 	filterOpts listenerFilterOpts,
-	certs []structs.InlineCertificateConfigEntry,
+	certs []structs.ConfigEntry,
 ) ([]*envoy_listener_v3.FilterChain, error) {
 	var chains []*envoy_listener_v3.FilterChain
 
@@ -429,61 +436,51 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 		return nil
 	}
 
-	multipleCerts := len(certs) > 1
-
-	allCertHosts := map[string]struct{}{}
-	overlappingHosts := map[string]struct{}{}
-
-	if multipleCerts {
-		// we only need to prune out overlapping hosts if we have more than
-		// one certificate
-		for _, cert := range certs {
-			hosts, err := cert.Hosts()
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
-			}
-			for _, host := range hosts {
-				if _, ok := allCertHosts[host]; ok {
-					overlappingHosts[host] = struct{}{}
-				}
-				allCertHosts[host] = struct{}{}
-			}
+	constructTLSContext := func(tlsConfig structs.APIGatewayTLSConfiguration, certConfig structs.ConfigEntry) (*envoy_tls_v3.CommonTlsContext, error) {
+		switch tce := certConfig.(type) {
+		case *structs.InlineCertificateConfigEntry:
+			return &envoy_tls_v3.CommonTlsContext{
+				TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig()),
+				TlsCertificates: []*envoy_tls_v3.TlsCertificate{
+					{
+						CertificateChain: &envoy_core_v3.DataSource{
+							Specifier: &envoy_core_v3.DataSource_InlineString{
+								InlineString: lib.EnsureTrailingNewline(tce.Certificate),
+							},
+						},
+						PrivateKey: &envoy_core_v3.DataSource{
+							Specifier: &envoy_core_v3.DataSource_InlineString{
+								InlineString: lib.EnsureTrailingNewline(tce.PrivateKey),
+							},
+						},
+					},
+				},
+			}, nil
+		case *structs.FileSystemCertificateConfigEntry:
+			ctx := makeCommonTLSContextFromFiles("", tce.Certificate, tce.PrivateKey)
+			ctx.TlsParams = makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig())
+			return ctx, nil
+		default:
+			return nil, fmt.Errorf("unsupported config entry kind %s", tce.GetKind())
 		}
 	}
 
 	for _, cert := range certs {
-		var hosts []string
-
-		// if we only have one cert, we just use it for all ingress
-		if multipleCerts {
-			// otherwise, we need an SNI per cert and to fallback to our ingress
-			// gateway certificate signed by our Consul CA
-			certHosts, err := cert.Hosts()
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
-			}
-			// filter out any overlapping hosts so we don't have collisions in our filter chains
-			for _, host := range certHosts {
-				if _, ok := overlappingHosts[host]; !ok {
-					hosts = append(hosts, host)
-				}
-			}
-
-			if len(hosts) == 0 {
-				// all of our hosts are overlapping, so we just skip this filter and it'll be
-				// handled by the default filter chain
-				continue
-			}
+		// TODO Delivering via SDS is semi-required in order to get file system watches today.
+		//   https://github.com/envoyproxy/envoy/issues/10387
+		tlsContext, err := constructTLSContext(tlsCfg, cert)
+		if err != nil {
+			continue
 		}
 
-		if err := constructChain(cert.Name, hosts, makeInlineTLSContextFromGatewayTLSConfig(tlsCfg, cert)); err != nil {
+		if err := constructChain(cert.GetName(), nil, tlsContext); err != nil {
 			return nil, err
 		}
 	}
 
-	if multipleCerts {
+	if len(certs) > 1 {
 		// if we have more than one cert, add a default handler that uses the leaf cert from connect
-		if err := constructChain("default", nil, makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(tlsCfg))); err != nil {
+		if err := constructChain("default", nil, makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig()))); err != nil {
 			return nil, err
 		}
 	}

@@ -646,6 +646,7 @@ func validateProposedConfigEntryInGraph(
 	case structs.ExportedServices:
 	case structs.APIGateway: // TODO Consider checkGatewayClash
 	case structs.BoundAPIGateway:
+	case structs.FileSystemCertificate:
 	case structs.InlineCertificate:
 	case structs.HTTPRoute:
 	case structs.TCPRoute:
