@@ -38,10 +38,12 @@ type Plan struct {
 	// Deprecated: use Logger
 	LogOutput io.Writer
 
-	address      string
-	client       *consulapi.Client
-	lastParamVal BlockingParamVal
-	lastResult   interface{}
+	address         string
+	client          *consulapi.Client
+	lastParamVal    BlockingParamVal
+	lastResult      interface{}
+	mapLastParamVal map[string]BlockingParamVal
+	mapLastResult   map[string]interface{}
 
 	stop       bool
 	stopCh     chan struct{}
