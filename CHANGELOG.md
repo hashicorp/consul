@@ -1,4 +1,4 @@
-## 1.18.1 Enterprise (March 26, 2024)
+## 1.18.1 (March 26, 2024)
 
 Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
 
