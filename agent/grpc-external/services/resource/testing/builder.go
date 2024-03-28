@@ -173,7 +173,7 @@ func (b *Builder) Run(t testutil.TestingTB) pbresource.ResourceServiceClient {
 	}
 
 	// HACK ALERT: The client needs to be injected into the V2TenancyBridge
-	// after it has been created due the the circular dependency. This will
+	// after it has been created due the circular dependency. This will
 	// go away when the tenancy bridge is removed and V1 is no more, however
 	// long that takes.
 	switch config.TenancyBridge.(type) {
