@@ -10,18 +10,32 @@ const (
 	GroupName = "auth"
 	Version   = "v2beta1"
 
-	ComputedTrafficPermissionsKind  = "ComputedTrafficPermissions"
-	NamespaceTrafficPermissionsKind = "NamespaceTrafficPermissions"
-	PartitionTrafficPermissionsKind = "PartitionTrafficPermissions"
-	TrafficPermissionsKind          = "TrafficPermissions"
-	WorkloadIdentityKind            = "WorkloadIdentity"
+	ComputedImplicitDestinationsKind = "ComputedImplicitDestinations"
+	ComputedTrafficPermissionsKind   = "ComputedTrafficPermissions"
+	ImplicitDestinationKind          = "ImplicitDestination"
+	NamespaceTrafficPermissionsKind  = "NamespaceTrafficPermissions"
+	PartitionTrafficPermissionsKind  = "PartitionTrafficPermissions"
+	TrafficPermissionsKind           = "TrafficPermissions"
+	WorkloadIdentityKind             = "WorkloadIdentity"
 )
 
 var (
+	ComputedImplicitDestinationsType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ComputedImplicitDestinationsKind,
+	}
+
 	ComputedTrafficPermissionsType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         ComputedTrafficPermissionsKind,
+	}
+
+	ImplicitDestinationType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ImplicitDestinationKind,
 	}
 
 	NamespaceTrafficPermissionsType = &pbresource.Type{
