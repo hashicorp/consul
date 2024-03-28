@@ -788,7 +788,7 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 type resourceSubscriptionTracker struct {
 	// notifierMap keeps track of a notification channel for each resourceURL.
 	// Keys may exist in here even when they do not exist in 'subscribed' as
-	// calling SubscribedChan has to possibly create and and hand out a
+	// calling SubscribedChan has to possibly create and hand out a
 	// notification channel in advance of any notification.
 	notifierMap map[string]chan struct{}
 
