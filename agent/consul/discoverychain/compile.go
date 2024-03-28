@@ -239,7 +239,9 @@ func (c *compiler) recordNode(node *structs.DiscoveryGraphNode) {
 
 func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
 	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
-		return c.recordProtocol(sid, serviceDefault.Protocol)
+		if serviceDefault.Protocol != "" {
+			return c.recordProtocol(sid, serviceDefault.Protocol)
+		}
 	}
 	if proxyDefault := c.entries.GetProxyDefaults(sid.PartitionOrDefault()); proxyDefault != nil {
 		if proxyDefault.Protocol != "" {
