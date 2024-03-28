@@ -920,8 +920,8 @@
             "path": "connect/cluster-peering"
           },
           {
-            "title": "Technical Specifications",
-            "path": "connect/cluster-peering/tech-specs"
+            "title": "Best practices",
+            "path": "connect/cluster-peering/best-practices"
           },
           {
             "title": "Usage",
@@ -1485,8 +1485,8 @@
             "title": "Cluster Peering",
             "routes": [
               {
-                "title": "Technical Specifications",
-                "path": "k8s/connect/cluster-peering/tech-specs"
+                "title": "Best practices",
+                "path": "k8s/connect/cluster-peering/best-practices"
               },
               {
                 "title": "Usage",
