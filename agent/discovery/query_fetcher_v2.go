@@ -347,6 +347,7 @@ func queryTenancyToResourceTenancy(qTenancy QueryTenancy) *pbresource.Tenancy {
 		rTenancy.Namespace = qTenancy.Namespace
 	}
 	// In the case of partition, we have the agent's partition as the fallback.
+	// That is handled in NormalizeRequest.
 	if qTenancy.Partition != "" {
 		rTenancy.Partition = qTenancy.Partition
 	}

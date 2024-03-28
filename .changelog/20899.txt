@@ -1,0 +1,4 @@
+```release-note:improvement
+dns: DNS-over-grpc when using `consul-dataplane` now accepts partition, namespace, token as metadata to default those query parameters.
+`consul-dataplane` v1.5+ will send this information automatically.
+```

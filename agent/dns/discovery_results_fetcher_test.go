@@ -160,8 +160,7 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 				},
 			},
 			requestContext: &Context{
-				DefaultDatacenter: "default-dc",
-				DefaultPartition:  "default-partition",
+				DefaultPartition: "default-partition",
 			},
 			expectedQuery: &discovery.Query{
 				QueryType: discovery.QueryTypeWorkload,
@@ -169,10 +168,9 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 					Name:     "foo",
 					PortName: "api",
 					Tenancy: discovery.QueryTenancy{
-						Namespace:  "banana",
-						Partition:  "orange",
-						Peer:       "apple",
-						Datacenter: "default-dc",
+						Namespace: "banana",
+						Partition: "orange",
+						Peer:      "apple",
 					},
 				},
 			},
@@ -192,8 +190,7 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 				},
 			},
 			requestContext: &Context{
-				DefaultDatacenter: "default-dc",
-				DefaultPartition:  "default-partition",
+				DefaultPartition: "default-partition",
 			},
 			expectedQuery: &discovery.Query{
 				QueryType: discovery.QueryTypeService,
@@ -203,7 +200,6 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 						Namespace:     "banana",
 						Partition:     "orange",
 						SamenessGroup: "apple",
-						Datacenter:    "default-dc",
 					},
 				},
 			},

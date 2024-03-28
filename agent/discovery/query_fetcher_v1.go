@@ -116,11 +116,17 @@ func (f *V1DataFetcher) FetchNodes(ctx Context, req *QueryPayload) ([]*Result, e
 		// Nodes are not namespaced, so this is a name error
 		return nil, ErrNotFound
 	}
-
 	cfg := f.dynamicConfig.Load().(*V1DataFetcherDynamicConfig)
+
+	// If no datacenter is passed, default to our own
+	datacenter := cfg.Datacenter
+	if req.Tenancy.Datacenter != "" {
+		datacenter = req.Tenancy.Datacenter
+	}
+
 	// Make an RPC request
 	args := &structs.NodeSpecificRequest{
-		Datacenter: req.Tenancy.Datacenter,
+		Datacenter: datacenter,
 		PeerName:   req.Tenancy.Peer,
 		Node:       req.Name,
 		QueryOptions: structs.QueryOptions{
@@ -299,9 +305,15 @@ func (f *V1DataFetcher) FetchWorkload(ctx Context, req *QueryPayload) (*Result, 
 func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error) {
 	cfg := f.dynamicConfig.Load().(*V1DataFetcherDynamicConfig)
 
+	// If no datacenter is passed, default to our own
+	datacenter := cfg.Datacenter
+	if req.Tenancy.Datacenter != "" {
+		datacenter = req.Tenancy.Datacenter
+	}
+
 	// Execute the prepared query.
 	args := structs.PreparedQueryExecuteRequest{
-		Datacenter:    req.Tenancy.Datacenter,
+		Datacenter:    datacenter,
 		QueryIDOrName: req.Name,
 		QueryOptions: structs.QueryOptions{
 			Token:      ctx.Token,
@@ -548,7 +560,11 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 		return nil, errors.New("sameness groups are not allowed for service lookups based on tenancy")
 	}
 
-	datacenter := req.Tenancy.Datacenter
+	// If no datacenter is passed, default to our own
+	datacenter := cfg.Datacenter
+	if req.Tenancy.Datacenter != "" {
+		datacenter = req.Tenancy.Datacenter
+	}
 	if req.Tenancy.Peer != "" {
 		datacenter = ""
 	}

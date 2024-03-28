@@ -14,9 +14,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
-	"github.com/miekg/dns"
-
 	"github.com/hashicorp/go-hclog"
+	"github.com/miekg/dns"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/discovery"
@@ -45,13 +44,6 @@ var (
 
 	trailingSpacesRE = regexp.MustCompile(" +$")
 )
-
-// Context is used augment a DNS message with Consul-specific metadata.
-type Context struct {
-	Token             string
-	DefaultPartition  string
-	DefaultDatacenter string
-}
 
 // RouterDynamicConfig is the dynamic configuration that can be hot-reloaded
 type RouterDynamicConfig struct {
@@ -114,13 +106,12 @@ type dnsRecursor interface {
 // Router replaces miekg/dns.ServeMux with a simpler router that only checks for the 2-3 valid domains
 // that Consul supports and forwards to a single DiscoveryQueryProcessor handler. If there is no match, it will recurse.
 type Router struct {
-	processor  DiscoveryQueryProcessor
-	recursor   dnsRecursor
-	domain     string
-	altDomain  string
-	datacenter string
-	nodeName   string
-	logger     hclog.Logger
+	processor DiscoveryQueryProcessor
+	recursor  dnsRecursor
+	domain    string
+	altDomain string
+	nodeName  string
+	logger    hclog.Logger
 
 	tokenFunc                   func() string
 	translateAddressFunc        func(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string
@@ -146,7 +137,6 @@ func NewRouter(cfg Config) (*Router, error) {
 		recursor:                    newRecursor(logger),
 		domain:                      domain,
 		altDomain:                   altDomain,
-		datacenter:                  cfg.AgentConfig.Datacenter,
 		logger:                      logger,
 		nodeName:                    cfg.AgentConfig.NodeName,
 		tokenFunc:                   cfg.TokenFunc,
@@ -176,6 +166,7 @@ func (r *Router) HandleRequest(req *dns.Msg, reqCtx Context, remoteAddress net.A
 	}
 
 	r.logger.Trace("received request", "question", req.Question[0].Name, "type", dns.Type(req.Question[0].Qtype).String())
+	r.normalizeContext(&reqCtx)
 
 	defer func(s time.Time, q dns.Question) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "query"}, s,
@@ -319,10 +310,9 @@ func (r *Router) trimDomain(questionName string) string {
 }
 
 // ServeDNS implements the miekg/dns.Handler interface.
-// This is a standard DNS listener, so we inject a default request context based on the agent's config.
+// This is a standard DNS listener.
 func (r *Router) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
-	reqCtx := r.defaultAgentDNSRequestContext()
-	out := r.HandleRequest(req, reqCtx, w.RemoteAddr())
+	out := r.HandleRequest(req, Context{}, w.RemoteAddr())
 	w.WriteMsg(out)
 }
 
@@ -420,16 +410,6 @@ func (r *Router) GetConfig() *RouterDynamicConfig {
 	return r.dynamicConfig.Load().(*RouterDynamicConfig)
 }
 
-// defaultAgentDNSRequestContext returns a default request context based on the agent's config.
-func (r *Router) defaultAgentDNSRequestContext() Context {
-	return Context{
-		Token:             r.tokenFunc(),
-		DefaultDatacenter: r.datacenter,
-		// We don't need to specify the agent's partition here because that will be handled further down the stack
-		// in the query processor.
-	}
-}
-
 // getErrorFromECSNotGlobalError returns the underlying error from an ECSNotGlobalError, if it exists.
 func getErrorFromECSNotGlobalError(err error) error {
 	if errors.Is(err, discovery.ErrECSNotGlobal) {
@@ -469,6 +449,16 @@ func validateAndNormalizeRequest(req *dns.Msg) error {
 	// This is Consul convention.
 	req.Question[0].Name = dns.CanonicalName(req.Question[0].Name)
 	return nil
+}
+
+// normalizeContext makes sure context information is populated with agent defaults as needed.
+// Right now this is just the ACL token. We do this in the router with the token because DNS doesn't
+// allow a token to be passed in the request, and we expect ACL tokens upfront in APIs when they are enabled.
+// Tenancy information is left out because it is safe/expected to assume agent defaults in the backend lookup.
+func (r *Router) normalizeContext(ctx *Context) {
+	if ctx.Token == "" {
+		ctx.Token = r.tokenFunc()
+	}
 }
 
 // stripAnyFailoverSuffix strips off the suffixes that may have been added to the request name.
