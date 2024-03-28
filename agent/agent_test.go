@@ -6341,6 +6341,7 @@ func TestAgent_scadaProvider(t *testing.T) {
 	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
 	pvd.EXPECT().Stop().Return(nil).Once()
 	a := TestAgent{
+		HCL: `cloud = { resource_id = "test-resource-id" client_id = "test-client-id" client_secret = "test-client-secret" }`,
 		OverrideDeps: func(deps *BaseDeps) {
 			deps.HCP.Provider = pvd
 		},

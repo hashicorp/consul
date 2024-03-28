@@ -1,0 +1,3 @@
+```release-note:bug
+error running consul server in 1.18.0: failed to configure SCADA provider user's home directory path: $HOME is not defined
+```

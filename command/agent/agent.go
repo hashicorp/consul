@@ -181,12 +181,9 @@ func (c *cmd) run(args []string) int {
 			ui.Error(err.Error())
 			return 1
 		}
-	}
 
-	// We unconditionally add an Access Control header to our config in order to allow the HCP UI to work.
-	// We do this unconditionally because the cluster can be linked to HCP at any time (not just at startup) and this
-	// is simpler than selectively reloading parts of config at runtime.
-	loader = hcpbootstrap.AddAclPolicyAccessControlHeader(loader)
+		loader = hcpbootstrap.AddAclPolicyAccessControlHeader(loader)
+	}
 
 	bd, err := agent.NewBaseDeps(loader, logGate, nil)
 	if err != nil {

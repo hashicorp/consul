@@ -2100,6 +2100,9 @@ func TestServer_hcpManager(t *testing.T) {
 	// Configure the server for the StatusFn
 	conf1.BootstrapExpect = 1
 	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
+	conf1.Cloud.ClientID = "test-client-id"
+	conf1.Cloud.ResourceID = "test-resource-id"
+	conf1.Cloud.ClientSecret = "test-client-secret"
 	hcp1 := hcpclient.NewMockClient(t)
 	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcpclient.ServerStatus) bool {
 		return status.ID == string(conf1.NodeID)
