@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"sync"
+	"sync/atomic"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -31,8 +31,7 @@ type PeeringBackend struct {
 	// TODO(peering): accept a smaller interface; maybe just funcs from the server that we actually need: DC, IsLeader, etc
 	srv *Server
 
-	leaderAddrLock sync.RWMutex
-	leaderAddr     string
+	leaderAddr atomic.Value
 }
 
 var _ peering.Backend = (*PeeringBackend)(nil)
@@ -48,18 +47,19 @@ func NewPeeringBackend(srv *Server) *PeeringBackend {
 // SetLeaderAddress is called on a raft.LeaderObservation in a go routine
 // in the consul server; see trackLeaderChanges()
 func (b *PeeringBackend) SetLeaderAddress(addr string) {
-	b.leaderAddrLock.Lock()
-	b.leaderAddr = addr
-	b.leaderAddrLock.Unlock()
+	b.leaderAddr.Store(addr)
 }
 
 // GetLeaderAddress provides the best hint for the current address of the
 // leader. There is no guarantee that this is the actual address of the
 // leader.
 func (b *PeeringBackend) GetLeaderAddress() string {
-	b.leaderAddrLock.RLock()
-	defer b.leaderAddrLock.RUnlock()
-	return b.leaderAddr
+	leaderAddr := b.leaderAddr.Load()
+	if leaderAddr == nil {
+		return ""
+	}
+
+	return leaderAddr.(string)
 }
 
 // GetTLSMaterials returns the TLS materials for the dialer to dial the acceptor using TLS.
