@@ -120,6 +120,70 @@ service "api-gateway" {
 }`,
 			},
 		},
+		"node-read-template": {
+			templatedPolicy: &ACLTemplatedPolicy{
+				TemplateID:   ACLTemplatedPolicyNodeRead,
+				TemplateName: api.ACLTemplatedPolicyNodeReadName,
+				TemplateVariables: &ACLTemplatedPolicyVariables{
+					Name: "node1",
+				},
+			},
+			expectedPolicy: &ACLPolicy{
+				Description: "synthetic policy generated from templated policy: builtin/node-read",
+				Rules: `node "node1" {
+    policy = "read"
+}
+`,
+			},
+		},
+		"service-write-template": {
+			templatedPolicy: &ACLTemplatedPolicy{
+				TemplateID:   ACLTemplatedPolicyServiceWrite,
+				TemplateName: api.ACLTemplatedPolicyServiceWriteName,
+				TemplateVariables: &ACLTemplatedPolicyVariables{
+					Name: "svc1",
+				},
+			},
+			expectedPolicy: &ACLPolicy{
+				Description: "synthetic policy generated from templated policy: builtin/service-write",
+				Rules: `service "svc1" {
+    policy = "write"
+}
+`,
+			},
+		},
+		"sessionprefix-write-template": {
+			templatedPolicy: &ACLTemplatedPolicy{
+				TemplateID:   ACLTemplatedPolicySessionPrefixWrite,
+				TemplateName: api.ACLTemplatedPolicySessionPrefixWriteName,
+				TemplateVariables: &ACLTemplatedPolicyVariables{
+					Name: "",
+				},
+			},
+			expectedPolicy: &ACLPolicy{
+				Description: "synthetic policy generated from templated policy: builtin/sessionprefix-write",
+				Rules: `session_prefix "" {
+    policy = "write"
+}
+`,
+			},
+		},
+		"keyprefix-read-template": {
+			templatedPolicy: &ACLTemplatedPolicy{
+				TemplateID:   ACLTemplatedPolicyKeyPrefixRead,
+				TemplateName: api.ACLTemplatedPolicyKeyPrefixReadName,
+				TemplateVariables: &ACLTemplatedPolicyVariables{
+					Name: "some/key/path",
+				},
+			},
+			expectedPolicy: &ACLPolicy{
+				Description: "synthetic policy generated from templated policy: builtin/keyprefix-read",
+				Rules: `key_prefix "some/key/path" {
+    policy = "read"
+}
+`,
+			},
+		},
 	}
 
 	for name, tcase := range testCases {

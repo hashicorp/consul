@@ -1,0 +1,3 @@
+key "{{.Name}}" {
+    policy = "read"
+}
