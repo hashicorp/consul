@@ -2,7 +2,7 @@ module github.com/hashicorp/consul/internal/tools/proto-gen-rpc-glue
 
 go 1.17
 
-require github.com/stretchr/testify v1.8.3
+require github.com/stretchr/testify v1.8.4
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

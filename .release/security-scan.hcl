@@ -74,7 +74,6 @@ binary {
 		suppress {
 			# N.b. `vulnerabilites` is the correct spelling for this tool.
 			vulnerabilites = [
-				"GO-2024-2631", # go-jose/v3@v3.0.3 (false positive)
 			]
 		}
 	}

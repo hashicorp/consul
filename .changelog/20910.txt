@@ -1,0 +1,4 @@
+```release-note:security
+Update `vault/api` to v1.12.2 to address [CVE-2024-28180](https://nvd.nist.gov/vuln/detail/CVE-2024-28180) 
+(removes indirect dependency on impacted `go-jose.v2`)
+```
