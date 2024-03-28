@@ -85,10 +85,10 @@ OUTER:
 			catalog := p.client.Catalog()
 			dcs, err = catalog.Datacenters()
 			if err != nil || len(dcs) == 0 {
-				dcs[0] = "" //This will cause to use default DataCenter if err
+				dcs = append(dcs, "") //This will cause to use default DataCenter if err
 			}
 		} else {
-			dcs[0] = p.Datacenter
+			dcs = append(dcs, p.Datacenter)
 		}
 
 		for _, dc := range dcs {
@@ -178,20 +178,28 @@ OUTER:
 			if r, ok := rdc.([]interface{}); ok {
 				totResult = append(totResult, r...)
 			} else {
-				totResult = append(totResult, r)
+				totResult = append(totResult, rdc)
 			}
 		}
 
 		// If a hybrid handler exists use that
 		if p.HybridHandler != nil {
-			p.HybridHandler(blockParamVal[dcs[0]], totResult)
+			if len(totResult) == 1 {
+				p.HybridHandler(blockParamVal[dcs[0]], totResult[0])
+			} else {
+				p.HybridHandler(blockParamVal[dcs[0]], totResult)
+			}
 		} else if p.Handler != nil {
 			idx, ok := blockParamVal[dcs[0]].(WaitIndexVal)
 			if !ok {
 				watchLogger.Error("Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
-			p.Handler(uint64(idx), totResult)
+			if len(totResult) == 1 {
+				p.Handler(uint64(idx), totResult[0])
+			} else {
+				p.Handler(uint64(idx), totResult)
+			}
 		}
 	}
 	return nil
