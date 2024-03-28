@@ -18,7 +18,7 @@ BUG FIXES:
 * ingress-gateway: **(Enterprise Only)** Fix a bug where on update, Ingress Gateways lost all upstreams for listeners with wildcard services in a different namespace.
 * snapshot-agent: **(Enterprise only)** Fix a bug with static AWS credentials where one of the key id or secret key is provided via config file and the other is provided via an environment variable.
 
-## 1.15.10 (February 13, 2023)
+## 1.15.10 (February 13, 2024)
 
 SECURITY:
 
@@ -37,7 +37,7 @@ BUG FIXES:
 * connect: Fix issue where re-persisting existing proxy-defaults using `http` protocol fails with a protocol-mismatch error. [[GH-20481](https://github.com/hashicorp/consul/issues/20481)]
 * connect: Remove code coupling where the xDS capacity controller could negatively affect raft autopilot performance. [[GH-20511](https://github.com/hashicorp/consul/issues/20511)]
 
-## 1.15.9 (January 23, 2023)
+## 1.15.9 (January 23, 2024)
 
 SECURITY:
 
