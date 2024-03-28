@@ -213,7 +213,7 @@ func IsValidBindingRule(bindType, bindName string, bindVars *structs.ACLTemplate
 // computeBindName interprets given HIL bindName with any given variables in projectedVars.
 // validate (if not nil) will be called on the interpreted string.
 func computeBindName(bindName string, projectedVars map[string]string, validate func(string) bool) (string, error) {
-	computed, err := template.InterpolateHIL(bindName, projectedVars, true)
+	computed, err := template.InterpolateHIL(bindName, projectedVars, false)
 	if err != nil {
 		return "", fmt.Errorf("error interpreting template: %w", err)
 	}
