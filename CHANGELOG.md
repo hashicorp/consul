@@ -1,3 +1,116 @@
+## 1.18.1 (March 26, 2024)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+BREAKING CHANGES:
+
+* ui: Adds a "Link to HCP Consul Central" modal with integration to side-nav and link to HCP banner. There will be an option to disable the Link to HCP banner from the UI in a follow-up release. [[GH-20474](https://github.com/hashicorp/consul/issues/20474)]
+
+SECURITY:
+
+* Update `google.golang.org/protobuf` to v1.33.0 to address [CVE-2024-24786](https://nvd.nist.gov/vuln/detail/CVE-2024-24786). [[GH-20801](https://github.com/hashicorp/consul/issues/20801)]
+* Update the Consul Build Go base image to `alpine3.19`. This resolves CVEs
+  [CVE-2023-52425](https://nvd.nist.gov/vuln/detail/CVE-2023-52425)
+  [CVE-2023-52426](https://nvd.nist.gov/vuln/detail/CVE-2023-52426) [[GH-20812](https://github.com/hashicorp/consul/issues/20812)]
+* Upgrade to use Go `1.21.8`. This resolves CVEs
+  [CVE-2024-24783](https://nvd.nist.gov/vuln/detail/CVE-2024-24783) (`crypto/x509`).
+  [CVE-2023-45290](https://nvd.nist.gov/vuln/detail/CVE-2023-45290) (`net/http`).
+  [CVE-2023-45289](https://nvd.nist.gov/vuln/detail/CVE-2023-45289) (`net/http`, `net/http/cookiejar`).
+  [CVE-2024-24785](https://nvd.nist.gov/vuln/detail/CVE-2024-24785) (`html/template`).
+  [CVE-2024-24784](https://nvd.nist.gov/vuln/detail/CVE-2024-24784) (`net/mail`). [[GH-20812](https://github.com/hashicorp/consul/issues/20812)]
+
+IMPROVEMENTS:
+
+* api: Randomize the returned server list for the WatchServers gRPC endpoint. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+* partitions: **(Enterprise only)** Allow disabling of Gossip per Partition [[GH-20669](https://github.com/hashicorp/consul/issues/20669)]
+* snapshot agent: **(Enterprise only)** Add support for multiple snapshot destinations using the `backup_destinations` config file object.
+* xds: Improved the performance of xDS server side load balancing. Its slightly improved in Consul CE with drastic CPU usage reductions in Consul Enterprise. [[GH-20672](https://github.com/hashicorp/consul/issues/20672)]
+
+BUG FIXES:
+
+* audit-logs: **(Enterprise Only)** Fixes non ASCII characters in audit logs because of gzip. [[GH-20345](https://github.com/hashicorp/consul/issues/20345)]
+* connect: Fix issue where Consul-dataplane xDS sessions would not utilize the streaming backend for wan-federated queries. [[GH-20868](https://github.com/hashicorp/consul/issues/20868)]
+* connect: Fix potential goroutine leak in xDS stream handling. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+* connect: Fix xDS deadlock that could result in proxies being unable to start. [[GH-20867](https://github.com/hashicorp/consul/issues/20867)]
+* ingress-gateway: **(Enterprise Only)** Fix a bug where on update, Ingress Gateways lost all upstreams for listeners with wildcard services in a different namespace.
+
+## 1.17.4 Enterprise (March 26, 2024)
+
+SECURITY:
+
+* Update `google.golang.org/protobuf` to v1.33.0 to address [CVE-2024-24786](https://nvd.nist.gov/vuln/detail/CVE-2024-24786). [[GH-20801](https://github.com/hashicorp/consul/issues/20801)]
+* Update the Consul Build Go base image to `alpine3.19`. This resolves CVEs
+  [CVE-2023-52425](https://nvd.nist.gov/vuln/detail/CVE-2023-52425)
+  [CVE-2023-52426](https://nvd.nist.gov/vuln/detail/CVE-2023-52426) [[GH-20812](https://github.com/hashicorp/consul/issues/20812)]
+* Upgrade to use Go `1.21.8`. This resolves CVEs
+  [CVE-2024-24783](https://nvd.nist.gov/vuln/detail/CVE-2024-24783) (`crypto/x509`).
+  [CVE-2023-45290](https://nvd.nist.gov/vuln/detail/CVE-2023-45290) (`net/http`).
+  [CVE-2023-45289](https://nvd.nist.gov/vuln/detail/CVE-2023-45289) (`net/http`, `net/http/cookiejar`).
+  [CVE-2024-24785](https://nvd.nist.gov/vuln/detail/CVE-2024-24785) (`html/template`).
+  [CVE-2024-24784](https://nvd.nist.gov/vuln/detail/CVE-2024-24784) (`net/mail`). [[GH-20812](https://github.com/hashicorp/consul/issues/20812)]
+
+IMPROVEMENTS:
+
+* api: Randomize the returned server list for the WatchServers gRPC endpoint. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+* snapshot agent: **(Enterprise only)** Add support for multiple snapshot destinations using the `backup_destinations` config file object.
+
+BUG FIXES:
+
+* connect: Fix issue where Consul-dataplane xDS sessions would not utilize the streaming backend for wan-federated queries. [[GH-20868](https://github.com/hashicorp/consul/issues/20868)]
+* connect: Fix potential goroutine leak in xDS stream handling. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+* connect: Fix xDS deadlock that could result in proxies being unable to start. [[GH-20867](https://github.com/hashicorp/consul/issues/20867)]
+* dns: SERVFAIL when resolving not found PTR records. [[GH-20679](https://github.com/hashicorp/consul/issues/20679)]
+* ingress-gateway: **(Enterprise Only)** Fix a bug where on update, Ingress Gateways lost all upstreams for listeners with wildcard services in a different namespace.
+* snapshot-agent: **(Enterprise only)** Fix a bug with static AWS credentials where one of the key id or secret key is provided via config file and the other is provided via an environment variable.
+
+## 1.16.7 Enterprise (March 26, 2024)
+
+SECURITY:
+
+* Update `google.golang.org/protobuf` to v1.33.0 to address [CVE-2024-24786](https://nvd.nist.gov/vuln/detail/CVE-2024-24786). [[GH-20801](https://github.com/hashicorp/consul/issues/20801)]
+* Update the Consul Build Go base image to `alpine3.19`. This resolves CVEs
+  [CVE-2023-52425](https://nvd.nist.gov/vuln/detail/CVE-2023-52425)
+  [CVE-2023-52426](https://nvd.nist.gov/vuln/detail/CVE-2023-52426) [[GH-20812](https://github.com/hashicorp/consul/issues/20812)]
+* Upgrade to use Go `1.21.8`. This resolves CVEs
+  [CVE-2024-24783](https://nvd.nist.gov/vuln/detail/CVE-2024-24783) (`crypto/x509`).
+  [CVE-2023-45290](https://nvd.nist.gov/vuln/detail/CVE-2023-45290) (`net/http`).
+  [CVE-2023-45289](https://nvd.nist.gov/vuln/detail/CVE-2023-45289) (`net/http`, `net/http/cookiejar`).
+  [CVE-2024-24785](https://nvd.nist.gov/vuln/detail/CVE-2024-24785) (`html/template`).
+  [CVE-2024-24784](https://nvd.nist.gov/vuln/detail/CVE-2024-24784) (`net/mail`). [[GH-20812](https://github.com/hashicorp/consul/issues/20812)]
+
+IMPROVEMENTS:
+
+* api: Randomize the returned server list for the WatchServers gRPC endpoint. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+* snapshot agent: **(Enterprise only)** Add support for multiple snapshot destinations using the `backup_destinations` config file object.
+
+BUG FIXES:
+
+* connect: Fix issue where Consul-dataplane xDS sessions would not utilize the streaming backend for wan-federated queries. [[GH-20868](https://github.com/hashicorp/consul/issues/20868)]
+* connect: Fix potential goroutine leak in xDS stream handling. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+* connect: Fix xDS deadlock that could result in proxies being unable to start. [[GH-20867](https://github.com/hashicorp/consul/issues/20867)]
+* ingress-gateway: **(Enterprise Only)** Fix a bug where on update, Ingress Gateways lost all upstreams for listeners with wildcard services in a different namespace.
+* snapshot-agent: **(Enterprise only)** Fix a bug with static AWS credentials where one of the key id or secret key is provided via config file and the other is provided via an environment variable.
+
+## 1.15.11 Enterprise (March 26, 2024)
+
+**Enterprise LTS**: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Update `google.golang.org/protobuf` to v1.33.0 to address [CVE-2024-24786](https://nvd.nist.gov/vuln/detail/CVE-2024-24786). [[GH-20801](https://github.com/hashicorp/consul/issues/20801)]
+
+IMPROVEMENTS:
+
+* api: Randomize the returned server list for the WatchServers gRPC endpoint. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+
+BUG FIXES:
+
+* connect: Fix issue where Consul-dataplane xDS sessions would not utilize the streaming backend for wan-federated queries. [[GH-20868](https://github.com/hashicorp/consul/issues/20868)]
+* connect: Fix potential goroutine leak in xDS stream handling. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+* connect: Fix xDS deadlock that could result in proxies being unable to start. [[GH-20867](https://github.com/hashicorp/consul/issues/20867)]
+* ingress-gateway: **(Enterprise Only)** Fix a bug where on update, Ingress Gateways lost all upstreams for listeners with wildcard services in a different namespace.
+* snapshot-agent: **(Enterprise only)** Fix a bug with static AWS credentials where one of the key id or secret key is provided via config file and the other is provided via an environment variable.
+
 ## 1.18.0 (February 27, 2024)
 
 BREAKING CHANGES:

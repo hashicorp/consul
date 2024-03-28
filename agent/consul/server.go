@@ -132,7 +132,7 @@ const (
 
 	LeaderTransferMinVersion      = "1.6.0"
 	CatalogResourceExperimentName = "resource-apis"
-	V2DNSExperimentName           = "v2dns"
+	V1DNSExperimentName           = "v1dns"
 	V2TenancyExperimentName       = "v2tenancy"
 	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )
@@ -143,7 +143,7 @@ const (
 // Likely these will all be short lived exclusions.
 func IsExperimentAllowedOnSecondaries(name string) bool {
 	switch name {
-	case CatalogResourceExperimentName, V2DNSExperimentName, V2TenancyExperimentName:
+	case CatalogResourceExperimentName, V2TenancyExperimentName:
 		return false
 	default:
 		return true
