@@ -1,3 +1,23 @@
+## 1.15.11 Enterprise (March 26, 2024)
+
+**Enterprise LTS**: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* Update `google.golang.org/protobuf` to v1.33.0 to address [CVE-2024-24786](https://nvd.nist.gov/vuln/detail/CVE-2024-24786). [[GH-20801](https://github.com/hashicorp/consul/issues/20801)]
+
+IMPROVEMENTS:
+
+* api: Randomize the returned server list for the WatchServers gRPC endpoint. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+
+BUG FIXES:
+
+* connect: Fix issue where Consul-dataplane xDS sessions would not utilize the streaming backend for wan-federated queries. [[GH-20868](https://github.com/hashicorp/consul/issues/20868)]
+* connect: Fix potential goroutine leak in xDS stream handling. [[GH-20866](https://github.com/hashicorp/consul/issues/20866)]
+* connect: Fix xDS deadlock that could result in proxies being unable to start. [[GH-20867](https://github.com/hashicorp/consul/issues/20867)]
+* ingress-gateway: **(Enterprise Only)** Fix a bug where on update, Ingress Gateways lost all upstreams for listeners with wildcard services in a different namespace.
+* snapshot-agent: **(Enterprise only)** Fix a bug with static AWS credentials where one of the key id or secret key is provided via config file and the other is provided via an environment variable.
+
 ## 1.15.10 (February 13, 2023)
 
 SECURITY:
