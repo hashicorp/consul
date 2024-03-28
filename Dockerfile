@@ -112,7 +112,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Production docker image that uses CI built binaries.
 # Remember, this image cannot be built locally.
-FROM docker.mirror.hashicorp.services/alpine:3.18 as default
+FROM docker.mirror.hashicorp.services/alpine:3.19 as default
 
 ARG PRODUCT_VERSION
 ARG BIN_NAME
