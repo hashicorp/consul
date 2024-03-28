@@ -163,7 +163,8 @@
         {
           "filterChainMatch": {
             "serverNames": [
-              "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+              "web.default.default.dc2.external.11111111-2222-3333-4444-555555555555.consul"
             ]
           },
           "filters": [
@@ -222,8 +223,25 @@
                 ],
                 "tlsParams": {},
                 "validationContext": {
-                  "trustedCa": {
-                    "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+                  "customValidatorConfig": {
+                    "name": "envoy.tls.cert_validator.spiffe",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.SPIFFECertValidatorConfig",
+                      "trustDomains": [
+                        {
+                          "name": "11111111-2222-3333-4444-555555555555.consul",
+                          "trustBundle": {
+                            "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+                          }
+                        },
+                        {
+                          "name": "foo.bar.gov",
+                          "trustBundle": {
+                            "inlineString": "-----BEGIN CERTIFICATE-----\nMIIB4DCCAYagAwIBAgIIJRydRWIBZ/0wCgYIKoZIzj0EAwIwFjEUMBIGA1UEAxML\nVGVzdCBDQSAzNDEwHhcNMjQwMjA4MTYxMDI4WhcNMzQwMjA4MTYxMDI4WjAWMRQw\nEgYDVQQDEwtUZXN0IENBIDM0MTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABPhl\newcSudWYzKuobsiXUwsHc4PuzmDEKWqRF0RRCkKPnZfui3gLMKR6a9F2fYTmx9Ba\n+C7dCTq9Iqo9MDBNfFejgb0wgbowDgYDVR0PAQH/BAQDAgGGMA8GA1UdEwEB/wQF\nMAMBAf8wKQYDVR0OBCIEIH3eL4bcaHvbHYoNlU4YsqHSRSqLIbolaLzbgSbyKlpY\nMCsGA1UdIwQkMCKAIH3eL4bcaHvbHYoNlU4YsqHSRSqLIbolaLzbgSbyKlpYMD8G\nA1UdEQQ4MDaGNHNwaWZmZTovLzExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1\nNTU1NTU1NS5jb25zdWwwCgYIKoZIzj0EAwIDSAAwRQIgDZiUOpWgVjYjGp8mkXmx\n8hJkB7sumvk6pw+zY4S4omsCIQD1VIaJe88Uo3yoP8a6LYORDlU5d8VcLqmdNggd\neWNHUA==\n-----END CERTIFICATE-----\n"
+                          }
+                        }
+                      ]
+                    }
                   }
                 }
               },
