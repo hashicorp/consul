@@ -7,27 +7,25 @@ description: >-
 
 # Deploy Consul on AKS
 
-In this tutorial you will deploy a Consul datacenter to the Azure Kubernetes Services (AKS) with HashiCorp’s official Helm chart or the Consul K8S CLI. After deploying Consul, you will interact with Consul using the CLI, UI, and/or API.
+This topic describes how to deploy a Consul datacenter to an Azure Kubernetes Services (AKS) cluster. After deploying Consul, you will interact with Consul using the CLI, UI, and/or API.
 
-## Prerequisites
+## Requirements
 
-For this tutorial, you will need:
+To deploy Consul on AKS, you will need:
 
 - An Azure account with the ability to create a Kubernetes cluster
 - [Azure Cloud Shell](https://shell.azure.com/)
-- [consul >= 1.14.0](/consul/install/)
+- [consul v1.14.0+](/consul/install/)
+- [Helm v3.6+](https://helm.sh/docs/helm/helm_install/)
+- [consul-k8s v1.0.2+](/consul/docs/reference-cli/consul-k8s#install-the-cli)
 
-<Note>
-
- This example uses the latest version of Helm and kubectl, which are installed with the Azure Cloud Shell.
-
-</Note>
+This example uses the latest version of Helm and `kubectl`, which are installed with the Azure Cloud Shell.
 
 ### Create an AKS cluster
 
-At least a three node AKS cluster is required to deploy Consul using the official Consul Helm chart or the Consul K8S CLI. Create a three node cluster on AKS by following the the [AKS documentation](https://docs.microsoft.com/en-us/azure/aks/). 
+You need at least a three node AKS cluster to deploy Consul using the official Consul Helm chart or the Consul K8S CLI. Create a three node cluster on AKS by following the [AKS documentation](https://docs.microsoft.com/en-us/azure/aks/).
 
-### Configure kubectl to talk to your cluster
+### Configure kubectl to interact to your cluster
 
 Login to the Azure Shell on your console.
 
@@ -35,7 +33,13 @@ Login to the Azure Shell on your console.
 $ az login
 ```
 
-You can then run the command `kubectl cluster-info` to verify you are connected to your Kubernetes cluster:
+Configure `kubectl` to connect to your Kubernetes cluster. This command downloads credentials and configures the Kubernetes CLI to use them. Replace `myResourceGroup` and `myAKSCluster` with your resource group and AKS cluster name.
+
+```shell-session
+$ az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+```
+
+Verify you are connected to your Kubernetes cluster.
 
 ```shell-session
 $ kubectl cluster-info
@@ -59,34 +63,34 @@ To customize your deployment, create a `values.yaml` file to customization your 
 ```yaml
 # Contains values that affect multiple components of the chart.
 global:
- # The main enabled/disabled setting.
- # If true, servers, clients, Consul DNS and the Consul UI will be enabled.
- enabled: true
- # The prefix used for all resources created in the Helm chart.
- name: consul
- # The name of the datacenter that the agents should register as.
- datacenter: dc1
- # Enables TLS across the cluster to verify authenticity of the Consul servers and clients.
- tls:
-   enabled: true
+  # The main enabled/disabled setting.
+  # If true, servers, clients, Consul DNS and the Consul UI will be enabled.
+  enabled: true
+  # The prefix used for all resources created in the Helm chart.
+  name: consul
+  # The name of the datacenter that the agents should register as.
+  datacenter: dc1
+  # Enables TLS across the cluster to verify authenticity of the Consul servers and clients.
+  tls:
+    enabled: true
  # Enables ACLs across the cluster to secure access to data and APIs.
  acls:
-   # If true, automatically manage ACL tokens and policies for all Consul components.
-   manageSystemACLs: true
+    # If true, automatically manage ACL tokens and policies for all Consul components.
+    manageSystemACLs: true
 # Configures values that configure the Consul server cluster.
 server:
- enabled: true
- # The number of server agents to run. This determines the fault tolerance of the cluster.
- replicas: 3
+  enabled: true
+  # The number of server agents to run. This determines the fault tolerance of the cluster.
+  replicas: 3
 # Contains values that configure the Consul UI.
 ui:
- enabled: true
- # Registers a Kubernetes Service for the Consul UI as a LoadBalancer.
- service:
-   type: LoadBalancer
+  enabled: true
+  # Registers a Kubernetes Service for the Consul UI as a LoadBalancer.
+  service:
+    type: LoadBalancer
 # Configures and installs the automatic Consul Connect sidecar injector.
 connectInject:
- enabled: true
+  enabled: true
 ```
 
 </CodeBlockConfig>
@@ -98,46 +102,29 @@ You can now deploy a complete Consul datacenter in your Kubernetes cluster using
 <Tabs>
 <Tab heading="Consul K8S CLI (Mac & Linux)">
 
-```shell-session
-$ brew tap hashicorp/tap
-```
-
-```shell-session
-$ brew install hashicorp/tap/consul-k8s
-```
+Install Consul onto the AKS cluster with `consul-k8s`. Confirm the installation with a `y` when prompted.
 
 ```shell-session
 $ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.14.0
 ```
 
-<Note>
-
- You can review the official [Consul K8S CLI documentation](/consul/docs/reference/k8s/consul-k8s-cli) to learn more about additional settings.
-
-</Note>
+Review the official [Consul K8S CLI documentation](/consul/docs/reference-cli/consul-k8s) to learn more about additional settings.
 
 </Tab>
 <Tab heading="Helm">
 
-```shell-session
-$ helm repo add hashicorp https://helm.releases.hashicorp.com
-"hashicorp" has been added to your repositories
-```
+Install Consul onto the kind cluster with Helm. Confirm the installation with a `y` when prompted.
 
 ```shell-session
 $ helm install --values values.yaml consul hashicorp/consul --create-namespace --namespace consul --version "1.0.0"
 ```
 
-<Note>
-
- You can review the official [Helm chart values](/consul/docs/reference/k8s/helm#configuration-values) to learn more about the default settings.
-
-</Note>
+Review the official [Helm chart values](/consul/docs/reference/k8s/helm#configuration-values) to learn more about the default settings.
 
 </Tab>
 </Tabs>
 
-Run the command `kubectl get pods` to verify the Consul resources were successfully created.
+Verify the Consul resources were successfully created.
 
 ```shell-session
 $ kubectl get pods --namespace consul
@@ -274,38 +261,38 @@ Sample output:
 
 ```json hideClipboard
 [
-    {
-        "Name": "consul-server-0",
-        "Addr": "10.244.0.13",
-        "Port": 8301,
-        "Tags": {
-            "acls": "1",
-            "bootstrap": "1",
-            "build": "1.14.0",
-            "dc": "dc1",
-            "ft_fs": "1",
-            "ft_si": "1",
-            "grpc_port": "8502",
-            "id": "8016fc4d-767f-8552-b018-0812228bd135",
-            "port": "8300",
-            "raft_vsn": "3",
-            "role": "consul",
-            "segment": "",
-            "use_tls": "1",
-            "vsn": "2",
-            "vsn_max": "3",
-            "vsn_min": "2",
-            "wan_join_port": "8302"
-        },
-        "Status": 1,
-        "ProtocolMin": 1,
-        "ProtocolMax": 5,
-        "ProtocolCur": 2,
-        "DelegateMin": 2,
-        "DelegateMax": 5,
-        "DelegateCur": 4
-    }
-...TRUNCATED
+  {
+    "Name": "consul-server-0",
+    "Addr": "10.244.0.13",
+    "Port": 8301,
+    "Tags": {
+      "acls": "1",
+      "bootstrap": "1",
+      "build": "1.14.0",
+      "dc": "dc1",
+      "ft_fs": "1",
+      "ft_si": "1",
+      "grpc_port": "8502",
+      "id": "8016fc4d-767f-8552-b018-0812228bd135",
+      "port": "8300",
+      "raft_vsn": "3",
+      "role": "consul",
+      "segment": "",
+      "use_tls": "1",
+      "vsn": "2",
+      "vsn_max": "3",
+      "vsn_min": "2",
+      "wan_join_port": "8302"
+    },
+    "Status": 1,
+    "ProtocolMin": 1,
+    "ProtocolMax": 5,
+    "ProtocolCur": 2,
+    "DelegateMin": 2,
+    "DelegateMax": 5,
+    "DelegateCur": 4
+  }
+  ## ...
 ]
 ```
 
@@ -316,6 +303,6 @@ All services listed in your Consul catalog are empowered with Consul's service d
 
 ## Next steps
 
-In this tutorial, you deployed a Consul datacenter onto an Azure Kubernetes Service (AKS) cluster. After deploying Consul, you interacted with Consul using the CLI, UI, and API.
+You learned how to deploy a Consul datacenter onto an Azure Kubernetes Service (AKS) cluster. After deploying Consul, you interacted with Consul using the CLI, UI, and API.
 
-To learn more about deployment best practices, review the [Kubernetes Reference Architecture tutorial](/consul/tutorials/kubernetes/kubernetes-reference-architecture).
+To learn more about deployment best practices, review the [Kubernetes reference architecture tutorial](/consul/tutorials/kubernetes/kubernetes-reference-architecture).
