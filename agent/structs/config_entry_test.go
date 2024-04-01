@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package structs
 
 import (
@@ -16,16 +19,31 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
+
+func TestNormalizeGenerateHash(t *testing.T) {
+	for _, cType := range AllConfigEntryKinds {
+		//this is an enterprise only config entry
+		if cType == RateLimitIPConfig {
+			continue
+		}
+		entry, err := MakeConfigEntry(cType, "global")
+		require.NoError(t, err)
+		require.NoError(t, entry.Normalize())
+		require.NotEmpty(t, entry.GetHash(), entry.GetKind())
+	}
+
+}
 
 func TestConfigEntries_ACLs(t *testing.T) {
 	type testACL = configEntryTestACL
 	type testcase = configEntryACLTestCase
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -176,6 +194,7 @@ type configEntryACLTestCase struct {
 }
 
 func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configEntryACLTestCase) {
+
 	// This test tests both of these because they are related functions.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -296,7 +315,7 @@ func TestDecodeConfigEntry_ServiceDefaults(t *testing.T) {
 }
 
 // TestDecodeConfigEntry is the 'structs' mirror image of
-// command/config/write/config_write_test.go:TestParseConfigEntry
+// command/helpers/helpers_test.go:TestParseConfigEntry
 func TestDecodeConfigEntry(t *testing.T) {
 
 	for _, tc := range []struct {
@@ -345,6 +364,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				mutual_tls_mode = "permissive"
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -364,6 +384,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				MutualTLSMode = "permissive"
 			`,
 			expect: &ProxyConfigEntry{
 				Kind: "proxy-defaults",
@@ -383,6 +404,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				MutualTLSMode: MutualTLSModePermissive,
 			},
 		},
 		{
@@ -399,6 +421,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				mutual_tls_mode = "permissive"
 				balance_inbound_connections = "exact_balance"
 				upstream_config {
 					overrides = [
@@ -407,6 +430,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							passive_health_check {
 								interval = "2s"
 								max_failures = 3
+								enforcing_consecutive_5xx = 4
+								max_ejection_percent = 5
+								base_ejection_time = "6s"
 							}
 						},
 						{
@@ -442,6 +468,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				MutualTLSMode = "permissive"
 				BalanceInboundConnections = "exact_balance"
 				UpstreamConfig {
 					Overrides = [
@@ -450,6 +477,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							PassiveHealthCheck {
 								MaxFailures = 3
 								Interval = "2s"
+								EnforcingConsecutive5xx = 4
+								MaxEjectionPercent = 5
+								BaseEjectionTime = "6s"
 							}
 						},
 						{
@@ -485,14 +515,18 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				MutualTLSMode:             MutualTLSModePermissive,
 				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
 							Name: "redis",
 							PassiveHealthCheck: &PassiveHealthCheck{
-								MaxFailures: 3,
-								Interval:    2 * time.Second,
+								MaxFailures:             3,
+								Interval:                2 * time.Second,
+								EnforcingConsecutive5xx: uintPointer(4),
+								MaxEjectionPercent:      uintPointer(5),
+								BaseEjectionTime:        durationPointer(6 * time.Second),
 							},
 						},
 						{
@@ -603,6 +637,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  namespace             = "leek"
 						  prefix_rewrite         = "/alternate"
 						  request_timeout        = "99s"
+						  idle_timeout           = "99s"
 						  num_retries            = 12345
 						  retry_on_connect_failure = true
 						  retry_on_status_codes    = [401, 209]
@@ -704,6 +739,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  Namespace             = "leek"
 						  PrefixRewrite         = "/alternate"
 						  RequestTimeout        = "99s"
+						  IdleTimeout           = "99s"
 						  NumRetries            = 12345
 						  RetryOnConnectFailure = true
 						  RetryOnStatusCodes    = [401, 209]
@@ -805,6 +841,311 @@ func TestDecodeConfigEntry(t *testing.T) {
 							Namespace:             "leek",
 							PrefixRewrite:         "/alternate",
 							RequestTimeout:        99 * time.Second,
+							IdleTimeout:           99 * time.Second,
+							NumRetries:            12345,
+							RetryOnConnectFailure: true,
+							RetryOnStatusCodes:    []uint32{401, 209},
+							RequestHeaders: &HTTPHeaderModifiers{
+								Add:    map[string]string{"x-foo": "bar"},
+								Set:    map[string]string{"bar": "baz"},
+								Remove: []string{"qux"},
+							},
+							ResponseHeaders: &HTTPHeaderModifiers{
+								Add:    map[string]string{"x-foo": "bar"},
+								Set:    map[string]string{"bar": "baz"},
+								Remove: []string{"qux"},
+							},
+						},
+					},
+					{
+						Match: &ServiceRouteMatch{
+							HTTP: &ServiceRouteHTTPMatch{
+								PathPrefix: "/foo",
+								Methods:    []string{"GET", "DELETE"},
+								QueryParam: []ServiceRouteHTTPMatchQueryParam{
+									{
+										Name:    "hack1",
+										Present: true,
+									},
+									{
+										Name:  "hack2",
+										Exact: "1",
+									},
+									{
+										Name:  "hack3",
+										Regex: "a.*z",
+									},
+								},
+							},
+						},
+					},
+					{
+						Match: &ServiceRouteMatch{
+							HTTP: &ServiceRouteHTTPMatch{
+								PathRegex: "/foo",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "service-router: kitchen sink case insensitive",
+			snake: `
+				kind = "service-router"
+				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				routes = [
+					{
+						match {
+							http {
+								path_exact = "/foo"
+								case_insensitive = true
+								header = [
+									{
+										name = "debug1"
+										present = true
+									},
+									{
+										name = "debug2"
+										present = false
+										invert = true
+									},
+									{
+										name = "debug3"
+										exact = "1"
+									},
+									{
+										name = "debug4"
+										prefix = "aaa"
+									},
+									{
+										name = "debug5"
+										suffix = "bbb"
+									},
+									{
+										name = "debug6"
+										regex = "a.*z"
+									},
+								]
+							}
+						}
+						destination {
+						  service               = "carrot"
+						  service_subset         = "kale"
+						  namespace             = "leek"
+						  prefix_rewrite         = "/alternate"
+						  request_timeout        = "99s"
+						  idle_timeout           = "99s"
+						  num_retries            = 12345
+						  retry_on_connect_failure = true
+						  retry_on_status_codes    = [401, 209]
+							request_headers {
+								add {
+									x-foo = "bar"
+								}
+								set {
+									bar = "baz"
+								}
+								remove = ["qux"]
+							}
+							response_headers {
+								add {
+									x-foo = "bar"
+								}
+								set {
+									bar = "baz"
+								}
+								remove = ["qux"]
+							}
+						}
+					},
+					{
+						match {
+							http {
+								path_prefix = "/foo"
+								methods = [ "GET", "DELETE" ]
+								query_param = [
+									{
+										name = "hack1"
+										present = true
+									},
+									{
+										name = "hack2"
+										exact = "1"
+									},
+									{
+										name = "hack3"
+										regex = "a.*z"
+									},
+								]
+							}
+						}
+					},
+					{
+						match {
+							http {
+								path_regex = "/foo"
+							}
+						}
+					},
+				]
+			`,
+			camel: `
+				Kind = "service-router"
+				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				Routes = [
+					{
+						Match {
+							HTTP {
+								PathExact = "/foo"
+								CaseInsensitive = true
+								Header = [
+									{
+										Name = "debug1"
+										Present = true
+									},
+									{
+										Name = "debug2"
+										Present = false
+										Invert = true
+									},
+									{
+										Name = "debug3"
+										Exact = "1"
+									},
+									{
+										Name = "debug4"
+										Prefix = "aaa"
+									},
+									{
+										Name = "debug5"
+										Suffix = "bbb"
+									},
+									{
+										Name = "debug6"
+										Regex = "a.*z"
+									},
+								]
+							}
+						}
+						Destination {
+						  Service               = "carrot"
+						  ServiceSubset         = "kale"
+						  Namespace             = "leek"
+						  PrefixRewrite         = "/alternate"
+						  RequestTimeout        = "99s"
+						  IdleTimeout           = "99s"
+						  NumRetries            = 12345
+						  RetryOnConnectFailure = true
+						  RetryOnStatusCodes    = [401, 209]
+							RequestHeaders {
+								Add {
+									x-foo = "bar"
+								}
+								Set {
+									bar = "baz"
+								}
+								Remove = ["qux"]
+							}
+							ResponseHeaders {
+								Add {
+									x-foo = "bar"
+								}
+								Set {
+									bar = "baz"
+								}
+								Remove = ["qux"]
+							}
+						}
+					},
+					{
+						Match {
+							HTTP {
+								PathPrefix = "/foo"
+								Methods = [ "GET", "DELETE" ]
+								QueryParam = [
+									{
+										Name = "hack1"
+										Present = true
+									},
+									{
+										Name = "hack2"
+										Exact = "1"
+									},
+									{
+										Name = "hack3"
+										Regex = "a.*z"
+									},
+								]
+							}
+						}
+					},
+					{
+						Match {
+							HTTP {
+								PathRegex = "/foo"
+							}
+						}
+					},
+				]
+			`,
+			expect: &ServiceRouterConfigEntry{
+				Kind: "service-router",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				Routes: []ServiceRoute{
+					{
+						Match: &ServiceRouteMatch{
+							HTTP: &ServiceRouteHTTPMatch{
+								PathExact:       "/foo",
+								CaseInsensitive: true,
+								Header: []ServiceRouteHTTPMatchHeader{
+									{
+										Name:    "debug1",
+										Present: true,
+									},
+									{
+										Name:    "debug2",
+										Present: false,
+										Invert:  true,
+									},
+									{
+										Name:  "debug3",
+										Exact: "1",
+									},
+									{
+										Name:   "debug4",
+										Prefix: "aaa",
+									},
+									{
+										Name:   "debug5",
+										Suffix: "bbb",
+									},
+									{
+										Name:  "debug6",
+										Regex: "a.*z",
+									},
+								},
+							},
+						},
+						Destination: &ServiceRouteDestination{
+							Service:               "carrot",
+							ServiceSubset:         "kale",
+							Namespace:             "leek",
+							PrefixRewrite:         "/alternate",
+							RequestTimeout:        99 * time.Second,
+							IdleTimeout:           99 * time.Second,
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
@@ -1803,6 +2144,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
+				allow_enabling_permissive_mutual_tls = true
 				tls {
 					incoming {
 						tls_min_version = "TLSv1_1"
@@ -1837,6 +2179,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
+				AllowEnablingPermissiveMutualTLS = true
 				TLS {
 					Incoming {
 						TLSMinVersion = "TLSv1_1"
@@ -1870,6 +2213,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
 				},
+				AllowEnablingPermissiveMutualTLS: true,
 				TLS: &MeshTLSConfig{
 					Incoming: &MeshDirectionalTLSConfig{
 						TLSMinVersion: types.TLSv1_1,
@@ -1893,6 +2237,114 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				Peering: &PeeringMeshConfig{
 					PeerThroughMeshGateways: true,
+				},
+			},
+		},
+		{
+			name: "api-gateway",
+			snake: `
+				kind = "api-gateway"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "api-gateway"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "inline-certificate",
+			snake: `
+				kind = "inline-certificate"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "inline-certificate"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &InlineCertificateConfigEntry{
+				Kind: "inline-certificate",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "http-route",
+			snake: `
+				kind = "http-route"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "http-route"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &HTTPRouteConfigEntry{
+				Kind: "http-route",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "tcp-route",
+			snake: `
+				kind = "tcp-route"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "tcp-route"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &TCPRouteConfigEntry{
+				Kind: "tcp-route",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
 				},
 			},
 		},
@@ -2029,6 +2481,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 }
 
 func TestServiceConfigRequest(t *testing.T) {
+
 	tests := []struct {
 		name     string
 		req      ServiceConfigRequest
@@ -2059,39 +2512,17 @@ func TestServiceConfigRequest(t *testing.T) {
 			wantSame: false,
 		},
 		{
-			name: "legacy upstreams should be different",
-			req: ServiceConfigRequest{
-				Name:      "web",
-				Upstreams: []string{"foo"},
-			},
-			mutate: func(req *ServiceConfigRequest) {
-				req.Upstreams = []string{"foo", "bar"}
-			},
-			wantSame: false,
-		},
-		{
-			name: "legacy upstreams should not depend on order",
-			req: ServiceConfigRequest{
-				Name:      "web",
-				Upstreams: []string{"bar", "foo"},
-			},
-			mutate: func(req *ServiceConfigRequest) {
-				req.Upstreams = []string{"foo", "bar"}
-			},
-			wantSame: true,
-		},
-		{
 			name: "upstreams should be different",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamIDs: []ServiceID{
-					NewServiceID("foo", nil),
+				UpstreamServiceNames: []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamIDs = []ServiceID{
-					NewServiceID("foo", nil),
-					NewServiceID("bar", nil),
+				req.UpstreamServiceNames = []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				}
 			},
 			wantSame: false,
@@ -2100,15 +2531,15 @@ func TestServiceConfigRequest(t *testing.T) {
 			name: "upstreams should not depend on order",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamIDs: []ServiceID{
-					NewServiceID("bar", nil),
-					NewServiceID("foo", nil),
+				UpstreamServiceNames: []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamIDs = []ServiceID{
-					NewServiceID("foo", nil),
-					NewServiceID("bar", nil),
+				req.UpstreamServiceNames = []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				}
 			},
 			wantSame: true,
@@ -2141,27 +2572,35 @@ func TestServiceConfigRequest(t *testing.T) {
 }
 
 func TestServiceConfigResponse_MsgPack(t *testing.T) {
-	// TODO(banks) lib.MapWalker doesn't actually fix the map[interface{}] issue
-	// it claims to in docs yet. When it does uncomment those cases below.
 	a := ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
 			"string": "foo",
-			// "map": map[string]interface{}{
-			// 	"baz": "bar",
-			// },
-		},
-		UpstreamConfigs: map[string]map[string]interface{}{
-			"a": {
-				"string": "aaaa",
-				// "map": map[string]interface{}{
-				// 	"baz": "aa",
-				// },
+			"map": map[string]interface{}{
+				"baz": "bar",
 			},
-			"b": {
-				"string": "bbbb",
-				// "map": map[string]interface{}{
-				// 	"baz": "bb",
-				// },
+		},
+		UpstreamConfigs: []OpaqueUpstreamConfig{
+			{
+				Upstream: PeeredServiceName{
+					ServiceName: NewServiceName("a", acl.DefaultEnterpriseMeta()),
+				},
+				Config: map[string]interface{}{
+					"string": "aaaa",
+					"map": map[string]interface{}{
+						"baz": "aa",
+					},
+				},
+			},
+			{
+				Upstream: PeeredServiceName{
+					ServiceName: NewServiceName("b", acl.DefaultEnterpriseMeta()),
+				},
+				Config: map[string]interface{}{
+					"string": "bbbb",
+					"map": map[string]interface{}{
+						"baz": "bb",
+					},
+				},
 			},
 		},
 	}
@@ -2236,6 +2675,39 @@ func TestPassiveHealthCheck_Validate(t *testing.T) {
 		{
 			name:    "negative interval",
 			input:   PassiveHealthCheck{Interval: -1 * time.Second},
+			wantErr: true,
+			wantMsg: "cannot be negative",
+		},
+		{
+			name:    "valid enforcing_consecutive_5xx",
+			input:   PassiveHealthCheck{EnforcingConsecutive5xx: uintPointer(100)},
+			wantErr: false,
+		},
+		{
+			name:    "invalid enforcing_consecutive_5xx",
+			input:   PassiveHealthCheck{EnforcingConsecutive5xx: uintPointer(101)},
+			wantErr: true,
+			wantMsg: "must be a percentage",
+		},
+		{
+			name:    "valid max_ejection_percent",
+			input:   PassiveHealthCheck{MaxEjectionPercent: uintPointer(100)},
+			wantErr: false,
+		},
+		{
+			name:    "invalid max_ejection_percent",
+			input:   PassiveHealthCheck{MaxEjectionPercent: uintPointer(101)},
+			wantErr: true,
+			wantMsg: "must be a percentage",
+		},
+		{
+			name:    "valid base_ejection_time",
+			input:   PassiveHealthCheck{BaseEjectionTime: durationPointer(0 * time.Second)},
+			wantErr: false,
+		},
+		{
+			name:    "negative base_ejection_time",
+			input:   PassiveHealthCheck{BaseEjectionTime: durationPointer(-1 * time.Second)},
 			wantErr: true,
 			wantMsg: "cannot be negative",
 		},
@@ -2698,6 +3170,61 @@ func TestServiceConfigEntry(t *testing.T) {
 			},
 			validateErr: "invalid value for balance_outbound_connections",
 		},
+		"validate: invalid extension": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{},
+				},
+			},
+			validateErr: "invalid EnvoyExtensions[0]: Name is required",
+		},
+		"validate: invalid extension name": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{
+						Name: "not-a-builtin",
+					},
+				},
+			},
+			validateErr: `name "not-a-builtin" is not a built-in extension`,
+		},
+		"validate: valid extension": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "external",
+				Protocol: "http",
+				EnvoyExtensions: []EnvoyExtension{
+					{
+						Name: api.BuiltinAWSLambdaExtension,
+						Arguments: map[string]interface{}{
+							"ARN": "some-arn",
+						},
+					},
+				},
+			},
+		},
+		"validate: invalid MutualTLSMode in service-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:          ServiceDefaults,
+				Name:          "web",
+				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
+			},
+			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
+		},
+		"validate: invalid MutualTLSMode in proxy-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:          ProxyDefaults,
+				Name:          ProxyConfigGlobal,
+				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
+			},
+			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
@@ -2723,8 +3250,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				PassiveHealthCheck: &PassiveHealthCheck{
-					MaxFailures: 3,
-					Interval:    2 * time.Second,
+					Interval:                2 * time.Second,
+					MaxFailures:             3,
+					EnforcingConsecutive5xx: uintPointer(4),
+					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2741,8 +3271,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures: 3,
-					Interval:    2 * time.Second,
+					Interval:                2 * time.Second,
+					MaxFailures:             3,
+					EnforcingConsecutive5xx: uintPointer(4),
+					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2761,8 +3294,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				PassiveHealthCheck: &PassiveHealthCheck{
-					MaxFailures: 3,
-					Interval:    2 * time.Second,
+					Interval:                2 * time.Second,
+					MaxFailures:             3,
+					EnforcingConsecutive5xx: uintPointer(4),
+					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2778,8 +3314,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(12),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures: 13,
-					Interval:    14 * time.Second,
+					MaxFailures:             13,
+					Interval:                14 * time.Second,
+					EnforcingConsecutive5xx: uintPointer(15),
+					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2795,8 +3334,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures: 3,
-					Interval:    2 * time.Second,
+					Interval:                2 * time.Second,
+					MaxFailures:             3,
+					EnforcingConsecutive5xx: uintPointer(4),
+					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2818,7 +3360,9 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures:             13,
 					Interval:                14 * time.Second,
-					EnforcingConsecutive5xx: uintPointer(80),
+					EnforcingConsecutive5xx: uintPointer(15),
+					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2836,7 +3380,9 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures:             13,
 					Interval:                14 * time.Second,
-					EnforcingConsecutive5xx: uintPointer(80),
+					EnforcingConsecutive5xx: uintPointer(15),
+					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2971,15 +3517,21 @@ func TestParseUpstreamConfig(t *testing.T) {
 			name: "passive health check map",
 			input: map[string]interface{}{
 				"passive_health_check": map[string]interface{}{
-					"interval":     "22s",
-					"max_failures": 7,
+					"interval":                  "22s",
+					"max_failures":              7,
+					"enforcing_consecutive_5xx": 8,
+					"max_ejection_percent":      9,
+					"base_ejection_time":        "10s",
 				},
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				PassiveHealthCheck: &PassiveHealthCheck{
-					Interval:    22 * time.Second,
-					MaxFailures: 7,
+					Interval:                22 * time.Second,
+					MaxFailures:             7,
+					EnforcingConsecutive5xx: uintPointer(8),
+					MaxEjectionPercent:      uintPointer(9),
+					BaseEjectionTime:        durationPointer(10 * time.Second),
 				},
 				Protocol: "tcp",
 			},
@@ -3027,17 +3579,133 @@ func TestProxyConfigEntry(t *testing.T) {
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		},
+		"proxy config entry has invalid opaque config": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				Config: map[string]interface{}{
+					"envoy_hcp_metrics_bind_socket_dir": "/Consul/is/a/networking/platform/that/enables/securing/your/networking/",
+				},
+			},
+			validateErr: "Config: envoy_hcp_metrics_bind_socket_dir length 71 exceeds max",
+		},
+		"proxy config has invalid failover policy": {
+			entry: &ProxyConfigEntry{
+				Name:           "global",
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "bad"},
+			},
+			validateErr: `Failover-policy mode must be one of '', 'sequential', or 'order-by-locality'`,
+		},
+		"proxy config with valid failover policy": {
+			entry: &ProxyConfigEntry{
+				Name:           "global",
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
+			},
+			expected: &ProxyConfigEntry{
+				Name:           ProxyConfigGlobal,
+				Kind:           ProxyDefaults,
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
+				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+			},
+		},
+		"proxy config has invalid access log type": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Type:    "stdin",
+				},
+			},
+			validateErr: "invalid access log type: stdin",
+		},
+		"proxy config has invalid access log config - both text and json formats": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled:    true,
+					JSONFormat: "[%START_TIME%]",
+					TextFormat: "{\"start_time\": \"[%START_TIME%]\"}",
+				},
+			},
+			validateErr: "cannot specify both access log JSONFormat and TextFormat",
+		},
+		"proxy config has invalid access log config - file path with wrong type": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Path:    "/tmp/logs.txt",
+				},
+			},
+			validateErr: "path is only valid for file type access logs",
+		},
+		"proxy config has invalid access log config - no file path specified": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled: true,
+					Type:    FileLogSinkType,
+				},
+			},
+			validateErr: "path must be specified when using file type access logs",
+		},
+		"proxy config has invalid access log JSON format": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				AccessLogs: AccessLogsConfig{
+					Enabled:    true,
+					JSONFormat: "{\"start_time\": \"[%START_TIME%]\"", // Missing trailing brace
+				},
+			},
+			validateErr: "invalid access log json for JSON format",
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
+func TestProxyConfigEntry_ComputeProtocol(t *testing.T) {
+	t.Run("ComputeProtocol sets protocol field correctly", func(t *testing.T) {
+		pd := &ProxyConfigEntry{
+			Kind: ProxyDefaults,
+			Name: "global",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}
+		require.NoError(t, pd.ComputeProtocol())
+		require.Equal(t, &ProxyConfigEntry{
+			Kind:     ProxyDefaults,
+			Name:     "global",
+			Protocol: "http",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}, pd)
+	})
+	t.Run("Normalize sets protocol field correctly", func(t *testing.T) {
+		pd := &ProxyConfigEntry{
+			Kind: ProxyDefaults,
+			Name: "global",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}
+		require.NoError(t, pd.Normalize())
+		pd.Hash = 0
+		require.Equal(t, &ProxyConfigEntry{
+			Kind:     ProxyDefaults,
+			Name:     "global",
+			Protocol: "http",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+		}, pd)
+	})
 }
 
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
-}
-
-func intPointer(i int) *int {
-	return &i
 }
 
 func TestConfigEntryQuery_CacheInfoKey(t *testing.T) {
@@ -3098,11 +3766,12 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 			}
 
 			if tc.expected != nil {
+				tc.expected.SetHash(tc.entry.GetHash())
 				require.Equal(t, tc.expected, tc.entry)
 			}
 
 			if tc.expectUnchanged {
-				// EnterpriseMeta.Normalize behaves differently in Ent and OSS which
+				// EnterpriseMeta.Normalize behaves differently in Ent and CE which
 				// causes an exact comparison to fail. It's still useful to assert that
 				// nothing else changes though during Normalize. So we ignore
 				// EnterpriseMeta Defaults.
@@ -3111,6 +3780,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 						return a.IsSame(&b)
 					}),
 				}
+				beforeNormalize.(ConfigEntry).SetHash(tc.entry.GetHash())
 				if diff := cmp.Diff(beforeNormalize, tc.entry, opts); diff != "" {
 					t.Fatalf("expect unchanged after Normalize, got diff:\n%s", diff)
 				}
@@ -3134,6 +3804,44 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 	}
 }
 
+func intPointer(i int) *int {
+	return &i
+}
+
 func uintPointer(v uint32) *uint32 {
 	return &v
+}
+
+func durationPointer(d time.Duration) *time.Duration {
+	return &d
+}
+
+func TestValidateOpaqueConfigMap(t *testing.T) {
+	tt := map[string]struct {
+		input     map[string]interface{}
+		expectErr string
+	}{
+		"hcp metrics socket dir is valid": {
+			input: map[string]interface{}{
+				"envoy_hcp_metrics_bind_socket_dir": "/etc/consul.d/hcp"},
+			expectErr: "",
+		},
+		"hcp metrics socket dir is too long": {
+			input: map[string]interface{}{
+				"envoy_hcp_metrics_bind_socket_dir": "/Consul/is/a/networking/platform/that/enables/securing/your/networking/",
+			},
+			expectErr: "envoy_hcp_metrics_bind_socket_dir length 71 exceeds max 70",
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			err := validateOpaqueProxyConfig(tc.input)
+			if tc.expectErr != "" {
+				require.ErrorContains(t, err, tc.expectErr)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
 }

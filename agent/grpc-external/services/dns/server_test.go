@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dns
 
 import (
@@ -30,11 +33,12 @@ func helloServer(w dns.ResponseWriter, req *dns.Msg) {
 	w.WriteMsg(m)
 }
 
-func testClient(t *testing.T, server *Server) pbdns.DNSServiceClient {
+func testClient(t *testing.T, server testutils.GRPCService) pbdns.DNSServiceClient {
 	t.Helper()
 
 	addr := testutils.RunTestServer(t, server)
 
+	//nolint:staticcheck
 	conn, err := grpc.DialContext(context.Background(), addr.String(), grpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(func() {

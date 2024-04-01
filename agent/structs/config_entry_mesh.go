@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package structs
 
 import (
@@ -13,6 +16,10 @@ type MeshConfigEntry struct {
 	// when enabled.
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
 
+	// AllowEnablingPermissiveMutualTLS must be true in order to allow setting
+	// MutualTLSMode=permissive in either service-defaults or proxy-defaults.
+	AllowEnablingPermissiveMutualTLS bool `json:",omitempty" alias:"allow_enabling_permissive_mutual_tls"`
+
 	TLS *MeshTLSConfig `json:",omitempty"`
 
 	HTTP *MeshHTTPConfig `json:",omitempty"`
@@ -20,8 +27,17 @@ type MeshConfigEntry struct {
 	Peering *PeeringMeshConfig `json:",omitempty"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *MeshConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *MeshConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 // TransparentProxyMeshConfig contains cluster-wide options pertaining to
@@ -85,6 +101,13 @@ func (e *MeshConfigEntry) Normalize() error {
 	}
 
 	e.EnterpriseMeta.Normalize()
+
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
+
 	return nil
 }
 

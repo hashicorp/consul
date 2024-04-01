@@ -1,9 +1,8 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "default:1.2.3.4:8443",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -22,16 +21,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "mesh_gateway_local_peered.db.default.default.dc1",
-                "rds": {
-                  "configSource": {
-                    "ads": {
-
-                    },
-                    "resourceApiVersion": "V3"
-                  },
-                  "routeConfigName": "db"
-                },
+                "forwardClientCertDetails": "SANITIZE_SET",
                 "httpFilters": [
                   {
                     "name": "envoy.filters.http.router",
@@ -40,19 +30,29 @@
                     }
                   }
                 ],
-                "tracing": {
-                  "randomSampling": {
-
-                  }
+                "rds": {
+                  "configSource": {
+                    "ads": {},
+                    "resourceApiVersion": "V3"
+                  },
+                  "routeConfigName": "db"
                 },
-                "forwardClientCertDetails": "SANITIZE_SET",
                 "setCurrentClientCertDetails": {
-                  "subject": true,
                   "cert": true,
                   "chain": true,
                   "dns": true,
+                  "subject": true,
                   "uri": true
-                }
+                },
+                "statPrefix": "mesh_gateway_local_peered.db.default.default.dc1",
+                "tracing": {
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
+                  }
+                ]
               }
             }
           ],
@@ -61,9 +61,6 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -74,6 +71,7 @@
                     }
                   }
                 ],
+                "tlsParams": {},
                 "validationContext": {
                   "customValidatorConfig": {
                     "name": "envoy.tls.cert_validator.spiffe",
@@ -113,8 +111,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix": "mesh_gateway_local.default",
-                "cluster": ""
+                "cluster": "",
+                "statPrefix": "mesh_gateway_local.default"
               }
             }
           ]
@@ -127,9 +125,10 @@
             "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
           }
         }
-      ]
+      ],
+      "name": "default:1.2.3.4:8443"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

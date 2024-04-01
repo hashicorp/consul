@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
 readonly SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
@@ -22,6 +25,7 @@ Options:
     -protobuf                Just install tools for protobuf.
     -lint                    Just install tools for linting.
     -codegen                 Just install tools for codegen.
+    -pre-commit              Just install pre-commit.
     -h | --help              Print this help text.
 EOF
 }
@@ -48,6 +52,10 @@ function main {
                 codegen_install
                 return 0
                 ;;
+            -pre-commit )
+                pre_commit_install
+                return 0
+                ;;
             -h | --help )
                 usage
                 return 0
@@ -68,11 +76,12 @@ function proto_tools_install {
     local mockery_version
 
     mockery_version="$(make --no-print-directory print-MOCKERY_VERSION)"
-    protoc_gen_go_version="$(grep github.com/golang/protobuf go.mod | awk '{print $2}')"
+    protoc_gen_go_version="$(grep google.golang.org/protobuf go.mod | awk '{print $2}')"
     protoc_gen_go_grpc_version="$(make --no-print-directory print-PROTOC_GEN_GO_GRPC_VERSION)"
     mog_version="$(make --no-print-directory print-MOG_VERSION)"
     protoc_go_inject_tag_version="$(make --no-print-directory print-PROTOC_GO_INJECT_TAG_VERSION)"
     buf_version="$(make --no-print-directory print-BUF_VERSION)"
+    protoc_gen_go_binary_version="$(make --no-print-directory print-PROTOC_GEN_GO_BINARY_VERSION)"
 
     # echo "go: ${protoc_gen_go_version}"
     # echo "mog: ${mog_version}"
@@ -92,9 +101,9 @@ function proto_tools_install {
 
     install_versioned_tool \
         'protoc-gen-go' \
-        'github.com/golang/protobuf' \
+        'google.golang.org/protobuf' \
         "${protoc_gen_go_version}" \
-        'github.com/golang/protobuf/protoc-gen-go'
+        'google.golang.org/protobuf/cmd/protoc-gen-go'
 
     install_versioned_tool \
         'protoc-gen-go-grpc' \
@@ -102,9 +111,11 @@ function proto_tools_install {
         "${protoc_gen_go_grpc_version}" \
         'google.golang.org/grpc/cmd/protoc-gen-go-grpc'
 
-    install_unversioned_tool \
+    install_versioned_tool \
         protoc-gen-go-binary \
-        'github.com/hashicorp/protoc-gen-go-binary@master'
+        'github.com/hashicorp/protoc-gen-go-binary' \
+        "${protoc_gen_go_binary_version}" \
+        'github.com/hashicorp/protoc-gen-go-binary'
 
     install_versioned_tool \
         'protoc-go-inject-tag' \
@@ -118,16 +129,34 @@ function proto_tools_install {
         "${mog_version}" \
         'github.com/hashicorp/mog'
 
+    install_local_protoc_generator "${SOURCE_DIR}/internal/tools/protoc-gen-consul-rate-limit"
+    
+    install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-resource-types"
+    
+    install_local_protoc_generator "${SOURCE_DIR}/internal/tools/protoc-gen-grpc-clone"
+
+    install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-json-shim"
+
+    install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-deepcopy"
+
     return 0
 }
 
 function lint_install {
+    local lint_consul_retry_version
+    lint_consul_retry_version="$(make --no-print-directory print-LINT_CONSUL_RETRY_VERSION)"
+    
     local golangci_lint_version
     golangci_lint_version="$(make --no-print-directory print-GOLANGCI_LINT_VERSION)"
 
-    install_unversioned_tool \
+    local gci_version
+    gci_version="$(make --no-print-directory print-GCI_VERSION)"
+
+    install_versioned_tool \
         'lint-consul-retry' \
-        'github.com/hashicorp/lint-consul-retry@master'
+        'github.com/hashicorp/lint-consul-retry' \
+        "${lint_consul_retry_version}" \
+        'github.com/hashicorp/lint-consul-retry'
 
     install_unversioned_tool \
         'enumcover' \
@@ -138,24 +167,86 @@ function lint_install {
         'github.com/golangci/golangci-lint' \
         "${golangci_lint_version}" \
         'github.com/golangci/golangci-lint/cmd/golangci-lint'
+
+    install_versioned_tool \
+        'gci' \
+        'github.com/daixiang0/gci' \
+        "${gci_version}" \
+        'github.com/daixiang0/gci'
 }
 
 function codegen_install {
-    local deep_copy_version
-    deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
+  deepcopy_install
+  copywrite_install
+}
+
+function deepcopy_install {
+  local deep_copy_version
+      deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
+
+      install_versioned_tool \
+          'deep-copy' \
+          'github.com/globusdigital/deep-copy' \
+          "${deep_copy_version}" \
+          'github.com/globusdigital/deep-copy'
+}
+
+function copywrite_install {
+    local copywrite_version
+    copywrite_version="$(make --no-print-directory print-COPYWRITE_TOOL_VERSION)"
 
     install_versioned_tool \
-        'deep-copy' \
-        'github.com/globusdigital/deep-copy' \
-        "${deep_copy_version}" \
-        'github.com/globusdigital/deep-copy'
+        'copywrite' \
+        'github.com/hashicorp/copywrite' \
+        "${copywrite_version}" \
+        'github.com/hashicorp/copywrite'
+}
+
+function pre_commit_install {
+    # if already installed make sure the hook is also installed
+    if command -v "pre-commit" &>/dev/null; then
+        # Not to be confused with installing the tool, this installs
+        # the git hook locally (.git/hooks/pre-commit) which pre-commit
+        # uses as a vector to run checks on `git commit`. This hook is
+        # generated based on the local environment hence not source
+        # controlled.
+        pre-commit install
+        return 0
+    fi
+
+    # Install options based on https://pre-commit.com/#installation
+    if command -v "brew" &>/dev/null; then
+        brew install pre-commit && pre-commit install
+        return 0
+    fi
+
+    # Try python regardless of platform (mac, linux, etc)
+    if command -v "pip3" &>/dev/null; then
+        pip3 install pre-commit && pre-commit install
+        return 0
+    fi
+
+    # Can't disappoint the linux/debian folks
+    if command -v "apt" &>/dev/null; then
+        sudo apt-get install -yq pre-commit && pre-commit install
+        return 0
+    fi
+
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo "ERROR: Install homebrew from https://brew.sh/ so that pre-commit (https://pre-commit.com) can be installed."
+        return 1
+    fi
+
+    echo "ERROR: Install python3 and pip3 so that pre-commit (https://pre-commit.com) can be installed."
+    return 1
 }
 
 function tools_install {
-
     lint_install
     proto_tools_install
     codegen_install
+    pre_commit_install
+    copywrite_install
 
     return 0
 }
@@ -238,6 +329,14 @@ function install_versioned_tool {
         echo "skipping tool: ${install} (installed)"
     fi
     return 0
+}
+
+function install_local_protoc_generator {
+    local src=$1
+    echo "installing tool $(basename $src) from local source"
+    pushd -- "$src" > /dev/null
+    go install
+    popd > /dev/null
 }
 
 main "$@"

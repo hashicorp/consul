@@ -1,9 +1,8 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "http:1.2.3.4:8080",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -22,16 +21,6 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream_8080_s1",
-                "rds": {
-                  "configSource": {
-                    "ads": {
-
-                    },
-                    "resourceApiVersion": "V3"
-                  },
-                  "routeConfigName": "8080_s1"
-                },
                 "httpFilters": [
                   {
                     "name": "envoy.filters.http.router",
@@ -40,11 +29,22 @@
                     }
                   }
                 ],
+                "rds": {
+                  "configSource": {
+                    "ads": {},
+                    "resourceApiVersion": "V3"
+                  },
+                  "routeConfigName": "8080_s1"
+                },
+                "statPrefix": "ingress_upstream_8080_s1",
                 "tracing": {
-                  "randomSampling": {
-
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
                   }
-                }
+                ]
               }
             }
           ],
@@ -56,16 +56,12 @@
                 "alpnProtocols": [
                   "http/1.1"
                 ],
-                "tlsParams": {
-
-                },
                 "tlsCertificateSdsSecretConfigs": [
                   {
                     "name": "s1.example.com-cert",
                     "sdsConfig": {
                       "apiConfigSource": {
                         "apiType": "GRPC",
-                        "transportApiVersion": "V3",
                         "grpcServices": [
                           {
                             "envoyGrpc": {
@@ -73,12 +69,14 @@
                             },
                             "timeout": "5s"
                           }
-                        ]
+                        ],
+                        "transportApiVersion": "V3"
                       },
                       "resourceApiVersion": "V3"
                     }
                   }
-                ]
+                ],
+                "tlsParams": {}
               },
               "requireClientCertificate": false
             }
@@ -95,16 +93,6 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream_8080_s2",
-                "rds": {
-                  "configSource": {
-                    "ads": {
-
-                    },
-                    "resourceApiVersion": "V3"
-                  },
-                  "routeConfigName": "8080_s2"
-                },
                 "httpFilters": [
                   {
                     "name": "envoy.filters.http.router",
@@ -113,11 +101,22 @@
                     }
                   }
                 ],
+                "rds": {
+                  "configSource": {
+                    "ads": {},
+                    "resourceApiVersion": "V3"
+                  },
+                  "routeConfigName": "8080_s2"
+                },
+                "statPrefix": "ingress_upstream_8080_s2",
                 "tracing": {
-                  "randomSampling": {
-
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
                   }
-                }
+                ]
               }
             }
           ],
@@ -129,16 +128,12 @@
                 "alpnProtocols": [
                   "http/1.1"
                 ],
-                "tlsParams": {
-
-                },
                 "tlsCertificateSdsSecretConfigs": [
                   {
                     "name": "s2.example.com-cert",
                     "sdsConfig": {
                       "apiConfigSource": {
                         "apiType": "GRPC",
-                        "transportApiVersion": "V3",
                         "grpcServices": [
                           {
                             "envoyGrpc": {
@@ -146,12 +141,14 @@
                             },
                             "timeout": "5s"
                           }
-                        ]
+                        ],
+                        "transportApiVersion": "V3"
                       },
                       "resourceApiVersion": "V3"
                     }
                   }
-                ]
+                ],
+                "tlsParams": {}
               },
               "requireClientCertificate": false
             }
@@ -166,9 +163,10 @@
           }
         }
       ],
+      "name": "http:1.2.3.4:8080",
       "trafficDirection": "OUTBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

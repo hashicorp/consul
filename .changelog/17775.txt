@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix issue where changes to service exports were not reflected in proxies.
+```

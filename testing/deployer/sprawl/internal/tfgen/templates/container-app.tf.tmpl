@@ -1,0 +1,25 @@
+resource "docker_container" "{{.Node.DockerName}}-{{.Workload.ID.TFString}}" {
+	name = "{{.Node.DockerName}}-{{.Workload.ID.TFString}}"
+    network_mode = "container:${docker_container.{{.PodName}}.id}"
+    image        = docker_image.{{.ImageResource}}.image_id
+    restart  = "on-failure"
+
+{{- range $k, $v := .Labels }}
+  labels {
+    label = "{{ $k }}"
+    value = "{{ $v }}"
+  }
+{{- end }}
+
+  env = [
+{{- range .Workload.Env }}
+      "{{.}}",
+{{- end}}
+  ]
+
+  command = [
+{{- range .Workload.Command }}
+    "{{.}}",
+{{- end }}
+  ]
+}

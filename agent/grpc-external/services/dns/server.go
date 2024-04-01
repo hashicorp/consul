@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dns
 
 import (
@@ -34,8 +37,8 @@ func NewServer(cfg Config) *Server {
 	return &Server{cfg}
 }
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbdns.RegisterDNSServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbdns.RegisterDNSServiceServer(registrar, s)
 }
 
 // BufferResponseWriter writes a DNS response to a byte buffer.

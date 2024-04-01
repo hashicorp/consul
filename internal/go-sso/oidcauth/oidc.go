@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package oidcauth
 
 import (
@@ -8,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/go-oidc"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/oauth2"
 )
@@ -232,7 +235,8 @@ func (a *Authenticator) verifyOIDCToken(ctx context.Context, rawToken string) (m
 	if err := idToken.Claims(&allClaims); err != nil {
 		return nil, fmt.Errorf("unable to successfully parse all claims from token: %v", err)
 	}
-	// TODO(sso): why isn't this strict for OIDC?
+	// Follows behavior of hashicorp/vault-plugin-auth-jwt (non-strict validation).
+	// See https://developer.hashicorp.com/consul/docs/security/acl/auth-methods/oidc#oidc-configuration-troubleshooting.
 	if err := validateAudience(a.config.BoundAudiences, idToken.Audience, false); err != nil {
 		return nil, fmt.Errorf("error validating claims: %v", err)
 	}

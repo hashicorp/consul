@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 const not = `(n't| not)?`;
 export default function (scenario, assert, lastNthRequest) {
   // lastNthRequest should return a

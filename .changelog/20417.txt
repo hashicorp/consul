@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix regression with SAN matching on terminating gateways [GH-20360](https://github.com/hashicorp/consul/issues/20360)
+```

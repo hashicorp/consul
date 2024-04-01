@@ -4,28 +4,26 @@
   "version": "0.0.1",
   "author": "HashiCorp",
   "devDependencies": {
-    "@hashicorp/platform-cli": "^1.2.0",
-    "dart-linkcheck": "2.0.15",
-    "husky": "4.3.8",
+    "@hashicorp/platform-cli": "^2.7.3",
+    "@hashicorp/platform-content-conformance": "^0.0.12",
+    "dart-linkcheck": "^2.0.15",
+    "husky": "^9.0.7",
     "next": "^12.3.1",
-    "prettier": "2.2.1"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "next-hashicorp precommit"
-    }
+    "prettier": "^3.2.4"
   },
   "main": "index.js",
   "scripts": {
     "build": "./scripts/website-build.sh",
     "format": "next-hashicorp format",
+    "prepare": "cd .. && husky website/.husky",
     "generate:component": "next-hashicorp generate component",
     "generate:readme": "next-hashicorp markdown-blocks README.md",
     "lint": "next-hashicorp lint",
     "start": "./scripts/website-start.sh",
-    "linkcheck": "linkcheck https://consul.io"
+    "linkcheck": "linkcheck https://consul.io",
+    "content-check": "hc-content --config base-docs"
   },
   "engines": {
-    "npm": ">=7.0.0"
+    "npm": ">=9.6.7"
   }
 }

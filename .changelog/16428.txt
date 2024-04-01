@@ -1,0 +1,3 @@
+```release-note:bug
+ui: fixes ui tests run on CI
+```

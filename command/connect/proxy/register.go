@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package proxy
 
 import (
@@ -6,8 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -69,11 +73,10 @@ type RegisterMonitor struct {
 //
 // This is a basic state machine with the following transitions:
 //
-//   * idle     => running, stopped
-//   * running  => stopping, stopped
-//   * stopping => stopped
-//   * stopped  => <>
-//
+//   - idle     => running, stopped
+//   - running  => stopping, stopped
+//   - stopping => stopped
+//   - stopped  => <>
 type registerRunState uint8
 
 const (

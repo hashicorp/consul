@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
@@ -15,10 +20,14 @@ module('Integration | Component | consul datacenter selector', function (hooks) 
     this.set('dcs', dcs);
     this.set('dc', dcs[0]);
 
-    await render(hbs`<Consul::Datacenter::Selector @dcs={{this.dcs}} @dc={{this.dc}} />`);
+    await render(hbs`
+      <Hds::SideNav::List as |SNL|>
+        <Consul::Datacenter::Selector @list={{SNL}} @dcs={{this.dcs}} @dc={{this.dc}} />
+      </Hds::SideNav::List>
+    `);
 
     assert
-      .dom('[data-test-datacenter-disclosure-menu]')
+      .dom('[data-test-datacenter-menu]')
       .doesNotExist('datacenter dropdown is not displayed in nav');
 
     assert
@@ -38,12 +47,16 @@ module('Integration | Component | consul datacenter selector', function (hooks) 
     this.set('dcs', dcs);
     this.set('dc', dcs[0]);
 
-    await render(hbs`<Consul::Datacenter::Selector @dcs={{this.dcs}} @dc={{this.dc}} />`);
+    await render(hbs`
+      <Hds::SideNav::List as |SNL|>
+        <Consul::Datacenter::Selector @list={{SNL}} @dcs={{this.dcs}} @dc={{this.dc}} />
+      </Hds::SideNav::List>
+    `);
 
     assert
       .dom('[data-test-datacenter-single]')
       .doesNotExist('we are displaying more than just the name of the first dc');
 
-    assert.dom('[data-test-datacenter-disclosure-menu]').exists('datacenter dropdown is displayed');
+    assert.dom('[data-test-datacenter-menu]').exists('datacenter dropdown is displayed');
   });
 });

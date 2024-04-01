@@ -1,6 +1,8 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Role'
+description: |
+  The `consul acl role` command interacts with Consul's ACL roles. It exposes commands for creating, updating, reading, deleting, and listing roles. Roles consist of one or more ACL policies authorizing communication in the service mesh.
 ---
 
 # Consul ACL Roles
@@ -11,7 +13,7 @@ The `acl role` command is used to manage Consul's ACL roles.
 It exposes commands for creating, updating, reading, deleting, and listing roles.
 This command is available in Consul 1.5.0 and newer.
 
-ACL roles may also be managed via the [HTTP API](/api-docs/acl/roles).
+ACL roles may also be managed via the [HTTP API](/consul/api-docs/acl/roles).
 
 -> **Note:** All of the example subcommands in this document will require a valid
 Consul token with the appropriate permissions. Either set the

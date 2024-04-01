@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package uiserver
 
 import (
@@ -28,6 +31,14 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 		uiCfg["metrics_provider_options"] = json.RawMessage(cfg.UIConfig.MetricsProviderOptionsJSON)
 	}
 
+	v2CatalogEnabled := false
+	for _, experiment := range cfg.Experiments {
+		if experiment == "resource-apis" {
+			v2CatalogEnabled = true
+			break
+		}
+	}
+
 	d := map[string]interface{}{
 		"ContentPath":       cfg.UIConfig.ContentPath,
 		"ACLsEnabled":       cfg.ACLsEnabled,
@@ -36,6 +47,7 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 		"LocalDatacenter":   cfg.Datacenter,
 		"PrimaryDatacenter": cfg.PrimaryDatacenter,
 		"PeeringEnabled":    cfg.PeeringEnabled,
+		"V2CatalogEnabled":  v2CatalogEnabled,
 	}
 
 	// Also inject additional provider scripts if needed, otherwise strip the

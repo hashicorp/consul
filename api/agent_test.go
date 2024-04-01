@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -5,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -15,8 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -54,8 +58,13 @@ func TestAPI_AgentMetrics(t *testing.T) {
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
+		hostname, err := os.Hostname()
+		if err != nil {
+			r.Fatalf("error determining hostname: %v", err)
+		}
+		metricName := fmt.Sprintf("consul.%s.runtime.alloc_bytes", hostname)
 		for _, g := range metrics.Gauges {
-			if g.Name == "consul.runtime.alloc_bytes" {
+			if g.Name == metricName {
 				return
 			}
 		}
@@ -104,7 +113,7 @@ func TestAPI_AgentReload(t *testing.T) {
 
 	// Update the config file with a service definition
 	config := `{"service":{"name":"redis", "port":1234, "Meta": {"some": "meta"}}}`
-	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
+	err = os.WriteFile(configFile.Name(), []byte(config), 0644)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -151,6 +160,31 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 	if len(members) != 2 {
 		t.Fatalf("bad: %v", members)
 	}
+
+	members, err = agent.MembersOpts(MembersOpts{
+		WAN:    true,
+		Filter: `Tags["dc"] == dc2`,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	require.Equal(t, 1, len(members))
+
+	members, err = agent.MembersOpts(MembersOpts{
+		WAN:    true,
+		Filter: `Tags["dc"] == "not-Exist"`,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	require.Equal(t, 0, len(members))
+
+	_, err = agent.MembersOpts(MembersOpts{
+		WAN:    true,
+		Filter: `Tags["dc"] == invalid-bexpr-value`,
+	})
+	require.ErrorContains(t, err, "Failed to create boolean expression evaluator")
 }
 
 func TestAPI_AgentMembers(t *testing.T) {
@@ -177,7 +211,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
-
+	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo",
@@ -192,6 +226,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
+		Locality: locality,
 	}
 
 	regupdate := &AgentServiceRegistration{
@@ -204,7 +239,8 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 				Port:    80,
 			},
 		},
-		Port: 9000,
+		Port:     9000,
+		Locality: locality,
 	}
 
 	if err := agent.ServiceRegister(reg); err != nil {
@@ -240,12 +276,14 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, out.Service.Port)
+	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, outs[0].Service.Port)
+	require.Equal(t, locality, outs[0].Service.Locality)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -264,6 +302,78 @@ func TestAgent_ServiceRegisterOpts_WithContextTimeout(t *testing.T) {
 	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
 }
 
+func TestAgent_ServiceRegisterOpts_Token(t *testing.T) {
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	reg := &AgentServiceRegistration{Name: "example"}
+	opts := &ServiceRegisterOpts{}
+	opts.Token = "invalid"
+	err := c.Agent().ServiceRegisterOpts(reg, *opts)
+	require.EqualError(t, err, "Unexpected response code: 403 (ACL not found)")
+
+	opts.Token = "root"
+	err = c.Agent().ServiceRegisterOpts(reg, *opts)
+	require.NoError(t, err)
+}
+
+func TestAPI_NewClient_TokenFileCLIFirstPriority(t *testing.T) {
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", "httpTokenFile.txt")
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+	nonExistentTokenFile := "randomTokenFile.txt"
+	config := Config{
+		Token:     "randomToken",
+		TokenFile: nonExistentTokenFile,
+	}
+
+	_, err := NewClient(&config)
+	errorMessage := fmt.Sprintf("Error loading token file %s : open %s: no such file or directory", nonExistentTokenFile, nonExistentTokenFile)
+	assert.EqualError(t, err, errorMessage)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_TokenCLISecondPriority(t *testing.T) {
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", "httpTokenFile.txt")
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+	tokenString := "randomToken"
+	config := Config{
+		Token: tokenString,
+	}
+
+	c, err := NewClient(&config)
+	if err != nil {
+		t.Fatalf("Error Initializing new client: %v", err)
+	}
+	assert.Equal(t, c.config.Token, tokenString)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_HttpTokenFileEnvVarThirdPriority(t *testing.T) {
+	nonExistentTokenFileEnvVar := "httpTokenFile.txt"
+	os.Setenv("CONSUL_HTTP_TOKEN_FILE", nonExistentTokenFileEnvVar)
+	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
+
+	_, err := NewClient(DefaultConfig())
+	errorMessage := fmt.Sprintf("Error loading token file %s : open %s: no such file or directory", nonExistentTokenFileEnvVar, nonExistentTokenFileEnvVar)
+	assert.EqualError(t, err, errorMessage)
+	os.Unsetenv("CONSUL_HTTP_TOKEN_FILE")
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
+func TestAPI_NewClient_TokenEnvVarFinalPriority(t *testing.T) {
+	httpTokenEnvVar := "httpToken"
+	os.Setenv("CONSUL_HTTP_TOKEN", httpTokenEnvVar)
+
+	c, err := NewClient(DefaultConfig())
+	if err != nil {
+		t.Fatalf("Error Initializing new client: %v", err)
+	}
+	assert.Equal(t, c.config.Token, httpTokenEnvVar)
+	os.Unsetenv("CONSUL_HTTP_TOKEN")
+}
+
 func TestAPI_AgentServices(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -272,6 +382,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
 
+	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo",
@@ -286,6 +397,7 @@ func TestAPI_AgentServices(t *testing.T) {
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
+		Locality: locality,
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
@@ -322,6 +434,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthCritical, state)
 	require.Equal(t, 8000, out.Service.Port)
+	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
@@ -965,7 +1078,7 @@ func TestAPI_AgentChecks(t *testing.T) {
 		Name: "foo",
 	}
 	reg.TTL = "15s"
-	if err := agent.CheckRegister(reg); err != nil {
+	if err := agent.CheckRegisterOpts(reg, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -987,6 +1100,19 @@ func TestAPI_AgentChecks(t *testing.T) {
 	if err := agent.CheckDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAgent_AgentChecksRegisterOpts_WithContextTimeout(t *testing.T) {
+	c, err := NewClient(DefaultConfig())
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	t.Cleanup(cancel)
+
+	opts := &QueryOptions{}
+	opts = opts.WithContext(ctx)
+	err = c.Agent().CheckRegisterOpts(&AgentCheckRegistration{}, opts)
+	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
 }
 
 func TestAPI_AgentChecksWithFilterOpts(t *testing.T) {
@@ -1297,6 +1423,20 @@ func TestAPI_AgentForceLeavePrune(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentForceLeaveOptions(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Eject somebody with token
+	err := agent.ForceLeaveOptions(s.Config.NodeName, ForceLeaveOpts{Prune: true}, &QueryOptions{Token: "testToken"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentMonitor(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -1486,19 +1626,19 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 	t.Run("deprecated", func(t *testing.T) {
 		agent := c.Agent()
 		if _, err := agent.UpdateACLToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
+			require.Contains(t, err.Error(), "Legacy ACL Tokens were deprecated in Consul 1.4")
 		}
 
 		if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
+			require.Contains(t, err.Error(), "Legacy ACL Tokens were deprecated in Consul 1.4")
 		}
 
 		if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
+			require.Contains(t, err.Error(), "Legacy ACL Tokens were deprecated in Consul 1.4")
 		}
 
 		if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
+			require.Contains(t, err.Error(), "Legacy ACL Tokens were deprecated in Consul 1.4")
 		}
 	})
 
@@ -1523,6 +1663,15 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
+
+		if _, err := agent.UpdateConfigFileRegistrationToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if _, err := agent.UpdateDNSToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
 	})
 
 	t.Run("new with fallback", func(t *testing.T) {
@@ -1608,6 +1757,12 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 
 		_, err = agent.UpdateReplicationACLToken("root", nil)
 		require.Error(t, err)
+
+		_, err = agent.UpdateConfigFileRegistrationToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateDNSToken("root", nil)
+		require.Error(t, err)
 	})
 }
 
@@ -1615,7 +1770,10 @@ func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		c.Connect = nil // disable connect to prevent CA being bootstrapped
+		// Explicitly disable Connect to prevent CA being bootstrapped
+		c.Connect = map[string]interface{}{
+			"enabled": false,
+		}
 	})
 	defer s.Stop()
 
@@ -1948,7 +2106,7 @@ func TestMemberACLMode(t *testing.T) {
 		},
 		"legacy": {
 			tagValue:     "2",
-			expectedMode: ACLModeLegacy,
+			expectedMode: ACLModeUnknown,
 		},
 		"unknown-3": {
 			tagValue:     "3",

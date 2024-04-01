@@ -19,8 +19,8 @@ Feature: dc / nspaces / delete: Deleting items with confirmations, success and e
     And I click delete on the [Listing]
     And I click confirmDelete on the [Listing]
     Then a [Method] request was made to "[URL]"
-    And "[data-notification]" has the "notification-delete" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   Where:
     --------------------------------------------------------------------------------------------------------
     | Edit     | Listing     | Method | URL                                      | Data                    |
@@ -35,8 +35,8 @@ Feature: dc / nspaces / delete: Deleting items with confirmations, success and e
     And I click delete
     And I click confirmDelete
     Then a DELETE request was made to "/v1/namespace/a-namespace?dc=datacenter"
-    And "[data-notification]" has the "notification-delete" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: Deleting a [Model] from the [Model] detail page with error
     When I visit the [Model] page for yaml
     ---
@@ -46,8 +46,8 @@ Feature: dc / nspaces / delete: Deleting items with confirmations, success and e
     Given the url "[URL]" responds with a 500 status
     And I click delete
     And I click confirmDelete
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "error" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-critical" class
   Where:
     -------------------------------------------------------------------------------------------
     | Model     | Method | URL                                      | Slug                    |

@@ -1,17 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package login
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/hashicorp/consul-awsauth/iamauthtest"
 	"github.com/hashicorp/consul/agent"
@@ -173,7 +175,7 @@ func TestLoginCommand(t *testing.T) {
 	t.Run("bearer-token-file is empty", func(t *testing.T) {
 		defer os.Remove(tokenSinkFile)
 
-		require.NoError(t, ioutil.WriteFile(bearerTokenFile, []byte(""), 0600))
+		require.NoError(t, os.WriteFile(bearerTokenFile, []byte(""), 0600))
 
 		ui := cli.NewMockUi()
 		cmd := New(ui)
@@ -191,7 +193,7 @@ func TestLoginCommand(t *testing.T) {
 		require.Contains(t, ui.ErrorWriter.String(), "No bearer token found in")
 	})
 
-	require.NoError(t, ioutil.WriteFile(bearerTokenFile, []byte("demo-token"), 0600))
+	require.NoError(t, os.WriteFile(bearerTokenFile, []byte("demo-token"), 0600))
 
 	t.Run("try login with no method configured", func(t *testing.T) {
 		defer os.Remove(tokenSinkFile)
@@ -285,7 +287,7 @@ func TestLoginCommand(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Empty(t, ui.OutputWriter.String())
 
-		raw, err := ioutil.ReadFile(tokenSinkFile)
+		raw, err := os.ReadFile(tokenSinkFile)
 		require.NoError(t, err)
 
 		token := strings.TrimSpace(string(raw))
@@ -309,7 +311,7 @@ func TestLoginCommand_k8s(t *testing.T) {
 	bearerTokenFile := filepath.Join(testDir, "bearer.token")
 
 	// the "B" jwt will be the one being reviewed
-	require.NoError(t, ioutil.WriteFile(bearerTokenFile, []byte(acl.TestKubernetesJWT_B), 0600))
+	require.NoError(t, os.WriteFile(bearerTokenFile, []byte(acl.TestKubernetesJWT_B), 0600))
 
 	// spin up a fake api server
 	testSrv := kubeauth.StartTestAPIServer(t)
@@ -372,7 +374,7 @@ func TestLoginCommand_k8s(t *testing.T) {
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Empty(t, ui.OutputWriter.String())
 
-		raw, err := ioutil.ReadFile(tokenSinkFile)
+		raw, err := os.ReadFile(tokenSinkFile)
 		require.NoError(t, err)
 
 		token := strings.TrimSpace(string(raw))
@@ -487,7 +489,7 @@ func TestLoginCommand_jwt(t *testing.T) {
 			// Drop a JWT on disk.
 			jwtData, err := oidcauthtest.SignJWT(privKey, cl, privateCl)
 			require.NoError(t, err)
-			require.NoError(t, ioutil.WriteFile(bearerTokenFile, []byte(jwtData), 0600))
+			require.NoError(t, os.WriteFile(bearerTokenFile, []byte(jwtData), 0600))
 
 			defer os.Remove(tokenSinkFile)
 			ui := cli.NewMockUi()
@@ -506,7 +508,7 @@ func TestLoginCommand_jwt(t *testing.T) {
 			require.Empty(t, ui.ErrorWriter.String())
 			require.Empty(t, ui.OutputWriter.String())
 
-			raw, err := ioutil.ReadFile(tokenSinkFile)
+			raw, err := os.ReadFile(tokenSinkFile)
 			require.NoError(t, err)
 
 			token := strings.TrimSpace(string(raw))
@@ -660,7 +662,7 @@ func TestLoginCommand_aws_iam(t *testing.T) {
 			code := cmd.Run(args)
 			require.Equal(t, 0, code, ui.ErrorWriter.String())
 
-			raw, err := ioutil.ReadFile(tokenSinkFile)
+			raw, err := os.ReadFile(tokenSinkFile)
 			require.NoError(t, err)
 
 			token := strings.TrimSpace(string(raw))

@@ -1,0 +1,47 @@
+---
+layout: docs
+page_title:  Transparent proxy overview
+description: >-
+  Transparent proxy enables Consul on Kubernetes to direct inbound and outbound traffic through the service mesh. Learn how transparently proxying increases application security without configuring individual upstream services.
+---
+
+# Transparent proxy overview
+ 
+This topic provides overview information about transparent proxy mode, which allows applications to communicate through the service mesh without modifying their configurations. Transparent proxy also hardens application security by preventing direct inbound connections that bypass the mesh. 
+
+## Introduction
+
+When service mesh proxies are in transparent mode, Consul service mesh uses IPtables to direct all inbound and outbound traffic to the sidecar. Consul also uses information configured in service intentions to infer routes, which eliminates the need to explicitly configure upstreams.
+
+### Transparent proxy enabled
+
+The following diagram shows how Consul routes traffic when proxies are in transparent mode:
+
+![Diagram demonstrating that with transparent proxy, connections are automatically routed through the mesh](/img/consul-connect/with-transparent-proxy.png)
+
+### Transparent proxy disabled
+
+When transparent proxy mode is disabled, you must manually configure explicit upstreams, configure your applications to query for services at `localhost:<port>`, and configure applications to only listen on the loopback interface to prevent services from bypassing the mesh. 
+
+The following diagram shows how Consul routes traffic when transparent proxy mode is disabled:
+
+![Diagram demonstrating that without transparent proxy, applications must "opt in" to connecting to their dependencies through the mesh](/img/consul-connect/without-transparent-proxy.png)
+
+Transparent proxy is available for Kubernetes environments. As part of the integration with Kubernetes, Consul registers Kubernetes Services, injects sidecar proxies, and enables traffic redirection.
+
+## Supported networking architectures
+
+Transparent proxy mode enables several networking architectures and workflows. You can query Consul DNS to discover upstreams for single services, virtual services, and failover service instances that are in peered clusters. 
+
+Consul supports the following intra-datacenter connection types for discovering upstreams when transparent proxy mode is enabled:
+
+- KubeDNS lookups across WAN-federated datacenters
+- Consul DNS lookups across WAN-federated datacenters
+- KubeDNS lookups in peered clusters and admin partitions
+- Consul DNS lookups in peered clusters and admin partitions
+
+## Mutual TLS for transparent proxy mode
+
+Transparent proxy mode is enabled by default when you install Consul on Kubernetes using the Consul Helm chart. As a result, all services in the mesh must communicate through sidecar proxies, which enforce service intentions and mTLS encryption for the service mesh. While onboarding new services to service mesh, your network may have mixed mTLS and non-mTLS traffic, which can result in broken service-to-service communication. 
+
+You can temporarily enable permissive mTLS mode during the onboarding process so that existing mesh services can accept traffic from services that are not yet fully onboarded. Permissive mTLS enables sidecar proxies to access both mTLS and non-mTLS traffic. Refer to [Onboard mesh services in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for additional information.

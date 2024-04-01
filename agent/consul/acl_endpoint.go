@@ -1,10 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,8 +15,8 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -108,25 +110,24 @@ type ACL struct {
 // fileBootstrapResetIndex retrieves the reset index specified by the administrator from
 // the file on disk.
 //
-// Q: What is the bootstrap reset index?
-// A: If you happen to lose acess to all tokens capable of ACL management you need a way
-//    to get back into your system. This allows an admin to write the current
-//    bootstrap "index" into a special file on disk to override the mechanism preventing
-//    a second token bootstrap. The index will be retrieved by a API call to /v1/acl/bootstrap
-//    When already bootstrapped this API will return the reset index necessary within
-//    the error response. Once set in the file, the bootstrap API can be used again to
-//    get a new token.
+//	 Q: What is the bootstrap reset index?
+//	 A: If you happen to lose acess to all tokens capable of ACL management you need a way
+//				   to get back into your system. This allows an admin to write the current
+//				   bootstrap "index" into a special file on disk to override the mechanism preventing
+//				   a second token bootstrap. The index will be retrieved by a API call to /v1/acl/bootstrap
+//				   When already bootstrapped this API will return the reset index necessary within
+//				   the error response. Once set in the file, the bootstrap API can be used again to
+//				   get a new token.
 //
-// Q: Why is the reset index not in the config?
-// A: We want to be able to remove the reset index once we have used it. This prevents
-//    accidentally allowing bootstrapping yet again after a snapshot restore.
-//
+//	 Q: Why is the reset index not in the config?
+//	 A: We want to be able to remove the reset index once we have used it. This prevents
+//				   accidentally allowing bootstrapping yet again after a snapshot restore.
 func (a *ACL) fileBootstrapResetIndex() uint64 {
 	// Determine the file path to check
 	path := filepath.Join(a.srv.config.DataDir, aclBootstrapReset)
 
 	// Read the file
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			a.logger.Error("bootstrap: failed to read path",
@@ -164,7 +165,7 @@ func (a *ACL) aclPreCheck() error {
 
 // BootstrapTokens is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
-func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
+func (a *ACL) BootstrapTokens(args *structs.ACLInitialTokenBootstrapRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -209,9 +210,24 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	if err != nil {
 		return err
 	}
-	secret, err := lib.GenerateUUID(a.srv.checkTokenUUID)
-	if err != nil {
-		return err
+	secret := args.BootstrapSecret
+	if secret == "" {
+		secret, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = uuid.ParseUUID(secret)
+		if err != nil {
+			return err
+		}
+		ok, err := a.srv.checkTokenUUID(secret)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("Provided token cannot be used because a token with that secret already exists.")
+		}
 	}
 
 	req := structs.ACLTokenBootstrapRequest{
@@ -301,19 +317,22 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 				// no extra validation is needed here. If you have the secret ID you can read it.
 			}
 
-			if token != nil && token.IsExpired(time.Now()) {
-				token = nil
-			}
-
 			if err != nil {
 				return err
 			}
 
+			if token != nil && token.IsExpired(time.Now()) {
+				return fmt.Errorf("token has expired: %w", acl.ErrNotFound)
+			} else if token == nil {
+				// token does not exist
+				if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+					return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+				}
+				return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+			}
+
 			reply.Index, reply.Token = index, token
 			reply.SourceDatacenter = args.Datacenter
-			if token == nil {
-				return errNotFound
-			}
 
 			if args.Expanded {
 				info, err := a.lookupExpandedTokenInfo(ws, state, token)
@@ -331,9 +350,10 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 	policyIDs := make(map[string]struct{})
 	roleIDs := make(map[string]struct{})
 	identityPolicies := make(map[string]*structs.ACLPolicy)
+	templatedPolicies := make(map[string]*structs.ACLPolicy)
 	tokenInfo := structs.ExpandedTokenInfo{}
 
-	// Add the token's policies and node/service identity policies
+	// Add the token's policies, templated policies and node/service identity policies
 	for _, policy := range token.Policies {
 		policyIDs[policy.ID] = struct{}{}
 	}
@@ -348,6 +368,14 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 	for _, identity := range token.NodeIdentities {
 		policy := identity.SyntheticPolicy(&token.EnterpriseMeta)
 		identityPolicies[policy.ID] = policy
+	}
+	for _, templatedPolicy := range token.TemplatedPolicies {
+		policy, err := templatedPolicy.SyntheticPolicy(&token.EnterpriseMeta)
+		if err != nil {
+			a.logger.Warn(fmt.Sprintf("could not generate synthetic policy for templated policy: %q", templatedPolicy.TemplateName), "error", err)
+			continue
+		}
+		templatedPolicies[policy.ID] = policy
 	}
 
 	// Get any namespace default roles/policies to look up
@@ -386,6 +414,14 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 			policy := identity.SyntheticPolicy(&role.EnterpriseMeta)
 			identityPolicies[policy.ID] = policy
 		}
+		for _, templatedPolicy := range role.TemplatedPolicies {
+			policy, err := templatedPolicy.SyntheticPolicy(&role.EnterpriseMeta)
+			if err != nil {
+				a.logger.Warn(fmt.Sprintf("could not generate synthetic policy for templated policy: %q", templatedPolicy.TemplateName), "error", err)
+				continue
+			}
+			templatedPolicies[policy.ID] = policy
+		}
 
 		tokenInfo.ExpandedRoles = append(tokenInfo.ExpandedRoles, role)
 	}
@@ -402,6 +438,9 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 		policies = append(policies, policy)
 	}
 	for _, policy := range identityPolicies {
+		policies = append(policies, policy)
+	}
+	for _, policy := range templatedPolicies {
 		policies = append(policies, policy)
 	}
 
@@ -445,8 +484,13 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID, &args.ACLToken.EnterpriseMeta)
 	if err != nil {
 		return err
-	} else if token == nil || token.IsExpired(time.Now()) {
-		return acl.ErrNotFound
+	} else if token == nil {
+		if ns := args.ACLToken.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
+	} else if token.IsExpired(time.Now()) {
+		return fmt.Errorf("token is expired: %w", acl.ErrNotFound)
 	} else if !a.srv.InPrimaryDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
 		args.Datacenter = a.srv.config.PrimaryDatacenter
@@ -457,15 +501,12 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return fmt.Errorf("Cannot clone a token created from an auth method")
 	}
 
-	if token.Rules != "" {
-		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
-	}
-
 	clone := &structs.ACLToken{
 		Policies:          token.Policies,
 		Roles:             token.Roles,
 		ServiceIdentities: token.ServiceIdentities,
 		NodeIdentities:    token.NodeIdentities,
+		TemplatedPolicies: token.TemplatedPolicies,
 		Local:             token.Local,
 		Description:       token.Description,
 		ExpirationTime:    token.ExpirationTime,
@@ -561,7 +602,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return fmt.Errorf("Accessor ID is missing or an invalid UUID")
 	}
 
-	if args.TokenID == structs.ACLTokenAnonymousID {
+	if args.TokenID == acl.AnonymousTokenID {
 		return fmt.Errorf("Delete operation not permitted on the anonymous token")
 	}
 
@@ -588,8 +629,11 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		args.Datacenter = a.srv.config.PrimaryDatacenter
 		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 	} else {
-		// in Primary Datacenter but the token does not exist - return early as there is nothing to do.
-		return nil
+		// in Primary Datacenter but the token does not exist - return early indicating it wasn't found.
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("token not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("token does not exist: %w", acl.ErrNotFound)
 	}
 
 	req := &structs.ACLTokenBatchDeleteRequest{
@@ -657,8 +701,18 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, methodMeta, &args.EnterpriseMeta)
+		func(ws memdb.WatchSet, s *state.Store) error {
+			index, tokens, err := s.ACLTokenListWithParameters(ws, state.ACLTokenListParameters{
+				Local:          args.IncludeLocal,
+				Global:         args.IncludeGlobal,
+				Policy:         args.Policy,
+				Role:           args.Role,
+				MethodName:     args.AuthMethod,
+				ServiceName:    args.ServiceName,
+				MethodMeta:     methodMeta,
+				EnterpriseMeta: &args.EnterpriseMeta,
+			})
+
 			if err != nil {
 				return err
 			}
@@ -846,8 +900,8 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return fmt.Errorf("Invalid Policy: no Name is set")
 	}
 
-	if !acl.IsValidPolicyName(policy.Name) {
-		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
+	if err := acl.ValidatePolicyName(policy.Name); err != nil {
+		return err
 	}
 
 	var idMatch *structs.ACLPolicy
@@ -892,19 +946,19 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 			return fmt.Errorf("Invalid Policy: A policy with name %q already exists", policy.Name)
 		}
 
-		if policy.ID == structs.ACLPolicyGlobalManagementID {
+		if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
 			if policy.Datacenters != nil || len(policy.Datacenters) > 0 {
-				return fmt.Errorf("Changing the Datacenters of the builtin global-management policy is not permitted")
+				return fmt.Errorf("Changing the Datacenters of the %s policy is not permitted", builtinPolicy.Name)
 			}
 
 			if policy.Rules != idMatch.Rules {
-				return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
+				return fmt.Errorf("Changing the Rules for the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 		}
 	}
 
 	// validate the rules
-	_, err = acl.NewPolicyFromSource(policy.Rules, policy.Syntax, a.srv.aclConfig, policy.EnterprisePolicyMeta())
+	_, err = acl.NewPolicyFromSource(policy.Rules, a.srv.aclConfig, policy.EnterprisePolicyMeta())
 	if err != nil {
 		return err
 	}
@@ -970,11 +1024,14 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	}
 
 	if policy == nil {
-		return nil
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("policy not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("policy does not exist: %w", acl.ErrNotFound)
 	}
 
-	if policy.ID == structs.ACLPolicyGlobalManagementID {
-		return fmt.Errorf("Delete operation not permitted on the builtin global-management policy")
+	if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
+		return fmt.Errorf("Delete operation not permitted on the builtin %s policy", builtinPolicy.Name)
 	}
 
 	req := structs.ACLPolicyBatchDeleteRequest{
@@ -1087,7 +1144,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 		}
 	}
 
-	a.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }
@@ -1328,6 +1385,27 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 	role.NodeIdentities = role.NodeIdentities.Deduplicate()
 
+	for _, templatedPolicy := range role.TemplatedPolicies {
+		if templatedPolicy.TemplateName == "" {
+			return fmt.Errorf("templated policy is missing the template name field on this role")
+		}
+
+		baseTemplate, ok := structs.GetACLTemplatedPolicyBase(templatedPolicy.TemplateName)
+		if !ok {
+			return fmt.Errorf("templated policy with an invalid templated name: %s for this role", templatedPolicy.TemplateName)
+		}
+
+		if templatedPolicy.TemplateID == "" {
+			templatedPolicy.TemplateID = baseTemplate.TemplateID
+		}
+
+		err := templatedPolicy.ValidateTemplatedPolicy(baseTemplate.Schema)
+		if err != nil {
+			return fmt.Errorf("encountered role with invalid templated policy: %w", err)
+		}
+	}
+	role.TemplatedPolicies = role.TemplatedPolicies.Deduplicate()
+
 	// calculate the hash for this role
 	role.SetHash(true)
 
@@ -1384,7 +1462,10 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 	}
 
 	if role == nil {
-		return nil
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("role not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("role does not exist: %w", acl.ErrNotFound)
 	}
 
 	req := structs.ACLRoleBatchDeleteRequest{
@@ -1491,7 +1572,7 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 		}
 	}
 
-	a.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }
@@ -1638,18 +1719,12 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return fmt.Errorf("Invalid Binding Rule: no BindName is set")
 	}
 
-	switch rule.BindType {
-	case structs.BindingRuleBindTypeService:
-	case structs.BindingRuleBindTypeNode:
-	case structs.BindingRuleBindTypeRole:
-	default:
-		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", rule.BindType)
+	if rule.BindType != structs.BindingRuleBindTypeTemplatedPolicy && rule.BindVars != nil {
+		return fmt.Errorf("invalid Binding Rule: BindVars cannot be set when bind type is not templated-policy.")
 	}
 
-	if valid, err := auth.IsValidBindName(rule.BindType, rule.BindName, blankID.ProjectedVarNames()); err != nil {
-		return fmt.Errorf("Invalid Binding Rule: invalid BindName: %v", err)
-	} else if !valid {
-		return fmt.Errorf("Invalid Binding Rule: invalid BindName")
+	if err := auth.IsValidBindingRule(rule.BindType, rule.BindName, rule.BindVars, blankID.ProjectedVarNames()); err != nil {
+		return fmt.Errorf("Invalid Binding Rule: invalid BindName or BindVars: %w", err)
 	}
 
 	req := &structs.ACLBindingRuleBatchSetRequest{
@@ -1697,11 +1772,15 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 	}
 
 	_, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, args.BindingRuleID, &args.EnterpriseMeta)
-	switch {
-	case err != nil:
+	if err != nil {
 		return err
-	case rule == nil:
-		return nil
+	}
+
+	if rule == nil {
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("binding rule not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("binding rule does not exist: %w", acl.ErrNotFound)
 	}
 
 	req := structs.ACLBindingRuleBatchDeleteRequest{
@@ -1946,7 +2025,10 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 	}
 
 	if method == nil {
-		return nil
+		if ns := args.EnterpriseMeta.NamespaceOrEmpty(); ns != "" {
+			return fmt.Errorf("auth method not found in namespace %s: %w", ns, acl.ErrNotFound)
+		}
+		return fmt.Errorf("auth method does not exist: %w", acl.ErrNotFound)
 	}
 
 	if err := a.srv.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
@@ -2073,7 +2155,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 	}
 
 	if args.Token == "" {
-		return acl.ErrNotFound
+		return fmt.Errorf("no valid token ID provided: %w", acl.ErrNotFound)
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.Logout", args, reply); done {

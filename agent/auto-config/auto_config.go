@@ -1,9 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package autoconf
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
@@ -14,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
 )
 
 // AutoConfig is all the state necessary for being able to parse a configuration
@@ -208,7 +211,7 @@ func (ac *AutoConfig) introToken() (string, error) {
 	token := conf.IntroToken
 	if token == "" {
 		// load the intro token from the file
-		content, err := ioutil.ReadFile(conf.IntroTokenFile)
+		content, err := os.ReadFile(conf.IntroTokenFile)
 		if err != nil {
 			return "", fmt.Errorf("Failed to read intro token from file: %w", err)
 		}
@@ -225,7 +228,7 @@ func (ac *AutoConfig) introToken() (string, error) {
 
 // recordInitialConfiguration is responsible for recording the AutoConfigResponse from
 // the AutoConfig.InitialConfiguration RPC. It is an all-in-one function to do the following
-//   * update the Agent token in the token store
+//   - update the Agent token in the token store
 func (ac *AutoConfig) recordInitialConfiguration(resp *pbautoconf.AutoConfigResponse) error {
 	ac.autoConfigResponse = resp
 

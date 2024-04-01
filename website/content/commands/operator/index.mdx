@@ -18,11 +18,11 @@ outage and even loss of data.
 If ACLs are enabled then a token with operator privileges may be required in
 order to use this command. Requests are forwarded internally to the leader
 if required, so this can be run from any Consul node in a cluster. See the
-[ACL Guide](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) for more information.
+[ACL Guide](/consul/tutorials/security/access-control-setup-production) for more information.
 
-See the [Outage Recovery](https://learn.hashicorp.com/tutorials/consul/recovery-outage) guide for some examples of how
+See the [Disaster recovery for Consul clusters](/consul/tutorials/datacenter-operations/recovery-outage) guide for some examples of how
 this command is used. For an API to perform these operations programmatically,
-please see the documentation for the [Operator](/api-docs/operator)
+please see the documentation for the [Operator](/consul/api-docs/operator)
 endpoint.
 
 ## Usage
@@ -37,11 +37,13 @@ Subcommands:
     area         Provides tools for working with network areas (Enterprise-only)
     autopilot    Provides tools for modifying Autopilot configuration
     raft         Provides cluster-level tools for Consul operators
+    usage        Provides cluster-level usage information
 ```
 
 For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
 
-- [area](/commands/operator/area) <EnterpriseAlert inline />
-- [autopilot](/commands/operator/autopilot)
-- [raft](/commands/operator/raft)
+- [area](/consul/commands/operator/area) <EnterpriseAlert inline />
+- [autopilot](/consul/commands/operator/autopilot)
+- [raft](/consul/commands/operator/raft)
+- [usage](/consul/commands/operator/usage)

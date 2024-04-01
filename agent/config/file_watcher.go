@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package config
 
 import (
@@ -47,7 +50,7 @@ type FileWatcherEvent struct {
 	Filenames []string
 }
 
-//NewFileWatcher create a file watcher that will watch all the files/folders from configFiles
+// NewFileWatcher create a file watcher that will watch all the files/folders from configFiles
 // if success a fileWatcher will be returned and a nil error
 // otherwise an error and a nil fileWatcher are returned
 func NewFileWatcher(configFiles []string, logger hclog.Logger) (Watcher, error) {

@@ -1,28 +1,33 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xds
 
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
 // ResourceGenerator is associated with a single gRPC stream and creates xDS
 // resources for a single client.
 type ResourceGenerator struct {
 	Logger         hclog.Logger
-	CfgFetcher     ConfigFetcher
+	CfgFetcher     configfetcher.ConfigFetcher
 	IncrementalXDS bool
 
-	ProxyFeatures supportedProxyFeatures
+	ProxyFeatures xdscommon.SupportedProxyFeatures
 }
 
-func newResourceGenerator(
+func NewResourceGenerator(
 	logger hclog.Logger,
-	cfgFetcher ConfigFetcher,
+	cfgFetcher configfetcher.ConfigFetcher,
 	incrementalXDS bool,
 ) *ResourceGenerator {
 	return &ResourceGenerator{
@@ -32,9 +37,9 @@ func newResourceGenerator(
 	}
 }
 
-func (g *ResourceGenerator) allResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
+func (g *ResourceGenerator) AllResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
 	all := make(map[string][]proto.Message)
-	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType} {
+	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType, xdscommon.SecretType} {
 		res, err := g.resourcesFromSnapshot(typeUrl, cfgSnap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate xDS resources for %q: %v", typeUrl, err)
@@ -54,6 +59,8 @@ func (g *ResourceGenerator) resourcesFromSnapshot(typeUrl string, cfgSnap *proxy
 		return g.clustersFromSnapshot(cfgSnap)
 	case xdscommon.EndpointType:
 		return g.endpointsFromSnapshot(cfgSnap)
+	case xdscommon.SecretType:
+		return g.secretsFromSnapshot(cfgSnap)
 	default:
 		return nil, fmt.Errorf("unknown typeUrl: %s", typeUrl)
 	}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cache
 
 import (
@@ -5,6 +8,7 @@ import (
 )
 
 // Type implements the logic to fetch certain types of data.
+//
 //go:generate mockery --name Type --inpackage
 type Type interface {
 	// Fetch fetches a single unique item.

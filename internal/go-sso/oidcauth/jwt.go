@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package oidcauth
 
 import (
@@ -12,7 +15,7 @@ import (
 	"fmt"
 	"time"
 
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v3/jwt"
 )
 
 const claimDefaultLeeway = 150

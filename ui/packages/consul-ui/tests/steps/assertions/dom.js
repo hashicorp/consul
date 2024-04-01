@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 const dont = `( don't| shouldn't| can't)?`;
 export default function (scenario, assert, pauseUntil, find, currentURL, clipboard) {
   scenario
@@ -85,5 +90,13 @@ export default function (scenario, assert, pauseUntil, find, currentURL, clipboa
     })
     .then(['the title should be "$title"'], function (title) {
       assert.equal(document.title, title, `Expected the document.title to equal "${title}"`);
+    })
+    .then(['the "$selector" input should have the value "$value"'], function (selector, value) {
+      const $el = find(selector);
+      assert.equal(
+        $el.value,
+        value,
+        `Expected the input at ${selector} to have value ${value}, but it had ${$el.value}`
+      );
     });
 }

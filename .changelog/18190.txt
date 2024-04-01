@@ -1,0 +1,5 @@
+```release-note:security
+Upgrade to use Go 1.20.6.
+This resolves [CVE-2023-29406](https://github.com/advisories/GHSA-f8f7-69v5-w4vx)(`net/http`) for uses of the standard library. 
+A separate change updates dependencies on `golang.org/x/net` to use `0.12.0`.
+```

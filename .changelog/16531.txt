@@ -1,0 +1,3 @@
+```release-note:bug
+gateways: fix HTTPRoute bug where services with a weight not divisible by 10000 are never registered properly
+```

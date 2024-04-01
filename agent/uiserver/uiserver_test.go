@@ -1,9 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package uiserver
 
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -49,7 +51,8 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				}
+				},
+				"V2CatalogEnabled": false
 			}`,
 		},
 		{
@@ -88,7 +91,8 @@ func TestUIServerIndex(t *testing.T) {
 					},
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				}
+				},
+				"V2CatalogEnabled": false
 			}`,
 		},
 		{
@@ -109,7 +113,8 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				}
+				},
+				"V2CatalogEnabled": false
 			}`,
 		},
 		{
@@ -130,7 +135,30 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				}
+				},
+				"V2CatalogEnabled": false
+			}`,
+		},
+		{
+			name:         "v2 catalog enabled",
+			cfg:          basicUIEnabledConfig(withV2CatalogEnabled()),
+			path:         "/",
+			wantStatus:   http.StatusOK,
+			wantContains: []string{"<!-- CONSUL_VERSION:"},
+			wantUICfgJSON: `{
+				"ACLsEnabled": false,
+				"HCPEnabled": false,
+				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
+				"ContentPath": "/ui/",
+				"PeeringEnabled": true,
+				"UIConfig": {
+					"hcp_enabled": false,
+					"metrics_provider": "",
+					"metrics_proxy_enabled": false,
+					"dashboard_url_templates": null
+				},
+				"V2CatalogEnabled": true 
 			}`,
 		},
 		{
@@ -153,7 +181,8 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				}
+				},
+				"V2CatalogEnabled": false
 			}`,
 		},
 		{
@@ -185,7 +214,8 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "bar",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				}
+				},
+				"V2CatalogEnabled": false
 			}`,
 		},
 		{
@@ -318,6 +348,12 @@ func withHCPEnabled() cfgFunc {
 	}
 }
 
+func withV2CatalogEnabled() cfgFunc {
+	return func(cfg *config.RuntimeConfig) {
+		cfg.Experiments = append(cfg.Experiments, "resource-apis")
+	}
+}
+
 func withPeeringDisabled() cfgFunc {
 	return func(cfg *config.RuntimeConfig) {
 		cfg.PeeringEnabled = false
@@ -380,7 +416,7 @@ func TestCustomDir(t *testing.T) {
 	defer os.RemoveAll(uiDir)
 
 	path := filepath.Join(uiDir, "test-file")
-	require.NoError(t, ioutil.WriteFile(path, []byte("test"), 0644))
+	require.NoError(t, os.WriteFile(path, []byte("test"), 0644))
 
 	cfg := basicUIEnabledConfig()
 	cfg.UIConfig.Dir = uiDir
@@ -427,7 +463,7 @@ func TestCompiledJS(t *testing.T) {
 
 			require.Equal(t, http.StatusOK, rec.Code)
 			require.Equal(t, rec.Result().Header["Content-Type"][0], "application/javascript")
-			wantCompiled, err := ioutil.ReadFile("testdata/compiled-metrics-providers-golden.js")
+			wantCompiled, err := os.ReadFile("testdata/compiled-metrics-providers-golden.js")
 			require.NoError(t, err)
 			require.Equal(t, rec.Body.String(), string(wantCompiled))
 		})
@@ -464,6 +500,7 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 			"metrics_proxy_enabled": false,
 			"dashboard_url_templates": null
 		},
+		"V2CatalogEnabled": false,
 		"apple": "seeds"
 	}`
 		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))
@@ -490,6 +527,7 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 				"metrics_proxy_enabled": false,
 				"dashboard_url_templates": null
 			},
+			"V2CatalogEnabled": false,
 			"apple": "plant"
 		}`
 		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))

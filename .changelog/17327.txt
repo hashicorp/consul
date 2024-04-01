@@ -1,0 +1,3 @@
+```release-note:improvement
+ xds: rename envoy_hcp_metrics_bind_socket_dir to envoy_telemetry_collector_bind_socket_dir to remove HCP naming references.
+ ```

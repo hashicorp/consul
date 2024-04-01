@@ -12,7 +12,7 @@ description: >-
 
 This guide explains how to best upgrade a multi-datacenter Consul deployment that is using
 a version of Consul >= 1.6.9 and < 1.8.19 while maintaining replication. If you are on a version
-older than 1.6.9, please follow the link for the version you are on from [here](/docs/upgrading/instructions).
+older than 1.6.9, please follow the link for the version you are on from [here](/consul/docs/upgrading/instructions).
 
 In this guide, we will be using an example with two datacenters (DCs) and will be
 referring to them as DC1 and DC2. DC1 will be the primary datacenter.
@@ -32,7 +32,7 @@ This guides makes the following assumptions:
 ## Considerations
 
 There are not too many major changes that might cause issues upgrading from 1.6.9, but notable changes
-are called out in our [Specific Version Details](/docs/upgrading/upgrade-specific#consul-1-8-0)
+are called out in our [Specific Version Details](/consul/docs/upgrading/upgrade-specific#consul-1-8-0)
 page. You can find more granular details in the full [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md#183-august-12-2020).
 Looking through these changes prior to upgrading is highly recommended.
 
@@ -87,7 +87,7 @@ You should receive output similar to this:
 }
 ```
 
-**3.** Upgrade the Consul agents in all DCs to version 1.8.19 by following our [General Upgrade Process](/docs/upgrading/instructions/general-process).
+**3.** Upgrade the Consul agents in all DCs to version 1.8.19 by following our [General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
 
 **4.** Confirm that replication is still working in DC2 by issuing the following curl command from a
 consul server in that DC:

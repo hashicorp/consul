@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package acl
 
 import (
@@ -139,6 +142,7 @@ func TestServer_Logout_RPCForwarding(t *testing.T) {
 
 	dc1Conn, err := grpc.Dial(
 		testutils.RunTestServer(t, dc1).String(),
+		//nolint:staticcheck
 		grpc.WithInsecure(),
 	)
 	require.NoError(t, err)
@@ -187,6 +191,7 @@ func TestServer_Logout_GlobalWritesForwardedToPrimaryDC(t *testing.T) {
 
 	primaryConn, err := grpc.Dial(
 		testutils.RunTestServer(t, primary).String(),
+		//nolint:staticcheck
 		grpc.WithInsecure(),
 	)
 	require.NoError(t, err)

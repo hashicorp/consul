@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peerstream
 
 import (
@@ -10,19 +13,19 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
 
 type BidirectionalStream interface {
@@ -277,7 +280,7 @@ type HandleStreamRequest struct {
 	Stream BidirectionalStream
 }
 
-func (r HandleStreamRequest) WasDialed() bool {
+func (r HandleStreamRequest) IsAcceptor() bool {
 	return r.RemoteID == ""
 }
 
@@ -316,7 +319,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 	logger := s.Logger.Named("stream").
 		With("peer_name", streamReq.PeerName).
 		With("peer_id", streamReq.LocalID).
-		With("dialed", streamReq.WasDialed())
+		With("dialer", !streamReq.IsAcceptor())
 	logger.Trace("handling stream for peer")
 
 	// handleStreamCtx is local to this function.
@@ -380,13 +383,18 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 		return err
 	}
 
-	// Subscribe to all relevant resource types.
-	for _, resourceURL := range []string{
+	resources := []string{
 		pbpeerstream.TypeURLExportedService,
 		pbpeerstream.TypeURLExportedServiceList,
 		pbpeerstream.TypeURLPeeringTrustBundle,
-		pbpeerstream.TypeURLPeeringServerAddresses,
-	} {
+	}
+	// Acceptors should not subscribe to server address updates, because they should always have an empty list.
+	if !streamReq.IsAcceptor() {
+		resources = append(resources, pbpeerstream.TypeURLPeeringServerAddresses)
+	}
+
+	// Subscribe to all relevant resource types.
+	for _, resourceURL := range resources {
 		sub := makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
 			ResourceURL: resourceURL,
 			PeerID:      streamReq.RemoteID,
@@ -558,7 +566,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					// This must be a new subscription request to add a new
 					// resource type, vet it like a new request.
 
-					if !streamReq.WasDialed() {
+					if !streamReq.IsAcceptor() {
 						if req.PeerID != "" && req.PeerID != streamReq.RemoteID {
 							// Not necessary after the first request from the dialer,
 							// but if provided must match.
@@ -658,7 +666,7 @@ func (s *Server) realHandleStream(streamReq HandleStreamRequest) error {
 					continue
 				}
 			case strings.HasPrefix(update.CorrelationID, subExportedService):
-				resp, err = makeServiceResponse(status, update)
+				resp, err = makeServiceResponse(update)
 				if err != nil {
 					// Log the error and skip this response to avoid locking up peering due to a bad update event.
 					logger.Error("failed to create service response", "error", err)
@@ -760,12 +768,15 @@ func logTraceProto(logger hclog.Logger, pb proto.Message, received bool) {
 		pbToLog = clone
 	}
 
-	m := jsonpb.Marshaler{
+	m := protojson.MarshalOptions{
 		Indent: "  ",
 	}
-	out, err := m.MarshalToString(pbToLog)
+	out := ""
+	outBytes, err := m.Marshal(pbToLog)
 	if err != nil {
 		out = "<ERROR: " + err.Error() + ">"
+	} else {
+		out = string(outBytes)
 	}
 
 	logger.Trace("replication message", "direction", dir, "protobuf", out)

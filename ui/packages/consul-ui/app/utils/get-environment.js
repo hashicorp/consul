@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { runInDebug } from '@ember/debug';
 // 'environment' getter
 // there are currently 3 levels of environment variables:
@@ -141,7 +146,7 @@ export default function (config = {}, win = window, doc = document) {
       case 'CONSUL_API_PREFIX':
         // we want API prefix to look like an env var for if we ever change
         // operator config to be an API request, we need this variable before we
-        // make and API request so this specific variable should never be be
+        // make and API request so this specific variable should never be
         // retrived via an API request
         return operatorConfig.APIPrefix;
       case 'CONSUL_HCP_URL':
@@ -192,6 +197,10 @@ export default function (config = {}, win = window, doc = document) {
             // reserve 1 for traffic that we can't manage
             return 5;
         }
+      case 'CONSUL_V2_CATALOG_ENABLED':
+        return operatorConfig.V2CatalogEnabled === 'undefined'
+          ? false
+          : operatorConfig.V2CatalogEnabled;
     }
   };
   const ui = function (key) {
@@ -238,6 +247,9 @@ export default function (config = {}, win = window, doc = document) {
               break;
             case 'TokenSecretID':
               prev['CONSUL_HTTP_TOKEN'] = value;
+              break;
+            case 'CONSUL_V2_CATALOG_ENABLE':
+              prev['CONSUL_V2_CATALOG_ENABLED'] = JSON.parse(value);
               break;
             default:
               prev[key] = value;
@@ -290,6 +302,7 @@ export default function (config = {}, win = window, doc = document) {
       case 'CONSUL_METRICS_PROXY_ENABLE':
       case 'CONSUL_SERVICE_DASHBOARD_URL':
       case 'CONSUL_BASE_UI_URL':
+      case 'CONSUL_V2_CATALOG_ENABLED':
       case 'CONSUL_HTTP_PROTOCOL':
       case 'CONSUL_HTTP_MAX_CONNECTIONS': {
         // We allow the operator to set these ones via various methods

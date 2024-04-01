@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configentry
 
 import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
 
@@ -23,36 +26,28 @@ type StateStore interface {
 func MergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
 	state StateStore,
-	args *structs.ServiceSpecificRequest,
-	ns *structs.NodeService,
+	unmergedNS *structs.NodeService,
 	logger hclog.Logger) (uint64, *structs.NodeService, error) {
 
+	ns := unmergedNS.WithNormalizedUpstreams()
 	serviceName := ns.Service
-	var upstreams []structs.ServiceID
 	if ns.IsSidecarProxy() {
 		// This is a sidecar proxy, ignore the proxy service's config since we are
 		// managed by the target service config.
 		serviceName = ns.Proxy.DestinationServiceName
-
-		// Also if we have any upstreams defined, add them to the defaults lookup request
-		// so we can learn about their configs.
-		for _, us := range ns.Proxy.Upstreams {
-			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-				sid := us.DestinationID()
-				sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
-				upstreams = append(upstreams, sid)
-			}
+	}
+	var upstreams []structs.PeeredServiceName
+	for _, us := range ns.Proxy.Upstreams {
+		if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
+			upstreams = append(upstreams, us.DestinationID())
 		}
 	}
-
 	configReq := &structs.ServiceConfigRequest{
-		Name:           serviceName,
-		Datacenter:     args.Datacenter,
-		QueryOptions:   args.QueryOptions,
-		MeshGateway:    ns.Proxy.MeshGateway,
-		Mode:           ns.Proxy.Mode,
-		UpstreamIDs:    upstreams,
-		EnterpriseMeta: ns.EnterpriseMeta,
+		Name:                 serviceName,
+		MeshGateway:          ns.Proxy.MeshGateway,
+		Mode:                 ns.Proxy.Mode,
+		UpstreamServiceNames: upstreams,
+		EnterpriseMeta:       ns.EnterpriseMeta,
 	}
 
 	// prefer using this vs directly calling the ConfigEntry.ResolveServiceConfig RPC
@@ -62,7 +57,7 @@ func MergeNodeServiceWithCentralConfig(
 		ws,
 		configReq.Name,
 		&configReq.EnterpriseMeta,
-		upstreams,
+		configReq.GetLocalUpstreamIDs(),
 		configReq.Mode,
 	)
 	if err != nil {
@@ -72,8 +67,6 @@ func MergeNodeServiceWithCentralConfig(
 
 	defaults, err := ComputeResolvedServiceConfig(
 		configReq,
-		upstreams,
-		false,
 		configEntries,
 		logger,
 	)
@@ -115,6 +108,32 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	if err := mergo.Merge(&ns.Proxy.Expose, defaults.Expose); err != nil {
 		return nil, err
 	}
+	if err := mergo.Merge(&ns.Proxy.AccessLogs, defaults.AccessLogs); err != nil {
+		return nil, err
+	}
+
+	// defaults.EnvoyExtensions contains the extensions from the proxy defaults config entry followed by extensions from
+	// the service defaults config entry. This adds the extensions to structs.NodeService.Proxy which in turn is copied
+	// into the proxycfg snapshot to ensure the local service's extensions are accessible from the snapshot.
+	//
+	// This will replace any existing extensions in the NodeService but that is ok because defaults.EnvoyExtensions
+	// should have the latest extensions computed from service defaults and proxy defaults.
+	ns.Proxy.EnvoyExtensions = nil
+	if len(defaults.EnvoyExtensions) > 0 {
+		nsExtensions := make([]structs.EnvoyExtension, len(defaults.EnvoyExtensions))
+		for i, ext := range defaults.EnvoyExtensions {
+			nsExtensions[i] = structs.EnvoyExtension{
+				Name:      ext.Name,
+				Required:  ext.Required,
+				Arguments: ext.Arguments,
+			}
+		}
+		ns.Proxy.EnvoyExtensions = nsExtensions
+	}
+
+	if ratelimit := defaults.RateLimits.ToEnvoyExtension(); ratelimit != nil {
+		ns.Proxy.EnvoyExtensions = append(ns.Proxy.EnvoyExtensions, *ratelimit)
+	}
 
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 		ns.Proxy.MeshGateway.Mode = defaults.MeshGateway.Mode
@@ -129,19 +148,38 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		ns.Proxy.TransparentProxy.DialedDirectly = defaults.TransparentProxy.DialedDirectly
 	}
 
-	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
-	remoteUpstreams := make(map[structs.ServiceID]structs.Upstream)
+	if ns.Proxy.MutualTLSMode == structs.MutualTLSModeDefault {
+		ns.Proxy.MutualTLSMode = defaults.MutualTLSMode
+	}
 
-	for _, us := range defaults.UpstreamIDConfigs {
+	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
+	remoteUpstreams := make(map[structs.PeeredServiceName]structs.Upstream)
+
+	// If the arguments did not fully normalize tenancy stuff, take care of that now.
+	entMeta := ns.EnterpriseMeta
+	entMeta.Normalize()
+
+	for _, us := range defaults.UpstreamConfigs {
 		parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
 		}
 
-		remoteUpstreams[us.Upstream] = structs.Upstream{
-			DestinationNamespace: us.Upstream.NamespaceOrDefault(),
-			DestinationPartition: us.Upstream.PartitionOrDefault(),
-			DestinationName:      us.Upstream.ID,
+		// If the defaults did not fully normalize tenancy stuff, take care of
+		// that now too.
+		psn := us.Upstream // only normalize the copy
+		psn.ServiceName.EnterpriseMeta.Normalize()
+
+		// Normalize the partition field specially.
+		if psn.Peer != "" {
+			psn.ServiceName.OverridePartition(entMeta.PartitionOrDefault())
+		}
+
+		remoteUpstreams[psn] = structs.Upstream{
+			DestinationNamespace: psn.ServiceName.NamespaceOrDefault(),
+			DestinationPartition: psn.ServiceName.PartitionOrDefault(),
+			DestinationName:      psn.ServiceName.Name,
+			DestinationPeer:      psn.Peer,
 			Config:               us.Config,
 			MeshGateway:          parsed.MeshGateway,
 			CentrallyConfigured:  true,
@@ -150,8 +188,8 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 
 	// localUpstreams stores the upstreams seen from the local registration so that we can merge in the synthetic entries.
 	// In transparent proxy mode ns.Proxy.Upstreams will likely be empty because users do not need to define upstreams explicitly.
-	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstream with those values.
-	localUpstreams := make(map[structs.ServiceID]struct{})
+	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstreams with those values.
+	localUpstreams := make(map[structs.PeeredServiceName]struct{})
 
 	// Merge upstream defaults into the local registration
 	for i := range ns.Proxy.Upstreams {
@@ -160,9 +198,16 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		if us.DestinationType != "" && us.DestinationType != structs.UpstreamDestTypeService {
 			continue
 		}
-		localUpstreams[us.DestinationID()] = struct{}{}
 
-		remoteCfg, ok := remoteUpstreams[us.DestinationID()]
+		uid := us.DestinationID()
+
+		// Normalize the partition field specially.
+		if uid.Peer != "" {
+			uid.ServiceName.OverridePartition(entMeta.PartitionOrDefault())
+		}
+
+		localUpstreams[uid] = struct{}{}
+		remoteCfg, ok := remoteUpstreams[uid]
 		if !ok {
 			// No config defaults to merge
 			continue
@@ -173,9 +218,19 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 			us.MeshGateway.Mode = remoteCfg.MeshGateway.Mode
 		}
 
+		preMergeProtocol, found := us.Config["protocol"]
 		// Merge in everything else that is read from the map
 		if err := mergo.Merge(&us.Config, remoteCfg.Config); err != nil {
 			return nil, err
+		}
+
+		// Reset the protocol to its pre-merged version for peering upstreams.
+		if us.DestinationPeer != "" {
+			if found {
+				us.Config["protocol"] = preMergeProtocol
+			} else {
+				delete(us.Config, "protocol")
+			}
 		}
 
 		// Delete the mesh gateway key from opaque config since this is the value that was resolved from

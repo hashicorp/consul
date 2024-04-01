@@ -1,9 +1,9 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "failover-target~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "clusterName": "failover-target~0~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [
@@ -37,7 +37,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "failover-target~db.default.dc3.internal.11111111-2222-3333-4444-555555555555.consul",
+      "clusterName": "failover-target~2~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [
@@ -71,5 +71,5 @@
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -73,10 +76,9 @@ func verifyCheckServiceNodeSort(t *testing.T, nodes structs.CheckServiceNodes, e
 //
 // Here's the layout of the nodes:
 //
-//       node3 node2 node5                         node4       node1
-//   |     |     |     |     |     |     |     |     |     |     |
-//   0     1     2     3     4     5     6     7     8     9     10  (ms)
-//
+//	    node3 node2 node5                         node4       node1
+//	|     |     |     |     |     |     |     |     |     |     |
+//	0     1     2     3     4     5     6     7     8     9     10  (ms)
 func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
 	// Register some nodes.
 	for i := 0; i < 5; i++ {

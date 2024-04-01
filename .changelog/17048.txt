@@ -1,0 +1,3 @@
+```release-note:bug
+Fix an bug where decoding some Config structs with unset pointer fields could fail with `reflect: call of reflect.Value.Type on zero Value`. 
+```

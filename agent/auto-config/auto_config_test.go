@@ -1,10 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package autoconf
 
 import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -19,12 +21,13 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
-	"github.com/hashicorp/consul/proto/pbautoconf"
-	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -202,11 +205,13 @@ func setupRuntimeConfig(t *testing.T) *configLoader {
 	dataDir := testutil.TempDir(t, "auto-config")
 
 	opts := config.LoadOpts{
-		FlagValues: config.Config{
-			DataDir:    &dataDir,
-			Datacenter: stringPointer("dc1"),
-			NodeName:   stringPointer("autoconf"),
-			BindAddr:   stringPointer("127.0.0.1"),
+		FlagValues: config.FlagValuesTarget{
+			Config: config.Config{
+				DataDir:    &dataDir,
+				Datacenter: stringPointer("dc1"),
+				NodeName:   stringPointer("autoconf"),
+				BindAddr:   stringPointer("127.0.0.1"),
+			},
 		},
 	}
 	return &configLoader{opts: opts}
@@ -307,9 +312,9 @@ func TestInitialConfiguration_restored(t *testing.T) {
 		Certificate:         mustTranslateIssuedCertToProtobuf(t, cert),
 		ExtraCACertificates: extraCACerts,
 	}
-	data, err := pbMarshaler.MarshalToString(response)
+	data, err := pbMarshaler.Marshal(response)
 	require.NoError(t, err)
-	require.NoError(t, ioutil.WriteFile(persistedFile, []byte(data), 0600))
+	require.NoError(t, os.WriteFile(persistedFile, data, 0600))
 
 	// recording the initial configuration even when restoring is going to update
 	// the agent token in the token store
@@ -562,9 +567,8 @@ func TestGoRoutineManagement(t *testing.T) {
 	})
 
 	leafReq := ac.leafCertRequest()
-	mcfg.cache.On("Notify",
+	mcfg.leafCerts.On("Notify",
 		mock.Anything,
-		cachetype.ConnectCALeafName,
 		&leafReq,
 		leafWatchID,
 		mock.Anything,
@@ -713,10 +717,9 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 		mock.Anything,
 	).Return(nil).Once()
 
-	mcfg.cache.On("Notify",
+	mcfg.leafCerts.On("Notify",
 		mock.Anything,
-		cachetype.ConnectCALeafName,
-		&cachetype.ConnectCALeafRequest{
+		&leafcert.ConnectCALeafRequest{
 			Datacenter: "dc1",
 			Agent:      "autoconf",
 			Token:      originalToken,
@@ -871,10 +874,9 @@ func TestTokenUpdate(t *testing.T) {
 	})
 
 	leafCtx, leafCancel := context.WithCancel(context.Background())
-	testAC.mcfg.cache.On("Notify",
+	testAC.mcfg.leafCerts.On("Notify",
 		mock.Anything,
-		cachetype.ConnectCALeafName,
-		&cachetype.ConnectCALeafRequest{
+		&leafcert.ConnectCALeafRequest{
 			Datacenter: "dc1",
 			Agent:      "autoconf",
 			Token:      newToken,
@@ -971,14 +973,14 @@ func TestCertUpdate(t *testing.T) {
 		NotAfter: secondCert.ValidBefore,
 	}).Once()
 
-	req := cachetype.ConnectCALeafRequest{
+	req := leafcert.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Agent:      "autoconf",
 		Token:      testAC.originalToken,
 		DNSSAN:     defaultDNSSANs,
 		IPSAN:      defaultIPSANs,
 	}
-	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
+	require.True(t, testAC.mcfg.leafCerts.sendNotification(context.Background(), req.Key(), cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        secondCert,
 		Meta: cache.ResultMeta{
@@ -1098,14 +1100,14 @@ func TestFallback(t *testing.T) {
 
 	// now that all the mocks are set up we can trigger the whole thing by sending the second expired cert
 	// as a cache update event.
-	req := cachetype.ConnectCALeafRequest{
+	req := leafcert.ConnectCALeafRequest{
 		Datacenter: "dc1",
 		Agent:      "autoconf",
 		Token:      testAC.originalToken,
 		DNSSAN:     defaultDNSSANs,
 		IPSAN:      defaultIPSANs,
 	}
-	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
+	require.True(t, testAC.mcfg.leafCerts.sendNotification(context.Background(), req.Key(), cache.UpdateEvent{
 		CorrelationID: leafWatchID,
 		Result:        secondCert,
 		Meta: cache.ResultMeta{
@@ -1139,7 +1141,7 @@ func TestIntroToken(t *testing.T) {
 
 	tokenFromFile := "8ae34d3a-8adf-446a-b236-69874597cb5b"
 	tokenFromConfig := "3ad9b572-ea42-4e47-9cd0-53a398a98abf"
-	require.NoError(t, ioutil.WriteFile(tokenFile.Name(), []byte(tokenFromFile), 0600))
+	require.NoError(t, os.WriteFile(tokenFile.Name(), []byte(tokenFromFile), 0600))
 
 	type testCase struct {
 		config *config.RuntimeConfig

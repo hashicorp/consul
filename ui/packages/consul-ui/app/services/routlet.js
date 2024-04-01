@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import Service, { inject as service } from '@ember/service';
 import { schedule } from '@ember/runloop';
 import { get } from '@ember/object';

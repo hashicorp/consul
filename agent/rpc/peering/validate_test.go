@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peering
 
 import (
@@ -48,6 +51,16 @@ func TestValidatePeeringToken(t *testing.T) {
 			token: &structs.PeeringToken{
 				CA:              []string{validCA},
 				ServerAddresses: []string{"1.2.3.4"},
+			},
+			wantErr: &errPeeringInvalidServerAddress{
+				"1.2.3.4",
+			},
+		},
+		{
+			name: "invalid address port - manual",
+			token: &structs.PeeringToken{
+				CA:                    []string{validCA},
+				ManualServerAddresses: []string{"1.2.3.4"},
 			},
 			wantErr: &errPeeringInvalidServerAddress{
 				"1.2.3.4",

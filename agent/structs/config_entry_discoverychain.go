@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package structs
 
 import (
@@ -12,12 +15,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/maps"
 )
 
 const (
@@ -74,8 +79,17 @@ type ServiceRouterConfigEntry struct {
 	Routes []ServiceRoute
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceRouterConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceRouterConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceRouterConfigEntry) GetKind() string {
@@ -124,6 +138,11 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 	}
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -353,9 +372,10 @@ func (m *ServiceRouteMatch) IsEmpty() bool {
 
 // ServiceRouteHTTPMatch is a set of http-specific match criteria.
 type ServiceRouteHTTPMatch struct {
-	PathExact  string `json:",omitempty" alias:"path_exact"`
-	PathPrefix string `json:",omitempty" alias:"path_prefix"`
-	PathRegex  string `json:",omitempty" alias:"path_regex"`
+	PathExact       string `json:",omitempty" alias:"path_exact"`
+	PathPrefix      string `json:",omitempty" alias:"path_prefix"`
+	PathRegex       string `json:",omitempty" alias:"path_regex"`
+	CaseInsensitive bool   `json:",omitempty" alias:"case_insensitive"`
 
 	Header     []ServiceRouteHTTPMatchHeader     `json:",omitempty"`
 	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty" alias:"query_param"`
@@ -366,6 +386,7 @@ func (m *ServiceRouteHTTPMatch) IsEmpty() bool {
 	return m.PathExact == "" &&
 		m.PathPrefix == "" &&
 		m.PathRegex == "" &&
+		!m.CaseInsensitive &&
 		len(m.Header) == 0 &&
 		len(m.QueryParam) == 0 &&
 		len(m.Methods) == 0
@@ -426,6 +447,10 @@ type ServiceRouteDestination struct {
 	// downstream request (and retries) to be processed.
 	RequestTimeout time.Duration `json:",omitempty" alias:"request_timeout"`
 
+	// IdleTimeout is The total amount of time permitted for the request stream
+	// to be idle
+	IdleTimeout time.Duration `json:",omitempty" alias:"idle_timeout"`
+
 	// NumRetries is the number of times to retry the request when a retryable
 	// result occurs. This seems fairly proxy agnostic.
 	NumRetries uint32 `json:",omitempty" alias:"num_retries"`
@@ -452,13 +477,19 @@ func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
 	type Alias ServiceRouteDestination
 	exported := &struct {
 		RequestTimeout string `json:",omitempty"`
+		IdleTimeout    string `json:",omitempty"`
 		*Alias
 	}{
 		RequestTimeout: e.RequestTimeout.String(),
+		IdleTimeout:    e.IdleTimeout.String(),
 		Alias:          (*Alias)(e),
 	}
 	if e.RequestTimeout == 0 {
 		exported.RequestTimeout = ""
+	}
+
+	if e.IdleTimeout == 0 {
+		exported.IdleTimeout = ""
 	}
 
 	return json.Marshal(exported)
@@ -468,6 +499,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 	type Alias ServiceRouteDestination
 	aux := &struct {
 		RequestTimeout string
+		IdleTimeout    string
 		*Alias
 	}{
 		Alias: (*Alias)(e),
@@ -478,6 +510,11 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 	var err error
 	if aux.RequestTimeout != "" {
 		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
+			return err
+		}
+	}
+	if aux.IdleTimeout != "" {
+		if e.IdleTimeout, err = time.ParseDuration(aux.IdleTimeout); err != nil {
 			return err
 		}
 	}
@@ -516,8 +553,17 @@ type ServiceSplitterConfigEntry struct {
 	Splits []ServiceSplit
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceSplitterConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceSplitterConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceSplitterConfigEntry) GetKind() string {
@@ -560,6 +606,11 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 		}
 	}
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -837,30 +888,73 @@ type ServiceResolverConfigEntry struct {
 	// specified here.
 	Failover map[string]ServiceResolverFailover `json:",omitempty"`
 
+	// PrioritizeByLocality controls whether the locality of services within the
+	// local partition will be used to prioritize connectivity.
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
+
 	// ConnectTimeout is the timeout for establishing new network connections
 	// to this service.
 	ConnectTimeout time.Duration `json:",omitempty" alias:"connect_timeout"`
+
+	// RequestTimeout is the timeout for an HTTP request to complete before
+	// the connection is automatically terminated. If unspecified, defaults
+	// to 15 seconds.
+	RequestTimeout time.Duration `json:",omitempty" alias:"request_timeout"`
 
 	// LoadBalancer determines the load balancing policy and configuration for services
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceResolverConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceResolverConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
+func (e *ServiceResolverConfigEntry) RelatedPeers() []string {
+	peers := make(map[string]struct{})
+
+	if r := e.Redirect; r != nil && r.Peer != "" {
+		peers[r.Peer] = struct{}{}
+	}
+
+	if e.Failover != nil {
+		for _, f := range e.Failover {
+			for _, t := range f.Targets {
+				if t.Peer != "" {
+					peers[t.Peer] = struct{}{}
+				}
+			}
+		}
+	}
+
+	return maps.SliceOfKeys(peers)
 }
 
 func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {
 	type Alias ServiceResolverConfigEntry
 	exported := &struct {
 		ConnectTimeout string `json:",omitempty"`
+		RequestTimeout string `json:",omitempty"`
 		*Alias
 	}{
 		ConnectTimeout: e.ConnectTimeout.String(),
+		RequestTimeout: e.RequestTimeout.String(),
 		Alias:          (*Alias)(e),
 	}
 	if e.ConnectTimeout == 0 {
 		exported.ConnectTimeout = ""
+	}
+	if e.RequestTimeout == 0 {
+		exported.RequestTimeout = ""
 	}
 
 	return json.Marshal(exported)
@@ -870,20 +964,27 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	type Alias ServiceResolverConfigEntry
 	aux := &struct {
 		ConnectTimeout string
+		RequestTimeout string
 		*Alias
 	}{
 		Alias: (*Alias)(e),
 	}
-	if err := lib.UnmarshalJSON(data, &aux); err != nil {
+	var err error
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
-	var err error
+	var merr *multierror.Error
 	if aux.ConnectTimeout != "" {
 		if e.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
-			return err
+			merr = multierror.Append(merr, err)
 		}
 	}
-	return nil
+	if aux.RequestTimeout != "" {
+		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
+			merr = multierror.Append(merr, err)
+		}
+	}
+	return merr.ErrorOrNil()
 }
 
 func (e *ServiceResolverConfigEntry) SubsetExists(name string) bool {
@@ -903,7 +1004,9 @@ func (e *ServiceResolverConfigEntry) IsDefault() bool {
 		e.Redirect == nil &&
 		len(e.Failover) == 0 &&
 		e.ConnectTimeout == 0 &&
-		e.LoadBalancer == nil
+		e.RequestTimeout == 0 &&
+		e.LoadBalancer == nil &&
+		e.PrioritizeByLocality == nil
 }
 
 func (e *ServiceResolverConfigEntry) GetKind() string {
@@ -934,6 +1037,11 @@ func (e *ServiceResolverConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -974,6 +1082,10 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		return fmt.Errorf("DefaultSubset %q is not a valid subset", e.DefaultSubset)
 	}
 
+	if err := e.PrioritizeByLocality.validate(); err != nil {
+		return err
+	}
+
 	if e.Redirect != nil {
 		if !e.InDefaultPartition() && e.Redirect.Datacenter != "" {
 			return fmt.Errorf("Cross-datacenter redirect is only supported in the default partition")
@@ -999,6 +1111,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		}
 
 		switch {
+		case r.SamenessGroup != "" && r.ServiceSubset != "":
+			return fmt.Errorf("Redirect.SamenessGroup cannot be set with Redirect.ServiceSubset")
+		case r.SamenessGroup != "" && r.Partition != "":
+			return fmt.Errorf("Redirect.Partition cannot be set with Redirect.SamenessGroup")
+		case r.SamenessGroup != "" && r.Datacenter != "":
+			return fmt.Errorf("Redirect.SamenessGroup cannot be set with Redirect.Datacenter")
 		case r.Peer != "" && r.ServiceSubset != "":
 			return fmt.Errorf("Redirect.Peer cannot be set with Redirect.ServiceSubset")
 		case r.Peer != "" && r.Partition != "":
@@ -1043,7 +1161,15 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			}
 
 			if f.isEmpty() {
-				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, or Datacenters is required")
+				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required")
+			}
+
+			if err := f.Policy.ValidateEnterprise(); err != nil {
+				return fmt.Errorf("Bad Failover[%q]: %s", subset, err)
+			}
+
+			if err := f.Policy.validate(); err != nil {
+				return fmt.Errorf("Bad Failover[%q]: %w", subset, err)
 			}
 
 			if f.ServiceSubset != "" {
@@ -1051,6 +1177,17 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 					if !isSubset(f.ServiceSubset) {
 						return fmt.Errorf("%sServiceSubset %q is not a valid subset of %q", errorPrefix, f.ServiceSubset, f.Service)
 					}
+				}
+			}
+
+			if f.SamenessGroup != "" {
+				switch {
+				case len(f.Datacenters) > 0:
+					return fmt.Errorf("Bad Failover[%q]: SamenessGroup cannot be set with Datacenters", subset)
+				case f.ServiceSubset != "":
+					return fmt.Errorf("Bad Failover[%q]: SamenessGroup cannot be set with ServiceSubset", subset)
+				case len(f.Targets) > 0:
+					return fmt.Errorf("Bad Failover[%q]: SamenessGroup cannot be set with Targets", subset)
 				}
 			}
 
@@ -1099,6 +1236,10 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 	if e.ConnectTimeout < 0 {
 		return fmt.Errorf("Bad ConnectTimeout '%s', must be >= 0", e.ConnectTimeout)
+	}
+
+	if e.RequestTimeout < 0 {
+		return fmt.Errorf("Bad RequestTimeout '%s', must be >= 0", e.RequestTimeout)
 	}
 
 	if e.LoadBalancer != nil {
@@ -1275,6 +1416,20 @@ type ServiceResolverRedirect struct {
 	// Peer is the name of the cluster peer to resolve the service from instead
 	// of the current one (optional).
 	Peer string `json:",omitempty"`
+
+	// SamenessGroup is the name of the sameness group to resolve the service from instead
+	// of the local partition.
+	SamenessGroup string `json:",omitempty"`
+}
+
+// ToSamenessDiscoveryTargetOpts returns the options required for sameness failover and redirects.
+// These operations should preserve the service name and namespace.
+func (r *ServiceResolverConfigEntry) ToSamenessDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:   r.Name,
+		Namespace: r.NamespaceOrDefault(),
+		Partition: r.PartitionOrDefault(),
+	}
 }
 
 func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
@@ -1289,7 +1444,13 @@ func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 }
 
 func (r *ServiceResolverRedirect) isEmpty() bool {
-	return r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" && r.Peer == ""
+	return r.Service == "" &&
+		r.ServiceSubset == "" &&
+		r.Namespace == "" &&
+		r.Partition == "" &&
+		r.Datacenter == "" &&
+		r.Peer == "" &&
+		r.SamenessGroup == ""
 }
 
 // There are some restrictions on what is allowed in here:
@@ -1297,7 +1458,6 @@ func (r *ServiceResolverRedirect) isEmpty() bool {
 // - Service, ServiceSubset, Namespace, Datacenters, and Targets cannot all be
 // empty at once. When Targets is defined, the other fields should not be
 // populated.
-//
 type ServiceResolverFailover struct {
 	// Service is the service to resolve instead of the default as the failover
 	// group of instances (optional).
@@ -1332,18 +1492,58 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Targets []ServiceResolverFailoverTarget `json:",omitempty"`
+
+	// Policy specifies the exact mechanism used for failover.
+	Policy *ServiceResolverFailoverPolicy `json:",omitempty"`
+
+	// SamenessGroup specifies the sameness group to failover to.
+	SamenessGroup string `json:",omitempty"`
 }
 
-func (t *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+func (f *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 	return DiscoveryTargetOpts{
-		Service:       t.Service,
-		ServiceSubset: t.ServiceSubset,
-		Namespace:     t.Namespace,
+		Service:       f.Service,
+		ServiceSubset: f.ServiceSubset,
+		Namespace:     f.Namespace,
 	}
 }
 
 func (f *ServiceResolverFailover) isEmpty() bool {
-	return f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 && len(f.Targets) == 0
+	return f.Service == "" &&
+		f.ServiceSubset == "" &&
+		f.Namespace == "" &&
+		len(f.Datacenters) == 0 &&
+		len(f.Targets) == 0 &&
+		f.SamenessGroup == ""
+}
+
+type ServiceResolverFailoverPolicy struct {
+	// Mode specifies the type of failover that will be performed. Valid values are
+	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
+	Mode    string   `json:",omitempty"`
+	Regions []string `json:",omitempty"`
+}
+
+func (fp *ServiceResolverFailoverPolicy) validate() error {
+	if fp == nil {
+		return nil
+	}
+
+	switch fp.Mode {
+	case "":
+	case "sequential":
+	case "order-by-locality":
+	default:
+		return fmt.Errorf("Failover-policy mode must be one of '', 'sequential', or 'order-by-locality'")
+	}
+	return nil
+}
+
+type ServiceResolverPrioritizeByLocality struct {
+	// Mode specifies the type of prioritization that will be performed
+	// when selecting nodes in the local partition.
+	// Valid values are: "" (default "none"), "none", and "failover".
+	Mode string `json:",omitempty"`
 }
 
 type ServiceResolverFailoverTarget struct {

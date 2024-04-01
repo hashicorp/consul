@@ -1,0 +1,3 @@
+```release-note:bug
+cli: **(Enterprise Only)** Fix issue where `consul partition update` subcommand was not registered and therefore not available through the cli.
+```

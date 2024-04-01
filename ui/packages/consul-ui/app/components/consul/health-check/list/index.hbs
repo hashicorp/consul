@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
 <div
   class="consul-health-check-list"
   ...attributes
@@ -42,7 +47,7 @@
           <dt>Output</dt>
           <dd>
               <pre><code>{{item.Output}}</code></pre>
-              <CopyButton @value={{item.Output}} @name="output" />
+              <ConsulCopyButton @value={{item.Output}} @name="output" />
           </dd>
         </dl>
       </div>

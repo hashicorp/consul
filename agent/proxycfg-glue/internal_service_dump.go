@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package proxycfgglue
 
 import (
@@ -73,7 +76,7 @@ func (s *serverInternalServiceDump) Notify(ctx context.Context, req *structs.Ser
 				return 0, nil, err
 			}
 
-			idx, nodes, err := store.ServiceDump(ws, req.ServiceKind, req.UseServiceKind, &req.EnterpriseMeta, structs.DefaultPeerKeyword)
+			idx, nodes, err := store.ServiceDump(ws, req.ServiceKind, req.UseServiceKind, &req.EnterpriseMeta, req.PeerName)
 			if err != nil {
 				return 0, nil, err
 			}

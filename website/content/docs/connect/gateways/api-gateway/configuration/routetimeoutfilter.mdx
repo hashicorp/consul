@@ -1,0 +1,114 @@
+---
+layout: docs
+page_title: RouteTimeoutFilter configuration reference
+description: >-
+  Learn how to configure the `RouteTimeoutFilter` resource, which defines timeout settings for specific routes from an API gateway listener to the destination service in Consul service mesh.
+---
+
+# RouteTimeoutFilter configuration reference
+
+This topic provides configuration reference information for  details about the `RouteTimeoutFilter` resource, which defines timeout settings for specific routes from an API gateway listener to the destination service in Consul service mesh. 
+
+To apply timeout settings to an `HTTPRoute`, set the `rules.filters.type` parameter in the route to `extensionRef` and specify the name of the filter in the `rules.filters.extensionRef.name` field. Refer to [Route resource configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes) for additional information. 
+
+## Configuration Model
+
+The following list outlines field hierarchy, data types, and requirements in a `RouteTimeoutFilter` resource. Click on a property name to view additional details, including default values.
+
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `RouteTimeoutFilter`
+- [`metadata`](#metadata): map | required
+   - [`name`](#metadata-name): string | required 
+   - [`namespace`](#metadata-namespace): string  | `default`
+- [`spec`](#spec): map | required
+  - [`idleTimeout`](#spec-idletimeout): string | `""`
+  - [`requestTimeout`](#spec-retryonconnectfailure): string | `""`
+
+## Complete configuration
+
+When every field is defined, this resource has the following form: 
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: RouteTimeoutFilter
+metadata:
+  name: <name for the retry filter>
+spec:
+  idleTimeout: <amount of time the request stream can remain idle>
+  requestTimeout: <total amount of time Consul allows for processing the request stream>
+```
+
+## Specification
+
+This section provides details about the fields you can configure in the resource.
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `consul.hashicorp.com/v1alpha1`.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to `RouteTimeoutFilter`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `RouteTimeoutFilter`.
+
+### `metadata`
+
+Map that contains an arbitrary name for the resource and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the resource. The name is metadata that you can use to reference the resource when performing Consul operations, such as applying the resource to a specific cluster. 
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` 
+
+Specifies the namespace that the configuration applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the gateway policy. The `apiVersion`, `kind`, and `metadata` fields are siblings of the `spec` field. All other configurations are children.
+
+
+### `spec.idleTimeout`
+
+Specifies the total amount of time permitted for the request stream to be idle. Must specify a parseable number and a unit, for example "5s". 
+
+#### Values
+
+- Default: ""
+- Data type: string
+
+### `spec.requestTimeout`
+
+Specifies the total amount of time in nanoseconds, including retry attempts, Consul permits for the entire downstream request to be processed. Must specify a parseable number and a unit, for example "5s". 
+
+#### Values
+
+- Default: ""
+- Data type: Integer

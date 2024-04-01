@@ -1,0 +1,3 @@
+```release-note:improvements
+acl: Allow reading imported services and nodes from cluster peers with read all permissions
+```

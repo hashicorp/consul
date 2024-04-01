@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xdscapacity
 
 import (
@@ -7,12 +10,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/channels"
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 var StatsGauges = []prometheus.GaugeDefinition{
@@ -69,7 +73,7 @@ type SessionLimiter interface {
 func NewController(cfg Config) *Controller {
 	return &Controller{
 		cfg:      cfg,
-		serverCh: make(chan uint32),
+		serverCh: make(chan uint32, 1),
 		doneCh:   make(chan struct{}),
 	}
 }
@@ -106,9 +110,9 @@ func (c *Controller) Run(ctx context.Context) {
 // SetServerCount updates the number of healthy servers that is used when
 // determining capacity. It is called by the autopilot delegate.
 func (c *Controller) SetServerCount(count uint32) {
-	select {
-	case c.serverCh <- count:
-	case <-c.doneCh:
+	if err := channels.DeliverLatest(count, c.serverCh); err != nil {
+		// This should not be possible since only one producer should ever exist, but log anyway.
+		c.cfg.Logger.Error("failed to deliver latest server count to xDS capacity controller")
 	}
 }
 
@@ -132,7 +136,6 @@ func (c *Controller) updateDrainRateLimit(numProxies uint32) {
 //	0-512 proxies: drain 1 per second
 //	513-2815 proxies: linearly scaled by 1/s for every additional 256 proxies
 //	2816+ proxies: drain 10 per second
-//
 func calcRateLimit(numProxies uint32) rate.Limit {
 	perSecond := math.Floor((float64(numProxies) - 256) / 256)
 
@@ -184,7 +187,9 @@ func (c *Controller) countProxies(ctx context.Context) (<-chan error, uint32, er
 		ws.Add(store.AbandonCh())
 
 		var count uint32
-		_, usage, err := store.ServiceUsage(ws)
+		// we don't care about the per-tenant counts so avoid excessive cpu utilization
+		// and don't aggregate that information
+		_, usage, err := store.ServiceUsage(ws, false)
 
 		// Query failed? Wait for a while, and then go to the top of the loop to
 		// retry (unless the context is cancelled).
@@ -206,5 +211,5 @@ func (c *Controller) countProxies(ctx context.Context) (<-chan error, uint32, er
 
 type Store interface {
 	AbandonCh() <-chan struct{}
-	ServiceUsage(ws memdb.WatchSet) (uint64, state.ServiceUsage, error)
+	ServiceUsage(ws memdb.WatchSet, tenantUsage bool) (uint64, structs.ServiceUsage, error)
 }

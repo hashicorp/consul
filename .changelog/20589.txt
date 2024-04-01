@@ -1,0 +1,3 @@
+```release-note:security
+mesh: Update Envoy versions to 1.28.1, 1.27.3, and 1.26.7 to address [CVE-2024-23324](https://github.com/envoyproxy/envoy/security/advisories/GHSA-gq3v-vvhj-96j6), [CVE-2024-23325](https://github.com/envoyproxy/envoy/security/advisories/GHSA-5m7c-mrwr-pm26), [CVE-2024-23322](https://github.com/envoyproxy/envoy/security/advisories/GHSA-6p83-mfmh-qv38), [CVE-2024-23323](https://github.com/envoyproxy/envoy/security/advisories/GHSA-x278-4w4x-r7ch), [CVE-2024-23327](https://github.com/envoyproxy/envoy/security/advisories/GHSA-4h5x-x9vh-m29j), and [CVE-2023-44487](https://github.com/envoyproxy/envoy/security/advisories/GHSA-jhv4-f7mr-xx76)
+```

@@ -1,0 +1,96 @@
+---
+layout: docs
+page_title: 1.17.x
+description: >-
+  Consul release notes for version 1.17.x
+---
+
+# Consul 1.17.0
+
+We are pleased to announce the following Consul updates.
+
+## Release highlights
+
+- **Consul catalog v2 API:** We introduced a new set of APIs for interacting with the catalog, authenticating traffic using identities, and managing Consul service mesh. The Consul catalog v2 API still tracks services and nodes for Consul, but it replaces service instances with workloads and workload identities.
+
+  These APIs are the foundation for future versions of Consul and enable new functionalities, such as multi-port and host-name-based canary routing and routing traffic through headless services in native Kubernetes deployments.
+
+  For more information, refer to the [Catalog API v2](/consul/docs/k8s/multiport#catalog-api-v2-beta) section in the documentation.
+
+  <Note> These APIs are in beta and under active development, so we do not recommend using them in production. </Note>
+
+- **Multi-port services in Consul:** You can now register services with multiple ports per service. The v2 catalog API enables a single sidecar proxy to support workloads on different ports. This significantly reduces the operational overhead for managing Consul service mesh. Support for other runtimes outside of Kubernetes is planned for future releases of Consul.
+
+  Refer to the [Multi-port services for service mesh](/consul/docs/k8s/multiport#catalog-api-v2-beta) and [Configure multi-port services](/consul/docs/k8s/multiport/configure) for more information.
+
+  <Note> Multi-port is currently a beta feature in Consul v1.17. </Note>
+
+- **Locality-aware service mesh routing (Enterprise):** Locality-aware routing lets operators prioritize routing to upstream instances located in the same zone over instances in alternate zones. If all of the instances of an upstream service within a zone are unavailable, Consul service mesh automatically fails over to healthy instances in adjacent zones, ensuring service connectivity and availability within the datacenter.
+
+  This enables operators to reduce service-to-service latency, which helps improve overall service performance and decrease infrastructure costs.
+
+  Refer to the [locality-aware service mesh routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams) documentation for more information.
+
+- **Sameness groups (Enterprise):** Introduced in 1.16, sameness groups are a user-defined set of partitions that Consul uses to identify services that have the same name but are in different administrative partitions as being the same services. You can use sameness groups to create a blanket failover policy for deployments with cluster peering connections. Sameness group is generally available in Consul 1.17.
+
+  Enterprises can use sameness groups to simplify operations and increase service availability for multi-cluster or multi-region deployments.
+
+  Refer to the documentation for [creating sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) or [creating sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for more information.
+
+- **JWT-based authentication and authorization for API Gateway (Enterprise):** You can configure API gateway to use policies that control access to services based on JSON Web Tokens (JWT) embedded in the network traffic sent by external clients. These policies can control access to services, and even specific URLs, based on the claims contained in JWTs.
+
+  Administrators can control access to services from outside the service mesh without having to modify services that do not support JWT-based authentication/authorization.
+
+  Refer to the API gateway JWT documentation for [virtual machines](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) and [Kubernetes-orchestrated](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) networks for more information.
+
+- **Traffic rate limiting for services (Enterprise):**  You can now configure Consul service mesh to limit the rate of HTTP requests to services. Configure rate limiting per service and apply them per service instance. Operators can set HTTP request rate limits for the service instance or separate rate limits for specific URL paths. The rate limiting configuration includes settings for requests per second (RPS) as well as maximum request burst size.
+
+  Rate limiting helps operators protect service instances from becoming overloaded with requests. They also enable operators to define criteria for allowing traffic to service instances and ensure service capacity is shared fairly.
+
+  For more information, refer to the [rate limiting](/consul/docs/connect/manage-traffic/limit-request-rates) documentation.
+
+- **Simplified service mesh deployments on Amazon ECS:** Consul on ECS now leverages a simplified service mesh deployment architecture that eliminates the need to deploy Consul clients per task on Amazon ECS. The new architecture deploys a Consul Dataplane container that is injected as a sidecar in the ECS task. This dataplane container image packages both an Envoy container and Consul dataplane binary.
+
+  For more information, refer to the [Consul ECS](/consul/docs/ecs) documentation.
+
+- **ACL templated policies**: You can now configure Consul tokens for common use cases without needing to manually create a policy. Templated policies can be added to tokens and roles. Consul automatically generates a policy and attach it to the token or role.
+
+  For more information, refer to the [templated policies](/consul/docs/security/acl#templated-policies) documentation.
+
+## What's deprecated
+
+- **Non DNS-compatible service names:** Starting with this release, non DNS-compatible service names are deprecated. Consul will only accept lowercase alphanumeric characters and `-` , and names that start and end with an alphanumeric character. All other characters will be considered incompatible. An example of what is not considered dns-compatible is listed below:
+
+   ```bash
+   $ consul services register -name 'foo~bar%'
+   Registered service: foo~bar%
+   $ consul catalog services
+   consul
+   foo~bar%
+   ```
+- **`-admin-access-log-path` flag for the `consul connect envoy` command:** The `-admin-access-log-path` flag for the `consul connect envoy` command is deprecated and will be removed in a future release.  `-admin-access-log-config` can be used to configure Envoy admin access logs.
+
+## What's removed
+
+- **Legacy API Gateway support is removed**: The Consul API Gateway that was previously packaged as `consul-api-gateway`, released separately from Consul K8s, and deprecated in Consul v1.16.x is now removed. This gateway is referred to as the _legacy API Gateway_. As of Consul v1.17.0, you must [install](/consul/docs/connect/gateways/api-gateway/install-k8s) the _native API Gateway_ and configure it using the [`connectInject.apiGateway`](/consul/docs/k8s/helm#apigateway) stanza. 
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
+
+## Known Issues
+
+The following issues are known to exist in the v1.17.x releases:
+
+- v1.17.2 - Excessively strict TLS SAN verification is performed by terminating gateways,
+    which prevents connections outside of the mesh to upstream services. Terminating gateway
+    users are advised to avoid deploying these Consul versions. A fix will be present in a future
+    release of Consul 1.17.3 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+<Note> These links take you to the changelogs on the GitHub website. </Note>
+
+- [1.17.0](https://github.com/hashicorp/consul/releases/tag/v1.17.0)

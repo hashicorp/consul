@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package semaphore
 
 // Based on https://github.com/golang/sync/blob/master/semaphore/semaphore_test.go

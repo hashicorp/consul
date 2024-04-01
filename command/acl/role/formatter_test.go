@@ -1,9 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package role
 
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -22,11 +25,11 @@ func golden(t *testing.T, name, got string) string {
 
 	golden := filepath.Join("testdata", name+".golden")
 	if *update && got != "" {
-		err := ioutil.WriteFile(golden, []byte(got), 0644)
+		err := os.WriteFile(golden, []byte(got), 0644)
 		require.NoError(t, err)
 	}
 
-	expected, err := ioutil.ReadFile(golden)
+	expected, err := os.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)
@@ -80,6 +83,14 @@ func TestFormatRole(t *testing.T) {
 						Datacenter: "middleearth-northwest",
 					},
 				},
+				TemplatedPolicies: []*api.ACLTemplatedPolicy{
+					{
+						TemplateName:      api.ACLTemplatedPolicyServiceName,
+						TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "gardener"},
+						Datacenters:       []string{"middleearth-northwest", "somewhere-east"},
+					},
+					{TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "bagend"}},
+				},
 			},
 		},
 	}
@@ -111,7 +122,7 @@ func TestFormatRole(t *testing.T) {
 	}
 }
 
-func TestFormatTokenList(t *testing.T) {
+func TestFormatRoleList(t *testing.T) {
 	type testCase struct {
 		roles              []*api.ACLRole
 		overrideGoldenName string
@@ -161,6 +172,10 @@ func TestFormatTokenList(t *testing.T) {
 							NodeName:   "bagend",
 							Datacenter: "middleearth-northwest",
 						},
+					},
+					TemplatedPolicies: []*api.ACLTemplatedPolicy{
+						{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "gardener"}},
+						{TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "bagend"}},
 					},
 				},
 			},

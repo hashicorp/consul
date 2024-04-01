@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import domEventSourceResolver from 'consul-ui/utils/dom/event-source/resolver';
 import { module, test } from 'qunit';
 

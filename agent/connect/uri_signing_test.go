@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package connect
 
 import (
@@ -93,6 +96,30 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			name:  "service - different TLD",
 			id:    testSigning,
 			input: &SpiffeIDService{Host: TestClusterID + ".fake", Namespace: "default", Datacenter: "dc1", Service: "web"},
+			want:  false,
+		},
+		{
+			name:  "workload - good",
+			id:    testSigning,
+			input: &SpiffeIDWorkloadIdentity{TrustDomain: TestClusterID + ".consul", Namespace: "default", WorkloadIdentity: "web"},
+			want:  true,
+		},
+		{
+			name:  "workload - good mixed case",
+			id:    testSigning,
+			input: &SpiffeIDWorkloadIdentity{TrustDomain: strings.ToUpper(TestClusterID) + ".CONsuL", Namespace: "defAUlt", WorkloadIdentity: "WEB"},
+			want:  true,
+		},
+		{
+			name:  "workload - different cluster",
+			id:    testSigning,
+			input: &SpiffeIDWorkloadIdentity{TrustDomain: "55555555-4444-3333-2222-111111111111.consul", Namespace: "default", WorkloadIdentity: "web"},
+			want:  false,
+		},
+		{
+			name:  "workload - different TLD",
+			id:    testSigning,
+			input: &SpiffeIDWorkloadIdentity{TrustDomain: TestClusterID + ".fake", Namespace: "default", WorkloadIdentity: "web"},
 			want:  false,
 		},
 		{

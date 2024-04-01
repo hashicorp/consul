@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
 <ListCollection
   class="consul-upstream-list"
   ...attributes
@@ -61,7 +66,7 @@ as |item index|>
         Address
       </dt>
       <dd>
-        <CopyButton
+        <ConsulCopyButton
           @value={{address}}
           @name="Address"
         />

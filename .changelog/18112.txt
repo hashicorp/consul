@@ -1,0 +1,3 @@
+```release-note:bug
+ca: Fixes a Vault CA provider bug where updating RootPKIPath but not IntermediatePKIPath would not renew leaf signing certificates
+```

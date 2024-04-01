@@ -1,7 +1,12 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 'use strict';
 
 module.exports = {
-  extends: 'octane',
+  extends: 'recommended',
   rules: {
     'no-partial': false,
     'table-groups': false,

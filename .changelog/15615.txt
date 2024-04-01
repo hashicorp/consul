@@ -1,0 +1,3 @@
+```release-note:bug
+peering: better represent non-passing states during peer check flattening
+```

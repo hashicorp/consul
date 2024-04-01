@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package oidcauth
 
 import (
@@ -8,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/go-oidc"
+	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 const (
@@ -42,7 +45,6 @@ type Config struct {
 
 	// Comma-separated list of 'aud' claims that are valid for login; any match
 	// is sufficient
-	// TODO(sso): actually just send these down as string claims?
 	BoundAudiences []string
 
 	// Mappings of claims (key) that will be copied to a metadata field

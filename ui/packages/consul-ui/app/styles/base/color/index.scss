@@ -1,7 +1,7 @@
-/*@import './hex-variables';*/
-@import './base-variables';
-/* load in the ui theme */
-@import './ui/index';
-/* other themes should be added at a project level */
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 @import './semantic-variables';
-/*@import './theme-placeholders';*/
+@import './ui/frame-placeholders.scss';

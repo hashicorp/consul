@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package kubeauth
 
 import (
 	"bytes"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -27,7 +30,6 @@ import (
 //
 //   - POST /apis/authentication.k8s.io/v1/tokenreviews
 //   - GET  /api/v1/namespaces/<NAMESPACE>/serviceaccounts/<NAME>
-//
 type TestAPIServer struct {
 	srv    *httptest.Server
 	caCert string
@@ -44,7 +46,7 @@ type TestAPIServer struct {
 func StartTestAPIServer(t testing.T) *TestAPIServer {
 	s := &TestAPIServer{}
 	s.srv = httptest.NewUnstartedServer(s)
-	s.srv.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
+	s.srv.Config.ErrorLog = log.New(io.Discard, "", 0)
 	s.srv.StartTLS()
 
 	bs := s.srv.TLS.Certificates[0].Certificate[0]
@@ -163,7 +165,7 @@ func (s *TestAPIServer) handleTokenReview(w http.ResponseWriter, req *http.Reque
 	}
 	defer req.Body.Close()
 
-	b, err := ioutil.ReadAll(req.Body)
+	b, err := io.ReadAll(req.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

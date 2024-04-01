@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix multiple inefficient behaviors when querying service health.
+```

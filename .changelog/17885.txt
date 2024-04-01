@@ -1,0 +1,2 @@
+```release-note:bug
+ca: Fixed a bug where the Vault provider was not passing the configured role param for AWS auth

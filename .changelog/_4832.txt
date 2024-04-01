@@ -1,0 +1,3 @@
+```release-note:bug
+peering: **(Consul Enterprise only)** Fix issue where resolvers, routers, and splitters referencing peer targets may not work correctly for non-default partitions and namespaces. Enterprise customers leveraging peering are encouraged to upgrade both servers and agents to avoid this problem.
+```

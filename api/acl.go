@@ -1,10 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"time"
 
@@ -17,6 +19,15 @@ const (
 
 	// ACLManagementType is the management type token
 	ACLManagementType = "management"
+
+	// ACLTemplatedPolicy names
+	ACLTemplatedPolicyServiceName          = "builtin/service"
+	ACLTemplatedPolicyNodeName             = "builtin/node"
+	ACLTemplatedPolicyDNSName              = "builtin/dns"
+	ACLTemplatedPolicyNomadServerName      = "builtin/nomad-server"
+	ACLTemplatedPolicyWorkloadIdentityName = "builtin/workload-identity"
+	ACLTemplatedPolicyAPIGatewayName       = "builtin/api-gateway"
+	ACLTemplatedPolicyNomadClientName      = "builtin/nomad-client"
 )
 
 type ACLLink struct {
@@ -38,6 +49,7 @@ type ACLToken struct {
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Local             bool
 	AuthMethod        string        `json:",omitempty"`
 	ExpirationTTL     time.Duration `json:",omitempty"`
@@ -46,8 +58,8 @@ type ACLToken struct {
 	Hash              []byte        `json:",omitempty"`
 
 	// DEPRECATED (ACL-Legacy-Compat)
-	// Rules will only be present for legacy tokens returned via the new APIs
-	Rules string `json:",omitempty"`
+	// Rules are an artifact of legacy tokens deprecated in Consul 1.4
+	Rules string `json:"-"`
 
 	// Namespace is the namespace the ACLToken is associated with.
 	// Namespaces are a Consul Enterprise feature.
@@ -86,12 +98,13 @@ type ACLTokenListEntry struct {
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Local             bool
 	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
 	CreateTime        time.Time
 	Hash              []byte
-	Legacy            bool
+	Legacy            bool `json:"-"` // DEPRECATED
 
 	// Namespace is the namespace the ACLTokenListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
@@ -146,6 +159,28 @@ type ACLNodeIdentity struct {
 	Datacenter string
 }
 
+// ACLTemplatedPolicy represents a template used to generate a `synthetic` policy
+// given some input variables.
+type ACLTemplatedPolicy struct {
+	TemplateName      string
+	TemplateVariables *ACLTemplatedPolicyVariables `json:",omitempty"`
+
+	// Datacenters are an artifact of Nodeidentity & ServiceIdentity.
+	// It is used to facilitate the future migration away from both
+	Datacenters []string `json:",omitempty"`
+}
+
+type ACLTemplatedPolicyResponse struct {
+	TemplateName string
+	Schema       string
+	Template     string
+	Description  string
+}
+
+type ACLTemplatedPolicyVariables struct {
+	Name string
+}
+
 // ACLPolicy represents an ACL Policy.
 type ACLPolicy struct {
 	ID          string
@@ -194,6 +229,7 @@ type ACLRole struct {
 	Policies          []*ACLRolePolicyLink  `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
+	TemplatedPolicies []*ACLTemplatedPolicy `json:",omitempty"`
 	Hash              []byte
 	CreateIndex       uint64
 	ModifyIndex       uint64
@@ -216,6 +252,15 @@ const (
 
 	// BindingRuleBindTypeRole binds to pre-existing roles with the given name.
 	BindingRuleBindTypeRole BindingRuleBindType = "role"
+
+	// BindingRuleBindTypeNode binds to a node identity with given name.
+	BindingRuleBindTypeNode BindingRuleBindType = "node"
+
+	// BindingRuleBindTypePolicy binds to a specific policy with given name.
+	BindingRuleBindTypePolicy BindingRuleBindType = "policy"
+
+	// BindingRuleBindTypeTemplatedPolicy binds to a templated policy with given template name and variables.
+	BindingRuleBindTypeTemplatedPolicy BindingRuleBindType = "templated-policy"
 )
 
 type ACLBindingRule struct {
@@ -225,6 +270,7 @@ type ACLBindingRule struct {
 	Selector    string
 	BindType    BindingRuleBindType
 	BindName    string
+	BindVars    *ACLTemplatedPolicyVariables `json:",omitempty"`
 
 	CreateIndex uint64
 	ModifyIndex uint64
@@ -268,6 +314,13 @@ type ACLAuthMethod struct {
 	// Partition is the partition the ACLAuthMethod is associated with.
 	// Partitions are a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
+}
+
+type ACLTokenFilterOptions struct {
+	AuthMethod  string `json:",omitempty"`
+	Policy      string `json:",omitempty"`
+	Role        string `json:",omitempty"`
+	ServiceName string `json:",omitempty"`
 }
 
 func (m *ACLAuthMethod) MarshalJSON() ([]byte, error) {
@@ -499,10 +552,25 @@ func (c *Client) ACL() *ACL {
 	return &ACL{c}
 }
 
+// BootstrapRequest is used for when operators provide an ACL Bootstrap Token
+type BootstrapRequest struct {
+	BootstrapSecret string
+}
+
 // Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
 // to get the first management token.
 func (a *ACL) Bootstrap() (*ACLToken, *WriteMeta, error) {
+	return a.BootstrapWithToken("")
+}
+
+// BootstrapWithToken is used to get the initial bootstrap token or pass in the one that was provided in the API
+func (a *ACL) BootstrapWithToken(btoken string) (*ACLToken, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/bootstrap")
+	if btoken != "" {
+		r.obj = &BootstrapRequest{
+			BootstrapSecret: btoken,
+		}
+	}
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
@@ -732,14 +800,14 @@ func (a *ACL) TokenUpdate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 
 // TokenClone will create a new token with the same policies and locality as the original
 // token but will have its own auto-generated AccessorID and SecretID as well having the
-// description passed to this function. The tokenID parameter must be a valid Accessor ID
+// description passed to this function. The accessorID parameter must be a valid Accessor ID
 // of an existing token.
-func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
-	if tokenID == "" {
-		return nil, nil, fmt.Errorf("Must specify a tokenID for Token Cloning")
+func (a *ACL) TokenClone(accessorID string, description string, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
+	if accessorID == "" {
+		return nil, nil, fmt.Errorf("Must specify a token AccessorID for Token Cloning")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/token/"+tokenID+"/clone")
+	r := a.c.newRequest("PUT", "/v1/acl/token/"+accessorID+"/clone")
 	r.setWriteOptions(q)
 	r.obj = struct{ Description string }{description}
 	rtt, resp, err := a.c.doRequest(r)
@@ -759,10 +827,10 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 	return &out, wm, nil
 }
 
-// TokenDelete removes a single ACL token. The tokenID parameter must be a valid
+// TokenDelete removes a single ACL token. The accessorID parameter must be a valid
 // Accessor ID of an existing token.
-func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
-	r := a.c.newRequest("DELETE", "/v1/acl/token/"+tokenID)
+func (a *ACL) TokenDelete(accessorID string, q *WriteOptions) (*WriteMeta, error) {
+	r := a.c.newRequest("DELETE", "/v1/acl/token/"+accessorID)
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -777,10 +845,10 @@ func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
 	return wm, nil
 }
 
-// TokenRead retrieves the full token details. The tokenID parameter must be a valid
+// TokenRead retrieves the full token details. The accessorID parameter must be a valid
 // Accessor ID of an existing token.
-func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
+func (a *ACL) TokenRead(accessorID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/token/"+accessorID)
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -803,9 +871,9 @@ func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta,
 }
 
 // TokenReadExpanded retrieves the full token details, as well as the contents of any policies affecting the token.
-// The tokenID parameter must be a valid Accessor ID of an existing token.
-func (a *ACL) TokenReadExpanded(tokenID string, q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
+// The accessorID parameter must be a valid Accessor ID of an existing token.
+func (a *ACL) TokenReadExpanded(accessorID string, q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/token/"+accessorID)
 	r.setQueryOptions(q)
 	r.params.Set("expanded", "true")
 	rtt, resp, err := a.c.doRequest(r)
@@ -859,6 +927,44 @@ func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/tokens")
 	r.setQueryOptions(q)
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var entries []*ACLTokenListEntry
+	if err := decodeBody(resp, &entries); err != nil {
+		return nil, nil, err
+	}
+	return entries, qm, nil
+}
+
+// TokenListFiltered lists all tokens that match the given filter options.
+// The listing does not contain any SecretIDs as those may only be retrieved by a call to TokenRead.
+func (a *ACL) TokenListFiltered(t ACLTokenFilterOptions, q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/tokens")
+	r.setQueryOptions(q)
+
+	if t.AuthMethod != "" {
+		r.params.Set("authmethod", t.AuthMethod)
+	}
+	if t.Policy != "" {
+		r.params.Set("policy", t.Policy)
+	}
+	if t.Role != "" {
+		r.params.Set("role", t.Role)
+	}
+	if t.ServiceName != "" {
+		r.params.Set("servicename", t.ServiceName)
+	}
+
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
@@ -1028,58 +1134,19 @@ func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, er
 
 // RulesTranslate translates the legacy rule syntax into the current syntax.
 //
-// Deprecated: Support for the legacy syntax translation will be removed
-// when legacy ACL support is removed.
+// Deprecated: Support for the legacy syntax translation has been removed.
+// This function always returns an error.
 func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
-	r := a.c.newRequest("POST", "/v1/acl/rules/translate")
-	r.body = rules
-	r.header.Set("Content-Type", "text/plain")
-	rtt, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return "", err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return "", err
-	}
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	ruleBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
-	}
-
-	return string(ruleBytes), nil
+	return "", fmt.Errorf("Legacy ACL rules were deprecated in Consul 1.4")
 }
 
 // RulesTranslateToken translates the rules associated with the legacy syntax
 // into the current syntax and returns the results.
 //
-// Deprecated: Support for the legacy syntax translation will be removed
-// when legacy ACL support is removed.
+// Deprecated: Support for the legacy syntax translation has been removed.
+// This function always returns an error.
 func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
-	r := a.c.newRequest("GET", "/v1/acl/rules/translate/"+tokenID)
-	rtt, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return "", err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return "", err
-	}
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	ruleBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
-	}
-
-	return string(ruleBytes), nil
+	return "", fmt.Errorf("Legacy ACL tokens and rules were deprecated in Consul 1.4")
 }
 
 // RoleCreate will create a new role. It is not allowed for the role parameters
@@ -1595,6 +1662,81 @@ func (a *ACL) OIDCCallback(auth *ACLOIDCCallbackParams, q *WriteOptions) (*ACLTo
 	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, wm, nil
+}
+
+// TemplatedPolicyReadByName retrieves the templated policy details (by name). Returns nil if not found.
+func (a *ACL) TemplatedPolicyReadByName(templateName string, q *QueryOptions) (*ACLTemplatedPolicyResponse, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/templated-policy/name/"+templateName)
+	r.setQueryOptions(q)
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	if !found {
+		return nil, qm, nil
+	}
+
+	var out ACLTemplatedPolicyResponse
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return &out, qm, nil
+}
+
+// TemplatedPolicyList retrieves a listing of all templated policies.
+func (a *ACL) TemplatedPolicyList(q *QueryOptions) (map[string]ACLTemplatedPolicyResponse, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/templated-policies")
+	r.setQueryOptions(q)
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var entries map[string]ACLTemplatedPolicyResponse
+	if err := decodeBody(resp, &entries); err != nil {
+		return nil, nil, err
+	}
+	return entries, qm, nil
+}
+
+// TemplatedPolicyPreview is used to preview the policy rendered by the templated policy.
+func (a *ACL) TemplatedPolicyPreview(tp *ACLTemplatedPolicy, q *WriteOptions) (*ACLPolicy, *WriteMeta, error) {
+	r := a.c.newRequest("POST", "/v1/acl/templated-policy/preview/"+tp.TemplateName)
+	r.setWriteOptions(q)
+	r.obj = tp.TemplateVariables
+
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	wm := &WriteMeta{RequestTime: rtt}
+	var out ACLPolicy
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}

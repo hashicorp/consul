@@ -1,11 +1,14 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package config
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -26,17 +29,17 @@ import (
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
-	"github.com/hashicorp/consul/agent/dns"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -46,14 +49,20 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+type FlagValuesTarget = decodeTarget
+
 // LoadOpts used by Load to construct and validate a RuntimeConfig.
 type LoadOpts struct {
 	// FlagValues contains the command line arguments that can also be set
 	// in a config file.
-	FlagValues Config
+	FlagValues FlagValuesTarget
 
 	// ConfigFiles is a slice of paths to config files and directories that will
 	// be loaded.
+	//
+	// It is an error for any config files to have an extension other than `hcl`
+	// or `json`, unless ConfigFormat is also set. However, non-HCL/JSON files in
+	// a config directory are merely skipped, with a warning.
 	ConfigFiles []string
 
 	// ConfigFormat forces all config files to be interpreted as this format
@@ -169,12 +178,15 @@ func newBuilder(opts LoadOpts) (*builder, error) {
 		b.Head = append(b.Head, DevSource())
 	}
 
+	cfg, warns := applyDeprecatedFlags(&opts.FlagValues)
+	b.Warnings = append(b.Warnings, warns...)
+
 	// Since the merge logic is to overwrite all fields with later
 	// values except slices which are merged by appending later values
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := splitSlicesAndValues(opts.FlagValues)
+	slices, values := splitSlicesAndValues(cfg)
 	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
 	if opts.DefaultConfig != nil {
 		b.Head = append(b.Head, opts.DefaultConfig)
@@ -223,8 +235,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 	if !fi.IsDir() {
 		if !shouldParseFile(path, format) {
-			b.warn("skipping file %v, extension must be .hcl or .json, or config format must be set", path)
-			return nil, nil
+			return nil, fmt.Errorf("file %v has unknown extension; must be .hcl or .json, or config format must be set", path)
 		}
 
 		src, err := newSourceFromFile(path, format)
@@ -277,7 +288,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 // newSourceFromFile creates a Source from the contents of the file at path.
 func newSourceFromFile(path string, format string) (Source, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}
@@ -306,8 +317,10 @@ func formatFromFileExtension(name string) string {
 
 type byName []os.FileInfo
 
-func (a byName) Len() int           { return len(a) }
-func (a byName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byName) Len() int { return len(a) }
+
+func (a byName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a byName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
 // build constructs the runtime configuration from the config sources
@@ -366,7 +379,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			c2.Services = append(c2.Services, *c2.Service)
 			c2.Service = nil
 		}
-
 		c = Merge(c, c2)
 	}
 
@@ -436,6 +448,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	serverPort := b.portVal("ports.server", c.Ports.Server)
 	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
 	grpcTlsPort := b.portVal("ports.grpc_tls", c.Ports.GRPCTLS)
+	// default gRPC TLS port for servers is 8503
+	if c.Ports.GRPCTLS == nil && boolVal(c.ServerMode) {
+		grpcTlsPort = 8503
+	}
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -444,6 +460,14 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	sidecarMaxPort := b.portVal("ports.sidecar_max_port", c.Ports.SidecarMaxPort)
 	exposeMinPort := b.portVal("ports.expose_min_port", c.Ports.ExposeMinPort)
 	exposeMaxPort := b.portVal("ports.expose_max_port", c.Ports.ExposeMaxPort)
+	if serverPort <= 0 {
+		return RuntimeConfig{}, fmt.Errorf(
+			"server-port must be greater than zero")
+	}
+	if serfPortLAN <= 0 {
+		return RuntimeConfig{}, fmt.Errorf(
+			"serf-lan-port must be greater than zero")
+	}
 	if proxyMaxPort < proxyMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
@@ -663,7 +687,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	connectEnabled := boolVal(c.Connect.Enabled)
 	connectCAProvider := stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
-	serverlessPluginEnabled := boolVal(c.Connect.EnableServerlessPlugin)
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
@@ -808,6 +831,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
 		VersionMetadata:            stringVal(c.VersionMetadata),
+		Experiments:                c.Experiments,
 		// What is a sensible default for BuildDate?
 		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
@@ -823,6 +847,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
 		GossipLANGossipNodes:    intVal(c.GossipLAN.GossipNodes),
+		Locality:                c.Locality,
 		GossipLANProbeInterval:  b.durationVal("gossip_lan..probe_interval", c.GossipLAN.ProbeInterval),
 		GossipLANProbeTimeout:   b.durationVal("gossip_lan..probe_timeout", c.GossipLAN.ProbeTimeout),
 		GossipLANSuspicionMult:  intVal(c.GossipLAN.SuspicionMult),
@@ -853,12 +878,14 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
-			DataDir:               dataDir,
-			EnablePersistence:     boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:       stringVal(c.ACL.Tokens.Default),
-			ACLAgentToken:         stringVal(c.ACL.Tokens.Agent),
-			ACLAgentRecoveryToken: stringVal(c.ACL.Tokens.AgentRecovery),
-			ACLReplicationToken:   stringVal(c.ACL.Tokens.Replication),
+			DataDir:                        dataDir,
+			EnablePersistence:              boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:                stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:                  stringVal(c.ACL.Tokens.Agent),
+			ACLAgentRecoveryToken:          stringVal(c.ACL.Tokens.AgentRecovery),
+			ACLReplicationToken:            stringVal(c.ACL.Tokens.Replication),
+			ACLConfigFileRegistrationToken: stringVal(c.ACL.Tokens.ConfigFileRegistration),
+			ACLDNSToken:                    stringVal(c.ACL.Tokens.DNS),
 		},
 
 		// Autopilot
@@ -943,8 +970,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Bootstrap:                 boolVal(c.Bootstrap),
 		BootstrapExpect:           intVal(c.BootstrapExpect),
 		Cache: cache.Options{
-			EntryFetchRate: rate.Limit(
-				float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
+			EntryFetchRate: limitValWithDefault(
+				c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate),
 			),
 			EntryFetchMaxBurst: intValWithDefault(
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
@@ -961,12 +988,11 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
-		Cloud:                                  b.cloudConfigVal(c.Cloud),
+		Cloud:                                  b.cloudConfigVal(c),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
 		ConnectMeshGatewayWANFederationEnabled: connectMeshGatewayWANFederationEnabled,
-		ConnectServerlessPluginEnabled:         serverlessPluginEnabled,
 		ConnectSidecarMinPort:                  sidecarMinPort,
 		ConnectSidecarMaxPort:                  sidecarMaxPort,
 		ConnectTestCALeafRootChangeSpread:      b.durationVal("connect.test_ca_leaf_root_change_spread", c.Connect.TestCALeafRootChangeSpread),
@@ -975,6 +1001,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DataDir:                                dataDir,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
+		DefaultIntentionPolicy:                 stringVal(c.DefaultIntentionPolicy),
 		DevMode:                                boolVal(b.opts.DevMode),
 		DisableAnonymousSignature:              boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                     boolVal(c.DisableCoordinates),
@@ -996,6 +1023,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GRPCPort:                   grpcPort,
 		GRPCTLSAddrs:               grpcTlsAddrs,
 		GRPCTLSPort:                grpcTlsPort,
+		GRPCKeepaliveInterval:      b.durationValWithDefaultMin("performance.grpc_keepalive_interval", c.Performance.GRPCKeepaliveInterval, 30*time.Second, time.Second),
+		GRPCKeepaliveTimeout:       b.durationValWithDefaultMin("performance.grpc_keepalive_timeout", c.Performance.GRPCKeepaliveTimeout, 20*time.Second, time.Second),
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
@@ -1035,15 +1064,19 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),
-		RPCRateLimit:                      rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCRateLimit:                      limitVal(c.Limits.RPCRate),
 		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
 		RaftProtocol:                      intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:              b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
 		RaftTrailingLogs:                  intVal(c.RaftTrailingLogs),
+		RaftLogStoreConfig:                b.raftLogStoreConfigVal(&c.RaftLogStore),
 		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
+		RequestLimitsMode:                 b.requestsLimitsModeVal(stringVal(c.Limits.RequestLimits.Mode)),
+		RequestLimitsReadRate:             limitVal(c.Limits.RequestLimits.ReadRate),
+		RequestLimitsWriteRate:            limitVal(c.Limits.RequestLimits.WriteRate),
 		RetryJoinIntervalLAN:              b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:              b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
 		RetryJoinLAN:                      b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
@@ -1064,11 +1097,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ServerMode:                        serverMode,
 		ServerName:                        stringVal(c.ServerName),
 		ServerPort:                        serverPort,
+		ServerRejoinAgeMax:                b.durationValWithDefaultMin("server_rejoin_age_max", c.ServerRejoinAgeMax, 24*7*time.Hour, 6*time.Hour),
 		Services:                          services,
 		SessionTTLMin:                     b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:                    skipLeaveOnInt,
-		StartJoinAddrsLAN:                 b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:                 b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		TaggedAddresses:                   c.TaggedAddresses,
 		TranslateWANAddrs:                 boolVal(c.TranslateWANAddrs),
 		TxnMaxReqLen:                      uint64Val(c.Limits.TxnMaxReqLen),
@@ -1077,26 +1109,53 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		UnixSocketMode:                    stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                    stringVal(c.UnixSocket.User),
 		Watches:                           c.Watches,
-		XDSUpdateRateLimit:                rate.Limit(float64Val(c.XDS.UpdateMaxPerSecond)),
+		XDSUpdateRateLimit:                limitVal(c.XDS.UpdateMaxPerSecond),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
+		LocalProxyConfigResyncInterval:    30 * time.Second,
 	}
+
+	// host metrics are enabled if consul is configured with HashiCorp Cloud Platform integration
+	rt.Telemetry.EnableHostMetrics = boolValWithDefault(c.Telemetry.EnableHostMetrics, rt.IsCloudEnabled())
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
 	if err != nil {
 		return RuntimeConfig{}, err
 	}
 
-	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
-
-	if c.RaftBoltDBConfig != nil {
-		rt.RaftBoltDBConfig = *c.RaftBoltDBConfig
+	// `ports.grpc` previously supported TLS, but this was changed for Consul 1.14.
+	// This check is done to warn users that a config change is mandatory.
+	if rt.TLS.GRPC.CertFile != "" || (rt.TLS.AutoTLS && rt.TLS.GRPC.UseAutoCert) {
+		// If only `ports.grpc` is enabled, and the gRPC TLS port is not explicitly defined by the user,
+		// check the grpc TLS settings for incompatibilities.
+		if rt.GRPCPort > 0 && c.Ports.GRPCTLS == nil {
+			return RuntimeConfig{}, fmt.Errorf("the `ports.grpc` listener no longer supports TLS. Use `ports.grpc_tls` instead. This message is appearing because GRPC is configured to use TLS, but `ports.grpc_tls` is not defined")
+		}
 	}
+
+	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
 	}
 	if rt.Cache.EntryFetchRate <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
+	}
+
+	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
+	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
+		// Allow override of this check for development/testing purposes. Should not be used in production
+		if !stringslice.Contains(rt.Experiments, consul.HCPAllowV2ResourceAPIs) {
+			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
+		}
+	}
+
+	// For now, disallow usage of several v2 experiments in secondary datacenters.
+	if rt.ServerMode && rt.PrimaryDatacenter != rt.Datacenter {
+		for _, name := range rt.Experiments {
+			if !consul.IsExperimentAllowedOnSecondaries(name) {
+				return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include `%s` for servers in secondary datacenters", name)
+			}
+		}
 	}
 
 	if rt.UIConfig.MetricsProvider == "prometheus" {
@@ -1241,14 +1300,22 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	switch {
 	case rt.NodeName == "":
 		return fmt.Errorf("node_name cannot be empty")
-	case dns.InvalidNameRe.MatchString(rt.NodeName):
+	case dnsutil.InvalidNameRe.MatchString(rt.NodeName):
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", rt.NodeName)
-	case len(rt.NodeName) > dns.MaxLabelLength:
+	case consul.InvalidNodeName.MatchString(rt.NodeName):
+		// todo(kyhavlov): Add stronger validation here for node names.
+		b.warn("Found invalid characters in node name %q - whitespace and quotes "+
+			"(', \", `) cannot be used with auto-config.", rt.NodeName)
+	case len(rt.NodeName) > dnsutil.MaxLabelLength:
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.", rt.NodeName)
+	}
+
+	if err := rt.StructLocality().Validate(); err != nil {
+		return fmt.Errorf("locality is invalid: %s", err)
 	}
 
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
@@ -1329,9 +1396,6 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		return fmt.Errorf("'connect.enable_mesh_gateway_wan_federation = true' requires that 'node_name' not contain '/' characters")
 	}
 	if rt.ConnectMeshGatewayWANFederationEnabled {
-		if len(rt.StartJoinAddrsWAN) > 0 {
-			return fmt.Errorf("'start_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
-		}
 		if len(rt.RetryJoinWAN) > 0 {
 			return fmt.Errorf("'retry_join_wan' is incompatible with 'connect.enable_mesh_gateway_wan_federation = true'")
 		}
@@ -1360,6 +1424,19 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			return fmt.Errorf("CRITICAL: Deprecated data folder found at %q!\n"+
 				"Consul will refuse to boot with this directory present.\n"+
 				"See https://www.consul.io/docs/upgrade-specific.html for more information.", mdbPath)
+		}
+
+		// Raft LogStore validation
+		if rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendBoltDB &&
+			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL && rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendDefault {
+			return fmt.Errorf("raft_logstore.backend must be one of '%s' or '%s'",
+				consul.LogStoreBackendBoltDB, consul.LogStoreBackendWAL)
+		}
+		if rt.RaftLogStoreConfig.WAL.SegmentSize < 1024*1024 {
+			return fmt.Errorf("raft_logstore.wal.segment_size_mb cannot be less than 1MB")
+		}
+		if rt.RaftLogStoreConfig.WAL.SegmentSize > 1024*1024*1024 {
+			return fmt.Errorf("raft_logstore.wal.segment_size_mb cannot be greater than 1024 (1GiB)")
 		}
 	}
 
@@ -1420,7 +1497,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 				return err
 			}
 		case structs.VaultCAProvider:
-			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
+			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig, rt.PrimaryDatacenter == rt.Datacenter); err != nil {
 				return err
 			}
 		case structs.AWSCAProvider:
@@ -1565,6 +1642,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Body:                           stringVal(v.Body),
 		DisableRedirects:               boolVal(v.DisableRedirects),
 		TCP:                            stringVal(v.TCP),
+		TCPUseTLS:                      boolVal(v.TCPUseTLS),
 		UDP:                            stringVal(v.UDP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              stringVal(v.DockerContainerID),
@@ -1666,7 +1744,18 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
+		Locality:          b.serviceLocalityVal(v.Locality),
 		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
+	}
+}
+
+func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {
+	if l == nil {
+		return nil
+	}
+	return &structs.Locality{
+		Region: stringVal(l.Region),
+		Zone:   stringVal(l.Zone),
 	}
 }
 
@@ -1683,6 +1772,8 @@ func (b *builder) serviceKindVal(v *string) structs.ServiceKind {
 		return structs.ServiceKindTerminatingGateway
 	case string(structs.ServiceKindIngressGateway):
 		return structs.ServiceKindIngressGateway
+	case string(structs.ServiceKindAPIGateway):
+		return structs.ServiceKindAPIGateway
 	default:
 		return structs.ServiceKindTypical
 	}
@@ -1749,17 +1840,30 @@ func (b *builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGate
 	return cfg
 }
 
-func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
-	var out dns.RecursorStrategy
+func (b *builder) dnsRecursorStrategyVal(v string) structs.RecursorStrategy {
+	var out structs.RecursorStrategy
 
-	switch dns.RecursorStrategy(v) {
-	case dns.RecursorStrategyRandom:
-		out = dns.RecursorStrategyRandom
-	case dns.RecursorStrategySequential, "":
-		out = dns.RecursorStrategySequential
+	switch structs.RecursorStrategy(v) {
+	case structs.RecursorStrategyRandom:
+		out = structs.RecursorStrategyRandom
+	case structs.RecursorStrategySequential, "":
+		out = structs.RecursorStrategySequential
 	default:
 		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
 	}
+	return out
+}
+
+func (b *builder) requestsLimitsModeVal(v string) consulrate.Mode {
+	var out consulrate.Mode
+
+	mode, ok := consulrate.RequestLimitsModeFromName(v)
+	if !ok {
+		b.err = multierror.Append(b.err, fmt.Errorf("limits.request_limits.mode: invalid mode: %q", v))
+	} else {
+		out = mode
+	}
+
 	return out
 }
 
@@ -1892,6 +1996,16 @@ func (b *builder) durationValWithDefault(name string, v *string, defaultVal time
 	return d
 }
 
+// durationValWithDefaultMin is equivalent to durationValWithDefault, but enforces a minimum duration.
+func (b *builder) durationValWithDefaultMin(name string, v *string, defaultVal, minVal time.Duration) (d time.Duration) {
+	d = b.durationValWithDefault(name, v, defaultVal)
+	if d < minVal {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: duration '%s' cannot be less than: %s", name, *v, minVal))
+	}
+
+	return d
+}
+
 func (b *builder) durationVal(name string, v *string) (d time.Duration) {
 	return b.durationValWithDefault(name, v, 0)
 }
@@ -1976,6 +2090,20 @@ func float64ValWithDefault(v *float64, defaultVal float64) float64 {
 
 func float64Val(v *float64) float64 {
 	return float64ValWithDefault(v, 0)
+}
+
+func limitVal(v *float64) rate.Limit {
+	f := float64Val(v)
+	if f < 0 {
+		return rate.Inf
+	}
+
+	return rate.Limit(f)
+}
+
+func limitValWithDefault(v *float64, defaultVal float64) rate.Limit {
+	f := float64ValWithDefault(v, defaultVal)
+	return limitVal(&f)
 }
 
 func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
@@ -2453,17 +2581,71 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	return nil
 }
 
-func (b *builder) cloudConfigVal(v *CloudConfigRaw) (val hcpconfig.CloudConfig) {
-	if v == nil {
+func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
+	// Load the same environment variables expected by hcp-sdk-go
+	envHostname, ok := os.LookupEnv("HCP_API_ADDRESS")
+	if !ok {
+		if legacyEnvHostname, ok := os.LookupEnv("HCP_API_HOST"); ok {
+			// Remove only https scheme prefixes from the deprecated environment
+			// variable for specifying the API host. Mirrors the same behavior as
+			// hcp-sdk-go.
+			if strings.HasPrefix(strings.ToLower(legacyEnvHostname), "https://") {
+				legacyEnvHostname = legacyEnvHostname[8:]
+			}
+			envHostname = legacyEnvHostname
+		}
+	}
+
+	var envTLSConfig *tls.Config
+	if os.Getenv("HCP_AUTH_TLS") == "insecure" ||
+		os.Getenv("HCP_SCADA_TLS") == "insecure" ||
+		os.Getenv("HCP_API_TLS") == "insecure" {
+		envTLSConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	val := hcpconfig.CloudConfig{
+		ResourceID:   os.Getenv("HCP_RESOURCE_ID"),
+		ClientID:     os.Getenv("HCP_CLIENT_ID"),
+		ClientSecret: os.Getenv("HCP_CLIENT_SECRET"),
+		AuthURL:      os.Getenv("HCP_AUTH_URL"),
+		Hostname:     envHostname,
+		ScadaAddress: os.Getenv("HCP_SCADA_ADDRESS"),
+		TLSConfig:    envTLSConfig,
+	}
+
+	// Node id might get overridden in setup.go:142
+	nodeID := stringVal(v.NodeID)
+	val.NodeID = types.NodeID(nodeID)
+	val.NodeName = b.nodeName(v.NodeName)
+
+	if v.Cloud == nil {
 		return val
 	}
 
-	val.ResourceID = stringVal(v.ResourceID)
-	val.ClientID = stringVal(v.ClientID)
-	val.ClientSecret = stringVal(v.ClientSecret)
-	val.AuthURL = stringVal(v.AuthURL)
-	val.Hostname = stringVal(v.Hostname)
-	val.ScadaAddress = stringVal(v.ScadaAddress)
+	// Load configuration file variables for anything not set by environment variables
+	if val.AuthURL == "" {
+		val.AuthURL = stringVal(v.Cloud.AuthURL)
+	}
+
+	if val.Hostname == "" {
+		val.Hostname = stringVal(v.Cloud.Hostname)
+	}
+
+	if val.ScadaAddress == "" {
+		val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
+	}
+
+	if val.ResourceID == "" {
+		val.ResourceID = stringVal(v.Cloud.ResourceID)
+	}
+
+	if val.ClientID == "" {
+		val.ClientID = stringVal(v.Cloud.ClientID)
+	}
+
+	if val.ClientSecret == "" {
+		val.ClientSecret = stringVal(v.Cloud.ClientSecret)
+	}
 
 	return val
 }
@@ -2551,10 +2733,10 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		return c, errors.New("verify_outgoing is not valid in the tls.grpc stanza")
 	}
 
-	// Similarly, only the internal RPC configuration honors VerifyServerHostname
+	// Similarly, only the internal RPC and defaults configuration honor VerifyServerHostname
 	// so we call it out here too.
-	if t.Defaults.VerifyServerHostname != nil || t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
-		return c, errors.New("verify_server_hostname is only valid in the tls.internal_rpc stanza")
+	if t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
+		return c, errors.New("verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanzas")
 	}
 
 	// And UseAutoCert right now only applies to external gRPC interface.
@@ -2604,8 +2786,11 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	}
 
 	mapCommon("internal_rpc", t.InternalRPC, &c.InternalRPC)
-	c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
 
+	c.InternalRPC.VerifyServerHostname = boolVal(t.Defaults.VerifyServerHostname)
+	if t.InternalRPC.VerifyServerHostname != nil {
+		c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
+	}
 	// Setting only verify_server_hostname is documented to imply verify_outgoing.
 	// If it doesn't then we risk sending communication over plain TCP when we
 	// documented it as forcing TLS for RPCs. Enforce this here rather than in
@@ -2661,4 +2846,20 @@ func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
 	}
 
 	return telemetryAllowedPrefixes, telemetryBlockedPrefixes
+}
+
+func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStoreConfig {
+	var cfg consul.RaftLogStoreConfig
+	if raw != nil {
+		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendDefault)
+		cfg.DisableLogCache = boolVal(raw.DisableLogCache)
+
+		cfg.Verification.Enabled = boolVal(raw.Verification.Enabled)
+		cfg.Verification.Interval = b.durationVal("raft_logstore.verification.interval", raw.Verification.Interval)
+
+		cfg.BoltDB.NoFreelistSync = boolVal(raw.BoltDBConfig.NoFreelistSync)
+
+		cfg.WAL.SegmentSize = intVal(raw.WALConfig.SegmentSizeMB) * 1024 * 1024
+	}
+	return cfg
 }

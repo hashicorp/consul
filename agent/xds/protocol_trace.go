@@ -1,23 +1,27 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xds
 
 import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/hashicorp/go-hclog"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/mitchellh/copystructure"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
-func (s *ResourceGenerator) logTraceRequest(msg string, pb proto.Message) {
-	s.logTraceProto(msg, pb, false)
+func logTraceRequest(logger hclog.Logger, msg string, pb proto.Message) {
+	logTraceProto(logger, msg, pb, false)
 }
 
-func (s *ResourceGenerator) logTraceResponse(msg string, pb proto.Message) {
-	s.logTraceProto(msg, pb, true)
+func logTraceResponse(logger hclog.Logger, msg string, pb proto.Message) {
+	logTraceProto(logger, msg, pb, true)
 }
 
-func (s *ResourceGenerator) logTraceProto(msg string, pb proto.Message, response bool) {
-	if !s.Logger.IsTrace() {
+func logTraceProto(logger hclog.Logger, msg string, pb proto.Message, response bool) {
+	if !logger.IsTrace() {
 		return
 	}
 
@@ -40,13 +44,17 @@ func (s *ResourceGenerator) logTraceProto(msg string, pb proto.Message, response
 		}
 	}
 
-	m := jsonpb.Marshaler{
+	m := protojson.MarshalOptions{
 		Indent: "  ",
 	}
-	out, err := m.MarshalToString(pb)
+
+	out := ""
+	outBytes, err := m.Marshal(pb)
 	if err != nil {
 		out = "<ERROR: " + err.Error() + ">"
+	} else {
+		out = string(outBytes)
 	}
 
-	s.Logger.Trace(msg, "direction", dir, "protobuf", out)
+	logger.Trace(msg, "direction", dir, "protobuf", out)
 }

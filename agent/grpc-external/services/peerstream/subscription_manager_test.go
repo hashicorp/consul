@@ -1,14 +1,16 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peerstream
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
@@ -18,12 +20,14 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbcommon"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
-	"github.com/hashicorp/consul/proto/pbservice"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
@@ -471,15 +475,40 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 		Node:    &structs.Node{Node: "foo", Address: "10.0.0.1"},
 		Service: &structs.NodeService{ID: "mysql-1", Service: "mysql", Port: 5000},
 	}
+	mysqlSidecar := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "mysql-sidecar-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "mysql",
+		},
+	}
 	backend.ensureNode(t, mysql.Node)
 	backend.ensureService(t, "foo", mysql.Service)
+	backend.ensureService(t, "foo", &mysqlSidecar)
 
 	mongo := &structs.CheckServiceNode{
-		Node:    &structs.Node{Node: "zip", Address: "10.0.0.3"},
-		Service: &structs.NodeService{ID: "mongo-1", Service: "mongo", Port: 5000},
+		Node: &structs.Node{Node: "zip", Address: "10.0.0.3"},
+		Service: &structs.NodeService{
+			ID:      "mongo-1",
+			Service: "mongo",
+			Port:    5000,
+		},
+	}
+	mongoSidecar := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "mongo-sidecar-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "mongo",
+		},
 	}
 	backend.ensureNode(t, mongo.Node)
 	backend.ensureService(t, "zip", mongo.Service)
+	backend.ensureService(t, "zip", &mongoSidecar)
+
+	backend.ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "chain",
+	})
 
 	var (
 		mysqlCorrID = subExportedService + structs.NewServiceName("mysql", nil).String()
@@ -652,7 +681,7 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 		},
 	}
 	// mock handler only gets called once during the initial subscription
-	backend.handler.expect("", 0, 1, payload)
+	backend.handler.SetPayload(1, payload)
 
 	// Only configure a tracker for server address events.
 	tracker := newResourceSubscriptionTracker()
@@ -706,6 +735,35 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 				require.True(t, ok)
 
 				require.Equal(t, []string{"198.18.0.1:8502", "198.18.0.2:9502"}, addrs.GetAddresses())
+			},
+		)
+	})
+
+	testutil.RunStep(t, "added server with WAN address", func(t *testing.T) {
+		payload = append(payload, autopilotevents.ReadyServerInfo{
+			ID:          "eec8721f-c42b-48da-a5a5-07565158015e",
+			Address:     "198.18.0.3",
+			Version:     "1.13.1",
+			ExtGRPCPort: 9502,
+			TaggedAddresses: map[string]string{
+				structs.TaggedAddressWAN: "198.18.0.103",
+			},
+		})
+		backend.Publish([]stream.Event{
+			{
+				Topic:   autopilotevents.EventTopicReadyServers,
+				Index:   3,
+				Payload: payload,
+			},
+		})
+
+		expectEvents(t, subCh,
+			func(t *testing.T, got cache.UpdateEvent) {
+				require.Equal(t, subServerAddrs, got.CorrelationID)
+				addrs, ok := got.Result.(*pbpeering.PeeringServerAddresses)
+				require.True(t, ok)
+
+				require.Equal(t, []string{"198.18.0.1:8502", "198.18.0.2:9502", "198.18.0.103:9502"}, addrs.GetAddresses())
 			},
 		)
 	})
@@ -807,10 +865,158 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 	})
 }
 
+func TestFlattenChecks(t *testing.T) {
+	type testcase struct {
+		checks         []*pbservice.HealthCheck
+		expect         string
+		expectNoResult bool
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		t.Helper()
+		got := flattenChecks(
+			"node-name", "service-id", "service-name", nil, tc.checks,
+		)
+		if tc.expectNoResult {
+			require.Empty(t, got)
+		} else {
+			require.Len(t, got, 1)
+			require.Equal(t, tc.expect, got[0].Status)
+		}
+	}
+
+	cases := map[string]testcase{
+		"empty": {
+			checks:         nil,
+			expectNoResult: true,
+		},
+		"passing": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+			},
+			expect: api.HealthPassing,
+		},
+		"warning": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthWarning,
+				},
+			},
+			expect: api.HealthWarning,
+		},
+		"critical": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthCritical,
+				},
+			},
+			expect: api.HealthCritical,
+		},
+		"node_maintenance": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: api.NodeMaint,
+					Status:  api.HealthPassing,
+				},
+			},
+			expect: api.HealthMaint,
+		},
+		"service_maintenance": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: api.ServiceMaintPrefix + "service",
+					Status:  api.HealthPassing,
+				},
+			},
+			expect: api.HealthMaint,
+		},
+		"unknown": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  "nope-nope-noper",
+				},
+			},
+			expect: "nope-nope-noper",
+		},
+		"maintenance_over_critical": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: api.NodeMaint,
+					Status:  api.HealthPassing,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthCritical,
+				},
+			},
+			expect: api.HealthMaint,
+		},
+		"critical_over_warning": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthCritical,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthWarning,
+				},
+			},
+			expect: api.HealthCritical,
+		},
+		"warning_over_passing": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthWarning,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+			},
+			expect: api.HealthWarning,
+		},
+		"lots": {
+			checks: []*pbservice.HealthCheck{
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthPassing,
+				},
+				{
+					CheckID: "check-id",
+					Status:  api.HealthWarning,
+				},
+			},
+			expect: api.HealthWarning,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 type testSubscriptionBackend struct {
 	state.EventPublisher
 	store   *state.Store
-	handler *mockSnapshotHandler
+	handler *dummyReadyServersSnapshotHandler
 
 	lastIdx uint64
 }
@@ -843,11 +1049,13 @@ func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 	return backend
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensurePeering(t *testing.T, name string) (uint64, string) {
 	b.lastIdx++
 	return b.lastIdx, setupTestPeering(t, b.store, name, b.lastIdx)
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureConfigEntry(t *testing.T, entry structs.ConfigEntry) uint64 {
 	require.NoError(t, entry.Normalize())
 	require.NoError(t, entry.Validate())
@@ -863,24 +1071,28 @@ func (b *testSubscriptionBackend) deleteConfigEntry(t *testing.T, kind, name str
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureNode(t *testing.T, node *structs.Node) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureNode(b.lastIdx, node))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureService(t *testing.T, node string, svc *structs.NodeService) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureService(b.lastIdx, node, svc))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) ensureCheck(t *testing.T, hc *structs.HealthCheck) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureCheck(b.lastIdx, hc))
 	return b.lastIdx
 }
 
+//nolint:unparam
 func (b *testSubscriptionBackend) deleteService(t *testing.T, nodeName, serviceID string) uint64 {
 	b.lastIdx++
 	require.NoError(t, b.store.DeleteService(b.lastIdx, nodeName, serviceID, nil, ""))
@@ -921,11 +1133,11 @@ func setupTestPeering(t *testing.T, store *state.Store, name string, index uint6
 	return p.ID
 }
 
-func newStateStore(t *testing.T, publisher *stream.EventPublisher) (*state.Store, *mockSnapshotHandler) {
+func newStateStore(t *testing.T, publisher *stream.EventPublisher) (*state.Store, *dummyReadyServersSnapshotHandler) {
 	gc, err := state.NewTombstoneGC(time.Second, time.Millisecond)
 	require.NoError(t, err)
 
-	handler := newMockSnapshotHandler(t)
+	handler := &dummyReadyServersSnapshotHandler{}
 
 	store := state.NewStateStoreWithEventPublisher(gc, publisher)
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot, false))
@@ -1085,38 +1297,34 @@ func pbCheck(node, svcID, svcName, status string, entMeta *pbcommon.EnterpriseMe
 	}
 }
 
-// mockSnapshotHandler is copied from server_discovery/server_test.go
-type mockSnapshotHandler struct {
-	mock.Mock
+type dummyReadyServersSnapshotHandler struct {
+	lock       sync.Mutex
+	eventIndex uint64
+	payload    autopilotevents.EventPayloadReadyServers
 }
 
-func newMockSnapshotHandler(t *testing.T) *mockSnapshotHandler {
-	handler := &mockSnapshotHandler{}
-	t.Cleanup(func() {
-		handler.AssertExpectations(t)
-	})
-	return handler
+func (h *dummyReadyServersSnapshotHandler) SetPayload(idx uint64, payload autopilotevents.EventPayloadReadyServers) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	h.eventIndex = idx
+	h.payload = payload
 }
 
-func (m *mockSnapshotHandler) handle(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	ret := m.Called(req, buf)
-	return ret.Get(0).(uint64), ret.Error(1)
-}
+func (h *dummyReadyServersSnapshotHandler) handle(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	if req.Topic != autopilotevents.EventTopicReadyServers {
+		return 0, fmt.Errorf("bad request")
+	}
+	if req.Subject != stream.SubjectNone {
+		return 0, fmt.Errorf("bad request")
+	}
 
-func (m *mockSnapshotHandler) expect(token string, requestIndex uint64, eventIndex uint64, payload autopilotevents.EventPayloadReadyServers) {
-	m.On("handle", stream.SubscribeRequest{
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	buf.Append([]stream.Event{{
 		Topic:   autopilotevents.EventTopicReadyServers,
-		Subject: stream.SubjectNone,
-		Token:   token,
-		Index:   requestIndex,
-	}, mock.Anything).Run(func(args mock.Arguments) {
-		buf := args.Get(1).(stream.SnapshotAppender)
-		buf.Append([]stream.Event{
-			{
-				Topic:   autopilotevents.EventTopicReadyServers,
-				Index:   eventIndex,
-				Payload: payload,
-			},
-		})
-	}).Return(eventIndex, nil)
+		Index:   h.eventIndex,
+		Payload: h.payload,
+	}})
+
+	return h.eventIndex, nil
 }

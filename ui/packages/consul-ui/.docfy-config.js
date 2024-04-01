@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 const path = require('path');
 
 const autolinkHeadings = require('remark-autolink-headings');

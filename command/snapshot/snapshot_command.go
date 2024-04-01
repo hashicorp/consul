@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package snapshot
 
 import (
@@ -42,6 +45,10 @@ Usage: consul snapshot <subcommand> [options] [args]
   Restore a snapshot:
 
       $ consul snapshot restore backup.snap
+      
+  Decode a snapshot:
+  
+      $ consul snapshot decode backup.snap
 
   Inspect a snapshot:
 

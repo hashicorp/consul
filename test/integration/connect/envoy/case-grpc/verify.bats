@@ -43,7 +43,7 @@ load helpers
     metrics_query='envoy.cluster.grpc.PingServer.total.*[#,]local_cluster:s1(,|$)'
   fi
 
-  run retry_default must_match_in_statsd_logs "${metrics_query}"
+  run retry_long must_match_in_statsd_logs "${metrics_query}"
   echo "OUTPUT: $output"
 
   [ "$status" == 0 ]

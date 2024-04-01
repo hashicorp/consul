@@ -1,0 +1,3 @@
+```release-note:improvements
+cli: Added a flag, `-enable-config-gen-logging`, to the `connect envoy` command to display log messages when generating the bootstrap config.
+```

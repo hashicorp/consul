@@ -1,0 +1,4 @@
+```release-note:security
+Upgrade `google.golang.org/grpc` to 1.56.3.
+This resolves vulnerability [CVE-2023-44487](https://nvd.nist.gov/vuln/detail/CVE-2023-44487).
+```

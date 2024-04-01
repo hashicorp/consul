@@ -1,6 +1,8 @@
 ---
 layout: commands
 page_title: 'Commands: Snapshot'
+description: |
+  The `consul snapshot` command interacts with Consul's snapshot agent to support disaster recovery. It exposes top-level commands for saving, restoring, and inspecting the state of Consul servers.
 ---
 
 # Consul Snapshot
@@ -12,7 +14,7 @@ state of the Consul servers for disaster recovery. These are atomic, point-in-ti
 snapshots which include key/value entries, service catalog, prepared queries,
 sessions, and ACLs. This command is available in Consul 0.7.1 and later.
 
-Snapshots are also accessible via the [HTTP API](/api-docs/snapshot).
+Snapshots are also accessible via the [HTTP API](/consul/api-docs/snapshot).
 
 ## Usage
 
@@ -37,10 +39,10 @@ Subcommands:
 For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
 
-- [agent](/commands/snapshot/agent) <EnterpriseAlert inline />
-- [inspect](/commands/snapshot/inspect)
-- [restore](/commands/snapshot/restore)
-- [save](/commands/snapshot/save)
+- [agent](/consul/commands/snapshot/agent) <EnterpriseAlert inline />
+- [inspect](/consul/commands/snapshot/inspect)
+- [restore](/consul/commands/snapshot/restore)
+- [save](/consul/commands/snapshot/save)
 
 ## Basic Examples
 

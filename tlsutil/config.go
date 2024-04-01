@@ -1,10 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package tlsutil
 
 import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -17,7 +19,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/private/pbconfig"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -180,6 +182,18 @@ type protocolConfig struct {
 	// for TLS server/listener. NOTE: Only applies to external GRPC Server.
 	useAutoCert bool
 }
+
+// ConfiguratorIface is the interface for the Configurator
+type ConfiguratorIface interface {
+	Base() Config
+	Cert() *tls.Certificate
+	ManualCAPems() []string
+
+	VerifyIncomingRPC() bool
+	VerifyServerHostname() bool
+}
+
+var _ ConfiguratorIface = (*Configurator)(nil)
 
 // Configurator provides tls.Config and net.Dial wrappers to enable TLS for
 // clients and servers, for internal RPC, and external gRPC and HTTPS connections.
@@ -516,7 +530,7 @@ func LoadCAs(caFile, caPath string) ([]string, error) {
 	pems := []string{}
 
 	readFn := func(path string) error {
-		pem, err := ioutil.ReadFile(path)
+		pem, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("Error loading from %s: %s", path, err)
 		}
@@ -770,8 +784,16 @@ func (c *Configurator) IncomingGRPCConfig() *tls.Config {
 		c.base.GRPC,
 		c.base.GRPC.VerifyIncoming,
 	)
-	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingGRPCConfig(), nil
+	config.GetConfigForClient = func(info *tls.ClientHelloInfo) (*tls.Config, error) {
+		conf := c.IncomingGRPCConfig()
+		// Do not enforce mutualTLS for peering SNI entries. This is necessary, because
+		// there is no way to specify an mTLS cert when establishing a peering connection.
+		// This bypass is only safe because the `grpc-middleware.AuthInterceptor` explicitly
+		// restricts the list of endpoints that can be called when peering SNI is present.
+		if c.autoTLS.peeringServerName != "" && info.ServerName == c.autoTLS.peeringServerName {
+			conf.ClientAuth = tls.NoClientCert
+		}
+		return conf, nil
 	}
 	config.GetCertificate = func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		if c.autoTLS.peeringServerName != "" && info.ServerName == c.autoTLS.peeringServerName {
@@ -847,10 +869,23 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	return config
 }
 
-// OutgoingTLSConfigForCheck generates a *tls.Config for outgoing TLS connections
-// for checks. This function is separated because there is an extra flag to
-// consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
-// be checked for checks.
+// OutgoingTLSConfigForCheck creates a client *tls.Config for executing checks.
+// It is RECOMMENDED that the serverName be left unspecified. The crypto/tls
+// client will deduce the ServerName (for SNI) from the check address unless
+// it's an IP (RFC 6066, Section 3). However, there are two instances where
+// supplying a serverName is useful:
+//
+//  1. When the check address is an IP, a serverName can be supplied for SNI.
+//     Note: setting serverName will also override the hostname used to verify
+//     the certificate presented by the server being checked.
+//
+//  2. When the hostname in the check address won't be present in the SAN
+//     (Subject Alternative Name) field of the certificate presented by the
+//     server being checked. Note: setting serverName will also override the
+//     ServerName used for SNI.
+//
+// Setting skipVerify will disable verification of the server's certificate
+// chain and hostname, which is generally not suitable for production use.
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName string) *tls.Config {
 	c.log("OutgoingTLSConfigForCheck")
 
@@ -865,13 +900,9 @@ func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName str
 		}
 	}
 
-	if serverName == "" {
-		serverName = c.serverNameOrNodeName()
-	}
 	config := c.internalRPCTLSConfig(false)
 	config.InsecureSkipVerify = skipVerify
 	config.ServerName = serverName
-
 	return config
 }
 
@@ -948,6 +979,12 @@ func (c *Configurator) AutoEncryptCert() *x509.Certificate {
 		return nil
 	}
 	return cert
+}
+
+func (c *Configurator) PeeringServerName() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.autoTLS.peeringServerName
 }
 
 func (c *Configurator) log(name string) {

@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
+	"context"
 	"io"
 
 	"github.com/hashicorp/serf/serf"
@@ -11,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type delegateMock struct {
@@ -53,7 +58,7 @@ func (m *delegateMock) ResolveTokenAndDefaultMeta(token string, entMeta *acl.Ent
 	return ret.Get(0).(resolver.Result), ret.Error(1)
 }
 
-func (m *delegateMock) RPC(method string, args interface{}, reply interface{}) error {
+func (m *delegateMock) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	return m.Called(method, args, reply).Error(0)
 }
 
@@ -71,4 +76,8 @@ func (m *delegateMock) Stats() map[string]map[string]string {
 
 func (m *delegateMock) ReloadConfig(config consul.ReloadableConfig) error {
 	return m.Called(config).Error(0)
+}
+
+func (m *delegateMock) ResourceServiceClient() pbresource.ResourceServiceClient {
+	return nil
 }

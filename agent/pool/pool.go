@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package pool
 
 import (
@@ -18,7 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -46,6 +49,7 @@ type Conn struct {
 	refCount    int32
 	shouldClose int32
 
+	dc       string
 	nodeName string
 	addr     net.Addr
 	session  muxSession
@@ -140,6 +144,9 @@ type ConnPool struct {
 	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
 	Logger *log.Logger
 
+	// RPCHoldTimeout is used as a buffer when calculating timeouts to
+	// allow for leader rotation.
+	RPCHoldTimeout time.Duration
 	// MaxQueryTime is used for calculating timeouts on blocking queries.
 	MaxQueryTime time.Duration
 	// DefaultQueryTime is used for calculating timeouts on blocking queries.
@@ -228,7 +235,7 @@ func (p *ConnPool) acquire(dc string, nodeName string, addr net.Addr) (*Conn, er
 
 	addrStr := addr.String()
 
-	poolKey := nodeName + ":" + addrStr
+	poolKey := makePoolKey(dc, nodeName, addrStr)
 
 	// Check to see if there's a pooled connection available. This is up
 	// here since it should the vastly more common case than the rest
@@ -487,6 +494,7 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr) (*Conn,
 	// Wrap the connection
 	c := &Conn{
 		refCount: 1,
+		dc:       dc,
 		nodeName: nodeName,
 		addr:     addr,
 		session:  session,
@@ -508,7 +516,7 @@ func (p *ConnPool) clearConn(conn *Conn) {
 
 	// Clear from the cache
 	addrStr := conn.addr.String()
-	poolKey := conn.nodeName + ":" + addrStr
+	poolKey := makePoolKey(conn.dc, conn.nodeName, addrStr)
 	p.Lock()
 	if c, ok := p.pool[poolKey]; ok && c == conn {
 		delete(p.pool, poolKey)
@@ -592,14 +600,14 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	var codec rpc.ClientCodec
 	conn, _, err := p.dial(dc, addr, 0, RPCTLSInsecure)
 	if err != nil {
-		return fmt.Errorf("rpcinsecure error establishing connection: %w", err)
+		return fmt.Errorf("rpcinsecure: error establishing connection: %w", err)
 	}
 	codec = msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 
 	// Make the RPC call
 	err = msgpackrpc.CallWithCodec(codec, method, args, reply)
 	if err != nil {
-		return fmt.Errorf("rpcinsecure error making call: %w", err)
+		return fmt.Errorf("rpcinsecure: error making call: %w", err)
 	}
 
 	return nil
@@ -630,8 +638,9 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 	if bq, ok := args.(BlockableQuery); ok {
 		blockingTimeout := bq.BlockingTimeout(p.MaxQueryTime, p.DefaultQueryTime)
 		if blockingTimeout > 0 {
-			// override the default client timeout
-			timeout = blockingTimeout
+			// Override the default client timeout but add RPCHoldTimeout
+			// as a buffer for retries during leadership changes.
+			timeout = blockingTimeout + p.RPCHoldTimeout
 		}
 	}
 	if timeout > 0 {
@@ -708,4 +717,9 @@ func (p *ConnPool) reap() {
 		}
 		p.Unlock()
 	}
+}
+
+// makePoolKey generates a unique key for grouping connections together into a pool.
+func makePoolKey(dc, nodeName, addrStr string) string {
+	return dc + ":" + nodeName + ":" + addrStr
 }

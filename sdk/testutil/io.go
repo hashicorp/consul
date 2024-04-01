@@ -1,25 +1,28 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package testutil
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 )
 
 var noCleanup = strings.ToLower(os.Getenv("TEST_NOCLEANUP")) == "true"
+var saveSnapshot = strings.ToLower(os.Getenv("TEST_SAVE_SNAPSHOT")) == "true"
 
 // TempDir creates a temporary directory within tmpdir with the name 'testname-name'.
 // If the directory cannot be created t.Fatal is called.
 // The directory will be removed when the test ends. Set TEST_NOCLEANUP env var
 // to prevent the directory from being removed.
-func TempDir(t testing.TB, name string) string {
+func TempDir(t TestingTB, name string) string {
 	if t == nil {
 		panic("argument t must be non-nil")
 	}
 	name = t.Name() + "-" + name
 	name = strings.Replace(name, "/", "_", -1)
-	d, err := ioutil.TempDir("", name)
+	d, err := os.MkdirTemp("", name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -45,7 +48,7 @@ func TempFile(t testing.TB, name string) *os.File {
 	}
 	name = t.Name() + "-" + name
 	name = strings.Replace(name, "/", "_", -1)
-	f, err := ioutil.TempFile("", name)
+	f, err := os.CreateTemp("", name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

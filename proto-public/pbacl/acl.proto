@@ -1,14 +1,29 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 syntax = "proto3";
 
 package hashicorp.consul.acl;
 
+import "annotations/ratelimit/ratelimit.proto";
+
 service ACLService {
   // Login exchanges the presented bearer token for a Consul ACL token using a
   // configured auth method.
-  rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_ACL
+    };
+  }
 
   // Logout destroys the given ACL token once the caller is done with it.
-  rpc Logout(LogoutRequest) returns (LogoutResponse) {}
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_ACL
+    };
+  }
 }
 
 message LogoutResponse {}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package oidcauth
 
 import (
@@ -8,11 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 func setupForOIDC(t *testing.T) (*Authenticator, *oidcauthtest.Server) {
@@ -387,7 +390,7 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 			context.Background(),
 			state, "wrong_code",
 		)
-		requireErrorContains(t, err, "cannot fetch token")
+		requireErrorContains(t, err, "Error exchanging oidc code")
 		requireProviderError(t, err)
 	})
 

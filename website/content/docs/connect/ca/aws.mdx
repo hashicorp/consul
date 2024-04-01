@@ -13,7 +13,7 @@ Authority
 to manage and sign certificates.
 
 -> This page documents the specifics of the AWS ACM Private CA provider.
-Please read the [certificate management overview](/docs/connect/ca)
+Please read the [certificate management overview](/consul/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
 
@@ -49,7 +49,7 @@ optional configuration value.
 
 Example configurations are shown below:
 
-<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+<CodeTabs heading="Service mesh CA configuration" tabs={["Agent configuration", "API"]}>
 
 <CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="4,6">
 
@@ -116,7 +116,7 @@ ACM Private CA has several
 that restrict how fast certificates can be issued. This may impact how quickly
 large clusters can rotate all issued certificates.
 
-Currently, the ACM Private CA provider for Connect has some additional
+Currently, the ACM Private CA provider for service mesh has some additional
 limitations described below.
 
 ### Unable to Cross-sign Other CAs
@@ -131,7 +131,7 @@ For now, the limitation means that once ACM Private CA is configured as the CA
 provider, it is not possible to reconfigure a different CA provider, or rotate
 the root CA key without potentially observing some transient connection
 failures. See the section on [forced rotation without
-cross-signing](/docs/connect/ca#forced-rotation-without-cross-signing) for
+cross-signing](/consul/docs/connect/ca#forced-rotation-without-cross-signing) for
 more details.
 
 ### Primary DC Must be a Root CA
@@ -150,7 +150,7 @@ CA](https://aws.amazon.com/certificate-manager/pricing/) for actual cost
 information.
 
 Assume the following Consul datacenters exist and are configured to use ACM
-Private CA as their Connect CA with the default leaf certificate lifetime of
+Private CA as their service mesh CA with the default leaf certificate lifetime of
 72 hours:
 
 | Datacenter | Primary | CA Resource Created | Number of service instances |
@@ -172,11 +172,11 @@ So monthly cost would be calculated as:
   - 500 ⨉ 13.3 = 6,650 certificates issued in dc3
 
 The number of certificates issued could be reduced by increasing
-[`leaf_cert_ttl`](/docs/agent/config/config-files#ca_leaf_cert_ttl) in the CA Provider
+[`leaf_cert_ttl`](/consul/docs/agent/config/config-files#ca_leaf_cert_ttl) in the CA Provider
 configuration if the longer lived credentials are an acceptable risk tradeoff
 against the cost.
 
 <!-- Reference style links -->
-[`ca_config`]: /docs/agent/config/config-files#connect_ca_config
-[`ca_provider`]: /docs/agent/config/config-files#connect_ca_provider
-[`/connect/ca/configuration`]: /api-docs/connect/ca#update-ca-configuration
+[`ca_config`]: /consul/docs/agent/config/config-files#connect_ca_config
+[`ca_provider`]: /consul/docs/agent/config/config-files#connect_ca_provider
+[`/connect/ca/configuration`]: /consul/api-docs/connect/ca#update-ca-configuration

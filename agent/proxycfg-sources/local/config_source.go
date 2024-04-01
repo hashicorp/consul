@@ -1,8 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	structs "github.com/hashicorp/consul/agent/structs"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // ConfigSource wraps a proxycfg.Manager to create watches on services
@@ -16,7 +23,14 @@ func NewConfigSource(cfgMgr ConfigManager) *ConfigSource {
 	return &ConfigSource{cfgMgr}
 }
 
-func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, _ string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error) {
+func (m *ConfigSource) Watch(proxyID *pbresource.ID, nodeName string, _ string) (
+	<-chan proxysnapshot.ProxySnapshot,
+	limiter.SessionTerminatedChan,
+	proxycfg.SrcTerminatedChan,
+	proxysnapshot.CancelFunc,
+	error,
+) {
+	serviceID := structs.NewServiceID(proxyID.Name, catalog.GetEnterpriseMetaFromResourceID(proxyID))
 	watchCh, cancelWatch := m.manager.Watch(proxycfg.ProxyID{
 		ServiceID: serviceID,
 		NodeName:  nodeName,
@@ -27,5 +41,5 @@ func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, _ str
 		// is checked before the watch is created).
 		Token: "",
 	})
-	return watchCh, cancelWatch, nil
+	return watchCh, nil, nil, cancelWatch, nil
 }

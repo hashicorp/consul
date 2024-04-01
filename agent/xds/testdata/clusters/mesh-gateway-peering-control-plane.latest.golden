@@ -1,24 +1,20 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
+      "connectTimeout": "5s",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
-      "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
+      "name": "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "EDS"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

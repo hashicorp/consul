@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package state
 
 import (
@@ -6,14 +9,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-memdb"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 const (
@@ -198,6 +202,9 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.SecretsWriteR
 		return fmt.Errorf("failed to read peering by id: %w", err)
 	}
 	if peering == nil {
+		if structs.CEDowngrade {
+			return nil
+		}
 		return fmt.Errorf("unknown peering %q for secret", req.PeerID)
 	}
 
@@ -590,6 +597,7 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 			req.Peering.Remote = &pbpeering.RemoteInfo{
 				Partition:  existing.Remote.Partition,
 				Datacenter: existing.Remote.Datacenter,
+				Locality:   existing.Remote.Locality,
 			}
 		}
 
@@ -769,88 +777,181 @@ func exportedServicesForPeerTxn(
 	maxIdx := peering.ModifyIndex
 
 	entMeta := structs.NodeEnterpriseMetaInPartition(peering.Partition)
-	idx, conf, err := getExportedServicesConfigEntryTxn(tx, ws, nil, entMeta)
+	idx, exportConf, err := getSimplifiedExportedServices(tx, ws, nil, *entMeta)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to fetch exported-services config entry: %w", err)
+		return 0, nil, fmt.Errorf("failed to fetch simplified exported-services config entry: %w", err)
 	}
 	if idx > maxIdx {
 		maxIdx = idx
 	}
-	if conf == nil {
+	if exportConf == nil {
 		return maxIdx, &structs.ExportedServiceList{}, nil
 	}
 
 	var (
-		normalSet = make(map[structs.ServiceName]struct{})
-		discoSet  = make(map[structs.ServiceName]struct{})
+		// exportedServices will contain the listing of all service names that are being exported
+		// and will need to be queried for connect / discovery chain information.
+		exportedServices = make(map[structs.ServiceName]struct{})
+
+		// exportedConnectServices will contain the listing of all connect service names that are being exported.
+		exportedConnectServices = make(map[structs.ServiceName]struct{})
+
+		// namespaceConnectServices provides a listing of all connect service names for a particular partition+namespace pair.
+		namespaceConnectServices = make(map[acl.EnterpriseMeta]map[string]struct{})
+
+		// namespaceDiscoChains provides a listing of all disco chain names for a particular partition+namespace pair.
+		namespaceDiscoChains = make(map[acl.EnterpriseMeta]map[string]struct{})
 	)
 
-	// At least one of the following should be true for a name for it to
-	// replicate:
-	//
-	// - are a discovery chain by definition (service-router, service-splitter, service-resolver)
-	// - have an explicit sidecar kind=connect-proxy
-	// - use connect native mode
+	// Helper function for inserting data and auto-creating maps.
+	insertEntry := func(m map[acl.EnterpriseMeta]map[string]struct{}, entMeta acl.EnterpriseMeta, name string) {
+		names, ok := m[entMeta]
+		if !ok {
+			names = make(map[string]struct{})
+			m[entMeta] = names
+		}
+		names[name] = struct{}{}
+	}
 
-	for _, svc := range conf.Services {
+	// Build the set of all services that will be exported.
+	// Any possible namespace wildcards or "consul" services should be removed by this step.
+	for _, svc := range exportConf.Services {
 		// Prevent exporting the "consul" service.
 		if svc.Name == structs.ConsulServiceName {
 			continue
 		}
-		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
+		svcEntMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
+		svcName := structs.NewServiceName(svc.Name, &svcEntMeta)
 
-		sawPeer := false
+		peerFound := false
 		for _, consumer := range svc.Consumers {
-			name := structs.NewServiceName(svc.Name, &svcMeta)
-
-			if _, ok := normalSet[name]; ok {
-				// Service was covered by a wildcard that was already accounted for
-				continue
+			if consumer.Peer == peering.Name {
+				peerFound = true
+				break
 			}
-			if consumer.Peer != peering.Name {
-				continue
-			}
-			sawPeer = true
+		}
+		// Only look for more information if the matching peer was found.
+		if !peerFound {
+			continue
+		}
 
-			if svc.Name != structs.WildcardSpecifier {
-				normalSet[name] = struct{}{}
+		// If this isn't a wildcard, we can simply add it to the list of services to watch and move to the next entry.
+		if svc.Name != structs.WildcardSpecifier {
+			exportedServices[svcName] = struct{}{}
+			continue
+		}
+
+		// If all services in the namespace are exported by the wildcard, query those service names.
+		idx, typicalServices, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, svcEntMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get typical service names: %w", err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		for _, sn := range typicalServices {
+			// Prevent exporting the "consul" service.
+			if sn.Service.Name != structs.ConsulServiceName {
+				exportedServices[sn.Service] = struct{}{}
 			}
 		}
 
-		// If the target peer is a consumer, and all services in the namespace are exported, query those service names.
-		if sawPeer && svc.Name == structs.WildcardSpecifier {
-			idx, typicalServices, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, svcMeta)
-			if err != nil {
-				return 0, nil, fmt.Errorf("failed to get typical service names: %w", err)
-			}
-			if idx > maxIdx {
-				maxIdx = idx
-			}
-			for _, s := range typicalServices {
-				// Prevent exporting the "consul" service.
-				if s.Service.Name == structs.ConsulServiceName {
-					continue
-				}
-				normalSet[s.Service] = struct{}{}
-			}
-
-			// list all config entries of kind service-resolver, service-router, service-splitter?
-			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, nil, svcMeta)
-			if err != nil {
-				return 0, nil, fmt.Errorf("failed to get discovery chain names: %w", err)
-			}
-			if idx > maxIdx {
-				maxIdx = idx
-			}
-			for _, sn := range discoChains {
-				discoSet[sn] = struct{}{}
+		// List all config entries of kind service-resolver, service-router, service-splitter, because they
+		// will be exported as connect services.
+		idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, nil, svcEntMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get discovery chain names: %w", err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		for _, sn := range discoChains {
+			// Prevent exporting the "consul" service.
+			if sn.Name != structs.ConsulServiceName {
+				exportedConnectServices[sn] = struct{}{}
+				insertEntry(namespaceDiscoChains, svcEntMeta, sn.Name)
 			}
 		}
 	}
 
-	normal := maps.SliceOfKeys(normalSet)
-	disco := maps.SliceOfKeys(discoSet)
+	// At least one of the following should be true for a name to replicate it as a *connect* service:
+	// - are a discovery chain by definition (service-router, service-splitter, service-resolver)
+	// - have an explicit sidecar kind=connect-proxy
+	// - use connect native mode
+	// - are registered with a terminating gateway
+	populateConnectService := func(sn structs.ServiceName) error {
+		// Load all disco-chains in this namespace if we haven't already.
+		if _, ok := namespaceDiscoChains[sn.EnterpriseMeta]; !ok {
+			// Check to see if we have a discovery chain with the same name.
+			idx, chains, err := listDiscoveryChainNamesTxn(tx, ws, nil, sn.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("failed to get connect services: %w", err)
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			for _, sn := range chains {
+				insertEntry(namespaceDiscoChains, sn.EnterpriseMeta, sn.Name)
+			}
+		}
+		// Check to see if we have the connect service.
+		if _, ok := namespaceDiscoChains[sn.EnterpriseMeta][sn.Name]; ok {
+			exportedConnectServices[sn] = struct{}{}
+			// Do not early return because we have multiple watches that should be established.
+		}
 
+		// Load all services in this namespace if we haven't already.
+		if _, ok := namespaceConnectServices[sn.EnterpriseMeta]; !ok {
+			// This is more efficient than querying the service instance table.
+			idx, connectServices, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindConnectEnabled, sn.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("failed to get connect services: %w", err)
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			for _, ksn := range connectServices {
+				insertEntry(namespaceConnectServices, sn.EnterpriseMeta, ksn.Service.Name)
+			}
+		}
+		// Check to see if we have the connect service.
+		if _, ok := namespaceConnectServices[sn.EnterpriseMeta][sn.Name]; ok {
+			exportedConnectServices[sn] = struct{}{}
+			// Do not early return because we have multiple watches that should be established.
+		}
+
+		// Check if the service is exposed via terminating gateways.
+		svcGateways, err := tx.Get(tableGatewayServices, indexService, sn)
+		if err != nil {
+			return fmt.Errorf("failed gateway lookup for %q: %w", sn.Name, err)
+		}
+		ws.Add(svcGateways.WatchCh())
+		for svc := svcGateways.Next(); svc != nil; svc = svcGateways.Next() {
+			gs, ok := svc.(*structs.GatewayService)
+			if !ok {
+				return fmt.Errorf("failed converting to GatewayService for %q", sn.Name)
+			}
+			if gs.GatewayKind == structs.ServiceKindTerminatingGateway {
+				exportedConnectServices[sn] = struct{}{}
+				break
+			}
+		}
+
+		return nil
+	}
+
+	// Perform queries and check if each service is connect-enabled.
+	for sn := range exportedServices {
+		// Do not query for data if we already know it's a connect service.
+		if _, ok := exportedConnectServices[sn]; ok {
+			continue
+		}
+		if err := populateConnectService(sn); err != nil {
+			return 0, nil, err
+		}
+	}
+
+	// Fetch the protocol / targets for connect services.
 	chainInfo := make(map[structs.ServiceName]structs.ExportedDiscoveryChainInfo)
 	populateChainInfo := func(svc structs.ServiceName) error {
 		if _, ok := chainInfo[svc]; ok {
@@ -898,21 +999,17 @@ func exportedServicesForPeerTxn(
 		return nil
 	}
 
-	for _, svc := range normal {
-		if err := populateChainInfo(svc); err != nil {
-			return 0, nil, err
-		}
-	}
-	for _, svc := range disco {
+	for svc := range exportedConnectServices {
 		if err := populateChainInfo(svc); err != nil {
 			return 0, nil, err
 		}
 	}
 
-	structs.ServiceList(normal).Sort()
+	sortedServices := maps.SliceOfKeys(exportedServices)
+	structs.ServiceList(sortedServices).Sort()
 
 	list := &structs.ExportedServiceList{
-		Services:    normal,
+		Services:    sortedServices,
 		DiscoChains: chainInfo,
 	}
 
@@ -925,17 +1022,8 @@ func listAllExportedServices(
 	overrides map[configentry.KindName]structs.ConfigEntry,
 	entMeta acl.EnterpriseMeta,
 ) (uint64, map[structs.ServiceName]struct{}, error) {
-	idx, export, err := getExportedServicesConfigEntryTxn(tx, ws, overrides, &entMeta)
-	if err != nil {
-		return 0, nil, err
-	}
-
 	found := make(map[structs.ServiceName]struct{})
-	if export == nil {
-		return idx, found, nil
-	}
-
-	_, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, export, overrides)
+	idx, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, entMeta, overrides)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -946,19 +1034,29 @@ func listAllExportedServices(
 	return idx, found, nil
 }
 
+//nolint:unparam
 func listServicesExportedToAnyPeerByConfigEntry(
 	ws memdb.WatchSet,
 	tx ReadTxn,
-	conf *structs.ExportedServicesConfigEntry,
+	entMeta acl.EnterpriseMeta,
 	overrides map[configentry.KindName]structs.ConfigEntry,
 ) (uint64, []structs.ServiceName, error) {
 	var (
-		entMeta = conf.GetEnterpriseMeta()
-		found   = make(map[structs.ServiceName]struct{})
-		maxIdx  uint64
+		found  = make(map[structs.ServiceName]struct{})
+		maxIdx uint64
 	)
+	idx, exports, err := getSimplifiedExportedServices(tx, ws, overrides, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	if exports == nil {
+		return 0, nil, nil
+	}
 
-	for _, svc := range conf.Services {
+	for _, svc := range exports.Services {
 		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
 
 		sawPeer := false
@@ -1143,12 +1241,56 @@ func peeringTrustBundleReadTxn(tx ReadTxn, ws memdb.WatchSet, q Query) (uint64, 
 	return ptb.ModifyIndex, ptb, nil
 }
 
-// PeeringTrustBundleWrite writes ptb to the state store. If there is an existing trust bundle with the given peer name,
-// it will be overwritten.
+// PeeringTrustBundleWrite writes ptb to the state store.
+// It also updates the corresponding peering object with the new certs.
+// If there is an existing trust bundle with the given peer name, it will be overwritten.
+// If there is no corresponding peering, then an error is returned.
 func (s *Store) PeeringTrustBundleWrite(idx uint64, ptb *pbpeering.PeeringTrustBundle) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
+	if ptb.PeerName == "" {
+		return errors.New("missing peer name")
+	}
+
+	// Check for the existence of the peering object
+	_, existingPeering, err := peeringReadTxn(tx, nil, Query{
+		Value:          ptb.PeerName,
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ptb.Partition),
+	})
+	if err != nil {
+		return err
+	}
+	if existingPeering == nil {
+		return fmt.Errorf("cannot write peering trust bundle for unknown peering %s", ptb.PeerName)
+	}
+	// Prevent modifications to Peering marked for deletion.
+	// This blocks generating new peering tokens or re-establishing the peering until the peering is done deleting.
+	if existingPeering.State == pbpeering.PeeringState_DELETING {
+		return fmt.Errorf("cannot write to peering that is marked for deletion")
+	}
+	c := proto.Clone(existingPeering)
+	clone, ok := c.(*pbpeering.Peering)
+	if !ok {
+		return fmt.Errorf("invalid type %T, expected *pbpeering.Peering", clone)
+	}
+
+	// Update the certs on the peering
+	rootPEMs := make([]string, 0, len(ptb.RootPEMs))
+	for _, c := range ptb.RootPEMs {
+		rootPEMs = append(rootPEMs, lib.EnsureTrailingNewline(c))
+	}
+	clone.PeerCAPems = rootPEMs
+	clone.ModifyIndex = idx
+
+	if err := tx.Insert(tablePeering, clone); err != nil {
+		return fmt.Errorf("failed inserting peering: %w", err)
+	}
+	if err := updatePeeringTableIndexes(tx, idx, clone.PartitionOrDefault()); err != nil {
+		return err
+	}
+
+	// Check for the existing trust bundle and update
 	q := Query{
 		Value:          ptb.PeerName,
 		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(ptb.Partition),
@@ -1158,13 +1300,13 @@ func (s *Store) PeeringTrustBundleWrite(idx uint64, ptb *pbpeering.PeeringTrustB
 		return fmt.Errorf("failed peering trust bundle lookup: %w", err)
 	}
 
-	existing, ok := existingRaw.(*pbpeering.PeeringTrustBundle)
+	existingPTB, ok := existingRaw.(*pbpeering.PeeringTrustBundle)
 	if existingRaw != nil && !ok {
 		return fmt.Errorf("invalid type %T", existingRaw)
 	}
 
-	if existing != nil {
-		ptb.CreateIndex = existing.CreateIndex
+	if existingPTB != nil {
+		ptb.CreateIndex = existingPTB.CreateIndex
 
 	} else {
 		ptb.CreateIndex = idx
@@ -1273,17 +1415,12 @@ func peersForServiceTxn(
 	// Exported service config entries are scoped to partitions so they are in the default namespace.
 	partitionMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
 
-	idx, rawEntry, err := configEntryTxn(tx, ws, structs.ExportedServices, partitionMeta.PartitionOrDefault(), partitionMeta)
+	idx, exportedServices, err := getSimplifiedExportedServices(tx, ws, nil, *partitionMeta)
 	if err != nil {
 		return 0, nil, err
 	}
-	if rawEntry == nil {
-		return idx, nil, err
-	}
-
-	entry, ok := rawEntry.(*structs.ExportedServicesConfigEntry)
-	if !ok {
-		return 0, nil, fmt.Errorf("unexpected type %T for pbpeering.Peering index", rawEntry)
+	if exportedServices == nil {
+		return idx, nil, nil
 	}
 
 	var (
@@ -1293,7 +1430,7 @@ func peersForServiceTxn(
 	)
 
 	// Ensure the metadata is defaulted since we make assertions against potentially empty values below.
-	// In OSS this is a no-op.
+	// In CE this is a no-op.
 	if entMeta == nil {
 		entMeta = acl.DefaultEnterpriseMeta()
 	}
@@ -1303,7 +1440,7 @@ func peersForServiceTxn(
 	// 		Namespace: *,     Service: *
 	// 		Namespace: Exact, Service: *
 	// 		Namespace: Exact, Service: Exact
-	for i, service := range entry.Services {
+	for i, service := range exportedServices.Services {
 		switch {
 		case service.Namespace == structs.WildcardSpecifier:
 			wildcardNamespaceIdx = i
@@ -1334,7 +1471,7 @@ func peersForServiceTxn(
 		return idx, results, nil
 	}
 
-	for _, c := range entry.Services[targetIdx].Consumers {
+	for _, c := range exportedServices.Services[targetIdx].Consumers {
 		if c.Peer != "" {
 			results = append(results, c.Peer)
 		}

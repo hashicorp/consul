@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // package limiter provides primatives for limiting the number of concurrent
 // operations in-flight.
 package limiter
@@ -28,9 +31,9 @@ var ErrCapacityReached = errors.New("active session limit reached")
 //
 // It is the session-holder's responsibility to:
 //
-//	1. Call End on the session when finished.
-//	2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
-//	   stream) when it is closed.
+//  1. Call End on the session when finished.
+//  2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
+//     stream) when it is closed.
 //
 // The maximum number of concurrent sessions is controlled with SetMaxSessions.
 // If there are more than the given maximum sessions already in-flight,
@@ -114,9 +117,9 @@ func (l *SessionLimiter) SetDrainRateLimit(limit rate.Limit) {
 //
 // It is the session-holder's responsibility to:
 //
-//	1. Call End on the session when finished.
-//	2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
-//	   stream) when it is closed.
+//  1. Call End on the session when finished.
+//  2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
+//     stream) when it is closed.
 func (l *SessionLimiter) BeginSession() (Session, error) {
 	if !l.hasCapacity() {
 		return nil, ErrCapacityReached
@@ -129,8 +132,8 @@ func (l *SessionLimiter) BeginSession() (Session, error) {
 
 // Note: hasCapacity is *best effort*. As we do not hold l.mu it's possible that:
 //
-//	- max has changed by the time we compare it to inFlight.
-//	- inFlight < max now, but increases before we create a new session.
+//   - max has changed by the time we compare it to inFlight.
+//   - inFlight < max now, but increases before we create a new session.
 //
 // This is acceptable for our uses, especially because excess sessions will
 // eventually be drained.
@@ -146,8 +149,8 @@ func (l *SessionLimiter) hasCapacity() bool {
 
 // Note: overCapacity is *best effort*. As we do not hold l.mu it's possible that:
 //
-//	- max has changed by the time we compare it to inFlight.
-//	- inFlight > max now, but decreases before we terminate a session.
+//   - max has changed by the time we compare it to inFlight.
+//   - inFlight > max now, but decreases before we terminate a session.
 func (l *SessionLimiter) overCapacity() bool {
 	max := atomic.LoadUint32(&l.max)
 	if max == Unlimited {
@@ -213,6 +216,10 @@ func (l *SessionLimiter) deleteSessionWithID(id uint64) {
 	l.deleteSessionLocked(idx, id)
 }
 
+// SessionTerminatedChan is a channel that will be closed to notify session-
+// holders that a session has been terminated.
+type SessionTerminatedChan <-chan struct{}
+
 // Session allows its holder to perform an operation (e.g. serve a gRPC stream)
 // concurrenly with other session-holders. Sessions may be terminated abruptly
 // by the SessionLimiter, so it is the responsibility of the holder to receive
@@ -228,7 +235,7 @@ type Session interface {
 	//
 	// The session-holder MUST receive on it and exit (e.g. close the gRPC stream)
 	// when it is closed.
-	Terminated() <-chan struct{}
+	Terminated() SessionTerminatedChan
 }
 
 type session struct {
@@ -240,6 +247,6 @@ type session struct {
 
 func (s *session) End() { s.l.deleteSessionWithID(s.id) }
 
-func (s *session) Terminated() <-chan struct{} { return s.termCh }
+func (s *session) Terminated() SessionTerminatedChan { return s.termCh }
 
 func (s *session) terminate() { close(s.termCh) }

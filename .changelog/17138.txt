@@ -1,0 +1,4 @@
+```release-note:improvement
+ca: automatically set up Vault's auto-tidy setting for tidy_expired_issuers when using Vault as a CA provider.
+```
+

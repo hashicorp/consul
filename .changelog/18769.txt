@@ -1,0 +1,3 @@
+```release-note:feature
+acl: Adds a new ACL rule for workload identities
+```

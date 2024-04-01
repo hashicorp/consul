@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package proxycfg
 
 import (
@@ -8,7 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	fuzz "github.com/google/gofuzz"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 func TestConfigSnapshot_Clone(t *testing.T) {
@@ -44,6 +47,7 @@ func TestConfigSnapshot_Clone(t *testing.T) {
 		cmpopts.IgnoreUnexported(indexedTarget{}),
 		cmpopts.IgnoreUnexported(pbpeering.PeeringTrustBundle{}),
 		cmpopts.IgnoreTypes(context.CancelFunc(nil)),
+		cmpopts.IgnoreTypes(computedFields{}),
 	)
 	if diff != "" {
 		t.Logf("Copied snaspshot is different to the original. You may need to re-run `make deep-copy`.\nDiff:\n%s", diff)

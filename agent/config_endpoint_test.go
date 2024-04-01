@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,8 +16,26 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 )
+
+func TestConfigEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{"kind":"service-defaults", "name":"web"}`)
+		})
+	}
+
+	checkRequest("GET", "/v1/config/service-defaults")
+	checkRequest("GET", "/v1/config/service-defaults/web")
+	checkRequest("DELETE", "/v1/config/service-defaults/web")
+	checkRequest("PUT", "/v1/config")
+}
 
 func TestConfig_Get(t *testing.T) {
 	if testing.Short() {
@@ -65,7 +87,7 @@ func TestConfig_Get(t *testing.T) {
 	}
 	for _, req := range reqs {
 		out := false
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &out))
 	}
 
 	t.Run("get a single service entry", func(t *testing.T) {
@@ -120,6 +142,7 @@ func TestConfig_Get(t *testing.T) {
 		// Set indexes and EnterpriseMeta to expected values for assertions
 		ce.CreateIndex = 12
 		ce.ModifyIndex = 13
+		ce.Hash = 0
 		ce.EnterpriseMeta = acl.EnterpriseMeta{}
 
 		out, err := a.srv.marshalJSON(req, obj)
@@ -171,7 +194,7 @@ func TestConfig_Delete(t *testing.T) {
 	}
 	for _, req := range reqs {
 		out := false
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &out))
 	}
 
 	// Delete an entry.
@@ -188,7 +211,7 @@ func TestConfig_Delete(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.IndexedConfigEntries
-		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.List", &args, &out))
 		require.Equal(t, structs.ServiceDefaults, out.Kind)
 		require.Len(t, out.Entries, 1)
 		entry := out.Entries[0].(*structs.ServiceConfigEntry)
@@ -212,7 +235,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 		Name: "foo",
 	}
 	var created bool
-	require.NoError(t, a.RPC("ConfigEntry.Apply", &structs.ConfigEntryRequest{
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 		Datacenter: "dc1",
 		Entry:      entry,
 	}, &created))
@@ -220,7 +243,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 
 	// Read it back to get its ModifyIndex.
 	var out structs.ConfigEntryResponse
-	require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &structs.ConfigEntryQuery{
 		Datacenter: "dc1",
 		Kind:       entry.Kind,
 		Name:       entry.Name,
@@ -244,7 +267,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 
 		// Verify it was not deleted.
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &structs.ConfigEntryQuery{
 			Datacenter: "dc1",
 			Kind:       entry.Kind,
 			Name:       entry.Name,
@@ -267,7 +290,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 
 		// Verify it was deleted.
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &structs.ConfigEntryQuery{
 			Datacenter: "dc1",
 			Kind:       entry.Kind,
 			Name:       entry.Name,
@@ -311,7 +334,7 @@ func TestConfig_Apply(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
 		require.NotNil(t, out.Entry)
 		entry := out.Entry.(*structs.ServiceConfigEntry)
 		require.Equal(t, entry.Name, "foo")
@@ -360,7 +383,7 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.IndexedConfigEntries
-		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.List", &args, &out))
 		require.NotNil(t, out)
 		require.Len(t, out.Entries, 1)
 
@@ -421,7 +444,7 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.IndexedConfigEntries
-		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.List", &args, &out))
 		require.NotNil(t, out)
 		require.Len(t, out.Entries, 1)
 
@@ -429,6 +452,7 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 		// Ignore create and modify indices
 		got.CreateIndex = 0
 		got.ModifyIndex = 0
+		got.Hash = 0
 
 		expect := &structs.IngressGatewayConfigEntry{
 			Name: "ingress",
@@ -486,11 +510,63 @@ func TestConfig_Apply_ProxyDefaultsMeshGateway(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
 		require.NotNil(t, out.Entry)
 		entry := out.Entry.(*structs.ProxyConfigEntry)
 		require.Equal(t, structs.MeshGatewayModeLocal, entry.MeshGateway.Mode)
 	}
+}
+
+func TestConfig_Apply_ProxyDefaultsProtocol(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	writeConf := func(body string) {
+		req, _ := http.NewRequest("PUT", "/v1/config", bytes.NewBuffer([]byte(body)))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.ConfigApply(resp, req)
+		require.NoError(t, err)
+		require.Equal(t, 200, resp.Code, "non-200 Response Code: %s", resp.Body.String())
+	}
+
+	// Set the default protocol
+	writeConf(`{
+		"Kind": "proxy-defaults",
+		"Name": "global",
+		"Config": {
+			"Protocol": "http"
+		}
+	}`)
+
+	// Create a router that depends on the protocol
+	writeConf(`{
+		"Kind": "service-router",
+		"Name": "route1"
+	}`)
+
+	// Ensure we can rewrite the proxy-defaults without a protocol-mismatch error.
+	// This should be taken care of in the ProxyConfigEntry.Normalize() function.
+	writeConf(`{
+		"Kind": "proxy-defaults",
+		"Name": "global",
+		"Config": {
+			"Protocol": "http",
+			"some-field": "is_changed"
+		}
+	}`)
+
+	// Rewrite the router that depends on the protocol
+	writeConf(`{
+		"Kind": "service-router",
+		"Name": "route1"
+	}`)
 }
 
 func TestConfig_Apply_CAS(t *testing.T) {
@@ -528,7 +604,7 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	}
 
 	out := &structs.ConfigEntryResponse{}
-	require.NoError(t, a.RPC("ConfigEntry.Get", &args, out))
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, out))
 	require.NotNil(t, out.Entry)
 	entry := out.Entry.(*structs.ServiceConfigEntry)
 
@@ -572,7 +648,7 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	}
 
 	out = &structs.ConfigEntryResponse{}
-	require.NoError(t, a.RPC("ConfigEntry.Get", &args, out))
+	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, out))
 	require.NotNil(t, out.Entry)
 	newEntry := out.Entry.(*structs.ServiceConfigEntry)
 	require.NotEqual(t, entry.GetRaftIndex(), newEntry.GetRaftIndex())
@@ -644,7 +720,7 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 				Datacenter: "dc1",
 			}
 			var out structs.ConfigEntryResponse
-			require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+			require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
 			require.NotNil(t, out.Entry)
 			entry := out.Entry.(*structs.ServiceConfigEntry)
 			require.Equal(t, entry.Name, "foo")
@@ -695,7 +771,7 @@ func TestConfig_Apply_ProxyDefaultsExpose(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
 		require.NotNil(t, out.Entry)
 		entry := out.Entry.(*structs.ProxyConfigEntry)
 
@@ -712,4 +788,85 @@ func TestConfig_Apply_ProxyDefaultsExpose(t *testing.T) {
 		}
 		require.Equal(t, expose, entry.Expose)
 	}
+}
+
+func TestConfig_Exported_Services(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	defer a.Shutdown()
+
+	{
+		// Register exported services
+		args := &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "api",
+					Consumers: []structs.ServiceConsumer{
+						{
+							Peer: "east",
+						},
+						{
+							Peer: "west",
+						},
+					},
+				},
+				{
+					Name: "db",
+					Consumers: []structs.ServiceConsumer{
+						{
+							Peer: "east",
+						},
+					},
+				},
+			},
+		}
+		req := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	t.Run("exported services", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/exported-services", nil)
+		resp := httptest.NewRecorder()
+		raw, err := a.srv.ExportedServices(resp, req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		services, ok := raw.([]api.ResolvedExportedService)
+		require.True(t, ok)
+		require.Len(t, services, 2)
+		assertIndex(t, resp)
+
+		entMeta := acl.DefaultEnterpriseMeta()
+
+		expected := []api.ResolvedExportedService{
+			{
+				Service:   "api",
+				Partition: entMeta.PartitionOrEmpty(),
+				Namespace: entMeta.NamespaceOrEmpty(),
+				Consumers: api.ResolvedConsumers{
+					Peers: []string{"east", "west"},
+				},
+			},
+			{
+				Service:   "db",
+				Partition: entMeta.PartitionOrEmpty(),
+				Namespace: entMeta.NamespaceOrEmpty(),
+				Consumers: api.ResolvedConsumers{
+					Peers: []string{"east"},
+				},
+			},
+		}
+		require.Equal(t, expected, services)
+	})
 }

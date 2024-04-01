@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configentry
 
 import (
@@ -6,9 +9,12 @@ import (
 )
 
 // KindName is a value type useful for maps. You can use:
-//     map[KindName]Payload
+//
+//	map[KindName]Payload
+//
 // instead of:
-//     map[string]map[string]Payload
+//
+//	map[string]map[string]Payload
 type KindName struct {
 	Kind string
 	Name string

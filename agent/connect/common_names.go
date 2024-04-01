@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package connect
 
 import (
@@ -45,9 +48,10 @@ func CompactUID() (string, error) {
 // specific purpose.
 //
 // Format is:
-//   {provider}-{uniqueID_first8}.{pri|sec}.ca.<trust_domain_first_8>.consul
 //
-//   trust domain is truncated to keep the whole name short
+//	{provider}-{uniqueID_first8}.{pri|sec}.ca.<trust_domain_first_8>.consul
+//
+// trust domain is truncated to keep the whole name short
 func CACN(provider, uniqueID, trustDomain string, primaryDC bool) string {
 	providerSan := invalidDNSNameChars.ReplaceAllString(strings.ToLower(provider), "")
 	typ := "pri"

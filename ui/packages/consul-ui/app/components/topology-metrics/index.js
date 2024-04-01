@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action, get } from '@ember/object';
@@ -143,6 +148,11 @@ export default class TopologyMetrics extends Component {
     return kind !== 'ingress-gateway';
   }
 
+  get mainNotAPIGatewayService() {
+    const kind = get(this.args.service.Service, 'Kind') || '';
+
+    return kind !== 'api-gateway';
+  }
   // =actions
   @action
   setHeight(el, item) {

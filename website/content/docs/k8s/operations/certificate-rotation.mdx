@@ -12,7 +12,7 @@ are issued every time the Helm chart is upgraded. These certificates are signed 
 continue to work as expected in the existing cluster.
 
 Consul servers read the certificates from Kubernetes secrets during start-up and keep them in memory. In order to ensure the
-servers use the newer certificate, the server pods need to be [restarted explicitly](/docs/k8s/upgrade#upgrading-consul-servers) in
+servers use the newer certificate, the server pods need to be [restarted explicitly](/consul/docs/k8s/upgrade#upgrading-consul-servers) in
 a situation where `helm upgrade` does not restart the server pods.
 
 To explicitly perform server certificate rotation, follow these steps:
@@ -25,4 +25,4 @@ To explicitly perform server certificate rotation, follow these steps:
 
    This should run the `tls-init` job that will generate new Server certificates.
 
-1. Restart the Server pods following the steps [here](/docs/k8s/upgrade#upgrading-consul-servers).
+1. Restart the Server pods following the steps [here](/consul/docs/k8s/upgrade#upgrading-consul-servers).

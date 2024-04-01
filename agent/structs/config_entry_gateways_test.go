@@ -1,9 +1,14 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package structs
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestIngressGatewayConfigEntry(t *testing.T) {
@@ -521,7 +526,7 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				},
 			},
 			// Match only the last part of the exected error because the service name
-			// differs between Ent and OSS default/default/web vs web
+			// differs between Ent and CE default/default/web vs web
 			validateErr: "cannot be added multiple times (listener on port 1111)",
 		},
 		"TLS.SDS kitchen sink": {
@@ -865,7 +870,7 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				},
 			},
 			// Note we don't assert the last part `(service \"*\" on listener on port 1111)`
-			// since the service name is normalized differently on OSS and Ent
+			// since the service name is normalized differently on CE and Ent
 			validateErr: "A service specifying TLS.SDS.CertResource must have at least one item in Hosts",
 		},
 		"TLS.SDS at service level needs a cluster from somewhere": {
@@ -892,7 +897,7 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 				},
 			},
 			// Note we don't assert the last part `(service \"foo\" on listener on port 1111)`
-			// since the service name is normalized differently on OSS and Ent
+			// since the service name is normalized differently on CE and Ent
 			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
 		},
 	}
@@ -1120,6 +1125,666 @@ func TestGatewayService_Addresses(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			addresses := tc.input.Addresses(tc.argument)
 			require.ElementsMatch(t, tc.expected, addresses)
+		})
+	}
+}
+
+func TestAPIGateway_Listeners(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"no listeners defined": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+			},
+			validateErr: "api gateway must have at least one listener",
+		},
+		"listener name conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port: 80,
+						Name: "foo",
+					},
+					{
+						Port: 80,
+						Name: "foo",
+					},
+				},
+			},
+			validateErr: "multiple listeners with the name",
+		},
+		"empty listener name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: "tcp",
+					},
+				},
+			},
+			validateErr: "listener name \"\" is invalid, must be at least 1 character and contain only letters, numbers, or dashes",
+		},
+		"invalid listener name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: "tcp",
+						Name:     "/",
+					},
+				},
+			},
+			validateErr: "listener name \"/\" is invalid, must be at least 1 character and contain only letters, numbers, or dashes",
+		},
+		"merged listener protocol conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-two",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener-one",
+						Port:     80,
+						Protocol: ListenerProtocolHTTP,
+					},
+					{
+						Name:     "foo",
+						Port:     80,
+						Protocol: ListenerProtocolTCP,
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"merged listener hostname conflict": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-three",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Hostname: "host.one",
+					},
+					{
+						Name:     "foo",
+						Port:     80,
+						Hostname: "host.two",
+					},
+				},
+			},
+			validateErr: "cannot be merged",
+		},
+		"invalid protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-four",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("UDP"),
+					},
+				},
+			},
+			validateErr: "unsupported listener protocol",
+		},
+		"hostname in unsupported protocol": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-five",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("tcp"),
+					},
+				},
+			},
+			validateErr: "hostname specification is not supported",
+		},
+		"invalid port": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-six",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     -1,
+						Protocol: APIGatewayListenerProtocol("tcp"),
+					},
+				},
+			},
+			validateErr: "not in the range 1-65535",
+		},
+		"invalid hostname": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-seven",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Hostname: "*.*.host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+					},
+				},
+			},
+			validateErr: "only allowed as the left-most label",
+		},
+		"unsupported certificate kind": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-eight",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{
+								Kind: APIGateway,
+							}},
+						},
+					},
+				},
+			},
+			validateErr: "unsupported certificate kind",
+		},
+		"unnamed certificate": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-nine",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "listener",
+						Port:     80,
+						Hostname: "host.one",
+						Protocol: APIGatewayListenerProtocol("http"),
+						TLS: APIGatewayTLSConfiguration{
+							Certificates: []ResourceReference{{
+								Kind: InlineCertificate,
+							}},
+						},
+					},
+				},
+			},
+			validateErr: "certificate reference must have a name",
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
+func TestBoundAPIGateway(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"invalid certificate, no name": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-one",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Certificates: []ResourceReference{{
+							Kind: InlineCertificate,
+						}},
+					},
+				},
+			},
+			validateErr: "certificate reference must have a name",
+		},
+		"invalid certificate, no kind": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-two",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Certificates: []ResourceReference{{
+							Name: "foo",
+						}},
+					},
+				},
+			},
+			validateErr: "unsupported certificate kind",
+		},
+		"invalid route, no name": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-three",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Routes: []ResourceReference{{
+							Kind: TCPRoute,
+						}},
+					},
+				},
+			},
+			validateErr: "route reference must have a name",
+		},
+		"invalid route, no kind": {
+			entry: &BoundAPIGatewayConfigEntry{
+				Kind: BoundAPIGateway,
+				Name: "bound-api-gw-four",
+				Listeners: []BoundAPIGatewayListener{
+					{
+						Name: "one",
+						Routes: []ResourceReference{{
+							Name: "foo",
+						}},
+					},
+				},
+			},
+			validateErr: "unsupported route kind",
+		},
+	}
+	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
+func TestListenerBindRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener         BoundAPIGatewayListener
+		route            BoundRoute
+		expectedListener BoundAPIGatewayListener
+		expectedDidBind  bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener to update existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener appends new route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 3",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidBind := tc.listener.BindRoute(routeRef)
+			require.Equal(t, tc.expectedDidBind, actualDidBind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}
+
+func TestListenerUnbindRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener          BoundAPIGatewayListener
+		route             BoundRoute
+		expectedListener  BoundAPIGatewayListener
+		expectedDidUnbind bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener:  BoundAPIGatewayListener{},
+			expectedDidUnbind: false,
+		},
+		"Listener to remove existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidUnbind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidUnbind := tc.listener.UnbindRoute(routeRef)
+			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}
+
+func Test_ServiceRouteReferences_AddService(t *testing.T) {
+	t.Parallel()
+
+	key := ServiceName{Name: "service", EnterpriseMeta: acl.EnterpriseMeta{}}
+	testCases := map[string]struct {
+		routeRef     ResourceReference
+		subject      ServiceRouteReferences
+		expectedRefs ServiceRouteReferences
+	}{
+		"key does not exist yet": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: make(ServiceRouteReferences),
+			expectedRefs: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+		"key exists adding new route": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+
+			expectedRefs: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+		"key exists adding existing route": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+
+			expectedRefs: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.subject.AddService(key, tc.routeRef)
+
+			require.Equal(t, tc.subject, tc.expectedRefs)
+		})
+	}
+}
+
+func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
+	t.Parallel()
+
+	keySvcOne := ServiceName{Name: "service-one", EnterpriseMeta: acl.EnterpriseMeta{}}
+	keySvcTwo := ServiceName{Name: "service-two", EnterpriseMeta: acl.EnterpriseMeta{}}
+	testCases := map[string]struct {
+		routeRef     ResourceReference
+		subject      ServiceRouteReferences
+		expectedRefs ServiceRouteReferences
+	}{
+		"route ref exists for one service": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+		"route ref exists for multiple services": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+
+			subject: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+		"route exists and is only ref for service--service is removed from refs": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+
+			subject: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.subject.RemoveRouteRef(tc.routeRef)
+
+			require.Equal(t, tc.subject, tc.expectedRefs)
 		})
 	}
 }

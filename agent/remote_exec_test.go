@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -11,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
@@ -354,9 +359,9 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 	retry.Run(t, func(r *retry.R) {
 		event := &remoteExecEvent{
 			Prefix:  "_rexec",
-			Session: makeRexecSession(t, a.Agent, ""),
+			Session: makeRexecSession(r, a.Agent, ""),
 		}
-		defer destroySession(t, a.Agent, event.Session, "")
+		defer destroySession(r, a.Agent, event.Session, "")
 
 		spec := &remoteExecSpec{
 			Command: command,
@@ -425,7 +430,7 @@ func TestHandleRemoteExecFailed(t *testing.T) {
 	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 
-func makeRexecSession(t *testing.T, a *Agent, token string) string {
+func makeRexecSession(t testutil.TestingTB, a *Agent, token string) string {
 	args := structs.SessionRequest{
 		Datacenter: a.config.Datacenter,
 		Op:         structs.SessionCreate,
@@ -438,13 +443,13 @@ func makeRexecSession(t *testing.T, a *Agent, token string) string {
 		},
 	}
 	var out string
-	if err := a.RPC("Session.Apply", &args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Session.Apply", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	return out
 }
 
-func destroySession(t *testing.T, a *Agent, session string, token string) {
+func destroySession(t testutil.TestingTB, a *Agent, session string, token string) {
 	args := structs.SessionRequest{
 		Datacenter: a.config.Datacenter,
 		Op:         structs.SessionDestroy,
@@ -456,7 +461,7 @@ func destroySession(t *testing.T, a *Agent, session string, token string) {
 		},
 	}
 	var out string
-	if err := a.RPC("Session.Apply", &args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Session.Apply", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -474,7 +479,7 @@ func setKV(a *Agent, key string, val []byte, token string) error {
 		},
 	}
 	var success bool
-	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
+	if err := a.RPC(context.Background(), "KVS.Apply", &write, &success); err != nil {
 		return err
 	}
 	return nil
@@ -489,7 +494,7 @@ func getKV(a *Agent, key string, token string) (*structs.DirEntry, error) {
 		},
 	}
 	var out structs.IndexedDirEntries
-	if err := a.RPC("KVS.Get", &req, &out); err != nil {
+	if err := a.RPC(context.Background(), "KVS.Get", &req, &out); err != nil {
 		return nil, err
 	}
 	if len(out.Entries) > 0 {

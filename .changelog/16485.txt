@@ -1,0 +1,3 @@
+```release-note:bug
+cli: fix panic read non-existent acl policy
+```

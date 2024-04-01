@@ -1,7 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package validate
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -34,7 +37,7 @@ func TestValidateCommand_SucceedOnMinimalConfigFile(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 
 	fp := filepath.Join(td, "config.json")
-	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
+	err := os.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
 	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
@@ -49,7 +52,7 @@ func TestValidateCommand_SucceedWithMinimalJSONConfigFormat(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 
 	fp := filepath.Join(td, "json.conf")
-	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
+	err := os.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
 	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
@@ -64,7 +67,7 @@ func TestValidateCommand_SucceedWithMinimalHCLConfigFormat(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 
 	fp := filepath.Join(td, "hcl.conf")
-	err := ioutil.WriteFile(fp, []byte("bind_addr = \"10.0.0.1\"\ndata_dir = \""+td+"\""), 0644)
+	err := os.WriteFile(fp, []byte("bind_addr = \"10.0.0.1\"\ndata_dir = \""+td+"\""), 0644)
 	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
@@ -79,7 +82,7 @@ func TestValidateCommand_SucceedWithJSONAsHCL(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 
 	fp := filepath.Join(td, "json.conf")
-	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
+	err := os.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
 	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
@@ -93,7 +96,7 @@ func TestValidateCommand_SucceedOnMinimalConfigDir(t *testing.T) {
 	t.Parallel()
 	td := testutil.TempDir(t, "consul")
 
-	err := ioutil.WriteFile(filepath.Join(td, "config.json"), []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
+	err := os.WriteFile(filepath.Join(td, "config.json"), []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
 	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
@@ -108,7 +111,7 @@ func TestValidateCommand_FailForInvalidJSONConfigFormat(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 
 	fp := filepath.Join(td, "hcl.conf")
-	err := ioutil.WriteFile(fp, []byte(`bind_addr = "10.0.0.1"\ndata_dir = "`+td+`"`), 0644)
+	err := os.WriteFile(fp, []byte(`bind_addr = "10.0.0.1"\ndata_dir = "`+td+`"`), 0644)
 	require.Nilf(t, err, "err: %s", err)
 
 	cmd := New(cli.NewMockUi())
@@ -123,7 +126,7 @@ func TestValidateCommand_Quiet(t *testing.T) {
 	td := testutil.TempDir(t, "consul")
 
 	fp := filepath.Join(td, "config.json")
-	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
+	err := os.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "data_dir":"`+td+`"}`), 0644)
 	require.Nilf(t, err, "err: %s", err)
 
 	ui := cli.NewMockUi()

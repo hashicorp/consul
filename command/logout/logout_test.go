@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package logout
 
 import (
@@ -55,7 +58,7 @@ func TestLogoutCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
+		require.Contains(t, ui.ErrorWriter.String(), "401 (Supplied token does not exist)")
 	})
 
 	t.Run("logout of deleted token", func(t *testing.T) {
@@ -185,7 +188,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
+		require.Contains(t, ui.ErrorWriter.String(), "401 (Supplied token does not exist)")
 	})
 
 	t.Run("logout of deleted token", func(t *testing.T) {
@@ -224,9 +227,6 @@ func TestLogoutCommand_k8s(t *testing.T) {
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
 		require.Contains(t, ui.ErrorWriter.String(), "403 (Permission denied: token wasn't created via login)")
 	})
-
-	// go to the trouble of creating a login token
-	// require.NoError(t, ioutil.WriteFile(bearerTokenFile, []byte(acl.TestKubernetesJWT_B), 0600))
 
 	// spin up a fake api server
 	testSrv := kubeauth.StartTestAPIServer(t)

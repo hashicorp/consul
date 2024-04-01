@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: proto-public/pbconnectca/ca.proto
+// source: pbconnectca/ca.proto
 
 package pbconnectca
 
@@ -173,5 +173,5 @@ var ConnectCAService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "proto-public/pbconnectca/ca.proto",
+	Metadata: "pbconnectca/ca.proto",
 }

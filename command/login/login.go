@@ -1,9 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package login
 
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
@@ -112,7 +115,7 @@ func (c *cmd) bearerTokenLogin() int {
 		c.UI.Error("Missing required '-bearer-token-file' flag")
 		return 1
 	} else {
-		data, err := ioutil.ReadFile(c.bearerTokenFile)
+		data, err := os.ReadFile(c.bearerTokenFile)
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1

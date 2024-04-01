@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 // All of the configuration here is shared between buildtime and runtime and
 // is therefore added to ember's <meta> tag in the actual app, if the
 // configuration is for buildtime only you should probably just use
@@ -70,6 +75,7 @@ module.exports = function (environment, $ = process.env) {
     CONSUL_COPYRIGHT_YEAR: env('CONSUL_COPYRIGHT_YEAR', repositoryYear),
     CONSUL_GIT_SHA: env('CONSUL_GIT_SHA', repositorySHA),
     CONSUL_VERSION: env('CONSUL_VERSION', binaryVersion),
+    // TODO(spatel): CE refactor
     CONSUL_BINARY_TYPE: env('CONSUL_BINARY_TYPE', 'oss'),
 
     // These can be overwritten by the UI user at runtime by setting localStorage values
@@ -88,6 +94,7 @@ module.exports = function (environment, $ = process.env) {
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
       PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
       APIPrefix: env('CONSUL_API_PREFIX', ''),
+      V2CatalogEnabled: false,
     },
 
     // Static variables used in multiple places throughout the UI
@@ -116,6 +123,7 @@ module.exports = function (environment, $ = process.env) {
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
           APIPrefix: env('CONSUL_API_PREFIX', ''),
+          V2CatalogEnabled: env('CONSUL_V2_CATALOG_ENABLED', false),
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -170,6 +178,7 @@ module.exports = function (environment, $ = process.env) {
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
           APIPrefix: env('CONSUL_API_PREFIX', ''),
+          V2CatalogEnabled: env('CONSUL_V2_CATALOG_ENABLED', false),
         },
 
         '@hashicorp/ember-cli-api-double': {

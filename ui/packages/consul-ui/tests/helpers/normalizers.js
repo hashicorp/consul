@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 export const createPolicies = function (item) {
   return item.Policies.map(function (item) {
     return {

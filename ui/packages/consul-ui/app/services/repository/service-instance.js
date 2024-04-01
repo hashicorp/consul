@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import RepositoryService from 'consul-ui/services/repository';
 import { set } from '@ember/object';
 import { ACCESS_READ } from 'consul-ui/abilities/base';

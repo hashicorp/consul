@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
@@ -13,6 +17,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+const MaximumManualVIPsPerService = 8
 
 // Internal endpoint is used to query the miscellaneous info that
 // does not necessarily fit into the other systems. It is also
@@ -191,43 +197,44 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 				}
 				reply.Nodes = nodes
 
-				// get a list of all peerings
-				index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
-				if err != nil {
-					return fmt.Errorf("could not list peers for service dump %w", err)
-				}
-
-				if index > maxIndex {
-					maxIndex = index
-				}
-
-				for _, p := range listedPeerings {
-					// Note we fetch imported services with wildcard namespace because imported services' namespaces
-					// are in a different locality; regardless of our local namespace, we return all imported services
-					// of the local partition.
-					index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, args.EnterpriseMeta.WithWildcardNamespace(), p.Name)
+				if !args.NodesOnly {
+					// get a list of all peerings
+					index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
 					if err != nil {
-						return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+						return fmt.Errorf("could not list peers for service dump %w", err)
 					}
 
 					if index > maxIndex {
 						maxIndex = index
 					}
-					reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
-				}
 
-				// Get, store, and filter gateway services
-				idx, gatewayServices, err := state.DumpGatewayServices(ws)
-				if err != nil {
-					return err
-				}
-				reply.Gateways = gatewayServices
+					for _, p := range listedPeerings {
+						// Note we fetch imported services with wildcard namespace because imported services' namespaces
+						// are in a different locality; regardless of our local namespace, we return all imported services
+						// of the local partition.
+						index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, args.EnterpriseMeta.WithWildcardNamespace(), p.Name)
+						if err != nil {
+							return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+						}
 
-				if idx > maxIndex {
-					maxIndex = idx
+						if index > maxIndex {
+							maxIndex = index
+						}
+						reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
+					}
+
+					// Get, store, and filter gateway services
+					idx, gatewayServices, err := state.DumpGatewayServices(ws)
+					if err != nil {
+						return err
+					}
+					reply.Gateways = gatewayServices
+
+					if idx > maxIndex {
+						maxIndex = idx
+					}
 				}
 				reply.Index = maxIndex
-
 				raw, err := filter.Execute(reply.Nodes)
 				if err != nil {
 					return fmt.Errorf("could not filter local service dump: %w", err)
@@ -235,12 +242,13 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 				reply.Nodes = raw.(structs.CheckServiceNodes)
 			}
 
-			importedRaw, err := filter.Execute(reply.ImportedNodes)
-			if err != nil {
-				return fmt.Errorf("could not filter peer service dump: %w", err)
+			if !args.NodesOnly {
+				importedRaw, err := filter.Execute(reply.ImportedNodes)
+				if err != nil {
+					return fmt.Errorf("could not filter peer service dump: %w", err)
+				}
+				reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
 			}
-			reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
-
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
 			// results that would be filtered out even if the user did have permission.
@@ -298,7 +306,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultAllow := authz.IntentionDefaultAllow(nil)
+			defaultAllow := DefaultIntentionAllow(authz, m.srv.config.DefaultIntentionPolicy)
 
 			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, args.ServiceKind, defaultAllow, &args.EnterpriseMeta)
 			if err != nil {
@@ -367,10 +375,10 @@ func (m *Internal) internalUpstreams(args *structs.ServiceSpecificRequest, reply
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultDecision := authz.IntentionDefaultAllow(nil)
+			defaultAllow := DefaultIntentionAllow(authz, m.srv.config.DefaultIntentionPolicy)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
-			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision, intentionTarget)
+			index, services, err := state.IntentionTopology(ws, sn, false, defaultAllow, intentionTarget)
 			if err != nil {
 				return err
 			}
@@ -619,8 +627,7 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		return err
 	}
 
-	var authzCtx acl.AuthorizerContext
-	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return err
 	}
@@ -739,6 +746,55 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 		})
 }
 
+// AssignManualServiceVIPs allows for assigning virtual IPs to a service manually, so that they can
+// be returned along with discovery chain information for use by transparent proxies.
+func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPsRequest, reply *structs.AssignServiceManualVIPsResponse) error {
+	if done, err := m.srv.ForwardRPC("Internal.AssignManualServiceVIPs", args, reply); done {
+		return err
+	}
+
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	if err != nil {
+		return err
+	}
+	if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzCtx); err != nil {
+		return err
+	}
+
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
+	if len(args.ManualVIPs) > MaximumManualVIPsPerService {
+		return fmt.Errorf("cannot associate more than %d manual virtual IPs with the same service", MaximumManualVIPsPerService)
+	}
+
+	for _, ip := range args.ManualVIPs {
+		parsedIP := net.ParseIP(ip)
+		if parsedIP == nil || parsedIP.To4() == nil {
+			return fmt.Errorf("%q is not a valid IPv4 address", parsedIP.String())
+		}
+	}
+
+	req := state.ServiceVirtualIP{
+		Service: structs.PeeredServiceName{
+			ServiceName: structs.NewServiceName(args.Service, &args.EnterpriseMeta),
+		},
+		ManualIPs: args.ManualVIPs,
+	}
+	resp, err := m.srv.raftApplyMsgpack(structs.UpdateVirtualIPRequestType, req)
+	if err != nil {
+		return err
+	}
+	typedResp, ok := resp.(structs.AssignServiceManualVIPsResponse)
+	if !ok {
+		return fmt.Errorf("unexpected type %T for AssignManualServiceVIPs", resp)
+	}
+	*reply = typedResp
+	return nil
+}
+
 // EventFire is a bit of an odd endpoint, but it allows for a cross-DC RPC
 // call to fire an event. The primary use case is to enable user events being
 // triggered in a remote DC.
@@ -756,12 +812,12 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 
 	if err := authz.ToAllowAuthorizer().EventWriteAllowed(args.Name, nil); err != nil {
 		accessorID := authz.AccessorID()
-		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
+		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return err
 	}
 
 	// Set the query meta data
-	m.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	m.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)

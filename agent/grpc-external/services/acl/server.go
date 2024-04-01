@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package acl
 
 import (
@@ -50,8 +53,8 @@ func NewServer(cfg Config) *Server {
 	return &Server{cfg}
 }
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbacl.RegisterACLServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbacl.RegisterACLServiceServer(registrar, s)
 }
 
 func (s *Server) requireACLsEnabled(logger hclog.Logger) error {

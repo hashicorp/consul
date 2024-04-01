@@ -1,11 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build linux
-// +build linux
 
 package freeport
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"regexp"
 	"strconv"
 )
@@ -15,7 +17,7 @@ const ephemeralPortRangeProcFile = "/proc/sys/net/ipv4/ip_local_port_range"
 var ephemeralPortRangePatt = regexp.MustCompile(`^\s*(\d+)\s+(\d+)\s*$`)
 
 func getEphemeralPortRange() (int, int, error) {
-	out, err := ioutil.ReadFile(ephemeralPortRangeProcFile)
+	out, err := os.ReadFile(ephemeralPortRangeProcFile)
 	if err != nil {
 		return 0, 0, err
 	}

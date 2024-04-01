@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -14,8 +17,10 @@ func TestAPI_ConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		// Don't bootstrap CA
-		c.Connect = nil
+		// Explicitly disable Connect to prevent CA being bootstrapped
+		c.Connect = map[string]interface{}{
+			"enabled": false,
+		}
 	})
 	defer s.Stop()
 

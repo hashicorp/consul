@@ -1,7 +1,9 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package watch
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,7 +60,7 @@ func TestWatchCommand_loadToken(t *testing.T) {
 	testDir := testutil.TempDir(t, "watchtest")
 
 	fullname := filepath.Join(testDir, "token.txt")
-	require.NoError(t, ioutil.WriteFile(fullname, []byte(testToken), 0600))
+	require.NoError(t, os.WriteFile(fullname, []byte(testToken), 0600))
 
 	resetEnv := func() {
 		os.Unsetenv("CONSUL_HTTP_TOKEN")

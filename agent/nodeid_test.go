@@ -1,8 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -59,7 +62,7 @@ func TestNewNodeIDFromConfig(t *testing.T) {
 	t.Run("invalid NodeID in file", func(t *testing.T) {
 		cfg.NodeID = ""
 		filename := filepath.Join(cfg.DataDir, "node-id")
-		err := ioutil.WriteFile(filename, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600)
+		err := os.WriteFile(filename, []byte("adf4238a!882b!9ddc!4a9d!5b6758e4159e"), 0600)
 		require.NoError(t, err)
 
 		_, err = newNodeIDFromConfig(cfg, logger)
@@ -70,7 +73,7 @@ func TestNewNodeIDFromConfig(t *testing.T) {
 	t.Run("valid NodeID in file", func(t *testing.T) {
 		cfg.NodeID = ""
 		filename := filepath.Join(cfg.DataDir, "node-id")
-		err := ioutil.WriteFile(filename, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600)
+		err := os.WriteFile(filename, []byte("ADF4238a-882b-9ddc-4a9d-5b6758e4159e"), 0600)
 		require.NoError(t, err)
 
 		nodeID, err := newNodeIDFromConfig(cfg, logger)

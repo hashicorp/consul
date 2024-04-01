@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package watch
 
 import (
@@ -13,8 +16,9 @@ import (
 )
 
 var (
-	ErrorNotFound   = errors.New("no data found for query")
-	ErrorNotChanged = errors.New("data did not change for query")
+	ErrorNotFound     = errors.New("no data found for query")
+	ErrorNotChanged   = errors.New("data did not change for query")
+	ErrorACLResetData = errors.New("an acl update forced a state reset")
 
 	errNilContext  = errors.New("cannot call ServerLocalNotify with a nil context")
 	errNilGetStore = errors.New("cannot call ServerLocalNotify without a callback to get a StateStore")
@@ -54,33 +58,33 @@ func noopDone() {}
 // ServerLocalBlockingQuery performs a blocking query similar to the pre-existing blockingQuery
 // method on the agent/consul.Server type. There are a few key differences.
 //
-// 1. This function makes use of Go 1.18 generics. The function is parameterized with two
-//    types. The first is the ResultType which can be anything. Having this be parameterized
-//    instead of using interface{} allows us to simplify the call sites so that no type
-//    coercion from interface{} to the real type is necessary. The second parameterized type
-//    is something that VERY loosely resembles a agent/consul/state.Store type. The StateStore
-//    interface in this package has a single method to get the stores abandon channel so we
-//    know when a snapshot restore is occurring and can act accordingly. We could have not
-//    parameterized this type and used a real *state.Store instead but then we would have
-//    concrete dependencies on the state package and it would make it a little harder to
-//    test this function.
+//  1. This function makes use of Go 1.18 generics. The function is parameterized with two
+//     types. The first is the ResultType which can be anything. Having this be parameterized
+//     instead of using interface{} allows us to simplify the call sites so that no type
+//     coercion from interface{} to the real type is necessary. The second parameterized type
+//     is something that VERY loosely resembles a agent/consul/state.Store type. The StateStore
+//     interface in this package has a single method to get the stores abandon channel so we
+//     know when a snapshot restore is occurring and can act accordingly. We could have not
+//     parameterized this type and used a real *state.Store instead but then we would have
+//     concrete dependencies on the state package and it would make it a little harder to
+//     test this function.
 //
-//    We could have also avoided the need to use a ResultType parameter by taking the route
-//    the original blockingQuery method did and to just assume all callers close around
-//    a pointer to their results and can modify it as necessary. That way of doing things
-//    feels a little gross so I have taken this one a different direction. The old way
-//    also gets especially gross with how we have to push concerns of spurious wakeup
-//    suppression down into every call site.
+//     We could have also avoided the need to use a ResultType parameter by taking the route
+//     the original blockingQuery method did and to just assume all callers close around
+//     a pointer to their results and can modify it as necessary. That way of doing things
+//     feels a little gross so I have taken this one a different direction. The old way
+//     also gets especially gross with how we have to push concerns of spurious wakeup
+//     suppression down into every call site.
 //
-// 2. This method has no internal timeout and can potentially run forever until a state
-//    change is observed. If there is a desire to have a timeout, that should be built into
-//    the context.Context passed as the first argument.
+//  2. This method has no internal timeout and can potentially run forever until a state
+//     change is observed. If there is a desire to have a timeout, that should be built into
+//     the context.Context passed as the first argument.
 //
-// 3. This method bakes in some newer functionality around hashing of results to prevent sending
-//    back data when nothing has actually changed. With the old blockingQuery method this has to
-//    be done within the closure passed to the method which means the same bit of code is duplicated
-//    in many places. As this functionality isn't necessary in many scenarios whether to opt-in to
-//    that behavior is a argument to this function.
+//  3. This method bakes in some newer functionality around hashing of results to prevent sending
+//     back data when nothing has actually changed. With the old blockingQuery method this has to
+//     be done within the closure passed to the method which means the same bit of code is duplicated
+//     in many places. As this functionality isn't necessary in many scenarios whether to opt-in to
+//     that behavior is a argument to this function.
 //
 // Similar to the older method:
 //
@@ -88,21 +92,20 @@ func noopDone() {}
 //
 // The query function must follow these rules:
 //
-//   1. To access data it must use the passed in StoreType (which will be a state.Store when
-//      everything gets stiched together outside of unit tests).
-//   2. It must return an index greater than the minIndex if the results returned by the query
-//      have changed.
-//   3. Any channels added to the memdb.WatchSet must unblock when the results
-//      returned by the query have changed.
+//  1. To access data it must use the passed in StoreType (which will be a state.Store when
+//     everything gets stiched together outside of unit tests).
+//  2. It must return an index greater than the minIndex if the results returned by the query
+//     have changed.
+//  3. Any channels added to the memdb.WatchSet must unblock when the results
+//     returned by the query have changed.
 //
 // To ensure optimal performance of the query, the query function should make a
 // best-effort attempt to follow these guidelines:
 //
-//   1. Only return an index greater than the minIndex.
-//   2. Any channels added to the memdb.WatchSet should only unblock when the
-//      results returned by the query have changed. This might be difficult
-//      to do when blocking on non-existent data.
-//
+//  1. Only return an index greater than the minIndex.
+//  2. Any channels added to the memdb.WatchSet should only unblock when the
+//     results returned by the query have changed. This might be difficult
+//     to do when blocking on non-existent data.
 func ServerLocalBlockingQuery[ResultType any, StoreType StateStore](
 	ctx context.Context,
 	getStore func() StoreType,
@@ -318,8 +321,15 @@ func serverLocalNotifyRoutine[ResultType any, StoreType StateStore](
 			return
 		}
 
+		// An ACL reset error can be raised so that the index greater-than check is
+		// bypassed. We should not propagate it to the caller.
+		forceReset := errors.Is(err, ErrorACLResetData)
+		if forceReset {
+			err = nil
+		}
+
 		// Check the index to see if we should call notify
-		if minIndex == 0 || minIndex < index {
+		if minIndex == 0 || minIndex < index || forceReset {
 			notify(ctx, correlationID, result, err)
 			minIndex = index
 		}

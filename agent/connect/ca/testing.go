@@ -1,17 +1,22 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package ca
 
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -27,11 +32,7 @@ import (
 //     these types of old CA key.
 //   - SignIntermediate muse bt able to sign all the types of secondary
 //     intermediate CA key with all these types of primary CA key
-var KeyTestCases = []struct {
-	Desc    string
-	KeyType string
-	KeyBits int
-}{
+var KeyTestCases = []KeyTestCase{
 	{
 		Desc:    "Default Key Type (EC 256)",
 		KeyType: connect.DefaultPrivateKeyType,
@@ -44,6 +45,12 @@ var KeyTestCases = []struct {
 	},
 }
 
+type KeyTestCase struct {
+	Desc    string
+	KeyType string
+	KeyBits int
+}
+
 // CASigningKeyTypes is a struct with params for tests that sign one CA CSR with
 // another CA key.
 type CASigningKeyTypes struct {
@@ -52,6 +59,10 @@ type CASigningKeyTypes struct {
 	SigningKeyBits int
 	CSRKeyType     string
 	CSRKeyBits     int
+}
+
+type vaultRequirements struct {
+	Enterprise bool
 }
 
 // CASigningKeyTypeCases returns the cross-product of the important supported CA
@@ -77,7 +88,7 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 // TestConsulProvider creates a new ConsulProvider, taking care to stub out it's
 // Logger so that logging calls don't panic. If logging output is important
 func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
-	logger := hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
+	logger := hclog.New(&hclog.LoggerOptions{Output: io.Discard})
 	provider := &ConsulProvider{Delegate: d, logger: logger}
 	return provider
 }
@@ -86,7 +97,7 @@ func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvi
 //
 // These tests may be skipped in CI. They are run as part of a separate
 // integration test suite.
-func SkipIfVaultNotPresent(t testing.T) {
+func SkipIfVaultNotPresent(t testing.T, reqs ...vaultRequirements) {
 	// Try to safeguard against tests that will never run in CI.
 	// This substring should match the pattern used by the
 	// test-connect-ca-providers CI job.
@@ -103,20 +114,19 @@ func SkipIfVaultNotPresent(t testing.T) {
 	if err != nil || path == "" {
 		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
 	}
-}
 
-func NewTestVaultServer(t testing.T) *TestVaultServer {
-	testVault, err := runTestVault(t)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	// Check for any additional Vault requirements.
+	for _, r := range reqs {
+		if r.Enterprise {
+			ver := vaultVersion(t, vaultBinaryName)
+			if !strings.Contains(ver, "+ent") {
+				t.Skipf("%q is not a Vault Enterprise version", ver)
+			}
+		}
 	}
-
-	testVault.WaitUntilReady(t)
-
-	return testVault
 }
 
-func runTestVault(t testing.T) (*TestVaultServer, error) {
+func NewTestVaultServer(t retry.TestingTB) *TestVaultServer {
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
 		vaultBinaryName = "vault"
@@ -124,7 +134,7 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 
 	path, err := exec.LookPath(vaultBinaryName)
 	if err != nil || path == "" {
-		return nil, fmt.Errorf("%q not found on $PATH", vaultBinaryName)
+		t.Fatalf("%q not found on $PATH", vaultBinaryName)
 	}
 
 	ports := freeport.GetN(t, 2)
@@ -138,9 +148,7 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 	client, err := vaultapi.NewClient(&vaultapi.Config{
 		Address: "http://" + clientAddr,
 	})
-	if err != nil {
-		return nil, err
-	}
+	require.NoError(t, err)
 	client.SetToken(token)
 
 	args := []string{
@@ -152,14 +160,18 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 		clientAddr,
 		"-address",
 		clusterAddr,
+		// We pass '-dev-no-store-token' to avoid having multiple vaults oddly
+		// interact and fail like this:
+		//
+		//   Error initializing Dev mode: rename /.vault-token.tmp /.vault-token: no such file or directory
+		//
+		"-dev-no-store-token",
 	}
 
 	cmd := exec.Command(vaultBinaryName, args...)
-	cmd.Stdout = ioutil.Discard
-	cmd.Stderr = ioutil.Discard
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
+	require.NoError(t, cmd.Start())
 
 	testVault := &TestVaultServer{
 		RootToken: token,
@@ -173,7 +185,9 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 		}
 	})
 
-	return testVault, nil
+	testVault.WaitUntilReady(t)
+
+	return testVault
 }
 
 type TestVaultServer struct {
@@ -184,12 +198,13 @@ type TestVaultServer struct {
 }
 
 var printedVaultVersion sync.Once
+var vaultTestVersion string
 
 func (v *TestVaultServer) Client() *vaultapi.Client {
 	return v.client
 }
 
-func (v *TestVaultServer) WaitUntilReady(t testing.T) {
+func (v *TestVaultServer) WaitUntilReady(t retry.TestingTB) {
 	var version string
 	retry.Run(t, func(r *retry.R) {
 		resp, err := v.client.Sys().Health()
@@ -205,6 +220,7 @@ func (v *TestVaultServer) WaitUntilReady(t testing.T) {
 		version = resp.Version
 	})
 	printedVaultVersion.Do(func() {
+		vaultTestVersion = version
 		fmt.Fprintf(os.Stderr, "[INFO] agent/connect/ca: testing with vault server version: %s\n", version)
 	})
 }
@@ -224,6 +240,9 @@ func (v *TestVaultServer) Stop() error {
 	// wait for the process to exit to be sure that the data dir can be
 	// deleted on all platforms.
 	if err := v.cmd.Wait(); err != nil {
+		if strings.Contains(err.Error(), "exec: Wait was already called") {
+			return nil
+		}
 		return err
 	}
 	return nil
@@ -234,7 +253,138 @@ func requireTrailingNewline(t testing.T, leafPEM string) {
 	if len(leafPEM) == 0 {
 		t.Fatalf("cert is empty")
 	}
-	if '\n' != rune(leafPEM[len(leafPEM)-1]) {
-		t.Fatalf("cert do not end with a new line")
+	if rune(leafPEM[len(leafPEM)-1]) != '\n' {
+		t.Fatalf("cert does not end with a new line")
 	}
+}
+
+// The zero value implies unprivileged.
+type VaultTokenAttributes struct {
+	RootPath, IntermediatePath string
+
+	ConsulManaged bool
+	VaultManaged  bool
+	WithSudo      bool
+
+	CustomRules string
+}
+
+func (a *VaultTokenAttributes) DisplayName() string {
+	switch {
+	case a == nil:
+		return "unprivileged"
+	case a.CustomRules != "":
+		return "custom"
+	case a.ConsulManaged:
+		return "consul-managed"
+	case a.VaultManaged:
+		return "vault-managed"
+	default:
+		return "unprivileged"
+	}
+}
+
+func (a *VaultTokenAttributes) Rules(t testing.T) string {
+	switch {
+	case a == nil:
+		return ""
+
+	case a.CustomRules != "":
+		return a.CustomRules
+
+	case a.RootPath == "":
+		t.Fatal("missing required RootPath")
+		return "" // dead code
+
+	case a.IntermediatePath == "":
+		t.Fatal("missing required IntermediatePath")
+		return "" // dead code
+
+	case a.ConsulManaged:
+		// Consul Managed PKI Mounts
+		rules := fmt.Sprintf(`
+path "sys/mounts" {
+  capabilities = [ "read" ]
+}
+
+path "sys/mounts/%[1]s" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "sys/mounts/%[2]s" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+# Needed for Consul 1.11+
+path "sys/mounts/%[2]s/tune" {
+  capabilities = [ "update" ]
+}
+
+# vault token renewal
+path "auth/token/renew-self" {
+  capabilities = [ "update" ]
+}
+path "auth/token/lookup-self" {
+  capabilities = [ "read" ]
+}
+
+path "%[1]s/*" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+
+path "%[2]s/*" {
+  capabilities = [ "create", "read", "update", "delete", "list" ]
+}
+`, a.RootPath, a.IntermediatePath)
+
+		if a.WithSudo {
+			rules += fmt.Sprintf(`
+
+path "%[1]s/root/sign-self-issued" {
+  capabilities = [ "sudo", "update" ]
+}
+`, a.RootPath)
+		}
+
+		return rules
+
+	case a.VaultManaged:
+		// Vault-managed PKI root.
+		t.Fatal("TODO: implement this and use it in tests")
+		return ""
+
+	default:
+		// zero value
+		return ""
+	}
+}
+
+func CreateVaultTokenWithAttrs(t testing.T, client *vaultapi.Client, attr *VaultTokenAttributes) string {
+	policyName, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	rules := attr.Rules(t)
+
+	token := createVaultTokenAndPolicy(t, client, policyName, rules)
+	// t.Logf("created vault token with scope %q: %s", attr.DisplayName(), token)
+	return token
+}
+
+func createVaultTokenAndPolicy(t testing.T, client *vaultapi.Client, policyName, policyRules string) string {
+	require.NoError(t, client.Sys().PutPolicy(policyName, policyRules))
+
+	renew := true
+	tok, err := client.Auth().Token().Create(&vaultapi.TokenCreateRequest{
+		Policies:  []string{policyName},
+		Renewable: &renew,
+	})
+	require.NoError(t, err)
+	return tok.Auth.ClientToken
+}
+
+func vaultVersion(t testing.T, vaultBinaryName string) string {
+	cmd := exec.Command(vaultBinaryName, []string{"version"}...)
+	output, err := cmd.Output()
+	require.NoError(t, err)
+	return string(output[:len(output)-1])
 }

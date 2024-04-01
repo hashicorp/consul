@@ -1,0 +1,3 @@
+```release-note:feature
+Support custom watches on the Consul Controller framework.
+```

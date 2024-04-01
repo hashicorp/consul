@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 export default (submitable, cancelable, radiogroup, text) =>
   (scope = '[data-test-policy-form]') => {
     return {

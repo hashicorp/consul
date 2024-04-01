@@ -1,48 +1,50 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "9191",
+      "validateClusters": true,
       "virtualHosts": [
         {
-          "name": "web",
           "domains": [
             "web.ingress.*",
             "web.ingress.*:9191"
           ],
+          "name": "web",
           "routes": [
             {
               "match": {
                 "prefix": "/"
               },
               "route": {
-                "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "timeout": "22s"
               }
             }
           ]
         },
         {
-          "name": "foo",
           "domains": [
             "foo.ingress.*",
             "foo.ingress.*:9191"
           ],
+          "name": "foo",
           "routes": [
             {
               "match": {
                 "prefix": "/"
               },
               "route": {
-                "cluster": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                "cluster": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "timeout": "22s"
               }
             }
           ]
         }
-      ],
-      "validateClusters": true
+      ]
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package testrpc
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-type rpcFn func(string, interface{}, interface{}) error
+type rpcFn func(context.Context, string, interface{}, interface{}) error
 
 // WaitForLeader ensures we have a leader and a node registration. It
 // does not wait for the Consul (node) service to be ready. Use `WaitForTestAgent`
@@ -31,7 +35,7 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 			Datacenter:   dc,
 			QueryOptions: structs.QueryOptions{Token: flat.Token},
 		}
-		if err := rpc("Catalog.ListNodes", args, &out); err != nil {
+		if err := rpc(context.Background(), "Catalog.ListNodes", args, &out); err != nil {
 			r.Fatalf("Catalog.ListNodes failed: %v", err)
 		}
 		if !out.QueryMeta.KnownLeader {
@@ -40,6 +44,37 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 		if out.Index < 2 {
 			r.Fatalf("Consul index should be at least 2 in %s", dc)
 		}
+	})
+}
+
+// WaitForRaftLeader is a V2-compatible version of WaitForLeader.
+// Unlike WaitForLeader, it requires a token with operator:read access.
+func WaitForRaftLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
+	t.Helper()
+
+	flat := flattenOptions(options)
+	if flat.WaitForAntiEntropySync {
+		t.Fatalf("WaitForRaftLeader doesn't accept the WaitForAntiEntropySync option")
+	}
+
+	var out structs.RaftConfigurationResponse
+	retry.Run(t, func(r *retry.R) {
+		args := &structs.DCSpecificRequest{
+			Datacenter:   dc,
+			QueryOptions: structs.QueryOptions{Token: flat.Token},
+		}
+		if err := rpc(context.Background(), "Operator.RaftGetConfiguration", args, &out); err != nil {
+			r.Fatalf("Operator.RaftGetConfiguration failed: %v", err)
+		}
+		// Don't check the Raft index. With other things are going on in V2 the assumption the index >= 2 is
+		// no longer valid.
+
+		for _, server := range out.Servers {
+			if server.Leader {
+				return
+			}
+		}
+		r.Fatalf("No leader")
 	})
 }
 
@@ -58,7 +93,7 @@ func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption
 			Datacenter:   dc,
 			QueryOptions: structs.QueryOptions{Token: flat.Token},
 		}
-		if err := rpc("Catalog.ListNodes", args, &out); err == nil {
+		if err := rpc(context.Background(), "Catalog.ListNodes", args, &out); err == nil {
 			r.Fatalf("It still has a leader: %#v", out)
 		}
 		if out.QueryMeta.KnownLeader {
@@ -104,11 +139,12 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 	var checks structs.IndexedHealthChecks
 
 	retry.Run(t, func(r *retry.R) {
+		r.Helper()
 		dcReq := &structs.DCSpecificRequest{
 			Datacenter:   dc,
 			QueryOptions: structs.QueryOptions{Token: flat.Token},
 		}
-		if err := rpc("Catalog.ListNodes", dcReq, &nodes); err != nil {
+		if err := rpc(context.Background(), "Catalog.ListNodes", dcReq, &nodes); err != nil {
 			r.Fatalf("Catalog.ListNodes failed: %v", err)
 		}
 		if len(nodes.Nodes) == 0 {
@@ -127,7 +163,7 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 			Node:         nodes.Nodes[0].Node,
 			QueryOptions: structs.QueryOptions{Token: flat.Token},
 		}
-		if err := rpc("Health.NodeChecks", nodeReq, &checks); err != nil {
+		if err := rpc(context.Background(), "Health.NodeChecks", nodeReq, &checks); err != nil {
 			r.Fatalf("Health.NodeChecks failed: %v", err)
 		}
 
@@ -156,7 +192,7 @@ func WaitForActiveCARoot(t *testing.T, rpc rpcFn, dc string, expect *structs.CAR
 			Datacenter: dc,
 		}
 		var reply structs.IndexedCARoots
-		if err := rpc("ConnectCA.Roots", args, &reply); err != nil {
+		if err := rpc(context.Background(), "ConnectCA.Roots", args, &reply); err != nil {
 			r.Fatalf("err: %v", err)
 		}
 
@@ -185,7 +221,7 @@ func WaitForServiceIntentions(t *testing.T, rpc rpcFn, dc string) {
 			},
 		}
 		var ignored structs.ConfigEntryDeleteResponse
-		if err := rpc("ConfigEntry.Delete", args, &ignored); err != nil {
+		if err := rpc(context.Background(), "ConfigEntry.Delete", args, &ignored); err != nil {
 			r.Fatalf("err: %v", err)
 		}
 	})
@@ -198,7 +234,7 @@ func WaitForACLReplication(t *testing.T, rpc rpcFn, dc string, expectedReplicati
 		}
 		var reply structs.ACLReplicationStatus
 
-		require.NoError(r, rpc("ACL.ReplicationStatus", &args, &reply))
+		require.NoError(r, rpc(context.Background(), "ACL.ReplicationStatus", &args, &reply))
 
 		require.Equal(r, expectedReplicationType, reply.ReplicationType)
 		require.True(r, reply.Running, "Server not running new replicator yet")

@@ -12,15 +12,15 @@ description: >-
 
 This guide explains how to best upgrade a multi-datacenter Consul deployment that is using
 a version of Consul >= 1.2.4 and < 1.6.10 while maintaining replication. If you are on a version
-older than 1.2.4, please review our [Upgrading to 1.2.4](/docs/upgrading/instructions/upgrade-to-1-2-x)
+older than 1.2.4, please review our [Upgrading to 1.2.4](/consul/docs/upgrading/instructions/upgrade-to-1-2-x)
 guide. Due to changes to the ACL system, an ACL token migration will need to be performed
 as part of this upgrade. The 1.6.x series is the last series that had support for legacy
 ACL tokens, so this migration _must_ happen before upgrading past the 1.6.x release series.
 Here is some documentation that may prove useful for reference during this upgrade process:
 
-- [ACL System in Legacy Mode](/docs/security/acl/acl-legacy) - You can find
-  information about legacy configuration options and differences between modes here.
-- [Configuration](/docs/agent/config) - You can find more details
+- [Upgrading Legacy ACL tokens](/consul/tutorials/security-operations/access-control-token-migration) - You can find
+  information about upgrading legacy ACL tokens and differences between modes here.
+- [Configuration](/consul/docs/agent/config) - You can find more details
   around legacy ACL and new ACL configuration options here. Legacy ACL config options
   will be listed as deprecates as of 1.4.0.
 
@@ -44,14 +44,14 @@ This guide makes the following assumptions:
 ## Considerations
 
 There are quite a number of changes between releases. Notable changes
-are called out in our [Specific Version Details](/docs/upgrading/upgrade-specific#consul-1-6-3)
+are called out in our [Specific Version Details](/consul/docs/upgrading/upgrade-specific#consul-1-6-3)
 page. You can find more granular details in the full [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md#124-november-27-2018).
 Looking through these changes prior to upgrading is highly recommended.
 
 Two very notable items are:
 
 - 1.6.2 introduced more strict JSON decoding. Invalid JSON that was previously ignored might result in errors now (e.g., `Connect: null` in service definitions). See [[GH#6680](https://github.com/hashicorp/consul/pull/6680)].
-- 1.6.3 introduced the [http_max_conns_per_client](/docs/agent/config/config-files#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
+- 1.6.3 introduced the [http_max_conns_per_client](/consul/docs/agent/config/config-files#http_max_conns_per_client) limit. This defaults to 200. Prior to this, connections per client were unbounded. [[GH#7159](https://github.com/hashicorp/consul/issues/7159)]
 
 ## Procedure
 
@@ -98,7 +98,7 @@ You should receive output similar to this:
 }
 ```
 
-**3.** Upgrade DC2 agents to version 1.6.10 by following our [General Upgrade Process](/docs/upgrading/instructions/general-process). _**Leave all DC1 agents at 1.2.4.**_ You should start observing log messages like this after that:
+**3.** Upgrade DC2 agents to version 1.6.10 by following our [General Upgrade Process](/consul/docs/upgrading/instructions/general-process). _**Leave all DC1 agents at 1.2.4.**_ You should start observing log messages like this after that:
 
 ```log
 2020/09/08 15:51:29 [DEBUG] acl: Cannot upgrade to new ACLs, servers in acl datacenter have not upgraded - found servers: true, mode: 3
@@ -158,7 +158,7 @@ Failed to retrieve the token list: Unexpected response code: 500 (The ACL system
 
 This is because Consul in legacy mode. ACL CLI commands will not work and you have to hit the old ACL HTTP endpoints (which is why `curl` is being used above rather than the `consul` CLI client).
 
-**5.** Upgrade DC1 agents to version 1.6.10 by following our [General Upgrade Process](/docs/upgrading/instructions/general-process).
+**5.** Upgrade DC1 agents to version 1.6.10 by following our [General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
 
 Once this is complete, you should observe a log entry like this from your server agents:
 
@@ -189,7 +189,7 @@ You should receive output similar to this:
 }
 ```
 
-**6.** Migrate your legacy ACL tokens to the new ACL system by following the instructions in our [ACL Token Migration guide](/docs/security/acl/acl-migrate-tokens).
+**6.** Migrate your legacy ACL tokens to the new ACL system.
 
 ~> This step _must_ be completed before upgrading to a version higher than 1.6.x.
 
@@ -202,8 +202,8 @@ update those now to avoid issues when moving to newer versions.
 
 These are the changes you will need to make:
 
-- `acl_datacenter` is now named `primary_datacenter` (review our [docs](/docs/agent/config/config-files#primary_datacenter) for more info)
-- `acl_default_policy`, `acl_down_policy`, `acl_ttl`, `acl_*_token` and `enable_acl_replication` options are now specified like this (review our [docs](/docs/agent/config/config-files#acl) for more info):
+- `acl_datacenter` is now named `primary_datacenter` (review our [docs](/consul/docs/agent/config/config-files#primary_datacenter) for more info)
+- `acl_default_policy`, `acl_down_policy`, `acl_ttl`, `acl_*_token` and `enable_acl_replication` options are now specified like this (review our [docs](/consul/docs/agent/config/config-files#acl) for more info):
   ```hcl
   acl {
     enabled                  = true/false

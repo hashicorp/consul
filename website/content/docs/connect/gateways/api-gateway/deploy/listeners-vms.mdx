@@ -1,0 +1,113 @@
+---
+layout: docs
+page_title: Deploy API gateway listeners to virtual machines
+description: Learn how to configure and Consul API gateways and gateway listeners on virtual machines so that you can enable ingress requests to services in your service mesh in VM environments.
+---
+
+# Deploy API gateway listeners to virtual machines
+
+This topic describes how to deploy Consul API gateway listeners to networks that operate in virtual machine (VM) environments. If you want to implement API gateway listeners in a Kubernetes environment, refer to [Deploy API gateway listeners to Kubernetes](/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s).
+
+## Overview
+
+API gateways have one or more listeners that serve as ingress points for requests to services in a Consul service mesh. Create an [API gateway configuration entry](/consul/docs/connect/config-entries/api-gateway) and define listeners that expose ports on the endpoint for ingress.
+
+The following steps describe the general workflow for deploying a Consul API gateway to a VM environment:
+
+1. Create an API gateway configuration entry. The configuration entry includes listener configurations and references to TLS certificates.
+1. Deploy the API gateway configuration entry to create the listeners.
+
+### Encryption
+
+To encrypt traffic between the external client and the service that the API gateway routes traffic to, define an inline certificate configuration and attach it to your listeners. Refer to [Encrypt API gateway traffic on virtual machines](/consul/docs/connect/gateways/api-gateway/secure-traffic/encrypt-vms) for additional information.
+
+### Routes
+
+After deploying the gateway, attach [HTTP](/consul/docs/connect/config-entries/http-route) routes and [TCP](/consul/docs/connect/config-entries/tcp-route) routes to listeners defined in the gateway to control how requests route to services in the network. Refer to [Define API gateway routes on VMs](/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms) for additional information.
+
+## Requirements
+
+The following requirements must be satisfied to use API gateways on VMs:
+
+- Consul 1.15 or later
+- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
+- Network connectivity between the machine deploying the API Gateway and a
+  Consul cluster agent or server
+
+### ACL requirements
+
+If ACLs are enabled, you must present a token with the following permissions to
+configure Consul and deploy API gateways:
+
+- `mesh: read`
+- `mesh: write`
+
+Refer to [Mesh Rules](/consul/docs/security/acl/acl-rules#mesh-rules) for
+additional information about configuring policies that enable you to interact
+with Consul API gateway configurations.
+
+## Define the gateway and listeners
+
+Create an API gateway configuration entry that defines listeners and TLS certificates
+in the mesh.
+
+1. Specify the following fields:
+	- `Kind`: Specifies the type of configuration entry to implement. This must be `api-gateway`. 
+  	- `Name`:  Specify a name for the gateway configuration. The name is metadata that you can use to reference the configuration entry when performing Consul operations.
+	- `Listeners`: Specify a list of listener configurations. Each listener is map containing the following fields:
+    	- `Port`: Specifies the port that the listener receives traffic on.
+		- `Name`: Specifies a unique name for the listener.
+		- `Protocol`: You can set either `tcp` or `http`
+		- `TLS`: Defines TLS encryption configurations for the listener. 
+
+	Refer to the [API gateway configuration entry reference](/consul/docs/connect/config-entries/api-gateway) for details on how to define fields in the `Listeners` block. 
+1. Configure any additional fields necessary for your use case, such as the namespace or admin partition. Refer to the [API gateway configuration entry reference](/consul/docs/connect/config-entries/api-gateway) for additional information.
+1. Save the configuration.
+
+In the following example, the API gateway specifies an HTTP listener on port `8443`. It also requires an inline-certificate configuration entry named `my-certificate` that contains a valid certificate and private key pair:
+
+```hcl
+Kind = "api-gateway"
+Name = "my-gateway"
+
+// Each listener configures a port which can be used to access the Consul cluster
+Listeners = [
+	{
+		Port = 8443
+		Name = "my-http-listener"
+		Protocol = "http"
+		TLS = {
+			Certificates = [
+				{
+					Kind = "inline-certificate"
+					Name = "my-certificate"
+				}
+			]
+		}
+	}
+]
+```
+
+Refer to [API Gateway Configuration Reference](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway) for
+information about all configuration fields.
+
+Gateways and routes are eventually-consistent objects that provide feedback
+about their current state through a series of status conditions. As a result,
+you must manually check the route status to determine if the route
+bound to the gateway successfully.
+
+## Deploy the API gateway and listeners
+
+Use the `consul config write` command to implement the API gateway configuration entry. The following command applies the configuration entry for the main gateway object:
+
+```shell-session
+$ consul config write gateways.hcl
+```
+
+Run the following command to deploy an API gateway instance:
+
+```shell-session
+$ consul connect envoy -gateway api -register -service my-api-gateway
+```
+
+The command directs Consul to configure Envoy as an API gateway. Gateways and routes are eventually-consistent objects that provide feedback about their current state through a series of status conditions. As a result, you must manually check the route status to determine if the route successfully bound to the gateway successfully.

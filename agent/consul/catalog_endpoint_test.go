@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -3184,33 +3187,36 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceName("api", nil),
-				Gateway:     structs.NewServiceName("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				CAFile:      "api/ca.crt",
-				CertFile:    "api/client.crt",
-				KeyFile:     "api/client.key",
-				SNI:         "my-domain",
-				ServiceKind: structs.GatewayServiceKindService,
+				Service:         structs.NewServiceName("api", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				CAFile:          "api/ca.crt",
+				CertFile:        "api/client.crt",
+				KeyFile:         "api/client.key",
+				SNI:             "my-domain",
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
-				Service:     structs.NewServiceName("db", nil),
-				Gateway:     structs.NewServiceName("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				CAFile:      "",
-				CertFile:    "",
-				KeyFile:     "",
-				ServiceKind: structs.GatewayServiceKindService,
+				Service:         structs.NewServiceName("db", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				CAFile:          "",
+				CertFile:        "",
+				KeyFile:         "",
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
-				Service:      structs.NewServiceName("redis", nil),
-				Gateway:      structs.NewServiceName("gateway", nil),
-				GatewayKind:  structs.ServiceKindTerminatingGateway,
-				CAFile:       "ca.crt",
-				CertFile:     "client.crt",
-				KeyFile:      "client.key",
-				SNI:          "my-alt-domain",
-				FromWildcard: true,
+				Service:         structs.NewServiceName("redis", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				CAFile:          "ca.crt",
+				CertFile:        "client.crt",
+				KeyFile:         "client.key",
+				SNI:             "my-alt-domain",
+				FromWildcard:    true,
+				AutoHostRewrite: true,
 			},
 		}
 
@@ -3342,10 +3348,11 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceName("api", nil),
-				Gateway:     structs.NewServiceName("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				ServiceKind: structs.GatewayServiceKindService,
+				Service:         structs.NewServiceName("api", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 		}
 
@@ -3565,16 +3572,18 @@ service "gateway" {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceName("db", nil),
-				Gateway:     structs.NewServiceName("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				ServiceKind: structs.GatewayServiceKindService,
+				Service:         structs.NewServiceName("db", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				ServiceKind:     structs.GatewayServiceKindService,
+				AutoHostRewrite: true,
 			},
 			{
-				Service:     structs.NewServiceName("db_replica", nil),
-				Gateway:     structs.NewServiceName("gateway", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				ServiceKind: structs.GatewayServiceKindUnknown,
+				Service:         structs.NewServiceName("db_replica", nil),
+				Gateway:         structs.NewServiceName("gateway", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				ServiceKind:     structs.GatewayServiceKindUnknown,
+				AutoHostRewrite: true,
 			},
 		}
 
@@ -3588,7 +3597,7 @@ service "gateway" {
 
 func TestVetRegisterWithACL(t *testing.T) {
 	appendAuthz := func(t *testing.T, defaultAuthz acl.Authorizer, rules string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(defaultAuthz, []*acl.Policy{policy}, nil)
@@ -3876,10 +3885,10 @@ func TestVetDeregisterWithACL(t *testing.T) {
 
 	// Create a basic node policy.
 	policy, err := acl.NewPolicyFromSource(`
-node "node" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
+    node_prefix "node" {
+      policy = "write"
+    }
+    `, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3892,7 +3901,7 @@ node "node" {
 	service "my-service" {
 	  policy = "write"
 	}
-	`, acl.SyntaxLegacy, nil, nil)
+	`, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}

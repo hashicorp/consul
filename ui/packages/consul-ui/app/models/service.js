@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import Model, { attr, belongsTo } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
@@ -5,7 +10,7 @@ import { fragment } from 'ember-data-model-fragments/attributes';
 import replace, { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
-export const SLUG_KEY = 'Name';
+export const SLUG_KEY = 'Name,PeerName';
 
 export const Collection = class Collection {
   @tracked items;

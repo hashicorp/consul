@@ -20,23 +20,15 @@ load helpers
 }
 
 @test "s1 upstream should be able to connect to s2" {
-  run retry_default curl -s -f -d hello localhost:5000
-
-  echo "OUTPUT: $output"
-
-  [ "$status" == 0 ]
-  [ "$output" == "hello" ]
+  retry_default assert_upstream_message 5000
 }
 
 @test "s1 proxy should be sending metrics to statsd" {
-  run retry_default cat /workdir/primary/statsd/statsd.log
+  run retry_default must_match_in_statsd_logs '^envoy\.' primary  
 
-  echo "METRICS:"
-  echo "$output"
-  echo "COUNT: $(echo "$output" | grep -Ec '^envoy\.')"
+  echo "METRICS: $output"
 
-  [ "$status" == 0 ]
-  [ $(echo $output | grep -Ec '^envoy\.') -gt "0" ]
+  [ "$status" == 0 ]  
 }
 
 @test "s1 proxy should be sending dogstatsd tagged metrics" {

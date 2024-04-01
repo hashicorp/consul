@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -8,17 +11,17 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/dnsutil"
 
 	bexpr "github.com/hashicorp/go-bexpr"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
-	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/template"
-	"github.com/hashicorp/consul/proto/pbautoconf"
-	"github.com/hashicorp/consul/proto/pbconfig"
-	"github.com/hashicorp/consul/proto/pbconnect"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbconfig"
+	"github.com/hashicorp/consul/proto/private/pbconnect"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -57,6 +60,7 @@ type jwtAuthorizer struct {
 // This includes an extra single-quote character not specified in the grammar for safety in case it is later added.
 // https://github.com/hashicorp/go-bexpr/blob/v0.1.11/grammar/grammar.peg#L188-L191
 var invalidSegmentName = regexp.MustCompile("[`'\"\\s]+")
+var InvalidNodeName = invalidSegmentName
 
 func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfigOptions, error) {
 	// perform basic JWT Authorization
@@ -70,13 +74,13 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 	// This is not the cleanest way to prevent this behavior. Ideally, the bexpr would allow us to
 	// inject a variable on the RHS for comparison as well, but it would be a complex change to implement
 	// that would likely break backwards-compatibility in certain circumstances.
-	if dns.InvalidNameRe.MatchString(req.Node) {
+	if InvalidNodeName.MatchString(req.Node) {
 		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "node", req.Node)
 	}
 	if invalidSegmentName.MatchString(req.Segment) {
 		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "segment", req.Segment)
 	}
-	if req.Partition != "" && !dns.IsValidLabel(req.Partition) {
+	if req.Partition != "" && !dnsutil.IsValidLabel(req.Partition) {
 		return AutoConfigOptions{}, fmt.Errorf("Invalid request field. %v = `%v`", "partition", req.Partition)
 	}
 

@@ -8,6 +8,7 @@ Feature: login
     dc: dc-1
     ---
     Then the url should be /dc-1/acls/tokens
+    And I click authMenu on the navigation
     And I click login on the navigation
     And I fill in the auth form with yaml
     ---
@@ -39,13 +40,15 @@ Feature: login
     state: state-123456789/abcdefghijklmnopqrstuvwxyz
     code: code-abcdefghijklmnopqrstuvwxyz/123456789
     ---
+    And I click authMenu on the navigation
     And I click login on the navigation
     And I click "[data-test-tab=tab_sso] button"
+    Then the "[name='partition']" input should have the value "default"
     And I type "partition" into "[name=partition]"
     And I click ".oidc-select button"
     Then a GET request was made to "/v1/internal/ui/oidc-auth-methods?dc=dc-1&ns=@namespace&partition=partition"
     And I click ".okta-oidc-provider"
     Then a POST request was made to "/v1/acl/oidc/auth-url?dc=dc-1&ns=@!namespace&partition=partition"
     And a POST request was made to "/v1/acl/oidc/callback?dc=dc-1&ns=@!namespace&partition=partition"
-    And "[data-notification]" has the "notification-authorize" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class

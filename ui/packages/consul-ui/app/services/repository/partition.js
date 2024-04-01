@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
 import RepositoryService, { softDelete } from 'consul-ui/services/repository';

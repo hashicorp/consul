@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import Component from '@glimmer/component';
 
 export default class ConsulServiceSearchBar extends Component {
@@ -11,6 +16,7 @@ export default class ConsulServiceSearchBar extends Component {
 
   get sortedSources() {
     const sources = this.args.sources || [];
+    sources.unshift(['consul']);
 
     if (sources.includes('consul-api-gateway')) {
       return [...sources.filter((s) => s !== 'consul-api-gateway'), 'consul-api-gateway'];

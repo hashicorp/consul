@@ -1,7 +1,9 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package file
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +15,7 @@ import (
 // tests that it just writes the file properly. I would love to test this
 // better but I'm not sure how. -mitchellh
 func TestWriteAtomic(t *testing.T) {
-	td, err := ioutil.TempDir("", "lib-file")
+	td, err := os.MkdirTemp("", "lib-file")
 	require.NoError(t, err)
 	defer os.RemoveAll(td)
 
@@ -25,7 +27,7 @@ func TestWriteAtomic(t *testing.T) {
 	require.NoError(t, WriteAtomic(path, expected))
 
 	// Read and verify
-	actual, err := ioutil.ReadFile(path)
+	actual, err := os.ReadFile(path)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
 }

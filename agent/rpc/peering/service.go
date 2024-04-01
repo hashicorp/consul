@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peering
 
 import (
@@ -9,7 +12,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -17,18 +19,21 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
 
 var (
@@ -41,10 +46,10 @@ var (
 const (
 	// meshGatewayWait is the initial wait on calls to exchange a secret with a peer when dialing through a gateway.
 	// This wait provides some time for the first gateway address to configure a route to the peer servers.
-	// Why 350ms? That is roughly the p50 latency we observed in a scale test for proxy config propagation:
-	// https://www.hashicorp.com/cgsb
-	meshGatewayWait      = 350 * time.Millisecond
-	establishmentTimeout = 5 * time.Second
+	// This study shows latency distribution https://www.hashicorp.com/cgsb.
+	// With 1s we cover ~p96, then we initiate the 3-second retry loop.
+	meshGatewayWait      = 1 * time.Second
+	establishmentTimeout = 3 * time.Second
 )
 
 // errPeeringInvalidServerAddress is returned when an establish request contains
@@ -67,10 +72,12 @@ var writeRequest struct {
 	structs.DCSpecificRequest
 }
 
-var readRequest struct {
+type readRequest struct {
 	structs.QueryOptions
 	structs.DCSpecificRequest
 }
+
+var emptyDCSpecificRequest structs.DCSpecificRequest
 
 // Server implements pbpeering.PeeringService to provide RPC operations for
 // managing peering relationships.
@@ -86,6 +93,10 @@ type Config struct {
 	Datacenter     string
 	ConnectEnabled bool
 	PeeringEnabled bool
+	Locality       *structs.Locality
+
+	// Needed because the stateful components needed to handle blocking queries are mixed in with server goo
+	FSMServer blockingquery.FSMServer
 }
 
 func NewServer(cfg Config) *Server {
@@ -93,6 +104,7 @@ func NewServer(cfg Config) *Server {
 	requireNotNil(cfg.Tracker, "Tracker")
 	requireNotNil(cfg.Logger, "Logger")
 	requireNotNil(cfg.ForwardRPC, "ForwardRPC")
+	requireNotNil(cfg.FSMServer, "FSMServer")
 	if cfg.Datacenter == "" {
 		panic("Datacenter is required")
 	}
@@ -109,8 +121,8 @@ func requireNotNil(v interface{}, name string) {
 
 var _ pbpeering.PeeringServiceServer = (*Server)(nil)
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbpeering.RegisterPeeringServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbpeering.RegisterPeeringServiceServer(registrar, s)
 }
 
 // Backend defines the core integrations the Peering endpoint depends on. A
@@ -140,10 +152,10 @@ type Backend interface {
 	DecodeToken([]byte) (*structs.PeeringToken, error)
 
 	// GetDialAddresses returns: the addresses to cycle through when dialing a peer's servers,
-	// a boolean indicating whether mesh gateways are present, and an optional error.
+	// an optional buffer of just gateway addresses,  and an optional error.
 	// The resulting ring buffer is front-loaded with the local mesh gateway addresses if the local
 	// datacenter is configured to dial through mesh gateways.
-	GetDialAddresses(logger hclog.Logger, ws memdb.WatchSet, peerID string) (*ring.Ring, bool, error)
+	GetDialAddresses(logger hclog.Logger, ws memdb.WatchSet, peerID string) (*ring.Ring, *ring.Ring, error)
 
 	EnterpriseCheckPartitions(partition string) error
 
@@ -201,7 +213,7 @@ func (s *Server) GenerateToken(
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 	// validate prior to forwarding to the leader, this saves a network hop
-	if err := dns.ValidateLabel(req.PeerName); err != nil {
+	if err := validatePeerName(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
 	}
 
@@ -265,7 +277,7 @@ func (s *Server) GenerateToken(
 				Name: req.PeerName,
 				Meta: req.Meta,
 
-				// PartitionOrEmpty is used to avoid writing "default" in OSS.
+				// PartitionOrEmpty is used to avoid writing "default" in CE.
 				Partition: entMeta.PartitionOrEmpty(),
 			}
 		} else {
@@ -310,27 +322,23 @@ func (s *Server) GenerateToken(
 		break
 	}
 
-	// ServerExternalAddresses must be formatted as addr:port.
-	var serverAddrs []string
-	if len(req.ServerExternalAddresses) > 0 {
-		serverAddrs = req.ServerExternalAddresses
-	} else {
-		serverAddrs, err = s.Backend.GetLocalServerAddresses()
-		if err != nil {
-			return nil, err
-		}
+	serverAddrs, err := s.Backend.GetLocalServerAddresses()
+	if err != nil {
+		return nil, err
 	}
 
 	tok := structs.PeeringToken{
 		// Store the UUID so that we can do a global search when handling inbound streams.
-		PeerID:              peering.ID,
-		CA:                  caPEMs,
-		ServerAddresses:     serverAddrs,
-		ServerName:          serverName,
-		EstablishmentSecret: secretID,
+		PeerID:                peering.ID,
+		CA:                    caPEMs,
+		ManualServerAddresses: req.ServerExternalAddresses,
+		ServerAddresses:       serverAddrs,
+		ServerName:            serverName,
+		EstablishmentSecret:   secretID,
 		Remote: structs.PeeringTokenRemote{
 			Partition:  req.PartitionOrDefault(),
 			Datacenter: s.Datacenter,
+			Locality:   s.Config.Locality,
 		},
 	}
 
@@ -354,7 +362,7 @@ func (s *Server) Establish(
 	}
 
 	// validate prior to forwarding to the leader, this saves a network hop
-	if err := dns.ValidateLabel(req.PeerName); err != nil {
+	if err := validatePeerName(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
 	}
 	tok, err := s.Backend.DecodeToken([]byte(req.PeeringToken))
@@ -429,13 +437,14 @@ func (s *Server) Establish(
 	}
 
 	peering := &pbpeering.Peering{
-		ID:                  id,
-		Name:                req.PeerName,
-		PeerCAPems:          tok.CA,
-		PeerServerAddresses: serverAddrs,
-		PeerServerName:      tok.ServerName,
-		PeerID:              tok.PeerID,
-		Meta:                req.Meta,
+		ID:                    id,
+		Name:                  req.PeerName,
+		PeerCAPems:            tok.CA,
+		ManualServerAddresses: tok.ManualServerAddresses,
+		PeerServerAddresses:   serverAddrs,
+		PeerServerName:        tok.ServerName,
+		PeerID:                tok.PeerID,
+		Meta:                  req.Meta,
 
 		// State is intentionally not set until after the secret exchange succeeds.
 		// This is to prevent a scenario where an active peering is re-established,
@@ -443,11 +452,12 @@ func (s *Server) Establish(
 		// while the original connection is still active.
 		// State: pbpeering.PeeringState_ESTABLISHING,
 
-		// PartitionOrEmpty is used to avoid writing "default" in OSS.
+		// PartitionOrEmpty is used to avoid writing "default" in CE.
 		Partition: entMeta.PartitionOrEmpty(),
 		Remote: &pbpeering.RemoteInfo{
 			Partition:  tok.Remote.Partition,
 			Datacenter: tok.Remote.Datacenter,
+			Locality:   pbcommon.LocalityToProto(tok.Remote.Locality),
 		},
 	}
 
@@ -520,11 +530,28 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 		return nil, fmt.Errorf("failed to build TLS dial option from peering: %w", err)
 	}
 
-	ringBuf, usingGateways, err := s.Backend.GetDialAddresses(s.Logger, nil, peering.ID)
+	allAddrs, gatewayAddrs, err := s.Backend.GetDialAddresses(s.Logger, nil, peering.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get addresses to dial peer: %w", err)
 	}
 
+	if gatewayAddrs != nil {
+		// If we are dialing through local gateways we sleep before issuing the first request.
+		// This gives the local gateways some time to configure a route to the peer servers.
+		time.Sleep(meshGatewayWait)
+
+		// Exclusively try
+		resp, _ := retryExchange(ctx, &req, gatewayAddrs, tlsOption)
+		if resp != nil {
+			return resp, nil
+		}
+	}
+
+	return retryExchange(ctx, &req, allAddrs, tlsOption)
+}
+
+// retryExchange attempts a secret exchange in a retry loop, taking a new address from the ring buffer on each iteration
+func retryExchange(ctx context.Context, req *pbpeerstream.ExchangeSecretRequest, ringBuf *ring.Ring, tlsOption grpc.DialOption) (*pbpeerstream.ExchangeSecretResponse, error) {
 	var (
 		resp       *pbpeerstream.ExchangeSecretResponse
 		dialErrors error
@@ -532,12 +559,6 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 
 	retryWait := 150 * time.Millisecond
 	jitter := retry.NewJitter(25)
-
-	if usingGateways {
-		// If we are dialing through local gateways we sleep before issuing the first request.
-		// This gives the local gateways some time to configure a route to the peer servers.
-		time.Sleep(meshGatewayWait)
-	}
 
 	retryCtx, cancel := context.WithTimeout(ctx, establishmentTimeout)
 	defer cancel()
@@ -557,12 +578,12 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 		defer conn.Close()
 
 		client := pbpeerstream.NewPeerStreamServiceClient(conn)
-		resp, err = client.ExchangeSecret(ctx, &req)
+		resp, err = client.ExchangeSecret(ctx, req)
 
 		// If we got a permission denied error that means out establishment secret is invalid, so we do not retry.
 		grpcErr, ok := grpcstatus.FromError(err)
 		if ok && grpcErr.Code() == codes.PermissionDenied {
-			return nil, fmt.Errorf("a new peering token must be generated: %w", grpcErr.Err())
+			return nil, grpcstatus.Errorf(codes.PermissionDenied, "a new peering token must be generated: %s", grpcErr.Message())
 		}
 		if err != nil {
 			dialErrors = multierror.Append(dialErrors, fmt.Errorf("failed to exchange peering secret through address %q: %w", addr, err))
@@ -580,7 +601,10 @@ func (s *Server) exchangeSecret(ctx context.Context, peering *pbpeering.Peering,
 	return resp, dialErrors
 }
 
-// OPTIMIZE: Handle blocking queries
+// PeeringRead returns the peering of the requested name and partition (enterprise only).
+// Note that for the purposes of the blocking query, changes are only observed as part of the
+// storage Index, which does not include the hydrated state from reconcilePeering, including
+// the Active state and the count of imported/exported services.
 func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequest) (*pbpeering.PeeringReadResponse, error) {
 	if !s.Config.PeeringEnabled {
 		return nil, peeringNotEnabledErr
@@ -590,8 +614,13 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var resp *pbpeering.PeeringReadResponse
-	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&readRequest{options, emptyDCSpecificRequest}, func(conn *grpc.ClientConn) error {
 		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).PeeringRead(ctx, req)
@@ -605,10 +634,7 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	options, err := external.QueryOptionsFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
+
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
@@ -618,23 +644,45 @@ func (s *Server) PeeringRead(ctx context.Context, req *pbpeering.PeeringReadRequ
 		return nil, err
 	}
 
-	q := state.Query{
-		Value:          strings.ToLower(req.Name),
-		EnterpriseMeta: *entMeta,
-	}
-	_, peering, err := s.Backend.Store().PeeringRead(nil, q)
+	res := &pbpeering.PeeringReadResponse{}
+	meta := structs.QueryMeta{}
+	err = blockingquery.Query(s.FSMServer, &options, &meta, func(ws memdb.WatchSet, store *state.Store) error {
+		q := state.Query{
+			Value:          strings.ToLower(req.Name),
+			EnterpriseMeta: *entMeta,
+		}
+		idx, peering, err := store.PeeringRead(ws, q)
+		if err != nil {
+			return err
+		}
+
+		meta.SetIndex(idx)
+		if peering == nil {
+			return blockingquery.ErrNotFound
+		}
+
+		res.Peering = s.reconcilePeering(peering)
+		return nil
+	})
 	if err != nil {
-		return nil, err
-	}
-	if peering == nil {
-		return &pbpeering.PeeringReadResponse{Peering: nil}, nil
+		return nil, fmt.Errorf("error executing peering read blocking query: %w", err)
 	}
 
-	cp := s.reconcilePeering(peering)
-	return &pbpeering.PeeringReadResponse{Peering: cp}, nil
+	header, err := external.GRPCMetadataFromQueryMeta(meta)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert query metadata to gRPC header")
+	}
+	if err := grpc.SendHeader(ctx, header); err != nil {
+		return nil, fmt.Errorf("could not send gRPC header")
+	}
+
+	return res, nil
 }
 
-// OPTIMIZE: Handle blocking queries
+// PeeringList returns the list of peerings in the requested partition(s) (enterprise only).
+// Note that for the purposes of the blocking query, changes are only observed as part of the
+// storage Index, which does not include the hydrated state from reconcilePeering, including
+// the Active state and the count of imported/exported services.
 func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequest) (*pbpeering.PeeringListResponse, error) {
 	if !s.Config.PeeringEnabled {
 		return nil, peeringNotEnabledErr
@@ -644,8 +692,13 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var resp *pbpeering.PeeringListResponse
-	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&readRequest{options, emptyDCSpecificRequest}, func(conn *grpc.ClientConn) error {
 		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).PeeringList(ctx, req)
@@ -657,10 +710,6 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	options, err := external.QueryOptionsFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
 	if err != nil {
@@ -673,19 +722,40 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 
 	defer metrics.MeasureSince([]string{"peering", "list"}, time.Now())
 
-	idx, peerings, err := s.Backend.Store().PeeringList(nil, *entMeta)
+	res := &pbpeering.PeeringListResponse{}
+	meta := structs.QueryMeta{}
+	err = blockingquery.Query(s.FSMServer, &options, &meta, func(ws memdb.WatchSet, store *state.Store) error {
+		idx, peerings, err := store.PeeringList(ws, *entMeta)
+		if err != nil {
+			return err
+		}
+
+		// reconcile the actual peering state; need to copy over the ds for peering
+		var cPeerings []*pbpeering.Peering
+		for _, p := range peerings {
+			cp := s.reconcilePeering(p)
+			cPeerings = append(cPeerings, cp)
+		}
+
+		res.Peerings = cPeerings
+		meta.SetIndex(idx)
+		res.OBSOLETE_Index = idx // Compatibility with 1.14 API, deprecate in future release
+
+		return nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error executing peering list blocking query: %w", err)
 	}
 
-	// reconcile the actual peering state; need to copy over the ds for peering
-	var cPeerings []*pbpeering.Peering
-	for _, p := range peerings {
-		cp := s.reconcilePeering(p)
-		cPeerings = append(cPeerings, cp)
+	header, err := external.GRPCMetadataFromQueryMeta(meta)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert query metadata to gRPC header")
+	}
+	if err := grpc.SendHeader(ctx, header); err != nil {
+		return nil, fmt.Errorf("could not send gRPC header")
 	}
 
-	return &pbpeering.PeeringListResponse{Peerings: cPeerings, Index: idx}, nil
+	return res, nil
 }
 
 // TODO(peering): Get rid of this func when we stop using the stream tracker for imported/ exported services and the peering state
@@ -694,16 +764,15 @@ func (s *Server) PeeringList(ctx context.Context, req *pbpeering.PeeringListRequ
 // -- ImportedServicesCount and ExportedServicesCount
 // NOTE: we return a new peering with this additional data
 func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering {
+	cp := copyPeering(peering)
 	streamState, found := s.Tracker.StreamStatus(peering.ID)
 	if !found {
 		// TODO(peering): this may be noise on non-leaders
 		s.Logger.Warn("did not find peer in stream tracker; cannot populate imported and"+
 			" exported services count or reconcile peering state", "peerID", peering.ID)
-		peering.StreamStatus = &pbpeering.StreamStatus{}
-		return peering
+		cp.StreamStatus = &pbpeering.StreamStatus{}
+		return cp
 	} else {
-		cp := copyPeering(peering)
-
 		// reconcile pbpeering.PeeringState_Active
 		if streamState.Connected {
 			cp.State = pbpeering.PeeringState_ACTIVE
@@ -711,14 +780,17 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 			cp.State = pbpeering.PeeringState_FAILING
 		}
 
-		latest := func(tt ...time.Time) time.Time {
+		latest := func(tt ...*time.Time) *time.Time {
 			latest := time.Time{}
 			for _, t := range tt {
+				if t == nil {
+					continue
+				}
 				if t.After(latest) {
-					latest = t
+					latest = *t
 				}
 			}
-			return latest
+			return &latest
 		}
 
 		lastRecv := latest(streamState.LastRecvHeartbeat, streamState.LastRecvError, streamState.LastRecvResourceSuccess)
@@ -727,9 +799,9 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 		cp.StreamStatus = &pbpeering.StreamStatus{
 			ImportedServices: streamState.ImportedServices,
 			ExportedServices: streamState.ExportedServices,
-			LastHeartbeat:    structs.TimeToProto(streamState.LastRecvHeartbeat),
-			LastReceive:      structs.TimeToProto(lastRecv),
-			LastSend:         structs.TimeToProto(lastSend),
+			LastHeartbeat:    pbpeering.TimePtrToProto(streamState.LastRecvHeartbeat),
+			LastReceive:      pbpeering.TimePtrToProto(lastRecv),
+			LastSend:         pbpeering.TimePtrToProto(lastSend),
 		}
 
 		return cp
@@ -863,13 +935,14 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			// We only need to include the name and partition for the peering to be identified.
 			// All other data associated with the peering can be discarded because once marked
 			// for deletion the peering is effectively gone.
-			ID:                  existing.ID,
-			Name:                req.Name,
-			State:               pbpeering.PeeringState_DELETING,
-			PeerServerAddresses: existing.PeerServerAddresses,
-			DeletedAt:           structs.TimeToProto(time.Now().UTC()),
+			ID:                    existing.ID,
+			Name:                  req.Name,
+			State:                 pbpeering.PeeringState_DELETING,
+			ManualServerAddresses: existing.ManualServerAddresses,
+			PeerServerAddresses:   existing.PeerServerAddresses,
+			DeletedAt:             timestamppb.New(time.Now().UTC()),
 
-			// PartitionOrEmpty is used to avoid writing "default" in OSS.
+			// PartitionOrEmpty is used to avoid writing "default" in CE.
 			Partition: entMeta.PartitionOrEmpty(),
 		},
 	}
@@ -880,7 +953,6 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 	return &pbpeering.PeeringDeleteResponse{}, nil
 }
 
-// OPTIMIZE: Handle blocking queries
 func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundleReadRequest) (*pbpeering.TrustBundleReadResponse, error) {
 	if !s.Config.PeeringEnabled {
 		return nil, peeringNotEnabledErr
@@ -896,7 +968,7 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 	}
 
 	var resp *pbpeering.TrustBundleReadResponse
-	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&readRequest{options, emptyDCSpecificRequest}, func(conn *grpc.ClientConn) error {
 		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).TrustBundleRead(ctx, req)
@@ -908,9 +980,12 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 	defer metrics.MeasureSince([]string{"peering", "trust_bundle_read"}, time.Now())
 
+	// Having the ability to write a service in ANY (at least one) namespace should be
+	// sufficient for reading the trust bundle, which is why we use a wildcard.
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, acl.WildcardName)
+	entMeta.Normalize()
 	var authzCtx acl.AuthorizerContext
-	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -919,22 +994,43 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 		return nil, err
 	}
 
-	idx, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, state.Query{
-		Value:          req.Name,
-		EnterpriseMeta: *entMeta,
+	res := &pbpeering.TrustBundleReadResponse{}
+	meta := structs.QueryMeta{}
+	err = blockingquery.Query(s.FSMServer, &options, &meta, func(ws memdb.WatchSet, store *state.Store) error {
+		idx, trustBundle, err := store.PeeringTrustBundleRead(ws, state.Query{
+			Value:          req.Name,
+			EnterpriseMeta: entMeta,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to read trust bundle for peer %s: %w", req.Name, err)
+		}
+
+		meta.SetIndex(idx)
+		if trustBundle == nil {
+			return blockingquery.ErrNotFound
+		}
+
+		res.Bundle = trustBundle
+		res.OBSOLETE_Index = idx // Compatibility with 1.14 API, deprecate in future release
+
+		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to read trust bundle for peer %s: %w", req.Name, err)
+		return nil, fmt.Errorf("error executing trust bundle read blocking query: %w", err)
 	}
 
-	return &pbpeering.TrustBundleReadResponse{
-		Index:  idx,
-		Bundle: trustBundle,
-	}, nil
+	header, err := external.GRPCMetadataFromQueryMeta(meta)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert query metadata to gRPC header")
+	}
+	if err := grpc.SendHeader(ctx, header); err != nil {
+		return nil, fmt.Errorf("could not send gRPC header")
+	}
+
+	return res, nil
 }
 
 // TODO(peering): rename rpc & request/response to drop the "service" part
-// OPTIMIZE: Handle blocking queries
 func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.TrustBundleListByServiceRequest) (*pbpeering.TrustBundleListByServiceResponse, error) {
 	if !s.Config.PeeringEnabled {
 		return nil, peeringNotEnabledErr
@@ -950,8 +1046,13 @@ func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.Tr
 		return nil, errors.New("missing service name")
 	}
 
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var resp *pbpeering.TrustBundleListByServiceResponse
-	handled, err := s.ForwardRPC(&readRequest, func(conn *grpc.ClientConn) error {
+	handled, err := s.ForwardRPC(&readRequest{options, emptyDCSpecificRequest}, func(conn *grpc.ClientConn) error {
 		ctx := external.ForwardMetadataContext(ctx)
 		var err error
 		resp, err = pbpeering.NewPeeringServiceClient(conn).TrustBundleListByService(ctx, req)
@@ -965,10 +1066,6 @@ func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.Tr
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
-	options, err := external.QueryOptionsFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzCtx)
 	if err != nil {
@@ -979,26 +1076,47 @@ func (s *Server) TrustBundleListByService(ctx context.Context, req *pbpeering.Tr
 		return nil, err
 	}
 
-	var (
-		idx     uint64
-		bundles []*pbpeering.PeeringTrustBundle
-	)
+	res := &pbpeering.TrustBundleListByServiceResponse{}
+	meta := structs.QueryMeta{}
+	err = blockingquery.Query(s.FSMServer, &options, &meta, func(ws memdb.WatchSet, store *state.Store) error {
+		var (
+			idx     uint64
+			bundles []*pbpeering.PeeringTrustBundle
+		)
+		switch {
+		case req.Kind == string(structs.ServiceKindMeshGateway):
+			idx, bundles, err = store.PeeringTrustBundleList(ws, entMeta)
+		case req.ServiceName != "":
+			idx, bundles, err = store.TrustBundleListByService(ws, req.ServiceName, s.Datacenter, entMeta)
+		case req.Kind != "":
+			return grpcstatus.Error(codes.InvalidArgument, "kind must be mesh-gateway if set")
+		default:
+			return grpcstatus.Error(codes.InvalidArgument, "one of service or kind is required")
+		}
 
-	switch {
-	case req.Kind == string(structs.ServiceKindMeshGateway):
-		idx, bundles, err = s.Backend.Store().PeeringTrustBundleList(nil, entMeta)
-	case req.ServiceName != "":
-		idx, bundles, err = s.Backend.Store().TrustBundleListByService(nil, req.ServiceName, s.Datacenter, entMeta)
-	case req.Kind != "":
-		return nil, grpcstatus.Error(codes.InvalidArgument, "kind must be mesh-gateway if set")
-	default:
-		return nil, grpcstatus.Error(codes.InvalidArgument, "one of service or kind is required")
-	}
+		if err != nil {
+			return fmt.Errorf("error listing trust bundles from store: %w", err)
+		}
 
+		res.Bundles = bundles
+		meta.SetIndex(idx)
+		res.OBSOLETE_Index = idx // Compatibility with 1.14 API, deprecate in future release
+
+		return nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error executing trust bundle list blocking query: %w", err)
 	}
-	return &pbpeering.TrustBundleListByServiceResponse{Index: idx, Bundles: bundles}, nil
+
+	header, err := external.GRPCMetadataFromQueryMeta(meta)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert query metadata to gRPC header")
+	}
+	if err := grpc.SendHeader(ctx, header); err != nil {
+		return nil, fmt.Errorf("could not send gRPC header")
+	}
+
+	return res, nil
 }
 
 func (s *Server) getExistingPeering(peerName, partition string) (*pbpeering.Peering, error) {
@@ -1041,6 +1159,5 @@ func validatePeer(peering *pbpeering.Peering, shouldDial bool) error {
 func copyPeering(p *pbpeering.Peering) *pbpeering.Peering {
 	var copyP pbpeering.Peering
 	proto.Merge(&copyP, p)
-
 	return &copyP
 }

@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Adds a redirect and warning message around unavailable UI with V2 enabled
+```

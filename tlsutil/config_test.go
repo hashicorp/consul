@@ -1,3 +1,7 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+//go:build !fips
+
 package tlsutil
 
 import (
@@ -5,7 +9,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -907,7 +910,7 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 
 	_, err = wrap("dc1", "bob", "foo", client)
 	require.Error(t, err)
-	_, ok := err.(x509.HostnameError)
+	_, ok := err.(*tls.CertificateVerificationError)
 	require.True(t, ok)
 	client.Close()
 
@@ -1372,7 +1375,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			},
 		},
 		{
-			name: "agent tls, default server name",
+			name: "agent tls, default consul server name, no override",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
@@ -1385,11 +1388,11 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			},
 			expected: &tls.Config{
 				MinVersion: tls.VersionTLS12,
-				ServerName: "servername",
+				ServerName: "",
 			},
 		},
 		{
-			name: "agent tls, skip verify, node name for server name",
+			name: "agent tls, skip verify, consul node name for server name, no override",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
@@ -1403,7 +1406,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			expected: &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS12,
-				ServerName:         "nodename",
+				ServerName:         "",
 			},
 		},
 		{
@@ -1481,7 +1484,7 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.Equal(t, int64(4803632738), c.AutoEncryptCert().NotAfter.Unix())
+	require.Equal(t, int64(4852545616), c.AutoEncryptCert().NotAfter.Unix())
 }
 
 func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
@@ -1490,7 +1493,7 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 
 	dir := testutil.TempDir(t, "ca")
 	caPath := filepath.Join(dir, "ca.pem")
-	err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
+	err = os.WriteFile(caPath, []byte(caPEM), 0600)
 	require.NoError(t, err)
 
 	// Cert and key are not used, but required to get past validation.
@@ -1502,10 +1505,10 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 	})
 	require.NoError(t, err)
 	certFile := filepath.Join("cert.pem")
-	err = ioutil.WriteFile(certFile, []byte(pub), 0600)
+	err = os.WriteFile(certFile, []byte(pub), 0600)
 	require.NoError(t, err)
 	keyFile := filepath.Join("cert.key")
-	err = ioutil.WriteFile(keyFile, []byte(pk), 0600)
+	err = os.WriteFile(keyFile, []byte(pk), 0600)
 	require.NoError(t, err)
 
 	cfg := Config{
@@ -1550,7 +1553,7 @@ func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {
 
 		dir := testutil.TempDir(t, "other")
 		caPath := filepath.Join(dir, "ca.pem")
-		err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
+		err = os.WriteFile(caPath, []byte(caPEM), 0600)
 		require.NoError(t, err)
 
 		signer, err := ParseSigner(caPK)
@@ -1738,7 +1741,7 @@ func startTLSServer(tlsConfigServer *tls.Config) (net.Conn, <-chan error, <-chan
 		// server read any data from the client until error or
 		// EOF, which will allow the client to Close(), and
 		// *then* we Close() the server.
-		io.Copy(ioutil.Discard, tlsServer)
+		io.Copy(io.Discard, tlsServer)
 		tlsServer.Close()
 	}()
 	return clientConn, errc, certc
@@ -1747,14 +1750,14 @@ func startTLSServer(tlsConfigServer *tls.Config) (net.Conn, <-chan error, <-chan
 func loadFile(t *testing.T, path string) string {
 	t.Helper()
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 	return string(data)
 }
 
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
-	data, err := ioutil.ReadFile("../test/ca/root.cer")
+	data, err := os.ReadFile("../test/ca/root.cer")
 	if err != nil {
 		t.Fatal("could not open test file ../test/ca/root.cer for reading")
 	}
@@ -1774,7 +1777,7 @@ func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
 	for _, entry := range entries {
 		filename := path.Join("../test/ca_path", entry.Name())
 
-		data, err := ioutil.ReadFile(filename)
+		data, err := os.ReadFile(filename)
 		if err != nil {
 			t.Fatalf("could not open test file %s for reading", filename)
 		}

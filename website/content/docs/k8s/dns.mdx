@@ -8,21 +8,21 @@ description: >-
 # Resolve Consul DNS Requests in Kubernetes
 
 One of the primary query interfaces to Consul is the
-[DNS interface](/docs/discovery/dns). You can configure Consul DNS in
+[DNS interface](/consul/docs/services/discovery/dns-overview). You can configure Consul DNS in
 Kubernetes using a
 [stub-domain configuration](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#configure-stub-domain-and-upstream-dns-servers)
-if using KubeDNS or a [proxy configuration](https://coredns.io/plugins/proxy/) if using CoreDNS.
+if using KubeDNS or a [proxy configuration](https://coredns.io/plugins/forward/) if using CoreDNS.
 
 Once configured, DNS requests in the form `<consul-service-name>.service.consul` will
 resolve for services in Consul. This will work from all Kubernetes namespaces.
 
 -> **Note:** If you want requests to just `<consul-service-name>` (without the `.service.consul`) to resolve, then you'll need
-to turn on [Consul to Kubernetes Service Sync](/docs/k8s/service-sync#consul-to-kubernetes).
+to turn on [Consul to Kubernetes Service Sync](/consul/docs/k8s/service-sync#consul-to-kubernetes).
 
 ## Consul DNS Cluster IP
 
 To configure KubeDNS or CoreDNS you'll first need the `ClusterIP` of the Consul
-DNS service created by the [Helm chart](/docs/k8s/helm).
+DNS service created by the [Helm chart](/consul/docs/k8s/helm).
 
 The default name of the Consul DNS service will be `consul-dns`. Use
 that name to get the `ClusterIP`:
@@ -133,6 +133,70 @@ working. This can happen if the service is deleted and recreated, such as
 in full cluster rebuilds.
 
 -> **Note:** If using a different zone than `.consul`, change the key accordingly.
+
+## OpenShift DNS Operator
+
+-> **Note:** OpenShift CLI `oc` is utilized below complete the following steps. You can find more details on how to install OpenShift CLI from [Getting started with OpenShift CLI](https://docs.openshift.com/container-platform/latest/cli_reference/openshift_cli/getting-started-cli.html).
+
+You can use DNS forwarding to override the default forwarding configuration in the `/etc/resolv.conf` file by specifying
+the `consul-dns` service for the `consul` subdomain (zone).
+
+Find `consul-dns` service clusterIP:
+
+```shell-session
+$ oc get svc consul-dns --namespace consul --output jsonpath='{.spec.clusterIP}'
+172.30.186.254
+```
+
+Edit the `default` DNS Operator:
+
+```shell-session
+$ oc edit edit dns.operator/default
+```
+
+Append the following `servers` section entry to the `spec` section of the DNS Operator configuration:
+
+```yaml
+spec:
+  servers:
+  - name: consul-server
+    zones:
+    - consul
+    forwardPlugin:
+      policy: Random
+      upstreams:
+      - 172.30.186.254 # Set to clusterIP of consul-dns service
+```
+
+Save the configuration changes and verify the `dns-default` configmap has been updated:
+
+```shell-session
+$ oc get configmap/dns-default -n openshift-dns -o yaml
+```
+
+Example output with updated `consul` forwarding zone:
+
+```yaml
+...
+data:
+  Corefile: |
+    # consul-server
+    consul:5353 {
+        prometheus 127.0.0.1:9153
+        forward . 172.30.186.254 {
+            policy random
+        }
+        errors
+        log . {
+            class error
+        }
+        bufsize 1232
+        cache 900 {
+            denial 9984 30
+        }
+    }
+...
+```
 
 ## Verifying DNS Works
 

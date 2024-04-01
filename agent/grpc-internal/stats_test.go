@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package internal
 
 import (
@@ -14,20 +17,19 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/prototest"
 )
-
-func noopRegister(*grpc.Server) {}
 
 func TestHandler_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj)
+	handler := NewHandler(hclog.Default(), addr, metricsObj, rate.NullRequestLimitsHandler())
 
-	testservice.RegisterSimpleServer(handler.srv, &testservice.Simple{})
+	testservice.RegisterSimpleServer(handler, &testservice.Simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -48,6 +50,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 		}
 	})
 
+	//nolint:staticcheck
 	conn, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(func() { conn.Close() })

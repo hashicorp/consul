@@ -71,7 +71,7 @@ Feature: dc / services / index: List Services
     ---
   Scenario: Viewing the service list page with gateways
     Given 1 datacenter model with the value "dc-1"
-    And 3 service models from yaml
+    And 4 service models from yaml
     ---
       - Name: Service-0-proxy
         Kind: 'connect-proxy'
@@ -88,6 +88,11 @@ Feature: dc / services / index: List Services
         ChecksPassing: 0
         ChecksWarning: 0
         ChecksCritical: 1
+      - Name: Service-3-api-gateway
+        Kind: 'api-gateway'
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 1
     ---
 
     When I visit the services page for yaml
@@ -96,11 +101,12 @@ Feature: dc / services / index: List Services
     ---
     Then the url should be /dc-1/services
     And the title should be "Services - Consul"
-    Then I see 2 service models
+    Then I see 3 service models
     And I see kind on the services like yaml
     ---
     - ingress-gateway
     - terminating-gateway
+    - api-gateway
     ---
   Scenario: View a Service in mesh
     Given 1 datacenter model with the value "dc-1"

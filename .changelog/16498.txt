@@ -1,0 +1,3 @@
+```release-note:bug
+proxycfg: fix a bug where terminating gateways were not cleaning up deleted service resolvers for their referenced services
+```

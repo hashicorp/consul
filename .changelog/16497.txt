@@ -1,0 +1,3 @@
+```release-note:bug
+proxycfg: ensure that an irrecoverable error in proxycfg closes the xds session and triggers a replacement proxycfg watcher
+```

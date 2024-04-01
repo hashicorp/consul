@@ -1,0 +1,263 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+package tfgen
+
+import (
+	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"golang.org/x/exp/maps"
+
+	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/hashicorp/consul/testing/deployer/util"
+)
+
+func (g *Generator) getCoreDNSContainer(
+	net *topology.Network,
+	ipAddress string,
+	hashes []string,
+) Resource {
+	var env []string
+	for i, hv := range hashes {
+		env = append(env, fmt.Sprintf("HASH_FILE_%d_VALUE=%s", i, hv))
+	}
+	coredns := struct {
+		Name              string
+		DockerNetworkName string
+		IPAddress         string
+		HashValues        string
+		Env               []string
+	}{
+		Name:              net.Name,
+		DockerNetworkName: net.DockerName,
+		IPAddress:         ipAddress,
+		Env:               env,
+	}
+	return Eval(tfCorednsT, &coredns)
+}
+
+func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string) (bool, []string, error) {
+	if net.IsPublic() {
+		return false, nil, fmt.Errorf("coredns only runs on local networks")
+	}
+
+	rootdir := filepath.Join(g.workdir, "terraform", "coredns-config-"+net.Name)
+	if err := os.MkdirAll(rootdir, 0755); err != nil {
+		return false, nil, err
+	}
+
+	for _, cluster := range g.topology.Clusters {
+		if cluster.NetworkName != net.Name {
+			continue
+		}
+		var addrs []string
+		for _, node := range cluster.SortedNodes() {
+			if node.Kind != topology.NodeKindServer || node.Disabled {
+				continue
+			}
+			addr := node.AddressByNetwork(net.Name)
+			if addr.IPAddress != "" {
+				addrs = append(addrs, addr.IPAddress)
+			}
+		}
+
+		// Until Consul DNS understands v2, simulate it.
+		//
+		// NOTE: this DNS is not quite what consul normally does. It's simpler
+		// to simulate this format here.
+		virtualNames := make(map[string][]string)
+		for id, svcData := range cluster.Services {
+			if len(svcData.VirtualIps) == 0 {
+				continue
+			}
+			vips := svcData.VirtualIps
+
+			// <service>--<namespace>--<partition>.virtual.<domain>
+			name := fmt.Sprintf("%s--%s--%s", id.Name, id.Namespace, id.Partition)
+			virtualNames[name] = vips
+		}
+
+		var (
+			clusterDNSName = cluster.Name + "-consulcluster.lan"
+			virtualDNSName = "virtual.consul"
+
+			corefilePath        = filepath.Join(rootdir, "Corefile")
+			zonefilePath        = filepath.Join(rootdir, "servers")
+			virtualZonefilePath = filepath.Join(rootdir, "virtual")
+		)
+
+		_, err := UpdateFileIfDifferent(
+			g.logger,
+			generateCoreDNSConfigFile(
+				clusterDNSName,
+				virtualDNSName,
+				addrs,
+			),
+			corefilePath,
+			0644,
+		)
+		if err != nil {
+			return false, nil, fmt.Errorf("error writing %q: %w", corefilePath, err)
+		}
+		corefileHash, err := util.HashFile(corefilePath)
+		if err != nil {
+			return false, nil, fmt.Errorf("error hashing %q: %w", corefilePath, err)
+		}
+
+		_, err = UpdateFileIfDifferent(
+			g.logger,
+			generateCoreDNSZoneFile(
+				dnsIPAddress,
+				clusterDNSName,
+				addrs,
+			),
+			zonefilePath,
+			0644,
+		)
+		if err != nil {
+			return false, nil, fmt.Errorf("error writing %q: %w", zonefilePath, err)
+		}
+		zonefileHash, err := util.HashFile(zonefilePath)
+		if err != nil {
+			return false, nil, fmt.Errorf("error hashing %q: %w", zonefilePath, err)
+		}
+
+		_, err = UpdateFileIfDifferent(
+			g.logger,
+			generateCoreDNSVirtualZoneFile(
+				dnsIPAddress,
+				virtualDNSName,
+				virtualNames,
+			),
+			virtualZonefilePath,
+			0644,
+		)
+		if err != nil {
+			return false, nil, fmt.Errorf("error writing %q: %w", virtualZonefilePath, err)
+		}
+		virtualZonefileHash, err := util.HashFile(virtualZonefilePath)
+		if err != nil {
+			return false, nil, fmt.Errorf("error hashing %q: %w", virtualZonefilePath, err)
+		}
+
+		return true, []string{corefileHash, zonefileHash, virtualZonefileHash}, nil
+	}
+
+	return false, nil, nil
+}
+
+func generateCoreDNSConfigFile(
+	clusterDNSName string,
+	virtualDNSName string,
+	addrs []string,
+) []byte {
+	serverPart := ""
+	if len(addrs) > 0 {
+		var servers []string
+		for _, addr := range addrs {
+			servers = append(servers, addr+":8600")
+		}
+		serverPart = fmt.Sprintf(`
+consul:53 {
+  forward . %s
+  log
+  errors
+  whoami
+}
+`, strings.Join(servers, " "))
+	}
+
+	return []byte(fmt.Sprintf(`
+%[1]s:53 {
+  file /config/servers %[1]s
+  log
+  errors
+  whoami
+}
+
+%[2]s:53 {
+  file /config/virtual %[2]s
+  log
+  errors
+  whoami
+}
+
+%[3]s
+
+.:53 {
+  forward . 8.8.8.8:53
+  log
+  errors
+  whoami
+}
+`, clusterDNSName, virtualDNSName, serverPart))
+}
+
+func generateCoreDNSZoneFile(
+	dnsIPAddress string,
+	clusterDNSName string,
+	addrs []string,
+) []byte {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf(`
+$TTL 60
+$ORIGIN %[1]s.
+@                   IN	SOA ns.%[1]s. webmaster.%[1]s. (
+          2017042745 ; serial
+          7200       ; refresh (2 hours)				
+          3600       ; retry (1 hour)			
+          1209600    ; expire (2 weeks)				
+          3600       ; minimum (1 hour)				
+          )
+@  IN NS ns.%[1]s. ; Name server
+ns IN A  %[2]s     ; self
+`, clusterDNSName, dnsIPAddress))
+
+	for _, addr := range addrs {
+		buf.WriteString(fmt.Sprintf(`
+server IN A %s ; Consul server
+`, addr))
+	}
+
+	return buf.Bytes()
+}
+
+func generateCoreDNSVirtualZoneFile(
+	dnsIPAddress string,
+	virtualDNSName string,
+	nameToAddr map[string][]string,
+) []byte {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf(`
+$TTL 60
+$ORIGIN %[1]s.
+@                   IN	SOA ns.%[1]s. webmaster.%[1]s. (
+          2017042745 ; serial
+          7200       ; refresh (2 hours)				
+          3600       ; retry (1 hour)			
+          1209600    ; expire (2 weeks)				
+          3600       ; minimum (1 hour)				
+          )
+@  IN NS ns.%[1]s. ; Name server
+ns IN A  %[2]s     ; self
+`, virtualDNSName, dnsIPAddress))
+
+	names := maps.Keys(nameToAddr)
+	sort.Strings(names)
+
+	for _, name := range names {
+		vips := nameToAddr[name]
+		for _, vip := range vips {
+			buf.WriteString(fmt.Sprintf(`
+%s IN A %s ; Consul server
+`, name, vip))
+		}
+	}
+
+	return buf.Bytes()
+}

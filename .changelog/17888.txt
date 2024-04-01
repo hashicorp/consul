@@ -1,0 +1,3 @@
+```release-note:improvement
+connect: Add capture group labels from Envoy cluster FQDNs to Envoy exported metric labels
+```

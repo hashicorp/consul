@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package structs
 
 import (
@@ -27,6 +30,9 @@ const (
 	// fix up all the places where this was used with the proper namespace
 	// value.
 	IntentionDefaultNamespace = "default"
+
+	IntentionDefaultPolicyAllow = "allow"
+	IntentionDefaultPolicyDeny  = "deny"
 )
 
 // Intention defines an intention for the Connect Service Graph. This defines
@@ -62,6 +68,11 @@ type Intention struct {
 	// same level of tenancy (partition is local to cluster, peer is remote).
 	SourcePeer string `json:",omitempty"`
 
+	// SourceSamenessGroup cannot be a wildcard "*" and is not compatible with legacy
+	// intentions. Cannot be used with SourcePartition, as both represent the
+	// same level of tenancy (sameness group includes both partitions and cluster peers).
+	SourceSamenessGroup string `json:",omitempty"`
+
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 
@@ -74,6 +85,9 @@ type Intention struct {
 	// NOTE: This field is not editable unless editing the underlying
 	// service-intentions config entry directly.
 	Permissions []*IntentionPermission `bexpr:"-" json:",omitempty"`
+
+	// JWT specifies JWT authn that applies to incoming requests.
+	JWT *IntentionJWTRequirement `bexpr:"-" json:",omitempty"`
 
 	// DefaultAddr is not used.
 	// Deprecated: DefaultAddr is not used and may be removed in a future version.
@@ -409,6 +423,9 @@ func (x *Intention) String() string {
 	if x.SourcePeer != "" {
 		srcClusterPart = "peer(" + x.SourcePeer + ")/"
 	}
+	if x.SourceSamenessGroup != "" {
+		srcClusterPart = "sameness-group(" + x.SourceSamenessGroup + ")/"
+	}
 
 	var dstPartitionPart string
 	if x.DestinationPartition != "" {
@@ -473,6 +490,7 @@ func (x *Intention) ToSourceIntention(legacy bool) *SourceIntention {
 		Name:             x.SourceName,
 		EnterpriseMeta:   *x.SourceEnterpriseMeta(),
 		Peer:             x.SourcePeer,
+		SamenessGroup:    x.SourceSamenessGroup,
 		Action:           x.Action,
 		Permissions:      nil, // explicitly not symmetric with the old APIs
 		Precedence:       0,   // Ignore, let it be computed.
@@ -666,8 +684,9 @@ func (q *IntentionQueryRequest) CacheInfo() cache.RequestInfo {
 // IntentionQueryMatch are the parameters for performing a match request
 // against the state store.
 type IntentionQueryMatch struct {
-	Type    IntentionMatchType
-	Entries []IntentionMatchEntry
+	Type               IntentionMatchType
+	Entries            []IntentionMatchEntry
+	WithSamenessGroups bool
 }
 
 // IntentionMatchEntry is a single entry for matching an intention.
@@ -711,7 +730,7 @@ type IntentionQueryCheckResponse struct {
 // - Whether the matching intention has L7 permissions attached
 // - Whether the intention is managed by an external source like k8s
 // - Whether there is an exact, or wildcard, intention referencing the two services
-// - Whether ACLs are in DefaultAllow mode
+// - Whether intentions are in DefaultAllow mode
 type IntentionDecisionSummary struct {
 	Allowed        bool
 	HasPermissions bool
@@ -730,7 +749,8 @@ type IntentionQueryExact struct {
 	SourcePartition      string `json:",omitempty"`
 	DestinationPartition string `json:",omitempty"`
 
-	SourcePeer string `json:",omitempty"`
+	SourcePeer          string `json:",omitempty"`
+	SourceSamenessGroup string `json:",omitempty"`
 }
 
 // Validate is used to ensure all 4 required parameters are specified.
@@ -763,6 +783,9 @@ func (r *IntentionListRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+// SimplifiedIntentions contains expanded sameness groups.
+type SimplifiedIntentions Intentions
+
 // IntentionPrecedenceSorter takes a list of intentions and sorts them
 // based on the match precedence rules for intentions. The intentions
 // closer to the head of the list have higher precedence. i.e. index 0 has
@@ -782,13 +805,16 @@ func (s IntentionPrecedenceSorter) Less(i, j int) bool {
 
 	// Tie break on lexicographic order of the tuple in canonical form:
 	//
-	//   (SrcPeer, SrcPxn, SrcNS, Src, DstPxn, DstNS, Dst)
+	//   (SrcSamenessGroup, SrcPeer, SrcPxn, SrcNS, Src, DstPxn, DstNS, Dst)
 	//
 	// This is arbitrary but it keeps sorting deterministic which is a nice
 	// property for consistency. It is arguably open to abuse if implementations
 	// rely on this however by definition the order among same-precedence rules
 	// is arbitrary and doesn't affect whether an allow or deny rule is acted on
 	// since all applicable rules are checked.
+	if a.SourceSamenessGroup != b.SourceSamenessGroup {
+		return a.SourceSamenessGroup < b.SourceSamenessGroup
+	}
 	if a.SourcePeer != b.SourcePeer {
 		return a.SourcePeer < b.SourcePeer
 	}

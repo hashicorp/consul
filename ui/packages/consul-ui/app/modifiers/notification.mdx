@@ -7,24 +7,17 @@ like the below:
 ```hbs preview-template
 <figure>
   <figcaption>Attach a Warning notice to the top of the app ^^^</figcaption>
-
-  <Notice
-    class="notification-update"
-    @type="warning"
-    {{notification
-      sticky=true
-    }}
-  as |notice|>
-    <notice.Header>
-      <strong>Warning!</strong>
-    </notice.Header>
-    <notice.Body>
-      <p>
+  <Hds::Toast
+      @color='warning'
+      {{notification
+         sticky=true
+      }}
+      as |T|>
+      <T.Title>Warning!</T.Title>
+      <T.Description>
         This service has been deregistered and no longer exists in the catalog.
-      </p>
-    </notice.Body>
-  </Notice>
-
+      </T.Description>
+    </Hds::Toast>
 </figure>
 ```
 

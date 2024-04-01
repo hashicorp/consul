@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package config
 
 import (
@@ -55,6 +58,7 @@ func DefaultSource() Source {
 		segment_limit = 64
 
 		server = false
+		server_rejoin_age_max = "168h"
 		syslog_facility = "LOCAL0"
 
 		tls = {
@@ -97,6 +101,11 @@ func DefaultSource() Source {
 		limits = {
 			http_max_conns_per_client = 200
 			https_handshake_timeout = "5s"
+			request_limits = {
+				mode = "disabled"
+				read_rate = -1
+				write_rate = -1
+			}
 			rpc_handshake_timeout = "5s"
 			rpc_client_timeout = "60s"
 			rpc_rate = -1
@@ -109,6 +118,8 @@ func DefaultSource() Source {
 			leave_drain_time = "5s"
 			raft_multiplier = ` + strconv.Itoa(int(consul.DefaultRaftMultiplier)) + `
 			rpc_hold_timeout = "7s"
+			grpc_keepalive_interval = "30s"
+			grpc_keepalive_timeout = "20s"
 		}
 		ports = {
 			dns = 8600
@@ -135,9 +146,21 @@ func DefaultSource() Source {
 		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
-
+		raft_logstore {
+			wal {
+				segment_size_mb = 64
+			}
+		}
 		xds {
 			update_max_per_second = 250
+		}
+
+		connect = {
+			enabled = true
+		}
+
+		peering = {
+			enabled = true
 		}
 	`,
 	}
@@ -176,12 +199,18 @@ func DevSource() Source {
 		connect = {
 			enabled = true
 		}
+
+		peering = {
+			enabled = true
+		}
+
 		performance = {
 			raft_multiplier = 1
 		}
 		ports = {
 			grpc = 8502
 		}
+		experiments = []
 	`,
 	}
 }

@@ -15,6 +15,7 @@ app/utils/dom/event-target/event-target-shim/event.js
 # misc
 /coverage/
 !.*
+.*/
 .eslintcache
 
 # ember-try

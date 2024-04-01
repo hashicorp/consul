@@ -1,0 +1,39 @@
+resource "docker_container" "{{.Node.DockerName}}-{{.Workload.ID.TFString}}" {
+    name = "{{.Node.DockerName}}-{{.Workload.ID.TFString}}"
+    network_mode = "container:${docker_container.{{.PodName}}.id}"
+    image        = docker_image.{{.ImageResource}}.image_id
+    restart  = "on-failure"
+
+{{- range $k, $v := .Labels }}
+  labels {
+    label = "{{ $k }}"
+    value = "{{ $v }}"
+  }
+{{- end }}
+
+  volumes {
+    volume_name    = "{{.TLSVolumeName}}"
+    container_path = "/consul/config/certs"
+    read_only      = true
+  }
+
+  command = [
+    "consul", "connect", "envoy",
+    "-register",
+    "-mesh-gateway",
+    "-address={{`{{ GetInterfaceIP \"eth0\" }}`}}:{{.Workload.Port}}",
+    "-wan-address={{`{{ GetInterfaceIP \"eth1\" }}`}}:{{.Workload.Port}}",
+    "-grpc-addr=http://127.0.0.1:8502",
+    // for demo purposes (TODO: huh?)
+    "-admin-bind=0.0.0.0:{{.Workload.EnvoyAdminPort}}",
+  {{ if .Enterprise }} 
+    "-partition={{.Workload.ID.Partition}}",
+  {{end}}
+  {{ if .Token }}
+    "-token={{.Token}}",
+  {{end}}
+    "--",
+    "-l",
+    "trace",
+  ]
+}

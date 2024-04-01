@@ -44,12 +44,12 @@
         "path": "acl/tokens"
       },
       {
-        "title": "Legacy Tokens",
-        "path": "acl/legacy"
-      },
-      {
         "title": "Policies",
         "path": "acl/policies"
+      },
+      {
+        "title": "Templated Policies",
+        "path": "acl/templated-policies"
       },
       {
         "title": "Roles",
@@ -132,6 +132,14 @@
     "path": "event"
   },
   {
+    "title": "Exported Services",
+    "path": "exported-services"
+  },
+  {
+    "title": "HCP Consul Central Link",
+    "path": "hcp-link"
+  },
+  {
     "title": "Health",
     "path": "health"
   },
@@ -169,6 +177,10 @@
       {
         "title": "Segment",
         "path": "operator/segment"
+      },
+      {
+        "title": "Usage",
+        "path": "operator/usage"
       }
     ]
   },

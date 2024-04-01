@@ -1,14 +1,17 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package serverdiscovery
 
 import (
 	"context"
 	"errors"
+	"math/rand"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -37,7 +40,7 @@ func (s *Server) WatchServers(req *pbserverdiscovery.WatchServersRequest, server
 	for {
 		var err error
 		idx, err = s.serveReadyServers(options.Token, idx, req, serverStream, logger)
-		if errors.Is(err, stream.ErrSubForceClosed) {
+		if errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrACLChanged) {
 			logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt to re-auth and resume")
 		} else {
 			return err
@@ -46,7 +49,7 @@ func (s *Server) WatchServers(req *pbserverdiscovery.WatchServersRequest, server
 }
 
 func (s *Server) serveReadyServers(token string, index uint64, req *pbserverdiscovery.WatchServersRequest, serverStream pbserverdiscovery.ServerDiscoveryService_WatchServersServer, logger hclog.Logger) (uint64, error) {
-	if err := s.authorize(token); err != nil {
+	if err := external.RequireAnyValidACLToken(s.ACLResolver, token); err != nil {
 		return 0, err
 	}
 
@@ -66,7 +69,7 @@ func (s *Server) serveReadyServers(token string, index uint64, req *pbserverdisc
 	for {
 		event, err := sub.Next(serverStream.Context())
 		switch {
-		case errors.Is(err, stream.ErrSubForceClosed):
+		case errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrACLChanged):
 			return index, err
 		case errors.Is(err, context.Canceled):
 			return 0, nil
@@ -105,21 +108,6 @@ func (s *Server) serveReadyServers(token string, index uint64, req *pbserverdisc
 	}
 }
 
-func (s *Server) authorize(token string) error {
-	// Require the given ACL token to have `service:write` on any service (in any
-	// partition and namespace).
-	var authzContext acl.AuthorizerContext
-	entMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, entMeta, &authzContext)
-	if err != nil {
-		return status.Error(codes.Unauthenticated, err.Error())
-	}
-	if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzContext); err != nil {
-		return status.Error(codes.PermissionDenied, err.Error())
-	}
-	return nil
-}
-
 func eventToResponse(req *pbserverdiscovery.WatchServersRequest, event stream.Event) (*pbserverdiscovery.WatchServersResponse, error) {
 	readyServers, err := autopilotevents.ExtractEventPayload(event)
 	if err != nil {
@@ -143,6 +131,10 @@ func eventToResponse(req *pbserverdiscovery.WatchServersRequest, event stream.Ev
 		})
 	}
 
+	// Shuffle servers so that consul-dataplane doesn't consistently choose the same connections on startup.
+	rand.Shuffle(len(servers), func(i, j int) {
+		servers[i], servers[j] = servers[j], servers[i]
+	})
 	return &pbserverdiscovery.WatchServersResponse{
 		Servers: servers,
 	}, nil

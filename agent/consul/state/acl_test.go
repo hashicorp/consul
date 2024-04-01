@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package state
 
 import (
@@ -13,8 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbacl"
+	"github.com/hashicorp/consul/proto/private/pbacl"
 )
 
 const (
@@ -28,20 +30,20 @@ const (
 )
 
 func setupGlobalManagement(t *testing.T, s *Store) {
-	policy := structs.ACLPolicy{
-		ID:          structs.ACLPolicyGlobalManagementID,
-		Name:        "global-management",
-		Description: "Builtin Policy that grants unlimited access",
-		Rules:       structs.ACLPolicyGlobalManagement,
-		Syntax:      acl.SyntaxCurrent,
-	}
+	policy := structs.ACLBuiltinPolicies[structs.ACLPolicyGlobalManagementID]
 	policy.SetHash(true)
 	require.NoError(t, s.ACLPolicySet(1, &policy))
 }
 
+func setupBuiltinGlobalReadOnly(t *testing.T, s *Store) {
+	policy := structs.ACLBuiltinPolicies[structs.ACLPolicyGlobalReadOnlyID]
+	policy.SetHash(true)
+	require.NoError(t, s.ACLPolicySet(2, &policy))
+}
+
 func setupAnonymous(t *testing.T, s *Store) {
 	token := structs.ACLToken{
-		AccessorID:  structs.ACLTokenAnonymousID,
+		AccessorID:  acl.AnonymousTokenID,
 		SecretID:    "anonymous",
 		Description: "Anonymous Token",
 	}
@@ -52,6 +54,7 @@ func setupAnonymous(t *testing.T, s *Store) {
 func testACLStateStore(t *testing.T) *Store {
 	s := testStateStore(t)
 	setupGlobalManagement(t, s)
+	setupBuiltinGlobalReadOnly(t, s)
 	setupAnonymous(t, s)
 	return s
 }
@@ -74,35 +77,30 @@ func setupExtraPolicies(t *testing.T, s *Store) {
 			Name:        "node-read",
 			Description: "Allows reading all node information",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          testPolicyID_B,
 			Name:        "agent-read",
 			Description: "Allows reading all node information",
 			Rules:       `agent_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          testPolicyID_C,
 			Name:        "acl-read",
 			Description: "Allows acl read",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          testPolicyID_D,
 			Name:        "acl-write",
 			Description: "Allows acl write",
 			Rules:       `acl = "write"`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          testPolicyID_E,
 			Name:        "kv-read",
 			Description: "Allows kv read",
 			Rules:       `key_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 	}
 
@@ -188,6 +186,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 
 	s := testStateStore(t)
 	setupGlobalManagement(t, s)
+	setupBuiltinGlobalReadOnly(t, s)
 
 	canBootstrap, index, err := s.CanBootstrapACLToken()
 	require.NoError(t, err)
@@ -215,6 +214,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure the ACLs are in an expected state.
+	// nolint:staticcheck
 	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
@@ -229,6 +229,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	err = s.ACLBootstrap(32, index, token2.Clone())
 	require.NoError(t, err)
 
+	// nolint:staticcheck
 	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, tokens, 2)
@@ -768,112 +769,6 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 	})
 }
 
-func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
-	t.Parallel()
-	s := testACLTokensStateStore(t)
-
-	aclTokenSetLegacy := func(idx uint64, token *structs.ACLToken) error {
-		tx := s.db.WriteTxn(idx)
-		defer tx.Abort()
-
-		opts := ACLTokenSetOptions{Legacy: true}
-		if err := aclTokenSetTxn(tx, idx, token, opts); err != nil {
-			return err
-		}
-
-		return tx.Commit()
-	}
-
-	const ACLTokenTypeManagement = "management"
-
-	require.NoError(t, aclTokenSetLegacy(2, &structs.ACLToken{
-		SecretID: "34ec8eb3-095d-417a-a937-b439af7a8e8b",
-		Type:     ACLTokenTypeManagement,
-	}))
-
-	require.NoError(t, aclTokenSetLegacy(3, &structs.ACLToken{
-		SecretID: "8de2dd39-134d-4cb1-950b-b7ab96ea20ba",
-		Type:     ACLTokenTypeManagement,
-	}))
-
-	require.NoError(t, aclTokenSetLegacy(4, &structs.ACLToken{
-		SecretID: "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
-		Type:     ACLTokenTypeManagement,
-	}))
-
-	require.NoError(t, aclTokenSetLegacy(5, &structs.ACLToken{
-		SecretID: "3ee33676-d9b8-4144-bf0b-92618cff438b",
-		Type:     ACLTokenTypeManagement,
-	}))
-
-	require.NoError(t, aclTokenSetLegacy(6, &structs.ACLToken{
-		SecretID: "fa9d658a-6e26-42ab-a5f0-1ea05c893dee",
-		Type:     ACLTokenTypeManagement,
-	}))
-
-	tokens, _, err := s.ACLTokenListUpgradeable(3)
-	require.NoError(t, err)
-	require.Len(t, tokens, 3)
-
-	tokens, _, err = s.ACLTokenListUpgradeable(10)
-	require.NoError(t, err)
-	require.Len(t, tokens, 5)
-
-	updates := structs.ACLTokens{
-		&structs.ACLToken{
-			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
-			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-		},
-		&structs.ACLToken{
-			AccessorID: "54866514-3cf2-4fec-8a8a-710583831834",
-			SecretID:   "8de2dd39-134d-4cb1-950b-b7ab96ea20ba",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-		},
-		&structs.ACLToken{
-			AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
-			SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-		},
-		&structs.ACLToken{
-			AccessorID: "af1dffe5-8ac2-4282-9336-aeed9f7d951a",
-			SecretID:   "3ee33676-d9b8-4144-bf0b-92618cff438b",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-		},
-		&structs.ACLToken{
-			AccessorID: "511df589-3316-4784-b503-6e25ead4d4e1",
-			SecretID:   "fa9d658a-6e26-42ab-a5f0-1ea05c893dee",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-		},
-	}
-
-	require.NoError(t, s.ACLTokenBatchSet(7, updates, ACLTokenSetOptions{}))
-
-	tokens, _, err = s.ACLTokenListUpgradeable(10)
-	require.NoError(t, err)
-	require.Len(t, tokens, 0)
-}
-
 func TestStateStore_ACLToken_List(t *testing.T) {
 	t.Parallel()
 	s := testACLTokensStateStore(t)
@@ -956,18 +851,63 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			AuthMethod: "test",
 			Local:      true,
 		},
+		// the serviceName specific token
+		&structs.ACLToken{
+			AccessorID: "80c900e1-2fc5-4685-ae29-1b2d17fc30e4",
+			SecretID:   "9d229cfd-ec4b-4d31-a6fd-ecbcb2a41d41",
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				{ServiceName: "sn1"},
+			},
+		},
+		// the serviceName specific token and local
+		&structs.ACLToken{
+			AccessorID: "a14fa45e-0afe-4b44-961d-a430030ccfe2",
+			SecretID:   "17f696b9-448a-4bd3-936b-08c92c66530f",
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				{ServiceName: "sn1"},
+			},
+			Local: true,
+		},
+		// templated policy: the serviceName specific token
+		&structs.ACLToken{
+			AccessorID: "2f89e357-dedb-8d8f-7f30-1f465a41508a",
+			SecretID:   "21ab62c9-5372-038c-b6ba-424961cb38c7",
+			TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+				{
+					TemplateName: "builtin/service",
+					TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+						Name: "service-1",
+					},
+				},
+			},
+		},
+		// templated policy: the serviceName specific token and local
+		&structs.ACLToken{
+			AccessorID: "5e5d6269-f933-3af2-fe30-259b050223f9",
+			SecretID:   "89a456eb-5d55-9a65-92e1-96935dc5b358",
+			TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+				{
+					TemplateName: "builtin/service",
+					TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+						Name: "service-1",
+					},
+				},
+			},
+			Local: true,
+		},
 	}
 
 	require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
 
 	type testCase struct {
-		name       string
-		local      bool
-		global     bool
-		policy     string
-		role       string
-		methodName string
-		accessors  []string
+		name        string
+		local       bool
+		global      bool
+		policy      string
+		role        string
+		methodName  string
+		serviceName string
+		accessors   []string
 	}
 
 	cases := []testCase{
@@ -979,10 +919,12 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			role:       "",
 			methodName: "",
 			accessors: []string{
-				structs.ACLTokenAnonymousID,
+				acl.AnonymousTokenID,
+				"2f89e357-dedb-8d8f-7f30-1f465a41508a", // templated policy: serviceName + global
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
 				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
+				"80c900e1-2fc5-4685-ae29-1b2d17fc30e4", // serviceName + global
 				"a7715fde-8954-4c92-afbc-d84c6ecdc582", // role + global
 			},
 		},
@@ -996,6 +938,8 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			accessors: []string{
 				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
+				"5e5d6269-f933-3af2-fe30-259b050223f9", // templated policies: serviceName + local
+				"a14fa45e-0afe-4b44-961d-a430030ccfe2", // serviceName + local
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 				"f1093997-b6c7-496d-bfb8-6b1b1895641b", // mgmt + local
 			},
@@ -1091,19 +1035,85 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			},
 		},
 		{
-			name:       "All",
-			local:      true,
-			global:     true,
-			policy:     "",
-			role:       "",
-			methodName: "",
+			name:        "ServiceName - Local",
+			local:       true,
+			global:      false,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "sn1",
 			accessors: []string{
-				structs.ACLTokenAnonymousID,
+				"a14fa45e-0afe-4b44-961d-a430030ccfe2", // serviceName + local
+			},
+		},
+		{
+			name:        "ServiceName - Global",
+			local:       false,
+			global:      true,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "sn1",
+			accessors: []string{
+				"80c900e1-2fc5-4685-ae29-1b2d17fc30e4", // serviceName + global
+			},
+		},
+		{
+			name:        "templated policy: ServiceName - Global",
+			local:       false,
+			global:      true,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "service-1",
+			accessors: []string{
+				"2f89e357-dedb-8d8f-7f30-1f465a41508a", // serviceName + global
+			},
+		},
+		{
+			name:        "templated policy: ServiceName - Local",
+			local:       true,
+			global:      false,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "service-1",
+			accessors: []string{
+				"5e5d6269-f933-3af2-fe30-259b050223f9", // serviceName + local
+			},
+		},
+		{
+			name:        "templated policy: ServiceName - All",
+			local:       true,
+			global:      true,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "service-1",
+			accessors: []string{
+				"2f89e357-dedb-8d8f-7f30-1f465a41508a", // serviceName + global
+				"5e5d6269-f933-3af2-fe30-259b050223f9", // serviceName + local
+			},
+		},
+		{
+			name:        "All",
+			local:       true,
+			global:      true,
+			policy:      "",
+			role:        "",
+			methodName:  "",
+			serviceName: "",
+			accessors: []string{
+				acl.AnonymousTokenID,
 				"211f0360-ef53-41d3-9d4d-db84396eb6c0", // authMethod + local
+				"2f89e357-dedb-8d8f-7f30-1f465a41508a", // templated policy: serviceName + global
 				"47eea4da-bda1-48a6-901c-3e36d2d9262f", // policy + global
 				"4915fc9d-3726-4171-b588-6c271f45eecd", // policy + local
 				"54866514-3cf2-4fec-8a8a-710583831834", // mgmt + global
+				"5e5d6269-f933-3af2-fe30-259b050223f9", // templated policy: serviceName + local
 				"74277ae1-6a9b-4035-b444-2370fe6a2cb5", // authMethod + global
+				"80c900e1-2fc5-4685-ae29-1b2d17fc30e4", // serviceName + global
+				"a14fa45e-0afe-4b44-961d-a430030ccfe2", // serviceName + local
 				"a7715fde-8954-4c92-afbc-d84c6ecdc582", // role + global
 				"cadb4f13-f62a-49ab-ab3f-5a7e01b925d9", // role + local
 				"f1093997-b6c7-496d-bfb8-6b1b1895641b", // mgmt + local
@@ -1111,14 +1121,27 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		},
 	}
 
-	for _, tc := range []struct{ policy, role, methodName string }{
-		{testPolicyID_A, testRoleID_A, "test"},
-		{"", testRoleID_A, "test"},
-		{testPolicyID_A, "", "test"},
-		{testPolicyID_A, testRoleID_A, ""},
+	for _, tc := range []struct{ policy, role, methodName, serviceName string }{
+		{testPolicyID_A, testRoleID_A, "test", ""},
+		{"", testRoleID_A, "test", ""},
+		{testPolicyID_A, "", "test", ""},
+		{testPolicyID_A, testRoleID_A, "", ""},
+		{testPolicyID_A, "", "", "test"},
 	} {
-		t.Run(fmt.Sprintf("can't filter on more than one: %s/%s/%s", tc.policy, tc.role, tc.methodName), func(t *testing.T) {
-			_, _, err := s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName, nil, nil)
+		t.Run(fmt.Sprintf("can't filter on more than one: %s/%s/%s/%s", tc.policy, tc.role, tc.methodName, tc.serviceName), func(t *testing.T) {
+			var err error
+			if tc.serviceName == "" {
+				// The legacy call can only be tested when the serviceName is not specified
+				// nolint:staticcheck
+				_, _, err = s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName, nil, nil)
+				require.Error(t, err)
+			}
+			_, _, err = s.ACLTokenListWithParameters(nil, ACLTokenListParameters{
+				Policy:      tc.policy,
+				Role:        tc.role,
+				MethodName:  tc.methodName,
+				ServiceName: tc.serviceName,
+			})
 			require.Error(t, err)
 		})
 	}
@@ -1127,12 +1150,33 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil, nil)
-			require.NoError(t, err)
-			require.Len(t, tokens, len(tc.accessors))
-			tokens.Sort()
-			for i, token := range tokens {
-				require.Equal(t, tc.accessors[i], token.AccessorID)
+			// Test old function
+			if tc.serviceName == "" {
+				// nolint:staticcheck
+				_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil, nil)
+				require.NoError(t, err)
+				require.Len(t, tokens, len(tc.accessors))
+				tokens.Sort()
+				for i, token := range tokens {
+					require.Equal(t, tc.accessors[i], token.AccessorID)
+				}
+			}
+			// Test new function
+			{
+				_, tokens, err := s.ACLTokenListWithParameters(nil, ACLTokenListParameters{
+					Local:       tc.local,
+					Global:      tc.global,
+					Policy:      tc.policy,
+					Role:        tc.role,
+					ServiceName: tc.serviceName,
+					MethodName:  tc.methodName,
+				})
+				require.NoError(t, err)
+				require.Len(t, tokens, len(tc.accessors))
+				tokens.Sort()
+				for i, token := range tokens {
+					require.Equal(t, tc.accessors[i], token.AccessorID)
+				}
 			}
 		})
 	}
@@ -1174,7 +1218,6 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 		Name:        "node-read-renamed",
 		Description: "Allows reading all node information",
 		Rules:       `node_prefix "" { policy = "read" }`,
-		Syntax:      acl.SyntaxCurrent,
 	}
 	renamed.SetHash(true)
 	require.NoError(t, s.ACLPolicySet(3, renamed))
@@ -1188,6 +1231,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Equal(t, "node-read-renamed", retrieved.Policies[0].Name)
 
 	// list tokens without stale links
+	// nolint:staticcheck
 	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
@@ -1232,6 +1276,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Len(t, retrieved.Policies, 0)
 
 	// list tokens without stale links
+	// nolint:staticcheck
 	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
@@ -1317,6 +1362,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Equal(t, "node-read-role-renamed", retrieved.Roles[0].Name)
 
 	// list tokens without stale links
+	// nolint:staticcheck
 	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
@@ -1361,6 +1407,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Len(t, retrieved.Roles, 0)
 
 	// list tokens without stale links
+	// nolint:staticcheck
 	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
@@ -1476,7 +1523,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLTokensStateStore(t)
 
-		require.Error(t, s.ACLTokenDeleteByAccessor(3, structs.ACLTokenAnonymousID, nil))
+		require.Error(t, s.ACLTokenDeleteByAccessor(3, acl.AnonymousTokenID, nil))
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
@@ -1541,7 +1588,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 				ID:          structs.ACLPolicyGlobalManagementID,
 				Name:        "global-management",
 				Description: "Global Management",
-				Rules:       structs.ACLPolicyGlobalManagement,
+				Rules:       structs.ACLPolicyGlobalManagementRules,
 				Datacenters: []string{"dc1"},
 			}
 
@@ -1555,7 +1602,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 				ID:          structs.ACLPolicyGlobalManagementID,
 				Name:        "management",
 				Description: "Modified",
-				Rules:       structs.ACLPolicyGlobalManagement,
+				Rules:       structs.ACLPolicyGlobalManagementRules,
 			}
 
 			require.NoError(t, s.ACLPolicySet(3, &policy))
@@ -1581,7 +1628,6 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 			Name:        "node-read",
 			Description: "Allows reading all node information",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1"},
 		}
 
@@ -1594,7 +1640,6 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.Equal(t, "node-read", rpolicy.Name)
 		require.Equal(t, "Allows reading all node information", rpolicy.Description)
 		require.Equal(t, `node_prefix "" { policy = "read" }`, rpolicy.Rules)
-		require.Equal(t, acl.SyntaxCurrent, rpolicy.Syntax)
 		require.Len(t, rpolicy.Datacenters, 1)
 		require.Equal(t, "dc1", rpolicy.Datacenters[0])
 		require.Equal(t, uint64(3), rpolicy.CreateIndex)
@@ -1606,9 +1651,8 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, rpolicy)
 		require.Equal(t, "global-management", rpolicy.Name)
-		require.Equal(t, "Builtin Policy that grants unlimited access", rpolicy.Description)
-		require.Equal(t, structs.ACLPolicyGlobalManagement, rpolicy.Rules)
-		require.Equal(t, acl.SyntaxCurrent, rpolicy.Syntax)
+		require.Equal(t, structs.ACLPolicyGlobalManagementDesc, rpolicy.Description)
+		require.Equal(t, structs.ACLPolicyGlobalManagementRules, rpolicy.Rules)
 		require.Len(t, rpolicy.Datacenters, 0)
 		require.Equal(t, uint64(1), rpolicy.CreateIndex)
 		require.Equal(t, uint64(1), rpolicy.ModifyIndex)
@@ -1624,7 +1668,6 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 			Name:        "node-read-modified",
 			Description: "Modified",
 			Rules:       `node_prefix "" { policy = "read" } node "secret" { policy = "deny" }`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1", "dc2"},
 		}
 
@@ -1779,31 +1822,39 @@ func TestStateStore_ACLPolicy_List(t *testing.T) {
 
 	_, policies, err := s.ACLPolicyList(nil, nil)
 	require.NoError(t, err)
-	require.Len(t, policies, 3)
+	require.Len(t, policies, 4)
 	policies.Sort()
 	require.Equal(t, structs.ACLPolicyGlobalManagementID, policies[0].ID)
-	require.Equal(t, "global-management", policies[0].Name)
-	require.Equal(t, "Builtin Policy that grants unlimited access", policies[0].Description)
+	require.Equal(t, structs.ACLPolicyGlobalManagementName, policies[0].Name)
+	require.Equal(t, structs.ACLPolicyGlobalManagementDesc, policies[0].Description)
 	require.Empty(t, policies[0].Datacenters)
 	require.NotEqual(t, []byte{}, policies[0].Hash)
 	require.Equal(t, uint64(1), policies[0].CreateIndex)
 	require.Equal(t, uint64(1), policies[0].ModifyIndex)
 
-	require.Equal(t, "a2719052-40b3-4a4b-baeb-f3df1831a217", policies[1].ID)
-	require.Equal(t, "acl-write-dc3", policies[1].Name)
-	require.Equal(t, "Can manage ACLs in dc3", policies[1].Description)
-	require.ElementsMatch(t, []string{"dc3"}, policies[1].Datacenters)
-	require.Nil(t, policies[1].Hash)
+	require.Equal(t, structs.ACLPolicyGlobalReadOnlyID, policies[1].ID)
+	require.Equal(t, structs.ACLPolicyGlobalReadOnlyName, policies[1].Name)
+	require.Equal(t, structs.ACLPolicyGlobalReadOnlyDesc, policies[1].Description)
+	require.Empty(t, policies[1].Datacenters)
+	require.NotEqual(t, []byte{}, policies[1].Hash)
 	require.Equal(t, uint64(2), policies[1].CreateIndex)
 	require.Equal(t, uint64(2), policies[1].ModifyIndex)
 
-	require.Equal(t, "a4f68bd6-3af5-4f56-b764-3c6f20247879", policies[2].ID)
-	require.Equal(t, "service-read", policies[2].Name)
-	require.Equal(t, "", policies[2].Description)
-	require.Empty(t, policies[2].Datacenters)
+	require.Equal(t, "a2719052-40b3-4a4b-baeb-f3df1831a217", policies[2].ID)
+	require.Equal(t, "acl-write-dc3", policies[2].Name)
+	require.Equal(t, "Can manage ACLs in dc3", policies[2].Description)
+	require.ElementsMatch(t, []string{"dc3"}, policies[2].Datacenters)
 	require.Nil(t, policies[2].Hash)
 	require.Equal(t, uint64(2), policies[2].CreateIndex)
 	require.Equal(t, uint64(2), policies[2].ModifyIndex)
+
+	require.Equal(t, "a4f68bd6-3af5-4f56-b764-3c6f20247879", policies[3].ID)
+	require.Equal(t, "service-read", policies[3].Name)
+	require.Equal(t, "", policies[3].Description)
+	require.Empty(t, policies[3].Datacenters)
+	require.Nil(t, policies[3].Hash)
+	require.Equal(t, uint64(2), policies[3].CreateIndex)
+	require.Equal(t, uint64(2), policies[3].ModifyIndex)
 }
 
 func TestStateStore_ACLPolicy_Delete(t *testing.T) {
@@ -2413,7 +2464,6 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 		Name:        "node-read-renamed",
 		Description: "Allows reading all node information",
 		Rules:       `node_prefix "" { policy = "read" }`,
-		Syntax:      acl.SyntaxCurrent,
 	}
 	renamed.SetHash(true)
 	require.NoError(t, s.ACLPolicySet(3, renamed))
@@ -2793,16 +2843,19 @@ func TestStateStore_ACLAuthMethod_GlobalNameShadowing_TokenTest(t *testing.T) {
 	}
 
 	require.True(t, t.Run("list local only", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, true, false, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC2_tok1, methodDC2_tok2}, toList(got))
 	}))
 	require.True(t, t.Run("list global only", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, false, true, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
 	}))
 	require.True(t, t.Run("list both", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, true, true, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2, methodDC2_tok1, methodDC2_tok2}, toList(got))
@@ -2814,16 +2867,19 @@ func TestStateStore_ACLAuthMethod_GlobalNameShadowing_TokenTest(t *testing.T) {
 	}))
 
 	require.True(t, t.Run("list local only (after dc2 delete)", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, true, false, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.Empty(t, got)
 	}))
 	require.True(t, t.Run("list global only (after dc2 delete)", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, false, true, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
 	}))
 	require.True(t, t.Run("list both (after dc2 delete)", func(t *testing.T) {
+		// nolint:staticcheck
 		_, got, err := s.ACLTokenList(nil, true, true, "", "", "test", defaultEntMeta, defaultEntMeta)
 		require.NoError(t, err)
 		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
@@ -3474,14 +3530,12 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 			Name:        "policy2",
 			Description: "policy2",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 	}
 
@@ -3616,6 +3670,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 		// Read the restored ACLs back out and verify that they match.
+		// nolint:staticcheck
 		idx, res, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx)
@@ -3690,7 +3745,6 @@ func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
 }
 
 func TestTokenPoliciesIndex(t *testing.T) {
-	lib.SeedMathRand()
 
 	idIndex := &memdb.IndexSchema{
 		Name:         "id",
@@ -3875,14 +3929,12 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 			Name:        "policy2",
 			Description: "policy2",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 	}
 

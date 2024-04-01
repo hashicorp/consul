@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -24,6 +27,9 @@ type Partition struct {
 
 	// ModifyIndex is the latest Raft index at which the Partition was modified.
 	ModifyIndex uint64 `json:"ModifyIndex,omitempty"`
+
+	// DisableGossip will not enable a gossip pool for the partition
+	DisableGossip bool `json:"DisableGossip,omitempty"`
 }
 
 // PartitionDefaultName is the default partition value.

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package fsm
 
 import (
@@ -6,12 +9,16 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-raftchunking"
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-raftchunking"
-	"github.com/hashicorp/raft"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 )
+
+var cePersister, entPersister persister
 
 var SnapshotSummaries = []prometheus.SummaryDefinition{
 	{
@@ -24,8 +31,9 @@ var SnapshotSummaries = []prometheus.SummaryDefinition{
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type snapshot struct {
-	state      *state.Snapshot
-	chunkState *raftchunking.State
+	state           *state.Snapshot
+	chunkState      *raftchunking.State
+	storageSnapshot *raftstorage.Snapshot
 }
 
 // SnapshotHeader is the first entry in our snapshot
@@ -37,15 +45,6 @@ type SnapshotHeader struct {
 
 // persister is a function used to help snapshot the FSM state.
 type persister func(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error
-
-// persisters is a list of snapshot functions.
-var persisters []persister
-
-// registerPersister adds a new helper. This should be called at package
-// init() time.
-func registerPersister(fn persister) {
-	persisters = append(persisters, fn)
-}
 
 // restorer is a function used to load back a snapshot of the FSM state.
 type restorer func(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error
@@ -80,7 +79,16 @@ func (s *snapshot) Persist(sink raft.SnapshotSink) error {
 	}
 
 	// Run all the persisters to write the FSM state.
-	for _, fn := range persisters {
+	for _, fn := range []persister{
+		// The enterprise version MUST be executed first, otherwise the snapshot will
+		// not properly function during restore due to missing tenancy objects.
+		entPersister,
+		cePersister,
+	} {
+		// Check for nil, since the enterprise version may not exist in CE.
+		if fn == nil {
+			continue
+		}
 		if err := fn(s, sink, encoder); err != nil {
 			sink.Cancel()
 			return err

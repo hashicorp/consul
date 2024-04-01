@@ -1,0 +1,61 @@
+---
+layout: docs
+page_title: 1.1.x
+description: >-
+  Consul on Kubernetes release notes for version 1.1.x
+---
+
+# Consul on Kubernetes 1.1.0
+
+## Release Highlights
+
+- **Enhanced Envoy Access Logging:** Envoy access logs are now centrally managed via the `accessLogs` field within the ProxyDefaults CRD to allow operators to easily turn on access logs for all proxies within the service mesh. Refer to [Access logs overview](/consul/docs/connect/observability/access-logs) for more information.
+
+- **Consul Envoy Extensions:** The new Envoy extension system enables you to modify Consul-generated Envoy resources outside of the Consul binary. This will allow extensions to add, delete, and modify Envoy listeners, routes, clusters, and endpoints, enabling support for additional Envoy features without changes to the Consul codebase.
+The new `envoyExtensions` field in the ProxyDefaults and ServiceDefaults CRDs enable built-in Envoy extensions. Refer to [Envoy extensions overview](/consul/docs/connect/proxies/envoy-extensions) for more information on how to use these extensions.
+
+- **Envoy Proxy Debugging CLI Commands**: This release adds a new command to quickly modify the log level of Envoy proxies for sidecars and gateways for easier debugging.
+Refer to [consul-k8s CLI proxy log command](/consul/docs/k8s/k8s-cli#proxy-log) docs for more information.
+  * Add `consul-k8s proxy log podname` command for displaying current log levels or updating log levels for Envoy in a given pod.
+
+
+## What's Changed
+
+- Connect inject now excludes the `openebs` namespace from sidecar injection by default. If you previously had pods in that namespace
+that you wanted to be injected, you must now set namespaceSelector as follows:
+
+  ```yaml
+  connectInject:
+    namespaceSelector: |
+      matchExpressions:
+      - key: "kubernetes.io/metadata.name"
+        operator: "NotIn"
+        values: ["kube-system","local-path-storage"]
+  ```
+
+## Supported Software
+
+~> **Note:** Consul 1.14.x and 1.13.x are not supported. Please refer to [Supported Consul and Kubernetes versions](/consul/docs/k8s/compatibility#supported-consul-and-kubernetes-versions) for more detail on choosing the correct `consul-k8s` version.
+- Consul 1.15.x.
+- Consul Dataplane v1.1.x. Refer to [Envoy and Consul Dataplane](/consul/docs/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version.
+- Kubernetes 1.23.x - 1.26.x
+- `kubectl` 1.23.x - 1.26.x
+- Helm 3.6+
+
+## Upgrading
+
+For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/k8s/upgrade)
+
+## Known Issues
+
+The following issues are known to exist in the v1.1.0 release:
+
+- Pod Security Standards that are configured for the [Pod Security Admission controller](https://kubernetes.io/blog/2022/08/25/pod-security-admission-stable/) are currently not supported by Consul K8s. OpenShift 4.11.x enables Pod Security Standards on Kubernetes 1.25 [by default](https://connect.redhat.com/en/blog/important-openshift-changes-pod-security-standards) and is also not supported. Support will be added in a future Consul K8s 1.0.x patch release.
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+~> **Note:** The following link takes you to the changelogs on the GitHub website.
+
+- [1.1.0](https://github.com/hashicorp/consul-k8s/releases/tag/v1.1.0)

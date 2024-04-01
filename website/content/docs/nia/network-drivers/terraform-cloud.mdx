@@ -18,20 +18,20 @@ This page describes how the Terraform Cloud driver operates within CTS.
 
 ## Terraform Workspace Automation
 
-CTS manages Terraform runs following the [API-driven run workflow](https://www.terraform.io/cloud-docs/run/api) for workspaces in Terraform Cloud.
+CTS manages Terraform runs following the [API-driven run workflow](/terraform/cloud-docs/run/api) for workspaces in Terraform Cloud.
 
 On startup, CTS:
 1. Creates or discovers Terraform Cloud workspaces corresponding to the configured tasks.
 2. Prepares the local environment and generates Terraform configuration files that make up the root module for each task.
 3. Packages the generated files and uploads them as a configuration version for the task's workspace on Terraform Cloud.
 
-Once all workspaces are set up, CTS monitors the Consul catalog for service changes. When relevant changes are detected, the Terraform Cloud driver dynamically updates input variables for that task directly as [workspace variables](https://www.terraform.io/cloud-docs/workspaces/variables) using the Terraform Cloud API. The driver then queues a run on the workspace, with auto-apply enabled, to update your network infrastructure.
+Once all workspaces are set up, CTS monitors the Consul catalog for service changes. When relevant changes are detected, the Terraform Cloud driver dynamically updates input variables for that task directly as [workspace variables](/terraform/cloud-docs/workspaces/variables) using the Terraform Cloud API. The driver then queues a run on the workspace, with auto-apply enabled, to update your network infrastructure.
 
 ~> **Note:** Although workspaces for tasks are executed in isolated environments, this does not guarantee the infrastructure changes from concurrent task executions are independent. Ensure that modules across all tasks are not modifying the same resource objects or have overlapping changes that may result in race conditions during automation.
 
 ## Remote Workspaces
 
-CTS will discover or create a new workspaces based on your configured tasks. The task configuration [`name`](/docs/nia/configuration#name-1) and [`description`](/docs/nia/configuration#description) are used to set the workspace name and description. The task configuration [`terraform_cloud_workspace`](/docs/nia/configuration#terraform_cloud_workspace) is used to set options like Terraform version, execution mode, and agent pool if relevant. CTS will also use any globally set workspace configurations, specified in the driver configuration [`workspaces`](/docs/nia/configuration#workspaces).
+CTS will discover or create a new workspaces based on your configured tasks. The task configuration [`name`](/consul/docs/nia/configuration#name-1) and [`description`](/consul/docs/nia/configuration#description) are used to set the workspace name and description. The task configuration [`terraform_cloud_workspace`](/consul/docs/nia/configuration#terraform_cloud_workspace) is used to set options like Terraform version, execution mode, and agent pool if relevant. CTS will also use any globally set workspace configurations, specified in the driver configuration [`workspaces`](/consul/docs/nia/configuration#workspaces).
 
 [![CTS Workspace Overview](/img/nia/cts-tfc-workspace.png)](/img/nia/cts-tfc-workspace.png)
 
@@ -39,7 +39,7 @@ Workspace automation requirements for CTS are in place to avoid overriding other
 * Must be set to remote or agent execution mode
 * Cannot be connected to a VCS
 * Cannot have an existing configuration version uploaded by another application
-* Must satisfy workspace [tag requirements](/docs/nia/configuration#tags_allowlist) and [tag restrictions](/docs/nia/configuration#tags_denylist) set by the CTS operator
+* Must satisfy workspace [tag requirements](/consul/docs/nia/configuration#tags_allowlist) and [tag restrictions](/consul/docs/nia/configuration#tags_denylist) set by the CTS operator
 
 Workspaces created by CTS will be configured with the following settings:
 
@@ -47,12 +47,12 @@ Workspaces created by CTS will be configured with the following settings:
 | ------- | ----- |
 | Workspace name | CTS task name |
 | Description | CTS task description |
-| Execution mode | [`task.terraform_cloud_workspace.execution_mode`](/docs/nia/configuration#execution_mode) or remote by default |
+| Execution mode | [`task.terraform_cloud_workspace.execution_mode`](/consul/docs/nia/configuration#execution_mode) or remote by default |
 | Apply method | Auto apply |
-| Terraform Version | [`task.terraform_cloud_workspace.terraform_version`](/docs/nia/configuration#terraform_version-1), [`task.terraform_version`](/docs/nia/configuration#terraform_version) (deprecated), or the latest [Terraform version compatible with CTS](/docs/nia/compatibility#terraform) available for the organization. |
-| Tags | `source:cts` and [additional tags](/docs/nia/configuration#tags) set by the CTS operator |
+| Terraform Version | [`task.terraform_cloud_workspace.terraform_version`](/consul/docs/nia/configuration#terraform_version-1), [`task.terraform_version`](/consul/docs/nia/configuration#terraform_version) (deprecated), or the latest [Terraform version compatible with CTS](/consul/docs/nia/compatibility#terraform) available for the organization. |
+| Tags | `source:cts` and [additional tags](/consul/docs/nia/configuration#tags) set by the CTS operator |
 
-Other workspace settings can be pre-configured or updated, such as setting the workspace to [manual apply](#manual-apply) or adding a [run notification](https://www.terraform.io/cloud-docs/workspaces/settings/notifications) to send messages to a Slack channel when CTS updates your network infrastructure.
+Other workspace settings can be pre-configured or updated, such as setting the workspace to [manual apply](#manual-apply) or adding a [run notification](/terraform/cloud-docs/workspaces/settings/notifications) to send messages to a Slack channel when CTS updates your network infrastructure.
 
 ### Manual Apply
 
@@ -64,11 +64,11 @@ There are two approaches to setup manual apply for a workspace managed by CTS ba
 * For CTS created workspaces, update the apply method from auto to manual via the Terraform Cloud web application or API.
 * For pre-configured workspaces, create the workspace prior to CTS task automation via the Terraform Cloud web application or API.
   1. Create a workspace with the same name as the desired task.
-  1. Set the workspace to [API-driven run workflow](https://www.terraform.io/cloud-docs/run/api) and the execution mode to remote.
+  1. Set the workspace to [API-driven run workflow](/terraform/cloud-docs/run/api) and the execution mode to remote.
   1. Ensure that the apply method for the workspace is set to manual apply.
   1. Configure the task for the workspace and run CTS.
 
--> **Tip**: Setup [run notifications](https://www.terraform.io/cloud-docs/workspaces/settings/notifications#creating-a-notification-configuration) for workspaces with manual apply to not miss automated runs by CTS. Look into setting the [buffer period](/docs/nia/configuration#buffer_period-1) or a [schedule condition](/docs/nia/configuration#schedule-condition) to group changes together and reduce runs requiring approval.
+-> **Tip**: Setup [run notifications](/terraform/cloud-docs/workspaces/settings/notifications#creating-a-notification-configuration) for workspaces with manual apply to not miss automated runs by CTS. Look into setting the [buffer period](/consul/docs/nia/configuration#buffer_period-1) or a [schedule condition](/consul/docs/nia/configuration#schedule-condition) to group changes together and reduce runs requiring approval.
 
 ## Configuration Version
 
@@ -86,12 +86,12 @@ sync-tasks/
 - `main.tf` - The main file contains the terraform block, provider blocks, and a module block calling the module configured for the task.
   - `terraform` block - The corresponding provider source and versions for the task from the configuration files are placed into this block for the root module.
   - `provider` blocks - The provider blocks generated in the root module resemble the `terraform_provider` blocks from the configuration for CTS. They have identical arguments present and are set from the intermediate variable created per provider.
-  - `module` block - The module block is where the task's module is called as a [child module](https://www.terraform.io/language/modules#calling-a-child-module). The child module contains the core logic for automation. Required and optional input variables are passed as arguments to the module.
+  - `module` block - The module block is where the task's module is called as a [child module](/terraform/language/modules#calling-a-child-module). The child module contains the core logic for automation. Required and optional input variables are passed as arguments to the module.
 - `variables.tf` - This file contains three types of variable declarations:
-  -  `services` input variable (required) determines module compatibility with Consul-Terraform Sync (read more on [compatible Terraform modules](/docs/nia/terraform-modules) for more details).
-  - Any additional [optional input variables](/docs/nia/terraform-modules#optional-input-variables) provided by CTS that the module may use.
+  -  `services` input variable (required) determines module compatibility with Consul-Terraform Sync (read more on [compatible Terraform modules](/consul/docs/nia/terraform-modules) for more details).
+  - Any additional [optional input variables](/consul/docs/nia/terraform-modules#optional-input-variables) provided by CTS that the module may use.
   - Various intermediate variables used to configure providers. Intermediate provider variables are interpolated from the provider blocks and arguments configured in the CTS configuration.
-- `variables.module.tf` - This file is created if there are [variables configured for the task](/docs/nia/configuration#variable_files) and contains the interpolated variable declarations that match the variables from configuration. These are then used to proxy the configured variables to the module through explicit assignment in the module block.
+- `variables.module.tf` - This file is created if there are [variables configured for the task](/consul/docs/nia/configuration#variable_files) and contains the interpolated variable declarations that match the variables from configuration. These are then used to proxy the configured variables to the module through explicit assignment in the module block.
 
 ## Variables
 
@@ -115,24 +115,24 @@ This section captures requirements for setting up CTS to integrate with your [Te
 
 1. Hostname of your Terraform Cloud, self-hosted distribution
 1. Name of your organization
-1. [Team API token](https://www.terraform.io/cloud-docs/users-teams-organizations/api-tokens) used for authentication with Terraform Cloud
+1. [Team API token](/terraform/cloud-docs/users-teams-organizations/api-tokens) used for authentication with Terraform Cloud
 
-Prior to running CTS with a Terraform Cloud driver, you will need an account and organization set up, as well as a dedicated token. We recommend using a team token that is restricted to [Manage Workspaces](https://www.terraform.io/cloud-docs/users-teams-organizations/teams#managing-workspace-access)-level permissions. Below are the steps for the recommended setup.
+Prior to running CTS with a Terraform Cloud driver, you will need an account and organization set up, as well as a dedicated token. We recommend using a team token that is restricted to [Manage Workspaces](/terraform/cloud-docs/users-teams-organizations/teams#managing-workspace-access)-level permissions. Below are the steps for the recommended setup.
 
-The first step is to create an account with your Terraform Cloud service. After creating an account, create a new [organization](https://www.terraform.io/cloud-docs/users-teams-organizations/organizations#creating-organizations) or select an existing organization. The address of your Terraform Cloud service will be used to configure the [`hostname`](/docs/nia/configuration#hostname), and the organization name will be used to configure the [`organization`](/docs/nia/configuration#organization) on the Terraform Cloud driver.
+The first step is to create an account with your Terraform Cloud service. After creating an account, create a new [organization](/terraform/cloud-docs/users-teams-organizations/organizations#creating-organizations) or select an existing organization. The address of your Terraform Cloud service will be used to configure the [`hostname`](/consul/docs/nia/configuration#hostname), and the organization name will be used to configure the [`organization`](/consul/docs/nia/configuration#organization) on the Terraform Cloud driver.
 
-Once you have an account and organization, the next step is to [create a team](https://www.terraform.io/cloud-docs/users-teams-organizations/teams). We recommend using a dedicated team and team token to run and authenticate CTS. Using a team token has the benefits of restricting organization permissions as well as associating CTS automated actions with the team rather than an individual.
+Once you have an account and organization, the next step is to [create a team](/terraform/cloud-docs/users-teams-organizations/teams). We recommend using a dedicated team and team token to run and authenticate CTS. Using a team token has the benefits of restricting organization permissions as well as associating CTS automated actions with the team rather than an individual.
 
 After creating a dedicated team, update the team's permissions with "Manage Workspaces" organization access-level. CTS's main work revolves around creating and managing workspaces. Therefore restricting the dedicated team's permission to Manage Workspaces level is sufficient and reduces security risk.
 
 [![CTS Terraform Team Setup](/img/nia/cts-tfc-team-setup.png)](/img/nia/cts-tfc-team-setup.png)
 
-After setting the team's permissions, the final setup step is to [generate the associated team token](https://www.terraform.io/cloud-docs/users-teams-organizations/api-tokens), which can be done on the same team management page. This token will be used by CTS for API authentication and will be used to configure the [`token`](/docs/nia/configuration#token) on the Terraform Cloud driver.
+After setting the team's permissions, the final setup step is to [generate the associated team token](/terraform/cloud-docs/users-teams-organizations/api-tokens), which can be done on the same team management page. This token will be used by CTS for API authentication and will be used to configure the [`token`](/consul/docs/nia/configuration#token) on the Terraform Cloud driver.
 
 ### Recommendations
 
-We recommend configuring workspaces managed by CTS with [run notifications](https://www.terraform.io/cloud-docs/workspaces/settings/notifications) through the Terraform web application. Run notifications notify external systems about the progress of runs and could help notify users of CTS events, particularly errored runs.
+We recommend configuring workspaces managed by CTS with [run notifications](/terraform/cloud-docs/workspaces/settings/notifications) through the Terraform web application. Run notifications notify external systems about the progress of runs and could help notify users of CTS events, particularly errored runs.
 
 [![CTS Terraform Cloud Run Notifications](/img/nia/cts-tfc-run-notifications.png)](/img/nia/cts-tfc-run-notifications.png)
 
-In order to configure a run notification, users can [manually create a notification configuration](https://www.terraform.io/cloud-docs/workspaces/settings/notifications#creating-a-notification-configuration) for workspaces automated by CTS. A workspace may already exist for a task if the workspace name is identical to the configured task's [`name`](/docs/nia/configuration#name-2). This may occur if CTS has already already run and created the workspace for the task. This may also occur if the workspace is manually created for the task prior to CTS running.
+In order to configure a run notification, users can [manually create a notification configuration](/terraform/cloud-docs/workspaces/settings/notifications#creating-a-notification-configuration) for workspaces automated by CTS. A workspace may already exist for a task if the workspace name is identical to the configured task's [`name`](/consul/docs/nia/configuration#name-2). This may occur if CTS has already already run and created the workspace for the task. This may also occur if the workspace is manually created for the task prior to CTS running.

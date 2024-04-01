@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xds
 
 import (
@@ -6,19 +9,20 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"github.com/hashicorp/consul/agent/xds/naming"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
 func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
 		if !ok {
@@ -58,19 +62,30 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				if err != nil {
 					return nil, err
 				}
-				clusterName = CustomizeClusterName(target.Name, chain)
+				clusterName = naming.CustomizeClusterName(target.Name, chain)
 			}
 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
-			l := makePortListenerWithDefault(uid.EnvoyID(), address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+			opts := makeListenerOpts{
+				name:       uid.EnvoyID(),
+				accessLogs: cfgSnap.Proxy.AccessLogs,
+				addr:       address,
+				port:       u.LocalBindPort,
+				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
+				logger:     s.Logger,
+			}
+			l := makeListener(opts)
+
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				routeName:   uid.EnvoyID(),
-				useRDS:      useRDS,
-				clusterName: clusterName,
-				filterName:  filterName,
-				protocol:    cfg.Protocol,
-				tlsContext:  tlsContext,
+				accessLogs:      &cfgSnap.Proxy.AccessLogs,
+				routeName:       uid.EnvoyID(),
+				useRDS:          useRDS,
+				fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				clusterName:     clusterName,
+				filterName:      filterName,
+				protocol:        cfg.Protocol,
+				tlsContext:      tlsContext,
 			})
 			if err != nil {
 				return nil, err
@@ -78,25 +93,38 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			l.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
-			resources = append(resources, l)
 
+			resources = append(resources, l)
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
-			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
-			opts := listenerFilterOpts{
-				useRDS:          true,
-				protocol:        listenerKey.Protocol,
-				filterName:      listenerKey.RouteName(),
-				routeName:       listenerKey.RouteName(),
-				cluster:         "",
-				statPrefix:      "ingress_upstream_",
-				routePath:       "",
-				httpAuthzFilter: nil,
+			listenerOpts := makeListenerOpts{
+				name:       listenerKey.Protocol,
+				accessLogs: cfgSnap.Proxy.AccessLogs,
+				addr:       address,
+				port:       listenerKey.Port,
+				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
+				logger:     s.Logger,
+			}
+
+			listener := makeListener(listenerOpts)
+
+			filterOpts := listenerFilterOpts{
+				useRDS:           true,
+				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				protocol:         listenerKey.Protocol,
+				filterName:       listenerKey.RouteName(),
+				routeName:        listenerKey.RouteName(),
+				cluster:          "",
+				statPrefix:       "ingress_upstream_",
+				routePath:        "",
+				httpAuthzFilters: nil,
+				accessLogs:       &cfgSnap.Proxy.AccessLogs,
+				logger:           s.Logger,
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
 			// via SDS.
-			sniFilterChains, err := makeSDSOverrideFilterChains(cfgSnap, listenerKey, opts)
+			sniFilterChains, err := makeSDSOverrideFilterChains(cfgSnap, listenerKey, filterOpts)
 			if err != nil {
 				return nil, err
 			}
@@ -115,7 +143,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			// See if there are other services that didn't have specific SNI-matching
 			// filter chains. If so add a default filterchain to serve them.
 			if len(sniFilterChains) < len(upstreams) {
-				defaultFilter, err := makeListenerFilter(opts)
+				defaultFilter, err := makeListenerFilter(filterOpts)
 				if err != nil {
 					return nil, err
 				}
@@ -154,7 +182,7 @@ func makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.Config
 
 		downstreamContext = &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         tlsContext,
-			RequireClientCertificate: &wrappers.BoolValue{Value: false},
+			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
 		}
 	}
 
@@ -272,7 +300,7 @@ func routeNameForUpstream(l structs.IngressListener, s structs.IngressService) s
 
 	// Return a specific route for this service as it needs a custom FilterChain
 	// to serve its custom cert so we should attach its routes to a separate Route
-	// too. We need this to be consistent between OSS and Enterprise to avoid xDS
+	// too. We need this to be consistent between CE and Enterprise to avoid xDS
 	// config golden files in tests conflicting so we can't use ServiceID.String()
 	// which normalizes to included all identifiers in Enterprise.
 	sn := s.ToServiceName()
@@ -336,7 +364,7 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         commonTlsContext,
-			RequireClientCertificate: &wrappers.BoolValue{Value: false},
+			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
 		}
 
 		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -363,6 +391,24 @@ func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *env
 	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
 }
 
+func makeInlineTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, cert structs.InlineCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg),
+		TlsCertificates: []*envoy_tls_v3.TlsCertificate{{
+			CertificateChain: &envoy_core_v3.DataSource{
+				Specifier: &envoy_core_v3.DataSource_InlineString{
+					InlineString: lib.EnsureTrailingNewline(cert.Certificate),
+				},
+			},
+			PrivateKey: &envoy_core_v3.DataSource{
+				Specifier: &envoy_core_v3.DataSource_InlineString{
+					InlineString: lib.EnsureTrailingNewline(cert.PrivateKey),
+				},
+			},
+		}},
+	}
+}
+
 func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {
 	return &envoy_tls_v3.CommonTlsContext{
 		TlsParams:                      makeTLSParametersFromGatewayTLSConfig(tlsCfg),
@@ -376,6 +422,7 @@ func makeCommonTLSContextFromGatewayServiceTLSConfig(tlsCfg structs.GatewayServi
 		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
 	}
 }
+
 func makeTLSCertificateSdsSecretConfigsFromSDS(sdsCfg structs.GatewayTLSSDSConfig) []*envoy_tls_v3.SdsSecretConfig {
 	return []*envoy_tls_v3.SdsSecretConfig{
 		{
@@ -394,7 +441,7 @@ func makeTLSCertificateSdsSecretConfigsFromSDS(sdsCfg structs.GatewayTLSSDSConfi
 										ClusterName: sdsCfg.ClusterName,
 									},
 								},
-								Timeout: &duration.Duration{Seconds: 5},
+								Timeout: &durationpb.Duration{Seconds: 5},
 							},
 						},
 					},

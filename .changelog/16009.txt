@@ -1,0 +1,3 @@
+```release-note:deprecation
+acl: Deprecate the `token` query parameter and warn when it is used for authentication.
+```

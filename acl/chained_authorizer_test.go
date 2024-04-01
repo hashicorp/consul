@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package acl
 
 import (
@@ -24,6 +27,18 @@ func (authz testAuthorizer) EventRead(string, *AuthorizerContext) EnforcementDec
 	return EnforcementDecision(authz)
 }
 func (authz testAuthorizer) EventWrite(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityRead(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityReadAll(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityWrite(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityWriteAny(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
 func (authz testAuthorizer) IntentionDefaultAllow(*AuthorizerContext) EnforcementDecision {
@@ -92,6 +107,9 @@ func (authz testAuthorizer) ServiceRead(string, *AuthorizerContext) EnforcementD
 func (authz testAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) ServiceReadPrefix(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 func (authz testAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
@@ -105,6 +123,12 @@ func (authz testAuthorizer) SessionWrite(string, *AuthorizerContext) Enforcement
 	return EnforcementDecision(authz)
 }
 func (authz testAuthorizer) Snapshot(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) TrafficPermissionsRead(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) TrafficPermissionsWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
 

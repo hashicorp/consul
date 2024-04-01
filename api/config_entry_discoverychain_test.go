@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -118,6 +121,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		"alternate",
 		"test-split",
 		"test-route",
+		"test-route-case-insensitive",
 	} {
 		serviceDefaults := &ServiceConfigEntry{
 			Kind:     ServiceDefaults,
@@ -170,6 +174,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					},
 				},
 				ConnectTimeout: 5 * time.Second,
+				RequestTimeout: 10 * time.Second,
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
@@ -254,6 +259,67 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Match: &ServiceRouteMatch{
 							HTTP: &ServiceRouteHTTPMatch{
 								PathPrefix: "/prefix",
+								Header: []ServiceRouteHTTPMatchHeader{
+									{Name: "x-debug", Exact: "1"},
+								},
+								QueryParam: []ServiceRouteHTTPMatchQueryParam{
+									{Name: "debug", Exact: "1"},
+								},
+							},
+						},
+						Destination: &ServiceRouteDestination{
+							Service:               "test-failover",
+							ServiceSubset:         "v2",
+							Namespace:             defaultNamespace,
+							Partition:             defaultPartition,
+							PrefixRewrite:         "/",
+							RequestTimeout:        5 * time.Second,
+							NumRetries:            5,
+							RetryOnConnectFailure: true,
+							RetryOnStatusCodes:    []uint32{500, 503, 401},
+							RetryOn: []string{
+								"gateway-error",
+								"reset",
+								"envoy-ratelimited",
+								"retriable-4xx",
+								"refused-stream",
+								"cancelled",
+								"deadline-exceeded",
+								"internal",
+								"resource-exhausted",
+								"unavailable",
+							},
+							RequestHeaders: &HTTPHeaderModifiers{
+								Set: map[string]string{
+									"x-foo": "bar",
+								},
+							},
+							ResponseHeaders: &HTTPHeaderModifiers{
+								Remove: []string{"x-foo"},
+							},
+						},
+					},
+				},
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+			verify: verifyRouter,
+		},
+		{
+			name: "mega router case insensitive", // use one mega object to avoid multiple trips
+			entry: &ServiceRouterConfigEntry{
+				Kind:      ServiceRouter,
+				Name:      "test-route-case-insensitive",
+				Partition: defaultPartition,
+				Namespace: defaultNamespace,
+				Routes: []ServiceRoute{
+					{
+						Match: &ServiceRouteMatch{
+							HTTP: &ServiceRouteHTTPMatch{
+								PathPrefix:      "/prEfix",
+								CaseInsensitive: true,
 								Header: []ServiceRouteHTTPMatchHeader{
 									{Name: "x-debug", Exact: "1"},
 								},

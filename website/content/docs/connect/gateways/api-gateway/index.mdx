@@ -1,0 +1,61 @@
+---
+layout: docs
+page_title: API gateways overview
+description: API gateways provide an ingress point for service mesh traffic. Learn how API gateways add listeners for external traffic and route HTTP requests to services in the mesh.
+---
+
+# API gateways overview
+
+This topic provides overview information about API gateways in Consul. API gateways enable external network clients to access applications and services running in a Consul datacenter. Consul API gateways can also forward requests from clients to specific destinations based on path or request protocol.
+
+## API gateway use cases
+
+API gateways solve the following primary use cases:
+
+- **Control access at the point of entry**: Set the protocols of external connection requests and secure inbound connections with TLS certificates from trusted providers, such as Verisign and Let's Encrypt.
+- **Simplify traffic management**: Load balance requests across services and route traffic to the appropriate service by matching one or more criteria, such as hostname, path, header presence or value, and HTTP method.
+
+## Workflows
+
+You can deploy API gateways to networks that implement a variety of computing environments: 
+
+- Services hosted on VMs
+- Kubernetes-orchestrated service containers
+- Kubernetes-orchestrated service containers in OpenShift
+
+The following steps describe the general workflow for deploying a Consul API gateways:
+
+1. For Kubernetes-orchestrated services, install Consul on your cluster. For Kubernetes-orchestrated services on OpenShift, you must also enable the `openShift.enabled` parameter. Refer to [Install Consul on Kubernetes](/consul/docs/connect/gateways/api-gateway/install-k8s) for additional information.  
+1. Define and deploy the API gateway configurations to create the API gateway artifacts. For VM-hosted services, create configuration entries for the gateway service, listeners configurations, and references to TLS certificates. For Kubernetes-orchestrated, configurations also include `GatewayClassConfig`s and `parametersRef`s. 
+1. Define and deploy routes between the gateway listeners and services in the mesh. 
+
+Gateway configurations are modular, so you can define and attach routes and inline certificates to multiple gateways.
+
+## Technical specifications
+
+Refer to [Technical specifications for API gateways on Kubernetes](/consul/docs/connect/gateways/api-gateway/tech-specs) for additional details and considerations about using API gateways in Kubernetes-orchestrated networks. 
+
+## Guidance
+
+Refer to the following resources for help setting up and using API gateways:
+
+### Tutorials
+
+- [Control access into the service mesh with Consul API gateway](/consul/tutorials/developer-mesh/kubernetes-api-gateway)
+
+### Usage documentation
+
+- [Deploy API gateway listeners to VMs](/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms)
+- [Deploy API gateway listeners to Kubernetes](/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s)
+- [Deploy API gateway routes to VMs](/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms)
+- [Deploy API gateway routes to Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/routes-k8s)
+- [Reroute HTTP requests in Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests)
+- [Route traffic to peered services in Kubernetes](/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services)
+- [Encrypt API gateway traffic on VMs](/consul/docs/connect/gateways/api-gateway/secure-traffic/encrypt-vms)
+- [Use JWTs to verify requests to API gateways on VMs](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms)
+- [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s)
+
+### Reference
+
+- [API gateway configuration reference overview](/consul/docs/connect/gateways/api-gateway/configuration/)
+- [Error messages](/consul/docs/connect/gateways/api-gateway/errors)

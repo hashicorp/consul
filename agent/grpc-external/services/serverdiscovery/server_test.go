@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package serverdiscovery
 
 import (
@@ -5,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
@@ -79,6 +82,7 @@ func testClient(t *testing.T, server *Server) pbserverdiscovery.ServerDiscoveryS
 
 	addr := testutils.RunTestServer(t, server)
 
+	//nolint:staticcheck
 	conn, err := grpc.DialContext(context.Background(), addr.String(), grpc.WithInsecure())
 	require.NoError(t, err)
 	t.Cleanup(func() {

@@ -5,17 +5,22 @@ description: >-
   Consul’s service mesh makes application and microservice networking secure and observable with identity-based authentication, mutual TLS (mTLS) encryption, and explicit service-to-service authorization enforced by sidecar proxies. Learn how Consul’s service mesh works and get started on VMs or Kubernetes.
 ---
 
-# Consul Service Mesh
+# Consul service mesh
 
-Consul Service Mesh provides service-to-service connection authorization and
-encryption using mutual Transport Layer Security (TLS). Consul Connect is used interchangeably
-with the name Consul Service Mesh and is what this document will use to refer to for Service Mesh functionality within Consul. 
-Applications can use [sidecar proxies](/docs/connect/proxies) in a service mesh configuration to
-establish TLS connections for inbound and outbound connections without being aware of Connect at all. 
-Applications may also [natively integrate with Connect](/docs/connect/native) for optimal performance and security. 
-Connect can help you secure your services and provide data about service-to-service communications.
+Consul service mesh provides service-to-service connection authorization and
+encryption using mutual Transport Layer Security (TLS).
 
-Review the video below to learn more about Consul Connect from HashiCorp's co-founder Armon.
+Applications can use [sidecar proxies](/consul/docs/connect/proxies) in a service mesh configuration to
+establish TLS connections for inbound and outbound connections without being aware of the service mesh at all. 
+Applications may also [natively integrate with Consul service mesh](/consul/docs/connect/native) for optimal performance and security. 
+Consul service mesh can help you secure your services and provide data about service-to-service communications.
+
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
+Where you encounter the _noun_ connect, it is usually functionality specific to
+service mesh.
+
+Review the video below to learn more about Consul service mesh from HashiCorp's co-founder Armon.
 
 <iframe
   src="https://www.youtube.com/embed/8T8t4-hQY74"
@@ -25,49 +30,48 @@ Review the video below to learn more about Consul Connect from HashiCorp's co-fo
   height="315"
 ></iframe>
 
-## Application Security
+## Application security
 
-Connect enables secure deployment best-practices with automatic
+Consul service mesh enables secure deployment best-practices with automatic
 service-to-service encryption, and identity-based authorization.
-Connect uses the registered service identity (rather than IP addresses) to
-enforce access control with [intentions](/docs/connect/intentions). This
-makes it easier to reason about access control and enables services to be
-rescheduled by orchestrators including Kubernetes and Nomad. Intention
-enforcement is network agnostic, so Connect works with physical networks, cloud
+Consul uses the registered service identity, rather than IP addresses, to
+enforce access control with [intentions](/consul/docs/connect/intentions). This
+makes it easier to control access and enables services to be
+rescheduled by orchestrators, including Kubernetes and Nomad. Intention
+enforcement is network agnostic, so Consul service mesh works with physical networks, cloud
 networks, software-defined networks, cross-cloud, and more.
 
 ## Observability
 
-One of the key benefits of Consul Connect is the uniform and consistent view it can
+One of the key benefits of Consul service mesh is the uniform and consistent view it can
 provide of all the services on your network, irrespective of their different
-programming languages and frameworks. When you configure Consul Connect to use
-sidecar proxies, those proxies "see" all service-to-service traffic and can
-collect data about it. Consul Connect can configure Envoy proxies to collect
+programming languages and frameworks. When you configure Consul service mesh to use
+sidecar proxies, those proxies see all service-to-service traffic and can
+collect data about it. Consul service mesh can configure Envoy proxies to collect
 layer 7 metrics and export them to tools like Prometheus. Correctly instrumented
 applications can also send open tracing data through Envoy.
 
-## Getting Started With Consul Service Mesh
+## Getting started with Consul service mesh
 
-There are several ways to try Connect in different environments.
+Complete the following tutorials try Consul service mesh in different environments:
 
-- The [Getting Started with Consul Service Mesh collection](https://learn.hashicorp.com/tutorials/consul/service-mesh?utm_source=docs)
+- The [Getting Started with Consul Service Mesh collection](/consul/tutorials/kubernetes-deploy/service-mesh?utm_source=docs)
   walks you through installing Consul as service mesh for Kubernetes using the Helm
   chart, deploying services in the service mesh, and using intentions to secure service
   communications.
   
-- The [Getting Started With Consul Service Mesh for Kubernetes](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?in=consul/gs-consul-service-mesh?utm_source=docs) guide walks you through installing Consul on Kubernetes to set up a service mesh for establishing communication between Kubernetes services. 
+- The [Getting Started With Consul for Kubernetes](/consul/tutorials/get-started-kubernetes?utm_source=docs) tutorials guides you through installing Consul on Kubernetes to set up a service mesh for establishing communication between Kubernetes services. 
 
-- The [Secure Service-to-Service Communication tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-with-envoy-proxy?utm_source=docs)
+- The [Secure Service-to-Service Communication tutorial](/consul/tutorials/developer-mesh/service-mesh-with-envoy-proxy?utm_source=docs)
   is a simple walk through of connecting two services on your local machine
-  using Consul Connect's built-in proxy and configuring your first intention. The guide also includes an introduction to
-  using Envoy as the Connect sidecar proxy.
+  and configuring your first intention.
 
-- The [Kubernetes tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=docs)
-  walks you through configuring Consul Connect in Kubernetes using the Helm
+- The [Kubernetes tutorial](/consul/tutorials/kubernetes/kubernetes-minikube?utm_source=docs)
+  walks you through configuring Consul service mesh in Kubernetes using the Helm
   chart, and using intentions. You can run the guide on Minikube or an existing
   Kubernetes cluster.
 
-- The [observability tutorial](https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes)
+- The [observability tutorial](/consul/tutorials/kubernetes/kubernetes-layer7-observability)
   shows how to deploy a basic metrics collection and visualization pipeline on
   a Minikube or Kubernetes cluster using the official Helm charts for Consul,
   Prometheus, and Grafana.

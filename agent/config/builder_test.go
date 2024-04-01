@@ -1,8 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -69,42 +72,7 @@ func TestShouldParseFile(t *testing.T) {
 }
 
 func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
-	paths := setupConfigFiles(t)
-
-	b, err := newBuilder(LoadOpts{ConfigFiles: paths})
-	require.NoError(t, err)
-
-	expected := []Source{
-		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-		FileSource{Name: paths[1], Format: "json", Data: "content b"},
-		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a"},
-		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "json", Data: "content b"},
-	}
-	require.Equal(t, expected, b.Sources)
-	require.Len(t, b.Warnings, 2)
-}
-
-func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {
-	paths := setupConfigFiles(t)
-
-	b, err := newBuilder(LoadOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
-	require.NoError(t, err)
-
-	expected := []Source{
-		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-		FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
-		FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
-		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a"},
-		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "hcl", Data: "content b"},
-		FileSource{Name: filepath.Join(paths[3], "c.yaml"), Format: "hcl", Data: "content c"},
-	}
-	require.Equal(t, expected, b.Sources)
-}
-
-// TODO: this would be much nicer with gotest.tools/fs
-func setupConfigFiles(t *testing.T) []string {
-	t.Helper()
-	path, err := ioutil.TempDir("", t.Name())
+	path, err := os.MkdirTemp("", t.Name())
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(path) })
 
@@ -113,21 +81,52 @@ func setupConfigFiles(t *testing.T) []string {
 	require.NoError(t, err)
 
 	for _, dir := range []string{path, subpath} {
-		err = ioutil.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
+		err = os.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
 		require.NoError(t, err)
 	}
-	return []string{
+	paths := []string{
 		filepath.Join(path, "a.hcl"),
 		filepath.Join(path, "b.json"),
 		filepath.Join(path, "c.yaml"),
-		subpath,
 	}
+
+	t.Run("fail on unknown files", func(t *testing.T) {
+		_, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath)})
+		require.Error(t, err)
+	})
+
+	t.Run("skip on unknown files in dir", func(t *testing.T) {
+		b, err := newBuilder(LoadOpts{ConfigFiles: []string{subpath}})
+		require.NoError(t, err)
+
+		expected := []Source{
+			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
+			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "json", Data: "content b"},
+		}
+		require.Equal(t, expected, b.Sources)
+		require.Len(t, b.Warnings, 1)
+	})
+
+	t.Run("force config format", func(t *testing.T) {
+		b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath), ConfigFormat: "hcl"})
+		require.NoError(t, err)
+
+		expected := []Source{
+			FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
+			FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
+			FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
+			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
+			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "hcl", Data: "content b"},
+			FileSource{Name: filepath.Join(subpath, "c.yaml"), Format: "hcl", Data: "content c"},
+		}
+		require.Equal(t, expected, b.Sources)
+	})
 }
 
 func TestLoad_NodeName(t *testing.T) {
@@ -139,9 +138,11 @@ func TestLoad_NodeName(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: Config{
-				NodeName: pString(tc.nodeName),
-				DataDir:  pString("dir"),
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					NodeName: pString(tc.nodeName),
+					DataDir:  pString("dir"),
+				},
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -179,9 +180,11 @@ func TestLoad_NodeName(t *testing.T) {
 func TestBuilder_unixPermissionsVal(t *testing.T) {
 
 	b, _ := newBuilder(LoadOpts{
-		FlagValues: Config{
-			NodeName: pString("foo"),
-			DataDir:  pString("dir"),
+		FlagValues: FlagValuesTarget{
+			Config: Config{
+				NodeName: pString("foo"),
+				DataDir:  pString("dir"),
+			},
 		},
 	})
 
@@ -260,9 +263,11 @@ func TestLoad_EmptyClientAddr(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: Config{
-				ClientAddr: tc.clientAddr,
-				DataDir:    pString("dir"),
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					ClientAddr: tc.clientAddr,
+					DataDir:    pString("dir"),
+				},
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -305,6 +310,21 @@ func TestBuilder_DurationVal_InvalidDuration(t *testing.T) {
 	require.Contains(t, b.err.Error(), "2 errors")
 	require.Contains(t, b.err.Error(), badDuration1)
 	require.Contains(t, b.err.Error(), badDuration2)
+}
+
+func TestBuilder_DurationValWithDefaultMin(t *testing.T) {
+	b := builder{}
+
+	// Attempt to validate that a duration of 10 hours will not error when the min val is 1 hour.
+	dur := "10h0m0s"
+	b.durationValWithDefaultMin("field2", &dur, 24*7*time.Hour, time.Hour)
+	require.NoError(t, b.err)
+
+	// Attempt to validate that a duration of 1 min will error when the min val is 1 hour.
+	dur = "0h1m0s"
+	b.durationValWithDefaultMin("field1", &dur, 24*7*time.Hour, time.Hour)
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "1 error")
 }
 
 func TestBuilder_ServiceVal_MultiError(t *testing.T) {
@@ -364,6 +384,90 @@ func TestBuilder_tlsVersion(t *testing.T) {
 	require.Contains(t, b.err.Error(), "2 errors")
 	require.Contains(t, b.err.Error(), deprecatedTLSVersion)
 	require.Contains(t, b.err.Error(), invalidTLSVersion)
+}
+
+func TestBuilder_WarnGRPCTLS(t *testing.T) {
+	tests := []struct {
+		name      string
+		hcl       string
+		expectErr bool
+	}{
+		{
+			name:      "success",
+			hcl:       ``,
+			expectErr: false,
+		},
+		{
+			name: "grpc_tls is disabled but explicitly defined",
+			hcl: `
+			ports { grpc_tls = -1 }
+			tls { grpc { cert_file = "defined" }}
+			`,
+			// This behavior is a little strange, but it allows users
+			// to setup TLS and disable the port if they wish.
+			expectErr: false,
+		},
+		{
+			name: "grpc is disabled",
+			hcl: `
+			ports { grpc = -1 }
+			tls { grpc { cert_file = "defined" }}
+			`,
+			expectErr: false,
+		},
+		{
+			name: "grpc_tls is undefined with default manual cert",
+			hcl: `
+			tls { defaults { cert_file = "defined" }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with manual cert",
+			hcl: `
+			tls { grpc { cert_file = "defined" }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with auto encrypt",
+			hcl: `
+			auto_encrypt { tls = true }
+			tls { grpc { use_auto_cert = true }}
+			`,
+			expectErr: true,
+		},
+		{
+			name: "grpc_tls is undefined with auto config",
+			hcl: `
+			auto_config { enabled = true }
+			tls { grpc { use_auto_cert = true }}
+			`,
+			expectErr: true,
+		},
+	}
+	for _, tc := range tests {
+		// using dev mode skips the need for a data dir
+		// and enables both grpc ports by default.
+		devMode := true
+		builderOpts := LoadOpts{
+			DevMode: &devMode,
+			Overrides: []Source{
+				FileSource{
+					Name:   "overrides",
+					Format: "hcl",
+					Data:   tc.hcl,
+				},
+			},
+		}
+		_, err := Load(builderOpts)
+		if tc.expectErr {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "listener no longer supports TLS")
+		} else {
+			require.NoError(t, err)
+		}
+	}
 }
 
 func TestBuilder_tlsCipherSuites(t *testing.T) {
@@ -452,4 +556,259 @@ func TestBuilder_parsePrefixFilter(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestBuidler_hostMetricsWithCloud(t *testing.T) {
+	devMode := true
+	builderOpts := LoadOpts{
+		DevMode: &devMode,
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data:   `cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+		},
+	}
+
+	result, err := Load(builderOpts)
+	require.NoError(t, err)
+	require.Empty(t, result.Warnings)
+	cfg := result.RuntimeConfig
+	require.NotNil(t, cfg)
+	require.True(t, cfg.Telemetry.EnableHostMetrics)
+}
+
+func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
+
+	type testcase struct {
+		hcl       string
+		expectErr bool
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		// using dev mode skips the need for a data dir
+		devMode := true
+		builderOpts := LoadOpts{
+			DevMode: &devMode,
+			Overrides: []Source{
+				FileSource{
+					Name:   "overrides",
+					Format: "hcl",
+					Data:   tc.hcl,
+				},
+			},
+		}
+		_, err := Load(builderOpts)
+		if tc.expectErr {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "`experiments` cannot include")
+		} else {
+			require.NoError(t, err)
+		}
+	}
+
+	const (
+		primary   = `server = true primary_datacenter = "dc1" datacenter = "dc1" `
+		secondary = `server = true primary_datacenter = "dc1" datacenter = "dc2" `
+	)
+
+	cases := map[string]testcase{
+		"primary server no experiments": {
+			hcl: primary + `experiments = []`,
+		},
+		"primary server v2catalog": {
+			hcl: primary + `experiments = ["resource-apis"]`,
+		},
+		"primary server v1dns": {
+			hcl: primary + `experiments = ["v1dns"]`,
+		},
+		"primary server v2tenancy": {
+			hcl: primary + `experiments = ["v2tenancy"]`,
+		},
+		"secondary server no experiments": {
+			hcl: secondary + `experiments = []`,
+		},
+		"secondary server v2catalog": {
+			hcl:       secondary + `experiments = ["resource-apis"]`,
+			expectErr: true,
+		},
+		"secondary server v1dns": {
+			hcl: secondary + `experiments = ["v1dns"]`,
+		},
+		"secondary server v2tenancy": {
+			hcl:       secondary + `experiments = ["v2tenancy"]`,
+			expectErr: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestBuilder_WarnCloudConfigWithResourceApis(t *testing.T) {
+	tests := []struct {
+		name      string
+		hcl       string
+		expectErr bool
+	}{
+		{
+			name: "base_case",
+			hcl:  ``,
+		},
+		{
+			name: "resource-apis_no_cloud",
+			hcl:  `experiments = ["resource-apis"]`,
+		},
+		{
+			name: "cloud-config_no_experiments",
+			hcl:  `cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+		},
+		{
+			name: "cloud-config_resource-apis_experiment",
+			hcl: `
+			experiments = ["resource-apis"]
+			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+			expectErr: true,
+		},
+		{
+			name: "cloud-config_other_experiment",
+			hcl: `
+			experiments = ["test"]
+			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+		},
+		{
+			name: "cloud-config_resource-apis_experiment_override",
+			hcl: `
+			experiments = ["resource-apis", "hcp-v2-resource-apis"]
+			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+		},
+	}
+	for _, tc := range tests {
+		// using dev mode skips the need for a data dir
+		devMode := true
+		builderOpts := LoadOpts{
+			DevMode: &devMode,
+			Overrides: []Source{
+				FileSource{
+					Name:   "overrides",
+					Format: "hcl",
+					Data:   tc.hcl,
+				},
+			},
+		}
+		_, err := Load(builderOpts)
+		if tc.expectErr {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "cannot include 'resource-apis' when HCP")
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
+
+func TestBuilder_CloudConfigWithEnvironmentVars(t *testing.T) {
+	tests := map[string]struct {
+		hcl      string
+		env      map[string]string
+		expected hcpconfig.CloudConfig
+	}{
+		"ConfigurationOnly": {
+			hcl: `cloud{ resource_id = "config-resource-id" client_id = "config-client-id"
+			client_secret = "config-client-secret" auth_url = "auth.config.com"
+			hostname = "api.config.com" scada_address = "scada.config.com"}`,
+			expected: hcpconfig.CloudConfig{
+				ResourceID:   "config-resource-id",
+				ClientID:     "config-client-id",
+				ClientSecret: "config-client-secret",
+				AuthURL:      "auth.config.com",
+				Hostname:     "api.config.com",
+				ScadaAddress: "scada.config.com",
+			},
+		},
+		"EnvVarsOnly": {
+			env: map[string]string{
+				"HCP_RESOURCE_ID":   "env-resource-id",
+				"HCP_CLIENT_ID":     "env-client-id",
+				"HCP_CLIENT_SECRET": "env-client-secret",
+				"HCP_AUTH_URL":      "auth.env.com",
+				"HCP_API_ADDRESS":   "api.env.com",
+				"HCP_SCADA_ADDRESS": "scada.env.com",
+			},
+			expected: hcpconfig.CloudConfig{
+				ResourceID:   "env-resource-id",
+				ClientID:     "env-client-id",
+				ClientSecret: "env-client-secret",
+				AuthURL:      "auth.env.com",
+				Hostname:     "api.env.com",
+				ScadaAddress: "scada.env.com",
+			},
+		},
+		"EnvVarsOverrideConfig": {
+			hcl: `cloud{ resource_id = "config-resource-id" client_id = "config-client-id"
+			client_secret = "config-client-secret" auth_url = "auth.config.com"
+			hostname = "api.config.com" scada_address = "scada.config.com"}`,
+			env: map[string]string{
+				"HCP_RESOURCE_ID":   "env-resource-id",
+				"HCP_CLIENT_ID":     "env-client-id",
+				"HCP_CLIENT_SECRET": "env-client-secret",
+				"HCP_AUTH_URL":      "auth.env.com",
+				"HCP_API_ADDRESS":   "api.env.com",
+				"HCP_SCADA_ADDRESS": "scada.env.com",
+			},
+			expected: hcpconfig.CloudConfig{
+				ResourceID:   "env-resource-id",
+				ClientID:     "env-client-id",
+				ClientSecret: "env-client-secret",
+				AuthURL:      "auth.env.com",
+				Hostname:     "api.env.com",
+				ScadaAddress: "scada.env.com",
+			},
+		},
+		"Combination": {
+			hcl: `cloud{ resource_id = "config-resource-id" client_id = "config-client-id"
+				client_secret = "config-client-secret"}`,
+			env: map[string]string{
+				"HCP_AUTH_URL":      "auth.env.com",
+				"HCP_API_ADDRESS":   "api.env.com",
+				"HCP_SCADA_ADDRESS": "scada.env.com",
+			},
+			expected: hcpconfig.CloudConfig{
+				ResourceID:   "config-resource-id",
+				ClientID:     "config-client-id",
+				ClientSecret: "config-client-secret",
+				AuthURL:      "auth.env.com",
+				Hostname:     "api.env.com",
+				ScadaAddress: "scada.env.com",
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			for k, v := range tc.env {
+				t.Setenv(k, v)
+			}
+			devMode := true
+			builderOpts := LoadOpts{
+				DevMode: &devMode,
+				Overrides: []Source{
+					FileSource{
+						Name:   "overrides",
+						Format: "hcl",
+						Data:   tc.hcl,
+					},
+				},
+			}
+			loaded, err := Load(builderOpts)
+			require.NoError(t, err)
+
+			nodeName, err := os.Hostname()
+			require.NoError(t, err)
+			tc.expected.NodeName = nodeName
+
+			actual := loaded.RuntimeConfig.Cloud
+			require.Equal(t, tc.expected, actual)
+		})
+	}
 }

@@ -31,7 +31,7 @@ load helpers
 }
 
 @test "peer the two clusters together" {
-  create_peering primary alpha
+  retry_default create_peering primary alpha
 }
 
 @test "s2 alpha proxies should be healthy in primary" {

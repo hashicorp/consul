@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peerstream
 
 import (
@@ -8,11 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib/retry"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -23,10 +27,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommon"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
-	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbservice"
 )
 
 type MaterializedViewStore interface {
@@ -142,7 +146,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		pending := &pendingPayload{}
 		m.syncNormalServices(ctx, state, evt.Services)
 		if m.config.ConnectEnabled {
-			m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
+			m.syncDiscoveryChains(state, pending, evt.DiscoChains)
 		}
 
 		err := pending.Add(
@@ -254,7 +258,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		if state.exportList != nil {
 			// Trigger public events for all synthetic discovery chain replies.
 			for chainName, info := range state.connectServices {
-				m.collectPendingEventForDiscoveryChain(ctx, state, pending, chainName, info)
+				m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
 			}
 		}
 
@@ -475,7 +479,6 @@ func (m *subscriptionManager) syncNormalServices(
 }
 
 func (m *subscriptionManager) syncDiscoveryChains(
-	ctx context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo,
@@ -488,7 +491,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 
 		state.connectServices[chainName] = info
 
-		m.collectPendingEventForDiscoveryChain(ctx, state, pending, chainName, info)
+		m.collectPendingEventForDiscoveryChain(state, pending, chainName, info)
 	}
 
 	// if it was dropped, try to emit an DELETE event
@@ -516,7 +519,6 @@ func (m *subscriptionManager) syncDiscoveryChains(
 }
 
 func (m *subscriptionManager) collectPendingEventForDiscoveryChain(
-	ctx context.Context,
 	state *subscriptionState,
 	pending *pendingPayload,
 	chainName structs.ServiceName,
@@ -665,6 +667,21 @@ func createDiscoChainHealth(
 	}
 }
 
+var statusScores = map[string]int{
+	// 0 is reserved for unknown
+	api.HealthMaint:    1,
+	api.HealthCritical: 2,
+	api.HealthWarning:  3,
+	api.HealthPassing:  4,
+}
+
+func getMostImportantStatus(a, b string) string {
+	if statusScores[a] < statusScores[b] {
+		return a
+	}
+	return b
+}
+
 func flattenChecks(
 	nodeName string,
 	serviceID string,
@@ -676,10 +693,16 @@ func flattenChecks(
 		return nil
 	}
 
+	// Similar logic to (api.HealthChecks).AggregatedStatus()
 	healthStatus := api.HealthPassing
-	for _, chk := range checks {
-		if chk.Status != api.HealthPassing {
-			healthStatus = chk.Status
+	if len(checks) > 0 {
+		for _, chk := range checks {
+			id := chk.CheckID
+			if id == api.NodeMaint || strings.HasPrefix(id, api.ServiceMaintPrefix) {
+				healthStatus = api.HealthMaint
+				break // always wins
+			}
+			healthStatus = getMostImportantStatus(healthStatus, chk.Status)
 		}
 	}
 
@@ -724,7 +747,7 @@ func (m *subscriptionManager) NotifyStandardService(
 //
 // This name was chosen to match existing "sidecar service" generation logic
 // and similar logic in the Service Identity synthetic ACL policies.
-const syntheticProxyNameSuffix = "-sidecar-proxy"
+const syntheticProxyNameSuffix = structs.SidecarProxySuffix
 
 func generateProxyNameForDiscoveryChain(sn structs.ServiceName) structs.ServiceName {
 	return structs.NewServiceName(sn.Name+syntheticProxyNameSuffix, &sn.EnterpriseMeta)
@@ -786,7 +809,7 @@ func (m *subscriptionManager) notifyMeshConfigUpdates(ctx context.Context) <-cha
 	const meshConfigWatch = "mesh-config-entry"
 
 	notifyCh := make(chan cache.UpdateEvent, 1)
-	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(ctx_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
+	go m.syncViaBlockingQuery(ctx, meshConfigWatch, func(_ context.Context, store StateStore, ws memdb.WatchSet) (interface{}, error) {
 		_, rawEntry, err := store.ConfigEntry(ws, structs.MeshConfig, structs.MeshConfigMesh, acl.DefaultEnterpriseMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get mesh config entry: %w", err)
@@ -859,6 +882,10 @@ func (m *subscriptionManager) subscribeServerAddrs(
 	idx uint64,
 	updateCh chan<- cache.UpdateEvent,
 ) (uint64, error) {
+	// TODO(inproc-grpc) - Look into using the insecure in-process gRPC Channel
+	// to get notified for server address updates instead of hooking into the
+	// subscription service.
+
 	// following code adapted from serverdiscovery/watch_servers.go
 	sub, err := m.backend.Subscribe(&stream.SubscribeRequest{
 		Topic:   autopilotevents.EventTopicReadyServers,
@@ -909,7 +936,13 @@ func (m *subscriptionManager) subscribeServerAddrs(
 			if srv.ExtGRPCPort == 0 {
 				continue
 			}
-			grpcAddr := srv.Address + ":" + strconv.Itoa(srv.ExtGRPCPort)
+			addr := srv.Address
+
+			// wan address is preferred
+			if v, ok := srv.TaggedAddresses[structs.TaggedAddressWAN]; ok && v != "" {
+				addr = v
+			}
+			grpcAddr := addr + ":" + strconv.Itoa(srv.ExtGRPCPort)
 			serverAddrs = append(serverAddrs, grpcAddr)
 		}
 		if len(serverAddrs) == 0 {

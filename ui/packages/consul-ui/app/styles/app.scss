@@ -1,10 +1,15 @@
-@charset 'utf-8';
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
 
-/* css for hds */
-@import '@hashicorp/design-system-components';
+@charset 'utf-8';
 
 /* tailwind before all the customizations */
 @import 'tailwind';
+
+/* css for hds */
+@import '@hashicorp/design-system-components';
 
 /* all variables and custom queries including generic base variables */
 @import 'variables';
@@ -20,7 +25,8 @@
 /* more semantically (for our project) named icons  */
 @import 'icons';
 /* global control of themeable components */
-@import 'themes';
+@import './base/color/index';
+
 /* debug only, this is empty during a production build */
 /* but uses the contents of ./debug.scss during dev */
 @import '_debug';

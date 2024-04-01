@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package connect
 
 import (
@@ -18,6 +21,11 @@ const (
 	DefaultPrivateKeyType      = "ec"
 	DefaultPrivateKeyBits      = 256
 	DefaultIntermediateCertTTL = 24 * 365 * time.Hour
+
+	// RSA specific settings.
+	PrivateKeyTypeRSA        = "rsa"
+	MinPrivateKeyBitsRSA     = 2048
+	DefaultPrivateKeyBitsRSA = 4096
 )
 
 func pemEncode(value []byte, blockType string) (string, error) {
@@ -31,6 +39,11 @@ func pemEncode(value []byte, blockType string) (string, error) {
 
 func generateRSAKey(keyBits int) (crypto.Signer, string, error) {
 	var pk *rsa.PrivateKey
+
+	// Check for a secure key length.
+	if keyBits < MinPrivateKeyBitsRSA {
+		return nil, "", fmt.Errorf("error generating RSA private key: invalid key size %d, must be at least %d bits", keyBits, MinPrivateKeyBitsRSA)
+	}
 
 	pk, err := rsa.GenerateKey(rand.Reader, keyBits)
 	if err != nil {
@@ -84,9 +97,9 @@ func generateECDSAKey(keyBits int) (crypto.Signer, string, error) {
 // GeneratePrivateKey generates a new Private key
 func GeneratePrivateKeyWithConfig(keyType string, keyBits int) (crypto.Signer, string, error) {
 	switch strings.ToLower(keyType) {
-	case "rsa":
+	case PrivateKeyTypeRSA:
 		return generateRSAKey(keyBits)
-	case "ec":
+	case DefaultPrivateKeyType:
 		return generateECDSAKey(keyBits)
 	default:
 		return nil, "", fmt.Errorf("unknown private key type requested: %s", keyType)

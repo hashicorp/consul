@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,13 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -147,6 +152,64 @@ func TestACL_Bootstrap(t *testing.T) {
 	}
 }
 
+func TestACL_BootstrapWithToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		primary_datacenter = "dc1"
+
+		acl {
+			enabled = true
+			default_policy = "deny"
+		}
+	`)
+	defer a.Shutdown()
+
+	tests := []struct {
+		name   string
+		method string
+		code   int
+		token  bool
+	}{
+		{"bootstrap", "PUT", http.StatusOK, true},
+		{"not again", "PUT", http.StatusForbidden, false},
+	}
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var bootstrapSecret struct {
+				BootstrapSecret string
+			}
+			bootstrapSecret.BootstrapSecret = "2b778dd9-f5f1-6f29-b4b4-9a5fa948757a"
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest(tt.method, "/v1/acl/bootstrap", jsonBody(bootstrapSecret))
+			out, err := a.srv.ACLBootstrap(resp, req)
+			if tt.token && err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if tt.token {
+				wrap, ok := out.(*aclBootstrapResponse)
+				if !ok {
+					t.Fatalf("bad: %T", out)
+				}
+				if wrap.ID != bootstrapSecret.BootstrapSecret {
+					t.Fatalf("bad: %v", wrap)
+				}
+				if wrap.ID != wrap.SecretID {
+					t.Fatalf("bad: %v", wrap)
+				}
+			} else {
+				if out != nil {
+					t.Fatalf("bad: %T", out)
+				}
+			}
+		})
+	}
+}
+
 func TestACL_HTTP(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -186,7 +249,8 @@ func TestACL_HTTP(t *testing.T) {
 				Datacenters: []string{"dc1"},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/policy", jsonBody(policyInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLPolicyCreate(resp, req)
 			require.NoError(t, err)
@@ -215,7 +279,8 @@ func TestACL_HTTP(t *testing.T) {
 				Rules: `key_prefix "" { policy = "read" }`,
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/policy", jsonBody(policyInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLPolicyCreate(resp, req)
 			require.NoError(t, err)
@@ -244,7 +309,8 @@ func TestACL_HTTP(t *testing.T) {
 				Rules: `node_prefix "" { policy = "read" }`,
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/policy", jsonBody(policyInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLPolicyCreate(resp, req)
 			require.NoError(t, err)
@@ -276,7 +342,8 @@ func TestACL_HTTP(t *testing.T) {
 				Datacenters: []string{"dc1"},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy/"+idMap["policy-read-all-nodes"]+"?token=root", jsonBody(policyInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/policy/"+idMap["policy-read-all-nodes"], jsonBody(policyInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCRUD(resp, req)
 			require.Error(t, err)
@@ -284,7 +351,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("Policy CRUD Missing ID in URL", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/policy/?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/policy/", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCRUD(resp, req)
 			require.Error(t, err)
@@ -299,7 +367,8 @@ func TestACL_HTTP(t *testing.T) {
 				Datacenters: []string{"dc1"},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy/"+idMap["policy-read-all-nodes"]+"?token=root", jsonBody(policyInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/policy/"+idMap["policy-read-all-nodes"], jsonBody(policyInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLPolicyCRUD(resp, req)
 			require.NoError(t, err)
@@ -331,7 +400,8 @@ func TestACL_HTTP(t *testing.T) {
 				Datacenters: []string{"dc1"},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policyInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/policy", jsonBody(policyInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCreate(resp, req)
 			require.Error(t, err)
@@ -342,7 +412,8 @@ func TestACL_HTTP(t *testing.T) {
 			body := bytes.NewBuffer(nil)
 			body.Write([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", body)
+			req, _ := http.NewRequest("PUT", "/v1/acl/policy", body)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCreate(resp, req)
 			require.Error(t, err)
@@ -350,7 +421,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			req, _ := http.NewRequest("DELETE", "/v1/acl/policy/"+idMap["policy-minimal"]+"?token=root", nil)
+			req, _ := http.NewRequest("DELETE", "/v1/acl/policy/"+idMap["policy-minimal"], nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLPolicyCRUD(resp, req)
 			require.NoError(t, err)
@@ -359,15 +431,16 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("List", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/policies?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/policies", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLPolicyList(resp, req)
 			require.NoError(t, err)
 			policies, ok := raw.(structs.ACLPolicyListStubs)
 			require.True(t, ok)
 
-			// 2 we just created + global management
-			require.Len(t, policies, 3)
+			// 2 we just created + builtin policies
+			require.Len(t, policies, 2+len(structs.ACLBuiltinPolicies))
 
 			for policyID, expected := range policyMap {
 				found := false
@@ -388,7 +461,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("Read", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/policy/"+idMap["policy-read-all-nodes"]+"?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/policy/"+idMap["policy-read-all-nodes"], nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLPolicyCRUD(resp, req)
 			require.NoError(t, err)
@@ -399,7 +473,8 @@ func TestACL_HTTP(t *testing.T) {
 
 		t.Run("Read Name", func(t *testing.T) {
 			policyName := "read-all-nodes"
-			req, _ := http.NewRequest("GET", "/v1/acl/policy/name/"+policyName+"?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/policy/name/"+policyName, nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLPolicyReadByName(resp, req)
 			require.NoError(t, err)
@@ -432,7 +507,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/role?token=root", jsonBody(roleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/role", jsonBody(roleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLRoleCreate(resp, req)
 			require.NoError(t, err)
@@ -465,7 +541,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/role?token=root", jsonBody(roleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/role", jsonBody(roleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLRoleCreate(resp, req)
 			require.NoError(t, err)
@@ -499,7 +576,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/role/"+idMap["role-test"]+"?token=root", jsonBody(roleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/role/"+idMap["role-test"], jsonBody(roleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCRUD(resp, req)
 			require.Error(t, err)
@@ -507,7 +585,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("Role CRUD Missing ID in URL", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/role/?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/role/", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCRUD(resp, req)
 			require.Error(t, err)
@@ -531,7 +610,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/role/"+idMap["role-test"]+"?token=root", jsonBody(roleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/role/"+idMap["role-test"], jsonBody(roleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLRoleCRUD(resp, req)
 			require.NoError(t, err)
@@ -567,7 +647,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/role?token=root", jsonBody(roleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/role", jsonBody(roleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCreate(resp, req)
 			require.Error(t, err)
@@ -578,7 +659,8 @@ func TestACL_HTTP(t *testing.T) {
 			body := bytes.NewBuffer(nil)
 			body.Write([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/role?token=root", body)
+			req, _ := http.NewRequest("PUT", "/v1/acl/role", body)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCreate(resp, req)
 			require.Error(t, err)
@@ -586,7 +668,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			req, _ := http.NewRequest("DELETE", "/v1/acl/role/"+idMap["role-service-id-web"]+"?token=root", nil)
+			req, _ := http.NewRequest("DELETE", "/v1/acl/role/"+idMap["role-service-id-web"], nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLRoleCRUD(resp, req)
 			require.NoError(t, err)
@@ -595,7 +678,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("List", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/roles?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/roles", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLRoleList(resp, req)
 			require.NoError(t, err)
@@ -625,7 +709,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("Read", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/role/"+idMap["role-test"]+"?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/role/"+idMap["role-test"], nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLRoleCRUD(resp, req)
 			require.NoError(t, err)
@@ -657,7 +742,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCreate(resp, req)
 			require.NoError(t, err)
@@ -695,7 +781,8 @@ func TestACL_HTTP(t *testing.T) {
 				Local: true,
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCreate(resp, req)
 			require.NoError(t, err)
@@ -718,7 +805,9 @@ func TestACL_HTTP(t *testing.T) {
 		})
 		t.Run("Read", func(t *testing.T) {
 			expected := tokenMap[idMap["token-test"]]
-			req, _ := http.NewRequest("GET", "/v1/acl/token/"+expected.AccessorID+"?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+expected.AccessorID, nil)
+			req.Header.Add("X-Consul-Token", "root")
+
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCRUD(resp, req)
 			require.NoError(t, err)
@@ -728,7 +817,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 		t.Run("Read-expanded", func(t *testing.T) {
 			expected := tokenMap[idMap["token-test"]]
-			req, _ := http.NewRequest("GET", "/v1/acl/token/"+expected.AccessorID+"?token=root&expanded=true", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+expected.AccessorID+"?expanded=true", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCRUD(resp, req)
 			require.NoError(t, err)
@@ -739,7 +829,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 		t.Run("Self", func(t *testing.T) {
 			expected := tokenMap[idMap["token-test"]]
-			req, _ := http.NewRequest("GET", "/v1/acl/token/self?token="+expected.SecretID, nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/token/self", nil)
+			req.Header.Add("X-Consul-Token", expected.SecretID)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenSelf(resp, req)
 			require.NoError(t, err)
@@ -754,7 +845,8 @@ func TestACL_HTTP(t *testing.T) {
 
 			baseToken := tokenMap[idMap["token-test"]]
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+baseToken.AccessorID+"/clone?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+baseToken.AccessorID+"/clone", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCRUD(resp, req)
 			require.NoError(t, err)
@@ -776,8 +868,9 @@ func TestACL_HTTP(t *testing.T) {
 		t.Run("Update", func(t *testing.T) {
 			originalToken := tokenMap[idMap["token-cloned"]]
 
-			// Accessor and Secret will be filled in
+			// Secret will be filled in
 			tokenInput := &structs.ACLToken{
+				AccessorID:  tokenMap[idMap["token-cloned"]].AccessorID,
 				Description: "Better description for this cloned token",
 				Policies: []structs.ACLTokenPolicyLink{
 					{
@@ -793,7 +886,50 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID+"?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID, jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			token, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+
+			require.Equal(t, originalToken.AccessorID, token.AccessorID)
+			require.Equal(t, originalToken.SecretID, token.SecretID)
+			require.Equal(t, tokenInput.Description, token.Description)
+			require.Equal(t, tokenInput.Policies, token.Policies)
+			require.Equal(t, tokenInput.NodeIdentities, token.NodeIdentities)
+			require.True(t, token.CreateIndex > 0)
+			require.True(t, token.CreateIndex < token.ModifyIndex)
+			require.NotNil(t, token.Hash)
+			require.NotEqual(t, token.Hash, []byte{})
+			require.NotEqual(t, token.Hash, originalToken.Hash)
+
+			tokenMap[token.AccessorID] = token
+		})
+
+		t.Run("Update without AccessorID in request body", func(t *testing.T) {
+			originalToken := tokenMap[idMap["token-cloned"]]
+
+			// Secret will be filled in
+			tokenInput := &structs.ACLToken{
+				Description: "Even Better description for this cloned token",
+				Policies: []structs.ACLTokenPolicyLink{
+					{
+						ID:   idMap["policy-read-all-nodes"],
+						Name: policyMap[idMap["policy-read-all-nodes"]].Name,
+					},
+				},
+				NodeIdentities: []*structs.ACLNodeIdentity{
+					{
+						NodeName:   "foo",
+						Datacenter: "bar",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID, jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCRUD(resp, req)
 			require.NoError(t, err)
@@ -815,7 +951,8 @@ func TestACL_HTTP(t *testing.T) {
 		})
 
 		t.Run("CRUD Missing Token Accessor ID", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/token/?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/token/", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
@@ -837,7 +974,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID+"?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token/"+originalToken.AccessorID, jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
@@ -845,7 +983,8 @@ func TestACL_HTTP(t *testing.T) {
 			require.True(t, isHTTPBadRequest(err))
 		})
 		t.Run("Delete", func(t *testing.T) {
-			req, _ := http.NewRequest("DELETE", "/v1/acl/token/"+idMap["token-cloned"]+"?token=root", nil)
+			req, _ := http.NewRequest("DELETE", "/v1/acl/token/"+idMap["token-cloned"], nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCRUD(resp, req)
 			require.NoError(t, err)
@@ -853,7 +992,8 @@ func TestACL_HTTP(t *testing.T) {
 			delete(idMap, "token-cloned")
 		})
 		t.Run("List", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/tokens?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/tokens", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLTokenList(resp, req)
 			require.NoError(t, err)
@@ -884,7 +1024,8 @@ func TestACL_HTTP(t *testing.T) {
 			}
 		})
 		t.Run("List by Policy", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/tokens?token=root&policy="+structs.ACLPolicyGlobalManagementID, nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/tokens?policy="+structs.ACLPolicyGlobalManagementID, nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLTokenList(resp, req)
 			require.NoError(t, err)
@@ -912,7 +1053,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCreate(resp, req)
 			require.NoError(t, err)
@@ -950,7 +1092,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCreate(resp, req)
 			require.NoError(t, err)
@@ -989,7 +1132,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLTokenCreate(resp, req)
 			require.NoError(t, err)
@@ -1027,7 +1171,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
@@ -1049,7 +1194,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
@@ -1071,7 +1217,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
@@ -1093,7 +1240,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
@@ -1115,7 +1263,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
@@ -1137,7 +1286,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
@@ -1154,7 +1304,8 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
@@ -1171,11 +1322,161 @@ func TestACL_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(tokenInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCreate(resp, req)
 			require.Error(t, err)
 			testutil.RequireErrorContains(t, err, "Only lowercase alphanumeric")
+		})
+
+		t.Run("Create with valid service identity", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "token for service identity sn1",
+				ServiceIdentities: []*structs.ACLServiceIdentity{
+					{
+						ServiceName: "sn1",
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
+		})
+
+		t.Run("List by ServiceName", func(t *testing.T) {
+			req, _ := http.NewRequest("GET", "/v1/acl/tokens?servicename=sn1", nil)
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			raw, err := a.srv.ACLTokenList(resp, req)
+			require.NoError(t, err)
+			tokens, ok := raw.(structs.ACLTokenListStubs)
+			require.True(t, ok)
+			require.Len(t, tokens, 1)
+			token := tokens[0]
+			require.Equal(t, "token for service identity sn1", token.Description)
+			require.Len(t, token.ServiceIdentities, 1)
+			require.Equal(t, "sn1", token.ServiceIdentities[0].ServiceName)
+		})
+
+		t.Run("List by ServiceName based on templated policies", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "token for templated policies service",
+				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+					{
+						TemplateName: "builtin/service",
+						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+							Name: "service1",
+						},
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
+
+			req, _ = http.NewRequest("GET", "/v1/acl/tokens?servicename=service1", nil)
+			req.Header.Add("X-Consul-Token", "root")
+			resp = httptest.NewRecorder()
+			raw, err := a.srv.ACLTokenList(resp, req)
+			require.NoError(t, err)
+			tokens, ok := raw.(structs.ACLTokenListStubs)
+			require.True(t, ok)
+			require.Len(t, tokens, 1)
+			token := tokens[0]
+			require.Equal(t, "token for templated policies service", token.Description)
+			require.Len(t, token.TemplatedPolicies, 1)
+			require.Equal(t, "service1", token.TemplatedPolicies[0].TemplateVariables.Name)
+		})
+	})
+
+	t.Run("ACLTemplatedPolicy", func(t *testing.T) {
+		t.Run("List", func(t *testing.T) {
+			req, _ := http.NewRequest("GET", "/v1/acl/templated-policies", nil)
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+
+			require.Equal(t, http.StatusOK, resp.Code)
+
+			var list map[string]api.ACLTemplatedPolicyResponse
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
+			require.Len(t, list, 7)
+
+			require.Equal(t, api.ACLTemplatedPolicyResponse{
+				TemplateName: api.ACLTemplatedPolicyServiceName,
+				Schema:       structs.ACLTemplatedPolicyServiceSchema,
+				Template:     structs.ACLTemplatedPolicyService,
+				Description:  structs.ACLTemplatedPolicyServiceDescription,
+			}, list[api.ACLTemplatedPolicyServiceName])
+		})
+		t.Run("Read", func(t *testing.T) {
+			t.Run("With non existing templated policy", func(t *testing.T) {
+				req, _ := http.NewRequest("GET", "/v1/acl/templated-policy/name/fake", nil)
+				req.Header.Add("X-Consul-Token", "root")
+				resp := httptest.NewRecorder()
+				a.srv.h.ServeHTTP(resp, req)
+				require.Equal(t, http.StatusBadRequest, resp.Code)
+			})
+
+			t.Run("With existing templated policy", func(t *testing.T) {
+				req, _ := http.NewRequest("GET", "/v1/acl/templated-policy/name/"+api.ACLTemplatedPolicyDNSName, nil)
+				req.Header.Add("X-Consul-Token", "root")
+				resp := httptest.NewRecorder()
+
+				a.srv.h.ServeHTTP(resp, req)
+				require.Equal(t, http.StatusOK, resp.Code)
+
+				var templatedPolicy api.ACLTemplatedPolicyResponse
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&templatedPolicy))
+				require.Equal(t, structs.ACLTemplatedPolicyNoRequiredVariablesSchema, templatedPolicy.Schema)
+				require.Equal(t, structs.ACLTemplatedPolicyDNSDescription, templatedPolicy.Description)
+				require.Equal(t, api.ACLTemplatedPolicyDNSName, templatedPolicy.TemplateName)
+				require.Equal(t, structs.ACLTemplatedPolicyDNS, templatedPolicy.Template)
+			})
+		})
+		t.Run("preview", func(t *testing.T) {
+			t.Run("When missing required variables", func(t *testing.T) {
+				previewInput := &structs.ACLTemplatedPolicyVariables{}
+				req, _ := http.NewRequest(
+					"POST",
+					fmt.Sprintf("/v1/acl/templated-policy/preview/%s", api.ACLTemplatedPolicyServiceName),
+					jsonBody(previewInput),
+				)
+				req.Header.Add("X-Consul-Token", "root")
+				resp := httptest.NewRecorder()
+
+				a.srv.h.ServeHTTP(resp, req)
+				require.Equal(t, http.StatusBadRequest, resp.Code)
+			})
+
+			t.Run("Correct input", func(t *testing.T) {
+				previewInput := &structs.ACLTemplatedPolicyVariables{Name: "web"}
+				req, _ := http.NewRequest(
+					"POST",
+					fmt.Sprintf("/v1/acl/templated-policy/preview/%s", api.ACLTemplatedPolicyServiceName),
+					jsonBody(previewInput),
+				)
+				req.Header.Add("X-Consul-Token", "root")
+				resp := httptest.NewRecorder()
+
+				a.srv.h.ServeHTTP(resp, req)
+				require.Equal(t, http.StatusOK, resp.Code)
+
+				var syntheticPolicy *structs.ACLPolicy
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&syntheticPolicy))
+
+				require.NotEmpty(t, syntheticPolicy.ID)
+				require.NotEmpty(t, syntheticPolicy.Hash)
+				require.Equal(t, "synthetic policy generated from templated policy: builtin/service", syntheticPolicy.Description)
+				require.Contains(t, syntheticPolicy.Name, "synthetic-policy-")
+			})
 		})
 	})
 }
@@ -1220,7 +1521,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method", jsonBody(methodInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLAuthMethodCreate(resp, req)
 			require.NoError(t, err)
@@ -1250,7 +1552,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				MaxTokenTTL:   500_000_000_000,
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method", jsonBody(methodInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLAuthMethodCreate(resp, req)
 			require.NoError(t, err)
@@ -1280,7 +1583,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				MaxTokenTTL:   500_000_000_000,
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root&dc=remote", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?dc=remote", jsonBody(methodInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.Error(t, err)
@@ -1297,7 +1601,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method/not-test?token=root", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method/not-test", jsonBody(methodInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.Error(t, err)
@@ -1314,7 +1619,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				},
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method/test?token=root", jsonBody(methodInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method/test", jsonBody(methodInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.NoError(t, err)
@@ -1336,7 +1642,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			body := bytes.NewBuffer(nil)
 			body.Write([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root", body)
+			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method", body)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLAuthMethodCreate(resp, req)
 			require.Error(t, err)
@@ -1344,7 +1651,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("List", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/auth-methods?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/auth-methods", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLAuthMethodList(resp, req)
 			require.NoError(t, err)
@@ -1376,7 +1684,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			req, _ := http.NewRequest("DELETE", "/v1/acl/auth-method/other?token=root", nil)
+			req, _ := http.NewRequest("DELETE", "/v1/acl/auth-method/other", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.NoError(t, err)
@@ -1384,7 +1693,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("Read", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/auth-method/test?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/auth-method/test", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLAuthMethodCRUD(resp, req)
 			require.NoError(t, err)
@@ -1404,7 +1714,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "web",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule", jsonBody(ruleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.NoError(t, err)
@@ -1435,7 +1746,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "fancy-role",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule", jsonBody(ruleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.NoError(t, err)
@@ -1466,14 +1778,16 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "fancy-role",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root&dc=remote", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?dc=remote", jsonBody(ruleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.EqualError(t, err, "No path to datacenter")
 		})
 
 		t.Run("BindingRule CRUD Missing ID in URL", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.Error(t, err)
@@ -1489,7 +1803,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "${serviceaccount.name}",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule/"+idMap["rule-test"]+"?token=root", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule/"+idMap["rule-test"], jsonBody(ruleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.NoError(t, err)
@@ -1521,7 +1836,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				BindName:    "vault",
 			}
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root", jsonBody(ruleInput))
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule", jsonBody(ruleInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.Error(t, err)
@@ -1532,7 +1848,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			body := bytes.NewBuffer(nil)
 			body.Write([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 
-			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule?token=root", body)
+			req, _ := http.NewRequest("PUT", "/v1/acl/binding-rule", body)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCreate(resp, req)
 			require.Error(t, err)
@@ -1540,7 +1857,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("List", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/binding-rules?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/binding-rules", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLBindingRuleList(resp, req)
 			require.NoError(t, err)
@@ -1571,7 +1889,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			req, _ := http.NewRequest("DELETE", "/v1/acl/binding-rule/"+idMap["rule-other"]+"?token=root", nil)
+			req, _ := http.NewRequest("DELETE", "/v1/acl/binding-rule/"+idMap["rule-other"], nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.NoError(t, err)
@@ -1580,7 +1899,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("Read", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/"+idMap["rule-test"]+"?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/binding-rule/"+idMap["rule-test"], nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLBindingRuleCRUD(resp, req)
 			require.NoError(t, err)
@@ -1601,7 +1921,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				Meta:        map[string]string{"foo": "bar"},
 			}
 
-			req, _ := http.NewRequest("POST", "/v1/acl/login?token=root", jsonBody(loginInput))
+			req, _ := http.NewRequest("POST", "/v1/acl/login", jsonBody(loginInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLLogin(resp, req)
 			require.NoError(t, err)
@@ -1634,7 +1955,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				Meta:        map[string]string{"blah": "woot"},
 			}
 
-			req, _ := http.NewRequest("POST", "/v1/acl/login?token=root", jsonBody(loginInput))
+			req, _ := http.NewRequest("POST", "/v1/acl/login", jsonBody(loginInput))
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.ACLLogin(resp, req)
 			require.NoError(t, err)
@@ -1662,7 +1984,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("List Tokens by (incorrect) Method", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/tokens?token=root&authmethod=other", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/tokens?authmethod=other", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLTokenList(resp, req)
 			require.NoError(t, err)
@@ -1672,7 +1995,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 		})
 
 		t.Run("List Tokens by (correct) Method", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/tokens?token=root&authmethod=test", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/tokens?authmethod=test", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLTokenList(resp, req)
 			require.NoError(t, err)
@@ -1703,18 +2027,20 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 
 		t.Run("Logout", func(t *testing.T) {
 			tok := tokenMap[idMap["token-test-1"]]
-			req, _ := http.NewRequest("POST", "/v1/acl/logout?token="+tok.SecretID, nil)
+			req, _ := http.NewRequest("POST", "/v1/acl/logout", nil)
+			req.Header.Add("X-Consul-Token", tok.SecretID)
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLLogout(resp, req)
 			require.NoError(t, err)
 		})
 
 		t.Run("Token is gone after Logout", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/token/"+idMap["token-test-1"]+"?token=root", nil)
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+idMap["token-test-1"], nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
-			require.True(t, acl.IsErrNotFound(err), err.Error())
+			require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		})
 	})
 }
@@ -1879,7 +2205,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 				// make the request
 				_, err = a.srv.ACLTokenCRUD(resp, req)
 				require.Error(t, err)
-				require.Equal(t, acl.ErrNotFound, err)
+				require.ErrorContains(t, err, acl.ErrNotFound.Error())
 			})
 		})
 	}
@@ -1891,7 +2217,7 @@ func TestACL_Authorize(t *testing.T) {
 	}
 
 	t.Parallel()
-	a1 := NewTestAgent(t, TestACLConfigWithParams(nil))
+	a1 := NewTestAgent(t, TestACLConfigWithParams(nil), TestAgentOpts{DisableACLBootstrapCheck: true})
 	defer a1.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
@@ -1899,13 +2225,13 @@ func TestACL_Authorize(t *testing.T) {
 	policyReq := structs.ACLPolicySetRequest{
 		Policy: structs.ACLPolicy{
 			Name:  "test",
-			Rules: `acl = "read" operator = "write" service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
+			Rules: `acl = "read" operator = "write" identity_prefix "" { policy = "read"} service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
 		},
 		Datacenter:   "dc1",
 		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 	}
 	var policy structs.ACLPolicy
-	require.NoError(t, a1.RPC("ACL.PolicySet", &policyReq, &policy))
+	require.NoError(t, a1.RPC(context.Background(), "ACL.PolicySet", &policyReq, &policy))
 
 	tokenReq := structs.ACLTokenSetRequest{
 		ACLToken: structs.ACLToken{
@@ -1920,14 +2246,14 @@ func TestACL_Authorize(t *testing.T) {
 	}
 
 	var token structs.ACLToken
-	require.NoError(t, a1.RPC("ACL.TokenSet", &tokenReq, &token))
+	require.NoError(t, a1.RPC(context.Background(), "ACL.TokenSet", &tokenReq, &token))
 
 	// secondary also needs to setup a replication token to pull tokens and policies
 	secondaryParams := DefaultTestACLConfigParams()
 	secondaryParams.ReplicationToken = secondaryParams.InitialManagementToken
 	secondaryParams.EnableTokenReplication = true
 
-	a2 := NewTestAgent(t, `datacenter = "dc2" `+TestACLConfigWithParams(secondaryParams))
+	a2 := NewTestAgent(t, `datacenter = "dc2" `+TestACLConfigWithParams(secondaryParams), TestAgentOpts{DisableACLBootstrapCheck: true})
 	defer a2.Shutdown()
 
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
@@ -1953,7 +2279,7 @@ func TestACL_Authorize(t *testing.T) {
 	}
 
 	var localToken structs.ACLToken
-	require.NoError(t, a2.RPC("ACL.TokenSet", &localTokenReq, &localToken))
+	require.NoError(t, a2.RPC(context.Background(), "ACL.TokenSet", &localTokenReq, &localToken))
 
 	t.Run("initial-management-token", func(t *testing.T) {
 		request := []structs.ACLAuthorizationRequest{
@@ -1982,6 +2308,16 @@ func TestACL_Authorize(t *testing.T) {
 			},
 			{
 				Resource: "event",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			{
+				Resource: "identity",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			{
+				Resource: "identity",
 				Segment:  "foo",
 				Access:   "write",
 			},
@@ -2136,6 +2472,16 @@ func TestACL_Authorize(t *testing.T) {
 			Access:   "write",
 		},
 		{
+			Resource: "identity",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		{
+			Resource: "identity",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		{
 			Resource: "intention",
 			Segment:  "foo",
 			Access:   "read",
@@ -2241,6 +2587,8 @@ func TestACL_Authorize(t *testing.T) {
 		false, // agent:write
 		false, // event:read
 		false, // event:write
+		true,  // identity:read
+		false, // identity:write
 		true,  // intentions:read
 		false, // intention:write
 		false, // key:read
@@ -2367,7 +2715,7 @@ func TestACL_Authorize(t *testing.T) {
 	})
 }
 
-type rpcFn func(string, interface{}, interface{}) error
+type rpcFn func(context.Context, string, interface{}, interface{}) error
 
 func upsertTestCustomizedAuthMethod(
 	rpc rpcFn, initialManagementToken string, datacenter string,
@@ -2393,7 +2741,7 @@ func upsertTestCustomizedAuthMethod(
 
 	var out structs.ACLAuthMethod
 
-	err = rpc("ACL.AuthMethodSet", &req, &out)
+	err = rpc(context.Background(), "ACL.AuthMethodSet", &req, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -2414,7 +2762,7 @@ func upsertTestCustomizedBindingRule(rpc rpcFn, initialManagementToken string, d
 
 	var out structs.ACLBindingRule
 
-	err := rpc("ACL.BindingRuleSet", &req, &out)
+	err := rpc(context.Background(), "ACL.BindingRuleSet", &req, &out)
 	if err != nil {
 		return nil, err
 	}

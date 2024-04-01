@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package watch
 
 import (
@@ -8,8 +11,9 @@ import (
 	"reflect"
 	"time"
 
-	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
+
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 const (
@@ -133,7 +137,7 @@ OUTER:
 	return nil
 }
 
-//Deprecated: Use RunwithClientAndHclog
+// Deprecated: Use RunwithClientAndHclog
 func (p *Plan) RunWithClientAndLogger(client *consulapi.Client, logger *log.Logger) error {
 
 	p.client = client

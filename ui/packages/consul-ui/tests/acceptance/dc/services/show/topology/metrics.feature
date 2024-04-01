@@ -53,16 +53,16 @@ Feature: dc / services / show / topology / metrics
     And the local datacenter is "datacenter"
     And 1 service model from yaml
     ---
-    - Service:
+      - Service:
         Name: web
         Kind: ~
         Meta:
-          external-source: consul-api-gateway
+        external-source: consul-api-gateway
     ---
     And ui_config from yaml
     ---
-    metrics_proxy_enabled: true
-    metrics_provider: 'prometheus'
+      metrics_proxy_enabled: true
+      metrics_provider: 'prometheus'
     ---
     When I visit the service page for yaml
     ---

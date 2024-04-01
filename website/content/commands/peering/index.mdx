@@ -1,6 +1,8 @@
 ---
 layout: commands
 page_title: 'Commands: Peering'
+description: |
+  The `consul peering` command interacts cluster peering connections. It exposes top-level commands to generate peering tokens. establish connections, and manage connections.
 ---
 
 # Consul Peering
@@ -8,7 +10,7 @@ page_title: 'Commands: Peering'
 Command: `consul peering`
 
 Use the `peering` command to create and manage peering connections between Consul clusters, including token generation and consumption. Refer to 
-[Create and Manage Peerings Connections](/docs/connect/cluster-peering/create-manage-peering) for an
+[Create and Manage Peerings Connections](/consul/docs/connect/cluster-peering/create-manage-peering) for an
 overview of the CLI workflow for cluster peering.
 
 ## Usage
@@ -20,21 +22,20 @@ Usage: consul peering <subcommand> [options]
 
 Subcommands:
 
-    delete          Close and delete a peering connection
-    establish       Consume a peering token and establish a connection with the accepting cluster
-    generate-token  Generate a peering token for use by a dialing cluster
-    list            List the local cluster's peering connections
-    read            Read detailed information on a peering connection
+    delete            Close and delete a peering connection
+    establish         Consume a peering token and establish a connection with the accepting cluster
+    exported-services Lists the services exported to the peer
+    generate-token    Generate a peering token for use by a dialing cluster
+    list              List the local cluster's peering connections
+    read              Read detailed information on a peering connection
 ```
 
 For more information, examples, and usage about a subcommand, click on the name
 of the subcommand in the sidebar or one of the links below:
 
-- [delete](/commands/peering/delete)
-- [establish](/commands/peering/establish)
-- [generate-token](/commands/peering/generate-token)
-- [list](/commands/peering/list)
-- [read](/commands/peering/read)
-
-
-
+- [delete](/consul/commands/peering/delete)
+- [establish](/consul/commands/peering/establish)
+- [generate-token](/consul/commands/peering/generate-token)
+- [list](/consul/commands/peering/list)
+- [read](/consul/commands/peering/read)
+- [exported-services](/consul/commands/peering/exported-services)

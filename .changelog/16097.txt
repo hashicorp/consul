@@ -1,0 +1,3 @@
+```release-note:bug-fix
+agent: Only use the `agent` token for internal deregistration of checks and services during anti-entropy syncing. The service token specified in the `token` field of the check or service definition is no longer used for deregistration. This fixes an issue where the agent failed to ever deregister a service or check if the service token was deleted.
+```

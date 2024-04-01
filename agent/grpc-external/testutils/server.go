@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package testutils
 
 import (
@@ -9,7 +12,7 @@ import (
 )
 
 type GRPCService interface {
-	Register(*grpc.Server)
+	Register(grpc.ServiceRegistrar)
 }
 
 func RunTestServer(t *testing.T, services ...GRPCService) net.Addr {

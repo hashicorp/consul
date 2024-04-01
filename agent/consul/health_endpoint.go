@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -211,7 +214,9 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		f = h.serviceNodesDefault
 	}
 
-	var authzContext acl.AuthorizerContext
+	authzContext := acl.AuthorizerContext{
+		Peer: args.PeerName,
+	}
 	authz, err := h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
@@ -224,10 +229,8 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	// If we're doing a connect or ingress query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect || args.Ingress {
-		// TODO(acl-error-enhancements) Look for ways to percolate this information up to give any feedback to the user.
 		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
-			// Just return nil, which will return an empty response (tested)
-			return nil
+			return acl.ErrPermissionDenied
 		}
 	}
 
@@ -257,7 +260,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 				for _, node := range resolvedNodes {
 					ns := node.Service
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, args, ns, h.logger)
+						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, ns, h.logger)
 						if err != nil {
 							return err
 						}

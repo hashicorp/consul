@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 // Raw can be used to do raw queries against custom endpoints
@@ -21,4 +24,9 @@ func (raw *Raw) Query(endpoint string, out interface{}, q *QueryOptions) (*Query
 // and serialize/deserialized using the standard Consul conventions.
 func (raw *Raw) Write(endpoint string, in, out interface{}, q *WriteOptions) (*WriteMeta, error) {
 	return raw.c.write(endpoint, in, out, q)
+}
+
+// Delete is used to do a DELETE request against an endpoint
+func (raw *Raw) Delete(endpoint string, q *QueryOptions) (*WriteMeta, error) {
+	return raw.c.delete(endpoint, q)
 }

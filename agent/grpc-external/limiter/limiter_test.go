@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package limiter
 
 import (
@@ -8,11 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/lib"
 )
-
-func init() { lib.SeedMathRand() }
 
 func TestSessionLimiter(t *testing.T) {
 	lim := NewSessionLimiter()

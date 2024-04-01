@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package redirecttraffic
 
 import (
@@ -128,13 +131,14 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			name: "proxyID with Consul DNS IP provided",
+			name: "proxyID with Consul DNS IP and port provided",
 			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				c.consulDNSIP = "10.0.34.16"
+				c.consulDNSPort = 8600
 				return c
 			},
 			consulServices: []api.AgentServiceRegistration{
@@ -151,6 +155,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			},
 			expCfg: iptables.Config{
 				ConsulDNSIP:       "10.0.34.16",
+				ConsulDNSPort:     8600,
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
 				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,

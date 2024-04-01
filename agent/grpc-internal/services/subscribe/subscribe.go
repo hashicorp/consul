@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package subscribe
 
 import (
@@ -12,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 // Server implements a StateChangeSubscriptionServer for accepting SubscribeRequests,
@@ -73,6 +76,14 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 		switch {
 		case errors.Is(err, stream.ErrSubForceClosed):
 			logger.Trace("subscription reset by server")
+			return status.Error(codes.Aborted, err.Error())
+		case errors.Is(err, stream.ErrACLChanged):
+			logger.Trace("ACL change occurred; re-authenticating")
+			_, authzErr := h.Backend.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
+			if authzErr != nil {
+				return authzErr
+			}
+			// Otherwise, abort the stream so the client re-subscribes.
 			return status.Error(codes.Aborted, err.Error())
 		case err != nil:
 			return err

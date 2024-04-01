@@ -1,14 +1,22 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
+	wal "github.com/hashicorp/raft-wal"
+	"github.com/hashicorp/raft-wal/verifier"
 	"google.golang.org/grpc/grpclog"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
@@ -16,14 +24,18 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
+	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpcInt "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	grpcWare "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -33,6 +45,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/hoststats"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -43,29 +56,66 @@ import (
 type BaseDeps struct {
 	consul.Deps // TODO: un-embed
 
-	RuntimeConfig *config.RuntimeConfig
-	MetricsConfig *lib.MetricsConfig
-	AutoConfig    *autoconf.AutoConfig // TODO: use an interface
-	Cache         *cache.Cache
-	ViewStore     *submatview.Store
-	WatchedFiles  []string
+	RuntimeConfig   *config.RuntimeConfig
+	MetricsConfig   *lib.MetricsConfig
+	AutoConfig      *autoconf.AutoConfig // TODO: use an interface
+	Cache           *cache.Cache
+	LeafCertManager *leafcert.Manager
+	ViewStore       *submatview.Store
+	WatchedFiles    []string
+	NetRPC          *LazyNetRPC
+
+	deregisterBalancer, deregisterResolver func()
+	stopHostCollector                      context.CancelFunc
+}
+
+type NetRPC interface {
+	RPC(ctx context.Context, method string, args any, reply any) error
+}
+
+type LazyNetRPC struct {
+	mu  sync.RWMutex
+	rpc NetRPC
+}
+
+func (r *LazyNetRPC) SetNetRPC(rpc NetRPC) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.rpc = rpc
+}
+
+func (r *LazyNetRPC) RPC(ctx context.Context, method string, args any, reply any) error {
+	r.mu.RLock()
+	r2 := r.rpc
+	r.mu.RUnlock()
+
+	if r2 == nil {
+		return errors.New("rpc: initialization ordering error; net-rpc not ready yet")
+	}
+	return r2.RPC(ctx, method, args, reply)
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
-func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) {
+func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, error) {
 	d := BaseDeps{}
 	result, err := configLoader(nil)
 	if err != nil {
 		return d, err
 	}
 	d.WatchedFiles = result.WatchedFiles
+	d.Experiments = result.RuntimeConfig.Experiments
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
-	d.Logger, err = logging.Setup(logConf, logOut)
-	if err != nil {
-		return d, err
+
+	if providedLogger != nil {
+		d.Logger = providedLogger
+	} else {
+		d.Logger, err = logging.Setup(logConf, logOut)
+		if err != nil {
+			return d, err
+		}
 	}
 
 	grpcLogInitOnce.Do(func() {
@@ -82,14 +132,33 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	}
 
 	isServer := result.RuntimeConfig.ServerMode
-	gauges, counters, summaries := getPrometheusDefs(cfg.Telemetry, isServer)
+	gauges, counters, summaries := getPrometheusDefs(cfg, isServer)
 	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
 
-	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)
+	var extraSinks []metrics.MetricSink
+	if cfg.IsCloudEnabled() {
+		// This values is set late within newNodeIDFromConfig above
+		cfg.Cloud.NodeID = cfg.NodeID
+
+		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"), cfg.DataDir)
+		if err != nil {
+			return d, err
+		}
+		if d.HCP.Sink != nil {
+			extraSinks = append(extraSinks, d.HCP.Sink)
+		}
+	}
+
+	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger, extraSinks...)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
+	}
+	if !cfg.Telemetry.Disable && cfg.Telemetry.EnableHostMetrics {
+		ctx, cancel := context.WithCancel(context.Background())
+		hoststats.NewCollector(ctx, d.Logger, cfg.DataDir)
+		d.stopHostCollector = cancel
 	}
 
 	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
@@ -106,15 +175,47 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
-	builder := resolver.NewServerResolverBuilder(resolver.Config{
+	d.NetRPC = &LazyNetRPC{}
+
+	// TODO: create leafCertManager in BaseDeps once NetRPC is available without Agent
+	d.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		Logger:      d.Logger.Named("leaf-certs"),
+		CertSigner:  leafcert.NewNetRPCCertSigner(d.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(d.Cache, cfg.Datacenter),
+		Config: leafcert.Config{
+			TestOverrideCAChangeInitialDelay: cfg.ConnectTestCALeafRootChangeSpread,
+		},
+	})
+	// Set the leaf cert manager in the embedded deps type so it can be used by consul servers.
+	d.Deps.LeafCertManager = d.LeafCertManager
+
+	agentType := "client"
+	if cfg.ServerMode {
+		agentType = "server"
+	}
+
+	resolverBuilder := resolver.NewServerResolverBuilder(resolver.Config{
+		AgentType:  agentType,
+		Datacenter: cfg.Datacenter,
 		// Set the authority to something sufficiently unique so any usage in
 		// tests would be self-isolating in the global resolver map, while also
 		// not incurring a huge penalty for non-test code.
 		Authority: cfg.Datacenter + "." + string(cfg.NodeID),
 	})
-	resolver.Register(builder)
+	resolver.Register(resolverBuilder)
+	d.deregisterResolver = func() {
+		resolver.Deregister(resolverBuilder.Authority())
+	}
+
+	balancerBuilder := balancer.NewBuilder(
+		resolverBuilder.Authority(),
+		d.Logger.Named("grpc.balancer"),
+	)
+	balancerBuilder.Register()
+	d.deregisterBalancer = balancerBuilder.Deregister
+
 	d.GRPCConnPool = grpcInt.NewClientConnPool(grpcInt.ClientConnPoolConfig{
-		Servers:               builder,
+		Servers:               resolverBuilder,
 		SrcAddr:               d.ConnPool.SrcAddr,
 		TLSWrapper:            grpcInt.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()),
 		ALPNWrapper:           grpcInt.ALPNWrapper(d.TLSConfigurator.OutgoingALPNRPCWrapper()),
@@ -122,9 +223,14 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		DialingFromServer:     cfg.ServerMode,
 		DialingFromDatacenter: cfg.Datacenter,
 	})
-	d.LeaderForwarder = builder
+	d.LeaderForwarder = resolverBuilder
 
-	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
+	d.Router = router.NewRouter(
+		d.Logger,
+		cfg.Datacenter,
+		fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter),
+		grpcInt.NewTracker(resolverBuilder, balancerBuilder),
+	)
 
 	// this needs to happen prior to creating auto-config as some of the dependencies
 	// must also be passed to auto-config
@@ -140,6 +246,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		ServerProvider:   d.Router,
 		TLSConfigurator:  d.TLSConfigurator,
 		Cache:            d.Cache,
+		LeafCertManager:  d.LeafCertManager,
 		Tokens:           d.Tokens,
 		EnterpriseConfig: initEnterpriseAutoConfig(d.EnterpriseDeps, cfg),
 	}
@@ -155,14 +262,27 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
 
 	d.XDSStreamLimiter = limiter.NewSessionLimiter()
-	if cfg.IsCloudEnabled() {
-		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger)
-		if err != nil {
-			return d, err
-		}
-	}
+
+	d.Registry = consul.NewTypeRegistry()
 
 	return d, nil
+}
+
+// Close cleans up any state and goroutines associated to bd's members not
+// handled by something else (e.g. the agent stop channel).
+func (bd BaseDeps) Close() {
+	bd.AutoConfig.Stop()
+	bd.LeafCertManager.Stop()
+	bd.MetricsConfig.Cancel()
+	if bd.HCP.Sink != nil {
+		bd.HCP.Sink.Shutdown()
+	}
+
+	for _, fn := range []func(){bd.deregisterBalancer, bd.deregisterResolver, bd.stopHostCollector} {
+		if fn != nil {
+			fn()
+		}
+	}
 }
 
 // grpcLogInitOnce because the test suite will call NewBaseDeps in many tests and
@@ -181,6 +301,7 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		Logger:           logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
 		TLSConfigurator:  tls,
 		Datacenter:       config.Datacenter,
+		RPCHoldTimeout:   config.RPCHoldTimeout,
 		MaxQueryTime:     config.MaxQueryTime,
 		DefaultQueryTime: config.DefaultQueryTime,
 	}
@@ -203,7 +324,7 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
 // all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
-func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
+func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
 	// TODO: "raft..." metrics come from the raft lib and we should migrate these to a telemetry
 	//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
 	raftGauges := []prometheus.GaugeDefinition{
@@ -239,6 +360,10 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		serverGauges,
 	}
 
+	if cfg.Telemetry.EnableHostMetrics {
+		gauges = append(gauges, hoststats.Gauges)
+	}
+
 	// TODO(ffmmm): conditionally add only leader specific metrics to gauges, counters, summaries, etc
 	if isServer {
 		gauges = append(gauges,
@@ -249,6 +374,31 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		)
 	}
 
+	if isServer && cfg.RaftLogStoreConfig.Verification.Enabled {
+		verifierGauges := make([]prometheus.GaugeDefinition, 0)
+		for _, d := range verifier.MetricDefinitions.Gauges {
+			verifierGauges = append(verifierGauges, prometheus.GaugeDefinition{
+				Name: []string{"raft", "logstore", "verifier", d.Name},
+				Help: d.Desc,
+			})
+		}
+		gauges = append(gauges, verifierGauges)
+	}
+
+	if isServer &&
+		(cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL ||
+			cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendDefault) {
+
+		walGauges := make([]prometheus.GaugeDefinition, 0)
+		for _, d := range wal.MetricDefinitions.Gauges {
+			walGauges = append(walGauges, prometheus.GaugeDefinition{
+				Name: []string{"raft", "wal", d.Name},
+				Help: d.Desc,
+			})
+		}
+		gauges = append(gauges, walGauges)
+	}
+
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
 	var gaugeDefs []prometheus.GaugeDefinition
@@ -257,7 +407,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
 		var withService []prometheus.GaugeDefinition
 		for _, gauge := range g {
-			gauge.Name = append([]string{cfg.MetricsPrefix}, gauge.Name...)
+			gauge.Name = append([]string{cfg.Telemetry.MetricsPrefix}, gauge.Name...)
 			withService = append(withService, gauge)
 		}
 		gaugeDefs = append(gaugeDefs, withService...)
@@ -287,11 +437,41 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		consul.CatalogCounters,
 		consul.ClientCounters,
 		consul.RPCCounters,
+		discovery.DNSCounters,
 		grpcWare.StatsCounters,
 		local.StateCounters,
 		xds.StatsCounters,
 		raftCounters,
+		rate.Counters,
 	}
+
+	// For some unknown reason, we seem to add the raft counters above without
+	// checking if this is a server like we do above for some of the summaries
+	// above. We should probably fix that but I want to not change behavior right
+	// now. If we are a server, add summaries for WAL and verifier metrics.
+	if isServer && cfg.RaftLogStoreConfig.Verification.Enabled {
+		verifierCounters := make([]prometheus.CounterDefinition, 0)
+		for _, d := range verifier.MetricDefinitions.Counters {
+			verifierCounters = append(verifierCounters, prometheus.CounterDefinition{
+				Name: []string{"raft", "logstore", "verifier", d.Name},
+				Help: d.Desc,
+			})
+		}
+		counters = append(counters, verifierCounters)
+	}
+	if isServer &&
+		(cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL ||
+			cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendDefault) {
+		walCounters := make([]prometheus.CounterDefinition, 0)
+		for _, d := range wal.MetricDefinitions.Counters {
+			walCounters = append(walCounters, prometheus.CounterDefinition{
+				Name: []string{"raft", "wal", d.Name},
+				Help: d.Desc,
+			})
+		}
+		counters = append(counters, walCounters)
+	}
+
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
 	var counterDefs []prometheus.CounterDefinition
@@ -299,7 +479,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
 		var withService []prometheus.CounterDefinition
 		for _, counter := range c {
-			counter.Name = append([]string{cfg.MetricsPrefix}, counter.Name...)
+			counter.Name = append([]string{cfg.Telemetry.MetricsPrefix}, counter.Name...)
 			withService = append(withService, counter)
 		}
 		counterDefs = append(counterDefs, withService...)
@@ -337,7 +517,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		consul.LeaderSummaries,
 		consul.PreparedQuerySummaries,
 		consul.RPCSummaries,
-		consul.SegmentOSSSummaries,
+		consul.SegmentCESummaries,
 		consul.SessionSummaries,
 		consul.SessionEndpointSummaries,
 		consul.TxnSummaries,
@@ -353,7 +533,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
 		var withService []prometheus.SummaryDefinition
 		for _, summary := range s {
-			summary.Name = append([]string{cfg.MetricsPrefix}, summary.Name...)
+			summary.Name = append([]string{cfg.Telemetry.MetricsPrefix}, summary.Name...)
 			withService = append(withService, summary)
 		}
 		summaryDefs = append(summaryDefs, withService...)

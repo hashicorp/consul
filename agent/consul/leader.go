@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,21 +16,29 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/google/go-cmp/cmp"
+	"github.com/oklog/ulid/v2"
+	"golang.org/x/time/rate"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/types"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 var LeaderSummaries = []prometheus.SummaryDefinition{
@@ -334,6 +345,26 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.setConsistentReadReady()
 
+	if s.config.LogStoreConfig.Verification.Enabled {
+		s.startLogVerification(ctx)
+	}
+
+	if s.useV2Tenancy {
+		if err := s.initTenancy(ctx, s.storageBackend); err != nil {
+			return err
+		}
+	}
+
+	if s.useV2Resources {
+		if err := s.initConsulService(ctx, pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan)); err != nil {
+			return err
+		}
+	}
+
+	if s.config.Reporting.License.Enabled && s.reportingManager != nil {
+		s.reportingManager.StartReportingAgent()
+	}
+
 	s.logger.Debug("successfully established leadership", "duration", time.Since(start))
 	return nil
 }
@@ -341,6 +372,9 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 // revokeLeadership is invoked once we step down as leader.
 // This is used to cleanup any state that may be specific to a leader.
 func (s *Server) revokeLeadership() {
+
+	s.stopLogVerification()
+
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)
 
@@ -349,6 +383,8 @@ func (s *Server) revokeLeadership() {
 	s.clearAllSessionTimers()
 
 	s.revokeEnterpriseLeadership()
+
+	s.stopDeferredDeletion()
 
 	s.stopFederationStateAntiEntropy()
 
@@ -364,11 +400,11 @@ func (s *Server) revokeLeadership() {
 
 	s.stopACLTokenReaping()
 
-	s.stopACLUpgrade()
-
 	s.resetConsistentReadReady()
 
 	s.autopilot.DisableReconciliation()
+
+	s.reportingManager.StopReportingAgent()
 }
 
 // initializeACLs is used to setup the ACLs if we are the leader
@@ -404,148 +440,48 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	if s.InPrimaryDatacenter() {
 		s.logger.Info("initializing acls")
 
-		// Create/Upgrade the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-		if err != nil {
-			return fmt.Errorf("failed to get the builtin global-management policy")
-		}
-		if policy == nil || policy.Rules != structs.ACLPolicyGlobalManagement {
-			newPolicy := structs.ACLPolicy{
-				ID:             structs.ACLPolicyGlobalManagementID,
-				Name:           "global-management",
-				Description:    "Builtin Policy that grants unlimited access",
-				Rules:          structs.ACLPolicyGlobalManagement,
-				Syntax:         acl.SyntaxCurrent,
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		// Create/Upgrade the builtin policies
+		for _, policy := range structs.ACLBuiltinPolicies {
+			if err := s.writeBuiltinACLPolicy(policy); err != nil {
+				return err
 			}
-			if policy != nil {
-				newPolicy.Name = policy.Name
-				newPolicy.Description = policy.Description
-			}
-
-			newPolicy.SetHash(true)
-
-			req := structs.ACLPolicyBatchSetRequest{
-				Policies: structs.ACLPolicies{&newPolicy},
-			}
-			_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to create global-management policy: %v", err)
-			}
-			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
 		// Check for configured initial management token.
 		if initialManagement := s.config.ACLInitialManagementToken; len(initialManagement) > 0 {
-			state := s.fsm.State()
-			if _, err := uuid.ParseUUID(initialManagement); err != nil {
-				s.logger.Warn("Configuring a non-UUID initial management token is deprecated")
-			}
-
-			_, token, err := state.ACLTokenGetBySecret(nil, initialManagement, nil)
+			err := s.initializeManagementToken("Initial Management Token", initialManagement)
 			if err != nil {
-				return fmt.Errorf("failed to get initial management token: %v", err)
+				return fmt.Errorf("failed to initialize initial management token: %w", err)
 			}
-			// Ignoring expiration times to avoid an insertion collision.
-			if token == nil {
-				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-				if err != nil {
-					return fmt.Errorf("failed to generate the accessor ID for the initial management token: %v", err)
-				}
+		}
 
-				token := structs.ACLToken{
-					AccessorID:  accessor,
-					SecretID:    initialManagement,
-					Description: "Initial Management Token",
-					Policies: []structs.ACLTokenPolicyLink{
-						{
-							ID: structs.ACLPolicyGlobalManagementID,
-						},
-					},
-					CreateTime:     time.Now(),
-					Local:          false,
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				}
-
-				token.SetHash(true)
-
-				done := false
-				if canBootstrap, _, err := state.CanBootstrapACLToken(); err == nil && canBootstrap {
-					req := structs.ACLTokenBootstrapRequest{
-						Token:      token,
-						ResetIndex: 0,
-					}
-					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
-						s.logger.Info("Bootstrapped ACL initial management token from configuration")
-						done = true
-					} else {
-						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
-							err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
-							return fmt.Errorf("failed to bootstrap initial management token: %v", err)
-						}
-					}
-				}
-
-				if !done {
-					// either we didn't attempt to or setting the token with a bootstrap request failed.
-					req := structs.ACLTokenBatchSetRequest{
-						Tokens: structs.ACLTokens{&token},
-						CAS:    false,
-					}
-					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
-						return fmt.Errorf("failed to create initial management token: %v", err)
-					}
-
-					s.logger.Info("Created ACL initial management token from configuration")
-				}
+		// Check for configured management token from HCP. It MUST NOT override the user-provided initial management token.
+		if hcpManagement := s.config.Cloud.ManagementToken; len(hcpManagement) > 0 {
+			err := s.initializeManagementToken("HCP Management Token", hcpManagement)
+			if err != nil {
+				return fmt.Errorf("failed to initialize HCP management token: %w", err)
 			}
 		}
 
 		// Insert the anonymous token if it does not exist.
-		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
-		if err != nil {
-			return fmt.Errorf("failed to get anonymous token: %v", err)
+		if err := s.insertAnonymousToken(); err != nil {
+			return err
 		}
-		// Ignoring expiration times to avoid an insertion collision.
-		if token == nil {
-			token = &structs.ACLToken{
-				AccessorID:     structs.ACLTokenAnonymousID,
-				SecretID:       anonymousToken,
-				Description:    "Anonymous Token",
-				CreateTime:     time.Now(),
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-			}
-			token.SetHash(true)
-
-			req := structs.ACLTokenBatchSetRequest{
-				Tokens: structs.ACLTokens{token},
-				CAS:    false,
-			}
-			_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to create anonymous token: %v", err)
-			}
-			s.logger.Info("Created ACL anonymous token from configuration")
-		}
-
-		// Generate or rotate the server management token on leadership transitions.
-		// This token is used by Consul servers for authn/authz when making
-		// requests to themselves through public APIs such as the agent cache.
-		// It is stored as system metadata because it is internally
-		// managed and users are not meant to see it or interact with it.
-		secretID, err := lib.GenerateUUID(nil)
-		if err != nil {
-			return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
-		}
-		if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
-			return fmt.Errorf("failed to persist server management token: %w", err)
-		}
-
-		// launch the upgrade go routine to generate accessors for everything
-		s.startACLUpgrade(ctx)
 	} else {
 		s.startACLReplication(ctx)
+	}
+
+	// Generate or rotate the server management token on leadership transitions.
+	// This token is used by Consul servers for authn/authz when making
+	// requests to themselves through public APIs such as the agent cache.
+	// It is stored as system metadata because it is internally
+	// managed and users are not meant to see it or interact with it.
+	secretID, err := lib.GenerateUUID(nil)
+	if err != nil {
+		return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
+	}
+	if err := s.SetSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
+		return fmt.Errorf("failed to persist server management token: %w", err)
 	}
 
 	s.startACLTokenReaping(ctx)
@@ -553,98 +489,212 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	return nil
 }
 
-// legacyACLTokenUpgrade runs a single time to upgrade any tokens that may
-// have been created immediately before the Consul upgrade, or any legacy tokens
-// from a restored snapshot.
-// TODO(ACL-Legacy-Compat): remove in phase 2
-func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
-	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
-	const aclUpgradeRateLimit rate.Limit = 1.0
-
-	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
-	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
-	// with all tokens in it.
-	const aclUpgradeBatchSize = 128
-
-	limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
-	for {
-		if err := limiter.Wait(ctx); err != nil {
-			return err
+// writeBuiltinACLPolicy writes the given built-in policy to Raft if the policy
+// is not found or if the policy rules have been changed. The name and
+// description of a built-in policy are user-editable and must be preserved
+// during updates. This function must only be called in a primary datacenter.
+func (s *Server) writeBuiltinACLPolicy(newPolicy structs.ACLPolicy) error {
+	_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, newPolicy.ID, structs.DefaultEnterpriseMetaInDefaultPartition())
+	if err != nil {
+		return fmt.Errorf("failed to get the builtin %s policy", newPolicy.Name)
+	}
+	if policy == nil || policy.Rules != newPolicy.Rules {
+		if policy != nil {
+			newPolicy.Name = policy.Name
+			newPolicy.Description = policy.Description
 		}
 
-		// actually run the upgrade here
-		state := s.fsm.State()
-		tokens, _, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
+		newPolicy.EnterpriseMeta = *structs.DefaultEnterpriseMetaInDefaultPartition()
+		newPolicy.SetHash(true)
+
+		req := structs.ACLPolicyBatchSetRequest{
+			Policies: structs.ACLPolicies{&newPolicy},
+		}
+		_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
 		if err != nil {
-			s.logger.Warn("encountered an error while searching for tokens without accessor ids", "error", err)
+			return fmt.Errorf("failed to create %s policy: %v", newPolicy.Name, err)
 		}
-		// No need to check expiration time here, as that only exists for v2 tokens.
+		s.logger.Info(fmt.Sprintf("Created ACL '%s' policy", newPolicy.Name))
+	}
+	return nil
+}
 
-		if len(tokens) == 0 {
-			// No new legacy tokens can be created, so we can exit
-			s.stopACLUpgrade() // required to prevent goroutine leak, according to TestAgentLeaks_Server
-			return nil
+func (s *Server) initializeManagementToken(name, secretID string) error {
+	state := s.fsm.State()
+	if _, err := uuid.ParseUUID(secretID); err != nil {
+		s.logger.Warn("Configuring a non-UUID management token is deprecated")
+	}
+
+	_, token, err := state.ACLTokenGetBySecret(nil, secretID, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get %s: %v", name, err)
+	}
+	// Ignoring expiration times to avoid an insertion collision.
+	if token == nil {
+		accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+		if err != nil {
+			return fmt.Errorf("failed to generate the accessor ID for %s: %v", name, err)
 		}
 
-		var newTokens structs.ACLTokens
-		for _, token := range tokens {
-			// This should be entirely unnecessary but is just a small safeguard against changing accessor IDs
-			if token.AccessorID != "" {
-				continue
+		token := structs.ACLToken{
+			AccessorID:  accessor,
+			SecretID:    secretID,
+			Description: name,
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			CreateTime:     time.Now(),
+			Local:          false,
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		}
+
+		token.SetHash(true)
+
+		done := false
+		if canBootstrap, _, err := state.CanBootstrapACLToken(); err == nil && canBootstrap {
+			req := structs.ACLTokenBootstrapRequest{
+				Token:      token,
+				ResetIndex: 0,
 			}
-
-			newToken := *token
-			if token.SecretID == anonymousToken {
-				newToken.AccessorID = structs.ACLTokenAnonymousID
+			if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
+				s.logger.Info("Bootstrapped ACL token from configuration", "description", name)
+				done = true
 			} else {
-				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-				if err != nil {
-					s.logger.Warn("failed to generate accessor during token auto-upgrade", "error", err)
-					continue
+				if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
+					err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
+					return fmt.Errorf("failed to bootstrap with %s: %v", name, err)
 				}
-				newToken.AccessorID = accessor
 			}
-
-			// Assign the global-management policy to legacy management tokens
-			if len(newToken.Policies) == 0 &&
-				len(newToken.ServiceIdentities) == 0 &&
-				len(newToken.NodeIdentities) == 0 &&
-				len(newToken.Roles) == 0 &&
-				newToken.Type == "management" {
-				newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
-			}
-
-			// need to copy these as we are going to do a CAS operation.
-			newToken.CreateIndex = token.CreateIndex
-			newToken.ModifyIndex = token.ModifyIndex
-
-			newToken.SetHash(true)
-
-			newTokens = append(newTokens, &newToken)
 		}
 
-		req := &structs.ACLTokenBatchSetRequest{Tokens: newTokens, CAS: true}
+		if !done {
+			// either we didn't attempt to or setting the token with a bootstrap request failed.
+			req := structs.ACLTokenBatchSetRequest{
+				Tokens: structs.ACLTokens{&token},
+				CAS:    false,
+			}
+			if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
+				return fmt.Errorf("failed to create %s: %v", name, err)
+			}
 
-		_, err = s.raftApply(structs.ACLTokenSetRequestType, req)
+			s.logger.Info("Created ACL token from configuration", "description", name)
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) upsertManagementToken(name, secretID string) error {
+	state := s.fsm.State()
+	if _, err := uuid.ParseUUID(secretID); err != nil {
+		s.logger.Warn("Configuring a non-UUID management token is deprecated")
+	}
+
+	_, token, err := state.ACLTokenGetBySecret(nil, secretID, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get %s: %v", name, err)
+	}
+
+	if token != nil {
+		return nil
+	}
+
+	accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+	if err != nil {
+		return fmt.Errorf("failed to generate the accessor ID for %s: %v", name, err)
+	}
+
+	newToken := structs.ACLToken{
+		AccessorID:  accessor,
+		SecretID:    secretID,
+		Description: name,
+		Policies: []structs.ACLTokenPolicyLink{
+			{
+				ID: structs.ACLPolicyGlobalManagementID,
+			},
+		},
+		CreateTime:     time.Now(),
+		Local:          false,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+	}
+
+	newToken.SetHash(true)
+
+	req := structs.ACLTokenBatchSetRequest{
+		Tokens: structs.ACLTokens{&newToken},
+		CAS:    false,
+	}
+	if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
+		return fmt.Errorf("failed to create %s: %v", name, err)
+	}
+
+	s.logger.Info("Created ACL token", "description", name)
+
+	return nil
+}
+
+func (s *Server) deleteManagementToken(secretId string) error {
+	state := s.fsm.State()
+
+	// Fetch the token to get its accessor ID and to verify that it's a management token
+	_, token, err := state.ACLTokenGetBySecret(nil, secretId, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get management token: %v", err)
+	}
+
+	if token == nil {
+		// token is already deleted
+		return nil
+	}
+
+	accessorID := token.AccessorID
+	if len(token.Policies) != 1 && token.Policies[0].ID != structs.ACLPolicyGlobalManagementID {
+		return fmt.Errorf("failed to delete management token: not a management token")
+	}
+
+	// Delete the token
+	req := structs.ACLTokenBatchDeleteRequest{
+		TokenIDs: []string{accessorID},
+	}
+	if _, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req); err != nil {
+		return fmt.Errorf("failed to delete management token: %v", err)
+	}
+
+	s.logger.Info("deleted ACL token", "description", token.Description)
+
+	return nil
+}
+
+func (s *Server) insertAnonymousToken() error {
+	state := s.fsm.State()
+	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get anonymous token: %v", err)
+	}
+	// Ignoring expiration times to avoid an insertion collision.
+	if token == nil {
+		token = &structs.ACLToken{
+			AccessorID:     acl.AnonymousTokenID,
+			SecretID:       anonymousToken,
+			Description:    "Anonymous Token",
+			CreateTime:     time.Now(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		}
+		token.SetHash(true)
+
+		req := structs.ACLTokenBatchSetRequest{
+			Tokens: structs.ACLTokens{token},
+			CAS:    false,
+		}
+		_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
 		if err != nil {
-			s.logger.Error("failed to apply acl token upgrade batch", "error", err)
+			return fmt.Errorf("failed to create anonymous token: %v", err)
 		}
+		s.logger.Info("Created ACL anonymous token from configuration")
 	}
-}
-
-// TODO(ACL-Legacy-Compat): remove in phase 2. Keeping it for now so that we
-// can upgrade any tokens created immediately before the upgrade happens.
-func (s *Server) startACLUpgrade(ctx context.Context) {
-	if s.config.PrimaryDatacenter != s.config.Datacenter {
-		// token upgrades should only run in the primary
-		return
-	}
-
-	s.leaderRoutineManager.Start(ctx, aclUpgradeRoutineName, s.legacyACLTokenUpgrade)
-}
-
-func (s *Server) stopACLUpgrade() {
-	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
+	return nil
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {
@@ -995,11 +1045,19 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *acl.Ent
 		}
 
 		// Attempt to reap this member
-		if err := s.handleReapMember(member, nodeEntMeta); err != nil {
+		if err := s.registrator.HandleReapMember(member, nodeEntMeta, s.removeConsulServer); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// ConsulRegistrator is an interface that manages the catalog registration lifecycle of Consul servers from serf events.
+type ConsulRegistrator interface {
+	HandleAliveMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta, joinServer func(m serf.Member, parts *metadata.Server) error) error
+	HandleFailedMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error
+	HandleLeftMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta, removeServerFunc func(m serf.Member) error) error
+	HandleReapMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta, removeServerFunc func(m serf.Member) error) error
 }
 
 // reconcileMember is used to do an async reconcile of a single
@@ -1020,13 +1078,13 @@ func (s *Server) reconcileMember(member serf.Member) error {
 	var err error
 	switch member.Status {
 	case serf.StatusAlive:
-		err = s.handleAliveMember(member, nodeEntMeta)
+		err = s.registrator.HandleAliveMember(member, nodeEntMeta, s.joinConsulServer)
 	case serf.StatusFailed:
-		err = s.handleFailedMember(member, nodeEntMeta)
+		err = s.registrator.HandleFailedMember(member, nodeEntMeta)
 	case serf.StatusLeft:
-		err = s.handleLeftMember(member, nodeEntMeta)
+		err = s.registrator.HandleLeftMember(member, nodeEntMeta, s.removeConsulServer)
 	case StatusReap:
-		err = s.handleReapMember(member, nodeEntMeta)
+		err = s.registrator.HandleReapMember(member, nodeEntMeta, s.removeConsulServer)
 	}
 	if err != nil {
 		s.logger.Error("failed to reconcile member",
@@ -1055,244 +1113,6 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 		return true
 	}
 	return false
-}
-
-// handleAliveMember is used to ensure the node
-// is registered, with a passing health check.
-func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	if nodeEntMeta == nil {
-		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
-	}
-
-	// Register consul service if a server
-	var service *structs.NodeService
-	if valid, parts := metadata.IsConsulServer(member); valid {
-		service = &structs.NodeService{
-			ID:      structs.ConsulServiceID,
-			Service: structs.ConsulServiceName,
-			Port:    parts.Port,
-			Weights: &structs.Weights{
-				Passing: 1,
-				Warning: 1,
-			},
-			EnterpriseMeta: *nodeEntMeta,
-			Meta: map[string]string{
-				// DEPRECATED - remove nonvoter in favor of read_replica in a future version of consul
-				"non_voter":             strconv.FormatBool(member.Tags["nonvoter"] == "1"),
-				"read_replica":          strconv.FormatBool(member.Tags["read_replica"] == "1"),
-				"raft_version":          strconv.Itoa(parts.RaftVersion),
-				"serf_protocol_current": strconv.FormatUint(uint64(member.ProtocolCur), 10),
-				"serf_protocol_min":     strconv.FormatUint(uint64(member.ProtocolMin), 10),
-				"serf_protocol_max":     strconv.FormatUint(uint64(member.ProtocolMax), 10),
-				"version":               parts.Build.String(),
-			},
-		}
-
-		if parts.ExternalGRPCPort > 0 {
-			service.Meta["grpc_port"] = strconv.Itoa(parts.ExternalGRPCPort)
-		}
-		if parts.ExternalGRPCTLSPort > 0 {
-			service.Meta["grpc_tls_port"] = strconv.Itoa(parts.ExternalGRPCTLSPort)
-		}
-
-		// Attempt to join the consul server
-		if err := s.joinConsulServer(member, parts); err != nil {
-			return err
-		}
-	}
-
-	// Check if the node exists
-	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-	if err != nil {
-		return err
-	}
-	if node != nil && node.Address == member.Addr.String() {
-		// Check if the associated service is available
-		if service != nil {
-			match := false
-			_, services, err := state.NodeServices(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-			if err != nil {
-				return err
-			}
-			if services != nil {
-				for id, serv := range services.Services {
-					if id == service.ID {
-						// If metadata are different, be sure to update it
-						match = reflect.DeepEqual(serv.Meta, service.Meta)
-					}
-				}
-			}
-			if !match {
-				goto AFTER_CHECK
-			}
-		}
-
-		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-		if err != nil {
-			return err
-		}
-		for _, check := range checks {
-			if check.CheckID == structs.SerfCheckID && check.Status == api.HealthPassing {
-				return nil
-			}
-		}
-	}
-AFTER_CHECK:
-	s.logger.Info("member joined, marking health alive",
-		"member", member.Name,
-		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-	)
-
-	// Register with the catalog.
-	req := structs.RegisterRequest{
-		Datacenter: s.config.Datacenter,
-		Node:       member.Name,
-		ID:         types.NodeID(member.Tags["id"]),
-		Address:    member.Addr.String(),
-		Service:    service,
-		Check: &structs.HealthCheck{
-			Node:    member.Name,
-			CheckID: structs.SerfCheckID,
-			Name:    structs.SerfCheckName,
-			Status:  api.HealthPassing,
-			Output:  structs.SerfCheckAliveOutput,
-		},
-		EnterpriseMeta: *nodeEntMeta,
-	}
-	if node != nil {
-		req.TaggedAddresses = node.TaggedAddresses
-		req.NodeMeta = node.Meta
-	}
-
-	_, err = s.raftApply(structs.RegisterRequestType, &req)
-	return err
-}
-
-// handleFailedMember is used to mark the node's status
-// as being critical, along with all checks as unknown.
-func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	if nodeEntMeta == nil {
-		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
-	}
-
-	// Check if the node exists
-	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-	if err != nil {
-		return err
-	}
-
-	if node == nil {
-		s.logger.Info("ignoring failed event for member because it does not exist in the catalog",
-			"member", member.Name,
-			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-		)
-		return nil
-	}
-
-	if node.Address == member.Addr.String() {
-		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-		if err != nil {
-			return err
-		}
-		for _, check := range checks {
-			if check.CheckID == structs.SerfCheckID && check.Status == api.HealthCritical {
-				return nil
-			}
-		}
-	}
-	s.logger.Info("member failed, marking health critical",
-		"member", member.Name,
-		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-	)
-
-	// Register with the catalog
-	req := structs.RegisterRequest{
-		Datacenter:     s.config.Datacenter,
-		Node:           member.Name,
-		EnterpriseMeta: *nodeEntMeta,
-		ID:             types.NodeID(member.Tags["id"]),
-		Address:        member.Addr.String(),
-		Check: &structs.HealthCheck{
-			Node:    member.Name,
-			CheckID: structs.SerfCheckID,
-			Name:    structs.SerfCheckName,
-			Status:  api.HealthCritical,
-			Output:  structs.SerfCheckFailedOutput,
-		},
-
-		// If there's existing information about the node, do not
-		// clobber it.
-		SkipNodeUpdate: true,
-	}
-	_, err = s.raftApply(structs.RegisterRequestType, &req)
-	return err
-}
-
-// handleLeftMember is used to handle members that gracefully
-// left. They are deregistered if necessary.
-func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	return s.handleDeregisterMember("left", member, nodeEntMeta)
-}
-
-// handleReapMember is used to handle members that have been
-// reaped after a prolonged failure. They are deregistered.
-func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	return s.handleDeregisterMember("reaped", member, nodeEntMeta)
-}
-
-// handleDeregisterMember is used to deregister a member of a given reason
-func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	if nodeEntMeta == nil {
-		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
-	}
-
-	// Do not deregister ourself. This can only happen if the current leader
-	// is leaving. Instead, we should allow a follower to take-over and
-	// deregister us later.
-	//
-	// TODO(partitions): check partitions here too? server names should be unique in general though
-	if strings.EqualFold(member.Name, s.config.NodeName) {
-		s.logger.Warn("deregistering self should be done by follower",
-			"name", s.config.NodeName,
-			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-		)
-		return nil
-	}
-
-	// Remove from Raft peers if this was a server
-	if valid, _ := metadata.IsConsulServer(member); valid {
-		if err := s.removeConsulServer(member); err != nil {
-			return err
-		}
-	}
-
-	// Check if the node does not exist
-	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-	if err != nil {
-		return err
-	}
-	if node == nil {
-		return nil
-	}
-
-	// Deregister the node
-	s.logger.Info("deregistering member",
-		"member", member.Name,
-		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-		"reason", reason,
-	)
-	req := structs.DeregisterRequest{
-		Datacenter:     s.config.Datacenter,
-		Node:           member.Name,
-		EnterpriseMeta: *nodeEntMeta,
-	}
-	_, err = s.raftApply(structs.DeregisterRequestType, &req)
-	return err
 }
 
 // joinConsulServer is used to try to join another consul server
@@ -1489,4 +1309,122 @@ func (s *serversIntentionsAsConfigEntriesInfo) update(srv *metadata.Server) bool
 
 	// prevent continuing server evaluation
 	return false
+}
+
+func (s *Server) initConsulService(ctx context.Context, client pbresource.ResourceServiceClient) error {
+	service := &pbcatalog.Service{
+		Workloads: &pbcatalog.WorkloadSelector{
+			Prefixes: []string{consulWorkloadPrefix},
+		},
+		Ports: []*pbcatalog.ServicePort{
+			{
+				TargetPort: consulPortNameServer,
+				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
+				// No virtual port defined for now, as we assume this is generally for Service Discovery
+			},
+		},
+	}
+
+	serviceData, err := anypb.New(service)
+	if err != nil {
+		return fmt.Errorf("could not convert Service to `any` message: %w", err)
+	}
+
+	// create a default namespace in default partition
+	serviceID := &pbresource.ID{
+		Type:    pbcatalog.ServiceType,
+		Name:    structs.ConsulServiceName,
+		Tenancy: resource.DefaultNamespacedTenancy(),
+	}
+
+	serviceResource := &pbresource.Resource{
+		Id:   serviceID,
+		Data: serviceData,
+	}
+
+	res, err := client.Read(ctx, &pbresource.ReadRequest{Id: serviceID})
+	if err != nil && !grpcNotFoundErr(err) {
+		return fmt.Errorf("failed to read the %s Service: %w", structs.ConsulServiceName, err)
+	}
+
+	if err == nil {
+		existingService := res.GetResource()
+		s.logger.Debug("existingService consul Service found")
+
+		// If the Service is identical, we're done.
+		if cmp.Equal(serviceResource, existingService, resourceCmpOptions...) {
+			s.logger.Debug("no updates to perform on consul Service")
+			return nil
+		}
+
+		// If the existing Service is different, add the Version to the patch for CAS write.
+		serviceResource.Id = existingService.Id
+		serviceResource.Version = existingService.Version
+	}
+
+	_, err = client.Write(ctx, &pbresource.WriteRequest{Resource: serviceResource})
+	if err != nil {
+		return fmt.Errorf("failed to create the %s service: %w", structs.ConsulServiceName, err)
+	}
+
+	s.logger.Info("Created consul Service in catalog")
+	return nil
+}
+
+func (s *Server) initTenancy(ctx context.Context, b storage.Backend) error {
+	// we write these defaults directly to the storage backend
+	// without going through the resource service since tenancy
+	// validation hooks block writes to the default namespace
+	// and partition.
+	if err := s.createDefaultPartition(ctx, b); err != nil {
+		return err
+	}
+
+	if err := s.createDefaultNamespace(ctx, b); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) createDefaultNamespace(ctx context.Context, b storage.Backend) error {
+	readID := &pbresource.ID{
+		Type:    pbtenancy.NamespaceType,
+		Name:    resource.DefaultNamespaceName,
+		Tenancy: resource.DefaultPartitionedTenancy(),
+	}
+
+	read, err := b.Read(ctx, storage.StrongConsistency, readID)
+
+	if err != nil && !errors.Is(err, storage.ErrNotFound) {
+		return fmt.Errorf("failed to read the %q namespace: %v", resource.DefaultNamespaceName, err)
+	}
+	if read == nil && errors.Is(err, storage.ErrNotFound) {
+		nsData, err := anypb.New(&pbtenancy.Namespace{Description: "default namespace in default partition"})
+		if err != nil {
+			return err
+		}
+
+		// create a default namespace in default partition
+		nsID := &pbresource.ID{
+			Type:    pbtenancy.NamespaceType,
+			Name:    resource.DefaultNamespaceName,
+			Tenancy: resource.DefaultPartitionedTenancy(),
+			Uid:     ulid.Make().String(),
+		}
+
+		_, err = b.WriteCAS(ctx, &pbresource.Resource{
+			Id:         nsID,
+			Generation: ulid.Make().String(),
+			Data:       nsData,
+			Metadata: map[string]string{
+				"generated_at": time.Now().Format(time.RFC3339),
+			},
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to create the %q namespace: %v", resource.DefaultNamespaceName, err)
+		}
+	}
+	s.logger.Info("Created", "namespace", resource.DefaultNamespaceName)
+	return nil
 }

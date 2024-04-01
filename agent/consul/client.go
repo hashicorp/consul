@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -15,11 +19,13 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -27,15 +33,15 @@ import (
 var ClientCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"client", "rpc"},
-		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server.",
+		Help: "Increments whenever a Consul agent makes an RPC request to a Consul server.",
 	},
 	{
 		Name: []string{"client", "rpc", "exceeded"},
-		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
+		Help: "Increments whenever a Consul agent makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
 	},
 	{
 		Name: []string{"client", "rpc", "failed"},
-		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.",
+		Help: "Increments whenever a Consul agent makes an RPC request to a Consul server and fails.",
 	},
 }
 
@@ -88,6 +94,9 @@ type Client struct {
 	EnterpriseClient
 
 	tlsConfigurator *tlsutil.Configurator
+
+	// resourceServiceClient is a client for the gRPC Resource Service.
+	resourceServiceClient pbresource.ResourceServiceClient
 }
 
 // NewClient creates and returns a Client
@@ -98,7 +107,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-	if err := config.CheckACL(); err != nil {
+	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
 
@@ -145,6 +154,13 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		return nil, fmt.Errorf("Failed to add LAN area to the RPC router: %w", err)
 	}
 	c.router = deps.Router
+
+	conn, err := deps.GRPCConnPool.ClientConn(deps.ConnPool.Datacenter)
+	if err != nil {
+		c.Shutdown()
+		return nil, fmt.Errorf("Failed to get gRPC client connection: %w", err)
+	}
+	c.resourceServiceClient = pbresource.NewResourceServiceClient(conn)
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
@@ -262,7 +278,7 @@ func (c *Client) KeyManagerLAN() *serf.KeyManager {
 }
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
-func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
+func (c *Client) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	// This is subtle but we start measuring the time on the client side
 	// right at the time of the first request, vs. on the first retry as
 	// is done on the server side inside forward(). This is because the
@@ -270,15 +286,19 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// starting the timer here we won't potentially double up the delay.
 	// TODO (slackpad) Plumb a deadline here with a context.
 	firstCheck := time.Now()
+	retryCount := 0
+	previousJitter := time.Duration(0)
 
+	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 TRY:
+	retryCount++
 	manager, server := c.router.FindLANRoute()
 	if server == nil {
+		metrics.IncrCounter([]string{"client", "rpc", "failed"}, 1)
 		return structs.ErrNoServers
 	}
 
 	// Enforce the RPC limit.
-	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !c.rpcLimiter.Load().(*rate.Limiter).Allow() {
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
@@ -295,7 +315,16 @@ TRY:
 
 	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
 	info, _ := args.(structs.RPCInfo)
-	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
+	retryableMessages := []error{
+		// If we are chunking and it doesn't seem to have completed, try again.
+		ErrChunkingResubmit,
+
+		// These rate limit errors are returned before the handler is called, so are
+		// safe to retry.
+		rpcRate.ErrRetryElsewhere,
+	}
+
+	if retry := canRetry(info, rpcErr, firstCheck, c.config, retryableMessages); !retry {
 		c.logger.Error("RPC failed to server",
 			"method", method,
 			"server", server.Addr,
@@ -312,7 +341,9 @@ TRY:
 	)
 
 	// We can wait a bit and retry!
-	jitter := lib.RandomStagger(c.config.RPCHoldTimeout / structs.JitterFraction)
+	jitter := lib.RandomStaggerWithRange(previousJitter, getWaitTime(c.config.RPCHoldTimeout, retryCount))
+	previousJitter = jitter
+
 	select {
 	case <-time.After(jitter):
 		goto TRY
@@ -432,4 +463,8 @@ func (c *Client) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 
 func (c *Client) agentSegmentName() string {
 	return c.config.Segment
+}
+
+func (c *Client) ResourceServiceClient() pbresource.ResourceServiceClient {
+	return c.resourceServiceClient
 }

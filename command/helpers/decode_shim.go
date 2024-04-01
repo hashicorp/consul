@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package helpers
 
 import (
@@ -15,37 +18,37 @@ import (
 //
 // hcl.Decode-s into:
 //
-// map[string]interface {}{
-// 	"sub":[]map[string]interface {}{
-// 		map[string]interface {}{
-// 			"v1":[]map[string]interface {}{
-// 				map[string]interface {}{
-// 					"field":"value1"
-// 				}
-// 			}
-// 		},
-// 		map[string]interface {}{
-// 			"v2":[]map[string]interface {}{
-// 				map[string]interface {}{
-// 					"field":"value2"
-// 				}
-// 			}
-// 		}
-// 	}
-// }
+//	map[string]interface {}{
+//		"sub":[]map[string]interface {}{
+//			map[string]interface {}{
+//				"v1":[]map[string]interface {}{
+//					map[string]interface {}{
+//						"field":"value1"
+//					}
+//				}
+//			},
+//			map[string]interface {}{
+//				"v2":[]map[string]interface {}{
+//					map[string]interface {}{
+//						"field":"value2"
+//					}
+//				}
+//			}
+//		}
+//	}
 //
 // but json.Unmarshal-s into the more expected:
 //
-// map[string]interface {}{
-// 	"sub":map[string]interface {}{
-// 		"v1":map[string]interface {}{
-// 			"field":"value1"
-// 		},
-// 		"v2":map[string]interface {}{
-// 			"field":"value2"
-// 		}
-// 	}
-// }
+//	map[string]interface {}{
+//		"sub":map[string]interface {}{
+//			"v1":map[string]interface {}{
+//				"field":"value1"
+//			},
+//			"v2":map[string]interface {}{
+//				"field":"value2"
+//			}
+//		}
+//	}
 //
 // The strange part is that the following HCL:
 //
@@ -53,22 +56,22 @@ import (
 //
 // hcl.Decode-s into:
 //
-// map[string]interface {}{
-// 	"sub":[]map[string]interface {}{
-// 		map[string]interface {}{
-// 			"v1":[]map[string]interface {}{
-// 				map[string]interface {}{
-// 					"field":"value1"
-// 				}
-// 			},
-// 			"v2":[]map[string]interface {}{
-// 				map[string]interface {}{
-// 					"field":"value2"
-// 				}
-// 			}
-// 		}
-// 	}
-// }
+//	map[string]interface {}{
+//		"sub":[]map[string]interface {}{
+//			map[string]interface {}{
+//				"v1":[]map[string]interface {}{
+//					map[string]interface {}{
+//						"field":"value1"
+//					}
+//				},
+//				"v2":[]map[string]interface {}{
+//					map[string]interface {}{
+//						"field":"value2"
+//					}
+//				}
+//			}
+//		}
+//	}
 //
 // Which is the "correct" value assuming you did the patch-slice-of-maps correction.
 //

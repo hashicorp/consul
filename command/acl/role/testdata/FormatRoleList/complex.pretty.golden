@@ -9,3 +9,10 @@ complex:
       gardener (Datacenters: middleearth-northwest)
    Node Identities:
       bagend (Datacenter: middleearth-northwest)
+   Templated Policies:
+      builtin/service
+         Name: gardener
+         Datacenters: all
+      builtin/node
+         Name: bagend
+         Datacenters: all

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -6,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -18,36 +20,42 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
-	"github.com/hashicorp/go-connlimit"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/raft"
-	autopilot "github.com/hashicorp/raft-autopilot"
-	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
-	"github.com/hashicorp/serf/serf"
+	"github.com/fullstorydev/grpchan/inprocgrpc"
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
+	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
+	raftwal "github.com/hashicorp/raft-wal"
+	walmetrics "github.com/hashicorp/raft-wal/metrics"
+	"github.com/hashicorp/raft-wal/verifier"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/blockingquery"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/consul/agent/consul/reporting"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
-	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
-	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
-	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
-	"github.com/hashicorp/consul/agent/grpc-external/services/serverdiscovery"
-	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
-	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/agent/hcp/bootstrap"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -55,10 +63,25 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/auth"
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/controller"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
+	"github.com/hashicorp/consul/internal/mesh"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/internal/multicluster"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/reaper"
+	"github.com/hashicorp/consul/internal/storage"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
+	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	cslversion "github.com/hashicorp/consul/version"
@@ -107,18 +130,35 @@ const (
 	// and wait for a periodic reconcile.
 	reconcileChSize = 256
 
-	LeaderTransferMinVersion = "1.6.0"
+	LeaderTransferMinVersion      = "1.6.0"
+	CatalogResourceExperimentName = "resource-apis"
+	V1DNSExperimentName           = "v1dns"
+	V2TenancyExperimentName       = "v2tenancy"
+	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )
+
+// IsExperimentAllowedOnSecondaries returns true if an experiment is currently
+// disallowed for wan federated secondary datacenters.
+//
+// Likely these will all be short lived exclusions.
+func IsExperimentAllowedOnSecondaries(name string) bool {
+	switch name {
+	case CatalogResourceExperimentName, V2TenancyExperimentName:
+		return false
+	default:
+		return true
+	}
+}
 
 const (
 	aclPolicyReplicationRoutineName       = "ACL policy replication"
 	aclRoleReplicationRoutineName         = "ACL role replication"
 	aclTokenReplicationRoutineName        = "ACL token replication"
 	aclTokenReapingRoutineName            = "acl token reaping"
-	aclUpgradeRoutineName                 = "legacy ACL token upgrade"
 	caRootPruningRoutineName              = "CA root pruning"
 	caRootMetricRoutineName               = "CA root expiration metric"
 	caSigningMetricRoutineName            = "CA signing expiration metric"
+	configEntryControllersRoutineName     = "config entry controllers"
 	configReplicationRoutineName          = "config entry replication"
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
@@ -131,6 +171,7 @@ const (
 	peeringStreamsRoutineName             = "streaming peering resources"
 	peeringDeletionRoutineName            = "peering deferred deletion"
 	peeringStreamsMetricsRoutineName      = "metrics for streaming peering resources"
+	raftLogVerifierRoutineName            = "raft log verifier"
 )
 
 var (
@@ -141,6 +182,17 @@ const (
 	PoolKindPartition = "partition"
 	PoolKindSegment   = "segment"
 )
+
+// raftStore combines LogStore and io.Closer since we need both but have
+// multiple LogStore implementations that need closing too.
+type raftStore interface {
+	raft.LogStore
+	io.Closer
+}
+
+const requestLimitsBurstMultiplier = 10
+
+var _ blockingquery.FSMServer = (*Server)(nil)
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
@@ -204,7 +256,7 @@ type Server struct {
 	// serf cluster that spans datacenters
 	eventChWAN chan serf.Event
 
-	// wanMembershipNotifyCh is used to receive notifications that the the
+	// wanMembershipNotifyCh is used to receive notifications that the
 	// serfWAN wan pool may have changed.
 	//
 	// If this is nil, notification is skipped.
@@ -223,13 +275,19 @@ type Server struct {
 	// the state directly.
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
-	raftStore     *raftboltdb.BoltStore
+	raftStore     raftStore
 	raftTransport *raft.NetworkTransport
 	raftInmem     *raft.InmemStore
 
 	// raftNotifyCh is set up by setupRaft() and ensures that we get reliable leader
 	// transition notifications from the Raft layer.
 	raftNotifyCh <-chan bool
+
+	// raftStorageBackend is the Raft-backed storage backend for resources.
+	raftStorageBackend *raftstorage.Backend
+
+	// the currently in use storage backend
+	storageBackend storage.Backend
 
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
@@ -246,19 +304,34 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
-	// externalACLServer serves the ACL service exposed on the external gRPC port.
-	// It is also exposed on the internal multiplexed "server" port to enable
-	// RPC forwarding.
-	externalACLServer *aclgrpc.Server
-
-	// externalConnectCAServer serves the Connect CA service exposed on the external
-	// gRPC port. It is also exposed on the internal multiplexed "server" port to
-	// enable RPC forwarding.
-	externalConnectCAServer *connectca.Server
-
 	// externalGRPCServer has a gRPC server exposed on the dedicated gRPC ports, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	externalGRPCServer *grpc.Server
+
+	// insecureUnsafeGRPCChan is used to access gRPC services on the server without going
+	// through protobuf serialization/deserialization, performing any network IO or requiring
+	// authorization. This may be passed as the gRPC client conn to any standard gRPC client
+	// constructor instead of a standard network protocol based client conn. Using this as the
+	// client conn will cut down on CPU and memory usage for doing in-process gRPC but comes
+	// with the drawbacks that any data sent over this interface is inherently shared
+	// and both ends must cooperate with regards to the immutability. Therefore, in
+	// most cases the insecureSafeGRPCChannel should be used instead which will clone the protobuf
+	// types as they pass through.
+	insecureUnsafeGRPCChan *inprocgrpc.Channel
+
+	// insecureSafeGRPCChan is used to access gRPC services on the server without going
+	// through the standard protobuf serialization/deserialization, performing network
+	// io or requiring authorization. This gRPC client conn implementation will still
+	// clone protobuf messages as they pass through and so the client and server
+	// implementations do not need to coordinate with regards to data immutability.
+	insecureSafeGRPCChan *inprocgrpc.Channel
+
+	// secureSafeGRPCChan is used to access gRPC services on the server without going
+	// through the standard protobuf serialization/deserialization or performing network
+	// io. This gRPC client conn implementation will still clone protobuf messages as
+	// they pass through and so the client and server implementations do not need
+	// to coordinate with regards to data immutability.
+	secureSafeGRPCChan *inprocgrpc.Channel
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -272,9 +345,12 @@ type Server struct {
 	rpcConnLimiter connlimit.Limiter
 
 	// Listener is used to listen for incoming connections
-	Listener    net.Listener
-	grpcHandler connHandler
-	rpcServer   *rpc.Server
+	Listener            net.Listener
+	internalGRPCHandler connHandler
+	rpcServer           *rpc.Server
+
+	// incomingRPCLimiter rate-limits incoming net/rpc and gRPC calls.
+	incomingRPCLimiter rpcRate.RequestLimitsHandler
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -362,6 +438,9 @@ type Server struct {
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *routine.Manager
 
+	// registrator is an implemenation that translates serf events of Consul servers into catalog events
+	registrator ConsulRegistrator
+
 	// publisher is the EventPublisher to be shared amongst various server components. Events from
 	// modifications to the FSM, autopilot and others will flow through here. If in the future we
 	// need Events generated outside of the Server and all its components, then we could move
@@ -374,28 +453,73 @@ type Server struct {
 	// peerStreamServer is a server used to handle peering streams from external clusters.
 	peerStreamServer *peerstream.Server
 
-	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
-	peeringServer *peering.Server
-
 	// xdsCapacityController controls the number of concurrent xDS streams the
 	// server is able to handle.
 	xdsCapacityController *xdscapacity.Controller
 
 	// hcpManager handles pushing server status updates to the HashiCorp Cloud Platform when enabled
-	hcpManager *hcp.Manager
+	hcpManager *hcp.HCPManager
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
+
+	// routineManager is responsible for managing longer running go routines
+	// run by the Server
+	routineManager *routine.Manager
+
+	// controllerManager schedules the execution of controllers.
+	controllerManager *controller.Manager
+
+	// handles metrics reporting to HashiCorp
+	reportingManager *reporting.ReportingManager
+
+	registry resource.Registry
+
+	useV2Resources bool
+
+	// useV2Tenancy is tied to the "v2tenancy" feature flag.
+	useV2Tenancy bool
+
+	// whether v2 resources are enabled for use with HCP
+	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
+	hcpAllowV2Resources bool
 }
+
+func (s *Server) DecrementBlockingQueries() uint64 {
+	return atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+}
+
+func (s *Server) GetShutdownChannel() chan struct{} {
+	return s.shutdownCh
+}
+
+func (s *Server) IncrementBlockingQueries() uint64 {
+	return atomic.AddUint64(&s.queriesBlocking, 1)
+}
+
 type connHandler interface {
+	RegisterService(*grpc.ServiceDesc, any)
 	Run() error
 	Handle(conn net.Conn)
 	Shutdown() error
 }
 
+// ProxyUpdater is an interface for ProxyTracker.
+type ProxyUpdater interface {
+	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
+	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
+
+	// ProxyConnectedToServer returns whether this id is connected to this server. If it is connected, it also returns
+	// the token as the first argument.
+	ProxyConnectedToServer(id *pbresource.ID) (string, bool)
+
+	EventChannel() chan controller.Event
+}
+
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
+	incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, proxyUpdater ProxyUpdater) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -403,7 +527,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-	if err := config.CheckACL(); err != nil {
+	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
 
@@ -416,15 +540,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
-	fsmDeps := fsm.Deps{
-		Logger: flat.Logger,
-		NewStateStore: func() *state.Store {
-			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
-		},
-		Publisher: flat.EventPublisher,
+	if incomingRPCLimiter == nil {
+		incomingRPCLimiter = rpcRate.NullRequestLimitsHandler()
 	}
 
 	// Create server.
@@ -449,15 +568,61 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
-		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
+		incomingRPCLimiter:      incomingRPCLimiter,
+		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
+		registry:                flat.Registry,
+		useV2Resources:          flat.UseV2Resources(),
+		useV2Tenancy:            flat.UseV2Tenancy(),
+		hcpAllowV2Resources:     flat.HCPAllowV2Resources(),
 	}
+	incomingRPCLimiter.Register(s)
 
-	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
-		Client:   flat.HCP.Client,
-		StatusFn: s.hcpServerStatus(flat),
-		Logger:   logger.Named("hcp_manager"),
+	s.raftStorageBackend, err = raftstorage.NewBackend(&raftHandle{s}, logger.Named("raft-storage-backend"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage backend: %w", err)
+	}
+	go s.raftStorageBackend.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
+	s.storageBackend = s.raftStorageBackend
+
+	s.fsm = fsm.NewFromDeps(fsm.Deps{
+		Logger: flat.Logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
+		},
+		Publisher:      flat.EventPublisher,
+		StorageBackend: s.raftStorageBackend,
 	})
+
+	if s.config.Cloud.IsConfigured() {
+		s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
+			CloudConfig:       flat.HCP.Config,
+			StatusFn:          s.hcpServerStatus(flat),
+			Logger:            logger.Named("hcp_manager"),
+			SCADAProvider:     flat.HCP.Provider,
+			TelemetryProvider: flat.HCP.TelemetryProvider,
+			ManagementTokenUpserterFn: func(name, secretId string) error {
+				// Check the state of the server before attempting to upsert the token. Otherwise,
+				// the upsert will fail and log errors that do not require action from the user.
+				if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
+					// Idea for improvement: Upsert a token with a well-known accessorId here instead
+					// of a randomly generated one. This would prevent any possible insertion collision between
+					// this and the insertion that happens during the ACL initialization process (initializeACLs function)
+					return s.upsertManagementToken(name, secretId)
+				}
+				return nil
+			},
+			ManagementTokenDeleterFn: func(secretId string) error {
+				// Check the state of the server before attempting to delete the token.Otherwise,
+				// the delete will fail and log errors that do not require action from the user.
+				if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
+					return s.deleteManagementToken(secretId)
+				}
+				return nil
+			},
+		})
+	}
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -469,15 +634,29 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		return nil, fmt.Errorf("cannot initialize server with a nil RPC request recorder")
 	}
 
-	if flat.GetNetRPCInterceptorFunc == nil {
-		s.rpcServer = rpc.NewServer()
-		s.insecureRPCServer = rpc.NewServer()
-	} else {
-		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
-		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	rpcServerOpts := []func(*rpc.Server){
+		rpc.WithPreBodyInterceptor(
+			middleware.ChainedRPCPreBodyInterceptor(
+				func(reqServiceMethod string, sourceAddr net.Addr) error {
+					if s.useV2Resources && isV1CatalogRequest(reqServiceMethod) {
+						return structs.ErrUsingV2CatalogExperiment
+					}
+					return nil
+				},
+				middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger)),
+			),
+		),
 	}
 
+	if flat.GetNetRPCInterceptorFunc != nil {
+		rpcServerOpts = append(rpcServerOpts, rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	}
+
+	s.rpcServer = rpc.NewServerWithOpts(rpcServerOpts...)
+	s.insecureRPCServer = rpc.NewServerWithOpts(rpcServerOpts...)
+
 	s.rpcRecorder = recorder
+	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	go s.publisher.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
@@ -568,7 +747,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	}
 
 	// Initialize the Raft server.
-	if err := s.setupRaft(); err != nil {
+	if err := s.setupRaft(stringslice.Contains(flat.Experiments, CatalogResourceExperimentName)); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
@@ -694,75 +873,62 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// Initialize external gRPC server - register services on external gRPC server.
-	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
-		ACLsEnabled: s.config.ACLsEnabled,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-		InPrimaryDatacenter: s.InPrimaryDatacenter(),
-		LoadAuthMethod: func(methodName string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, aclgrpc.Validator, error) {
-			return s.loadAuthMethod(methodName, entMeta)
-		},
-		LocalTokensEnabled:        s.LocalTokensEnabled,
-		Logger:                    logger.Named("grpc-api.acl"),
-		NewLogin:                  func() aclgrpc.Login { return s.aclLogin() },
-		NewTokenWriter:            func() aclgrpc.TokenWriter { return s.aclTokenWriter() },
-		PrimaryDatacenter:         s.config.PrimaryDatacenter,
-		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
-	})
-	s.externalACLServer.Register(s.externalGRPCServer)
+	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
+	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	s.externalConnectCAServer = connectca.NewServer(connectca.Config{
-		Publisher:   s.publisher,
-		GetStore:    func() connectca.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.connect-ca"),
-		ACLResolver: s.ACLResolver,
-		CAManager:   s.caManager,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-		ConnectEnabled: s.config.ConnectEnabled,
-	})
-	s.externalConnectCAServer.Register(s.externalGRPCServer)
+	// configure the server specific grpc interfaces (in-process + internal multiplexed grpc)
+	if err := s.setupGRPCInterfaces(config, flat); err != nil {
+		return nil, err
+	}
 
-	dataplane.NewServer(dataplane.Config{
-		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: s.ACLResolver,
-		Datacenter:  s.config.Datacenter,
-	}).Register(s.externalGRPCServer)
-
-	serverdiscovery.NewServer(serverdiscovery.Config{
-		Publisher:   s.publisher,
-		ACLResolver: s.ACLResolver,
-		Logger:      logger.Named("grpc-api.server-discovery"),
-	}).Register(s.externalGRPCServer)
-
-	s.peeringBackend = NewPeeringBackend(s)
-	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
-		Backend:        s.peeringBackend,
-		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
-		Logger:         logger.Named("grpc-api.peerstream"),
-		ACLResolver:    s.ACLResolver,
-		Datacenter:     s.config.Datacenter,
-		ConnectEnabled: s.config.ConnectEnabled,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			// Only forward the request if the dc in the request matches the server's datacenter.
-			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
-				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
-			}
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-	})
-	s.peerStreamServer.Register(s.externalGRPCServer)
+	// register server specific grpc services with all the interfaces they should be exposed on.
+	if err := s.setupGRPCServices(config, flat); err != nil {
+		return nil, err
+	}
 
 	// Initialize internal gRPC server.
 	//
 	// Note: some "external" gRPC services are also exposed on the internal gRPC server
 	// to enable RPC forwarding.
-	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
+
+	if s.config.Cloud.IsConfigured() {
+		// Start watching HCP Link resource. This needs to be created after
+		// the GRPC services are set up in order for the resource service client to
+		// function. This uses the insecure grpc channel so that it doesn't need to
+		// present a valid ACL token.
+		go hcp.RunHCPLinkWatcher(
+			&lib.StopChannelContext{StopCh: shutdownCh},
+			logger.Named("hcp-link-watcher"),
+			pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
+			hcp.HCPManagerLifecycleFn(
+				s.hcpManager,
+				hcpclient.NewClient,
+				bootstrap.LoadManagementToken,
+				flat.HCP.Config,
+				flat.HCP.DataDir,
+			),
+		)
+	}
+
+	s.controllerManager = controller.NewManager(
+		// Usage of the insecure + unsafe grpc chan is required for the controller
+		// manager. It must be unauthorized so that controllers do not need to
+		// present valid ACL tokens for their requests and it must use the unsafe
+		// variant so that the controller runtimes indexing/caching layer doesn't
+		// keep many copies of resources around in memory for long. Care will
+		// be taken within the controller manager to wrap this client with another
+		// which clones protobuf types passing through to ensure controllers
+		// cannot modify the canonical resource service data that has flowed
+		// through the storage backend.
+		pbresource.NewResourceServiceClient(s.insecureUnsafeGRPCChan),
+		s.loggers.Named(logging.ControllerRuntime),
+	)
+	if err := s.registerControllers(flat, proxyUpdater); err != nil {
+		return nil, err
+	}
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
 	go s.trackLeaderChanges()
 
 	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
@@ -776,13 +942,31 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
 
+	// Construct the registrator that makes sense for the catalog version
+	if s.useV2Resources {
+		s.registrator = V2ConsulRegistrator{
+			Logger:   serverLogger,
+			NodeName: s.config.NodeName,
+			EntMeta:  s.config.AgentEnterpriseMeta(),
+			Client:   pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
+		}
+	} else {
+		s.registrator = V1ConsulRegistrator{
+			Datacenter:    s.config.Datacenter,
+			FSM:           s.fsm,
+			Logger:        serverLogger,
+			NodeName:      s.config.NodeName,
+			RaftApplyFunc: s.raftApplyMsgpack,
+		}
+	}
+
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
 
 	// Start listening for RPC requests.
 	go func() {
-		if err := s.grpcHandler.Run(); err != nil {
+		if err := s.internalGRPCHandler.Run(); err != nil {
 			s.logger.Error("gRPC server failed", "error", err)
 		}
 	}()
@@ -800,51 +984,102 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	// Start the metrics handlers.
 	go s.updateMetrics()
 
-	// Now we are setup, configure the HCP manager
-	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+	err = s.runEnterpriseRateLimiterConfigEntryController()
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }
 
-func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
-	if s.peeringBackend == nil {
-		panic("peeringBackend is required during construction")
+func isV1CatalogRequest(rpcName string) bool {
+	switch {
+	case strings.HasPrefix(rpcName, "Catalog."),
+		strings.HasPrefix(rpcName, "Health."),
+		strings.HasPrefix(rpcName, "ConfigEntry."):
+		return true
 	}
 
-	p := peering.NewServer(peering.Config{
-		Backend: s.peeringBackend,
-		Tracker: s.peerStreamServer.Tracker,
-		Logger:  deps.Logger.Named("grpc-api.peering"),
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			// Only forward the request if the dc in the request matches the server's datacenter.
-			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
-				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
-			}
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-		Datacenter:     config.Datacenter,
-		ConnectEnabled: config.ConnectEnabled,
-		PeeringEnabled: config.PeeringEnabled,
-	})
-	s.peeringServer = p
-
-	register := func(srv *grpc.Server) {
-		if config.RPCConfig.EnableStreaming {
-			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
-				&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
-				deps.Logger.Named("grpc-api.subscription")))
+	switch rpcName {
+	case "Internal.EventFire", "Internal.KeyringOperation", "Internal.OIDCAuthMethods":
+		return false
+	default:
+		if strings.HasPrefix(rpcName, "Internal.") {
+			return true
 		}
-		s.peeringServer.Register(srv)
-		s.registerEnterpriseGRPCServices(deps, srv)
+		return false
+	}
+}
 
-		// Note: these external gRPC services are also exposed on the internal server to
-		// enable RPC forwarding.
-		s.peerStreamServer.Register(srv)
-		s.externalACLServer.Register(srv)
-		s.externalConnectCAServer.Register(srv)
+func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	if s.config.Cloud.IsConfigured() {
+		hcpctl.RegisterControllers(
+			s.controllerManager, hcpctl.ControllerDependencies{
+				ResourceApisEnabled:    s.useV2Resources,
+				HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
+				CloudConfig:            deps.HCP.Config,
+			},
+		)
 	}
 
-	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil)
+	// When not enabled, the v1 tenancy bridge is used by default.
+	if s.useV2Tenancy {
+		tenancy.RegisterControllers(
+			s.controllerManager,
+			tenancy.Dependencies{Registry: deps.Registry},
+		)
+	}
+
+	if s.useV2Resources {
+		catalog.RegisterControllers(s.controllerManager)
+		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
+		if err != nil {
+			return err
+		}
+
+		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
+			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
+				var bundle pbproxystate.TrustBundle
+				roots, err := s.getCARoots(nil, s.GetState())
+				if err != nil {
+					return nil, err
+				}
+				bundle.TrustDomain = roots.TrustDomain
+				for _, root := range roots.Roots {
+					bundle.Roots = append(bundle.Roots, root.RootCert)
+				}
+				return &bundle, nil
+			},
+			// This function is adapted from server_connect.go:getCARoots.
+			TrustDomainFetcher: func() (string, error) {
+				_, caConfig, err := s.fsm.State().CAConfig(nil)
+				if err != nil {
+					return "", err
+				}
+
+				return s.getTrustDomain(caConfig)
+			},
+
+			LeafCertManager: deps.LeafCertManager,
+			LocalDatacenter: s.config.Datacenter,
+			DefaultAllow:    defaultAllow,
+			ProxyUpdater:    proxyUpdater,
+		})
+
+		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
+		multicluster.RegisterControllers(s.controllerManager)
+	} else {
+		shim := NewExportedServicesShim(s)
+		multicluster.RegisterCompatControllers(s.controllerManager, multicluster.DefaultCompatControllerDependencies(shim))
+	}
+
+	reaper.RegisterControllers(s.controllerManager)
+
+	if s.config.DevMode {
+		demo.RegisterControllers(s.controllerManager)
+	}
+
+	return s.controllerManager.ValidateDependencies(s.registry.Types())
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -873,7 +1108,7 @@ func (s *Server) connectCARootsMonitor(ctx context.Context) {
 }
 
 // setupRaft is used to setup and initialize Raft
-func (s *Server) setupRaft() error {
+func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
 	// If we have an unclean exit then attempt to close the Raft store.
 	defer func() {
 		if s.raft == nil && s.raftStore != nil {
@@ -926,31 +1161,90 @@ func (s *Server) setupRaft() error {
 			return err
 		}
 
-		// Create the backend raft store for logs and stable storage.
-		store, err := raftboltdb.New(raftboltdb.Options{
-			BoltOptions: &bbolt.Options{
-				NoFreelistSync: s.config.RaftBoltDBConfig.NoFreelistSync,
-			},
-			Path: filepath.Join(path, "raft.db"),
-		})
+		boltDBFile := filepath.Join(path, "raft.db")
+		boltFileExists, err := fileExists(boltDBFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed trying to see if raft.db exists not sure how to continue: %w", err)
 		}
-		s.raftStore = store
-		stable = store
 
-		// start publishing boltdb metrics
-		go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
+		initWAL := func() error {
+			walDir := filepath.Join(path, "wal")
+			if err := os.MkdirAll(walDir, 0755); err != nil {
+				return err
+			}
+
+			mc := walmetrics.NewGoMetricsCollector([]string{"raft", "wal"}, nil, nil)
+
+			wal, err := raftwal.Open(walDir,
+				raftwal.WithSegmentSize(s.config.LogStoreConfig.WAL.SegmentSize),
+				raftwal.WithMetricsCollector(mc),
+			)
+			if err != nil {
+				return fmt.Errorf("fail to open write-ahead-log: %w", err)
+			}
+
+			s.raftStore = wal
+			log = wal
+			stable = wal
+			return nil
+		}
+		// Only use WAL if there is no existing raft.db, even if it's enabled.
+		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists && isCatalogResourceExperiment {
+			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
+			if !s.config.LogStoreConfig.Verification.Enabled {
+				s.config.LogStoreConfig.Verification.Enabled = true
+				s.config.LogStoreConfig.Verification.Interval = 1 * time.Minute
+			}
+			if err = initWAL(); err != nil {
+				return err
+			}
+		} else if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+			if err = initWAL(); err != nil {
+				return err
+			}
+		} else {
+			if s.config.LogStoreConfig.Backend == LogStoreBackendWAL {
+				// User configured the new storage, but still has old raft.db. Warn
+				// them!
+				s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend which is set to 'wal'")
+			}
+			s.config.LogStoreConfig.Backend = LogStoreBackendBoltDB
+			// Create the backend raft store for logs and stable storage.
+			store, err := raftboltdb.New(raftboltdb.Options{
+				BoltOptions: &bbolt.Options{
+					NoFreelistSync: s.config.LogStoreConfig.BoltDB.NoFreelistSync,
+				},
+				Path: boltDBFile,
+			})
+			if err != nil {
+				return err
+			}
+			s.raftStore = store
+			log = store
+			stable = store
+
+			// start publishing boltdb metrics
+			go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
+		}
+
+		// See if log verification is enabled
+		if s.config.LogStoreConfig.Verification.Enabled {
+			mc := walmetrics.NewGoMetricsCollector([]string{"raft", "logstore", "verifier"}, nil, nil)
+			reportFn := makeLogVerifyReportFn(s.logger.Named("raft.logstore.verifier"))
+			verifier := verifier.NewLogStore(log, isLogVerifyCheckpoint, reportFn, mc)
+			s.raftStore = verifier
+			log = verifier
+		}
 
 		// Wrap the store in a LogCache to improve performance.
-		cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
+		cacheStore, err := raft.NewLogCache(raftLogCacheSize, log)
 		if err != nil {
 			return err
 		}
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("raft.snapshot"))
 		if err != nil {
 			return err
 		}
@@ -966,7 +1260,7 @@ func (s *Server) setupRaft() error {
 		peersFile := filepath.Join(path, "peers.json")
 		peersInfoFile := filepath.Join(path, "peers.info")
 		if _, err := os.Stat(peersInfoFile); os.IsNotExist(err) {
-			if err := ioutil.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
+			if err := os.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
 				return fmt.Errorf("failed to write peers.info file: %v", err)
 			}
 
@@ -991,11 +1285,22 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
+			// It's safe to pass nil as the handle argument here because we won't call
+			// the backend's data access methods (only Apply, Snapshot, and Restore).
+			backend, err := raftstorage.NewBackend(nil, hclog.NewNullLogger())
+			if err != nil {
+				return fmt.Errorf("recovery failed: %w", err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go backend.Run(ctx)
+
 			tmpFsm := fsm.NewFromDeps(fsm.Deps{
 				Logger: s.logger,
 				NewStateStore: func() *state.Store {
 					return state.NewStateStore(s.tombstoneGC)
 				},
+				StorageBackend: backend,
 			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
@@ -1172,8 +1477,8 @@ func (s *Server) Shutdown() error {
 		s.Listener.Close()
 	}
 
-	if s.grpcHandler != nil {
-		if err := s.grpcHandler.Shutdown(); err != nil {
+	if s.internalGRPCHandler != nil {
+		if err := s.internalGRPCHandler.Shutdown(); err != nil {
 			s.logger.Warn("failed to stop gRPC server", "error", err)
 		}
 	}
@@ -1194,20 +1499,25 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-func (s *Server) attemptLeadershipTransfer() (success bool) {
-	leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
-
-	ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion)
-	if !ok {
-		return false
+func (s *Server) attemptLeadershipTransfer(id raft.ServerID) (err error) {
+	var addr raft.ServerAddress
+	if id != "" {
+		addr, err = s.serverLookup.ServerAddr(id)
+		if err != nil {
+			return err
+		}
+		future := s.raft.LeadershipTransferToServer(id, addr)
+		if err := future.Error(); err != nil {
+			return err
+		}
+	} else {
+		future := s.raft.LeadershipTransfer()
+		if err := future.Error(); err != nil {
+			return err
+		}
 	}
 
-	future := s.raft.LeadershipTransfer()
-	if err := future.Error(); err != nil {
-		s.logger.Error("failed to transfer leadership, removing the server", "error", err)
-		return false
-	}
-	return true
+	return nil
 }
 
 // Leave is used to prepare for a graceful shutdown.
@@ -1229,7 +1539,7 @@ func (s *Server) Leave() error {
 	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		if s.attemptLeadershipTransfer() {
+		if err := s.attemptLeadershipTransfer(""); err == nil {
 			isLeader = false
 		} else {
 			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
@@ -1426,6 +1736,26 @@ func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
 }
 
+// IsServer checks if this addr is of a server
+func (s *Server) IsServer(addr string) bool {
+
+	for _, ss := range s.raft.GetConfiguration().Configuration().Servers {
+		a, err := net.ResolveTCPAddr("tcp", string(ss.Address))
+		if err != nil {
+			continue
+		}
+		localIP, err := net.ResolveTCPAddr("tcp", string(s.config.RaftConfig.LocalID))
+		if err != nil {
+			continue
+		}
+		// only return true if it's another server and not our local address
+		if string(metadata.GetIP(a)) == addr && string(metadata.GetIP(localIP)) != addr {
+			return true
+		}
+	}
+	return false
+}
+
 // LeaderLastContact returns the time of last contact by a leader.
 // This only makes sense if we are currently a follower.
 func (s *Server) LeaderLastContact() time.Time {
@@ -1449,10 +1779,11 @@ func (s *Server) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 
 // inmemCodec is used to do an RPC call without going over a network
 type inmemCodec struct {
-	method string
-	args   interface{}
-	reply  interface{}
-	err    error
+	method     string
+	args       interface{}
+	reply      interface{}
+	err        error
+	sourceAddr net.Addr
 }
 
 func (i *inmemCodec) ReadRequestHeader(req *rpc.Request) error {
@@ -1478,16 +1809,22 @@ func (i *inmemCodec) WriteResponse(resp *rpc.Response, reply interface{}) error 
 	return nil
 }
 
+func (i *inmemCodec) SourceAddr() net.Addr {
+	return i.sourceAddr
+}
+
 func (i *inmemCodec) Close() error {
 	return nil
 }
 
 // RPC is used to make a local RPC call
-func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
+func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+	remoteAddr, _ := RemoteAddrFromContext(ctx)
 	codec := &inmemCodec{
-		method: method,
-		args:   args,
-		reply:  reply,
+		method:     method,
+		args:       args,
+		reply:      reply,
+		sourceAddr: remoteAddr,
 	}
 
 	// Enforce the RPC limit.
@@ -1562,6 +1899,13 @@ func (s *Server) RegisterEndpoint(name string, handler interface{}) error {
 
 func (s *Server) FSM() *fsm.FSM {
 	return s.fsm
+}
+
+func (s *Server) GetState() *state.Store {
+	if s == nil || s.FSM() == nil {
+		return nil
+	}
+	return s.FSM().State()
 }
 
 // Stats is used to return statistics for debugging and insight
@@ -1641,7 +1985,14 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 		return err
 	}
 
+	s.updateReportingConfig(config)
+
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
+
+	if config.RequestLimits != nil {
+		s.incomingRPCLimiter.UpdateConfig(*convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
+	}
+
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})
@@ -1727,9 +2078,13 @@ func (s *Server) trackLeaderChanges() {
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
+			s.raftStorageBackend.LeaderChanged()
+			s.controllerManager.SetRaftLeader(s.IsLeader())
 
-			// Trigger sending an update to HCP status
-			s.hcpManager.SendUpdate()
+			if s.config.Cloud.IsConfigured() {
+				// Trigger sending an update to HCP status
+				s.hcpManager.SendUpdate()
+			}
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return
@@ -1740,32 +2095,18 @@ func (s *Server) trackLeaderChanges() {
 // hcpServerStatus is the callback used by the HCP manager to emit status updates to the HashiCorp Cloud Platform when
 // enabled.
 func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
-	return func(ctx context.Context) (status hcp.ServerStatus, err error) {
+	return func(ctx context.Context) (status hcpclient.ServerStatus, err error) {
 		status.Name = s.config.NodeName
 		status.ID = string(s.config.NodeID)
 		status.Version = cslversion.GetHumanVersion()
 		status.LanAddress = s.config.RPCAdvertise.IP.String()
 		status.GossipPort = s.config.SerfLANConfig.MemberlistConfig.AdvertisePort
 		status.RPCPort = s.config.RPCAddr.Port
+		status.Datacenter = s.config.Datacenter
 
-		tlsCert := s.tlsConfigurator.Cert()
-		if tlsCert != nil {
-			status.TLS.Enabled = true
-			leaf := tlsCert.Leaf
-			if leaf == nil {
-				// Parse the leaf cert
-				leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
-				if err != nil {
-					// Shouldn't be possible
-					return
-				}
-			}
-			status.TLS.CertName = leaf.Subject.CommonName
-			status.TLS.CertSerial = leaf.SerialNumber.String()
-			status.TLS.CertExpiry = leaf.NotAfter
-			status.TLS.VerifyIncoming = s.tlsConfigurator.VerifyIncomingRPC()
-			status.TLS.VerifyOutgoing = s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing
-			status.TLS.VerifyServerHostname = s.tlsConfigurator.VerifyServerHostname()
+		err = addServerTLSInfo(&status, s.tlsConfigurator)
+		if err != nil {
+			return status, fmt.Errorf("error adding server tls info: %w", err)
 		}
 
 		status.Raft.IsLeader = s.raft.State() == raft.Leader
@@ -1788,8 +2129,147 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 			status.ScadaStatus = deps.HCP.Provider.SessionStatus()
 		}
 
+		status.ACL.Enabled = s.config.ACLsEnabled
+
 		return status, nil
 	}
+}
+
+func (s *Server) ResourceServiceClient() pbresource.ResourceServiceClient {
+	return pbresource.NewResourceServiceClient(s.secureSafeGRPCChan)
+}
+
+func fileExists(name string) (bool, error) {
+	_, err := os.Stat(name)
+	if err == nil {
+		// File exists!
+		return true, nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	// We hit some other error trying to stat the file which leaves us in an
+	// unknown state so we can't proceed.
+	return false, err
+}
+
+func ConfiguredIncomingRPCLimiter(ctx context.Context, serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {
+	mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
+	limitsConfig := &RequestLimits{
+		Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(consulCfg.RequestLimitsMode),
+		ReadRate:  consulCfg.RequestLimitsReadRate,
+		WriteRate: consulCfg.RequestLimitsWriteRate,
+	}
+
+	sink := logdrop.NewLogDropSink(ctx, 100, serverLogger.Named("rpc-rate-limit"), func(l logdrop.Log) {
+		metrics.IncrCounter([]string{"rpc", "rate_limit", "log_dropped"}, 1)
+	})
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{Output: io.Discard})
+	logger.RegisterSink(sink)
+
+	rateLimiterConfig := convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg)
+
+	return rpcRate.NewHandler(*rateLimiterConfig, logger)
+}
+
+func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
+	hc := &rpcRate.HandlerConfig{
+		GlobalLimitConfig: rpcRate.GlobalLimitConfig{
+			Mode: limitsConfig.Mode,
+			ReadWriteConfig: rpcRate.ReadWriteConfig{
+				ReadConfig: multilimiter.LimiterConfig{
+					Rate:  limitsConfig.ReadRate,
+					Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
+				},
+				WriteConfig: multilimiter.LimiterConfig{
+					Rate:  limitsConfig.WriteRate,
+					Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+				},
+			},
+		},
+	}
+	if multilimiterConfig != nil {
+		hc.Config = *multilimiterConfig
+	}
+
+	return hc
+}
+
+// addServerTLSInfo adds the server's TLS information if available to the status
+func addServerTLSInfo(status *hcpclient.ServerStatus, tlsConfigurator tlsutil.ConfiguratorIface) error {
+	tlsCert := tlsConfigurator.Cert()
+	if tlsCert == nil {
+		return nil
+	}
+
+	leaf := tlsCert.Leaf
+	var err error
+	if leaf == nil {
+		// Parse the leaf cert
+		if len(tlsCert.Certificate) == 0 {
+			return fmt.Errorf("expected a leaf certificate but there was none")
+		}
+		leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
+		if err != nil {
+			// Shouldn't be possible
+			return fmt.Errorf("error parsing leaf cert: %w", err)
+		}
+	}
+
+	tlsInfo := hcpclient.ServerTLSInfo{
+		Enabled:              true,
+		CertIssuer:           leaf.Issuer.CommonName,
+		CertName:             leaf.Subject.CommonName,
+		CertSerial:           leaf.SerialNumber.String(),
+		CertExpiry:           leaf.NotAfter,
+		VerifyIncoming:       tlsConfigurator.VerifyIncomingRPC(),
+		VerifyOutgoing:       tlsConfigurator.Base().InternalRPC.VerifyOutgoing,
+		VerifyServerHostname: tlsConfigurator.VerifyServerHostname(),
+	}
+
+	// Collect metadata for all CA certs used for internal RPC
+	metadata := make([]hcpclient.CertificateMetadata, 0)
+	for _, pemStr := range tlsConfigurator.ManualCAPems() {
+		cert, err := connect.ParseCert(pemStr)
+		if err != nil {
+			return fmt.Errorf("error parsing manual ca pem: %w", err)
+		}
+
+		metadatum := hcpclient.CertificateMetadata{
+			CertExpiry: cert.NotAfter,
+			CertName:   cert.Subject.CommonName,
+			CertSerial: cert.SerialNumber.String(),
+		}
+		metadata = append(metadata, metadatum)
+	}
+	for ix, certBytes := range tlsCert.Certificate {
+		if ix == 0 {
+			// Skip the leaf cert at index 0. Only collect intermediates
+			continue
+		}
+
+		cert, err := x509.ParseCertificate(certBytes)
+		if err != nil {
+			return fmt.Errorf("error parsing tls cert index %d: %w", ix, err)
+		}
+
+		metadatum := hcpclient.CertificateMetadata{
+			CertExpiry: cert.NotAfter,
+			CertName:   cert.Subject.CommonName,
+			CertSerial: cert.SerialNumber.String(),
+		}
+		metadata = append(metadata, metadatum)
+	}
+	tlsInfo.CertificateAuthorities = metadata
+
+	status.ServerTLSMetadata.InternalRPC = tlsInfo
+
+	// TODO: remove status.TLS in preference for server.ServerTLSMetadata.InternalRPC
+	// when deprecation path is ready
+	// https://hashicorp.atlassian.net/browse/CC-7015
+	status.TLS = tlsInfo
+
+	return nil
 }
 
 // peersInfoContent is used to help operators understand what happened to the

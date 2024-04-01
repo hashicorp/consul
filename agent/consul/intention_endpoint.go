@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -176,11 +179,10 @@ func (s *Intention) computeApplyChangesLegacyCreate(
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
 		dn := args.Intention.DestinationServiceName()
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Intention creation denied due to ACLs",
+		s.logger.Debug("Intention creation denied due to ACLs",
 			"source", sn.String(),
 			"destination", dn.String(),
-			"accessorID", accessorID)
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -250,8 +252,9 @@ func (s *Intention) computeApplyChangesLegacyUpdate(
 	}
 
 	if !ixn.CanWrite(authz) {
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
+		s.logger.Debug("Update operation on intention denied due to ACLs",
+			"intention", args.Intention.ID,
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -311,11 +314,10 @@ func (s *Intention) computeApplyChangesUpsert(
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
 		dn := args.Intention.DestinationServiceName()
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Intention upsert denied due to ACLs",
+		s.logger.Debug("Intention upsert denied due to ACLs",
 			"source", sn.String(),
 			"destination", dn.String(),
-			"accessorID", accessorID)
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -371,8 +373,9 @@ func (s *Intention) computeApplyChangesLegacyDelete(
 	}
 
 	if !ixn.CanWrite(authz) {
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Deletion operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
+		s.logger.Debug("Deletion operation on intention denied due to ACLs",
+			"intention", args.Intention.ID,
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -392,11 +395,10 @@ func (s *Intention) computeApplyChangesDelete(
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
 		dn := args.Intention.DestinationServiceName()
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Intention delete denied due to ACLs",
+		s.logger.Debug("Intention delete denied due to ACLs",
 			"source", sn.String(),
 			"destination", dn.String(),
-			"accessorID", accessorID)
+			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -483,8 +485,9 @@ func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.Inde
 			// If ACLs prevented any responses, error
 			if len(reply.Intentions) == 0 {
 				accessorID := authz.AccessorID()
-				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-				s.logger.Warn("Request to get intention denied due to ACLs", "intention", args.IntentionID, "accessorID", accessorID)
+				s.logger.Debug("Request to get intention denied due to ACLs",
+					"intention", args.IntentionID,
+					"accessorID", acl.AliasIfAnonymousToken(accessorID))
 				return acl.ErrPermissionDenied
 			}
 
@@ -617,8 +620,9 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 		if prefix := entry.Name; prefix != "" {
 			if err := authz.ToAllowAuthorizer().IntentionReadAllowed(prefix, &authzContext); err != nil {
 				accessorID := authz.AccessorID()
-				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-				s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
+				s.logger.Debug("Operation on intention prefix denied due to ACLs",
+					"prefix", prefix,
+					"accessorID", acl.AliasIfAnonymousToken(accessorID))
 				return err
 			}
 		}
@@ -741,25 +745,14 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		query.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceReadAllowed(prefix, &authzContext); err != nil {
 			accessorID := authz.AccessorID()
-			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
+			s.logger.Debug("test on intention denied due to ACLs",
+				"prefix", prefix,
+				"accessorID", acl.AliasIfAnonymousToken(accessorID))
 			return err
 		}
 	}
 
-	// Note: the default intention policy is like an intention with a
-	// wildcarded destination in that it is limited to L4-only.
-
-	// No match, we need to determine the default behavior. We do this by
-	// fetching the default intention behavior from the resolved authorizer.
-	// The default behavior if ACLs are disabled is to allow connections
-	// to mimic the behavior of Consul itself: everything is allowed if
-	// ACLs are disabled.
-	//
-	// NOTE(mitchellh): This is the same behavior as the agent authorize
-	// endpoint. If this behavior is incorrect, we should also change it there
-	// which is much more important.
-	defaultDecision := authz.IntentionDefaultAllow(nil)
+	defaultAllow := DefaultIntentionAllow(authz, s.srv.config.DefaultIntentionPolicy)
 
 	store := s.srv.fsm.State()
 
@@ -779,7 +772,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		Partition:        query.DestinationPartition,
 		Intentions:       intentions,
 		MatchType:        structs.IntentionMatchDestination,
-		DefaultDecision:  defaultDecision,
+		DefaultAllow:     defaultAllow,
 		AllowPermissions: false,
 	}
 	decision, err := store.IntentionDecision(opts)

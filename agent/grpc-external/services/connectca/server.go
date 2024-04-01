@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package connectca
 
 import (
@@ -54,8 +57,8 @@ func NewServer(cfg Config) *Server {
 	return &Server{cfg}
 }
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbconnectca.RegisterConnectCAServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbconnectca.RegisterConnectCAServiceServer(registrar, s)
 }
 
 func (s *Server) requireConnect() error {
