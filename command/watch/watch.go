@@ -118,6 +118,9 @@ func (c *cmd) Run(args []string) int {
 	if c.http.Datacenter() != "" {
 		params["datacenter"] = c.http.Datacenter()
 	}
+	if c.http.AllDatacenters() {
+		params["alldatacenters"] = c.http.AllDatacenters()
+	}
 	if token != "" {
 		params["token"] = token
 	}

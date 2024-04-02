@@ -23,8 +23,9 @@ type HTTPFlags struct {
 	tlsServerName StringValue
 
 	// server flags
-	datacenter StringValue
-	stale      BoolValue
+	datacenter     StringValue
+	stale          BoolValue
+	allDatacenters BoolValue
 
 	// multi-tenancy flags
 	namespace StringValue
@@ -76,6 +77,11 @@ func (f *HTTPFlags) ServerFlags() *flag.FlagSet {
 			"allows for lower latency and higher throughput, but can result in "+
 			"stale data. This option has no effect on non-read operations. The "+
 			"default value is false.")
+	fs.Var(&f.allDatacenters, "allDatacenters",
+		"Specify if query to be made for all datacenters. The default value is false and "+
+			"will default to the datacenter of the queried agent, if datacenter is "+
+			"is not input. If datacenter is provided and allDatacenter is also set true, "+
+			"allDatacenter takes precedence.")
 	return fs
 }
 
@@ -100,6 +106,13 @@ func (f *HTTPFlags) Addr() string {
 
 func (f *HTTPFlags) Datacenter() string {
 	return f.datacenter.String()
+}
+
+func (f *HTTPFlags) AllDatacenters() bool {
+	if f.allDatacenters.v == nil {
+		return false
+	}
+	return *f.allDatacenters.v
 }
 
 func (f *HTTPFlags) Namespace() string {

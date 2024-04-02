@@ -53,7 +53,11 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 		return fmt.Errorf("Failed to connect to agent: %v", err)
 	}
 
-	return p.RunWithClientAndHclog(client, logger)
+	if p.AllDatacenters {
+		return p.RunWithClientAndHclogAllDatacenters(conf, client, logger)
+	} else {
+		return p.RunWithClientAndHclog(client, logger)
+	}
 }
 
 // RunWithClientAndLogger runs a watch plan using an external client and
@@ -72,27 +76,107 @@ func (p *Plan) RunWithClientAndHclog(client *consulapi.Client, logger hclog.Logg
 
 	// Loop until we are canceled
 	failures := 0
+OUTER:
+	for !p.shouldStop() {
+		// Invoke the handler
+		blockParamVal, result, err := p.Watcher(p)
+
+		// Check if we should terminate since the function
+		// could have blocked for a while
+		if p.shouldStop() {
+			break
+		}
+
+		// Handle an error in the watch function
+		if err != nil {
+			// Perform an exponential backoff
+			failures++
+			if blockParamVal == nil {
+				p.lastParamVal = nil
+			} else {
+				p.lastParamVal = blockParamVal.Next(p.lastParamVal)
+			}
+			retry := retryInterval * time.Duration(failures*failures)
+			if retry > maxBackoffTime {
+				retry = maxBackoffTime
+			}
+			watchLogger.Error("Watch errored", "type", p.Type, "error", err, "retry", retry)
+			select {
+			case <-time.After(retry):
+				continue OUTER
+			case <-p.stopCh:
+				return nil
+			}
+		}
+
+		// Clear the failures
+		failures = 0
+
+		// If the index is unchanged do nothing
+		if p.lastParamVal != nil && p.lastParamVal.Equal(blockParamVal) {
+			continue
+		}
+
+		// Update the index, look for change
+		oldParamVal := p.lastParamVal
+		p.lastParamVal = blockParamVal.Next(oldParamVal)
+		if oldParamVal != nil && reflect.DeepEqual(p.lastResult, result) {
+			continue
+		}
+
+		// Handle the updated result
+		p.lastResult = result
+		// If a hybrid handler exists use that
+		if p.HybridHandler != nil {
+			p.HybridHandler(blockParamVal, result)
+		} else if p.Handler != nil {
+			idx, ok := blockParamVal.(WaitIndexVal)
+			if !ok {
+				watchLogger.Error("Handler only supports index-based " +
+					" watches but non index-based watch run. Skipping Handler.")
+			}
+			p.Handler(uint64(idx), result)
+		}
+	}
+	return nil
+}
+
+// RunWithClientAndHclogAllDatacenters runs a watch plan using an external client and
+// hclog.Logger instance. The plan queries on all datacenters.
+func (p *Plan) RunWithClientAndHclogAllDatacenters(conf *consulapi.Config, client *consulapi.Client, logger hclog.Logger) error {
+	var watchLogger hclog.Logger
+	if logger == nil {
+		watchLogger = newWatchLogger(nil)
+	} else {
+		watchLogger = logger.Named(watchLoggerName)
+	}
+
+	// Loop until we are canceled
+	failures := 0
 
 	p.mapLastParamVal = make(map[string]BlockingParamVal)
 	p.mapLastResult = make(map[string]interface{})
 OUTER:
 	for !p.shouldStop() {
-		dcs := []string{}
+		p.client = client
 		blockParamVal := make(map[string]BlockingParamVal)
 		result := make(map[string]interface{})
-		var err error
-		if p.Datacenter == "all" {
-			catalog := p.client.Catalog()
-			dcs, err = catalog.Datacenters()
-			if err != nil || len(dcs) == 0 {
-				dcs = append(dcs, "") //This will cause to use default DataCenter if err
-			}
-		} else {
-			dcs = append(dcs, p.Datacenter)
+		catalog := p.client.Catalog()
+		dcs, err := catalog.Datacenters()
+		if err != nil || len(dcs) == 0 {
+			dcs = append(dcs, "") //This will cause to use default DataCenter if err
 		}
 
 		for _, dc := range dcs {
-			p.Datacenter = dc
+			conf.Address = p.address
+			conf.Datacenter = dc
+			conf.Token = p.Token
+			var clientDC *consulapi.Client
+			clientDC, err = consulapi.NewClient(conf)
+			if err != nil {
+				return fmt.Errorf("Failed to connect to agent: %v", err)
+			}
+			p.client = clientDC
 
 			// Invoke the handler
 			blockParamVal[dc], result[dc], err = p.Watcher(p)
@@ -108,10 +192,8 @@ OUTER:
 				// Perform an exponential backoff
 				failures++
 				if blockParamVal[dc] == nil {
-					// p.lastParamVal = nil
 					p.mapLastParamVal[dc] = nil
 				} else {
-					// p.lastParamVal = blockParamVal.Next(p.lastParamVal)
 					p.mapLastParamVal[dc] = blockParamVal[dc].Next(p.mapLastParamVal[dc])
 				}
 				retry := retryInterval * time.Duration(failures*failures)
@@ -132,9 +214,6 @@ OUTER:
 		failures = 0
 
 		// If the index is unchanged do nothing
-		// if p.lastParamVal != nil && p.lastParamVal.Equal(blockParamVal) {
-		// 	continue
-		// }
 		noChange := true
 		for dc, lastParamVal := range p.mapLastParamVal {
 			if lastParamVal != nil && !lastParamVal.Equal(blockParamVal[dc]) {
@@ -147,11 +226,6 @@ OUTER:
 		}
 
 		// Update the index, look for change
-		// oldParamVal := p.lastParamVal
-		// p.lastParamVal = blockParamVal.Next(oldParamVal)
-		// if oldParamVal != nil && reflect.DeepEqual(p.lastResult, result) {
-		// 	continue
-		// }
 		noChange = true
 		for _, dc := range dcs {
 			oldParamVal, ok := p.mapLastParamVal[dc]
@@ -175,31 +249,21 @@ OUTER:
 		var totResult []interface{}
 		for dc, rdc := range result {
 			p.mapLastResult[dc] = rdc
-			if r, ok := rdc.([]interface{}); ok {
-				totResult = append(totResult, r...)
-			} else {
+			if rdc != nil {
 				totResult = append(totResult, rdc)
 			}
 		}
 
 		// If a hybrid handler exists use that
 		if p.HybridHandler != nil {
-			if len(totResult) == 1 {
-				p.HybridHandler(blockParamVal[dcs[0]], totResult[0])
-			} else {
-				p.HybridHandler(blockParamVal[dcs[0]], totResult)
-			}
+			p.HybridHandler(blockParamVal[dcs[0]], totResult)
 		} else if p.Handler != nil {
 			idx, ok := blockParamVal[dcs[0]].(WaitIndexVal)
 			if !ok {
 				watchLogger.Error("Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
-			if len(totResult) == 1 {
-				p.Handler(uint64(idx), totResult[0])
-			} else {
-				p.Handler(uint64(idx), totResult)
-			}
+			p.Handler(uint64(idx), totResult)
 		}
 	}
 	return nil
