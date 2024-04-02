@@ -4,6 +4,7 @@
 package proxycfg
 
 import (
+	"k8s.io/utils/pointer"
 	"math"
 	"time"
 
@@ -258,6 +259,25 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 							RingHashConfig: &structs.RingHashConfig{
 								MinimumRingSize: 20,
 								MaximumRingSize: 50,
+							},
+						},
+					},
+				},
+			},
+		})
+	case "limits-added":
+		extraUpdates = append(extraUpdates, UpdateEvent{
+			CorrelationID: "service-defaults", // serviceResolversWatchID
+			Result: &structs.ConfigEntryResponse{
+				Entry: &structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "mesh-gateway",
+					UpstreamConfig: &structs.UpstreamConfiguration{
+						Defaults: &structs.UpstreamConfig{
+							Limits: &structs.UpstreamLimits{
+								MaxConnections:        pointer.Int(1),
+								MaxPendingRequests:    pointer.Int(10),
+								MaxConcurrentRequests: pointer.Int(100),
 							},
 						},
 					},

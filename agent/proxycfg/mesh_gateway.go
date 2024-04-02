@@ -128,6 +128,18 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 		return snap, err
 	}
 
+	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
+		Kind: structs.ServiceDefaults,
+		//TODO @Gateway Management is this always going to be the name of the mesh gateway
+		Name:           "mesh-gateway",
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: s.proxyID.EnterpriseMeta,
+	}, serviceDefaultsWatchID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	snap.MeshGateway.WatchedServices = make(map[structs.ServiceName]context.CancelFunc)
 	snap.MeshGateway.WatchedGateways = make(map[string]context.CancelFunc)
 	snap.MeshGateway.ServiceGroups = make(map[structs.ServiceName]structs.CheckServiceNodes)
@@ -648,6 +660,27 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		}
 
 		snap.MeshGateway.PeerServers = peerServers
+	case serviceDefaultsWatchID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+		}
+
+		if resp.Entry == nil {
+			return nil
+		}
+		serviceDefaults, ok := resp.Entry.(*structs.ServiceConfigEntry)
+		if !ok {
+			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+		}
+
+		if !ok {
+			return fmt.Errorf("invalid type for service defaults: %T", u.Result)
+		}
+		limits := serviceDefaults.UpstreamConfig.Defaults.Limits
+		if limits != nil {
+			snap.MeshGateway.Limits = limits
+		}
 
 	default:
 		switch {
