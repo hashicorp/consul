@@ -168,6 +168,7 @@ OUTER:
 		}
 
 		for _, dc := range dcs {
+			p.Datacenter = dc
 			conf.Address = p.address
 			conf.Datacenter = dc
 			conf.Token = p.Token

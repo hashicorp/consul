@@ -77,11 +77,10 @@ func (f *HTTPFlags) ServerFlags() *flag.FlagSet {
 			"allows for lower latency and higher throughput, but can result in "+
 			"stale data. This option has no effect on non-read operations. The "+
 			"default value is false.")
-	fs.Var(&f.allDatacenters, "allDatacenters",
-		"Specify if query to be made for all datacenters. The default value is false and "+
-			"will default to the datacenter of the queried agent, if datacenter is "+
-			"is not input. If datacenter is provided and allDatacenter is also set true, "+
-			"allDatacenter takes precedence.")
+	fs.Var(&f.allDatacenters, "alldatacenters",
+		"Specify if query to be made on all datacenters. The default value is false."+
+			"If datacenter is provided and alldatacenters is also set true, allDatacenters"+
+			"takes precedence.")
 	return fs
 }
 
