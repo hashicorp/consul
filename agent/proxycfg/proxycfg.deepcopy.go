@@ -727,6 +727,22 @@ func (o *configSnapshotMeshGateway) DeepCopy() *configSnapshotMeshGateway {
 			}
 		}
 	}
+	if o.Limits != nil {
+		cp.Limits = new(structs.UpstreamLimits)
+		*cp.Limits = *o.Limits
+		if o.Limits.MaxConnections != nil {
+			cp.Limits.MaxConnections = new(int)
+			*cp.Limits.MaxConnections = *o.Limits.MaxConnections
+		}
+		if o.Limits.MaxPendingRequests != nil {
+			cp.Limits.MaxPendingRequests = new(int)
+			*cp.Limits.MaxPendingRequests = *o.Limits.MaxPendingRequests
+		}
+		if o.Limits.MaxConcurrentRequests != nil {
+			cp.Limits.MaxConcurrentRequests = new(int)
+			*cp.Limits.MaxConcurrentRequests = *o.Limits.MaxConcurrentRequests
+		}
+	}
 	return &cp
 }
 
@@ -878,6 +894,18 @@ func (o *configSnapshotTerminatingGateway) DeepCopy() *configSnapshotTerminating
 			}
 			cp.InboundPeerTrustBundles[k2] = cp_InboundPeerTrustBundles_v2
 		}
+	}
+	if o.Limits.MaxConnections != nil {
+		cp.Limits.MaxConnections = new(int)
+		*cp.Limits.MaxConnections = *o.Limits.MaxConnections
+	}
+	if o.Limits.MaxPendingRequests != nil {
+		cp.Limits.MaxPendingRequests = new(int)
+		*cp.Limits.MaxPendingRequests = *o.Limits.MaxPendingRequests
+	}
+	if o.Limits.MaxConcurrentRequests != nil {
+		cp.Limits.MaxConcurrentRequests = new(int)
+		*cp.Limits.MaxConcurrentRequests = *o.Limits.MaxConcurrentRequests
 	}
 	return &cp
 }
