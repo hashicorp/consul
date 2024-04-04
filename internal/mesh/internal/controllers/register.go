@@ -57,8 +57,4 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 
 	mgr.Register(meshgateways.Controller())
 	mgr.Register(meshconfiguration.Controller())
-
-	// This controller is currently configured to watch types which aren't registered and produces infinite
-	// errors because of this. Once the watched types are in place we should uncomment this.
-	// mgr.Register(apigateways.Controller())
 }
