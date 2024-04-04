@@ -4,13 +4,8 @@
 package proxycfg
 
 import (
-	"k8s.io/utils/pointer"
 	"math"
 	"time"
-
-	"github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -18,6 +13,10 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"k8s.io/utils/pointer"
 )
 
 func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -267,7 +266,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		})
 	case "limits-added":
 		extraUpdates = append(extraUpdates, UpdateEvent{
-			CorrelationID: "service-defaults", // serviceResolversWatchID
+			CorrelationID: serviceDefaultsWatchID, // serviceResolversWatchID
 			Result: &structs.ConfigEntryResponse{
 				Entry: &structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,

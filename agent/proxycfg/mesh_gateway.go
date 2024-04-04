@@ -129,9 +129,8 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	}
 
 	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
-		Kind: structs.ServiceDefaults,
-		//TODO @Gateway Management is this always going to be the name of the mesh gateway
-		Name:           "mesh-gateway",
+		Kind:           structs.ServiceDefaults,
+		Name:           s.service,
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		EnterpriseMeta: s.proxyID.EnterpriseMeta,
@@ -674,9 +673,6 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 		}
 
-		if !ok {
-			return fmt.Errorf("invalid type for service defaults: %T", u.Result)
-		}
 		limits := serviceDefaults.UpstreamConfig.Defaults.Limits
 		if limits != nil {
 			snap.MeshGateway.Limits = limits
