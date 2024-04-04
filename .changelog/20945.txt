@@ -1,3 +1,3 @@
 ```release-note:enhancement
-peering: mesh gateways will now respect upstream config limits set in a service default object named 'mesh-gateway'
+gateways: service defaults configuration entries can now be used to set default upstream limits for mesh-gateways
 ```
