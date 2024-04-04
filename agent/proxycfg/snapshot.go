@@ -293,9 +293,6 @@ type configSnapshotTerminatingGateway struct {
 	// These bundles are used to configure RBAC policies for inbound filter chains on the gateway
 	// from services that are in a cluster-peered datacenter.
 	InboundPeerTrustBundles map[structs.ServiceName][]*pbpeering.PeeringTrustBundle
-
-	// Limits
-	Limits structs.UpstreamLimits
 }
 
 // ValidServices returns the list of service keys that have enough data to be emitted.

@@ -793,8 +793,6 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 		return nil, fmt.Errorf("unsupported gateway kind %q", cfgSnap.Kind)
 	}
 
-	limits := cfgSnap.MeshGateway.Limits
-
 	var clusters []proto.Message
 
 	for _, serviceGroups := range cfgSnap.MeshGateway.PeeringServices {
@@ -821,7 +819,7 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 				name:              clusterName,
 				isRemote:          true,
 				hostnameEndpoints: hostnameEndpoints,
-				limits:            limits,
+				limits:            cfgSnap.MeshGateway.Limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -1793,11 +1791,11 @@ func configureClusterWithHostnames(
 	logger hclog.Logger,
 	cluster *envoy_cluster_v3.Cluster,
 	dnsDiscoveryType string,
-	// hostnameEndpoints is a list of endpoints with a hostname as their address
+// hostnameEndpoints is a list of endpoints with a hostname as their address
 	hostnameEndpoints structs.CheckServiceNodes,
-	// isRemote determines whether the cluster is in a remote DC or partition and we should prefer a WAN address
+// isRemote determines whether the cluster is in a remote DC or partition and we should prefer a WAN address
 	isRemote bool,
-	// onlyPassing determines whether endpoints that do not have a passing status should be considered unhealthy
+// onlyPassing determines whether endpoints that do not have a passing status should be considered unhealthy
 	onlyPassing bool,
 ) {
 	// When a service instance is addressed by a hostname we have Envoy do the DNS resolution
