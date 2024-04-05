@@ -5,9 +5,6 @@ package xds
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/lib"
-
-	"golang.org/x/exp/maps"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -17,7 +14,9 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/xds/naming"
+	"github.com/hashicorp/consul/lib"
 
+	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -118,7 +117,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
-				l.FilterChains, err = makeInlineOverrideFilterChains(
+				l.FilterChains, err = s.makeInlineOverrideFilterChains(
 					cfgSnap,
 					listenerCfg.TLS,
 					listenerKey.Protocol,
@@ -232,7 +231,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, listenerCfg.TLS, listenerKey.Protocol, filterOpts, certs)
+				sniFilterChains, err = s.makeInlineOverrideFilterChains(cfgSnap, listenerCfg.TLS, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -400,7 +399,7 @@ func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfigurati
 
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
-func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
+func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	tlsCfg structs.APIGatewayTLSConfiguration,
 	protocol string,
 	filterOpts listenerFilterOpts,
@@ -457,8 +456,20 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 				},
 			}, nil
 		case *structs.FileSystemCertificateConfigEntry:
-			ctx := makeCommonTLSContextFromFiles("", tce.Certificate, tce.PrivateKey)
-			ctx.TlsParams = makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig())
+			ctx := &envoy_tls_v3.CommonTlsContext{
+				TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig()),
+				TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
+					{
+						Name: tce.Name, // Reference the secret returned in xds/secrets.go by name here
+						SdsConfig: &envoy_core_v3.ConfigSource{
+							ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+								Ads: &envoy_core_v3.AggregatedConfigSource{},
+							},
+							ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+						},
+					},
+				},
+			}
 			return ctx, nil
 		default:
 			return nil, fmt.Errorf("unsupported config entry kind %s", tce.GetKind())

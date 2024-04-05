@@ -7,10 +7,11 @@ import (
 	"errors"
 	"fmt"
 
-	"google.golang.org/protobuf/proto"
-
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"google.golang.org/protobuf/proto"
 )
 
 // secretsFromSnapshot returns the xDS API representation of the "secrets"
@@ -21,13 +22,45 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	switch cfgSnap.Kind {
+	case structs.ServiceKindAPIGateway:
+		return s.secretsFromSnapshotGateway(cfgSnap), nil // return any attached certs
 	case structs.ServiceKindConnectProxy,
 		structs.ServiceKindTerminatingGateway,
 		structs.ServiceKindMeshGateway,
-		structs.ServiceKindIngressGateway,
-		structs.ServiceKindAPIGateway:
+		structs.ServiceKindIngressGateway:
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
+}
+
+// secretsFromSnapshotGateway returns the "secrets" for an api-gateway service
+func (s *ResourceGenerator) secretsFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot) []proto.Message {
+	var resources []proto.Message
+
+	cfgSnap.APIGateway.FSCertificates.ForEachKey(func(ref structs.ResourceReference) bool {
+		cert, ok := cfgSnap.APIGateway.FSCertificates.Get(ref)
+		if !ok {
+			return true //TODO: It's okay to not have a cert?
+		}
+		resources = append(resources, &envoy_tls_v3.Secret{
+			Name: ref.Name,
+			Type: &envoy_tls_v3.Secret_TlsCertificate{
+				TlsCertificate: &envoy_tls_v3.TlsCertificate{
+					CertificateChain: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_Filename{
+							Filename: cert.Certificate,
+						}},
+					PrivateKey: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_Filename{
+							Filename: cert.PrivateKey,
+						},
+					},
+				},
+			},
+		})
+		return true
+	})
+
+	return resources
 }
