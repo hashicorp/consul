@@ -137,6 +137,18 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.22.9":  {expectErr: "Envoy 1.22.9 " + errTooOld},
 		"1.22.10": {expectErr: "Envoy 1.22.10 " + errTooOld},
 		"1.22.11": {expectErr: "Envoy 1.22.11 " + errTooOld},
+		"1.25.0":  {expectErr: "Envoy 1.25.0 " + errTooOld},
+		"1.25.1":  {expectErr: "Envoy 1.25.1 " + errTooOld},
+		"1.25.2":  {expectErr: "Envoy 1.25.2 " + errTooOld},
+		"1.25.3":  {expectErr: "Envoy 1.25.3 " + errTooOld},
+		"1.25.4":  {expectErr: "Envoy 1.25.4 " + errTooOld},
+		"1.25.5":  {expectErr: "Envoy 1.25.5 " + errTooOld},
+		"1.25.6":  {expectErr: "Envoy 1.25.6 " + errTooOld},
+		"1.25.7":  {expectErr: "Envoy 1.25.7 " + errTooOld},
+		"1.25.8":  {expectErr: "Envoy 1.25.8 " + errTooOld},
+		"1.25.9":  {expectErr: "Envoy 1.25.9 " + errTooOld},
+		"1.25.10": {expectErr: "Envoy 1.25.10 " + errTooOld},
+		"1.25.11": {expectErr: "Envoy 1.25.11 " + errTooOld},
 	}
 
 	// Insert a bunch of valid versions.
