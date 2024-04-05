@@ -512,23 +512,21 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 		if multipleCerts {
 			switch tce := cert.(type) {
 			case *structs.InlineCertificateConfigEntry:
-				{
-					certHosts, err := tce.Hosts()
-					if err != nil {
-						return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+				certHosts, err := tce.Hosts()
+				if err != nil {
+					return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+				}
+				// filter out any overlapping hosts so we don't have collisions in our filter chains
+				for _, host := range certHosts {
+					if _, ok := overlappingHosts[host]; !ok {
+						hosts = append(hosts, host)
 					}
-					// filter out any overlapping hosts so we don't have collisions in our filter chains
-					for _, host := range certHosts {
-						if _, ok := overlappingHosts[host]; !ok {
-							hosts = append(hosts, host)
-						}
-					}
+				}
 
-					if len(hosts) == 0 {
-						// all of our hosts are overlapping, so we just skip this filter and it'll be
-						// handled by the default filter chain
-						continue
-					}
+				if len(hosts) == 0 {
+					// all of our hosts are overlapping, so we just skip this filter and it'll be
+					// handled by the default filter chain
+					continue
 				}
 			}
 		}
