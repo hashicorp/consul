@@ -435,7 +435,7 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 		return nil
 	}
 
-	constructTLSContext := func(tlsConfig structs.APIGatewayTLSConfiguration, certConfig structs.ConfigEntry) (*envoy_tls_v3.CommonTlsContext, error) {
+	constructTLSContext := func(certConfig structs.ConfigEntry) (*envoy_tls_v3.CommonTlsContext, error) {
 		switch tce := certConfig.(type) {
 		case *structs.InlineCertificateConfigEntry:
 			return &envoy_tls_v3.CommonTlsContext{
@@ -479,7 +479,7 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	for _, cert := range certs {
 		// TODO Delivering via SDS is semi-required in order to get file system watches today.
 		//   https://github.com/envoyproxy/envoy/issues/10387
-		tlsContext, err := constructTLSContext(tlsCfg, cert)
+		tlsContext, err := constructTLSContext(cert)
 		if err != nil {
 			continue
 		}
