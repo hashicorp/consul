@@ -9,9 +9,10 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"google.golang.org/protobuf/proto"
 )
 
 // secretsFromSnapshot returns the xDS API representation of the "secrets"
@@ -23,7 +24,7 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindAPIGateway:
-		return s.secretsFromSnapshotGateway(cfgSnap), nil // return any attached certs
+		return s.secretsFromSnapshotAPIGateway(cfgSnap), nil // return any attached certs
 	case structs.ServiceKindConnectProxy,
 		structs.ServiceKindTerminatingGateway,
 		structs.ServiceKindMeshGateway,
@@ -34,8 +35,8 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 	}
 }
 
-// secretsFromSnapshotGateway returns the "secrets" for an api-gateway service
-func (s *ResourceGenerator) secretsFromSnapshotGateway(cfgSnap *proxycfg.ConfigSnapshot) []proto.Message {
+// secretsFromSnapshotAPIGateway returns the "secrets" for an api-gateway service
+func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) []proto.Message {
 	var resources []proto.Message
 
 	cfgSnap.APIGateway.FSCertificates.ForEachKey(func(ref structs.ResourceReference) bool {
