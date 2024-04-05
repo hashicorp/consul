@@ -11,17 +11,14 @@ import (
 	envoy_http_jwt_authn_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/xds/naming"
-	"github.com/hashicorp/consul/lib"
-
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -465,41 +462,9 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	constructTLSContext := func(certConfig structs.ConfigEntry) (*envoy_tls_v3.CommonTlsContext, error) {
 		switch tce := certConfig.(type) {
 		case *structs.InlineCertificateConfigEntry:
-			return &envoy_tls_v3.CommonTlsContext{
-				TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg),
-				TlsCertificates: []*envoy_tls_v3.TlsCertificate{
-					{
-						CertificateChain: &envoy_core_v3.DataSource{
-							Specifier: &envoy_core_v3.DataSource_InlineString{
-								InlineString: lib.EnsureTrailingNewline(tce.Certificate),
-							},
-						},
-						PrivateKey: &envoy_core_v3.DataSource{
-							Specifier: &envoy_core_v3.DataSource_InlineString{
-								InlineString: lib.EnsureTrailingNewline(tce.PrivateKey),
-							},
-						},
-					},
-				},
-			}, nil
+			return makeInlineTLSContextFromGatewayTLSConfig(tlsCfg, tce), nil
 		case *structs.FileSystemCertificateConfigEntry:
-			ctx := &envoy_tls_v3.CommonTlsContext{
-				TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg),
-				TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
-					{
-						// Delivering via SDS is required in order to get file system watches today.
-						//   https://github.com/envoyproxy/envoy/issues/10387
-						Name: tce.Name, // Reference the secret returned in xds/secrets.go by name here
-						SdsConfig: &envoy_core_v3.ConfigSource{
-							ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
-								Ads: &envoy_core_v3.AggregatedConfigSource{},
-							},
-							ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
-						},
-					},
-				},
-			}
-			return ctx, nil
+			return makeFileSystemTLSContextFromGatewayTLSConfig(tlsCfg, tce), nil
 		default:
 			return nil, fmt.Errorf("unsupported config entry kind %s", tce.GetKind())
 		}
@@ -536,7 +501,7 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 			continue
 		}
 
-		if err := constructChain(cert.GetName(), nil, tlsContext); err != nil {
+		if err := constructChain(cert.GetName(), hosts, tlsContext); err != nil {
 			return nil, err
 		}
 	}
