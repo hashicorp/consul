@@ -435,6 +435,33 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 		return nil
 	}
 
+	multipleCerts := len(certs) > 1
+
+	allCertHosts := map[string]struct{}{}
+	overlappingHosts := map[string]struct{}{}
+
+	if multipleCerts {
+		// we only need to prune out overlapping hosts if we have more than
+		// one certificate
+		for _, cert := range certs {
+			switch tce := cert.(type) {
+			case *structs.InlineCertificateConfigEntry:
+				hosts, err := tce.Hosts()
+				if err != nil {
+					return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+				}
+				for _, host := range hosts {
+					if _, ok := allCertHosts[host]; ok {
+						overlappingHosts[host] = struct{}{}
+					}
+					allCertHosts[host] = struct{}{}
+				}
+			default:
+				// do nothing for FileSystemCertificates because we don't actually have the certificate available
+			}
+		}
+	}
+
 	constructTLSContext := func(certConfig structs.ConfigEntry) (*envoy_tls_v3.CommonTlsContext, error) {
 		switch tce := certConfig.(type) {
 		case *structs.InlineCertificateConfigEntry:
@@ -460,6 +487,8 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 				TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg.ToGatewayTLSConfig()),
 				TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
 					{
+						// Delivering via SDS is required in order to get file system watches today.
+						//   https://github.com/envoyproxy/envoy/issues/10387
 						Name: tce.Name, // Reference the secret returned in xds/secrets.go by name here
 						SdsConfig: &envoy_core_v3.ConfigSource{
 							ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
@@ -477,8 +506,33 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	}
 
 	for _, cert := range certs {
-		// TODO Delivering via SDS is semi-required in order to get file system watches today.
-		//   https://github.com/envoyproxy/envoy/issues/10387
+		var hosts []string
+
+		// if we only have one cert, we just use it for all ingress
+		if multipleCerts {
+			switch tce := cert.(type) {
+			case *structs.InlineCertificateConfigEntry:
+				{
+					certHosts, err := tce.Hosts()
+					if err != nil {
+						return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
+					}
+					// filter out any overlapping hosts so we don't have collisions in our filter chains
+					for _, host := range certHosts {
+						if _, ok := overlappingHosts[host]; !ok {
+							hosts = append(hosts, host)
+						}
+					}
+
+					if len(hosts) == 0 {
+						// all of our hosts are overlapping, so we just skip this filter and it'll be
+						// handled by the default filter chain
+						continue
+					}
+				}
+			}
+		}
+
 		tlsContext, err := constructTLSContext(cert)
 		if err != nil {
 			continue
