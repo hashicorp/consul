@@ -1,5 +1,5 @@
 ```release-note:security
-Upgrade to use Go `1.22.2`. This resolves CVEs
+Upgrade to use Go `1.21.9`. This resolves CVEs
 [CVE-2023-45288](https://nvd.nist.gov/vuln/detail/CVE-2023-45288) (`http2`).
 ```
 
