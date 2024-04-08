@@ -31,6 +31,13 @@ repository {
       vulnerabilites = [
         "GO-2024-2631", # go-jose/v3@v3.0.3 (false positive)
       ]
+      paths = [
+        "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+        "test/integration/connect/envoy/test-sds-server/*",
+        "test/integration/consul-container/*",
+        "testing/deployer/*",
+        "test-integ/*",
+      ]
     }
   }
 }
