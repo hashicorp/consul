@@ -127,7 +127,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	if err != nil {
 		return snap, err
 	}
-
+// Watch for service default object that matches this mesh gateway's name
 	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.ServiceDefaults,
 		Name:           s.service,
