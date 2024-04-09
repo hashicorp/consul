@@ -7,16 +7,16 @@ import (
 	"math"
 	"time"
 
+	"github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"k8s.io/utils/pointer"
 )
 
 func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -266,7 +266,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 		})
 	case "limits-added":
 		extraUpdates = append(extraUpdates, UpdateEvent{
-			CorrelationID: serviceDefaultsWatchID, // serviceResolversWatchID
+			CorrelationID: serviceDefaultsWatchID,
 			Result: &structs.ConfigEntryResponse{
 				Entry: &structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
@@ -274,9 +274,9 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 					UpstreamConfig: &structs.UpstreamConfiguration{
 						Defaults: &structs.UpstreamConfig{
 							Limits: &structs.UpstreamLimits{
-								MaxConnections:        pointer.Int(1),
-								MaxPendingRequests:    pointer.Int(10),
-								MaxConcurrentRequests: pointer.Int(100),
+								MaxConnections:        pointerTo(1),
+								MaxPendingRequests:    pointerTo(10),
+								MaxConcurrentRequests: pointerTo(100),
 							},
 						},
 					},
@@ -387,7 +387,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			{
 				CorrelationID: serviceResolversWatchID,
 				Result: &structs.IndexedConfigEntries{
-					Kind:    structs.ServiceResolver,
+					Kind: structs.ServiceResolver,
 					Entries: []structs.ConfigEntry{
 						//
 					},
@@ -1142,4 +1142,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 			},
 		},
 	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+}
+
+func pointerTo[T any](v T) *T {
+	return &v
 }
