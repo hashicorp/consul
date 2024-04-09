@@ -387,7 +387,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 			{
 				CorrelationID: serviceResolversWatchID,
 				Result: &structs.IndexedConfigEntries{
-					Kind: structs.ServiceResolver,
+					Kind:    structs.ServiceResolver,
 					Entries: []structs.ConfigEntry{
 						//
 					},
