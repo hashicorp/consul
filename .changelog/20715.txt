@@ -1,0 +1,6 @@
+```release-note:feature
+dns: queries now default to a refactored DNS server that is v1 and v2 Catalog compatible. 
+Use `v1dns` in the `experiments` agent config to disable. 
+The legacy server will be removed in a future release of Consul.
+See the [Consul 1.19.x Release Notes](https://developer.hashicorp.com/consul/docs/release-notes/consul/v1_19_x) for removed DNS features.
+```

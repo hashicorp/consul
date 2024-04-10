@@ -132,7 +132,7 @@ const (
 
 	LeaderTransferMinVersion      = "1.6.0"
 	CatalogResourceExperimentName = "resource-apis"
-	V2DNSExperimentName           = "v2dns"
+	V1DNSExperimentName           = "v1dns"
 	V2TenancyExperimentName       = "v2tenancy"
 	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )
@@ -143,7 +143,7 @@ const (
 // Likely these will all be short lived exclusions.
 func IsExperimentAllowedOnSecondaries(name string) bool {
 	switch name {
-	case CatalogResourceExperimentName, V2DNSExperimentName, V2TenancyExperimentName:
+	case CatalogResourceExperimentName, V2TenancyExperimentName:
 		return false
 	default:
 		return true
@@ -595,32 +595,34 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		StorageBackend: s.raftStorageBackend,
 	})
 
-	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
-		CloudConfig:       flat.HCP.Config,
-		StatusFn:          s.hcpServerStatus(flat),
-		Logger:            logger.Named("hcp_manager"),
-		SCADAProvider:     flat.HCP.Provider,
-		TelemetryProvider: flat.HCP.TelemetryProvider,
-		ManagementTokenUpserterFn: func(name, secretId string) error {
-			// Check the state of the server before attempting to upsert the token. Otherwise,
-			// the upsert will fail and log errors that do not require action from the user.
-			if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
-				// Idea for improvement: Upsert a token with a well-known accessorId here instead
-				// of a randomly generated one. This would prevent any possible insertion collision between
-				// this and the insertion that happens during the ACL initialization process (initializeACLs function)
-				return s.upsertManagementToken(name, secretId)
-			}
-			return nil
-		},
-		ManagementTokenDeleterFn: func(secretId string) error {
-			// Check the state of the server before attempting to delete the token.Otherwise,
-			// the delete will fail and log errors that do not require action from the user.
-			if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
-				return s.deleteManagementToken(secretId)
-			}
-			return nil
-		},
-	})
+	if s.config.Cloud.IsConfigured() {
+		s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
+			CloudConfig:       flat.HCP.Config,
+			StatusFn:          s.hcpServerStatus(flat),
+			Logger:            logger.Named("hcp_manager"),
+			SCADAProvider:     flat.HCP.Provider,
+			TelemetryProvider: flat.HCP.TelemetryProvider,
+			ManagementTokenUpserterFn: func(name, secretId string) error {
+				// Check the state of the server before attempting to upsert the token. Otherwise,
+				// the upsert will fail and log errors that do not require action from the user.
+				if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
+					// Idea for improvement: Upsert a token with a well-known accessorId here instead
+					// of a randomly generated one. This would prevent any possible insertion collision between
+					// this and the insertion that happens during the ACL initialization process (initializeACLs function)
+					return s.upsertManagementToken(name, secretId)
+				}
+				return nil
+			},
+			ManagementTokenDeleterFn: func(secretId string) error {
+				// Check the state of the server before attempting to delete the token.Otherwise,
+				// the delete will fail and log errors that do not require action from the user.
+				if s.config.ACLsEnabled && s.IsLeader() && s.InPrimaryDatacenter() {
+					return s.deleteManagementToken(secretId)
+				}
+				return nil
+			},
+		})
+	}
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -890,22 +892,24 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// to enable RPC forwarding.
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 
-	// Start watching HCP Link resource. This needs to be created after
-	// the GRPC services are set up in order for the resource service client to
-	// function. This uses the insecure grpc channel so that it doesn't need to
-	// present a valid ACL token.
-	go hcp.RunHCPLinkWatcher(
-		&lib.StopChannelContext{StopCh: shutdownCh},
-		logger.Named("hcp-link-watcher"),
-		pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
-		hcp.HCPManagerLifecycleFn(
-			s.hcpManager,
-			hcpclient.NewClient,
-			bootstrap.LoadManagementToken,
-			flat.HCP.Config,
-			flat.HCP.DataDir,
-		),
-	)
+	if s.config.Cloud.IsConfigured() {
+		// Start watching HCP Link resource. This needs to be created after
+		// the GRPC services are set up in order for the resource service client to
+		// function. This uses the insecure grpc channel so that it doesn't need to
+		// present a valid ACL token.
+		go hcp.RunHCPLinkWatcher(
+			&lib.StopChannelContext{StopCh: shutdownCh},
+			logger.Named("hcp-link-watcher"),
+			pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
+			hcp.HCPManagerLifecycleFn(
+				s.hcpManager,
+				hcpclient.NewClient,
+				bootstrap.LoadManagementToken,
+				flat.HCP.Config,
+				flat.HCP.DataDir,
+			),
+		)
+	}
 
 	s.controllerManager = controller.NewManager(
 		// Usage of the insecure + unsafe grpc chan is required for the controller
@@ -1008,13 +1012,15 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
-	hcpctl.RegisterControllers(
-		s.controllerManager, hcpctl.ControllerDependencies{
-			ResourceApisEnabled:    s.useV2Resources,
-			HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
-			CloudConfig:            deps.HCP.Config,
-		},
-	)
+	if s.config.Cloud.IsConfigured() {
+		hcpctl.RegisterControllers(
+			s.controllerManager, hcpctl.ControllerDependencies{
+				ResourceApisEnabled:    s.useV2Resources,
+				HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
+				CloudConfig:            deps.HCP.Config,
+			},
+		)
+	}
 
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {
@@ -2075,8 +2081,10 @@ func (s *Server) trackLeaderChanges() {
 			s.raftStorageBackend.LeaderChanged()
 			s.controllerManager.SetRaftLeader(s.IsLeader())
 
-			// Trigger sending an update to HCP status
-			s.hcpManager.SendUpdate()
+			if s.config.Cloud.IsConfigured() {
+				// Trigger sending an update to HCP status
+				s.hcpManager.SendUpdate()
+			}
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return

@@ -1,0 +1,3 @@
+```release-note:improvement
+Upgrade `github.com/envoyproxy/go-control-plane` to 0.12.0.
+```

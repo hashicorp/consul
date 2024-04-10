@@ -618,8 +618,8 @@ func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
 		"primary server v2catalog": {
 			hcl: primary + `experiments = ["resource-apis"]`,
 		},
-		"primary server v2dns": {
-			hcl: primary + `experiments = ["v2dns"]`,
+		"primary server v1dns": {
+			hcl: primary + `experiments = ["v1dns"]`,
 		},
 		"primary server v2tenancy": {
 			hcl: primary + `experiments = ["v2tenancy"]`,
@@ -631,9 +631,8 @@ func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
 			hcl:       secondary + `experiments = ["resource-apis"]`,
 			expectErr: true,
 		},
-		"secondary server v2dns": {
-			hcl:       secondary + `experiments = ["v2dns"]`,
-			expectErr: true,
+		"secondary server v1dns": {
+			hcl: secondary + `experiments = ["v1dns"]`,
 		},
 		"secondary server v2tenancy": {
 			hcl:       secondary + `experiments = ["v2tenancy"]`,

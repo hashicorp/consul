@@ -878,13 +878,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// start DNS servers
-	if a.baseDeps.UseV2DNS() {
-		a.logger.Warn("DNS v2 is under construction")
-		if err := a.listenAndServeV2DNS(); err != nil {
+	if a.baseDeps.UseV1DNS() {
+		if err := a.listenAndServeV1DNS(); err != nil {
 			return err
 		}
 	} else {
-		if err := a.listenAndServeV1DNS(); err != nil {
+		if err := a.listenAndServeV2DNS(); err != nil {
 			return err
 		}
 	}
@@ -1321,7 +1320,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 	}
 
 	httpAddrs := a.config.HTTPAddrs
-	if a.scadaProvider != nil {
+	if a.config.IsCloudEnabled() && a.scadaProvider != nil {
 		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
 	}
 
