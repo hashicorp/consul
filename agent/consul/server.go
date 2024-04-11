@@ -854,6 +854,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 			WithStateProvider(s.fsm).
 			WithLogger(s.logger).
 			WithDatacenter(s.config.Datacenter).
+			WithDisabledTenancyMetrics(s.config.DisablePerTenancyUsageMetrics).
 			WithReportingInterval(s.config.MetricsReportingInterval).
 			WithGetMembersFunc(func() []serf.Member {
 				members, err := s.lanPoolAllMembers()
