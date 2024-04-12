@@ -41,8 +41,8 @@ func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.Conf
 
 	cfgSnap.APIGateway.FSCertificates.ForEachKey(func(ref structs.ResourceReference) bool {
 		cert, ok := cfgSnap.APIGateway.FSCertificates.Get(ref)
-		if !ok {
-			return true //TODO: It's okay to not have a cert?
+		if !ok || cert == nil {
+			return true
 		}
 		resources = append(resources, &envoy_tls_v3.Secret{
 			Name: ref.Name,

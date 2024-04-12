@@ -292,12 +292,12 @@ func (h *handlerAPIGateway) handleFileSystemCertConfigUpdate(_ context.Context, 
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
 		return fmt.Errorf("invalid type for response: %T", u.Result)
-	} else if resp.Entry == nil {
+	} else if resp == nil || resp.Entry == nil {
 		return nil
 	}
 
 	cfg, ok := resp.Entry.(*structs.FileSystemCertificateConfigEntry)
-	if !ok {
+	if !ok || cfg == nil {
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
