@@ -673,9 +673,10 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 		}
 
-		limits := serviceDefaults.UpstreamConfig.Defaults.Limits
-		if limits != nil {
-			snap.MeshGateway.Limits = limits
+		if serviceDefaults.UpstreamConfig != nil && serviceDefaults.UpstreamConfig.Defaults != nil {
+			if serviceDefaults.UpstreamConfig.Defaults.Limits != nil {
+				snap.MeshGateway.Limits = serviceDefaults.UpstreamConfig.Defaults.Limits
+			}
 		}
 
 	default:
