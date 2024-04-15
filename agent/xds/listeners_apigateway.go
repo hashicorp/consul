@@ -37,11 +37,11 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		for _, certRef := range boundListener.Certificates {
 			switch certRef.Kind {
 			case structs.InlineCertificate:
-				if cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef); ok {
+				if cert, ok := cfgSnap.APIGateway.InlineCertificates.Get(certRef); ok {
 					certs = append(certs, cert)
 				}
 			case structs.FileSystemCertificate:
-				if cert, ok := cfgSnap.APIGateway.FSCertificates.Get(certRef); ok {
+				if cert, ok := cfgSnap.APIGateway.FileSystemCertificates.Get(certRef); ok {
 					certs = append(certs, cert)
 				}
 			}

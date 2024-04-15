@@ -39,8 +39,8 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) []proto.Message {
 	var resources []proto.Message
 
-	cfgSnap.APIGateway.FSCertificates.ForEachKey(func(ref structs.ResourceReference) bool {
-		cert, ok := cfgSnap.APIGateway.FSCertificates.Get(ref)
+	cfgSnap.APIGateway.FileSystemCertificates.ForEachKey(func(ref structs.ResourceReference) bool {
+		cert, ok := cfgSnap.APIGateway.FileSystemCertificates.Get(ref)
 		if !ok || cert == nil {
 			return true
 		}

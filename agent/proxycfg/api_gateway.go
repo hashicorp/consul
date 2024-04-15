@@ -63,8 +63,8 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	snap.APIGateway.BoundListeners = make(map[string]structs.BoundAPIGatewayListener)
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
-	snap.APIGateway.Certificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
-	snap.APIGateway.FSCertificates = watch.NewMap[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry]()
+	snap.APIGateway.InlineCertificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
+	snap.APIGateway.FileSystemCertificates = watch.NewMap[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry]()
 
 	snap.APIGateway.Upstreams = make(listenerRouteUpstreams)
 	snap.APIGateway.UpstreamsSet = make(routeUpstreamSet)
@@ -214,14 +214,14 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 				seenRefs[ref] = struct{}{}
 
 				if ref.Kind == structs.FileSystemCertificate {
-					snap.APIGateway.FSCertificates.InitWatch(ref, cancel)
+					snap.APIGateway.FileSystemCertificates.InitWatch(ref, cancel)
 
 					err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, ref.EnterpriseMeta, fileSystemCertificateConfigWatchID)
 					if err != nil {
 						return err
 					}
 				} else {
-					snap.APIGateway.Certificates.InitWatch(ref, cancel)
+					snap.APIGateway.InlineCertificates.InitWatch(ref, cancel)
 
 					err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, ref.EnterpriseMeta, inlineCertificateConfigWatchID)
 					if err != nil {
@@ -250,16 +250,16 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 			return true
 		})
 
-		snap.APIGateway.Certificates.ForEachKey(func(ref structs.ResourceReference) bool {
+		snap.APIGateway.InlineCertificates.ForEachKey(func(ref structs.ResourceReference) bool {
 			if _, ok := seenRefs[ref]; !ok {
-				snap.APIGateway.Certificates.CancelWatch(ref)
+				snap.APIGateway.InlineCertificates.CancelWatch(ref)
 			}
 			return true
 		})
 
-		snap.APIGateway.FSCertificates.ForEachKey(func(ref structs.ResourceReference) bool {
+		snap.APIGateway.FileSystemCertificates.ForEachKey(func(ref structs.ResourceReference) bool {
 			if _, ok := seenRefs[ref]; !ok {
-				snap.APIGateway.FSCertificates.CancelWatch(ref)
+				snap.APIGateway.FileSystemCertificates.CancelWatch(ref)
 			}
 			return true
 		})
@@ -307,7 +307,7 @@ func (h *handlerAPIGateway) handleFileSystemCertConfigUpdate(_ context.Context, 
 		EnterpriseMeta: *cfg.GetEnterpriseMeta(),
 	}
 
-	snap.APIGateway.FSCertificates.Set(ref, cfg)
+	snap.APIGateway.FileSystemCertificates.Set(ref, cfg)
 
 	return nil
 }
@@ -332,7 +332,7 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(_ context.Context, u Up
 		EnterpriseMeta: *cfg.GetEnterpriseMeta(),
 	}
 
-	snap.APIGateway.Certificates.Set(ref, cfg)
+	snap.APIGateway.InlineCertificates.Set(ref, cfg)
 
 	return nil
 }
