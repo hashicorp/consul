@@ -196,23 +196,24 @@ func (db *readDB) ReadTxn() AbortTxn {
 }
 
 var (
-	EventTopicServiceHealth        = pbsubscribe.Topic_ServiceHealth
-	EventTopicServiceHealthConnect = pbsubscribe.Topic_ServiceHealthConnect
-	EventTopicMeshConfig           = pbsubscribe.Topic_MeshConfig
-	EventTopicServiceResolver      = pbsubscribe.Topic_ServiceResolver
-	EventTopicIngressGateway       = pbsubscribe.Topic_IngressGateway
-	EventTopicServiceIntentions    = pbsubscribe.Topic_ServiceIntentions
-	EventTopicServiceDefaults      = pbsubscribe.Topic_ServiceDefaults
-	EventTopicServiceList          = pbsubscribe.Topic_ServiceList
-	EventTopicAPIGateway           = pbsubscribe.Topic_APIGateway
-	EventTopicTCPRoute             = pbsubscribe.Topic_TCPRoute
-	EventTopicHTTPRoute            = pbsubscribe.Topic_HTTPRoute
-	EventTopicInlineCertificate    = pbsubscribe.Topic_InlineCertificate
-	EventTopicBoundAPIGateway      = pbsubscribe.Topic_BoundAPIGateway
-	EventTopicIPRateLimit          = pbsubscribe.Topic_IPRateLimit
-	EventTopicSamenessGroup        = pbsubscribe.Topic_SamenessGroup
-	EventTopicJWTProvider          = pbsubscribe.Topic_JWTProvider
-	EventTopicExportedServices     = pbsubscribe.Topic_ExportedServices
+	EventTopicServiceHealth         = pbsubscribe.Topic_ServiceHealth
+	EventTopicServiceHealthConnect  = pbsubscribe.Topic_ServiceHealthConnect
+	EventTopicMeshConfig            = pbsubscribe.Topic_MeshConfig
+	EventTopicServiceResolver       = pbsubscribe.Topic_ServiceResolver
+	EventTopicIngressGateway        = pbsubscribe.Topic_IngressGateway
+	EventTopicServiceIntentions     = pbsubscribe.Topic_ServiceIntentions
+	EventTopicServiceDefaults       = pbsubscribe.Topic_ServiceDefaults
+	EventTopicServiceList           = pbsubscribe.Topic_ServiceList
+	EventTopicAPIGateway            = pbsubscribe.Topic_APIGateway
+	EventTopicTCPRoute              = pbsubscribe.Topic_TCPRoute
+	EventTopicHTTPRoute             = pbsubscribe.Topic_HTTPRoute
+	EventTopicFileSystemCertificate = pbsubscribe.Topic_FileSystemCertificate
+	EventTopicInlineCertificate     = pbsubscribe.Topic_InlineCertificate
+	EventTopicBoundAPIGateway       = pbsubscribe.Topic_BoundAPIGateway
+	EventTopicIPRateLimit           = pbsubscribe.Topic_IPRateLimit
+	EventTopicSamenessGroup         = pbsubscribe.Topic_SamenessGroup
+	EventTopicJWTProvider           = pbsubscribe.Topic_JWTProvider
+	EventTopicExportedServices      = pbsubscribe.Topic_ExportedServices
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

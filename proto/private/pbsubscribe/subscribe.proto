@@ -109,6 +109,9 @@ enum Topic {
 
   // ExportedServices topic contains events for changes to exported-services.
   ExportedServices = 17;
+
+  // FileSystemCertificate topic contains events for changes to file-system-certificates.
+  FileSystemCertificate = 18;
 }
 
 message NamedSubject {

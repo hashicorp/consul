@@ -408,6 +408,24 @@ func ExposePathFromStructs(t *structs.ExposePath, s *ExposePath) {
 	s.Protocol = t.Protocol
 	s.ParsedFromCheck = t.ParsedFromCheck
 }
+func FileSystemCertificateToStructs(s *FileSystemCertificate, t *structs.FileSystemCertificateConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Certificate = s.Certificate
+	t.PrivateKey = s.PrivateKey
+	t.Meta = s.Meta
+	t.Hash = s.Hash
+}
+func FileSystemCertificateFromStructs(t *structs.FileSystemCertificateConfigEntry, s *FileSystemCertificate) {
+	if s == nil {
+		return
+	}
+	s.Certificate = t.Certificate
+	s.PrivateKey = t.PrivateKey
+	s.Meta = t.Meta
+	s.Hash = t.Hash
+}
 func GatewayServiceTLSConfigToStructs(s *GatewayServiceTLSConfig, t *structs.GatewayServiceTLSConfig) {
 	if s == nil {
 		return

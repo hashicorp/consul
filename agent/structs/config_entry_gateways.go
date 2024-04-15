@@ -870,7 +870,8 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		ListenerProtocolTCP:  true,
 	}
 	allowedCertificateKinds := map[string]bool{
-		InlineCertificate: true,
+		FileSystemCertificate: true,
+		InlineCertificate:     true,
 	}
 
 	for _, listener := range e.Listeners {
@@ -889,7 +890,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		}
 		for _, certificate := range listener.TLS.Certificates {
 			if !allowedCertificateKinds[certificate.Kind] {
-				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'file-system-certificate' or 'inline-certificate'", certificate.Kind)
 			}
 			if certificate.Name == "" {
 				return fmt.Errorf("certificate reference must have a name")
@@ -976,6 +977,16 @@ type APIGatewayTLSConfiguration struct {
 // IsEmpty returns true if all values in the struct are nil or empty.
 func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
 	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
+}
+
+func (a *APIGatewayTLSConfiguration) ToGatewayTLSConfig() GatewayTLSConfig {
+	return GatewayTLSConfig{
+		Enabled:       true,
+		SDS:           nil,
+		TLSMinVersion: a.MinVersion,
+		TLSMaxVersion: a.MaxVersion,
+		CipherSuites:  a.CipherSuites,
+	}
 }
 
 // ServiceRouteReferences is a map with a key of ServiceName type for a routed to service from a

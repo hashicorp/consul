@@ -31,19 +31,19 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`MaxVersion`](#listeners-tls-maxversion): string | no default
     - [`CipherSuites`](#listeners-tls-ciphersuites): list of strings | Envoy default cipher suites
     - [`Certificates`](#listeners-tls-certificates): list of objects | no default
-      - [`Kind`](#listeners-tls-certificates-kind): string | must be `"inline-certificate"`
+      - [`Kind`](#listeners-tls-certificates-kind): string | no default
       - [`Name`](#listeners-tls-certificates-name): string | no default
       - [`Namespace`](#listeners-tls-certificates-namespace): string | no default <EnterpriseAlert inline />
       - [`Partition`](#listeners-tls-certificates-partition): string | no default <EnterpriseAlert inline />
   - [`default`](#listeners-default): map
-    - [`JWT`](#listeners-default-jwt): map 
+    - [`JWT`](#listeners-default-jwt): map
       - [`Providers`](#listeners-default-jwt-providers): list
         - [`Name`](#listeners-default-jwt-providers): string
           - [`VerifyClaims`](#listeners-default-jwt-providers): map
               - [`Path`](#listeners-default-jwt-providers): list
               - [`Value`](#listeners-default-jwt-providers): string
   - [`override`](#listeners-override): map
-    - [`JWT`](#listeners-override-jwt): map 
+    - [`JWT`](#listeners-override-jwt): map
       - [`Providers`](#listeners-override-jwt-providers): list
         - [`Name`](#listeners-override-jwt-providers): string
           - [`VerifyClaims`](#listeners-override-jwt-providers): map
@@ -81,8 +81,8 @@ Listeners = [
       ]
       Certificates = [
         {
-          Kind = "inline-certificate"
-          Name = "<name of inline-certificate>"
+          Kind = "file-system-certificate"
+          Name = "<name of file-system-certificate>"
           Namespace = "<enterprise: namespace of the certificate>"
           Partition = "<enterprise: partition of the certificate>"
         }
@@ -97,7 +97,7 @@ Listeners = [
           Value = "<value of claim>"
         }
       ]
-     } 
+     }
     }
     override = {
      JWT = {
@@ -108,7 +108,7 @@ Listeners = [
           Value = "<value of claim>"
         }
       ]
-     } 
+     }
     }
   }
 ]
@@ -136,8 +136,8 @@ Listeners = [
         ],
         "Certificates": [
           {
-            "Kind": "inline-certificate",
-            "Name": "<name of inline-certificate>",
+            "Kind": "file-system-certificate",
+            "Name": "<name of file-system-certificate>",
             "Namespace": "<enterprise: namespace of the certificate>",
             "Partition": "<enterprise: partition of the certificate>"
           }
@@ -349,7 +349,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `Listeners[].TLS.Certificates[]`
 
-The list of references to inline certificates that the listener uses for TLS termination.
+The list of references to file system or inline certificates that the listener uses for TLS termination.
 
 #### Values
 
@@ -362,17 +362,17 @@ The list of references to inline certificates that the listener uses for TLS ter
 
 ### `Listeners[].TLS.Certificates[].Kind`
 
-The list of references to inline-certificates that the listener uses for TLS termination.
+The list of references to certificates that the listener uses for TLS termination.
 
 #### Values
 
 - Default: None
-- This field is required and must be set to `"inline-certificate"`.
-- Data type: string
+- This field is required.
+- The data type is one of the following string values: `"file-system-certificate"` or `"inline-certificate"`.
 
 ### `Listeners[].TLS.Certificates[].Name`
 
-The list of references to inline certificates that the listener uses for TLS termination.
+Specifies the name of the file system or inline certificate that the listener uses for TLS termination.
 
 #### Values
 
@@ -400,7 +400,7 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 
 ### `Listeners[].default`
 
-Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations in the [`override` block](#listeners-override) as well as in the `JWT` block in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).  
+Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations in the [`override` block](#listeners-override) as well as in the `JWT` block in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).
 
 #### Values
 
@@ -409,7 +409,7 @@ Specifies a block of default configurations to apply to the gateway listener. Al
 
 ### `Listeners[].default{}.JWT`
 
-Specifies a block of default JWT verification configurations to apply to the gateway listener. Specify configurations that have precedence over the defaults in either the [`override.JWT` block](#listeners-override) or in the [`JWT` block](/consul/docs/connect/config-entries/http-route#rules-filters-jwt) in the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) for order of precedence and other details about using JWT verification in API gateways. 
+Specifies a block of default JWT verification configurations to apply to the gateway listener. Specify configurations that have precedence over the defaults in either the [`override.JWT` block](#listeners-override) or in the [`JWT` block](/consul/docs/connect/config-entries/http-route#rules-filters-jwt) in the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 
@@ -418,7 +418,7 @@ Specifies a block of default JWT verification configurations to apply to the gat
 
 ### `Listeners[].default{}.JWT{}.Providers`
 
-Specifies a list of default JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`override.JWT.Providers` block](#listeners-override-providers) or in the [`JWT` block](/consul/docs/connect/config-entries/http-route#rules-filters-jwt-providers) of the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) for order of precedence and other details about using JWT verification in API gateways. 
+Specifies a list of default JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`override.JWT.Providers` block](#listeners-override-providers) or in the [`JWT` block](/consul/docs/connect/config-entries/http-route#rules-filters-jwt-providers) of the HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 
@@ -432,7 +432,7 @@ The following table describes the parameters you can specify in a member of the 
 | `Name` | Specifies the name of the provider. | String | None |
 | `VerifyClaims` | Specifies a list of paths and a value that define the claim that Consul verifies when it receives a request. The `VerifyClaims` map specifies the following settings: <ul><li>`Path`: Specifies a list of one or more registered or custom claims.</li><li>`Value`: Specifies the expected value of the claim.</li></ul> | Map | None |
 
-Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration. 
+Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration.
 
 ### `Listeners[].override`
 
@@ -454,7 +454,7 @@ Specifies a block of JWT verification configurations to apply to the gateway lis
 
 ### `Listeners[].override{}.JWT{}.Providers`
 
-Specifies a list of JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. The override settings have precedence over `Listeners[].defaults{}.JWT{}.Providers` as well as any listener-specific configuration. 
+Specifies a list of JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. The override settings have precedence over `Listeners[].defaults{}.JWT{}.Providers` as well as any listener-specific configuration.
 
 #### Values
 
@@ -468,7 +468,7 @@ The following table describes the parameters you can specify in a member of the 
 | `Name` | Specifies the name of the provider. | String | None |
 | `VerifyClaims` | Specifies a list of paths and a value that define the claim that Consul verifies when it receives a request. The `VerifyClaims` map specifies the following settings: <ul><li>`Path`: Specifies a list of one or more registered or custom claims.</li><li>`Value`: Specifies the expected value of the claim.</li></ul> | Map | None |
 
-Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration. 
+Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration.
 
 ## Examples
 
@@ -530,7 +530,7 @@ Listeners = [
     {
       "name": "listener-one",
       "port": 9001,
-      "protocol": "http",      
+      "protocol": "http",
       "override": {
         "JWT": {
           "Providers": [{

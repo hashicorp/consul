@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -17,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/go-hclog"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -738,9 +739,11 @@ type configSnapshotAPIGateway struct {
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
 	UpstreamsSet routeUpstreamSet
 
-	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
-	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
-	Certificates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
+	HTTPRoutes watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
+	TCPRoutes  watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
+
+	InlineCertificates     watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
+	FileSystemCertificates watch.Map[structs.ResourceReference, *structs.FileSystemCertificateConfigEntry]
 
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.
