@@ -498,6 +498,9 @@ type configSnapshotMeshGateway struct {
 	// PeeringTrustBundlesSet indicates that the watch on the peer trust
 	// bundles has completed at least once.
 	PeeringTrustBundlesSet bool
+
+	// Limits
+	Limits *structs.UpstreamLimits
 }
 
 // MeshGatewayValidExportedServices ensures that the following data is present
