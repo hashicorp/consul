@@ -8,11 +8,11 @@ description: >-
 
 # Store and access key/value data
 
-This page describes the processes for interacting with Consul's KV store. You can interact with the KV store using the []`consul kv` CLI command](/consul/commands/kv) or the [`/kv` endpoint](/consul/api-docs/kv).
+This page describes the processes for interacting with Consul's KV store. You can interact with the KV store using the [`consul kv` CLI command](/consul/commands/kv) or the [`/kv` endpoint](/consul/api-docs/kv).
 
 ## Add data to KV store
 
-To insert values into the KV store or update an existing value, use the `consul kv put` command. The first entry after the command is the key and and the second entry is the value.
+To insert values into the KV store or update an existing value, use the `consul kv put` command. The first entry after the command is the key and the second entry is the value.
 
 ```shell-session
 $ consul kv put redis/config/minconns 1
