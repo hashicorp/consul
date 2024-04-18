@@ -1025,7 +1025,7 @@
     "routes": [
       {
         "title": "Consul KV",
-        "rotues": [
+        "routes": [
           {
             "title": "Overview",
             "path": "dynamic-app-config/kv"
@@ -1033,7 +1033,7 @@
           {
             "title": "Store keys and values",
             "path": "dynamic-app-config/kv/store"
-          },
+          }
         ]
       },
       {
