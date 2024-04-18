@@ -71,7 +71,7 @@ jobs:
         run: make build-ci
 
       - name: Upload CE Frontend
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba # v4.3.2
         with:
           name: frontend-ce-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
@@ -143,7 +143,7 @@ jobs:
         run: make build-ci
 
       - name: Upload ENT Frontend
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba # v4.3.2
         with:
           name: frontend-ent-${{ env.BRANCH_NAME }}
           path: ./ui/packages/consul-ui/dist
