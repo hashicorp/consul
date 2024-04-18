@@ -997,7 +997,16 @@
     "routes": [
       {
         "title": "Consul KV",
-        "path": "dynamic-app-config/kv"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "dynamic-app-config/kv"
+          },
+          {
+            "title": "Store keys and values",
+            "path": "dynamic-app-config/kv/store"
+          }
+        ]
       },
       {
         "title": "Sessions",
