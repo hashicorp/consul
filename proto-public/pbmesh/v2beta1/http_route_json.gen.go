@@ -126,6 +126,28 @@ func (this *HTTPBackendRef) UnmarshalJSON(b []byte) error {
 	return HttpRouteUnmarshaler.Unmarshal(b, this)
 }
 
+// MarshalJSON is a custom marshaler for HTTPRequestRedirectFilter
+func (this *HTTPRequestRedirectFilter) MarshalJSON() ([]byte, error) {
+	str, err := HttpRouteMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for HTTPRequestRedirectFilter
+func (this *HTTPRequestRedirectFilter) UnmarshalJSON(b []byte) error {
+	return HttpRouteUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for HTTPPathModifier
+func (this *HTTPPathModifier) MarshalJSON() ([]byte, error) {
+	str, err := HttpRouteMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for HTTPPathModifier
+func (this *HTTPPathModifier) UnmarshalJSON(b []byte) error {
+	return HttpRouteUnmarshaler.Unmarshal(b, this)
+}
+
 var (
 	HttpRouteMarshaler   = &protojson.MarshalOptions{}
 	HttpRouteUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

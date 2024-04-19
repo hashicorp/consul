@@ -590,6 +590,28 @@ func httpQueryMatchToStructs(a HTTPQueryMatchType) structs.HTTPQueryMatchType {
 	}
 }
 
+func httpPathModifierTypeFromStructs(a structs.HTTPPathModifierType) HTTPPathModifierType {
+	switch a {
+	case structs.HTTPPathModifierTypeReplaceFullPath:
+		return HTTPPathModifierType_HTTPPathModifierTypeReplaceFullPath
+	case structs.HTTPPathModifierTypeReplacePrefixMatch:
+		return HTTPPathModifierType_HTTPPathModifierTypeReplacePrefixMatch
+	default:
+		return HTTPPathModifierType_HTTPPathModifierTypeReplaceFullPath // TODO: Melisa Griffin what should this be
+	}
+}
+
+func httpPathModifierTypeToStructs(a HTTPPathModifierType) structs.HTTPPathModifierType {
+	switch a {
+	case HTTPPathModifierType_HTTPPathModifierTypeReplaceFullPath:
+		return structs.HTTPPathModifierTypeReplaceFullPath
+	case HTTPPathModifierType_HTTPPathModifierTypeReplacePrefixMatch:
+		return structs.HTTPPathModifierTypeReplacePrefixMatch
+	default:
+		return structs.HTTPPathModifierTypeReplaceFullPath
+	}
+}
+
 // mog: func-to=serviceRefsToStructs func-from=serviceRefFromStructs
 func serviceRefsToStructs(a map[string]*ListOfResourceReference) structs.ServiceRouteReferences {
 	m := make(structs.ServiceRouteReferences, len(a))

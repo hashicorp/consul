@@ -498,6 +498,11 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 		t.TimeoutFilter = &x
 	}
 	t.JWT = routeJWTFilterToStructs(s.JWT)
+	if s.RequestRedirect != nil {
+		var x structs.RequestRedirectFilter
+		RequestRedirectFilterToStructs(s.RequestRedirect, &x)
+		t.RequestRedirect = &x
+	}
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 	if s == nil {
@@ -529,6 +534,11 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 		s.TimeoutFilter = &x
 	}
 	s.JWT = routeJWTFilterFromStructs(t.JWT)
+	if t.RequestRedirect != nil {
+		var x RequestRedirectFilter
+		RequestRedirectFilterFromStructs(t.RequestRedirect, &x)
+		s.RequestRedirect = &x
+	}
 }
 func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {
 	if s == nil {
@@ -647,6 +657,22 @@ func HTTPPathMatchFromStructs(t *structs.HTTPPathMatch, s *HTTPPathMatch) {
 	}
 	s.Match = httpPathMatchFromStructs(t.Match)
 	s.Value = t.Value
+}
+func HTTPPathModifierToStructs(s *HTTPPathModifier, t *structs.HTTPPathModifier) {
+	if s == nil {
+		return
+	}
+	t.HTTPPathModifierType = httpPathModifierTypeToStructs(s.HTTPPathModifierType)
+	t.ReplaceFullPath = s.ReplaceFullPath
+	t.ReplacePrefixMatch = s.ReplacePrefixMatch
+}
+func HTTPPathModifierFromStructs(t *structs.HTTPPathModifier, s *HTTPPathModifier) {
+	if s == nil {
+		return
+	}
+	s.HTTPPathModifierType = httpPathModifierTypeFromStructs(t.HTTPPathModifierType)
+	s.ReplaceFullPath = t.ReplaceFullPath
+	s.ReplacePrefixMatch = t.ReplacePrefixMatch
 }
 func HTTPQueryMatchToStructs(s *HTTPQueryMatch, t *structs.HTTPQueryMatch) {
 	if s == nil {
@@ -1895,6 +1921,34 @@ func RemoteJWKSFromStructs(t *structs.RemoteJWKS, s *RemoteJWKS) {
 		JWKSClusterFromStructs(t.JWKSCluster, &x)
 		s.JWKSCluster = &x
 	}
+}
+func RequestRedirectFilterToStructs(s *RequestRedirectFilter, t *structs.RequestRedirectFilter) {
+	if s == nil {
+		return
+	}
+	t.Scheme = s.Scheme
+	t.Hostname = s.Hostname
+	if s.Path != nil {
+		var x structs.HTTPPathModifier
+		HTTPPathModifierToStructs(s.Path, &x)
+		t.Path = &x
+	}
+	t.Port = s.Port
+	t.StatusCode = s.StatusCode
+}
+func RequestRedirectFilterFromStructs(t *structs.RequestRedirectFilter, s *RequestRedirectFilter) {
+	if s == nil {
+		return
+	}
+	s.Scheme = t.Scheme
+	s.Hostname = t.Hostname
+	if t.Path != nil {
+		var x HTTPPathModifier
+		HTTPPathModifierFromStructs(t.Path, &x)
+		s.Path = &x
+	}
+	s.Port = t.Port
+	s.StatusCode = t.StatusCode
 }
 func ResourceReferenceToStructs(s *ResourceReference, t *structs.ResourceReference) {
 	if s == nil {

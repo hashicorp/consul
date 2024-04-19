@@ -1000,6 +1000,7 @@ message HTTPFilters {
   TimeoutFilter TimeoutFilter = 4;
   // mog: func-to=routeJWTFilterToStructs func-from=routeJWTFilterFromStructs
   JWTFilter JWT = 5;
+  RequestRedirectFilter RequestRedirect = 6;
 }
 
 // mog annotation:
@@ -1046,6 +1047,36 @@ message TimeoutFilter {
 
 message JWTFilter {
   repeated APIGatewayJWTProvider Providers = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RequestRedirectFilter
+// output=config_entry.gen.go
+// name=Structs
+message RequestRedirectFilter {
+  string Scheme = 1;
+  string  Hostname = 2;
+  HTTPPathModifier Path = 3;
+  int32    Port = 4;
+  int32    StatusCode = 5;
+}
+
+enum HTTPPathModifierType {
+  HTTPPathModifierTypeReplaceFullPath = 0;
+  HTTPPathModifierTypeReplacePrefixMatch = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPPathModifier
+// output=config_entry.gen.go
+// name=Structs
+message HTTPPathModifier {
+  // mog: func-to=httpPathModifierTypeToStructs func-from=httpPathModifierTypeFromStructs
+  HTTPPathModifierType HTTPPathModifierType = 1;
+  string  ReplaceFullPath = 2;
+  string  ReplacePrefixMatch = 3;
 }
 
 // mog annotation:

@@ -214,6 +214,8 @@ message HTTPRouteFilter {
   // URLRewrite defines a schema for a filter that modifies a request during
   // forwarding.
   HTTPURLRewriteFilter url_rewrite = 5;
+
+  HTTPRequestRedirectFilter request_redirect_filter = 6;
 }
 
 message HTTPHeaderFilter {
@@ -260,4 +262,25 @@ message HTTPBackendRef {
   // Filters defined at this level should be executed if and only if the
   // request is being forwarded to the backend defined here.
   repeated HTTPRouteFilter filters = 3;
+}
+
+message HTTPRequestRedirectFilter {
+  // TODO: melisa add comments
+  string scheme = 1;
+  string  Hostname = 2;
+  HTTPPathModifier Path = 3;
+  int32    Port = 4;
+  int32    StatusCode = 5;
+}
+
+enum HTTPPathModifierType {
+  HTTPPathModifierTypeReplaceFullPath = 0;
+  HTTPPathModifierTypeReplacePrefixMatch = 1;
+}
+
+message HTTPPathModifier {
+  // mog: func-to=httpPathModifierTypeToStructs func-from=httpPathModifierTypeFromStructs
+  HTTPPathModifierType HTTPPathModifierType = 1;
+  string  ReplaceFullPath = 2;
+  string  ReplacePrefixMatch = 3;
 }
