@@ -117,7 +117,7 @@ This section captures requirements for setting up CTS to integrate with your [HC
 1. Name of your organization
 1. [Team API token](/terraform/cloud-docs/users-teams-organizations/api-tokens) used for authentication with HCP Terraform
 
-Prior to running CTS with a HCP Terraform driver, you will need an account and organization set up, as well as a dedicated token. We recommend using a team token that is restricted to [Manage Workspaces](/terraform/cloud-docs/users-teams-organizations/teams#managing-workspace-access)-level permissions. Below are the steps for the recommended setup.
+Prior to running CTS with an HCP Terraform driver, you will need an account and organization set up, as well as a dedicated token. We recommend using a team token that is restricted to [Manage Workspaces](/terraform/cloud-docs/users-teams-organizations/teams#managing-workspace-access)-level permissions. Below are the steps for the recommended setup.
 
 The first step is to create an account with your HCP Terraform service. After creating an account, create a new [organization](/terraform/cloud-docs/users-teams-organizations/organizations#creating-organizations) or select an existing organization. The address of your HCP Terraform service will be used to configure the [`hostname`](/consul/docs/nia/configuration#hostname), and the organization name will be used to configure the [`organization`](/consul/docs/nia/configuration#organization) on the HCP Terraform driver.
 
