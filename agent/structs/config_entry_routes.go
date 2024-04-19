@@ -465,11 +465,12 @@ type HTTPQueryMatch struct {
 // HTTPFilters specifies a list of filters used to modify a request
 // before it is routed to an upstream.
 type HTTPFilters struct {
-	Headers       []HTTPHeaderFilter
-	URLRewrite    *URLRewrite
-	RetryFilter   *RetryFilter
-	TimeoutFilter *TimeoutFilter
-	JWT           *JWTFilter
+	Headers         []HTTPHeaderFilter
+	URLRewrite      *URLRewrite
+	RetryFilter     *RetryFilter
+	TimeoutFilter   *TimeoutFilter
+	JWT             *JWTFilter
+	RequestRedirect *RequestRedirectFilter
 }
 
 // HTTPResponseFilters specifies a list of filters used to modify the
@@ -499,6 +500,31 @@ type RetryFilter struct {
 type TimeoutFilter struct {
 	RequestTimeout time.Duration
 	IdleTimeout    time.Duration
+}
+
+type PreciseHostnameType string
+
+type PortNumber int32
+
+type RequestRedirectFilter struct {
+	Scheme     string
+	Hostname   string
+	Path       *HTTPPathModifier
+	Port       int32
+	StatusCode int32
+}
+
+type HTTPPathModifierType string
+
+const (
+	HTTPPathModifierTypeReplaceFullPath    HTTPPathModifierType = "ReplaceFullPath"
+	HTTPPathModifierTypeReplacePrefixMatch HTTPPathModifierType = "ReplacePrefixMatch"
+)
+
+type HTTPPathModifier struct {
+	HTTPPathModifierType HTTPPathModifierType
+	ReplaceFullPath      string
+	ReplacePrefixMatch   string
 }
 
 // HTTPRouteRule specifies the routing rules used to determine what upstream
