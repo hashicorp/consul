@@ -2066,7 +2066,7 @@
           },
           {
             "title": "HCP Terraform",
-            "path": "nia/network-drivers/terraform-cloud"
+            "path": "nia/network-drivers/hcp-terraform"
           }
         ]
       },
