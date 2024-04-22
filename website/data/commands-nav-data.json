@@ -544,6 +544,10 @@
         "path": "snapshot/agent"
       },
       {
+        "title": "decode",
+        "path": "snapshot/decode"
+      },
+      {
         "title": "inspect",
         "path": "snapshot/inspect"
       },
