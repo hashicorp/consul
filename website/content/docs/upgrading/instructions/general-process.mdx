@@ -82,13 +82,17 @@ When you change the cluster's log level, Consul gives you more information to wo
 
 ### Enterprise upgrades
 
-If your datacenter runs Consul Enterprise, update your server agent configuration file to disable autopilot's upgrade migration:
+<Note>
+To experience a smoother upgrade process on Consul Enterprise, we recommend that you disable the upgrade migration feature.
+</Notes>
+
+Consul Enterprise supports [automated upgrades](/consul/docs/enterprise/upgrades), but the autopilot feature may cause a node running an updated Consul version to elect a new leader before the version is updated on the existing cluster leader.
+
+If your datacenter runs Consul Enterprise, update your server agent configuration file to disable autopilot's upgrade migration or run the following CLI command:
 
 ```shell-session
 $ consul operator autopilot set-config -disable-upgrade-migration=true
 ```
-
-When you disable the upgrade migration feature on Consul Enterprise, you experience a smoother upgrade process. Consul Enterprise supports [automated upgrades](/consul/docs/enterprise/upgrades), but the autopilot feature may cause a node running an updated Consul version to elect a new leader before the version is updated on the existing cluster leader.
 
 ## Perform the Upgrade
 
