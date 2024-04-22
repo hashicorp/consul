@@ -128,6 +128,7 @@ func Test_FetchVirtualIP(t *testing.T) {
 func Test_FetchEndpoints(t *testing.T) {
 	// set these to confirm that RPC call does not use them for this particular RPC
 	rc := &config.RuntimeConfig{
+		Datacenter:     "dc2",
 		DNSAllowStale:  true,
 		DNSMaxStale:    100,
 		DNSUseCache:    true,

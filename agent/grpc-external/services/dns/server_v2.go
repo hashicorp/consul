@@ -72,9 +72,10 @@ func (s *ServerV2) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Q
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failure decoding dns request: %s", err.Error()))
 	}
 
-	// TODO (v2-dns): parse token and other context metadata from the grpc request/metadata (NET-7885)
-	reqCtx := agentdns.Context{
-		Token: s.TokenFunc(),
+	reqCtx, err := agentdns.NewContextFromGRPCContext(ctx)
+	if err != nil {
+		s.Logger.Error("error parsing DNS context from grpc metadata", "err", err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("error parsing DNS context from grpc metadata: %s", err.Error()))
 	}
 
 	resp := s.DNSRouter.HandleRequest(msg, reqCtx, remote)
