@@ -2056,7 +2056,7 @@
             "path": "nia/enterprise/license"
           },
           {
-            "title": "Terraform Cloud Driver",
+            "title": "HCP Terraform Driver",
             "href": "/docs/nia/network-drivers/terraform-cloud"
           }
         ]
@@ -2073,8 +2073,8 @@
             "path": "nia/network-drivers/terraform"
           },
           {
-            "title": "Terraform Cloud",
-            "path": "nia/network-drivers/terraform-cloud"
+            "title": "HCP Terraform",
+            "path": "nia/network-drivers/hcp-terraform"
           }
         ]
       },
