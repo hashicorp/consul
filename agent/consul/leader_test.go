@@ -2003,6 +2003,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 		if err := srv.RPC(context.Background(), "ConfigEntry.Get", &arg, &reply); err != nil {
 			return nil, err
 		}
+		reply.Entry.SetHash(0)
 		return reply.Entry, nil
 	}
 
@@ -2084,10 +2085,10 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 					LegacyUpdateTime: got.Sources[0].LegacyUpdateTime,
 				},
 			},
-
 			RaftIndex: got.RaftIndex,
+			Hash:      got.GetHash(),
 		}
-
+		got.Hash = 0
 		require.Equal(t, expect, got)
 	})
 

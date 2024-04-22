@@ -14,6 +14,9 @@ on:
       - main
       - release/**
 
+env:
+  SKIP_VERIFY_ENVOY_VERSION: ${{ vars.SKIP_VERIFY_ENVOY_VERSION }}
+
 jobs:
   verify-envoy-version:
     runs-on: ubuntu-latest

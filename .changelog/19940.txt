@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: remove usages of deprecated Envoy fields: `envoy.config.cluster.v3.Cluster.http2_protocol_options`, `envoy.config.bootstrap.v3.Admin.access_log_path`
+```

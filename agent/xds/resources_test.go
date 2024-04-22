@@ -181,6 +181,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
 	tests = append(tests, getEnterpriseGoldenTestCases()...)
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
+	tests = append(tests, getXDSFetchTimeoutTestCases()...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -450,6 +451,72 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 						Nodes: proxycfg.TestUpstreamNodes(t, "service"),
 					},
 				}})
+			},
+		},
+	}
+}
+
+func getXDSFetchTimeoutTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "xds-fetch-timeout-ms-sidecar",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - clusters.go:makeUpstreamClustersForDiscoveryChain
+				// - clusters.go:makeUpstreamClusterForPreparedQuery
+				// - listeners.go:listenersFromSnapshotConnectProxy (partially)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-router", false, func(ns *structs.NodeService) {
+					ns.Proxy.Config["xds_fetch_timeout_ms"] = 9999
+				}, nil)
+			},
+		},
+		{
+			name: "xds-fetch-timeout-ms-tproxy-passthrough",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - clusters.go:makePassthrough
+				// - listeners.go:listenersFromSnapshotConnectProxy (partially)
+				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"xds_fetch_timeout_ms": 9999,
+					}
+				})
+			},
+		},
+		{
+			name: "xds-fetch-timeout-ms-term-gw",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - listeners.go:makeFilterChainTerminatingGateway
+				// - clusters.go:makeGatewayCluster
+				return proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"xds_fetch_timeout_ms": 9999,
+					}
+				})
+			},
+		},
+		{
+			name: "xds-fetch-timeout-ms-mgw-peering",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - listeners.go:makeMeshGatewayPeerFilterChain
+				// - clusters.go:makeGatewayCluster
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-http", func(ns *structs.NodeService) {
+					ns.Proxy.Config["xds_fetch_timeout_ms"] = 9999
+				}, nil)
+			},
+		},
+		{
+			name: "xds-fetch-timeout-ms-ingress-with-router",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - listeners.go:makeIngressGatewayListeners (partially)
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http", "chain-and-router", func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"xds_fetch_timeout_ms": 9999,
+					}
+				}, nil, nil)
 			},
 		},
 	}

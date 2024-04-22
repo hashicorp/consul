@@ -241,7 +241,12 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 		conf.PrivateKeyType = connect.DefaultPrivateKeyType
 	}
 	if conf.PrivateKeyBits == 0 {
-		conf.PrivateKeyBits = connect.DefaultPrivateKeyBits
+		// If using an RSA key, a key size of at least 2048 bits is recommended; 4096 bits is better.
+		if conf.PrivateKeyType == connect.PrivateKeyTypeRSA {
+			conf.PrivateKeyBits = connect.DefaultPrivateKeyBitsRSA
+		} else {
+			conf.PrivateKeyBits = connect.DefaultPrivateKeyBits
+		}
 	}
 
 	// Create a new private key

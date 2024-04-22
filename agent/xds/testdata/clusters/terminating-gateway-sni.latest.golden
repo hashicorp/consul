@@ -29,17 +29,13 @@
       },
       "dnsRefreshRate": "10s",
       "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-
-      },
+      "outlierDetection": {},
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {
-
-            },
+            "tlsParams": {},
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -54,9 +50,30 @@
               "trustedCa": {
                 "filename": "ca.cert.pem"
               },
-              "matchSubjectAltNames": [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact": "bar.com"
+                  "sanType": "URI",
+                  "matcher": {
+                    "exact": "bar.com"
+                  }
+                },
+                {
+                  "sanType": "DNS",
+                  "matcher": {
+                    "exact": "bar.com"
+                  }
+                },
+                {
+                  "sanType": "EMAIL",
+                  "matcher": {
+                    "exact": "bar.com"
+                  }
+                },
+                {
+                  "sanType": "IP_ADDRESS",
+                  "matcher": {
+                    "exact": "bar.com"
+                  }
                 }
               ]
             }
@@ -93,9 +110,7 @@
       },
       "dnsRefreshRate": "10s",
       "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-
-      }
+      "outlierDetection": {}
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
@@ -125,9 +140,7 @@
       },
       "dnsRefreshRate": "10s",
       "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-
-      }
+      "outlierDetection": {}
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
@@ -135,31 +148,46 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",
-      "outlierDetection": {
-
-      },
+      "outlierDetection": {},
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {
-
-            },
+            "tlsParams": {},
             "validationContext": {
               "trustedCa": {
                 "filename": "ca.cert.pem"
               },
-              "matchSubjectAltNames": [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact": "foo.com"
+                  "sanType": "URI",
+                  "matcher": {
+                    "exact": "foo.com"
+                  }
+                },
+                {
+                  "sanType": "DNS",
+                  "matcher": {
+                    "exact": "foo.com"
+                  }
+                },
+                {
+                  "sanType": "EMAIL",
+                  "matcher": {
+                    "exact": "foo.com"
+                  }
+                },
+                {
+                  "sanType": "IP_ADDRESS",
+                  "matcher": {
+                    "exact": "foo.com"
+                  }
                 }
               ]
             }

@@ -72,8 +72,9 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	dbSplitChain := func() *structs.CompiledDiscoveryChain {
 		set := configentry.NewDiscoveryChainSet()
 		set.AddEntries(&structs.ProxyConfigEntry{
-			Kind: structs.ProxyDefaults,
-			Name: structs.ProxyConfigGlobal,
+			Kind:     structs.ProxyDefaults,
+			Name:     structs.ProxyConfigGlobal,
+			Protocol: "http",
 			Config: map[string]interface{}{
 				"protocol": "http",
 			},

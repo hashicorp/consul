@@ -313,6 +313,7 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 				src.LegacyMeta = nil
 			}
 		}
+		expect.SetHash(got.GetHash())
 		require.Equal(t, expect, got)
 	}
 

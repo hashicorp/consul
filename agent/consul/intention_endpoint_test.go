@@ -550,8 +550,8 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 				},
 			},
 			RaftIndex: entry.RaftIndex,
+			Hash:      entry.GetHash(),
 		}
-
 		require.Equal(t, expect, entry)
 	}
 
@@ -689,8 +689,8 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 				},
 			},
 			RaftIndex: entry.RaftIndex,
+			Hash:      entry.GetHash(),
 		}
-
 		require.Equal(t, expect, entry)
 	}
 
@@ -758,6 +758,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 				},
 			},
 			RaftIndex: entry.RaftIndex,
+			Hash:      entry.GetHash(),
 		}
 
 		require.Equal(t, expect, entry)

@@ -47,6 +47,7 @@ func TestConfigSnapshot_Clone(t *testing.T) {
 		cmpopts.IgnoreUnexported(indexedTarget{}),
 		cmpopts.IgnoreUnexported(pbpeering.PeeringTrustBundle{}),
 		cmpopts.IgnoreTypes(context.CancelFunc(nil)),
+		cmpopts.IgnoreTypes(computedFields{}),
 	)
 	if diff != "" {
 		t.Logf("Copied snaspshot is different to the original. You may need to re-run `make deep-copy`.\nDiff:\n%s", diff)

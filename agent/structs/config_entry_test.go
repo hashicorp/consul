@@ -24,6 +24,20 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+func TestNormalizeGenerateHash(t *testing.T) {
+	for _, cType := range AllConfigEntryKinds {
+		//this is an enterprise only config entry
+		if cType == RateLimitIPConfig {
+			continue
+		}
+		entry, err := MakeConfigEntry(cType, "global")
+		require.NoError(t, err)
+		require.NoError(t, entry.Normalize())
+		require.NotEmpty(t, entry.GetHash(), entry.GetKind())
+	}
+
+}
+
 func TestConfigEntries_ACLs(t *testing.T) {
 	type testACL = configEntryTestACL
 	type testcase = configEntryACLTestCase
@@ -3344,6 +3358,47 @@ func TestProxyConfigEntry(t *testing.T) {
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
 
+func TestProxyConfigEntry_ComputeProtocol(t *testing.T) {
+	t.Run("ComputeProtocol sets protocol field correctly", func(t *testing.T) {
+		pd := &ProxyConfigEntry{
+			Kind: ProxyDefaults,
+			Name: "global",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}
+		require.NoError(t, pd.ComputeProtocol())
+		require.Equal(t, &ProxyConfigEntry{
+			Kind:     ProxyDefaults,
+			Name:     "global",
+			Protocol: "http",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}, pd)
+	})
+	t.Run("Normalize sets protocol field correctly", func(t *testing.T) {
+		pd := &ProxyConfigEntry{
+			Kind: ProxyDefaults,
+			Name: "global",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		}
+		require.NoError(t, pd.Normalize())
+		pd.Hash = 0
+		require.Equal(t, &ProxyConfigEntry{
+			Kind:     ProxyDefaults,
+			Name:     "global",
+			Protocol: "http",
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+			EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+		}, pd)
+	})
+}
+
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
@@ -3407,6 +3462,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 			}
 
 			if tc.expected != nil {
+				tc.expected.SetHash(tc.entry.GetHash())
 				require.Equal(t, tc.expected, tc.entry)
 			}
 
@@ -3420,6 +3476,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 						return a.IsSame(&b)
 					}),
 				}
+				beforeNormalize.(ConfigEntry).SetHash(tc.entry.GetHash())
 				if diff := cmp.Diff(beforeNormalize, tc.entry, opts); diff != "" {
 					t.Fatalf("expect unchanged after Normalize, got diff:\n%s", diff)
 				}

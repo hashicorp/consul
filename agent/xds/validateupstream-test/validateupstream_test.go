@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/troubleshoot/proxy"
+	troubleshoot "github.com/hashicorp/consul/troubleshoot/proxy"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -156,7 +156,7 @@ func TestValidateUpstreams(t *testing.T) {
 			name: "tproxy-success",
 			vip:  "240.0.0.1",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				return ir
@@ -166,7 +166,7 @@ func TestValidateUpstreams(t *testing.T) {
 			name: "tproxy-http-missing-cluster",
 			vip:  "240.0.0.1",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				sni := "google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
@@ -179,7 +179,7 @@ func TestValidateUpstreams(t *testing.T) {
 			name: "tproxy-http-redirect-success",
 			vip:  "240.0.0.1",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, configEntriesForGoogleRedirect()...)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil, configEntriesForGoogleRedirect()...)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				return ir
@@ -189,7 +189,7 @@ func TestValidateUpstreams(t *testing.T) {
 			name: "tproxy-http-split-success",
 			vip:  "240.0.0.1",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, configEntriesForGoogleSplits()...)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil, configEntriesForGoogleSplits()...)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				return ir

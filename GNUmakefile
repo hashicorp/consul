@@ -9,15 +9,16 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-GOLANGCI_LINT_VERSION='v1.51.1'
+GOLANGCI_LINT_VERSION='v1.55.2'
 MOCKERY_VERSION='v2.20.0'
 BUF_VERSION='v1.14.0'
 
-PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
-MOG_VERSION='v0.4.0'
+PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'
+MOG_VERSION='v0.4.2'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION="v0.1.0"
 DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
+LINT_CONSUL_RETRY_VERSION='v1.3.0'
 
 MOCKED_PB_DIRS= pbdns
 
@@ -63,6 +64,9 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+# When changing the method of Go version detection, also update
+# version detection in CI workflows (reusable-get-go-version.yml).
+GOLANG_VERSION?=$(shell head -n 1 .go-version)
 ENVOY_VERSION?='1.25.4'
 
 ################
@@ -259,6 +263,19 @@ go-mod-tidy/%:
 	@echo "--> Running go mod tidy ($*)"
 	@cd $* && go mod tidy
 
+.PHONY: go-mod-get
+go-mod-get: $(foreach mod,$(GO_MODULES),go-mod-get/$(mod)) ## Run go get and go mod tidy in every module for the given dependency
+
+.PHONY: go-mod-get/%
+go-mod-get/%:
+ifndef DEP_VERSION
+	$(error DEP_VERSION is undefined: set this to <dependency>@<version>, e.g. github.com/hashicorp/go-hclog@v1.5.0)
+endif
+	@echo "--> Running go get ${DEP_VERSION} ($*)"
+	@cd $* && go get $(DEP_VERSION)
+	@echo "--> Running go mod tidy ($*)"
+	@cd $* && go mod tidy
+
 test-internal:
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
@@ -330,9 +347,9 @@ other-consul:
 		echo "Found other running consul agents. This may affect your tests." ; \
 		exit 1 ; \
 	fi
-	
+
 .PHONY: fmt
-fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod)) 
+fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod))
 
 .PHONY: fmt/%
 fmt/%:
@@ -408,8 +425,8 @@ version:
 docker-images: go-build-image ui-build-image
 
 go-build-image:
-	@echo "Building Golang build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
+	@echo "Building Golang $(GOLANG_VERSION) build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) --build-arg GOLANG_VERSION=$(GOLANG_VERSION) - < build-support/docker/Build-Go.dockerfile
 
 ui-build-image:
 	@echo "Building UI build container"
@@ -566,3 +583,11 @@ help:
 .PHONY: all bin dev dist cov test test-internal cover lint ui tools
 .PHONY: docker-images go-build-image ui-build-image consul-docker ui-docker
 .PHONY: version test-envoy-integ
+
+.PHONY: copywrite-headers
+copywrite-headers:
+	copywrite headers
+	# Special case for MPL headers in /api and /sdk
+	cd api && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
+	cd sdk && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
+	cd proto-public && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh

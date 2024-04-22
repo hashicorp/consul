@@ -171,7 +171,29 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+                  "policies": {
+                    "consul-intentions-layer4": {
+                      "permissions": [
+                        {
+                          "any": true
+                        }
+                      ],
+                      "principals": [
+                        {
+                          "authenticated": {
+                            "principalName": {
+                              "safeRegex": {
+                                "googleRe2": {},
+                                "regex": "^spiffe://foo.bar.gov/ns/default/dc/[^/]+/svc/source$"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
                 "statPrefix": "connect_authz"
               }
             },

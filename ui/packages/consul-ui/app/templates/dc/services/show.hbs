@@ -98,7 +98,7 @@ as |items item dc|}}
       {{/if}}
   {{#let
   (hash
-      topology=(and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway')) (not item.Service.PeerName))
+      topology=(and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway') (eq item.Service.Kind 'api-gateway')) (not item.Service.PeerName))
       services=(and (eq item.Service.Kind 'terminating-gateway') (not item.Service.PeerName))
       upstreams=(and (eq item.Service.Kind 'ingress-gateway') (not item.Service.PeerName))
       instances=true

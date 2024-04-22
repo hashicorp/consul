@@ -1,0 +1,14 @@
+```release-note:security
+Upgrade to use Go `1.21.9`. This resolves CVE
+[CVE-2023-45288](https://nvd.nist.gov/vuln/detail/CVE-2023-45288) (`http2`).
+```
+
+```release-note:security
+Upgrade to support Envoy `1.26.8`. This resolves CVE
+[CVE-2024-27919](https://nvd.nist.gov/vuln/detail/CVE-2024-27919) (`http2`).
+```
+
+```release-note:security
+Upgrade to use golang.org/x/net `v0.24.0`. This resolves CVE
+[CVE-2023-45288](https://nvd.nist.gov/vuln/detail/CVE-2023-45288) (`x/net`).
+```

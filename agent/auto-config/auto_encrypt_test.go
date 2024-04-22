@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"net/url"
@@ -103,6 +104,45 @@ func TestAutoEncrypt_generateCSR(t *testing.T) {
 			require.Equal(t, tcase.expectedDNSNames, request.DNSNames)
 			require.Equal(t, tcase.expectedIPs, request.IPAddresses)
 			require.Equal(t, tcase.expectedURIs, request.URIs)
+		})
+	}
+}
+
+func TestAutoEncrypt_generateCSR_RSA(t *testing.T) {
+	testCases := []struct {
+		name            string
+		keySize         int
+		expectedKeySize int
+	}{
+		{
+			name:            "DefaultKeySize",
+			keySize:         0,
+			expectedKeySize: 4096,
+		},
+		{
+			name:            "KeySize2048",
+			keySize:         2048,
+			expectedKeySize: 2048,
+		},
+	}
+
+	for _, tcase := range testCases {
+		t.Run(tcase.name, func(t *testing.T) {
+			ac := AutoConfig{config: &config.RuntimeConfig{
+				ConnectCAConfig: map[string]interface{}{
+					"PrivateKeyType": "rsa",
+					"PrivateKeyBits": tcase.keySize,
+				},
+			}}
+
+			// Generate a private RSA key.
+			_, key, err := ac.generateCSR()
+			require.NoError(t, err)
+
+			// Parse the private key and check it's length.
+			pemBlock, _ := pem.Decode([]byte(key))
+			priv, _ := x509.ParsePKCS1PrivateKey(pemBlock.Bytes)
+			require.Equal(t, tcase.expectedKeySize, priv.N.BitLen())
 		})
 	}
 }
