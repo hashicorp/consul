@@ -34,6 +34,7 @@ const (
 	consulServerListWatchID            = "consul-server-list"
 	datacentersWatchID                 = "datacenters"
 	serviceResolversWatchID            = "service-resolvers"
+	serviceDefaultsWatchID             = "service-defaults"
 	gatewayServicesWatchID             = "gateway-services"
 	gatewayConfigWatchID               = "gateway-config"
 	apiGatewayConfigWatchID            = "api-gateway-config"
