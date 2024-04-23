@@ -2,21 +2,114 @@
 layout: docs
 page_title: DNS caching
 description: >-
-  Tune DNS query handling to balance between providing current information and  reducing request response time.
+  You tune Consul DNS query handling to balance between current information and reducing request response time. Learn how to enable caching by modifying TTL values, how to return stale results from the DNS cache, and how to configure Consul for negative response caching.
 ---
 
 ## DNS caching
 
-This page describes the process to configure Consul to cache DNS results. Consul agents can use DNS caching to return faster responses, but may provide stale information in the process.
+This page describes the process to return cached results in response to DNS lookups. Consul agents can use DNS caching to reduce response time, but might provide stale information in the process.
 
 ## Introduction
 
 By default, Consul serves all DNS results with a 0 TTL value, which prevents any 
 caching. This configuration returns the most recent information because each DNS lookup 
 runs every time. However, this configuration adds latency to each lookup and can potentially 
-exhaust the query throughput of a datacenter. 
+exhaust the query throughput of a datacenter.
 
-There are several parameters you can modify to fine-tune Consul DNS lookup behavior to best suit your network's requirements.
+There are several ways you can modify to fine-tune Consul DNS lookup behavior to best suit your network's requirements.
+
+## TTL values ((#ttl))
+
+You can configure TTL values in the [agent configuration file](/consul/docs/agent/config/config-files) to allow DNS results to be cached downstream of Consul. 
+Higher TTL values reduce the number of lookups on the Consul servers and speed 
+lookups for clients, at the cost of increasingly stale results. By default, all 
+TTLs are zero, preventing any caching.
+
+<CodeTabs>
+
+```hcl
+dns_config {
+  service_ttl {
+    "*" = "0s"
+  }
+  node_ttl = "0s"
+}
+```
+
+```json
+{
+  "dns_config": {
+    "service_ttl": {
+      "*": "0s"
+    },
+    "node_ttl": "0s"
+  }
+}
+```
+
+</CodeTabs>
+
+### Enable caching
+
+To enable caching of node lookups, set the
+[`dns_config.node_ttl`](/consul/docs/agent/config/config-files#node_ttl) 
+value. This can be set to `10s` for example, and all node lookups will serve 
+results with a 10 second TTL.
+
+Service TTLs can be specified in a more granular fashion. You can set TTLs
+per-service, with a wildcard TTL as the default. This is specified using the
+[`dns_config.service_ttl`](/consul/docs/agent/config/config-files#service_ttl)
+map. The `*` is supported at the end of any prefix and has a lower precedence
+than strict match, so `my-service-x` has precedence over `my-service-*`. When
+performing wildcard match, the longest path is taken into account, thus
+`my-service-*` TTL will be used instead of `my-*` or `*`. With the same rule,
+`*` is the default value when nothing else matches. If no match is found the TTL
+defaults to 0.
+
+For example, a [`dns_config`](/consul/docs/agent/config/config-files#dns_config) 
+that provides a wildcard TTL and a specific TTL for a service might look like this:
+
+<CodeTabs>
+
+```hcl
+dns_config {
+  service_ttl {
+    "*" = "5s"
+    "web" = "30s"
+    "db*" = "10s"
+    "db-master" = "3s"
+  }
+}
+```
+
+```json
+{
+  "dns_config": {
+    "service_ttl": {
+      "*": "5s",
+      "web": "30s",
+      "db*": "10s",
+      "db-master": "3s"
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+This sets all lookups to "web.service.consul" to use a 30 second TTL
+while lookups to "api.service.consul" will use the 5 second TTL from the wildcard.
+All lookups matching "db\*" would get a 10 seconds TTL except "db-master" that 
+would have a 3 seconds TTL.
+
+### Prepared queries
+
+[Prepared Queries](/consul/api-docs/query) provide an additional
+level of control over TTL. They allow for the TTL to be defined along with
+the query, and they can be changed on the fly by updating the query definition.
+If a TTL is not configured for a prepared query, then it will fall back to the
+service-specific configuration defined in the Consul agent as described above,
+and ultimately to 0 if no TTL is configured for the service in the Consul agent.
 
 <a name="stale"></a>
 
@@ -103,15 +196,14 @@ dns_config {
 
 ## Negative response caching
 
-Some DNS clients cache negative responses - that is, Consul returning a "not
-found" style response because a service exists but there are no healthy
-endpoints. In practice, this could mean that the cached negative responses may
-cause that service to appear "down" for longer than they are actually unavailable
-when using DNS for service discovery.
+Although DNS clients cache negative responses, Consul returns a "not
+found" style response when a service exists but there are no healthy
+endpoints. When using DNS for service discovery, cached negative responses may
+cause a service to appear down for longer than it is actually unavailable.
 
 ### Configure SOA
 
-In Consul 1.3.0 and newer, it is now possible to tune SOA responses and modify 
+In Consul v1.3.0 and newer, it is now possible to tune SOA responses and modify 
 the negative TTL cache for some resolvers. It can be achieved using the 
 [`soa.min_ttl`](/consul/docs/agent/config/config-files#soa_min_ttl)
 configuration within the [`soa`](/consul/docs/agent/config/config-files#soa) configuration.
@@ -145,96 +237,3 @@ your client operating system and any DNS forwarder on the path between the
 client and Consul and set the cache values appropriately. In many cases
 "appropriately" means turning negative response caching off to get the best
 recovery time when a service becomes available again.
-
-## TTL values ((#ttl))
-
-TTL values can be set to allow DNS results to be cached downstream of Consul. 
-Higher TTL values reduce the number of lookups on the Consul servers and speed 
-lookups for clients, at the cost of increasingly stale results. By default, all 
-TTLs are zero, preventing any caching.
-
-<CodeTabs>
-
-```hcl
-dns_config {
-  service_ttl {
-    "*" = "0s"
-  }
-  node_ttl = "0s"
-}
-```
-
-```json
-{
-  "dns_config": {
-    "service_ttl": {
-      "*": "0s"
-    },
-    "node_ttl": "0s"
-  }
-}
-```
-
-</CodeTabs>
-
-### Enable caching
-
-To enable caching of node lookups (e.g. "foo.node.consul"), you can set the
-[`dns_config.node_ttl`](/consul/docs/agent/config/config-files#node_ttl) 
-value. This can be set to `10s` for example, and all node lookups will serve 
-results with a 10 second TTL.
-
-Service TTLs can be specified in a more granular fashion. You can set TTLs
-per-service, with a wildcard TTL as the default. This is specified using the
-[`dns_config.service_ttl`](/consul/docs/agent/config/config-files#service_ttl)
-map. The `*` is supported at the end of any prefix and has a lower precedence
-than strict match, so `my-service-x` has precedence over `my-service-*`. When
-performing wildcard match, the longest path is taken into account, thus
-`my-service-*` TTL will be used instead of `my-*` or `*`. With the same rule,
-`*` is the default value when nothing else matches. If no match is found the TTL
-defaults to 0.
-
-For example, a [`dns_config`](/consul/docs/agent/config/config-files#dns_config) 
-that provides a wildcard TTL and a specific TTL for a service might look like this:
-
-<CodeTabs>
-
-```hcl
-dns_config {
-  service_ttl {
-    "*" = "5s"
-    "web" = "30s"
-    "db*" = "10s"
-    "db-master" = "3s"
-  }
-}
-```
-
-```json
-{
-  "dns_config": {
-    "service_ttl": {
-      "*": "5s",
-      "web": "30s",
-      "db*": "10s",
-      "db-master": "3s"
-    }
-  }
-}
-```
-
-</CodeTabs>
-
-This sets all lookups to "web.service.consul" to use a 30 second TTL
-while lookups to "api.service.consul" will use the 5 second TTL from the wildcard.
-All lookups matching "db\*" would get a 10 seconds TTL except "db-master" that 
-would have a 3 seconds TTL.
-
-### Prepared queries
-
-[Prepared Queries](/consul/api-docs/query) provide an additional
-level of control over TTL. They allow for the TTL to be defined along with
-the query, and they can be changed on the fly by updating the query definition.
-If a TTL is not configured for a prepared query, then it will fall back to the
-service-specific configuration defined in the Consul agent as described above,
-and ultimately to 0 if no TTL is configured for the service in the Consul agent.
