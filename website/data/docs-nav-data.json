@@ -406,7 +406,7 @@
             "title": "Cache DNS lookups",
             "path": "services/discovery/dns-cache"
           },
-          {
+          {           
             "title": "Enable dynamic DNS lookups",
             "path": "services/discovery/dns-dynamic-lookups"
           }
