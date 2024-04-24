@@ -126,7 +126,7 @@ We strongly recommend using [stale consistency mode for DNS lookups](/consul/api
 
 We also recommend that you do not configure [`dns_config.max_stale` to limit the staleness of DNS responses](/consul/api-docs/features/consistency#limiting-staleness-advanced-usage), as it may result in a prolonged outage if your Consul servers become overloaded. If bounded result consistency is required by a service, consider modifying the service to use consistent service discovery HTTP API queries instead of DNS lookups.
 
-Avoid using [`dns_config.use_cache`](/consul/docs/agent/config/config-files#dns_use_cache) when operating Consul at scale. Because the Consul agent cache allocates memory for each requested route and each allocation can live up to 3 days, severe memory issues may occur. To implement DNS caching, we instead recommend that you [configure TTLs for services and nodes](/consul/tutorials/networking/dns-caching#ttl) to enable the DNS client to cache responses from Consul.
+Avoid using [`dns_config.use_cache`](/consul/docs/agent/config/config-files#dns_use_cache) when operating Consul at scale. Because the Consul agent cache allocates memory for each requested route and each allocation can live up to 3 days, severe memory issues may occur. To implement DNS caching, we instead recommend that you [configure TTLs for services and nodes](/consul/docs/services/discovery/dns-cache#ttl) to enable the DNS client to cache responses from Consul.
 
 #### HTTP API
 
