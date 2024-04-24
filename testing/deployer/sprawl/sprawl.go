@@ -100,6 +100,19 @@ func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) 
 	return &http.Client{Transport: transport}, nil
 }
 
+// LocalAddressForNode returns the local address for the given node in the cluster
+func (s *Sprawl) LocalAddressForNode(clusterName string, nid topology.NodeID) (string, error) {
+	cluster, ok := s.topology.Clusters[clusterName]
+	if !ok {
+		return "", fmt.Errorf("no such cluster: %s", clusterName)
+	}
+	node := cluster.NodeByID(nid)
+	if !node.IsAgent() {
+		return "", fmt.Errorf("node is not an agent")
+	}
+	return node.LocalAddress(), nil
+}
+
 // APIClientForNode gets a pooled api.Client connected to the agent running on
 // the provided node.
 //
@@ -138,7 +151,7 @@ func (s *Sprawl) APIClientForNode(clusterName string, nid topology.NodeID, token
 func (s *Sprawl) APIClientForCluster(clusterName, token string) (*api.Client, error) {
 	clu := s.topology.Clusters[clusterName]
 	// TODO: this always goes to the first client, but we might want to balance this
-	firstAgent := clu.FirstClient()
+	firstAgent := clu.FirstClient("")
 	if firstAgent == nil {
 		firstAgent = clu.FirstServer()
 	}
@@ -233,12 +246,20 @@ func (s *Sprawl) Relaunch(
 	return s.RelaunchWithPhase(cfg, LaunchPhaseRegular)
 }
 
+// Upgrade upgrades the cluster to the targetImages version
+// Parameters:
+// - clusterName: the cluster to upgrade
+// - upgradeType: the type of upgrade, standard or autopilot
+// - targetImages: the target version to upgrade to
+// - newServersInTopology: the number of new servers to add to the topology for autopilot upgrade only
+// - validationFunc: the validation function to run during upgrade
 func (s *Sprawl) Upgrade(
 	cfg *topology.Config,
 	clusterName string,
 	upgradeType string,
 	targetImages topology.Images,
 	newServersInTopology []int,
+	validationFunc func() error,
 ) error {
 	cluster := cfg.Cluster(clusterName)
 	if cluster == nil {
@@ -253,9 +274,9 @@ func (s *Sprawl) Upgrade(
 
 	switch upgradeType {
 	case UpgradeTypeAutopilot:
-		err = s.autopilotUpgrade(cfg, cluster, newServersInTopology)
+		err = s.autopilotUpgrade(cfg, cluster, newServersInTopology, validationFunc)
 	case UpgradeTypeStandard:
-		err = s.standardUpgrade(cluster, targetImages)
+		err = s.standardUpgrade(cluster, targetImages, validationFunc)
 	default:
 		err = fmt.Errorf("upgrade type unsupported %s", upgradeType)
 	}
@@ -270,7 +291,7 @@ func (s *Sprawl) Upgrade(
 // standardUpgrade upgrades server agents in the cluster to the targetImages
 // individually
 func (s *Sprawl) standardUpgrade(cluster *topology.Cluster,
-	targetImages topology.Images) error {
+	targetImages topology.Images, validationFunc func() error) error {
 	upgradeFn := func(nodeID topology.NodeID) error {
 		cfgUpgrade := s.Config()
 		clusterCopy := cfgUpgrade.Cluster(cluster.Name)
@@ -298,6 +319,13 @@ func (s *Sprawl) standardUpgrade(cluster *topology.Cluster,
 		if err := upgradeFn(node.ID()); err != nil {
 			return fmt.Errorf("error upgrading node %s: %w", node.Name, err)
 		}
+
+		// run the validation function after upgrading each server agent
+		if validationFunc != nil {
+			if err := validationFunc(); err != nil {
+				return fmt.Errorf("error validating cluster: %w", err)
+			}
+		}
 	}
 
 	// upgrade client agents one at a time
@@ -309,6 +337,13 @@ func (s *Sprawl) standardUpgrade(cluster *topology.Cluster,
 		if err := upgradeFn(node.ID()); err != nil {
 			return fmt.Errorf("error upgrading node %s: %w", node.Name, err)
 		}
+
+		// run the validation function after upgrading each client agent
+		if validationFunc != nil {
+			if err := validationFunc(); err != nil {
+				return fmt.Errorf("error validating cluster: %w", err)
+			}
+		}
 	}
 
 	return nil
@@ -317,7 +352,7 @@ func (s *Sprawl) standardUpgrade(cluster *topology.Cluster,
 // autopilotUpgrade upgrades server agents by joining new servers with
 // higher version. After upgrade completes, the number of server agents
 // are doubled
-func (s *Sprawl) autopilotUpgrade(cfg *topology.Config, cluster *topology.Cluster, newServersInTopology []int) error {
+func (s *Sprawl) autopilotUpgrade(cfg *topology.Config, cluster *topology.Cluster, newServersInTopology []int, validationFunc func() error) error {
 	leader, err := s.Leader(cluster.Name)
 	if err != nil {
 		return fmt.Errorf("error get leader: %w", err)
@@ -380,9 +415,18 @@ func (s *Sprawl) autopilotUpgrade(cfg *topology.Config, cluster *topology.Cluste
 		node.IsNewServer = false
 	}
 
+	// Run the validation code
+	if validationFunc != nil {
+		if err := validationFunc(); err != nil {
+			return fmt.Errorf("error validating cluster: %w", err)
+		}
+	}
+
 	return nil
 }
 
+// RelaunchWithPhase relaunch the toplogy with the given phase
+// and wait for the cluster to be ready (i.e, leadership is established)
 func (s *Sprawl) RelaunchWithPhase(
 	cfg *topology.Config,
 	launchPhase LaunchPhase,
@@ -718,4 +762,8 @@ func (s *Sprawl) dumpContainerLogs(ctx context.Context, containerName, outputRoo
 
 	keep = true
 	return nil
+}
+
+func (s *Sprawl) GetFileFromContainer(ctx context.Context, containerName string, filePath string) error {
+	return s.runner.DockerExec(ctx, []string{"cp", containerName + ":" + filePath, filePath}, nil, nil)
 }

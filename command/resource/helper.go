@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+const JSON_INDENT = "  "
+
 type OuterResource struct {
 	ID         *ID            `json:"id"`
 	Owner      *ID            `json:"owner"`
@@ -34,10 +36,11 @@ type OuterResource struct {
 }
 
 type Tenancy struct {
-	Namespace string `json:"namespace"`
 	Partition string `json:"partition"`
-	PeerName  string `json:"peerName"`
+	Namespace string `json:"namespace"`
 }
+
+// TODO(peering/v2) handle v2 peering in the resource cli
 
 type Type struct {
 	Group        string `json:"group"`
@@ -150,7 +153,7 @@ func ParseInputParams(inputArgs []string, flags *flag.FlagSet) error {
 	return nil
 }
 
-func GetTypeAndResourceName(args []string) (gvk *GVK, resourceName string, e error) {
+func GetTypeAndResourceName(args []string) (resourceType *pbresource.Type, resourceName string, e error) {
 	if len(args) < 2 {
 		return nil, "", fmt.Errorf("Must specify two arguments: resource type and resource name")
 	}
@@ -160,9 +163,9 @@ func GetTypeAndResourceName(args []string) (gvk *GVK, resourceName string, e err
 	}
 	resourceName = args[1]
 
-	gvk, e = inferGVKFromResourceType(args[0])
+	resourceType, e = InferTypeFromResourceType(args[0])
 
-	return
+	return resourceType, resourceName, e
 }
 
 type Resource struct {
@@ -267,7 +270,7 @@ func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse,
 	return out, nil
 }
 
-func inferGVKFromResourceType(resourceType string) (*GVK, error) {
+func InferTypeFromResourceType(resourceType string) (*pbresource.Type, error) {
 	s := strings.Split(resourceType, ".")
 	switch length := len(s); {
 	// only kind is provided
@@ -282,23 +285,23 @@ func inferGVKFromResourceType(resourceType string) (*GVK, error) {
 		case 1:
 			// infer gvk from resource kind
 			gvkSplit := strings.Split(kindToGVKMap[kind][0], ".")
-			return &GVK{
-				Group:   gvkSplit[0],
-				Version: gvkSplit[1],
-				Kind:    gvkSplit[2],
+			return &pbresource.Type{
+				Group:        gvkSplit[0],
+				GroupVersion: gvkSplit[1],
+				Kind:         gvkSplit[2],
 			}, nil
 		// it alerts error if any conflict is found
 		default:
 			return nil, fmt.Errorf("The shorthand name has conflicts %v, please use the full name", kindToGVKMap[s[0]])
 		}
 	case length == 3:
-		return &GVK{
-			Group:   s[0],
-			Version: s[1],
-			Kind:    s[2],
+		return &pbresource.Type{
+			Group:        s[0],
+			GroupVersion: s[1],
+			Kind:         s[2],
 		}, nil
 	default:
-		return nil, fmt.Errorf("Must provide resource type argument with either in group.verion.kind format or its shorthand name")
+		return nil, fmt.Errorf("Must provide resource type argument with either in group.version.kind format or its shorthand name")
 	}
 }
 

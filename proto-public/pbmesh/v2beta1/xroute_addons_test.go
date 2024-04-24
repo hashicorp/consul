@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package meshv2beta1
 
@@ -153,7 +153,6 @@ func newRouteRef(name string) *pbresource.Reference {
 		Tenancy: &pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
-			PeerName:  "local",
 		},
 		Name: name,
 	}

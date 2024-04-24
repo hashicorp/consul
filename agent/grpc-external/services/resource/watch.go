@@ -62,22 +62,41 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			return status.Errorf(codes.Internal, "failed next: %v", err)
 		}
 
+		var resource *pbresource.Resource
+		switch {
+		case event.GetUpsert() != nil:
+			resource = event.GetUpsert().GetResource()
+		case event.GetDelete() != nil:
+			resource = event.GetDelete().GetResource()
+		case event.GetEndOfSnapshot() != nil:
+			// skip the rest and send the event.
+			if err = stream.Send(event); err != nil {
+				return err
+			}
+			continue
+		default:
+			// skip unknown type of operation
+			continue
+		}
+
+		// From here on out we assume the event is operating on a non-nil resource.
+
 		// drop group versions that don't match
-		if event.Resource.Id.Type.GroupVersion != req.Type.GroupVersion {
+		if resource.Id.Type.GroupVersion != req.Type.GroupVersion {
 			continue
 		}
 
 		// Need to rebuild authorizer per resource since wildcard inputs may
 		// result in different tenancies. Consider caching per tenancy if this
 		// is deemed expensive.
-		entMeta = v2TenancyToV1EntMeta(event.Resource.Id.Tenancy)
+		entMeta = v2TenancyToV1EntMeta(resource.Id.Tenancy)
 		authz, authzContext, err = s.getAuthorizer(token, entMeta)
 		if err != nil {
 			return err
 		}
 
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, authzContext, event.Resource.Id, event.Resource)
+		err = reg.ACLs.Read(authz, authzContext, resource.Id, resource)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue
@@ -101,6 +120,10 @@ func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (
 	if err != nil {
 		return nil, err
 	}
+
+	// Ignore return value since read ops are allowed but will log a warning if the feature is
+	// not enabled in the license.
+	_ = s.FeatureCheck(reg)
 
 	// if no tenancy is passed defaults to wildcard
 	if req.Tenancy == nil {
@@ -128,18 +151,14 @@ func wildcardTenancyFor(scope resource.Scope) *pbresource.Tenancy {
 
 	switch scope {
 	case resource.ScopeCluster:
-		defaultTenancy = &pbresource.Tenancy{
-			PeerName: storage.Wildcard,
-		}
+		defaultTenancy = &pbresource.Tenancy{}
 	case resource.ScopePartition:
 		defaultTenancy = &pbresource.Tenancy{
 			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
 		}
 	default:
 		defaultTenancy = &pbresource.Tenancy{
 			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
 			Namespace: storage.Wildcard,
 		}
 	}

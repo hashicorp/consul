@@ -56,6 +56,11 @@ load helpers
   assert_expected_fortio_name s2-v1 localhost 5000 /prefix-alt
 }
 
+@test "test prefix path case insensitive" {
+  assert_expected_fortio_name s2-v1 localhost 5000 /prefix-case-Insensitive
+  assert_expected_fortio_name s2-v1 localhost 5000 /prefix-case-INSENSITIVE
+}
+
 @test "test regex path" {
   assert_expected_fortio_name s2-v2 localhost 5000 "" regex-path
 }

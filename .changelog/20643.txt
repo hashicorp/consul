@@ -1,0 +1,7 @@
+```release-note:feature
+dns: adds experimental support for a refactored DNS server that is v1 and v2 Catalog compatible. 
+Use `v2dns` in the `experiments` agent config to enable. 
+It will automatically be enabled when using the `resource-apis` (Catalog v2) experiment.
+The new DNS implementation will be the default in Consul 1.19.
+See the [Consul 1.18.x Release Notes](https://developer.hashicorp.com/consul/docs/release-notes/consul/v1_18_x) for deprecated DNS features.
+```

@@ -94,6 +94,7 @@ module.exports = function (environment, $ = process.env) {
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
       PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
       APIPrefix: env('CONSUL_API_PREFIX', ''),
+      V2CatalogEnabled: false,
     },
 
     // Static variables used in multiple places throughout the UI
@@ -122,6 +123,7 @@ module.exports = function (environment, $ = process.env) {
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
           APIPrefix: env('CONSUL_API_PREFIX', ''),
+          V2CatalogEnabled: env('CONSUL_V2_CATALOG_ENABLED', false),
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -176,6 +178,7 @@ module.exports = function (environment, $ = process.env) {
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
           PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
           APIPrefix: env('CONSUL_API_PREFIX', ''),
+          V2CatalogEnabled: env('CONSUL_V2_CATALOG_ENABLED', false),
         },
 
         '@hashicorp/ember-cli-api-double': {

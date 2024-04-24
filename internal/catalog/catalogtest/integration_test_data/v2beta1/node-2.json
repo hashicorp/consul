@@ -6,8 +6,7 @@
          "kind": "Node"
       },
       "tenancy": {
-         "partition": "default",
-         "peer_name": "local"
+         "partition": "default"
       },
       "name": "node-2"
    },

@@ -7,13 +7,13 @@ package hashicorp.consul.mesh.v2beta1;
 
 import "pbcatalog/v2beta1/failover_policy.proto";
 import "pbcatalog/v2beta1/protocol.proto";
-import "pbcatalog/v2beta1/service_endpoints.proto";
 import "pbmesh/v2beta1/common.proto";
 import "pbmesh/v2beta1/destination_policy.proto";
 import "pbmesh/v2beta1/grpc_route.proto";
 import "pbmesh/v2beta1/http_route.proto";
 import "pbmesh/v2beta1/http_route_retries.proto";
 import "pbmesh/v2beta1/http_route_timeouts.proto";
+import "pbmesh/v2beta1/pbproxystate/references.proto";
 import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
@@ -21,6 +21,12 @@ import "pbresource/resource.proto";
 message ComputedRoutes {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
+  // PortedConfigs is the map of service ports to the ComputedPortRoutes for
+  // those ports.
+  //
+  // The port identifier key here is always normalized to the target (workload)
+  // port name regardless of whether a virtual or target port identifier was
+  // provided in input config.
   map<string, ComputedPortRoutes> ported_configs = 1;
 
   // BoundReferences is a slice of mixed type references of resources that were
@@ -129,13 +135,10 @@ message BackendTargetDetails {
 
   reserved 6 to 20; // leaving a gap between computed and retroactively added fields.
 
-  // ServiceEndpointsID is not populated naturally and the field exists only for
-  // downstream consumers.
-  hashicorp.consul.resource.ID service_endpoints_id = 21;
+  // ServiceEndpointsRef is not populated naturally and the field exists only for downstream consumers.
+  pbproxystate.EndpointRef service_endpoints_ref = 24;
 
-  // ServiceEndpoints is not populated naturally and the field exists only for
-  // downstream consumers.
-  hashicorp.consul.catalog.v2beta1.ServiceEndpoints service_endpoints = 22;
+  reserved 22; // formerly ServiceEndpoints, never marshaled
 
   // IdentityRefs are not populated naturally and the field exists only for
   // downstream consumers.

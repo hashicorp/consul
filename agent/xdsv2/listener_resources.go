@@ -392,9 +392,7 @@ func (pr *ProxyResources) makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envo
 func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	var httpConnMgr *envoy_http_v3.HttpConnectionManager
-
 	if l7 != nil {
-		// TODO: Intentions will be added in the future.
 		if l7.MaxInboundConnections > 0 {
 			connLimitFilter, err := makeEnvoyConnectionLimitFilter(l7.MaxInboundConnections)
 			if err != nil {
@@ -730,13 +728,16 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 			return nil, fmt.Errorf("failed to create transport socket: provided peer name does not exist in trust bundle map: %s", peerName)
 		}
 
-		var matchers []*envoy_matcher_v3.StringMatcher
+		var matchers []*envoy_tls_v3.SubjectAltNameMatcher
 		if len(om.ValidationContext.SpiffeIds) > 0 {
-			matchers = make([]*envoy_matcher_v3.StringMatcher, 0)
+			matchers = make([]*envoy_tls_v3.SubjectAltNameMatcher, 0)
 			for _, m := range om.ValidationContext.SpiffeIds {
-				matchers = append(matchers, &envoy_matcher_v3.StringMatcher{
-					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-						Exact: m,
+				matchers = append(matchers, &envoy_tls_v3.SubjectAltNameMatcher{
+					SanType: envoy_tls_v3.SubjectAltNameMatcher_URI,
+					Matcher: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+							Exact: m,
+						},
 					},
 				})
 			}
@@ -749,7 +750,7 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 						InlineString: RootPEMsAsString(tb.Roots),
 					},
 				},
-				MatchSubjectAltNames: matchers,
+				MatchTypedSubjectAltNames: matchers,
 			},
 		}
 
@@ -1128,9 +1129,6 @@ func parseXFCCToDynamicMetaHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
 				RegexValueRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
 					Pattern: &envoy_matcher_v3.RegexMatcher{
 						Regex: downstreamServiceIdentityMatcher,
-						EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
-							GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},
-						},
 					},
 					Substitution: f.sub,
 				},

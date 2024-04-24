@@ -37,3 +37,9 @@ plugins:
   - name: json-shim
     out: .
     opt: paths=source_relative
+  # Generate cloning clients that can be used in conjunction with github.com/fullstorydev/grpchan/inprocgrpc
+  # to safely do gRPC in-process
+  - name: grpc-clone
+    out: .
+    opt:
+      - paths=source_relative

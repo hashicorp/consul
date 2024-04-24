@@ -185,8 +185,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "bar",
-        "partition": "foo",
-        "peerName": "local"
+        "partition": "foo"
       },
       "type": {
         "group": "auth",
@@ -255,7 +254,7 @@
           {
             "l7": {
               "route": {
-                "name": "foo/local/bar/api-app:http"
+                "name": "foo/bar/api-app:http"
               },
               "statPrefix": "upstream.http.api-app.bar.foo.dc1"
             },
@@ -272,7 +271,7 @@
           {
             "l7": {
               "route": {
-                "name": "foo/local/bar/api-app2:http"
+                "name": "foo/bar/api-app2:http"
               },
               "statPrefix": "upstream.http.api-app2.bar.foo.dc1"
             },
@@ -332,13 +331,13 @@
       }
     ],
     "routes": {
-      "foo/local/bar/api-app2:http": {
+      "foo/bar/api-app2:http": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "foo/local/bar/api-app2:http",
+            "name": "foo/bar/api-app2:http",
             "routeRules": [
               {
                 "destination": {
@@ -356,13 +355,13 @@
           }
         ]
       },
-      "foo/local/bar/api-app:http": {
+      "foo/bar/api-app:http": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "foo/local/bar/api-app:http",
+            "name": "foo/bar/api-app:http",
             "routeRules": [
               {
                 "destination": {
@@ -388,8 +387,7 @@
         "name": "api-app",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -397,15 +395,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "http"
     },
     "http.api-app2.bar.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-app2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -413,15 +411,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "http"
     },
     "tcp.api-app.bar.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-app",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -429,15 +427,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp.api-app2.bar.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-app2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -445,15 +443,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp2.api-app.bar.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-app",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -461,15 +459,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp2"
     },
     "tcp2.api-app2.bar.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-app2",
         "tenancy": {
           "namespace": "bar",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -477,7 +475,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp2"
     }
   },
   "requiredLeafCertificates": {

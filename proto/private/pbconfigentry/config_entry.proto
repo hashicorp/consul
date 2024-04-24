@@ -5,9 +5,39 @@ syntax = "proto3";
 
 package hashicorp.consul.internal.configentry;
 
+import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "private/pbcommon/common.proto";
+
+// ConfigEntryService handles operations related to config entries
+service ConfigEntryService {
+  rpc GetResolvedExportedServices(GetResolvedExportedServicesRequest) returns (GetResolvedExportedServicesResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_CONFIGENTRY
+    };
+  }
+}
+
+message GetResolvedExportedServicesRequest {
+  string Partition = 1;
+}
+
+message GetResolvedExportedServicesResponse {
+  repeated ResolvedExportedService services = 1;
+}
+
+message ResolvedExportedService {
+  string Service = 1;
+  common.EnterpriseMeta EnterpriseMeta = 2;
+  Consumers Consumers = 3;
+}
+
+message Consumers {
+  repeated string Peers = 1;
+  repeated string Partitions = 2;
+}
 
 enum Kind {
   KindUnknown = 0;
@@ -23,6 +53,8 @@ enum Kind {
   KindTCPRoute = 10;
   KindSamenessGroup = 11;
   KindJWTProvider = 12;
+  KindExportedServices = 13;
+  KindFileSystemCertificate = 14;
 }
 
 message ConfigEntry {
@@ -45,6 +77,8 @@ message ConfigEntry {
     InlineCertificate InlineCertificate = 14;
     SamenessGroup SamenessGroup = 15;
     JWTProvider JWTProvider = 16;
+    ExportedServices ExportedServices = 17;
+    FileSystemCertificate FileSystemCertificate = 18;
   }
 }
 
@@ -837,6 +871,19 @@ message BoundAPIGatewayListener {
 
 // mog annotation:
 //
+// target=github.com/hashicorp/consul/agent/structs.FileSystemCertificateConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message FileSystemCertificate {
+  map<string, string> Meta = 1;
+  string Certificate = 2;
+  string PrivateKey = 3;
+  uint64 Hash = 4;
+}
+
+// mog annotation:
+//
 // target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
 // output=config_entry.gen.go
 // name=Structs
@@ -1274,4 +1321,41 @@ message JWTForwardingConfig {
 message JWTCacheConfig {
   // mog: func-to=int func-from=int32
   int32 Size = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExportedServicesConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message ExportedServices {
+  string Name = 1;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 2;
+  map<string, string> Meta = 3;
+  uint64 Hash = 4;
+  repeated ExportedServicesService Services = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExportedService
+// output=config_entry.gen.go
+// name=Structs
+message ExportedServicesService {
+  string Name = 1;
+  string Namespace = 2;
+  repeated ExportedServicesConsumer Consumers = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceConsumer
+// output=config_entry.gen.go
+// name=Structs
+message ExportedServicesConsumer {
+  string Partition = 1;
+  string Peer = 2;
+  string SamenessGroup = 3;
 }

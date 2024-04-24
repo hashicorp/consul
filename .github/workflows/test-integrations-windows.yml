@@ -32,12 +32,19 @@ jobs:
       - id: runners
         run: .github/scripts/get_runner_classes_windows.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   dev-build:
+    needs:
+    - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-dev-build-windows.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul.exe'
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -46,6 +53,7 @@ jobs:
   envoy-integration-test:
     needs:
       - setup
+      - get-go-version
       - dev-build
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     permissions:
@@ -54,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: [ "1.28.0" ]
+        envoy-version: [ "1.28.2" ]
         xds-target: [ "server", "client" ]
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
@@ -64,7 +72,7 @@ jobs:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2

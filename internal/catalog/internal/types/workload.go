@@ -147,6 +147,14 @@ func validateWorkload(res *DecodedWorkload) error {
 		}
 	}
 
+	// Validate DNS
+	if dnsErr := validateDNSPolicy(res.Data.Dns); dnsErr != nil {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "dns_policy",
+			Wrapped: dnsErr,
+		})
+	}
+
 	return err
 }
 

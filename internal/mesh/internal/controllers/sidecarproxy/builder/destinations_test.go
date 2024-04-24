@@ -20,26 +20,11 @@ import (
 	"github.com/hashicorp/consul/internal/testing/golden"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (
-	endpointsData = &pbcatalog.ServiceEndpoints{
-		Endpoints: []*pbcatalog.Endpoint{
-			{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "10.0.0.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp":  {Port: 7070, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"tcp2": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-					"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-				},
-			},
-		},
-	}
-
 	serviceData = &pbcatalog.Service{
 		Ports: []*pbcatalog.ServicePort{
 			{
@@ -98,40 +83,19 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			resourcetest.ValidateAndNormalize(t, registry, res)
 		}
 
-		api1Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-1").
-			WithTenancy(tenancy).
-			WithData(t, endpointsData).
-			Build()
-
-		api2Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-2").
-			WithTenancy(tenancy).
-			WithData(t, endpointsData).
-			Build()
-
-		backup1Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "backup-1").
-			WithTenancy(tenancy).
-			WithData(t, endpointsData).
-			Build()
-
-		for _, res := range []*pbresource.Resource{
-			api1Endpoints, api2Endpoints, backup1Endpoints,
-		} {
-			resourcetest.ValidateAndNormalize(t, registry, res)
-		}
-
 		api1Identity := &pbresource.Reference{
 			Name:    "api1-identity",
-			Tenancy: api1Endpoints.Id.Tenancy,
+			Tenancy: tenancy,
 		}
 
 		api2Identity := &pbresource.Reference{
 			Name:    "api2-identity",
-			Tenancy: api2Endpoints.Id.Tenancy,
+			Tenancy: tenancy,
 		}
 
 		backup1Identity := &pbresource.Reference{
 			Name:    "backup1-identity",
-			Tenancy: backup1Endpoints.Id.Tenancy,
+			Tenancy: tenancy,
 		}
 
 		api1DestPolicy := resourcetest.Resource(pbmesh.DestinationPolicyType, api1Service.Id.Name).
@@ -208,9 +172,9 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			Build()
 		resourcetest.ValidateAndNormalize(t, registry, api1HTTPRoute)
 
-		api1FailoverPolicy := resourcetest.Resource(pbcatalog.FailoverPolicyType, "api-1").
+		api1FailoverPolicy := resourcetest.Resource(pbcatalog.ComputedFailoverPolicyType, "api-1").
 			WithTenancy(tenancy).
-			WithData(t, &pbcatalog.FailoverPolicy{
+			WithData(t, &pbcatalog.ComputedFailoverPolicy{
 				PortConfigs: map[string]*pbcatalog.FailoverConfig{
 					"http": {
 						Destinations: []*pbcatalog.FailoverDestination{{
@@ -297,7 +261,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			resourcetest.MustDecode[*pbmesh.DestinationPolicy](t, api1DestPolicy),
 			resourcetest.MustDecode[*pbmesh.HTTPRoute](t, api1HTTPRoute),
 			resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCPRoute),
-			resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, api1FailoverPolicy),
+			resourcetest.MustDecode[*pbcatalog.ComputedFailoverPolicy](t, api1FailoverPolicy),
 			resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCP2Route),
 		)
 		require.NotNil(t, api1ComputedRoutes)
@@ -310,7 +274,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 
 		destinationIpPort := &intermediate.Destination{
 			Explicit: &pbmesh.Destination{
-				DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
+				DestinationRef:  resource.Reference(api1Service.Id, ""),
 				DestinationPort: "tcp",
 				Datacenter:      "dc1",
 				ListenAddr: &pbmesh.Destination_IpPort{
@@ -321,12 +285,18 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
 				case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
-					details.ServiceEndpointsId = api1Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api1Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api1Identity}
 				case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
-					details.ServiceEndpointsId = api2Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api2Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api2Identity}
 				}
 			}),
@@ -334,7 +304,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 
 		destinationIpPort2 := &intermediate.Destination{
 			Explicit: &pbmesh.Destination{
-				DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
+				DestinationRef:  resource.Reference(api1Service.Id, ""),
 				DestinationPort: "tcp2",
 				Datacenter:      "dc1",
 				ListenAddr: &pbmesh.Destination_IpPort{
@@ -345,12 +315,18 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
 				case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
-					details.ServiceEndpointsId = api1Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api1Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api1Identity}
 				case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
-					details.ServiceEndpointsId = api2Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api2Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api2Identity}
 				}
 			}),
@@ -358,7 +334,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 
 		destinationUnix := &intermediate.Destination{
 			Explicit: &pbmesh.Destination{
-				DestinationRef:  resource.Reference(api2Endpoints.Id, ""),
+				DestinationRef:  resource.Reference(api2Service.Id, ""),
 				DestinationPort: "tcp",
 				Datacenter:      "dc1",
 				ListenAddr: &pbmesh.Destination_Unix{
@@ -369,8 +345,11 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			ComputedPortRoutes: routestest.MutateTargets(t, api2ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
 				case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
-					details.ServiceEndpointsId = api2Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api2Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api2Identity}
 				}
 			}),
@@ -378,7 +357,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 
 		destinationUnix2 := &intermediate.Destination{
 			Explicit: &pbmesh.Destination{
-				DestinationRef:  resource.Reference(api2Endpoints.Id, ""),
+				DestinationRef:  resource.Reference(api2Service.Id, ""),
 				DestinationPort: "tcp2",
 				Datacenter:      "dc1",
 				ListenAddr: &pbmesh.Destination_Unix{
@@ -389,15 +368,18 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			ComputedPortRoutes: routestest.MutateTargets(t, api2ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
 				case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
-					details.ServiceEndpointsId = api2Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api2Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api2Identity}
 				}
 			}),
 		}
 		destinationIpPortHTTP := &intermediate.Destination{
 			Explicit: &pbmesh.Destination{
-				DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
+				DestinationRef:  resource.Reference(api1Service.Id, ""),
 				DestinationPort: "http",
 				Datacenter:      "dc1",
 				ListenAddr: &pbmesh.Destination_IpPort{
@@ -408,16 +390,25 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "http", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
 				case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "http":
-					details.ServiceEndpointsId = api1Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api1Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api1Identity}
 				case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "http":
-					details.ServiceEndpointsId = api2Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api2Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api2Identity}
 				case resource.ReferenceOrIDMatch(backup1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "http":
-					details.ServiceEndpointsId = backup1Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, backup1Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{backup1Identity}
 				}
 			}),
@@ -469,24 +460,14 @@ func TestBuildImplicitDestinations(t *testing.T) {
 			WithData(t, serviceData).
 			Build()
 
-		api1Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-1").
-			WithOwner(api1Service.Id).
-			WithTenancy(tenancy).
-			WithData(t, endpointsData).Build()
-
-		api2Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-2").
-			WithOwner(api2Service.Id).
-			WithTenancy(tenancy).
-			WithData(t, endpointsData).Build()
-
 		api1Identity := &pbresource.Reference{
 			Name:    "api1-identity",
-			Tenancy: api1Endpoints.Id.Tenancy,
+			Tenancy: tenancy,
 		}
 
 		api2Identity := &pbresource.Reference{
 			Name:    "api2-identity",
-			Tenancy: api2Endpoints.Id.Tenancy,
+			Tenancy: tenancy,
 		}
 
 		api1ComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, api1Service.Id)
@@ -515,8 +496,11 @@ func TestBuildImplicitDestinations(t *testing.T) {
 			ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
 				case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
-					details.ServiceEndpointsId = api1Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api1Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api1Identity}
 				}
 			}),
@@ -528,8 +512,11 @@ func TestBuildImplicitDestinations(t *testing.T) {
 			ComputedPortRoutes: routestest.MutateTargets(t, api2ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
 				case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
-					details.ServiceEndpointsId = api2Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api2Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api2Identity}
 				}
 			}),
@@ -538,7 +525,7 @@ func TestBuildImplicitDestinations(t *testing.T) {
 
 		destination3 := &intermediate.Destination{
 			Explicit: &pbmesh.Destination{
-				DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
+				DestinationRef:  resource.Reference(api1Service.Id, ""),
 				DestinationPort: "tcp",
 				Datacenter:      "dc1",
 				ListenAddr: &pbmesh.Destination_IpPort{
@@ -549,8 +536,11 @@ func TestBuildImplicitDestinations(t *testing.T) {
 			ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
 				case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
-					details.ServiceEndpointsId = api1Endpoints.Id
-					details.ServiceEndpoints = endpointsData
+					details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+						Id:        resource.ReplaceType(pbcatalog.ServiceEndpointsType, api1Service.Id),
+						MeshPort:  details.MeshPort,
+						RoutePort: details.BackendRef.Port,
+					}
 					details.IdentityRefs = []*pbresource.Reference{api1Identity}
 				}
 			}),

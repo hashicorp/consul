@@ -582,7 +582,11 @@ type QuerySource struct {
 	Segment       string
 	Node          string
 	NodePartition string `json:",omitempty"`
-	Ip            string
+	// DisableNode indicates that the Node and NodePartition fields should not be used
+	// for determining the flow of the RPC. This is needed for agentless + wanfed to
+	// utilize streaming RPCs.
+	DisableNode bool `json:",omitempty"`
+	Ip          string
 }
 
 func (s QuerySource) NodeEnterpriseMeta() *acl.EnterpriseMeta {
@@ -666,6 +670,7 @@ type ServiceDumpRequest struct {
 	Datacenter         string
 	ServiceKind        ServiceKind
 	UseServiceKind     bool
+	NodesOnly          bool
 	Source             QuerySource
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	PeerName           string
@@ -698,6 +703,7 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash([]interface{}{
 		keyKind,
 		r.UseServiceKind,
+		r.NodesOnly,
 		r.Filter,
 		r.EnterpriseMeta,
 	}, nil)

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/internal/testing/golden"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -160,7 +161,6 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			virtualIPs []string,
 		) []*intermediate.Destination {
 			svcDec := resourcetest.MustDecode[*pbcatalog.Service](t, svc)
-			seDec := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](t, endpoints)
 
 			var out []*intermediate.Destination
 			for _, port := range svcDec.Data.Ports {
@@ -174,8 +174,11 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 					ComputedPortRoutes: routestest.MutateTargets(t, computedRoutes.Data, portName, func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 						switch {
 						case resource.ReferenceOrIDMatch(svc.Id, details.BackendRef.Ref) && details.BackendRef.Port == portName:
-							details.ServiceEndpointsId = endpoints.Id
-							details.ServiceEndpoints = seDec.Data
+							details.ServiceEndpointsRef = &pbproxystate.EndpointRef{
+								Id:        endpoints.Id,
+								MeshPort:  details.MeshPort,
+								RoutePort: details.BackendRef.Port,
+							}
 							details.IdentityRefs = identities
 						}
 					}),
@@ -247,7 +250,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				})
 
 				actual := protoToJSON(t, proxyTmpl)
-				expected := JSONToProxyTemplate(t, golden.GetBytes(t, actual, name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden"))
+				expected := JSONToProxyTemplate(t, golden.GetBytes(t, []byte(actual), name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden"))
 
 				// sort routers on listener from golden file
 				expectedRouters := expected.ProxyState.Listeners[0].Routers

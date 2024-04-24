@@ -1,9 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 syntax = "proto3";
 
 package hashicorp.consul.auth.v2beta1;
 
 import "pbresource/annotations.proto";
 
+// TrafficPermissions authorizes traffic between workloads in a Consul service mesh.
 message TrafficPermissions {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
@@ -12,6 +16,7 @@ message TrafficPermissions {
   Destination destination = 1;
 
   // Action can be either allow or deny for the entire object. It will default to allow.
+  // Deny actions are available only in Consul Enterprise.
   //
   // If action is allow, we will allow the connection if one of the rules in Rules matches, in other words, we will deny
   // all requests except for the ones that match Rules. If Consul is in default allow mode, then allow
@@ -28,6 +33,8 @@ message TrafficPermissions {
   repeated Permission permissions = 3;
 }
 
+// NamespaceTrafficPermissions represents traffic permissions that should
+// apply to all destinations in a namespace.
 message NamespaceTrafficPermissions {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
@@ -35,6 +42,8 @@ message NamespaceTrafficPermissions {
   repeated Permission permissions = 2;
 }
 
+// PartitionTrafficPermissions represents traffic permissions that should
+// apply to all destinations in a partition.
 message PartitionTrafficPermissions {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
 
@@ -48,6 +57,9 @@ message Destination {
   string identity_name = 1;
 }
 
+// Action specifies the behavior of a TrafficPermission.
+// ACTION_DENY is only available in Consul enterprise.
+//
 // +kubebuilder:validation:Enum=ACTION_ALLOW;ACTION_DENY;ACTION_UNKNOWN
 // +kubebuilder:validation:Type=string
 enum Action {
@@ -98,7 +110,7 @@ message DestinationRule {
   // Methods is the list of HTTP methods. If no methods are specified,
   // this rule will apply to all methods.
   repeated string methods = 4;
-  DestinationRuleHeader header = 5;
+  repeated DestinationRuleHeader headers = 5;
   repeated string port_names = 6;
   // Exclude contains a list of rules to exclude when evaluating rules for the incoming connection.
   repeated ExcludePermissionRule exclude = 7;
@@ -111,7 +123,7 @@ message ExcludePermissionRule {
   // Methods is the list of HTTP methods.
   repeated string methods = 4;
 
-  DestinationRuleHeader header = 5;
+  repeated DestinationRuleHeader headers = 5;
 
   // PortNames is a list of workload ports to apply this rule to. The ports specified here
   // must be the ports used in the connection.

@@ -14,7 +14,37 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul v1.19.x
+
+### Metrics removal
+
+In previous versions, Consul emitted redundant state store usage metrics that contained two instances of `consul` in the metric name. As an example, config entry usage counts were emitted as both:
+
+- `consul.state.config_entries`
+- `consul.consul.state.config_entries`
+
+As of Consul v1.19, Consul does not emit the redundant metric with the double `consul.consul` in its name. Any monitoring alerts and dashboards that you may have utilizing these metrics may require edits to update to the simplified metric name.
+
+### Legacy API Gateway Removal
+The Consul Kubernetes Helm chart stanza
+[`.apiGateway`](/consul/docs/v1.16.x/k8s/helm#apigateway-1)
+is removed in Consul v1.19.0. If using that stanza, migrate to the
+[`connectInject.apiGateway`](/consul/docs/k8s/helm#v-connectinject-apigateway)
+stanza before upgrading to Consul v1.19 or later.
+
+The `.apiGateway` stanza is associated with the legacy API gateway that was
+[deprecated in Consul v1.16.0](https://developer.hashicorp.com/consul/docs/release-notes/consul/v1_16_x#what-s-deprecated).
+The Kubernetes-only legacy API gateway is superseded by the modern, multi-runtime
+[API gateway](/consul/docs/connect/config-entries/api-gateway).
+On Kubernetes, the modern API gateway is associated with the `connectInject.apiGateway` stanza.
+
+
 ## Consul 1.17.x
+
+### Known issues
+
+Consul versions 1.17.2 and 1.16.5 perform excessively strict TLS SAN verification on terminating gateways, which prevents connections outside of the mesh to upstream services. Terminating gateway users are advised to avoid deploying these Consul versions. A fix will be present in a future release of Consul 1.17.3 and 1.16.6 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
+
 #### Audit Log naming changes (Enterprise)
 Prior to Consul 1.17.0, audit logs contained timestamps on both the original log file names as well as rotated log file names.
 After Consul 1.17.0, only timestamps will be included in rotated log file names.
@@ -33,6 +63,8 @@ service-defaults are configured in each partition and namespace before upgrading
 ## Consul 1.16.x
 
 ### Known issues
+
+Consul versions 1.17.2 and 1.16.5 perform excessively strict TLS SAN verification on terminating gateways, which prevents connections outside of the mesh to upstream services. Terminating gateway users are advised to avoid deploying these Consul versions. A fix will be present in a future release of Consul 1.17.3 and 1.16.6 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
 
 Service mesh in Consul versions 1.16.0 and 1.16.1 may have issues when a snapshot restore is performed and the servers are hosting xDS streams.
 When this bug triggers, it causes Envoy to incorrectly populate upstream endpoints. To prevent this issue, service mesh users who run agent-less workloads should upgrade Consul to v1.16.2 or later.

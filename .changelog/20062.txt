@@ -1,0 +1,3 @@
+```release-note:improvement
+Upgrade to use Go 1.21.6.
+```

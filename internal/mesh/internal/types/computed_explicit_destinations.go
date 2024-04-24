@@ -8,6 +8,8 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
+type DecodedComputedExplicitDestinations = resource.DecodedResource[*pbmesh.ComputedExplicitDestinations]
+
 func RegisterComputedExplicitDestinations(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbmesh.ComputedExplicitDestinationsType,

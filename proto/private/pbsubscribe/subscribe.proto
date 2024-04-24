@@ -106,6 +106,12 @@ enum Topic {
 
   // JWTProvider topic contains events for changes to jwt-provider
   JWTProvider = 16;
+
+  // ExportedServices topic contains events for changes to exported-services.
+  ExportedServices = 17;
+
+  // FileSystemCertificate topic contains events for changes to file-system-certificates.
+  FileSystemCertificate = 18;
 }
 
 message NamedSubject {

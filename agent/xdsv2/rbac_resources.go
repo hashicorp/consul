@@ -5,6 +5,7 @@ package xdsv2
 
 import (
 	"fmt"
+	"strings"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
@@ -20,11 +21,12 @@ import (
 
 const (
 	baseL4PermissionKey = "consul-intentions-layer4"
+	baseL7PermissionKey = "consul-intentions-layer7"
 )
 
-// MakeL4RBAC returns the envoy deny and allow rules from the traffic permissions. After calling this function these
+// MakeRBAC returns the envoy deny and allow rules from the traffic permissions. After calling this function these
 // rules can be put into a network rbac filter or http rbac filter depending on the local app port protocol.
-func MakeL4RBAC(trafficPermissions *pbproxystate.TrafficPermissions) (deny *envoy_rbac_v3.RBAC, allow *envoy_rbac_v3.RBAC, err error) {
+func MakeRBAC(trafficPermissions *pbproxystate.TrafficPermissions, makePolicies func([]*pbproxystate.Permission) map[string]*envoy_rbac_v3.Policy) (deny *envoy_rbac_v3.RBAC, allow *envoy_rbac_v3.RBAC, err error) {
 	var denyRBAC *envoy_rbac_v3.RBAC
 	var allowRBAC *envoy_rbac_v3.RBAC
 
@@ -37,7 +39,7 @@ func MakeL4RBAC(trafficPermissions *pbproxystate.TrafficPermissions) (deny *envo
 			Action:   envoy_rbac_v3.RBAC_DENY,
 			Policies: make(map[string]*envoy_rbac_v3.Policy),
 		}
-		denyRBAC.Policies = makeRBACPolicies(trafficPermissions.DenyPermissions)
+		denyRBAC.Policies = makePolicies(trafficPermissions.DenyPermissions)
 	}
 
 	// Only include the allow RBAC when Consul is in default deny.
@@ -47,7 +49,7 @@ func MakeL4RBAC(trafficPermissions *pbproxystate.TrafficPermissions) (deny *envo
 			Policies: make(map[string]*envoy_rbac_v3.Policy),
 		}
 
-		allowRBAC.Policies = makeRBACPolicies(trafficPermissions.AllowPermissions)
+		allowRBAC.Policies = makePolicies(trafficPermissions.AllowPermissions)
 	}
 
 	return denyRBAC, allowRBAC, nil
@@ -57,7 +59,7 @@ func MakeL4RBAC(trafficPermissions *pbproxystate.TrafficPermissions) (deny *envo
 func MakeRBACNetworkFilters(trafficPermissions *pbproxystate.TrafficPermissions) ([]*envoy_listener_v3.Filter, error) {
 	var filters []*envoy_listener_v3.Filter
 
-	deny, allow, err := MakeL4RBAC(trafficPermissions)
+	deny, allow, err := MakeRBAC(trafficPermissions, makeL4RBACPolicies)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +89,7 @@ func MakeRBACNetworkFilters(trafficPermissions *pbproxystate.TrafficPermissions)
 func MakeRBACHTTPFilters(trafficPermissions *pbproxystate.TrafficPermissions) ([]*envoy_http_v3.HttpFilter, error) {
 	var httpFilters []*envoy_http_v3.HttpFilter
 
-	deny, allow, err := MakeL4RBAC(trafficPermissions)
+	deny, allow, err := MakeRBAC(trafficPermissions, makeL7RBACPolicies)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +108,6 @@ func MakeRBACHTTPFilters(trafficPermissions *pbproxystate.TrafficPermissions) ([
 			return nil, err
 		}
 		httpFilters = append(httpFilters, filter)
-
 	}
 
 	return httpFilters, nil
@@ -132,28 +133,26 @@ func makeRBACHTTPFilter(rbac *envoy_rbac_v3.RBAC) (*envoy_http_v3.HttpFilter, er
 	return makeEnvoyHTTPFilter(envoyHTTPRBACFilterKey, cfg)
 }
 
-func makeRBACPolicies(l4Permissions []*pbproxystate.Permission) map[string]*envoy_rbac_v3.Policy {
-	policyLabel := func(i int) string {
-		if len(l4Permissions) == 1 {
-			return baseL4PermissionKey
-		}
-		return fmt.Sprintf("%s-%d", baseL4PermissionKey, i)
-	}
-
+func makeL4RBACPolicies(l4Permissions []*pbproxystate.Permission) map[string]*envoy_rbac_v3.Policy {
 	policies := make(map[string]*envoy_rbac_v3.Policy, len(l4Permissions))
 
 	for i, permission := range l4Permissions {
-		policy := makeRBACPolicy(permission)
+		if len(permission.DestinationRules) != 0 {
+			// This is an L7-only permission
+			// ports are split out for separate configuration before this point and L7 filters are configured separately
+			continue
+		}
+		policy := makeL4RBACPolicy(permission)
 		if policy != nil {
-			policies[policyLabel(i)] = policy
+			policies[l4PolicyLabel(l4Permissions, i)] = policy
 		}
 	}
 
 	return policies
 }
 
-func makeRBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
-	if len(p.Principals) == 0 {
+func makeL4RBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
+	if p == nil || len(p.Principals) == 0 {
 		return nil
 	}
 
@@ -166,6 +165,237 @@ func makeRBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
 	return &envoy_rbac_v3.Policy{
 		Principals:  principals,
 		Permissions: []*envoy_rbac_v3.Permission{anyPermission()},
+	}
+}
+
+func l4PolicyLabel(perms []*pbproxystate.Permission, i int) string {
+	if len(perms) == 1 {
+		return baseL4PermissionKey
+	}
+	return fmt.Sprintf("%s-%d", baseL4PermissionKey, i)
+}
+
+func makeL7RBACPolicies(l7Permissions []*pbproxystate.Permission) map[string]*envoy_rbac_v3.Policy {
+	// sort permissions into those with L7-specific features and those without, to match labeling and behavior
+	// conventions in V1: https://github.com/hashicorp/consul/blob/4e451f23584473a7eaf7f123145ca85e0a31783a/agent/xds/rbac.go#L647
+	// this is a somewhat unfortunate carry-over needed for testing v1 vs v2 final config
+	// and this will break with v1 intentions when multiple L4 permissions are used
+	var l4Perms []*pbproxystate.Permission
+	var l7Perms []*pbproxystate.Permission
+	for _, p := range l7Permissions {
+		if len(p.DestinationRules) > 0 {
+			l7Perms = append(l7Perms, p)
+		} else {
+			l4Perms = append(l4Perms, p)
+		}
+	}
+
+	policies := make(map[string]*envoy_rbac_v3.Policy, len(l7Permissions))
+
+	// L7 policies first, then L4 per: https://github.com/hashicorp/consul/blob/4e451f23584473a7eaf7f123145ca85e0a31783a/agent/xds/rbac.go#L664
+	for i, permission := range l7Perms {
+		policy := makeL7RBACPolicy(permission)
+		if policy != nil {
+			policies[fmt.Sprintf("%s-%d", baseL7PermissionKey, i)] = policy
+		}
+	}
+	for i, permission := range l4Perms {
+		policy := makeL4RBACPolicy(permission)
+		if policy != nil {
+			policies[l4PolicyLabel(l4Perms, i)] = policy
+		}
+	}
+
+	return policies
+}
+
+func makeL7RBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
+	if p == nil || len(p.Principals) == 0 {
+		return nil
+	}
+
+	var principals []*envoy_rbac_v3.Principal
+
+	for _, p := range p.Principals {
+		principals = append(principals, toEnvoyPrincipal(p))
+	}
+	permissions := permissionsFromDestinationRules(p.DestinationRules)
+	return &envoy_rbac_v3.Policy{
+		Principals:  principals,
+		Permissions: permissions,
+	}
+}
+
+func translateRule(dr *pbproxystate.DestinationRule) *envoy_rbac_v3.Permission {
+	var perms []*envoy_rbac_v3.Permission
+	// paths
+	switch {
+	case dr.PathExact != "":
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+								Exact: dr.PathExact,
+							},
+						},
+					},
+				},
+			},
+		})
+	case dr.PathPrefix != "":
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
+								Prefix: dr.PathPrefix,
+							},
+						},
+					},
+				},
+			},
+		})
+	case dr.PathRegex != "":
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+								SafeRegex: response.MakeEnvoyRegexMatch(dr.PathRegex),
+							},
+						},
+					},
+				},
+			},
+		})
+	}
+
+	// methods
+	if len(dr.Methods) > 0 {
+		methodHeaderRegex := strings.Join(dr.Methods, "|")
+		eh := &envoy_route_v3.HeaderMatcher{
+			Name: ":method",
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+					},
+				},
+			},
+		}
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_Header{
+				Header: eh,
+			}})
+	}
+
+	// headers
+	for _, hdr := range dr.DestinationRuleHeader {
+		eh := &envoy_route_v3.HeaderMatcher{
+			Name: hdr.Name,
+		}
+
+		switch {
+		case hdr.Exact != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+						Exact: hdr.Exact,
+					},
+					IgnoreCase: false,
+				},
+			}
+		case hdr.Regex != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(hdr.Regex),
+					},
+					IgnoreCase: false,
+				},
+			}
+
+		case hdr.Prefix != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
+						Prefix: hdr.Prefix,
+					},
+					IgnoreCase: false,
+				},
+			}
+
+		case hdr.Suffix != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Suffix{
+						Suffix: hdr.Suffix,
+					},
+					IgnoreCase: false,
+				},
+			}
+
+		case hdr.Present:
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PresentMatch{
+				PresentMatch: true,
+			}
+		default:
+			continue // skip this impossible situation
+		}
+
+		if hdr.Invert {
+			eh.InvertMatch = true
+		}
+
+		perms = append(perms, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_Header{
+				Header: eh,
+			},
+		})
+	}
+	return combineAndPermissions(perms)
+}
+
+func permissionsFromDestinationRules(drs []*pbproxystate.DestinationRule) []*envoy_rbac_v3.Permission {
+	var perms []*envoy_rbac_v3.Permission
+	for _, dr := range drs {
+		subPerms := make([]*envoy_rbac_v3.Permission, len(dr.Exclude))
+		for i, er := range dr.Exclude {
+			translated := translateRule(&pbproxystate.DestinationRule{
+				PathExact:             er.PathExact,
+				PathPrefix:            er.PathPrefix,
+				PathRegex:             er.PathRegex,
+				Methods:               er.Methods,
+				DestinationRuleHeader: er.Headers,
+			})
+			subPerms[i] = &envoy_rbac_v3.Permission{
+				Rule: &envoy_rbac_v3.Permission_NotRule{NotRule: translated},
+			}
+		}
+		subPerms = append([]*envoy_rbac_v3.Permission{translateRule(dr)}, subPerms...)
+		perms = append(perms, combineAndPermissions(subPerms))
+	}
+	return perms
+}
+
+func combineAndPermissions(perms []*envoy_rbac_v3.Permission) *envoy_rbac_v3.Permission {
+	switch len(perms) {
+	case 0:
+		return anyPermission()
+	case 1:
+		return perms[0]
+	default:
+		return &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_AndRules{
+				AndRules: &envoy_rbac_v3.Permission_Set{
+					Rules: perms,
+				},
+			},
+		}
 	}
 }
 

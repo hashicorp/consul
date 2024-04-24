@@ -115,7 +115,7 @@ spec:
   members:                                   
     - partition: partition-1
     - peer: dc1-partition-1
-    - peer: dc2-partition-2
+    - peer: dc1-partition-2
 ```
 
 </CodeBlockConfig>
@@ -146,7 +146,7 @@ The following example demonstrates how to format three different `ExportedServic
 apiVersion: consul.hashicorp.com/v1alpha1
 Kind: ExportedServices
 metadata:
-  name: product-group-export
+  name: partition-1
 spec:
   services:
     - name: api
@@ -163,7 +163,7 @@ spec:
 apiVersion: consul.hashicorp.com/v1alpha1
 Kind: ExportedServices
 metadata:
-  name: product-group-export
+  name: partition-2
 spec:
   services:
     - name: api
@@ -180,7 +180,7 @@ spec:
 apiVersion: consul.hashicorp.com/v1alpha1
 Kind: ExportedServices
 metadata:
-  name: product-group-export
+  name: partition-1
 spec:
   services:
     - name: api

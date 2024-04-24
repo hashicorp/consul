@@ -4,8 +4,6 @@
 package types
 
 import (
-	"math"
-
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
@@ -133,7 +131,6 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 
 	// Validate the endpoints ports
 	for portName, port := range endpoint.Ports {
-		// Port names must be DNS labels
 		if portNameErr := ValidatePortName(portName); portNameErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapKey{
 				Map:     "ports",
@@ -155,16 +152,24 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 
 		// As the physical port is the real port the endpoint will be bound to
 		// it must be in the standard 1-65535 range.
-		if port.Port < 1 || port.Port > math.MaxUint16 {
+		if portErr := ValidatePhysicalPort(port.Port); portErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapValue{
 				Map: "ports",
 				Key: portName,
 				Wrapped: resource.ErrInvalidField{
 					Name:    "physical_port",
-					Wrapped: errInvalidPhysicalPort,
+					Wrapped: portErr,
 				},
 			})
 		}
+	}
+
+	// Validate DNS
+	if dnsErr := validateDNSPolicy(endpoint.Dns); dnsErr != nil {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "dns_policy",
+			Wrapped: dnsErr,
+		})
 	}
 
 	return err

@@ -4,6 +4,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -34,11 +35,11 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	"github.com/hashicorp/consul/agent/dns"
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -316,8 +317,10 @@ func formatFromFileExtension(name string) string {
 
 type byName []os.FileInfo
 
-func (a byName) Len() int           { return len(a) }
-func (a byName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byName) Len() int { return len(a) }
+
+func (a byName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a byName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
 // build constructs the runtime configuration from the config sources
@@ -944,6 +947,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			CirconusSubmissionInterval:         stringVal(c.Telemetry.CirconusSubmissionInterval),
 			CirconusSubmissionURL:              stringVal(c.Telemetry.CirconusSubmissionURL),
 			DisableHostname:                    boolVal(c.Telemetry.DisableHostname),
+			DisablePerTenancyUsageMetrics:      boolVal(c.Telemetry.DisablePerTenancyUsageMetrics),
 			DogstatsdAddr:                      stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
 			RetryFailedConfiguration:           boolVal(c.Telemetry.RetryFailedConfiguration),
@@ -998,6 +1002,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DataDir:                                dataDir,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
+		DefaultIntentionPolicy:                 stringVal(c.DefaultIntentionPolicy),
 		DevMode:                                boolVal(b.opts.DevMode),
 		DisableAnonymousSignature:              boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                     boolVal(c.DisableCoordinates),
@@ -1110,7 +1115,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		LocalProxyConfigResyncInterval:    30 * time.Second,
 	}
 
-	// host metrics are enabled by default if consul is configured with HashiCorp Cloud Platform integration
+	// host metrics are enabled if consul is configured with HashiCorp Cloud Platform integration
 	rt.Telemetry.EnableHostMetrics = boolValWithDefault(c.Telemetry.EnableHostMetrics, rt.IsCloudEnabled())
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
@@ -1140,9 +1145,17 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
 	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
 		// Allow override of this check for development/testing purposes. Should not be used in production
-		override, err := strconv.ParseBool(os.Getenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK"))
-		if err != nil || !override {
+		if !stringslice.Contains(rt.Experiments, consul.HCPAllowV2ResourceAPIs) {
 			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
+		}
+	}
+
+	// For now, disallow usage of several v2 experiments in secondary datacenters.
+	if rt.ServerMode && rt.PrimaryDatacenter != rt.Datacenter {
+		for _, name := range rt.Experiments {
+			if !consul.IsExperimentAllowedOnSecondaries(name) {
+				return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include `%s` for servers in secondary datacenters", name)
+			}
 		}
 	}
 
@@ -1288,7 +1301,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	switch {
 	case rt.NodeName == "":
 		return fmt.Errorf("node_name cannot be empty")
-	case dns.InvalidNameRe.MatchString(rt.NodeName):
+	case dnsutil.InvalidNameRe.MatchString(rt.NodeName):
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", rt.NodeName)
@@ -1296,7 +1309,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		// todo(kyhavlov): Add stronger validation here for node names.
 		b.warn("Found invalid characters in node name %q - whitespace and quotes "+
 			"(', \", `) cannot be used with auto-config.", rt.NodeName)
-	case len(rt.NodeName) > dns.MaxLabelLength:
+	case len(rt.NodeName) > dnsutil.MaxLabelLength:
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.", rt.NodeName)
@@ -1828,14 +1841,14 @@ func (b *builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGate
 	return cfg
 }
 
-func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
-	var out dns.RecursorStrategy
+func (b *builder) dnsRecursorStrategyVal(v string) structs.RecursorStrategy {
+	var out structs.RecursorStrategy
 
-	switch dns.RecursorStrategy(v) {
-	case dns.RecursorStrategyRandom:
-		out = dns.RecursorStrategyRandom
-	case dns.RecursorStrategySequential, "":
-		out = dns.RecursorStrategySequential
+	switch structs.RecursorStrategy(v) {
+	case structs.RecursorStrategyRandom:
+		out = structs.RecursorStrategyRandom
+	case structs.RecursorStrategySequential, "":
+		out = structs.RecursorStrategySequential
 	default:
 		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
 	}
@@ -2570,9 +2583,37 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 }
 
 func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
-	val := hcpconfig.CloudConfig{
-		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
+	// Load the same environment variables expected by hcp-sdk-go
+	envHostname, ok := os.LookupEnv("HCP_API_ADDRESS")
+	if !ok {
+		if legacyEnvHostname, ok := os.LookupEnv("HCP_API_HOST"); ok {
+			// Remove only https scheme prefixes from the deprecated environment
+			// variable for specifying the API host. Mirrors the same behavior as
+			// hcp-sdk-go.
+			if strings.HasPrefix(strings.ToLower(legacyEnvHostname), "https://") {
+				legacyEnvHostname = legacyEnvHostname[8:]
+			}
+			envHostname = legacyEnvHostname
+		}
 	}
+
+	var envTLSConfig *tls.Config
+	if os.Getenv("HCP_AUTH_TLS") == "insecure" ||
+		os.Getenv("HCP_SCADA_TLS") == "insecure" ||
+		os.Getenv("HCP_API_TLS") == "insecure" {
+		envTLSConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	val := hcpconfig.CloudConfig{
+		ResourceID:   os.Getenv("HCP_RESOURCE_ID"),
+		ClientID:     os.Getenv("HCP_CLIENT_ID"),
+		ClientSecret: os.Getenv("HCP_CLIENT_SECRET"),
+		AuthURL:      os.Getenv("HCP_AUTH_URL"),
+		Hostname:     envHostname,
+		ScadaAddress: os.Getenv("HCP_SCADA_ADDRESS"),
+		TLSConfig:    envTLSConfig,
+	}
+
 	// Node id might get overridden in setup.go:142
 	nodeID := stringVal(v.NodeID)
 	val.NodeID = types.NodeID(nodeID)
@@ -2582,15 +2623,31 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 		return val
 	}
 
-	val.ClientID = stringVal(v.Cloud.ClientID)
-	val.ClientSecret = stringVal(v.Cloud.ClientSecret)
-	val.AuthURL = stringVal(v.Cloud.AuthURL)
-	val.Hostname = stringVal(v.Cloud.Hostname)
-	val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
-
-	if resourceID := stringVal(v.Cloud.ResourceID); resourceID != "" {
-		val.ResourceID = resourceID
+	// Load configuration file variables for anything not set by environment variables
+	if val.AuthURL == "" {
+		val.AuthURL = stringVal(v.Cloud.AuthURL)
 	}
+
+	if val.Hostname == "" {
+		val.Hostname = stringVal(v.Cloud.Hostname)
+	}
+
+	if val.ScadaAddress == "" {
+		val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
+	}
+
+	if val.ResourceID == "" {
+		val.ResourceID = stringVal(v.Cloud.ResourceID)
+	}
+
+	if val.ClientID == "" {
+		val.ClientID = stringVal(v.Cloud.ClientID)
+	}
+
+	if val.ClientSecret == "" {
+		val.ClientSecret = stringVal(v.Cloud.ClientSecret)
+	}
+
 	return val
 }
 

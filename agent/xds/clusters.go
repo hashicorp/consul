@@ -481,7 +481,7 @@ func makeMTLSTransportSocket(cfgSnap *proxycfg.ConfigSnapshot, uid proxycfg.Upst
 		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
-	err := injectSANMatcher(commonTLSContext, spiffeID.URI().String())
+	err := injectSANMatcher(commonTLSContext, false, spiffeID.URI().String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 	}
@@ -532,6 +532,7 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 			name:              connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain),
 			hostnameEndpoints: cfgSnap.MeshGateway.HostnameDatacenters[key.String()],
 			isRemote:          true,
+			limits:            cfgSnap.MeshGateway.Limits,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 		clusters = append(clusters, cluster)
@@ -554,6 +555,7 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 				name:              cfgSnap.ServerSNIFn(key.Datacenter, ""),
 				hostnameEndpoints: hostnameEndpoints,
 				isRemote:          !key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()),
+				limits:            cfgSnap.MeshGateway.Limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 			clusters = append(clusters, cluster)
@@ -563,7 +565,8 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 		for _, srv := range servers {
 			opts := clusterOpts{
-				name: cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node),
+				name:   cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node),
+				limits: cfgSnap.MeshGateway.Limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 			clusters = append(clusters, cluster)
@@ -579,14 +582,15 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		// We avoid routing to read replicas since they will never be Raft voters.
 		if haveVoters(servers) {
 			cluster := s.makeGatewayCluster(cfgSnap, clusterOpts{
-				name: connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+				name:   connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+				limits: cfgSnap.MeshGateway.Limits,
 			})
 			clusters = append(clusters, cluster)
 		}
 	}
 
 	// generate the per-service/subset clusters
-	c, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.MeshGateway.ServiceGroups, cfgSnap.MeshGateway.ServiceResolvers)
+	c, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.MeshGateway.ServiceGroups, cfgSnap.MeshGateway.ServiceResolvers, cfgSnap.MeshGateway.Limits)
 	if err != nil {
 		return nil, err
 	}
@@ -664,7 +668,7 @@ func (s *ResourceGenerator) makePeerServerClusters(cfgSnap *proxycfg.ConfigSnaps
 // for a terminating gateway. This will include 1 cluster per Destination associated with this terminating gateway.
 func (s *ResourceGenerator) clustersFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	res := []proto.Message{}
-	gwClusters, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
+	gwClusters, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -683,6 +687,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 	cfgSnap *proxycfg.ConfigSnapshot,
 	services map[structs.ServiceName]structs.CheckServiceNodes,
 	resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry,
+	limits *structs.UpstreamLimits,
 ) ([]proto.Message, error) {
 	var hostnameEndpoints structs.CheckServiceNodes
 
@@ -724,6 +729,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			hostnameEndpoints: hostnameEndpoints,
 			connectTimeout:    resolver.ConnectTimeout,
 			isRemote:          isRemote,
+			limits:            limits,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -763,6 +769,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 				onlyPassing:       subset.OnlyPassing,
 				connectTimeout:    resolver.ConnectTimeout,
 				isRemote:          isRemote,
+				limits:            limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -812,6 +819,7 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 				name:              clusterName,
 				isRemote:          true,
 				hostnameEndpoints: hostnameEndpoints,
+				limits:            cfgSnap.MeshGateway.Limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -875,7 +883,7 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
-				if err := injectSANMatcher(tlsContext.CommonTlsContext, mapping.SNI); err != nil {
+				if err := injectSANMatcher(tlsContext.CommonTlsContext, true, mapping.SNI); err != nil {
 					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
 				}
 			}
@@ -904,7 +912,7 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 			}
 			if mapping.SNI != "" {
 				tlsContext.Sni = mapping.SNI
-				if err := injectSANMatcher(tlsContext.CommonTlsContext, mapping.SNI); err != nil {
+				if err := injectSANMatcher(tlsContext.CommonTlsContext, true, mapping.SNI); err != nil {
 					return fmt.Errorf("failed to inject SNI matcher into TLS context: %v", err)
 				}
 			}
@@ -1226,7 +1234,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 		rootPEMs,
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
-	err = injectSANMatcher(commonTLSContext, peerMeta.SpiffeID...)
+	err = injectSANMatcher(commonTLSContext, false, peerMeta.SpiffeID...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", clusterName, err)
 	}
@@ -1329,7 +1337,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 		cfgSnap.RootPEMs(),
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
-	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
+	err = injectSANMatcher(commonTLSContext, false, spiffeIDs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 	}
@@ -1609,7 +1617,7 @@ func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *
 }
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
-func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ...string) error {
+func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, terminatingEgress bool, matchStrings ...string) error {
 	if tlsContext == nil {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext not to be nil")
 	}
@@ -1620,17 +1628,40 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 			tlsContext.ValidationContextType)
 	}
 
-	var matchers []*envoy_matcher_v3.StringMatcher
+	// All mesh services should match by URI
+	types := []envoy_tls_v3.SubjectAltNameMatcher_SanType{
+		envoy_tls_v3.SubjectAltNameMatcher_URI,
+	}
+	if terminatingEgress {
+		// Terminating gateways will need to match on many fields depending on user configuration,
+		// since they make egress calls outside of the cluster. Having more than one matcher behaves
+		// like an OR operation, where any match is sufficient to pass the certificate validation.
+		// To maintain backwards compatibility with the old untyped `match_subject_alt_names` behavior,
+		// we should match on all 4 enum types.
+		// https://github.com/hashicorp/consul/issues/20360
+		// https://github.com/envoyproxy/envoy/pull/18628/files#diff-cf088136dc052ddf1762fb3c96c0e8de472f3031f288e7e300558e6e72c8e129R69-R75
+		types = []envoy_tls_v3.SubjectAltNameMatcher_SanType{
+			envoy_tls_v3.SubjectAltNameMatcher_URI,
+			envoy_tls_v3.SubjectAltNameMatcher_DNS,
+			envoy_tls_v3.SubjectAltNameMatcher_EMAIL,
+			envoy_tls_v3.SubjectAltNameMatcher_IP_ADDRESS,
+		}
+	}
+	var matchers []*envoy_tls_v3.SubjectAltNameMatcher
 	for _, m := range matchStrings {
-		matchers = append(matchers, &envoy_matcher_v3.StringMatcher{
-			MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-				Exact: m,
-			},
-		})
+		for _, t := range types {
+			matchers = append(matchers, &envoy_tls_v3.SubjectAltNameMatcher{
+				SanType: t,
+				Matcher: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+						Exact: m,
+					},
+				},
+			})
+		}
 	}
 
-	//nolint:staticcheck
-	validationCtx.ValidationContext.MatchSubjectAltNames = matchers
+	validationCtx.ValidationContext.MatchTypedSubjectAltNames = matchers
 
 	return nil
 }
@@ -1683,6 +1714,8 @@ type clusterOpts struct {
 	// Corresponds to a valid address/port pairs to be routed externally
 	// these addresses will be embedded in the cluster configuration and will never use EDS
 	addresses []structs.ServiceAddress
+
+	limits *structs.UpstreamLimits
 }
 
 // makeGatewayCluster creates an Envoy cluster for a mesh or terminating gateway
@@ -1743,6 +1776,12 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 			opts.isRemote,
 			opts.onlyPassing,
 		)
+	}
+
+	if opts.limits != nil {
+		cluster.CircuitBreakers = &envoy_cluster_v3.CircuitBreakers{
+			Thresholds: makeThresholdsIfNeeded(opts.limits),
+		}
 	}
 
 	return cluster

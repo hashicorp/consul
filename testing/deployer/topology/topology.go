@@ -17,6 +17,10 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+const (
+	V1DefaultPortName = "legacy"
+)
+
 type Topology struct {
 	ID string
 
@@ -376,12 +380,21 @@ func (c *Cluster) FirstServer() *Node {
 	return nil
 }
 
-func (c *Cluster) FirstClient() *Node {
+// FirstClient returns the first client agent in the cluster.
+// If segment is non-empty, it will return the first client agent in that segment.
+func (c *Cluster) FirstClient(segment string) *Node {
 	for _, node := range c.Nodes {
 		if node.Kind != NodeKindClient || node.Disabled {
 			continue
 		}
-		return node
+		if segment == "" {
+			// return a client agent in default segment
+			return node
+		} else {
+			if node.Segment != nil && node.Segment.Name == segment {
+				return node
+			}
+		}
 	}
 	return nil
 }
@@ -553,6 +566,9 @@ type Node struct {
 
 	// Network segment of the agent - applicable to client agent only
 	Segment *NetworkSegment
+
+	// ExtraConfig is the extra config added to the node
+	ExtraConfig string
 }
 
 func (n *Node) DockerName() string {
@@ -886,6 +902,9 @@ func (w *Workload) ports() []int {
 	if len(w.Ports) > 0 {
 		seen := make(map[int]struct{})
 		for _, port := range w.Ports {
+			if port == nil {
+				continue
+			}
 			if _, ok := seen[port.Number]; !ok {
 				// It's totally fine to expose the same port twice in a workload.
 				seen[port.Number] = struct{}{}
@@ -921,6 +940,8 @@ func (w *Workload) DigestExposedPorts(ports map[int]int) {
 	}
 }
 
+// Validate checks a bunch of stuff intrinsic to the definition of the workload
+// itself.
 func (w *Workload) Validate() error {
 	if w.ID.Name == "" {
 		return fmt.Errorf("service name is required")
@@ -944,12 +965,15 @@ func (w *Workload) Validate() error {
 		}
 		if w.Port > 0 {
 			w.Ports = map[string]*Port{
-				"legacy": {
+				V1DefaultPortName: {
 					Number:   w.Port,
 					Protocol: "tcp",
 				},
 			}
 			w.Port = 0
+		}
+		if w.Ports == nil {
+			w.Ports = make(map[string]*Port)
 		}
 
 		if !w.DisableServiceMesh && w.EnvoyPublicListenerPort > 0 {
@@ -978,7 +1002,7 @@ func (w *Workload) Validate() error {
 		}
 	} else {
 		if len(w.Ports) > 0 {
-			return fmt.Errorf("cannot specify mulitport on service in v1")
+			return fmt.Errorf("cannot specify multiport on service in v1")
 		}
 		if w.Port <= 0 {
 			return fmt.Errorf("service has invalid port")
@@ -1049,7 +1073,10 @@ type Destination struct {
 	LocalPort    int
 	Peer         string `json:",omitempty"`
 
-	// PortName is the named port of this Destination to route traffic to.
+	// PortName is the port of this Destination to route traffic to.
+	//
+	// For more details on potential values of this field, see documentation
+	// for Service.ServicePort.
 	//
 	// This only applies for multi-port (v2).
 	PortName string `json:",omitempty"`

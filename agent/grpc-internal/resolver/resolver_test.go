@@ -42,9 +42,7 @@ func TestServerResolverBuilder(t *testing.T) {
 
 		cc := &fakeClientConn{}
 		_, err := rs.Build(resolver.Target{
-			Scheme:    "consul",
-			Authority: rs.Authority(),
-			URL:       url.URL{Opaque: endpoint},
+			URL: url.URL{Opaque: endpoint, Scheme: "consul", Host: rs.Authority()},
 		}, cc, resolver.BuildOptions{})
 		require.NoError(t, err)
 

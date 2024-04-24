@@ -4,14 +4,14 @@
 package endpoints
 
 import (
-	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
-	StatusKey                       = "consul.io/endpoint-manager"
+	ControllerID                    = "consul.io/endpoint-manager"
 	StatusConditionEndpointsManaged = "EndpointsManaged"
 
 	StatusReasonSelectorNotFound = "SelectorNotFound"
@@ -24,9 +24,6 @@ const (
 
 	StatusReasonWorkloadIdentitiesFound   = "WorkloadIdentitiesFound"
 	StatusReasonNoWorkloadIdentitiesFound = "NoWorkloadIdentitiesFound"
-
-	identitiesFoundMessageFormat     = "Found workload identities associated with this service: %q."
-	identitiesNotFoundChangedMessage = "No associated workload identities found."
 )
 
 var (
@@ -48,15 +45,17 @@ var (
 		Type:    StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  StatusReasonNoWorkloadIdentitiesFound,
-		Message: identitiesNotFoundChangedMessage,
+		Message: "",
 	}
 )
 
 func ConditionIdentitiesFound(identities []string) *pbresource.Condition {
+	sort.Strings(identities)
+
 	return &pbresource.Condition{
 		Type:    StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_TRUE,
 		Reason:  StatusReasonWorkloadIdentitiesFound,
-		Message: fmt.Sprintf(identitiesFoundMessageFormat, strings.Join(identities, ",")),
+		Message: strings.Join(identities, ","),
 	}
 }

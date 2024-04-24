@@ -213,8 +213,8 @@ func validate(
 			return false, ConditionMeshProtocolNotFound(serviceRef)
 		}
 
-		if service.GetData().FindServicePort(dest.DestinationPort) != nil &&
-			service.GetData().FindServicePort(dest.DestinationPort).Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+		if service.GetData().FindPortByID(dest.DestinationPort) != nil &&
+			service.GetData().FindPortByID(dest.DestinationPort).Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 			return false, ConditionMeshProtocolDestinationPort(serviceRef, dest.DestinationPort)
 		}
 

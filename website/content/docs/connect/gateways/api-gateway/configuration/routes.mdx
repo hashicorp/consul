@@ -300,10 +300,10 @@ The following example creates a route named `example-route` in namespace `gatewa
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: gateway-namespace
-      to:
-        - group: ""
-          kind: Service
-          name: echo
+    to:
+      - group: ""
+        kind: Service
+        name: echo
   ```
 
 </CodeBlockConfig>

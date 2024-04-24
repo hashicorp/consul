@@ -551,7 +551,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 			},
 			RaftIndex: entry.RaftIndex,
 		}
-
+		entry.Hash = 0
 		require.Equal(t, expect, entry)
 	}
 
@@ -690,7 +690,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 			},
 			RaftIndex: entry.RaftIndex,
 		}
-
+		entry.Hash = 0
 		require.Equal(t, expect, entry)
 	}
 
@@ -759,7 +759,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 			},
 			RaftIndex: entry.RaftIndex,
 		}
-
+		entry.Hash = 0
 		require.Equal(t, expect, entry)
 	}
 
@@ -1960,106 +1960,89 @@ func TestIntentionMatch_acl(t *testing.T) {
 	}
 }
 
-// Test the Check method defaults to allow with no ACL set.
-func TestIntentionCheck_defaultNoACL(t *testing.T) {
+func TestIntentionCheck(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
 
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	waitForLeaderEstablishment(t, s1)
-
-	// Test
-	req := &structs.IntentionQueryRequest{
-		Datacenter: "dc1",
-		Check: &structs.IntentionQueryCheck{
-			SourceName:      "bar",
-			DestinationName: "qux",
-			SourceType:      structs.IntentionSourceConsul,
+	type testcase struct {
+		aclsEnabled   bool
+		defaultACL    string
+		defaultIxn    string
+		expectAllowed bool
+	}
+	tcs := map[string]testcase{
+		"acls disabled, no default intention policy": {
+			aclsEnabled:   false,
+			expectAllowed: true,
+		},
+		"acls disabled, default intention allow": {
+			aclsEnabled:   false,
+			defaultIxn:    "allow",
+			expectAllowed: true,
+		},
+		"acls disabled, default intention deny": {
+			aclsEnabled:   false,
+			defaultIxn:    "deny",
+			expectAllowed: false,
+		},
+		"acls deny, no default intention policy": {
+			aclsEnabled:   true,
+			defaultACL:    "deny",
+			expectAllowed: false,
+		},
+		"acls allow, no default intention policy": {
+			aclsEnabled:   true,
+			defaultACL:    "allow",
+			expectAllowed: true,
+		},
+		"acls deny, default intention allow": {
+			aclsEnabled:   true,
+			defaultACL:    "deny",
+			defaultIxn:    "allow",
+			expectAllowed: true,
+		},
+		"acls allow, default intention deny": {
+			aclsEnabled:   true,
+			defaultACL:    "allow",
+			defaultIxn:    "deny",
+			expectAllowed: false,
 		},
 	}
-	var resp structs.IntentionQueryCheckResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
-	require.True(t, resp.Allowed)
-}
+	for name, tc := range tcs {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			_, s1 := testServerWithConfig(t, func(c *Config) {
+				if tc.aclsEnabled {
+					c.PrimaryDatacenter = "dc1"
+					c.ACLsEnabled = true
+					c.ACLInitialManagementToken = "root"
+					c.ACLResolverSettings.ACLDefaultPolicy = tc.defaultACL
+				}
+				c.DefaultIntentionPolicy = tc.defaultIxn
+			})
+			codec := rpcClient(t, s1)
 
-// Test the Check method defaults to deny with allowlist ACLs.
-func TestIntentionCheck_defaultACLDeny(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
+			waitForLeaderEstablishment(t, s1)
+
+			req := &structs.IntentionQueryRequest{
+				Datacenter: "dc1",
+				Check: &structs.IntentionQueryCheck{
+					SourceName:      "bar",
+					DestinationName: "qux",
+					SourceType:      structs.IntentionSourceConsul,
+				},
+			}
+			req.Token = "root"
+
+			var resp structs.IntentionQueryCheckResponse
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
+			require.Equal(t, tc.expectAllowed, resp.Allowed)
+		})
 	}
-
-	t.Parallel()
-
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.PrimaryDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLInitialManagementToken = "root"
-		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	waitForLeaderEstablishment(t, s1)
-
-	// Check
-	req := &structs.IntentionQueryRequest{
-		Datacenter: "dc1",
-		Check: &structs.IntentionQueryCheck{
-			SourceName:      "bar",
-			DestinationName: "qux",
-			SourceType:      structs.IntentionSourceConsul,
-		},
-	}
-	req.Token = "root"
-	var resp structs.IntentionQueryCheckResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
-	require.False(t, resp.Allowed)
-}
-
-// Test the Check method defaults to deny with denylist ACLs.
-func TestIntentionCheck_defaultACLAllow(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.PrimaryDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLInitialManagementToken = "root"
-		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	waitForLeaderEstablishment(t, s1)
-
-	// Check
-	req := &structs.IntentionQueryRequest{
-		Datacenter: "dc1",
-		Check: &structs.IntentionQueryCheck{
-			SourceName:      "bar",
-			DestinationName: "qux",
-			SourceType:      structs.IntentionSourceConsul,
-		},
-	}
-	req.Token = "root"
-	var resp structs.IntentionQueryCheckResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
-	require.True(t, resp.Allowed)
 }
 
 // Test the Check method requires service:read permission.

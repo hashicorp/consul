@@ -495,6 +495,15 @@
     "path": "reload"
   },
   {
+    "title": "resource",
+    "path": "resource",
+    "badge": {
+      "text": "v2",
+      "type": "outlined",
+      "color": "neutral"
+    }
+  },
+  {
     "title": "rtt",
     "path": "rtt"
   },
@@ -516,6 +525,10 @@
       {
         "title": "export",
         "path": "services/export"
+      },
+      {
+        "title": "exported-services",
+        "path": "services/exported-services"
       }
     ]
   },

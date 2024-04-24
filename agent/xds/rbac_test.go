@@ -12,6 +12,7 @@ import (
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
+	http_connection_managerv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
 	"github.com/stretchr/testify/assert"
@@ -572,9 +573,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		intentionDefaultAllow  bool
-		v1Intentions           structs.SimplifiedIntentions
-		v2L4TrafficPermissions *pbproxystate.TrafficPermissions
+		intentionDefaultAllow bool
+		v1Intentions          structs.SimplifiedIntentions
+		v2TrafficPermissions  *pbproxystate.TrafficPermissions
 	}{
 		"default-deny-mixed-precedence": {
 			intentionDefaultAllow: false,
@@ -583,7 +584,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testIntention(t, "*", "api", structs.IntentionActionDeny),
 				testIntention(t, "web", "*", structs.IntentionActionDeny),
 			),
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
 				AllowPermissions: []*pbproxystate.Permission{
 					{
 						Principals: []*pbproxystate.Principal{
@@ -600,7 +601,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			v1Intentions: sorted(
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
 				AllowPermissions: []*pbproxystate.Permission{
 					{
 						Principals: []*pbproxystate.Principal{
@@ -623,7 +624,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			v1Intentions: sorted(
 				testSourceIntention("web", structs.IntentionActionAllow),
 			),
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
 				AllowPermissions: []*pbproxystate.Permission{
 					{
 						Principals: []*pbproxystate.Principal{
@@ -647,7 +648,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("web", structs.IntentionActionDeny),
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
 				AllowPermissions: []*pbproxystate.Permission{
 					{
 						Principals: []*pbproxystate.Principal{
@@ -669,7 +670,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("cron", structs.IntentionActionAllow),
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
 				AllowPermissions: []*pbproxystate.Permission{
 					{
 						Principals: []*pbproxystate.Principal{
@@ -694,7 +695,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		},
 		"v2-kitchen-sink": {
 			intentionDefaultAllow: false,
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
 				AllowPermissions: []*pbproxystate.Permission{
 					{
 						Principals: []*pbproxystate.Principal{
@@ -731,20 +732,72 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				},
 			},
 		},
+		"v2-path-excludes": {
+			intentionDefaultAllow: false,
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/",
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathPrefix: "/admin"},
+								},
+							},
+						},
+					},
+				},
+				DenyPermissions: []*pbproxystate.Permission{},
+			},
+		},
+		"v2-path-method-header-excludes": {
+			intentionDefaultAllow: false,
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/",
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{
+										PathPrefix: "/admin",
+										Methods:    []string{"POST", "DELETE"},
+										Headers: []*pbproxystate.DestinationRuleHeader{
+											{Name: "experiment", Present: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				DenyPermissions: []*pbproxystate.Permission{},
+			},
+		},
 		"v2-default-deny": {
-			intentionDefaultAllow:  false,
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{},
+			intentionDefaultAllow: false,
+			v2TrafficPermissions:  &pbproxystate.TrafficPermissions{},
 		},
 		"v2-default-allow": {
-			intentionDefaultAllow:  true,
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{},
+			intentionDefaultAllow: true,
+			v2TrafficPermissions:  &pbproxystate.TrafficPermissions{},
 		},
 		// This validates that we don't send xDS messages to Envoy that will fail validation.
 		// Traffic permissions validations prevent this from being written to the IR, so the thing
 		// that matters is that the snapshot is valid to Envoy.
 		"v2-ignore-empty-permissions": {
 			intentionDefaultAllow: false,
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
 				DenyPermissions: []*pbproxystate.Permission{
 					{},
 				},
@@ -783,6 +836,21 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			v1Intentions: sorted(
 				testSourcePermIntention("web", permSlashPrefix),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{PathPrefix: "/"},
+						},
+					},
+				},
+				DenyPermissions: []*pbproxystate.Permission{},
+			},
 		},
 		"default-allow-path-deny": {
 			intentionDefaultAllow: true,
@@ -795,6 +863,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			v1Intentions: sorted(
 				testSourcePermIntention("web", permDenySlashPrefix),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{},
 		},
 		// ========================
 		"default-allow-deny-all-and-path-allow": {
@@ -824,6 +893,22 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				),
 				testSourceIntention("*", structs.IntentionActionDeny),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/",
+							},
+						},
+					},
+				},
+			},
 		},
 		"default-allow-deny-all-and-path-deny": {
 			intentionDefaultAllow: true,
@@ -852,6 +937,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				),
 				testSourceIntention("*", structs.IntentionActionDeny),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{},
 		},
 		// ========================
 		"default-deny-two-path-deny-and-path-allow": {
@@ -878,6 +964,26 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 					},
 				),
 			),
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/",
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/admin"},
+									{PathExact: "/v1/secret"},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 		"default-allow-two-path-deny-and-path-allow": {
 			intentionDefaultAllow: true,
@@ -946,6 +1052,163 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 					},
 				),
 			),
+		},
+		"v2-single-permission-with-excludes": {
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/v1",
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+								},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+									{PathExact: "/v1/admin", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"v2-single-permission-multiple-destination-rules": {
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/v1",
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+								},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+									{PathExact: "/v1/admin", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+								},
+							},
+							{
+								PathPrefix: "/v2",
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+								},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v2/secret", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+									{PathExact: "/v2/admin", Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+										{Name: "x-bar", Present: true},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"v2-single-permission-with-kitchen-sink-perms": {
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/v1",
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret"},
+								},
+							},
+							{
+								PathRegex: "/v[123]",
+								Methods:   []string{"GET", "HEAD", "OPTIONS"},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret"},
+									{PathExact: "/v1/admin", Methods: []string{"GET"}},
+								},
+							},
+							{
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+									{Name: "x-bar", Exact: "xyz"},
+									{Name: "x-dib", Prefix: "gaz"},
+									{Name: "x-gir", Suffix: "zim"},
+									{Name: "x-zim", Regex: "gi[rR]"},
+									{Name: "z-foo", Present: true, Invert: true},
+									{Name: "z-bar", Exact: "xyz", Invert: true},
+									{Name: "z-dib", Prefix: "gaz", Invert: true},
+									{Name: "z-gir", Suffix: "zim", Invert: true},
+									{Name: "z-zim", Regex: "gi[rR]", Invert: true},
+								},
+								Exclude: []*pbproxystate.ExcludePermissionRule{
+									{PathExact: "/v1/secret"},
+									{Headers: []*pbproxystate.DestinationRuleHeader{
+										{Name: "x-baz", Present: true},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"v2-L4-deny-L7-allow": {
+			v2TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+						DestinationRules: []*pbproxystate.DestinationRule{
+							{
+								PathPrefix: "/v1",
+								DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+									{Name: "x-foo", Present: true},
+								},
+							},
+						},
+					},
+				},
+				DenyPermissions: []*pbproxystate.Permission{
+					{
+						Principals: []*pbproxystate.Principal{
+							{
+								Spiffe: makeSpiffe("web", nil),
+							},
+						},
+					},
+				},
+			},
 		},
 		"default-allow-single-intention-with-kitchen-sink-perms": {
 			intentionDefaultAllow: true,
@@ -1079,13 +1342,13 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 
 				t.Run("v1 vs v2", func(t *testing.T) {
-					if tt.v2L4TrafficPermissions == nil {
+					if tt.v2TrafficPermissions == nil {
 						return
 					}
 
-					tt.v2L4TrafficPermissions.DefaultAllow = tt.intentionDefaultAllow
+					tt.v2TrafficPermissions.DefaultAllow = tt.intentionDefaultAllow
 
-					filters, err := xdsv2.MakeRBACNetworkFilters(tt.v2L4TrafficPermissions)
+					filters, err := xdsv2.MakeRBACNetworkFilters(tt.v2TrafficPermissions)
 					require.NoError(t, err)
 
 					var gotJSON string
@@ -1097,22 +1360,43 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 						chain.Filters = filters
 						gotJSON = protoToJSON(t, chain)
 					}
-
 					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name), gotJSON), gotJSON)
 				})
 			})
 
 			t.Run("http filter", func(t *testing.T) {
-				if len(tt.v1Intentions) == 0 {
-					return
-				}
-
-				filter, err := makeRBACHTTPFilter(tt.v1Intentions, tt.intentionDefaultAllow, testLocalInfo, testPeerTrustBundle, testJWTProviderConfigEntry)
-				require.NoError(t, err)
 
 				t.Run("current", func(t *testing.T) {
+					if len(tt.v1Intentions) == 0 {
+						return
+					}
+
+					filter, err := makeRBACHTTPFilter(tt.v1Intentions, tt.intentionDefaultAllow, testLocalInfo, testPeerTrustBundle, testJWTProviderConfigEntry)
+					require.NoError(t, err)
 					gotJSON := protoToJSON(t, filter)
 
+					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name+"--httpfilter"), gotJSON), gotJSON)
+				})
+
+				t.Run("v1 vs v2", func(t *testing.T) {
+					if tt.v2TrafficPermissions == nil {
+						return
+					}
+
+					tt.v2TrafficPermissions.DefaultAllow = tt.intentionDefaultAllow
+
+					filters, err := xdsv2.MakeRBACHTTPFilters(tt.v2TrafficPermissions)
+					require.NoError(t, err)
+
+					var gotJSON string
+					if len(filters) == 1 {
+						gotJSON = protoToJSON(t, filters[0])
+					} else {
+						// This is wrapped because protoToJSON won't encode an array of protobufs.
+						manager := &http_connection_managerv3.HttpConnectionManager{}
+						manager.HttpFilters = filters
+						gotJSON = protoToJSON(t, manager)
+					}
 					require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name+"--httpfilter"), gotJSON), gotJSON)
 				})
 			})

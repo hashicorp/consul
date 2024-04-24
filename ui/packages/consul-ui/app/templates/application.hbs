@@ -7,41 +7,46 @@
 
   {{! Add the a11y route announcer }}
   <route.Announcer @title='Consul' />
-  {{! Tell CSS what we have enabled }}
-  {{#if (can 'use acls')}}
-    {{document-attrs class="has-acls"}}
-  {{/if}}
-  {{#if (can 'use nspaces')}}
-    {{document-attrs class="has-nspaces" }}
-  {{/if}}
-  {{#if (can 'use partitions')}}
-    {{document-attrs class="has-partitions" }}
-  {{/if}}
 
-  {{! Listen out for blocking query/client setting changes }}
-  <DataSource
-    @src={{uri 'settings://consul:client'}}
-    @onchange={{route-action 'onClientChanged'}}
-  />
+  {{#unless (env 'CONSUL_V2_CATALOG_ENABLED')}}
+    {{! Tell CSS what we have enabled }}
+    {{#if (can 'use acls')}}
+      {{document-attrs class='has-acls'}}
+    {{/if}}
+    {{#if (can 'use nspaces')}}
+      {{document-attrs class='has-nspaces'}}
+    {{/if}}
+    {{#if (can 'use partitions')}}
+      {{document-attrs class='has-partitions'}}
+    {{/if}}
 
-  {{! Tell CSS about our theme }}
-  <DataSource @src={{uri 'settings://consul:theme'}} as |source|>
-    {{#each-in source.data as |key value|}}
-      {{#if (and value (includes key (array 'color-scheme' 'contrast')))}}
-        {{document-attrs class=(concat "prefers-" key "-" value) }}
-      {{/if}}
-    {{/each-in}}
-  </DataSource>
-
-  {{! If ACLs are enabled try get a token }}
-  {{#if (can 'use acls')}}
+    {{! Listen out for blocking query/client setting changes }}
     <DataSource
-      @src={{uri 'settings://consul:token'}}
-      @onchange={{action (mut token) value='data'}}
+      @src={{uri 'settings://consul:client'}}
+      @onchange={{route-action 'onClientChanged'}}
     />
-  {{/if}}
 
-  {{#if (not-eq route.currentName 'oauth-provider-debug')}}
+    {{! Tell CSS about our theme }}
+    <DataSource @src={{uri 'settings://consul:theme'}} as |source|>
+      {{#each-in source.data as |key value|}}
+        {{#if (and value (includes key (array 'color-scheme' 'contrast')))}}
+          {{document-attrs class=(concat 'prefers-' key '-' value)}}
+        {{/if}}
+      {{/each-in}}
+    </DataSource>
+
+    {{! If ACLs are enabled try get a token }}
+    {{#if (can 'use acls')}}
+      <DataSource
+        @src={{uri 'settings://consul:token'}}
+        @onchange={{action (mut token) value='data'}}
+      />
+    {{/if}}
+  {{/unless}}
+
+  {{#if
+    (and (not (env 'CONSUL_V2_CATALOG_ENABLED')) (not-eq route.currentName 'oauth-provider-debug'))
+  }}
 
     {{! redirect if we aren't on a URL with dc information }}
     {{#if (eq route.currentName 'index')}}

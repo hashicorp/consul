@@ -718,6 +718,7 @@ telemetry {
     prometheus_retention_time = "15s"
     statsd_address = "drce87cy"
     statsite_address = "HpFwKB8R"
+    disable_per_tenancy_usage_metrics = true
 }
 tls {
     defaults {

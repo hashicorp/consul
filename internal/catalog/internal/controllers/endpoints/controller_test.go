@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -63,26 +62,23 @@ func TestWorkloadsToEndpoints(t *testing.T) {
 	}
 
 	// Build out the workloads.
-	workloads := []*workloadData{
-		{
-			// this workload should result in an endpoints
-			resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+	workloads := []*DecodedWorkload{
+		rtest.MustDecode[*pbcatalog.Workload](
+			t,
+			rtest.Resource(pbcatalog.WorkloadType, "foo").
 				WithData(t, workloadData1).
-				Build(),
-			workload: workloadData1,
-		},
-		{
-			// this workload should be filtered out
-			resource: rtest.Resource(pbcatalog.WorkloadType, "bar").
+				Build()),
+
+		rtest.MustDecode[*pbcatalog.Workload](
+			t,
+			rtest.Resource(pbcatalog.WorkloadType, "bar").
 				WithData(t, workloadData2).
-				Build(),
-			workload: workloadData2,
-		},
+				Build()),
 	}
 
 	endpoints := workloadsToEndpoints(service, workloads)
 	require.Len(t, endpoints.Endpoints, 1)
-	prototest.AssertDeepEqual(t, workloads[0].resource.Id, endpoints.Endpoints[0].TargetRef)
+	prototest.AssertDeepEqual(t, workloads[0].Id, endpoints.Endpoints[0].TargetRef)
 }
 
 func TestWorkloadToEndpoint(t *testing.T) {
@@ -127,17 +123,20 @@ func TestWorkloadToEndpoint(t *testing.T) {
 			"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
 		},
 		Identity: "test-identity",
+		Dns: &pbcatalog.DNSPolicy{
+			Weights: &pbcatalog.Weights{
+				Passing: 3,
+				Warning: 2,
+			},
+		},
 	}
 
-	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
-			WithData(t, workload).
-			Build(),
-		workload: workload,
-	}
+	data := rtest.MustDecode[*pbcatalog.Workload](t, rtest.Resource(pbcatalog.WorkloadType, "foo").
+		WithData(t, workload).
+		Build())
 
 	expected := &pbcatalog.Endpoint{
-		TargetRef: data.resource.Id,
+		TargetRef: data.Id,
 		Addresses: []*pbcatalog.WorkloadAddress{
 			{Host: "127.0.0.1", Ports: []string{"http"}},
 			{Host: "198.18.1.1", Ports: []string{"http"}},
@@ -151,6 +150,12 @@ func TestWorkloadToEndpoint(t *testing.T) {
 		// controller tests will prove that the integration works as expected.
 		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
 		Identity:     workload.Identity,
+		Dns: &pbcatalog.DNSPolicy{
+			Weights: &pbcatalog.Weights{
+				Passing: 3,
+				Warning: 2,
+			},
+		},
 	}
 
 	prototest.AssertDeepEqual(t, expected, workloadToEndpoint(service, data))
@@ -177,12 +182,11 @@ func TestWorkloadToEndpoint_AllAddressesFiltered(t *testing.T) {
 		},
 	}
 
-	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+	data := rtest.MustDecode[*pbcatalog.Workload](
+		t,
+		rtest.Resource(pbcatalog.WorkloadType, "foo").
 			WithData(t, workload).
-			Build(),
-		workload: workload,
-	}
+			Build())
 
 	require.Nil(t, workloadToEndpoint(service, data))
 }
@@ -206,15 +210,14 @@ func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
 		},
 	}
 
-	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+	data := rtest.MustDecode[*pbcatalog.Workload](
+		t,
+		rtest.Resource(pbcatalog.WorkloadType, "foo").
 			WithData(t, workload).
-			Build(),
-		workload: workload,
-	}
+			Build())
 
 	expected := &pbcatalog.Endpoint{
-		TargetRef: data.resource.Id,
+		TargetRef: data.Id,
 		Addresses: []*pbcatalog.WorkloadAddress{
 			{Host: "127.0.0.1", Ports: []string{"test-port"}},
 		},
@@ -299,7 +302,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"condition-not-found": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   "other",
@@ -313,7 +316,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"invalid-reason": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -327,7 +330,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"passing": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -341,7 +344,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"warning": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -355,7 +358,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"critical": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -369,7 +372,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 		},
 		"maintenance": {
 			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
-				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
+				WithStatus(workloadhealth.ControllerID, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
 							Type:   workloadhealth.StatusConditionHealthy,
@@ -441,9 +444,8 @@ type controllerSuite struct {
 	client *rtest.Client
 	rt     controller.Runtime
 
-	tracker    *selectiontracker.WorkloadSelectionTracker
-	reconciler *serviceEndpointsReconciler
-	tenancies  []*pbresource.Tenancy
+	ctl       *controller.TestController
+	tenancies []*pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
@@ -453,22 +455,10 @@ func (suite *controllerSuite) SetupTest() {
 		WithRegisterFns(types.Register).
 		WithTenancies(suite.tenancies...).
 		Run(suite.T())
-	suite.rt = controller.Runtime{
-		Client: client,
-		Logger: testutil.Logger(suite.T()),
-	}
-	suite.client = rtest.NewClient(client)
-	suite.tracker = selectiontracker.New()
-	suite.reconciler = newServiceEndpointsReconciler(suite.tracker)
-}
-
-func (suite *controllerSuite) requireTracking(workload *pbresource.Resource, ids ...*pbresource.ID) {
-	reqs, err := suite.tracker.MapWorkload(suite.ctx, suite.rt, workload)
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, len(ids))
-	for _, id := range ids {
-		prototest.AssertContainsElement(suite.T(), reqs, controller.Request{ID: id})
-	}
+	suite.ctl = controller.NewTestController(ServiceEndpointsController(), client).
+		WithLogger(testutil.Logger(suite.T()))
+	suite.rt = suite.ctl.Runtime()
+	suite.client = rtest.NewClient(suite.rt.Client)
 }
 
 func (suite *controllerSuite) requireEndpoints(resource *pbresource.Resource, expected ...*pbcatalog.Endpoint) {
@@ -479,33 +469,14 @@ func (suite *controllerSuite) requireEndpoints(resource *pbresource.Resource, ex
 }
 
 func (suite *controllerSuite) TestReconcile_ServiceNotFound() {
-	// This test's purpose is to ensure that when we are reconciling
-	// endpoints for a service that no longer exists, we stop
-	// tracking the endpoints resource ID in the selection tracker.
-
-	// generate a workload resource to use for checking if it maps
-	// to a service endpoints object
-
+	// This test really only checks that the Reconcile call will not panic or otherwise error
+	// when the request is for an endpoints object whose corresponding service does not exist.
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		workload := rtest.Resource(pbcatalog.WorkloadType, "foo").WithTenancy(tenancy).Build()
-
-		// ensure that the tracker knows about the service prior to
-		// calling reconcile so that we can ensure it removes tracking
 		id := rtest.Resource(pbcatalog.ServiceEndpointsType, "not-found").WithTenancy(tenancy).ID()
-		suite.tracker.TrackIDForSelector(id, &pbcatalog.WorkloadSelector{Prefixes: []string{""}})
 
-		// verify that mapping the workload to service endpoints returns a
-		// non-empty list prior to reconciliation which should remove the
-		// tracking.
-		suite.requireTracking(workload, id)
-
-		// Because the endpoints don't exist, this reconcile call should
-		// cause tracking of the endpoints to be removed
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
+		// Because the endpoints don't exist, this reconcile call not error but also shouldn't do anything useful.
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: id})
 		require.NoError(suite.T(), err)
-
-		// Now ensure that the tracking was removed
-		suite.requireTracking(workload)
 	})
 }
 
@@ -527,10 +498,10 @@ func (suite *controllerSuite) TestReconcile_NoSelector_NoEndpoints() {
 
 		endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, "test").WithTenancy(tenancy).ID()
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpointsID})
 		require.NoError(suite.T(), err)
 
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
+		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionUnmanaged)
 	})
 }
 
@@ -553,13 +524,13 @@ func (suite *controllerSuite) TestReconcile_NoSelector_ManagedEndpoints() {
 			WithTenancy(tenancy).
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
 			// this marks these endpoints as under management
-			WithMeta(endpointsMetaManagedBy, StatusKey).
+			WithMeta(endpointsMetaManagedBy, ControllerID).
 			Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
 		require.NoError(suite.T(), err)
 		// the status should indicate the services endpoints are not being managed
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
+		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionUnmanaged)
 		// endpoints under management should be deleted
 		suite.client.RequireResourceNotFound(suite.T(), endpoints.Id)
 	})
@@ -585,10 +556,10 @@ func (suite *controllerSuite) TestReconcile_NoSelector_UnmanagedEndpoints() {
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
 			Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
 		require.NoError(suite.T(), err)
 		// the status should indicate the services endpoints are not being managed
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
+		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionUnmanaged)
 		// unmanaged endpoints should not be deleted when the service is unmanaged
 		suite.client.RequireResourceExists(suite.T(), endpoints.Id)
 	})
@@ -623,14 +594,14 @@ func (suite *controllerSuite) TestReconcile_Managed_NoPreviousEndpoints() {
 			}).
 			Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpointsID})
 		require.NoError(suite.T(), err)
 
 		// Verify that the services status has been set to indicate endpoints are automatically managed.
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionManaged)
+		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionManaged)
 
 		// The service endpoints metadata should include our tag to indcate it was generated by this controller
-		res := suite.client.RequireResourceMeta(suite.T(), endpointsID, endpointsMetaManagedBy, StatusKey)
+		res := suite.client.RequireResourceMeta(suite.T(), endpointsID, endpointsMetaManagedBy, ControllerID)
 
 		var endpoints pbcatalog.ServiceEndpoints
 		err = res.Data.UnmarshalTo(&endpoints)
@@ -676,11 +647,11 @@ func (suite *controllerSuite) TestReconcile_Managed_ExistingEndpoints() {
 			}).
 			Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+		err := suite.ctl.Reconcile(suite.ctx, controller.Request{ID: endpoints.Id})
 		require.NoError(suite.T(), err)
 
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionManaged)
-		res := suite.client.RequireResourceMeta(suite.T(), endpoints.Id, endpointsMetaManagedBy, StatusKey)
+		suite.client.RequireStatusCondition(suite.T(), service.Id, ControllerID, ConditionManaged)
+		res := suite.client.RequireResourceMeta(suite.T(), endpoints.Id, endpointsMetaManagedBy, ControllerID)
 
 		var newEndpoints pbcatalog.ServiceEndpoints
 		err = res.Data.UnmarshalTo(&newEndpoints)
@@ -699,7 +670,7 @@ func (suite *controllerSuite) TestController() {
 
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(ServiceEndpointsController(suite.tracker))
+	mgr.Register(ServiceEndpointsController())
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -719,10 +690,10 @@ func (suite *controllerSuite) TestController() {
 			Write(suite.T(), suite.client)
 
 		// Wait for the controller to record that the endpoints are being managed
-		res := suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
+		res := suite.client.WaitForReconciliation(suite.T(), service.Id, ControllerID)
 		// Check that the services status was updated accordingly
-		rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionManaged)
-		rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionIdentitiesNotFound)
+		rtest.RequireStatusCondition(suite.T(), res, ControllerID, ConditionManaged)
+		rtest.RequireStatusCondition(suite.T(), res, ControllerID, ConditionIdentitiesNotFound)
 
 		// Check that the endpoints resource exists and contains 0 endpoints
 		endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, "api").WithTenancy(tenancy).ID()
@@ -743,7 +714,7 @@ func (suite *controllerSuite) TestController() {
 			}).
 			Write(suite.T(), suite.client)
 
-		suite.client.WaitForStatusCondition(suite.T(), service.Id, StatusKey,
+		suite.client.WaitForStatusCondition(suite.T(), service.Id, ControllerID,
 			ConditionIdentitiesFound([]string{"api"}))
 
 		// Wait for the endpoints to be regenerated
@@ -765,7 +736,7 @@ func (suite *controllerSuite) TestController() {
 		// Update the health status of the workload
 		suite.client.WriteStatus(suite.ctx, &pbresource.WriteStatusRequest{
 			Id:  workload.Id,
-			Key: workloadhealth.StatusKey,
+			Key: workloadhealth.ControllerID,
 			Status: &pbresource.Status{
 				ObservedGeneration: workload.Generation,
 				Conditions: []*pbresource.Condition{
@@ -806,7 +777,7 @@ func (suite *controllerSuite) TestController() {
 			}).
 			Write(suite.T(), suite.client)
 
-		suite.client.WaitForStatusCondition(suite.T(), service.Id, StatusKey, ConditionIdentitiesFound([]string{"endpoints-api-identity"}))
+		suite.client.WaitForStatusCondition(suite.T(), service.Id, ControllerID, ConditionIdentitiesFound([]string{"endpoints-api-identity"}))
 
 		// Verify that the generated endpoints now contain the workload
 		endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
@@ -838,7 +809,7 @@ func (suite *controllerSuite) TestController() {
 			Write(suite.T(), suite.client)
 
 		// Wait for the service status' observed generation to get bumped
-		service = suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
+		service = suite.client.WaitForReconciliation(suite.T(), service.Id, ControllerID)
 
 		// Verify that the endpoints were not regenerated
 		suite.client.RequireVersionUnchanged(suite.T(), endpointsID, endpoints.Version)
@@ -879,8 +850,8 @@ func (suite *controllerSuite) TestController() {
 			}).
 			Write(suite.T(), suite.client)
 
-		res = suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
-		rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionUnmanaged)
+		res = suite.client.WaitForReconciliation(suite.T(), service.Id, ControllerID)
+		rtest.RequireStatusCondition(suite.T(), res, ControllerID, ConditionUnmanaged)
 
 		// Verify that the endpoints were deleted
 		suite.client.RequireResourceNotFound(suite.T(), endpointsID)

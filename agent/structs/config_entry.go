@@ -27,22 +27,23 @@ import (
 )
 
 const (
-	ServiceDefaults    string = "service-defaults"
-	ProxyDefaults      string = "proxy-defaults"
-	ServiceRouter      string = "service-router"
-	ServiceSplitter    string = "service-splitter"
-	ServiceResolver    string = "service-resolver"
-	IngressGateway     string = "ingress-gateway"
-	TerminatingGateway string = "terminating-gateway"
-	ServiceIntentions  string = "service-intentions"
-	MeshConfig         string = "mesh"
-	ExportedServices   string = "exported-services"
-	SamenessGroup      string = "sameness-group"
-	APIGateway         string = "api-gateway"
-	BoundAPIGateway    string = "bound-api-gateway"
-	InlineCertificate  string = "inline-certificate"
-	HTTPRoute          string = "http-route"
-	TCPRoute           string = "tcp-route"
+	ServiceDefaults       string = "service-defaults"
+	ProxyDefaults         string = "proxy-defaults"
+	ServiceRouter         string = "service-router"
+	ServiceSplitter       string = "service-splitter"
+	ServiceResolver       string = "service-resolver"
+	IngressGateway        string = "ingress-gateway"
+	TerminatingGateway    string = "terminating-gateway"
+	ServiceIntentions     string = "service-intentions"
+	MeshConfig            string = "mesh"
+	ExportedServices      string = "exported-services"
+	SamenessGroup         string = "sameness-group"
+	APIGateway            string = "api-gateway"
+	BoundAPIGateway       string = "bound-api-gateway"
+	FileSystemCertificate string = "file-system-certificate"
+	InlineCertificate     string = "inline-certificate"
+	HTTPRoute             string = "http-route"
+	TCPRoute              string = "tcp-route"
 	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
 	RateLimitIPConfig string = "control-plane-request-limit"
 	JWTProvider       string = "jwt-provider"
@@ -71,6 +72,7 @@ var AllConfigEntryKinds = []string{
 	BoundAPIGateway,
 	HTTPRoute,
 	TCPRoute,
+	FileSystemCertificate,
 	InlineCertificate,
 	RateLimitIPConfig,
 	JWTProvider,
@@ -507,6 +509,22 @@ func (e *ProxyConfigEntry) GetMeta() map[string]string {
 	return e.Meta
 }
 
+func (e *ProxyConfigEntry) ComputeProtocol() error {
+	// proxyConfig is a snippet from agent/xds/config.go:ProxyConfig
+	// We calculate this up-front so that the expensive mapstructure decode
+	// is not needed during discovery chain compile time.
+	type proxyConfig struct {
+		Protocol string `mapstructure:"protocol"`
+	}
+	var cfg proxyConfig
+	err := mapstructure.WeakDecode(e.Config, &cfg)
+	if err != nil {
+		return err
+	}
+	e.Protocol = cfg.Protocol
+	return nil
+}
+
 func (e *ProxyConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
@@ -523,6 +541,10 @@ func (e *ProxyConfigEntry) Normalize() error {
 	e.Name = ProxyConfigGlobal
 
 	e.EnterpriseMeta.Normalize()
+
+	if err := e.ComputeProtocol(); err != nil {
+		return err
+	}
 
 	h, err := HashConfigEntry(e)
 	if err != nil {
@@ -812,6 +834,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &APIGatewayConfigEntry{Name: name}, nil
 	case BoundAPIGateway:
 		return &BoundAPIGatewayConfigEntry{Name: name}, nil
+	case FileSystemCertificate:
+		return &FileSystemCertificateConfigEntry{Name: name}, nil
 	case InlineCertificate:
 		return &InlineCertificateConfigEntry{Name: name}, nil
 	case HTTPRoute:

@@ -16,7 +16,7 @@
 # Official docker image that includes binaries from releases.hashicorp.com. This
 # downloads the release from releases.hashicorp.com and therefore requires that
 # the release is published before building the Docker image.
-FROM docker.mirror.hashicorp.services/alpine:3.18 as official
+FROM docker.mirror.hashicorp.services/alpine:3.19 as official
 
 # This is the release of Consul to pull in.
 ARG VERSION
@@ -112,7 +112,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Production docker image that uses CI built binaries.
 # Remember, this image cannot be built locally.
-FROM docker.mirror.hashicorp.services/alpine:3.18 as default
+FROM docker.mirror.hashicorp.services/alpine:3.19 as default
 
 ARG PRODUCT_VERSION
 ARG BIN_NAME
@@ -201,7 +201,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Red Hat UBI-based image
 # This target is used to build a Consul image for use on OpenShift.
-FROM registry.access.redhat.com/ubi9-minimal:9.2 as ubi
+FROM registry.access.redhat.com/ubi9-minimal:9.3 as ubi
 
 ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
@@ -233,7 +233,7 @@ COPY LICENSE /licenses/mozilla.txt
 
 # Set up certificates and base tools.
 # dumb-init is downloaded directly from GitHub because there's no RPM package.
-# Its shasum is hardcoded. If you upgrade the dumb-init verion you'll need to
+# Its shasum is hardcoded. If you upgrade the dumb-init version you'll need to
 # also update the shasum.
 RUN set -eux && \
     microdnf install -y ca-certificates shadow-utils gnupg libcap openssl iputils jq iptables wget unzip tar && \

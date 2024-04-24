@@ -37,10 +37,14 @@ jobs:
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   tests:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl ) }}
     needs:
       - setup
+      - get-go-version
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -67,7 +71,7 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
       - name: Build
         run: |

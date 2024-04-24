@@ -1,0 +1,3 @@
+```release-note:bug
+UI: fix autofocus on search box when page refreshes on typing in it due to url change.
+```

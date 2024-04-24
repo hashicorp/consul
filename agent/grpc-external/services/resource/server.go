@@ -5,7 +5,9 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -13,34 +15,16 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type Server struct {
 	Config
-}
-
-type Config struct {
-	Logger   hclog.Logger
-	Registry Registry
-
-	// Backend is the storage backend that will be used for resource persistence.
-	Backend     Backend
-	ACLResolver ACLResolver
-	// TenancyBridge temporarily allows us to use V1 implementations of
-	// partitions and namespaces until V2 implementations are available.
-	TenancyBridge TenancyBridge
-
-	// UseV2Tenancy is true if the "v2tenancy" experiement is active, false otherwise.
-	// Attempts to create v2 tenancy resources (partition or namespace) will fail when the
-	// flag is false.
-	UseV2Tenancy bool
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -72,11 +56,11 @@ func NewServer(cfg Config) *Server {
 
 var _ pbresource.ResourceServiceServer = (*Server)(nil)
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbresource.RegisterResourceServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbresource.RegisterResourceServiceServer(registrar, s)
 }
 
-// Get token from grpc metadata or AnonymounsTokenId if not found
+// Get token from grpc metadata or AnonymousTokenId if not found
 func tokenFromContext(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -150,8 +134,6 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 		id.Tenancy = &pbresource.Tenancy{
 			Partition: "",
 			Namespace: "",
-			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-			PeerName: "local",
 		}
 	}
 
@@ -164,10 +146,6 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 		if err := resource.ValidateName(id.Tenancy.Namespace); err != nil {
 			return status.Errorf(codes.InvalidArgument, "%s.tenancy.namespace invalid: %v", errorPrefix, err)
 		}
-	}
-	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-	if id.Tenancy.PeerName == "" {
-		id.Tenancy.PeerName = resource.DefaultPeerName
 	}
 
 	return nil
@@ -209,11 +187,6 @@ func validateWildcardTenancy(tenancy *pbresource.Tenancy, namePrefix string) err
 	// relax validation to just check for lowercasing
 	if namePrefix != strings.ToLower(namePrefix) {
 		return status.Errorf(codes.InvalidArgument, "name_prefix invalid: must be lowercase alphanumeric, got: %v", namePrefix)
-	}
-
-	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-	if tenancy.PeerName == "" {
-		tenancy.PeerName = resource.DefaultPeerName
 	}
 
 	return nil
@@ -295,6 +268,41 @@ func isTenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge Tenanc
 
 	// Cluster scope has no tenancy so always return false
 	return false, nil
+}
+
+// retryCAS retries the given operation with exponential backoff if the user
+// didn't provide a version. This is intended to hide failures when the user
+// isn't intentionally performing a CAS operation (all writes are, by design,
+// CAS operations at the storage backend layer).
+func (s *Server) retryCAS(ctx context.Context, vsn string, cas func() error) error {
+	if vsn != "" {
+		return cas()
+	}
+
+	const maxAttempts = 5
+
+	// These parameters are fairly arbitrary, so if you find better ones then go
+	// ahead and swap them out! In general, we want to wait long enough to smooth
+	// over small amounts of storage replication lag, but not so long that we make
+	// matters worse by holding onto load.
+	backoff := &retry.Waiter{
+		MinWait: 50 * time.Millisecond,
+		MaxWait: 1 * time.Second,
+		Jitter:  retry.NewJitter(50),
+		Factor:  75 * time.Millisecond,
+	}
+
+	var err error
+	for i := 1; i <= maxAttempts; i++ {
+		if err = cas(); !errors.Is(err, storage.ErrCASFailure) {
+			break
+		}
+		if backoff.Wait(ctx) != nil {
+			break
+		}
+		s.Logger.Trace("retrying failed CAS operation", "failure_count", i)
+	}
+	return err
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

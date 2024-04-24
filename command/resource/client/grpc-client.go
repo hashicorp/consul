@@ -22,7 +22,7 @@ type GRPCClient struct {
 func NewGRPCClient(config *GRPCConfig) (*GRPCClient, error) {
 	conn, err := dial(config)
 	if err != nil {
-		return nil, fmt.Errorf("**** error dialing grpc: %+v", err)
+		return nil, fmt.Errorf("error dialing grpc: %+v", err)
 	}
 	return &GRPCClient{
 		Client: pbresource.NewResourceServiceClient(conn),
@@ -53,7 +53,7 @@ func dial(c *GRPCConfig) (*grpc.ClientConn, error) {
 func checkCertificates(c *GRPCConfig) error {
 	if c.GRPCTLS {
 		certFileEmpty := c.CertFile == ""
-		keyFileEmpty := c.CertFile == ""
+		keyFileEmpty := c.KeyFile == ""
 
 		// both files need to be empty or both files need to be provided
 		if certFileEmpty != keyFileEmpty {

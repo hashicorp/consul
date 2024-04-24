@@ -131,7 +131,7 @@ func (suite *decodedSingleIndexerSuite) TestIntegration() {
 
 	dec := resourcetest.MustDecode[*pbdemo.Album](suite.T(), res)
 
-	idx := DecodedSingleIndexer("test", suite.args.Execute, suite.indexer.Execute)
+	idx := DecodedSingleIndexer("test", suite.args.Execute, suite.indexer.Execute).IndexedData()
 
 	suite.indexer.EXPECT().
 		Execute(dec).
@@ -263,7 +263,7 @@ func (suite *decodedMultiIndexerSuite) TestIntegration() {
 
 	dec := resourcetest.MustDecode[*pbdemo.Album](suite.T(), res)
 
-	idx := DecodedMultiIndexer("test", suite.args.Execute, suite.indexer.Execute)
+	idx := DecodedMultiIndexer("test", suite.args.Execute, suite.indexer.Execute).IndexedData()
 
 	suite.indexer.EXPECT().
 		Execute(dec).

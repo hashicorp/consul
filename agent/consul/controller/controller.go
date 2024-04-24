@@ -11,13 +11,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 // much of this is a re-implementation of
@@ -216,38 +218,41 @@ func (c *controller) Run(ctx context.Context) error {
 	for _, sub := range c.subscriptions {
 		// store a reference for the closure
 		sub := sub
+		// Fetch data from subscriptions repeatedly until the context is cancelled.
 		c.group.Go(func() error {
-			var index uint64
-
-			subscription, err := c.publisher.Subscribe(sub.request)
-			if err != nil {
-				return err
+			defer c.logger.Debug("stopping controller subscription", "topic", sub.request.Topic)
+			lastFailTime := time.Now()
+			retryWaiter := &retry.Waiter{
+				MinFailures: 1,
+				MinWait:     1 * time.Second,
+				MaxWait:     20 * time.Second,
 			}
-			defer subscription.Unsubscribe()
-
-			for {
-				event, err := subscription.Next(ctx)
+			// Ensure the subscription is restarted when non-context errors happen.
+			// Stop if either the parent context or the group ctx is cancelled.
+			for c.groupCtx.Err() == nil {
+				c.logger.Debug("rewatching controller subscription", "topic", sub.request.Topic)
+				err := c.watchSubscription(ctx, sub)
 				switch {
 				case errors.Is(err, context.Canceled):
 					return nil
+				case errors.Is(err, stream.ErrSubForceClosed):
+					c.logger.Debug("controller subscription force closed", "topic", sub.request.Topic)
 				case err != nil:
-					return err
-				}
-
-				if event.IsFramingEvent() {
-					continue
-				}
-
-				if event.Index <= index {
-					continue
-				}
-
-				index = event.Index
-
-				if err := c.processEvent(sub, event); err != nil {
-					return err
+					// Log the error and backoff wait. Do not return the error
+					// or else the subscriptions will stop being watched.
+					c.logger.Warn("error watching controller subscription",
+						"topic", sub.request.Topic,
+						"err", err)
+					// Reset the waiter if the last failure was more than 10 minutes ago.
+					// This simply prevents the backoff from being too aggressive.
+					if time.Now().After(lastFailTime.Add(10 * time.Minute)) {
+						retryWaiter.Reset()
+					}
+					lastFailTime = time.Now()
+					retryWaiter.Wait(c.groupCtx)
 				}
 			}
+			return nil
 		})
 	}
 
@@ -269,6 +274,38 @@ func (c *controller) Run(ctx context.Context) error {
 
 	<-c.groupCtx.Done()
 	return nil
+}
+
+// watchSubscription fetches events in a loop that stops on the first error.
+func (c *controller) watchSubscription(ctx context.Context, sub subscription) error {
+	var index uint64
+	subscription, err := c.publisher.Subscribe(sub.request)
+	if err != nil {
+		return err
+	}
+	defer subscription.Unsubscribe()
+
+	for ctx.Err() == nil {
+		event, err := subscription.Next(ctx)
+		if err != nil {
+			return err
+		}
+
+		if event.IsFramingEvent() {
+			continue
+		}
+
+		if event.Index <= index {
+			continue
+		}
+
+		index = event.Index
+
+		if err := c.processEvent(sub, event); err != nil {
+			return err
+		}
+	}
+	return ctx.Err()
 }
 
 // AddTrigger allows for triggering a reconciliation request every time that the
@@ -380,7 +417,7 @@ func (c *controller) reconcileHandler(ctx context.Context, req Request) {
 		var requeueAfter RequeueAfterError
 		if errors.As(err, &requeueAfter) {
 			c.work.Forget(req)
-			c.work.AddAfter(req, time.Duration(requeueAfter))
+			c.work.AddAfter(req, time.Duration(requeueAfter), false)
 			return
 		}
 

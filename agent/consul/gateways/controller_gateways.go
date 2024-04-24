@@ -61,7 +61,7 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 		return reconcileEntry(r.fsm.State(), r.logger, ctx, req, r.reconcileHTTPRoute, r.cleanupRoute)
 	case structs.TCPRoute:
 		return reconcileEntry(r.fsm.State(), r.logger, ctx, req, r.reconcileTCPRoute, r.cleanupRoute)
-	case structs.InlineCertificate:
+	case structs.InlineCertificate, structs.FileSystemCertificate:
 		return r.enqueueCertificateReferencedGateways(r.fsm.State(), ctx, req)
 	case structs.JWTProvider:
 		return r.enqueueJWTProviderReferencedGatewaysAndHTTPRoutes(r.fsm.State(), ctx, req)
@@ -540,7 +540,8 @@ func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, updat
 		logger:  logger,
 		updater: updater,
 	}
-	reconciler.controller = controller.New(publisher, reconciler)
+	reconciler.controller = controller.New(publisher, reconciler).
+		WithLogger(logger.With("controller", "apiGatewayController"))
 	return reconciler.controller.Subscribe(
 		&stream.SubscribeRequest{
 			Topic:   state.EventTopicAPIGateway,

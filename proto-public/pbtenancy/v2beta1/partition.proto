@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 syntax = "proto3";
 
 package hashicorp.consul.tenancy.v2beta1;
@@ -12,4 +15,6 @@ message Partition {
 
   // Optional user provided description. It is not used internally.
   string description = 1;
+
+  bool disable_gossip = 2;
 }

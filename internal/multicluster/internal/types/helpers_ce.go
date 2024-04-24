@@ -7,9 +7,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/internal/resource"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/internal/resource"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 )
 
 func validateExportedServicesConsumer(consumer *pbmulticluster.ExportedServicesConsumer, indx int) error {
@@ -34,24 +36,24 @@ func ValidateComputedExportedServicesEnterprise(computedExportedServices *pbmult
 
 	var merr error
 
-	for indx, consumer := range computedExportedServices.GetConsumers() {
-		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
-			switch computedExportedServiceConsumer.GetConsumerTenancy().(type) {
-			case *pbmulticluster.ComputedExportedServicesConsumer_Partition:
+	for indx, service := range computedExportedServices.GetServices() {
+		for _, consumer := range service.GetConsumers() {
+			switch consumer.GetTenancy().(type) {
+			case *pbmulticluster.ComputedExportedServiceConsumer_Partition:
 				merr = multierror.Append(merr, resource.ErrInvalidListElement{
 					Name:    "partition",
 					Index:   indx,
 					Wrapped: fmt.Errorf("can only be set in Enterprise"),
 				})
-				if computedExportedServiceConsumer.GetPartition() == "" {
+				if consumer.GetPartition() == "" {
 					merr = multierror.Append(merr, resource.ErrInvalidListElement{
 						Name:    "partition",
 						Index:   indx,
 						Wrapped: fmt.Errorf("can not be empty"),
 					})
 				}
-			case *pbmulticluster.ComputedExportedServicesConsumer_Peer:
-				if computedExportedServiceConsumer.GetPeer() == "" {
+			case *pbmulticluster.ComputedExportedServiceConsumer_Peer:
+				if consumer.GetPeer() == "" {
 					merr = multierror.Append(merr, resource.ErrInvalidListElement{
 						Name:    "peer",
 						Index:   indx,

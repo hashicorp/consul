@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
-	"github.com/hashicorp/consul/agent/xdsv2"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -20,19 +19,18 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/types"
-
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
 	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/consul/agent/xdsv2"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 var testTypeUrlToPrettyName = map[string]string{
@@ -741,6 +739,14 @@ func getMeshGatewayGoldenTestCases() []goldenTestCase {
 			name: "mesh-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-with-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "limits-added", nil, nil)
 			},
 			// TODO(proxystate): mesh gateway will come at a later time
 			alsoRunTestForV2: false,
@@ -2282,32 +2288,25 @@ func getTerminatingGatewayPeeringGoldenTestCases() []goldenTestCase {
 		{
 			name: "terminating-gateway-with-peer-trust-bundle",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				roots, _ := proxycfg.TestCerts(t)
+				bundles := proxycfg.TestPeerTrustBundles(t)
 				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "peer-trust-bundle:web",
-						Result: &pbpeering.TrustBundleListByServiceResponse{
-							Bundles: []*pbpeering.PeeringTrustBundle{
-								{
-									TrustDomain: "foo.bar.gov",
-									PeerName:    "dc2",
-									Partition:   "default",
-									RootPEMs: []string{
-										roots.Roots[0].RootCert,
-									},
-									ExportedPartition: "default",
-									CreateIndex:       0,
-									ModifyIndex:       0,
-								},
-							},
-						},
+						Result:        bundles,
 					},
 					{
 						CorrelationID: "service-intentions:web",
 						Result: structs.SimplifiedIntentions{
 							{
 								SourceName:           "source",
-								SourcePeer:           "dc2",
+								SourcePeer:           bundles.Bundles[0].PeerName,
+								DestinationName:      "web",
+								DestinationPartition: "default",
+								Action:               structs.IntentionActionAllow,
+							},
+							{
+								SourceName:           "source",
+								SourcePeer:           bundles.Bundles[1].PeerName,
 								DestinationName:      "web",
 								DestinationPartition: "default",
 								Action:               structs.IntentionActionAllow,

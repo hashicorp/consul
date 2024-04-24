@@ -68,21 +68,14 @@ func mutateFailoverPolicy(res *DecodedFailoverPolicy) (bool, error) {
 }
 
 func mutateFailoverConfig(policyTenancy *pbresource.Tenancy, config *pbcatalog.FailoverConfig) (changed bool) {
-	if policyTenancy != nil && !isLocalPeer(policyTenancy.PeerName) {
-		// TODO(peering/v2): remove this bypass when we know what to do with
-		// non-local peer references.
-		return false
-	}
+	// TODO(peering/v2): Add something here when we know what to do with non-local peer references
 
 	for _, dest := range config.Destinations {
 		if dest.Ref == nil {
 			continue
 		}
-		if dest.Ref.Tenancy != nil && !isLocalPeer(dest.Ref.Tenancy.PeerName) {
-			// TODO(peering/v2): remove this bypass when we know what to do with
-			// non-local peer references.
-			continue
-		}
+
+		// TODO(peering/v2): Add something here to handle non-local peer references
 
 		orig := proto.Clone(dest.Ref).(*pbresource.Reference)
 		resource.DefaultReferenceTenancy(
@@ -100,7 +93,7 @@ func mutateFailoverConfig(policyTenancy *pbresource.Tenancy, config *pbcatalog.F
 }
 
 func isLocalPeer(p string) bool {
-	return p == "local" || p == ""
+	return p == resource.DefaultPeerName || p == ""
 }
 
 var ValidateFailoverPolicy = resource.DecodeAndValidate(validateFailoverPolicy)
@@ -115,31 +108,39 @@ func validateFailoverPolicy(res *DecodedFailoverPolicy) error {
 		})
 	}
 
-	if res.Data.Config != nil {
+	if err := validateCommonFailoverConfigs(res.Data); err != nil {
+		merr = multierror.Append(merr, err)
+	}
+	return merr
+}
+
+func validateCommonFailoverConfigs(res *pbcatalog.FailoverPolicy) error {
+	var merr error
+	if res.Config != nil {
 		wrapConfigErr := func(err error) error {
 			return resource.ErrInvalidField{
 				Name:    "config",
 				Wrapped: err,
 			}
 		}
-		if cfgErr := validateFailoverConfig(res.Data.Config, false, wrapConfigErr); cfgErr != nil {
+		if cfgErr := validateFailoverConfig(res.Config, false, wrapConfigErr); cfgErr != nil {
 			merr = multierror.Append(merr, cfgErr)
 		}
 	}
 
-	for portName, pc := range res.Data.PortConfigs {
+	for portId, pc := range res.PortConfigs {
 		wrapConfigErr := func(err error) error {
 			return resource.ErrInvalidMapValue{
 				Map:     "port_configs",
-				Key:     portName,
+				Key:     portId,
 				Wrapped: err,
 			}
 		}
-		if portNameErr := ValidatePortName(portName); portNameErr != nil {
+		if portIdErr := ValidateServicePortID(portId); portIdErr != nil {
 			merr = multierror.Append(merr, resource.ErrInvalidMapKey{
 				Map:     "port_configs",
-				Key:     portName,
-				Wrapped: portNameErr,
+				Key:     portId,
+				Wrapped: portIdErr,
 			})
 		}
 
@@ -147,7 +148,6 @@ func validateFailoverPolicy(res *DecodedFailoverPolicy) error {
 			merr = multierror.Append(merr, cfgErr)
 		}
 
-		// TODO: should sameness group be a ref once that's a resource?
 	}
 
 	return merr
@@ -227,10 +227,10 @@ func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, port
 	// assumed and will be reconciled.
 	if dest.Port != "" {
 		if ported {
-			if portNameErr := ValidatePortName(dest.Port); portNameErr != nil {
+			if portIdErr := ValidateServicePortID(dest.Port); portIdErr != nil {
 				merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 					Name:    "port",
-					Wrapped: portNameErr,
+					Wrapped: portIdErr,
 				}))
 			}
 		} else {
@@ -239,18 +239,6 @@ func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, port
 				Wrapped: fmt.Errorf("ports cannot be specified explicitly for the general failover section since it relies upon port alignment"),
 			}))
 		}
-	}
-
-	hasPeer := false
-	if dest.Ref != nil {
-		hasPeer = dest.Ref.Tenancy.PeerName != "" && dest.Ref.Tenancy.PeerName != "local"
-	}
-
-	if hasPeer && dest.Datacenter != "" {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "datacenter",
-			Wrapped: fmt.Errorf("ref.tenancy.peer_name and datacenter are mutually exclusive fields"),
-		}))
 	}
 
 	return merr
@@ -273,6 +261,27 @@ func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.Failover
 	if failover.PortConfigs == nil {
 		failover.PortConfigs = make(map[string]*pbcatalog.FailoverConfig)
 	}
+
+	// Normalize all port configs to use the target port of the corresponding service port.
+	normalizedPortConfigs := make(map[string]*pbcatalog.FailoverConfig)
+	for port, pc := range failover.PortConfigs {
+		svcPort := svc.FindPortByID(port)
+
+		if svcPort != nil {
+			if _, ok := normalizedPortConfigs[svcPort.TargetPort]; ok {
+				// This is a duplicate virtual and target port mapping that will be reported as a status condition.
+				// Only update if this is the "canonical" mapping; otherwise, it's virtual, and we should ignore.
+				if port != svcPort.TargetPort {
+					continue
+				}
+			}
+			normalizedPortConfigs[svcPort.TargetPort] = pc
+		}
+		// Else this is an invalid reference that will be reported as a status condition.
+		// Drop for safety and simpler output.
+	}
+
+	failover.PortConfigs = normalizedPortConfigs
 
 	for _, port := range svc.Ports {
 		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {

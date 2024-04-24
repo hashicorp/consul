@@ -12,6 +12,7 @@ A controller consists of several parts:
 2. **Additional watched types** - These are additional types a controller may care about in addition to the main watched type.
 3. **Additional custom watches** - These are the watches for things that aren't resources in Consul. 
 4. **Reconciler** - This is the instance that's responsible for reconciling requests whenever there's an event for the main watched type or for any of the watched types.
+5. **Initializer** - This is responsible for anything that needs to be executed when the controller is started.
 
 A basic controller setup could look like this:
 
@@ -189,6 +190,57 @@ a `Baz` resource gets updated to no longer have a value, it should not be repres
 2. Add a cache index to the watch of the computed type (usually the controllers main managed type). This index can use one of the indexers specified within the  [`internal/controller/cache/indexers`](../../../internal/controller/cache/indexers/) package. That package contains some builtin functionality around reference indexing.
 
 3. Update the dependency mappers to query the cache index *in addition to* looking at the current state of the dependent resource. In our example above the `Baz` dependency mapper could use the [`MultiMapper`] to combine querying the cache for `Baz` types that currently should be associated with a `ComputedBaz` and querying the index added in step 2 for previous references.
+
+#### Footgun: Needing Bound References
+
+When an interior (mutable) foreign key pointer on watched data is used to
+determine the resources's applicability in a dependency mapper, it is subject
+to the "orphaned computed resource" problem.
+
+(An example of this would be a ParentRef on an xRoute, or the Destination field
+of a TrafficPermission.)
+
+When you edit the mutable pointer to point elsewhere, the DependencyMapper will
+only witness the NEW value and will trigger reconciles for things derived from
+the NEW pointer, but side effects from a prior reconcile using the OLD pointer
+will be orphaned until some other event triggers that reconcile (if ever).
+
+This applies equally to all varieties of controller:
+
+- creates computed resources
+- only updates status conditions on existing resources
+- has other external side effects (xDS controller writes envoy config over a stream)
+
+To solve this we need to collect the list of bound references that were
+"ingredients" into a computed resource's output and persist them on the newly
+written resource. Then we load them up and index them such that we can use them
+to AUGMENT a mapper event with additional maps using the OLD data as well.
+
+We have only actively worked to solve this for the computed resource flavor of
+controller:
+
+1. The top level of the resource data protobuf needs a
+   `BoundReferences []*pbresource.Reference` field.
+
+2. Use a `*resource.BoundReferenceCollector` to capture any resource during
+   `Reconcile` that directly contributes to the final output resource data
+   payload.
+
+3. Call `brc.List()` on the above and set it to the `BoundReferences` field on
+   the computed resource before persisting.
+
+4. Use `indexers.BoundRefsIndex` to index this field on the primary type of the
+   controller.
+
+5. Create `boundRefsMapper := dependency.CacheListMapper(ZZZ, boundRefsIndex.Name())`
+
+6. For each watched type, wrap its DependencyMapper with
+   `dependency.MultiMapper(boundRefsMapper, ZZZ)`
+
+7. That's it.
+
+This will cause each reconcile to index the prior list of inputs and augment
+the results of future mapper events with historical references.
 
 ### Custom Watches
 

@@ -11,6 +11,10 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type IndexQueryOptions struct {
+	Prefix bool
+}
+
 func IndexFromID(id *pbresource.ID, includeUid bool) []byte {
 	var b Builder
 	b.Raw(IndexFromType(id.Type))
@@ -87,6 +91,14 @@ var PrefixReferenceOrIDFromArgs = SingleValueFromArgs[resource.ReferenceOrID](fu
 	return PrefixIndexFromRefOrID(r), nil
 })
 
+var MaybePrefixReferenceOrIDFromArgs = SingleValueFromOneOrTwoArgs[resource.ReferenceOrID, IndexQueryOptions](func(r resource.ReferenceOrID, opts IndexQueryOptions) ([]byte, error) {
+	if opts.Prefix {
+		return PrefixIndexFromRefOrID(r), nil
+	} else {
+		return IndexFromRefOrID(r), nil
+	}
+})
+
 func SingleValueFromArgs[T any](indexer func(value T) ([]byte, error)) func(args ...any) ([]byte, error) {
 	return func(args ...any) ([]byte, error) {
 		var zero T
@@ -120,7 +132,7 @@ func SingleValueFromOneOrTwoArgs[T1 any, T2 any](indexer func(value T1, optional
 		case 1:
 			val, ok := args[0].(T1)
 			if !ok {
-				return nil, fmt.Errorf("expected first argument type of %T, got: %T", value, args[1])
+				return nil, fmt.Errorf("expected first argument type of %T, got: %T", value, args[0])
 			}
 			value = val
 		default:

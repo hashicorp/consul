@@ -11,6 +11,13 @@ import (
 	"github.com/hashicorp/hcp-sdk-go/resource"
 )
 
+// CloudConfigurer abstracts the cloud config methods needed to connect to HCP
+// in an interface for easier testing.
+type CloudConfigurer interface {
+	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error)
+	Resource() (resource.Resource, error)
+}
+
 // CloudConfig defines configuration for connecting to HCP services
 type CloudConfig struct {
 	ResourceID   string
@@ -39,6 +46,8 @@ func (c *CloudConfig) Resource() (resource.Resource, error) {
 	return resource.FromString(c.ResourceID)
 }
 
+// HCPConfig returns a configuration to use with the HCP SDK. It assumes that the environment
+// variables for the HCP configuration have already been loaded and set in the CloudConfig.
 func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
 	if c.TLSConfig == nil {
 		c.TLSConfig = &tls.Config{}
@@ -55,6 +64,59 @@ func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfi
 	if c.ScadaAddress != "" {
 		opts = append(opts, hcpcfg.WithSCADA(c.ScadaAddress, c.TLSConfig))
 	}
-	opts = append(opts, hcpcfg.FromEnv(), hcpcfg.WithoutBrowserLogin())
+	opts = append(opts, hcpcfg.WithoutBrowserLogin())
 	return hcpcfg.NewHCPConfig(opts...)
+}
+
+// IsConfigured returns whether the cloud configuration has been set either
+// in the configuration file or via environment variables.
+func (c *CloudConfig) IsConfigured() bool {
+	return c.ResourceID != "" && c.ClientID != "" && c.ClientSecret != ""
+}
+
+// Merge returns a cloud configuration that is the combined the values of
+// two configurations.
+func Merge(o CloudConfig, n CloudConfig) CloudConfig {
+	c := o
+	if n.ResourceID != "" {
+		c.ResourceID = n.ResourceID
+	}
+
+	if n.ClientID != "" {
+		c.ClientID = n.ClientID
+	}
+
+	if n.ClientSecret != "" {
+		c.ClientSecret = n.ClientSecret
+	}
+
+	if n.Hostname != "" {
+		c.Hostname = n.Hostname
+	}
+
+	if n.AuthURL != "" {
+		c.AuthURL = n.AuthURL
+	}
+
+	if n.ScadaAddress != "" {
+		c.ScadaAddress = n.ScadaAddress
+	}
+
+	if n.ManagementToken != "" {
+		c.ManagementToken = n.ManagementToken
+	}
+
+	if n.TLSConfig != nil {
+		c.TLSConfig = n.TLSConfig
+	}
+
+	if n.NodeID != "" {
+		c.NodeID = n.NodeID
+	}
+
+	if n.NodeName != "" {
+		c.NodeName = n.NodeName
+	}
+
+	return c
 }

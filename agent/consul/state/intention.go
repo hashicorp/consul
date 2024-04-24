@@ -743,7 +743,7 @@ type IntentionDecisionOpts struct {
 	Peer             string
 	Intentions       structs.SimplifiedIntentions
 	MatchType        structs.IntentionMatchType
-	DefaultDecision  acl.EnforcementDecision
+	DefaultAllow     bool
 	AllowPermissions bool
 }
 
@@ -763,7 +763,7 @@ func (s *Store) IntentionDecision(opts IntentionDecisionOpts) (structs.Intention
 	}
 
 	resp := structs.IntentionDecisionSummary{
-		DefaultAllow: opts.DefaultDecision == acl.Allow,
+		DefaultAllow: opts.DefaultAllow,
 	}
 	if ixnMatch == nil {
 		// No intention found, fall back to default
@@ -1029,13 +1029,13 @@ func (s *Store) IntentionTopology(
 	ws memdb.WatchSet,
 	target structs.ServiceName,
 	downstreams bool,
-	defaultDecision acl.EnforcementDecision,
+	defaultAllow bool,
 	intentionTarget structs.IntentionTargetType,
 ) (uint64, structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision, intentionTarget)
+	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultAllow, intentionTarget)
 	if err != nil {
 		requested := "upstreams"
 		if downstreams {
@@ -1055,7 +1055,7 @@ func (s *Store) intentionTopologyTxn(
 	tx ReadTxn, ws memdb.WatchSet,
 	target structs.ServiceName,
 	downstreams bool,
-	defaultDecision acl.EnforcementDecision,
+	defaultAllow bool,
 	intentionTarget structs.IntentionTargetType,
 ) (uint64, []ServiceWithDecision, error) {
 
@@ -1163,7 +1163,7 @@ func (s *Store) intentionTopologyTxn(
 			Partition:        candidate.PartitionOrDefault(),
 			Intentions:       intentions,
 			MatchType:        decisionMatchType,
-			DefaultDecision:  defaultDecision,
+			DefaultAllow:     defaultAllow,
 			AllowPermissions: true,
 		}
 		decision, err := s.IntentionDecision(opts)

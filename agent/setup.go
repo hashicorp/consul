@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
+	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpcInt "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
@@ -141,7 +142,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		// This values is set late within newNodeIDFromConfig above
 		cfg.Cloud.NodeID = cfg.NodeID
 
-		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"))
+		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"), cfg.DataDir)
 		if err != nil {
 			return d, err
 		}
@@ -273,6 +274,9 @@ func (bd BaseDeps) Close() {
 	bd.AutoConfig.Stop()
 	bd.LeafCertManager.Stop()
 	bd.MetricsConfig.Cancel()
+	if bd.HCP.Sink != nil {
+		bd.HCP.Sink.Shutdown()
+	}
 
 	for _, fn := range []func(){bd.deregisterBalancer, bd.deregisterResolver, bd.stopHostCollector} {
 		if fn != nil {
@@ -433,6 +437,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		consul.CatalogCounters,
 		consul.ClientCounters,
 		consul.RPCCounters,
+		discovery.DNSCounters,
 		grpcWare.StatsCounters,
 		local.StateCounters,
 		xds.StatsCounters,

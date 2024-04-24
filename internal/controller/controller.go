@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-hclog"
 )
 
 // DependencyMapper is called when a dependency watched via WithWatch is changed
@@ -33,6 +34,7 @@ type DependencyMapper func(
 type Controller struct {
 	name             string
 	reconciler       Reconciler
+	initializer      Initializer
 	managedTypeWatch *watch
 	watches          map[string]*watch
 	queries          map[string]cache.Query
@@ -41,13 +43,23 @@ type Controller struct {
 	baseBackoff      time.Duration
 	maxBackoff       time.Duration
 	logger           hclog.Logger
+	startCb          RuntimeCallback
+	stopCb           RuntimeCallback
+	// forceReconcileEvery is the time to wait after a successful reconciliation
+	// before forcing a reconciliation. The net result is a reconciliation of
+	// the managed type on a regular interval. This ensures that the state of the
+	// world is continually reconciled, hence correct in the face of missed events
+	// or other issues.
+	forceReconcileEvery time.Duration
 }
+
+type RuntimeCallback func(context.Context, Runtime)
 
 // NewController creates a controller that is setup to watched the managed type.
 // Extra cache indexes may be provided as well and these indexes will be automatically managed.
 // Typically, further calls to other builder methods will be needed to fully configure
-// the controller such as using WithReconcile to define the the code that will be called
-// when the managed resource needs reconcilation.
+// the controller such as using WithReconcile to define the code that will be called
+// when the managed resource needs reconciliation.
 func NewController(name string, managedType *pbresource.Type, indexes ...*index.Index) *Controller {
 	w := &watch{
 		watchedType: managedType,
@@ -59,11 +71,27 @@ func NewController(name string, managedType *pbresource.Type, indexes ...*index.
 	}
 
 	return &Controller{
-		name:             name,
-		managedTypeWatch: w,
-		watches:          make(map[string]*watch),
-		queries:          make(map[string]cache.Query),
+		name:                name,
+		managedTypeWatch:    w,
+		watches:             make(map[string]*watch),
+		queries:             make(map[string]cache.Query),
+		forceReconcileEvery: 8 * time.Hour,
 	}
+}
+
+// WithNotifyStart registers a callback to be run when the controller is being started.
+// This happens prior to watches being started and with a fresh cache.
+func (ctl *Controller) WithNotifyStart(start RuntimeCallback) *Controller {
+	ctl.startCb = start
+	return ctl
+}
+
+// WithNotifyStop registers a callback to be run when the controller has been stopped.
+// This happens after all the watches and mapper/reconcile queues have been stopped. The
+// cache will contain everything that was present when we started stopping watches.
+func (ctl *Controller) WithNotifyStop(stop RuntimeCallback) *Controller {
+	ctl.stopCb = stop
+	return ctl
 }
 
 // WithReconciler changes the controller's reconciler.
@@ -149,6 +177,15 @@ func (ctl *Controller) WithPlacement(placement Placement) *Controller {
 	return ctl
 }
 
+// WithForceReconcileEvery controls how often a resource gets periodically reconciled
+// to ensure that the state of the world is correct (8 hours is the default).
+// This exists for tests only and should not be customized by controller authors!
+func (ctl *Controller) WithForceReconcileEvery(duration time.Duration) *Controller {
+	ctl.logger.Warn("WithForceReconcileEvery is for testing only and should not be set by controllers")
+	ctl.forceReconcileEvery = duration
+	return ctl
+}
+
 // buildCache will construct a controller Cache given the watches/indexes that have
 // been added to the controller. This is mainly to be used by the TestController and
 // Manager when setting up how things
@@ -167,6 +204,27 @@ func (ctl *Controller) buildCache() cache.Cache {
 	}
 
 	return c
+}
+
+// dryRunMapper will trigger the appropriate DependencyMapper for an update of
+// the provided type and return the requested reconciles.
+//
+// This is mainly to be used by the TestController.
+func (ctl *Controller) dryRunMapper(
+	ctx context.Context,
+	rt Runtime,
+	res *pbresource.Resource,
+) ([]Request, error) {
+	if resource.EqualType(ctl.managedTypeWatch.watchedType, res.Id.Type) {
+		return nil, nil // no-op
+	}
+
+	for _, w := range ctl.watches {
+		if resource.EqualType(w.watchedType, res.Id.Type) {
+			return w.mapper(ctx, rt, res)
+		}
+	}
+	return nil, fmt.Errorf("no mapper for type: %s", resource.TypeToString(res.Id.Type))
 }
 
 // String returns a textual description of the controller, useful for debugging.
@@ -282,11 +340,22 @@ type Request struct {
 // used to de-duplicate requests in the queue.
 func (r Request) Key() string {
 	return fmt.Sprintf(
-		"part=%q,peer=%q,ns=%q,name=%q,uid=%q",
+		"part=%q,ns=%q,name=%q,uid=%q",
 		r.ID.Tenancy.Partition,
-		r.ID.Tenancy.PeerName,
 		r.ID.Tenancy.Namespace,
 		r.ID.Name,
 		r.ID.Uid,
 	)
+}
+
+// Initializer implements the business logic that is executed when the
+// controller is first started.
+type Initializer interface {
+	Initialize(ctx context.Context, rt Runtime) error
+}
+
+// WithInitializer changes the controller's initializer.
+func (c *Controller) WithInitializer(initializer Initializer) *Controller {
+	c.initializer = initializer
+	return c
 }

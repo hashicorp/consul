@@ -1129,6 +1129,23 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 	return wm, nil
 }
 
+// delete is used to do a DELETE request against an endpoint
+func (c *Client) delete(endpoint string, q *QueryOptions) (*WriteMeta, error) {
+	r := c.newRequest("DELETE", endpoint)
+	r.setQueryOptions(q)
+	rtt, resp, err := c.doRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+	if err = requireHttpCodes(resp, 204, 200); err != nil {
+		return nil, err
+	}
+
+	wm := &WriteMeta{RequestTime: rtt}
+	return wm, nil
+}
+
 // parseQueryMeta is used to help parse query meta-data
 //
 // TODO(rb): bug? the error from this function is never handled

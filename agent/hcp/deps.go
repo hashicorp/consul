@@ -9,6 +9,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"go.opentelemetry.io/otel"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
@@ -18,52 +19,60 @@ import (
 
 // Deps contains the interfaces that the rest of Consul core depends on for HCP integration.
 type Deps struct {
-	Client   client.Client
-	Provider scada.Provider
-	Sink     metrics.MetricSink
+	Config            config.CloudConfig
+	Provider          scada.Provider
+	Sink              metrics.ShutdownSink
+	TelemetryProvider *hcpProviderImpl
+	DataDir           string
 }
 
-func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
+func NewDeps(cfg config.CloudConfig, logger hclog.Logger, dataDir string) (Deps, error) {
 	ctx := context.Background()
 	ctx = hclog.WithContext(ctx, logger)
 
-	hcpClient, err := client.NewClient(cfg)
-	if err != nil {
-		return Deps{}, fmt.Errorf("failed to init client: %w", err)
-	}
-
-	provider, err := scada.New(cfg, logger.Named("scada"))
+	provider, err := scada.New(logger.Named("scada"))
 	if err != nil {
 		return Deps{}, fmt.Errorf("failed to init scada: %w", err)
 	}
 
-	metricsClient, err := client.NewMetricsClient(ctx, &cfg)
+	metricsProvider := NewHCPProvider(ctx)
 	if err != nil {
-		logger.Error("failed to init metrics client", "error", err)
-		return Deps{}, fmt.Errorf("failed to init metrics client: %w", err)
+		logger.Error("failed to init HCP metrics provider", "error", err)
+		return Deps{}, fmt.Errorf("failed to init HCP metrics provider: %w", err)
 	}
 
-	sink, err := sink(ctx, metricsClient, NewHCPProvider(ctx, hcpClient))
+	metricsClient := client.NewMetricsClient(ctx, metricsProvider)
+
+	sink, err := newSink(ctx, metricsClient, metricsProvider)
 	if err != nil {
 		// Do not prevent server start if sink init fails, only log error.
 		logger.Error("failed to init sink", "error", err)
 	}
 
 	return Deps{
-		Client:   hcpClient,
-		Provider: provider,
-		Sink:     sink,
+		Config:            cfg,
+		Provider:          provider,
+		Sink:              sink,
+		TelemetryProvider: metricsProvider,
+		DataDir:           dataDir,
 	}, nil
 }
 
-// sink initializes an OTELSink which forwards Consul metrics to HCP.
+// newSink initializes an OTELSink which forwards Consul metrics to HCP.
 // This step should not block server initialization, errors are returned, only to be logged.
-func sink(
+func newSink(
 	ctx context.Context,
 	metricsClient telemetry.MetricsClient,
 	cfgProvider *hcpProviderImpl,
-) (metrics.MetricSink, error) {
+) (metrics.ShutdownSink, error) {
 	logger := hclog.FromContext(ctx)
+
+	// Set the global OTEL error handler. Without this, on any failure to publish metrics in
+	// otelExporter.Export, the default OTEL handler logs to stderr without the formatting or group
+	// that hclog provides. Here we override that global error handler once so logs are
+	// in the standard format and include "hcp" in the group name like:
+	// 2024-02-06T22:35:19.072Z [ERROR] agent.hcp: failed to export metrics: failed to export metrics: code 404: 404 page not found
+	otel.SetErrorHandler(&otelErrorHandler{logger: logger})
 
 	reader := telemetry.NewOTELReader(metricsClient, cfgProvider)
 	sinkOpts := &telemetry.OTELSinkOpts{
@@ -79,4 +88,12 @@ func sink(
 	logger.Debug("initialized HCP metrics sink")
 
 	return sink, nil
+}
+
+type otelErrorHandler struct {
+	logger hclog.Logger
+}
+
+func (o *otelErrorHandler) Handle(err error) {
+	o.logger.Error(err.Error())
 }
