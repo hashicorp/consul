@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: DNS caching
-description: >-
+description: ->
   You tune Consul DNS query handling to balance between current information and reducing request response time. Learn how to enable caching by modifying TTL values, how to return stale results from the DNS cache, and how to configure Consul for negative response caching.
 ---
 
@@ -11,7 +11,7 @@ This page describes the process to return cached results in response to DNS look
 
 ## Introduction
 
-By default, Consul serves all DNS results with a 0 TTL value, which prevents any 
+By default, Consul serves all DNS results with a `0` TTL value, which prevents any 
 caching. This configuration returns the most recent information because each DNS lookup 
 runs every time. However, this configuration adds latency to each lookup and can potentially 
 exhaust the query throughput of a datacenter.
