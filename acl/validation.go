@@ -72,7 +72,7 @@ func IsValidPolicyName(name string) bool {
 	return ValidatePolicyName(name) == nil
 }
 
-// IsValidRoleName returns true if the provided name can be used as an
+// IsValidAuthMethodName returns true if the provided name can be used as an
 // ACLAuthMethod Name.
 func IsValidAuthMethodName(name string) bool {
 	return validAuthMethodName.MatchString(name)
