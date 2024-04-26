@@ -21,12 +21,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -445,7 +444,7 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				extra := makeLambdaServiceDefaults(false)
 				extra.Name = "google"
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, extra)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil, extra)
 			},
 		},
 		// Make sure that if the upstream type is different from ExtensionConfiguration.Kind is, that the resources are not patched.
@@ -718,6 +717,23 @@ end`,
 						"config-type=full",
 					)
 				}, nil)
+			},
+		},
+		{
+			name: "tproxy-and-permissive-mtls-and-envoy-extension",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "http"}
+					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
+					ns.Proxy.Mode = structs.ProxyModeTransparent
+					ns.Proxy.TransparentProxy.OutboundListenerPort = 1234
+					// Arbitrarily chose ext-authz since it's available in CE
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
+						"https",
+						"dest=local",
+					)
+				},
+					nil)
 			},
 		},
 	}

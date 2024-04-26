@@ -76,8 +76,9 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:     structs.ProxyDefaults,
+						Name:     structs.ProxyConfigGlobal,
+						Protocol: "http",
 						Config: map[string]interface{}{
 							"protocol": "http",
 						},
@@ -90,8 +91,9 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:     structs.ProxyDefaults,
+						Name:     structs.ProxyConfigGlobal,
+						Protocol: "http2",
 						Config: map[string]interface{}{
 							"protocol": "http2",
 						},
@@ -104,8 +106,9 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:     structs.ProxyDefaults,
+						Name:     structs.ProxyConfigGlobal,
+						Protocol: "grpc",
 						Config: map[string]interface{}{
 							"protocol": "grpc",
 						},
@@ -995,12 +998,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Bundles: []*pbpeering.PeeringTrustBundle{
 								{
 									TrustDomain: "foo.bar.gov",
-									PeerName:    "dc1",
+									PeerName:    "dc2",
 									Partition:   "default",
 									RootPEMs: []string{
 										roots.Roots[0].RootCert,
 									},
-									ExportedPartition: "dc1",
+									ExportedPartition: "default",
 									CreateIndex:       0,
 									ModifyIndex:       0,
 								},
@@ -1011,8 +1014,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 						CorrelationID: "service-intentions:web",
 						Result: structs.SimplifiedIntentions{
 							{
-								SourceName:      "*",
-								DestinationName: "web",
+								SourceName:           "source",
+								SourcePeer:           "dc2",
+								DestinationName:      "web",
+								DestinationPartition: "default",
+								Action:               structs.IntentionActionAllow,
 							},
 						},
 					},
@@ -1124,7 +1130,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "transparent-proxy-http-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 			},
 		},
 		{

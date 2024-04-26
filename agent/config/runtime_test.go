@@ -6094,6 +6094,9 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.NodeName = expected.NodeName
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
+		for i, e := range expected.ConfigEntryBootstrap {
+			e.SetHash(actual.ConfigEntryBootstrap[i].GetHash())
+		}
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 		if tc.cleanup != nil {
 			tc.cleanup()
@@ -6430,6 +6433,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
 		GRPCTLSPort:           5201,
 		GRPCTLSAddrs:          []net.Addr{tcpAddr("23.14.88.19:5201")},
+		GRPCKeepaliveInterval: 33 * time.Second,
+		GRPCKeepaliveTimeout:  22 * time.Second,
 		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -6975,6 +6980,9 @@ func TestLoad_FullConfig(t *testing.T) {
 				time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC)))
 			r, err := Load(opts)
 			require.NoError(t, err)
+			for i, e := range expected.ConfigEntryBootstrap {
+				e.SetHash(r.RuntimeConfig.ConfigEntryBootstrap[i].GetHash())
+			}
 			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)
 			require.ElementsMatch(t, expectedWarns, r.Warnings, "Warnings: %#v", r.Warnings)
 		})

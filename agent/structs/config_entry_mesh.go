@@ -27,8 +27,17 @@ type MeshConfigEntry struct {
 	Peering *PeeringMeshConfig `json:",omitempty"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *MeshConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *MeshConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 // TransparentProxyMeshConfig contains cluster-wide options pertaining to
@@ -92,6 +101,13 @@ func (e *MeshConfigEntry) Normalize() error {
 	}
 
 	e.EnterpriseMeta.Normalize()
+
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
+
 	return nil
 }
 

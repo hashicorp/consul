@@ -187,7 +187,9 @@ func (s *HTTPHandlers) handler() http.Handler {
 		// Register the wrapper.
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-			handler(resp, req)
+
+			// this method is implemented by different flavours of consul e.g. oss, ce. ent.
+			s.enterpriseRequest(resp, req, handler)
 
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
@@ -299,7 +301,6 @@ func (s *HTTPHandlers) handler() http.Handler {
 		h = mux
 	}
 
-	h = s.enterpriseHandler(h)
 	h = withRemoteAddrHandler(h)
 	s.h = &wrappedMux{
 		mux:     mux,
@@ -377,7 +378,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 			httpLogger.Warn("This request used the token query parameter "+
-				"which is deprecated and will be removed in Consul 1.17",
+				"which is deprecated and will be removed in a future Consul version",
 				"logUrl", logURL)
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")

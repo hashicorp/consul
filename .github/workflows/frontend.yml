@@ -5,10 +5,8 @@ name: frontend
 
 on:
   push:
-    branches:
-      - main
+    paths:
       - ui/**
-      - backport/ui/**
 
 permissions:
   contents: read

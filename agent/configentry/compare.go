@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configentry
 
 import (
@@ -34,4 +37,11 @@ func EqualID(e1, e2 structs.ConfigEntry) bool {
 	return e1.GetKind() == e2.GetKind() &&
 		e1.GetEnterpriseMeta().IsSame(e2.GetEnterpriseMeta()) &&
 		e1.GetName() == e2.GetName()
+}
+
+func SameHash(e1, e2 structs.ConfigEntry) bool {
+	if e1.GetHash() == 0 || e2.GetHash() == 0 {
+		return false
+	}
+	return e1.GetHash() == e2.GetHash()
 }

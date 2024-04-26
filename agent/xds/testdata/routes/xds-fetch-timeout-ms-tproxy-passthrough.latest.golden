@@ -1,0 +1,85 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "destination.443.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "validateClusters": true,
+      "virtualHosts": [
+        {
+          "domains": [
+            "www.google.com"
+          ],
+          "name": "destination.www-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "destination.www-google-com.google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "destination.9093.~http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "validateClusters": true,
+      "virtualHosts": [
+        {
+          "domains": [
+            "192.168.2.3"
+          ],
+          "name": "destination.192-168-2-3.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "destination.192-168-2-3.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        },
+        {
+          "domains": [
+            "192.168.2.2"
+          ],
+          "name": "destination.192-168-2-2.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "destination.192-168-2-2.kafka2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        },
+        {
+          "domains": [
+            "192.168.2.1"
+          ],
+          "name": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "destination.192-168-2-1.kafka.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "versionInfo": "00000001"
+}

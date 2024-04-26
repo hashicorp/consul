@@ -24,6 +24,12 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/rboyer/safeio"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
+
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -31,9 +37,6 @@ import (
 	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
-	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -222,6 +225,9 @@ type Agent struct {
 
 	// config is the agent configuration.
 	config *config.RuntimeConfig
+
+	displayOnlyConfigCopy     *config.RuntimeConfig
+	displayOnlyConfigCopyLock sync.Mutex
 
 	// Used for writing our logs
 	logger hclog.InterceptLogger
@@ -678,6 +684,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			metrics.Default(),
 			a.tlsConfigurator,
 			incomingRPCLimiter,
+			keepalive.ServerParameters{
+				Time:    a.config.GRPCKeepaliveInterval,
+				Timeout: a.config.GRPCKeepaliveTimeout,
+			},
 		)
 
 		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
@@ -709,6 +719,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			metrics.Default(),
 			a.tlsConfigurator,
 			rpcRate.NullRequestLimitsHandler(),
+			keepalive.ServerParameters{
+				Time:    a.config.GRPCKeepaliveInterval,
+				Timeout: a.config.GRPCKeepaliveTimeout,
+			},
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
@@ -4300,9 +4314,20 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	a.config.EnableDebug = newCfg.EnableDebug
 
 	// update Agent config with new config
-	a.config = newCfg.DeepCopy()
+	a.displayOnlyConfigCopyLock.Lock()
+	a.displayOnlyConfigCopy = newCfg.DeepCopy()
+	a.displayOnlyConfigCopyLock.Unlock()
 
 	return nil
+}
+
+func (a *Agent) getRuntimeConfigForDisplay() *config.RuntimeConfig {
+	a.displayOnlyConfigCopyLock.Lock()
+	defer a.displayOnlyConfigCopyLock.Unlock()
+	if a.displayOnlyConfigCopy != nil {
+		return a.displayOnlyConfigCopy.DeepCopy()
+	}
+	return a.config
 }
 
 // LocalBlockingQuery performs a blocking query in a generic way against
@@ -4616,6 +4641,14 @@ func (a *Agent) persistServerMetadata() {
 				continue
 			}
 
+			// Use safeio.File to ensure the file is written to disk atomically
+			if sf, ok := f.(*safeio.File); ok {
+				if err := sf.Commit(); err != nil {
+					sf.Close()
+					a.logger.Error("failed to commit server metadata", "error", err)
+					continue
+				}
+			}
 			f.Close()
 		case <-a.shutdownCh:
 			return

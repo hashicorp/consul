@@ -81,7 +81,13 @@ The following Kubernetes resource annotations could be used on a pod to control 
   local port to listen for those connections. When transparent proxy is enabled,
   this annotation is optional. This annotation can be either _labeled_ or _unlabeled_. We recommend the labeled format because it has a more consistent syntax and can be used to reference cluster peers as upstreams.
 
- - **Labeled**:
+    <Note>
+
+    If the upstream annotation contains a dot (for example, `static-server.svc:8080`), you may not be able to reference the auto-generated environment variables (`<NAME>_CONNECT_SERVICE_HOST` and `<NAME>_CONNECT_SERVICE_PORT`) since the environment variables will also contain the dot.
+
+    </Note>
+
+    - **Labeled**:
 
       The labeled annotation format allows you to reference any service as an upstream. You can specify a Consul Enterprise namespace. You can also specify an admin partition in the same datacenter, a cluster peer, or a WAN-federated datacenter.
 
@@ -245,6 +251,9 @@ The following Kubernetes resource annotations could be used on a pod to control 
 - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulPort`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)
 - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulShutdownPath`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)
 
+- `consul.hashicorp.com/sidecar-proxy-startup-failure-seconds` - Override the default Helm value [`connectInject.sidecarProxy.defaultStartupFailureSeconds`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-defaultstartupfailureseconds)
+- `consul.hashicorp.com/sidecar-proxy-liveness-failure-seconds` - Override the default Helm value [`connectInject.sidecarProxy.defaultLivenessFailureSeconds`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-defaultlivenessfailureseconds)
+
 - `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
 - `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
 - `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
@@ -274,6 +283,11 @@ The following Kubernetes resource annotations could be used on a pod to control 
   ```yaml
   annotations:
     "consul.hashicorp.com/consul-sidecar-user-volume-mount": "[{\"name\": \"secrets-store-mount\", \"mountPath\": \"/mnt/secrets-store\"}]"
+  ```
+- `consul.hashicorp.com/proxy-config-map` - JSON object specifying [Proxy Config Options](/consul/docs/connect/proxies/envoy#proxy-config-options). The proxy config map provides a low-level interface for setting configuration fields on a per-proxy basis during service registration. This configuration field is intended to be used in situations where a field does not exist in [service defaults configuration entries](/consul/docs/connect/config-entries/service-defaults) and another annotation does not provide explicit access to one of the Envoy configuration options.
+  ```yaml
+  annotations:
+    "consul.hashicorp.com/proxy-config-map": "{ \"xds_fetch_timeout_ms\": 30000 }"
   ```
 
 ### Labels
