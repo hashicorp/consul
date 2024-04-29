@@ -34,7 +34,6 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
-	"github.com/pkg/errors"
 
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -301,7 +300,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		tmpdir = dir
 		if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
 			if err = os.Mkdir(tmpdir, 0750); err != nil {
-				return nil, errors.Wrap(err, "failed to create tempdir from env TEST_TMP_DIR")
+				return nil, fmt.Errorf("failed to create tempdir from env TEST_TMP_DIR: %w", err)
 			}
 		} else {
 			t.Logf("WARNING: using tempdir that already exists %s", tmpdir)
@@ -314,7 +313,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		}
 		tmpdir, err = os.MkdirTemp("", prefix)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create tempdir")
+			return nil, fmt.Errorf("failed to create tempdir: %w", err)
 		}
 	}
 
@@ -336,14 +335,14 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 	b, err := json.Marshal(cfg)
 	if err != nil {
 		os.RemoveAll(tmpdir)
-		return nil, errors.Wrap(err, "failed marshaling json")
+		return nil, fmt.Errorf("failed marshaling json: %w", err)
 	}
 
 	t.Logf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := os.WriteFile(configFile, b, 0644); err != nil {
 		os.RemoveAll(tmpdir)
-		return nil, errors.Wrap(err, "failed writing config content")
+		return nil, fmt.Errorf("failed writing config content: %w", err)
 	}
 
 	// Start the server
@@ -355,7 +354,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 	cmd.Stderr = cfg.Stderr
 	if err := cmd.Start(); err != nil {
 		os.RemoveAll(tmpdir)
-		return nil, errors.Wrap(err, "failed starting command")
+		return nil, fmt.Errorf("failed starting command: %w", err)
 	}
 
 	httpAddr := fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTP)
@@ -425,17 +424,17 @@ func (s *TestServer) Stop() error {
 			cmd.Stdout = s.Config.Stdout
 			cmd.Stderr = s.Config.Stderr
 			if err := cmd.Run(); err != nil {
-				return errors.Wrap(err, "failed to save a snapshot")
+				return fmt.Errorf("failed to save a snapshot: %w", err)
 			}
 		}
 
 		if runtime.GOOS == "windows" {
 			if err := s.cmd.Process.Kill(); err != nil {
-				return errors.Wrap(err, "failed to kill consul server")
+				return fmt.Errorf("failed to kill consul server: %w", err)
 			}
 		} else { // interrupt is not supported in windows
 			if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
-				return errors.Wrap(err, "failed to kill consul server")
+				return fmt.Errorf("failed to kill consul server: %w", err)
 			}
 		}
 	}
@@ -704,7 +703,7 @@ func findConsulVersion() (*version.Version, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Start(); err != nil {
-		return nil, errors.Wrap(err, "failed to get consul version")
+		return nil, fmt.Errorf("failed to get consul version: %w", err)
 	}
 	cmd.Wait()
 	type consulVersion struct {
@@ -712,11 +711,11 @@ func findConsulVersion() (*version.Version, error) {
 	}
 	v := consulVersion{}
 	if err := json.Unmarshal(stdout.Bytes(), &v); err != nil {
-		return nil, errors.Wrap(err, "error parsing consul version json")
+		return nil, fmt.Errorf("error parsing consul version json: %w", err)
 	}
 	parsed, err := version.NewVersion(v.Version)
 	if err != nil {
-		return nil, errors.Wrap(err, "error parsing consul version")
+		return nil, fmt.Errorf("error parsing consul version: %w", err)
 	}
 	return parsed, nil
 }
