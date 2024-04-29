@@ -404,6 +404,8 @@ type Config struct {
 	// report usage metrics to the configured go-metrics Sinks.
 	MetricsReportingInterval time.Duration
 
+	DisablePerTenancyUsageMetrics bool
+
 	// ConnectEnabled is whether to enable Connect features such as the CA.
 	ConnectEnabled bool
 

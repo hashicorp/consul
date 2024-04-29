@@ -619,6 +619,8 @@ func MakeShadowConfigEntry(kind, name string) (structs.ConfigEntry, error) {
 		return &ShadowAPIGatewayConfigEntry{APIGatewayConfigEntry: &structs.APIGatewayConfigEntry{Name: name}}, nil
 	case structs.BoundAPIGateway:
 		return &ShadowBoundAPIGatewayConfigEntry{BoundAPIGatewayConfigEntry: &structs.BoundAPIGatewayConfigEntry{Name: name}}, nil
+	case structs.FileSystemCertificate:
+		return &ShadowFileSystemCertificateConfigEntry{FileSystemCertificateConfigEntry: &structs.FileSystemCertificateConfigEntry{Name: name}}, nil
 	case structs.InlineCertificate:
 		return &ShadowInlineCertificateConfigEntry{InlineCertificateConfigEntry: &structs.InlineCertificateConfigEntry{Name: name}}, nil
 	case structs.HTTPRoute:
@@ -929,6 +931,15 @@ func (s ShadowBoundAPIGatewayConfigEntry) GetRealConfigEntry() structs.ConfigEnt
 		s.BoundAPIGatewayConfigEntry.Listeners = append(s.BoundAPIGatewayConfigEntry.Listeners, *listner.BoundAPIGatewayListener)
 	}
 	return s.BoundAPIGatewayConfigEntry
+}
+
+type ShadowFileSystemCertificateConfigEntry struct {
+	ShadowBase
+	*structs.FileSystemCertificateConfigEntry
+}
+
+func (s ShadowFileSystemCertificateConfigEntry) GetRealConfigEntry() structs.ConfigEntry {
+	return s.FileSystemCertificateConfigEntry
 }
 
 type ShadowInlineCertificateConfigEntry struct {

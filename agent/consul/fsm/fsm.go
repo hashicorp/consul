@@ -196,7 +196,7 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 		return nil
 	}
 	if structs.CEDowngrade && msgType >= 64 {
-		c.logger.Warn("ignoring enterprise message, for downgrading to oss", "type", msgType)
+		c.logger.Warn("ignoring enterprise message as part of downgrade to CE", "type", msgType)
 		return nil
 	}
 	panic(fmt.Errorf("failed to apply request: %#v", buf))
@@ -268,8 +268,9 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 			}
 		default:
 			if structs.CEDowngrade && msg >= 64 {
-				c.logger.Warn("ignoring enterprise message , for downgrading to oss", "type", msg)
-				return nil
+				c.logger.Warn("ignoring enterprise message as part of downgrade to CE", "type", msg)
+				var ignore interface{}
+				return dec.Decode(&ignore)
 			} else if msg >= 64 {
 				return fmt.Errorf("msg type <%d> is a Consul Enterprise log entry. Consul CE cannot restore it", msg)
 			} else {
@@ -399,6 +400,11 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 
 	err = c.deps.Publisher.RegisterHandler(state.EventTopicAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 		return c.State().APIGatewaySnapshot(req, buf)
+	}, true)
+	panicIfErr(err)
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicFileSystemCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().FileSystemCertificateSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
 
