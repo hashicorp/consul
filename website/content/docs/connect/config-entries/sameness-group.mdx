@@ -152,6 +152,8 @@ When this field is set to `true`, upstream requests automatically fail over to s
 
 When this field is set to `false`, you can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
 
+When [querying Consul](/consul/docs/services/discovery/dns-static-lookups) DNS using sameness groups, `DefaultForFailover` must be set to `true`.  Otherwise, Consul DNS will return an error.
+
 #### Values
 
 - Default: `false`
