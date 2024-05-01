@@ -18,7 +18,7 @@ Consul on ECS supports the following environments, runtimes, and capabilities:
 - **Launch Types:** Fargate and EC2
 - **Network Modes:** `awsvpc`
 - **Subnets:** Private and public subnets. Tasks must have network access to Amazon ECR or other public container registries to pull images.
-- **Consul servers:** You can use your own Consul servers running on virtual machines or [use HCP Consul to host the servers for you](/hcp/docs/consul/hcp-managed).
+- **Consul servers:** You can use your own Consul servers running on virtual machines or [use HCP Consul Dedicated to host the servers for you](/hcp/docs/consul/dedicated).
 - **ECS controller:** The ECS controller assists with reconciling state back to Consul and facilitates Consul security features.
 - **Admin partitions:** <EnterpriseAlert inline/> Enable ACLs and configure the ECS controller to use admin partitions. You must deploy one controller for each admin partition. 
 - **Namespaces:** <EnterpriseAlert inline/> Enable ACLs and configure the ECS controller to use namespaces. 

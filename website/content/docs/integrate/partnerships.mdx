@@ -17,7 +17,7 @@ The program is intended to be largely self-service with links to resources, code
 
 ## Categories of Consul Integrations
 
-By leveraging Consul's RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul's functionalities. These integrations can be performed both with the community edition of Consul, Consul Enterprise, and HCP Consul.
+By leveraging Consul's RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul's functionalities. These integrations can be performed both with the community edition of Consul, Consul Enterprise, and HCP Consul Dedicated.
 
 **The Consul ecosystem of integrations:**
 
@@ -37,9 +37,9 @@ By leveraging Consul's RESTful HTTP API system, prospective partners are able to
 
 -> **Network Infrastructure Automation (NIA)***: These integrations leverage Consul's service catalog to seamlessly integrate with Consul-Terraform-Sync (CTS) to automate changes in network infrastructure via a publisher-subscriber method. Refer to the [NIA documentation](/consul/docs/integrate/nia-integration) for details.
 
-**HCP Consul**: HCP Consul is secure by default and offers an out-of-the-box service mesh solution to streamline operations without the hassle of managing Consul servers. [Sign up for a free HCP Consul account](https://cloud.hashicorp.com/products/consul).
+**HCP Consul Dedicated**: HCP Consul Dedicated is secure by default and offers an out-of-the-box service mesh solution to streamline operations without the hassle of managing Consul servers. [Sign up for a free HCP Consul Dedicated account](https://cloud.hashicorp.com/products/consul).
 
-**Consul integration verification badges**: Partners will be issued the Consul Enterprise badge for integrations that work with [Consul Enterprise features](/consul/docs/enterprise) such as namespaces. Partners will be issued the HCP Consul badge for integrations validated to work with [HCP Consul](/hcp/docs/consul#features). Each badge would be displayed on HashiCorp's partner page as well as be available for posting on the partner's own website to provide better visibility and differentiation of the integration for joint customers.
+**Consul integration verification badges**: Partners will be issued the Consul Enterprise badge for integrations that work with [Consul Enterprise features](/consul/docs/enterprise) such as namespaces. Partners will be issued the HCP Consul Dedicated badge for integrations validated to work with [HCP Consul Dedicated](/hcp/docs/consul#features). Each badge would be displayed on HashiCorp's partner page as well as be available for posting on the partner's own website to provide better visibility and differentiation of the integration for joint customers.
 
 <span style={{display:'block', textAlign:'center'}}>
 <ImageConfig inline height={192} width={192}>
@@ -49,12 +49,12 @@ By leveraging Consul's RESTful HTTP API system, prospective partners are able to
 </ImageConfig>
 <ImageConfig inline height={192} width={192}>
 
-![HCP Consul](/img/HCPc_badge.png)
+![HCP Consul Dedicated](/img/HCPc_badge.png)
 
 </ImageConfig>
 </span>
 
-Developing a valid integration with either Consul Enterprise or HCP Consul also qualifies the partner for the Premier tier of the HashiCorp Technology Partners program. The process for verification of these integrations is detailed below.
+Developing a valid integration with either Consul Enterprise or HCP Consul Dedicated also qualifies the partner for the Premier tier of the HashiCorp Technology Partners program. The process for verification of these integrations is detailed below.
 
 ## Development Process
 
@@ -87,7 +87,7 @@ Here are links to resources, documentation, examples and best practices to guide
 
 - [Consul Telemetry Documentation](/consul/docs/agent/telemetry)
 - [Monitoring Consul with Datadog APM](https://www.datadoghq.com/blog/consul-datadog/)
-- [Monitor HCP Consul with New Relic Instant Observability](https://github.com/newrelic-experimental/hashicorp-quickstart-annex/blob/main/hcp-consul/README.md)
+- [Monitor HCP Consul Dedicated with New Relic Instant Observability](https://github.com/newrelic-experimental/hashicorp-quickstart-annex/blob/main/hcp-consul/README.md)
 - [HCP Consul and CloudFabrix AIOps Integration](https://bot-docs.cloudfabrix.io/Bots/consul/?h=consul)
 - [Consul and SnappyFlow Full Stack Observability](https://docs.snappyflow.io/docs/Integrations/hcp_consul)
 
@@ -167,17 +167,17 @@ Here are links to resources, documentation, examples and best practices to guide
 
 The only knowledge necessary to write a plugin is basic command-line skills and knowledge of the [Go programming language](http://www.golang.org). Use the plugin interface to develop your integration. All integrations should contain unit and acceptance testing.
 
-**HCP Consul**:  As a managed service, minimal configuration is required to deploy HCP Consul server clusters. You only need to install Consul client agents. Furthermore, HashiCorp provides all new users an initial credit, which provides approximately two months worth of [development cluster](https://cloud.hashicorp.com/products/consul/pricing) access. When deployed with AWS or Azure free tier services, there should be no cost beyond the time spent by the designated tester. Refer to the [Deploy HCP Consul tutorial](/consul/tutorials/get-started-hcp/hcp-gs-deploy) for details on getting started.
+**HCP Consul Dedicated**:  As a managed service, minimal configuration is required to deploy HCP Consul Dedicated server clusters. You only need to install Consul client agents. Furthermore, HashiCorp provides all new users an initial credit, which provides approximately two months worth of [development cluster](https://cloud.hashicorp.com/products/consul/pricing) access. When deployed with AWS or Azure free tier services, there should be no cost beyond the time spent by the designated tester. Refer to the [Deploy HCP Consul Dedicated tutorial](/consul/tutorials/get-started-hcp/hcp-gs-deploy) for details on getting started.
 
-HCP Consul is currently only deployed on AWS and Microsoft Azure, so your application can be deployed to or run in AWS or Azure. 
+HCP Consul Dedicated is currently only deployed on AWS and Microsoft Azure, so your application can be deployed to or run in AWS or Azure. 
 
-#### HCP Consul Resource Links:
+#### HCP Consul Dedicated Resource Links:
 
-- [Getting Started with HCP Consul](/consul/tutorials/get-started-hcp/hcp-gs-deploy)
-- [HCP Consul End-to-End Deployment](/consul/tutorials/cloud-deploy-automation/consul-end-to-end-overview)
-- [Deploy HCP Consul with EKS using Terraform](/consul/tutorials/cloud-deploy-automation/consul-end-to-end-eks)
-- [HCP Consul Deployment Automation](/consul/tutorials/cloud-deploy-automation)
-- [HCP Consul documentation](/hcp/docs/consul/usage)
+- [Getting Started with HCP Consul Dedicated](/consul/tutorials/get-started-hcp/hcp-gs-deploy)
+- [HCP Consul Dedicated End-to-End Deployment](/consul/tutorials/cloud-deploy-automation/consul-end-to-end-overview)
+- [Deploy HCP Consul Dedicated with EKS using Terraform](/consul/tutorials/cloud-deploy-automation/consul-end-to-end-eks)
+- [HCP Consul Dedicated Deployment Automation](/consul/tutorials/cloud-deploy-automation)
+- [HCP Consul Dedicated documentation](/hcp/docs/consul/usage)
 
 **Consul Enterprise**: An integration qualifies for Consul Enterprise when it is tested and compatible with Consul Enterprise Namespaces.
 
