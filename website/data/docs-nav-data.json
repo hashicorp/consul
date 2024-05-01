@@ -49,7 +49,7 @@
         "path": "install"
       },
       {
-        "title": "Learn HCP Consul",
+        "title": "Learn HCP Consul Dedicated",
         "href": "https://developer.hashicorp.com/consul/tutorials/get-started-hcp"
       },
       {
@@ -1852,7 +1852,7 @@
     "divider": true
   },
   {
-    "title": "HCP Consul",
+    "title": "HCP Consul Dedicated",
     "href": "https://cloud.hashicorp.com/docs/consul"
   },
   {

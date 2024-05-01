@@ -41,7 +41,8 @@ Be aware of the following constraints and technical limitations on using multi-p
 - When running the v2 catalog for multi-port services, you cannot run the v1 catalog API at the same time. 
 - Because configuration entries are part of the v1 catalog, you cannot use them when the v2 catalog is enabled. Use v2 resources instead to configure multi-port service behavior in the service mesh.
 - The Consul UI does not support multi-port services in this release. You must disable the UI in the Helm chart in order to use multi-port services.
-- HCP Consul does not support multi-port services in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
+- HCP Consul Dedicated does not support multi-port services in this release. 
+- You cannot [link a self-managed Enterprise cluster to HCP Consul Central](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
 - We do not recommend updating existing clusters to enable the v2 catalog in this release. To register multi-port services, deploy a new Consul cluster that enables the v2 catalog.
 
 ## Guidance
