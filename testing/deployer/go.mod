@@ -1,12 +1,10 @@
 module github.com/hashicorp/consul/testing/deployer
 
-go 1.22.0
-
-toolchain go1.22.1
+go 1.20
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/consul-server-connection-manager v0.1.4
 	github.com/hashicorp/consul/api v1.26.1
 	github.com/hashicorp/consul/proto-public v0.5.1
@@ -19,7 +17,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.16.2
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/rboyer/safeio v0.2.2
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.8.3
 	golang.org/x/crypto v0.22.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	google.golang.org/grpc v1.56.3

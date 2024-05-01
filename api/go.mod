@@ -1,8 +1,6 @@
 module github.com/hashicorp/consul/api
 
-go 1.22.0
-
-toolchain go1.22.1
+go 1.19
 
 replace (
 	github.com/hashicorp/consul/proto-public => ../proto-public
@@ -12,7 +10,7 @@ replace (
 retract v1.28.0 // tag was mutated
 
 require (
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/consul/proto-public v0.5.1
 	github.com/hashicorp/consul/sdk v0.15.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -22,7 +20,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/serf v0.10.1
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.8.3
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	google.golang.org/protobuf v1.33.0
 )

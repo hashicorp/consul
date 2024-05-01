@@ -30,6 +30,7 @@ repository {
       # N.b. `vulnerabilites` is the correct spelling for this tool.
       vulnerabilites = [
         "GO-2024-2631", # go-jose/v3@v3.0.3 (false positive)
+        "GHSA-33c5-9fx5-fvjm", # k8s.io/apimachinery@v0.26.2 (false positive) 
       ]
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
