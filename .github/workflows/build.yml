@@ -141,7 +141,15 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
+            cp LICENSE $TARGET_DIR/LICENSE.txt
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+
+      - name: Copy license file
+        env:
+          LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+        run: |
+          mkdir -p "$LICENSE_DIR"
+          cp LICENSE "$LICENSE_DIR/LICENSE.txt"
 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
@@ -153,7 +161,7 @@ jobs:
           version: ${{ needs.set-product-version.outputs.product-version }}
           maintainer: "HashiCorp"
           homepage: "https://github.com/hashicorp/consul"
-          license: "MPL-2.0"
+          license: "BSL-1.1"
           binary: "dist/${{ env.PKG_NAME }}"
           deb_depends: "openssl"
           rpm_depends: "openssl"
@@ -232,6 +240,7 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
+            cp LICENSE $TARGET_DIR/LICENSE.txt
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-darwin:
@@ -282,6 +291,7 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
+            cp LICENSE $TARGET_DIR/LICENSE.txt
             go build -ldflags="$GOLDFLAGS" -tags netcgo -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-docker:
