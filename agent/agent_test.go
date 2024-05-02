@@ -3377,9 +3377,8 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Ensure the check was deregistered
-
-	if found := a.State.Check(checkID); found != nil {
+	// Ensure the check has updated status
+	if found := a.State.Check(checkID); found != nil && found.Status != api.HealthPassing {
 		t.Fatalf("should have deregistered maintenance check")
 	}
 
@@ -3393,7 +3392,10 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 	if check == nil {
 		t.Fatalf("should have registered critical check")
 	}
-	if check.Notes != defaultServiceMaintReason {
+	if check.Notes != "broken" {
+		t.Fatalf("bad: %#v", check)
+	}
+	if check.Status != api.HealthCritical {
 		t.Fatalf("bad: %#v", check)
 	}
 }
@@ -3620,8 +3622,10 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	// Leave maintenance mode
 	a.DisableNodeMaintenance()
 
-	// Ensure the check was deregistered
-	requireCheckMissing(t, a, structs.NodeMaint)
+	// Ensure the check indicates passing status
+	if check.Status == api.HealthPassing {
+		t.Fatalf("bad: %#v", check)
+	}
 
 	// Enter maintenance mode without passing a reason
 	a.EnableNodeMaintenance("", "")
@@ -3630,6 +3634,9 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	check = requireCheckExists(t, a, structs.NodeMaint)
 	if check.Notes != defaultNodeMaintReason {
 		t.Fatalf("bad: %#v", check)
+	}
+	if check.Status != api.HealthCritical {
+		t.Fatalf("check status must be passing")
 	}
 }
 

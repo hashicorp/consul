@@ -4068,7 +4068,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID structs.ServiceID, reason, to
 
 	// Check if maintenance mode is not already enabled
 	checkID := serviceMaintCheckID(serviceID)
-	if a.State.Check(checkID) != nil {
+	if a.State.Check(checkID) != nil && a.State.Check(checkID).Status != api.HealthPassing {
 		return nil
 	}
 
@@ -4077,7 +4077,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID structs.ServiceID, reason, to
 		reason = defaultServiceMaintReason
 	}
 
-	// Create and register the critical health check
+	// New Critical Health Check
 	check := &structs.HealthCheck{
 		Node:           a.config.NodeName,
 		CheckID:        checkID.ID,
@@ -4089,7 +4089,17 @@ func (a *Agent) EnableServiceMaintenance(serviceID structs.ServiceID, reason, to
 		Type:           "maintenance",
 		EnterpriseMeta: checkID.EnterpriseMeta,
 	}
-	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
+
+	// If check exists, update status, else create a new check
+	if a.State.Check(checkID) != nil {
+		a.State.UpdateCheck(checkID, api.HealthCritical, "")
+	} else {
+		err := a.AddCheck(check, nil, true, token, ConfigSourceLocal)
+		if err != nil {
+			return nil
+		}
+	}
+
 	a.logger.Info("Service entered maintenance mode", "service", serviceID.String())
 
 	return nil
@@ -4112,9 +4122,11 @@ func (a *Agent) DisableServiceMaintenance(serviceID structs.ServiceID) error {
 	// Update check to trigger an event for watchers
 	a.State.UpdateCheck(checkID, api.HealthPassing, "")
 	// Make sure state change is propagated
-	a.State.SyncChanges()
-	// Deregister the maintenance check
-	a.RemoveCheck(checkID, true)
+	err := a.State.SyncFull()
+	if err != nil {
+		return err
+	}
+
 	a.logger.Info("Service left maintenance mode", "service", serviceID.String())
 
 	return nil
