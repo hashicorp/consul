@@ -8,6 +8,7 @@ resource "docker_container" "{{.DockerNetworkName}}-forwardproxy" {
     internal = {{.InternalPort}}
   }
 
+  network_mode = "bridge"
   networks_advanced {
     name         = docker_network.{{.DockerNetworkName}}.name
     ipv4_address = "{{.IPAddress}}"
