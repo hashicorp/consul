@@ -1,0 +1,4 @@
+```release-note:security
+Upgrade to clean outdated `coredns` dependency. This resolves CVE
+[CVE-2024-0874](https://nvd.nist.gov/vuln/detail/CVE-2024-0874).
+```
