@@ -23,6 +23,7 @@ ports {
 }
 {{- end }}
 
+network_mode = "bridge"
 {{- range .Node.Addresses }}
 networks_advanced {
   name         = docker_network.{{.DockerNetworkName}}.name
