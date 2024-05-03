@@ -1,15 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package lib
+package librtt
 
 import (
 	"math"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/serf/coordinate"
 )
 
 func TestRTT_ComputeDistance(t *testing.T) {
