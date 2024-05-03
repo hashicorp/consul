@@ -123,7 +123,7 @@ ENV BIN_NAME=$BIN_NAME
 ENV PRODUCT_VERSION=$PRODUCT_VERSION
 
 ARG PRODUCT_REVISION
-ARG PRODUCT_NAME=$BIN_NAME
+ENV PRODUCT_NAME=$BIN_NAME
 
 # TARGETOS and TARGETARCH are set automatically when --platform is provided.
 ARG TARGETOS TARGETARCH
@@ -136,8 +136,10 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
       org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      org.opencontainers.image.licenses="BSL-1.1" \
       version=${PRODUCT_VERSION}
 
+COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
 RUN apk add -v --no-cache \
@@ -203,7 +205,6 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 # This target is used to build a Consul image for use on OpenShift.
 FROM registry.access.redhat.com/ubi9-minimal:9.3 as ubi
 
-ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
 ARG PRODUCT_REVISION
 ARG BIN_NAME
@@ -212,8 +213,7 @@ ARG BIN_NAME
 # and the version to download. Example: PRODUCT_NAME=consul PRODUCT_VERSION=1.2.3.
 ENV BIN_NAME=$BIN_NAME
 ENV PRODUCT_VERSION=$PRODUCT_VERSION
-
-ARG PRODUCT_NAME=$BIN_NAME
+ENV PRODUCT_NAME=$BIN_NAME
 
 # TARGETOS and TARGETARCH are set automatically when --platform is provided.
 ARG TARGETOS TARGETARCH
@@ -226,8 +226,10 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
       org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      org.opencontainers.image.licenses="BSL-1.1" \
       version=${PRODUCT_VERSION}
 
+COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 # Copy license for Red Hat certification.
 COPY LICENSE /licenses/mozilla.txt
 
