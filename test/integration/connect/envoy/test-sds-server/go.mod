@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/envoyproxy/go-control-plane v0.11.1
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/hashicorp/consul v1.18.1
 	github.com/hashicorp/consul/sdk v0.16.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0
