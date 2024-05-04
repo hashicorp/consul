@@ -19,7 +19,7 @@ jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.3.4
+    container: hashicorpdev/backport-assistant:0.3.8
     steps:
       - name: Run Backport Assistant for release branches
         run: |
@@ -28,6 +28,8 @@ jobs:
           BACKPORT_LABEL_REGEXP: "backport/(?P<target>\\d+\\.\\d+)"
           BACKPORT_TARGET_TEMPLATE: "release/{{.target}}.x"
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+          ENABLE_VERSION_MANIFESTS: true
+
   handle-failure:
     needs:
       - backport
@@ -41,3 +43,15 @@ jobs:
             -X POST \
             -d "{ \"body\": \"${github_message}\"}" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
+  backport-ent:
+    if: github.event.pull_request.merged && contains(join(github.event.pull_request.labels.*.name), 'backport/ent')
+    runs-on: ubuntu-latest
+    container: hashicorpdev/backport-assistant:0.3.8
+    steps:
+      - name: Trigger backport for Enterprise
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+          repository: <putconsulentrepohere>
+          event-type: ent-backport
+          client-payload: ${{ toJson(github.event) }}
