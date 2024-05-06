@@ -1759,14 +1759,8 @@ type terminatingGatewayFilterChainOpts struct {
 }
 
 func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, tgtwyOpts terminatingGatewayFilterChainOpts) (*envoy_listener_v3.FilterChain, error) {
-	// We need to at least match the SNI and use the root PEMs from the local cluster; however, requests coming
-	// from peered clusters where the external service is exported to will have their own SNI and root PEMs.
+	// We need to at least match the SNI and use the root PEMs from the local cluster
 	sniMatches := []string{tgtwyOpts.cluster}
-	for _, bundle := range tgtwyOpts.peerTrustBundles {
-		svc := tgtwyOpts.service
-		sourceSNI := connect.PeeredServiceSNI(svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), bundle.PeerName, cfgSnap.Roots.TrustDomain)
-		sniMatches = append(sniMatches, sourceSNI)
-	}
 
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContext(
@@ -1777,9 +1771,19 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 	}
 
-	err := injectSpiffeValidatorConfigForPeers(cfgSnap, tlsContext.CommonTlsContext, tgtwyOpts.peerTrustBundles)
-	if err != nil {
-		return nil, err
+	// For TCP connections, TLS is not terminated at the mesh gateway but is instead proxied through;
+	// therefore, we need to account for callers from other datacenters when setting up our filter chain.
+	if tgtwyOpts.protocol == "tcp" {
+		for _, bundle := range tgtwyOpts.peerTrustBundles {
+			svc := tgtwyOpts.service
+			sourceSNI := connect.PeeredServiceSNI(svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), bundle.PeerName, cfgSnap.Roots.TrustDomain)
+			sniMatches = append(sniMatches, sourceSNI)
+		}
+
+		err := injectSpiffeValidatorConfigForPeers(cfgSnap, tlsContext.CommonTlsContext, tgtwyOpts.peerTrustBundles)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
