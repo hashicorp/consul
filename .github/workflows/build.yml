@@ -10,6 +10,7 @@ on:
       # Push events on the main branch
       - main
       - release/**
+  workflow_dispatch:
 
 env:
   PKG_NAME: consul
@@ -141,15 +142,10 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
-            cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
-
-      - name: Copy license file
-        env:
-          LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
-        run: |
-          mkdir -p "$LICENSE_DIR"
-          cp LICENSE "$LICENSE_DIR/LICENSE.txt"
+            # Note that for non-linux builds, .release/linux/package... is a no-op, 
+            # but files will always included in the zip root directory (TARGET_DIR) on all platforms.
+            ./.github/scripts/copy-legal.sh "${{ github.repository }}" "$TARGET_DIR" ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+            ${{ matrix.env }} go build -ldflags="$GOLDFLAGS" -tags="${{ matrix.gotags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
@@ -240,8 +236,10 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
-            cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
+            # Note that for non-linux builds, .release/linux/package... is a no-op, 
+            # but files will always included in the zip root directory (TARGET_DIR) on all platforms.
+            ./.github/scripts/copy-legal.sh "${{ github.repository }}" "$TARGET_DIR" ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+            go build -ldflags="$GOLDFLAGS" -tags="${{ matrix.gotags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-darwin:
     needs:
@@ -291,8 +289,10 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
-            cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -tags netcgo -o "$BIN_PATH" -trimpath -buildvcs=false
+            # Note that for non-linux builds, .release/linux/package... is a no-op, 
+            # but files will always included in the zip root directory (TARGET_DIR) on all platforms.
+            ./.github/scripts/copy-legal.sh "${{ github.repository }}" "$TARGET_DIR" ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+            go build -ldflags="$GOLDFLAGS" -tags="${{ matrix.gotags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
