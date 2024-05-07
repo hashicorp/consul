@@ -31,8 +31,8 @@ import (
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
@@ -82,7 +82,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
-	var cs lib.CoordinateSet
+	var cs librtt.CoordinateSet
 	if !s.agent.config.DisableCoordinates {
 		var err error
 		if cs, err = s.agent.GetLANCoordinate(); err != nil {

@@ -16,7 +16,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/discovery"
 	"math"
 	"math/rand"
 	"net"
@@ -34,9 +33,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/discovery"
 	dnsConsul "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -1069,15 +1069,15 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	ipCoord := librtt.GenerateCoordinate(1 * time.Millisecond)
 	serviceNodes := []struct {
 		name    string
 		address string
 		coord   *coordinate.Coordinate
 	}{
-		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
-		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
-		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
+		{"foo1", "198.18.0.1", librtt.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", librtt.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", librtt.GenerateCoordinate(30 * time.Millisecond)},
 	}
 
 	for name, experimentsHCL := range getVersionHCL(true) {
@@ -1203,15 +1203,15 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	ipCoord := librtt.GenerateCoordinate(1 * time.Millisecond)
 	serviceNodes := []struct {
 		name    string
 		address string
 		coord   *coordinate.Coordinate
 	}{
-		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
-		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
-		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
+		{"foo1", "198.18.0.1", librtt.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", librtt.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", librtt.GenerateCoordinate(30 * time.Millisecond)},
 	}
 
 	for name, experimentsHCL := range getVersionHCL(true) {
