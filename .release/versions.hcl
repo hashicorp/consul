@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-# This file is solely for CE repos and exists in ENT repos to prevent merge conflicts
+# This manifest file describes active releases and is consumed by the backport tooling.
 
 schema = 1
 active_versions {
