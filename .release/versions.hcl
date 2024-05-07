@@ -1,3 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+# This file is solely for CE repos and exists in ENT repos to prevent merge conflicts
+
 schema = 1
 active_versions {
   version "1.18" {
