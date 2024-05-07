@@ -145,6 +145,7 @@ jobs:
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
       - name: Copy license file
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
         env:
           LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
         run: |
