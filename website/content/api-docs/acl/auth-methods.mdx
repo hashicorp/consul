@@ -64,8 +64,7 @@ The corresponding CLI command is [`consul acl auth-method create`](/consul/comma
   [`ExpirationTime`](/consul/api-docs/acl/tokens#expirationtime) field on all tokens
   to a value of `Token.CreateTime + AuthMethod.MaxTokenTTL`. This field is not
   persisted beyond its initial use. Can be specified in the form of `"60s"` or
-  `"5m"` (i.e., 60 seconds or 5 minutes, respectively). This value must be no
-  smaller than 1 minute and no longer than 24 hours. Added in Consul 1.8.0.
+  `"5m"` (i.e., 60 seconds or 5 minutes, respectively). Added in Consul 1.8.0.
 
   This must be set to a nonzero value for `type=oidc`.
 
