@@ -9,6 +9,12 @@ on:
       go-version-previous:
         description: "The Go version (MAJOR.MINOR) prior to the current one, used for backwards compatibility testing"
         value: ${{ jobs.get-go-version.outputs.go-version-previous }}
+      lts:
+        description: "Whether the Go version is an LTS release"
+        value: ${{ jobs.get-go-version.outputs.lts }}
+      latest-patch-version:
+        description: "The latest available patch version of the detected Go version"
+        value: ${{ jobs.get-go-version.outputs.latest-patch-version }}
 
 jobs:
   get-go-version:
@@ -34,9 +40,70 @@ jobs:
         # setting the Dockerfile Go version.
         run: |
           GO_VERSION=$(head -n 1 .go-version)
+          if [[ ! $GO_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid Go version: $GO_VERSION"
+            exit 1
+          fi
           echo "Building with Go ${GO_VERSION}"
           echo "go-version=${GO_VERSION}" >> $GITHUB_OUTPUT
           GO_MINOR_VERSION=${GO_VERSION%.*}
           GO_VERSION_PREVIOUS="${GO_MINOR_VERSION%.*}.$((${GO_MINOR_VERSION#*.}-1))"
           echo "Previous version ${GO_VERSION_PREVIOUS}"
           echo "go-version-previous=${GO_VERSION_PREVIOUS}" >> $GITHUB_OUTPUT
+
+      # Each major Go release is supported until there are two newer major releases
+      - name: Check if Go version is an LTS release
+        id: check-lts
+        run: |
+          GO_VERSION=${{ steps.get-go-version.outputs.go-version }}
+          GO_MINOR_VERSION=${GO_VERSION%.*}
+          versions=$(curl -s 'https://api.github.com/repos/golang/go/git/refs/tags' | jq -r '.[].ref' | grep -o 'refs/tags/go[0-9\.]*' | grep -E 'go[0-9]+\.[0-9]+\.[1-9][0-9]*$' | sed 's_refs/tags/__')
+          latest_versions=$(echo "$versions" | grep -o 'go[0-9]\+\.[0-9]\+' | sed 's/go//' | sort -uV | tail -2)
+          lts=false
+          for version in $latest_versions; do
+            echo "$versions" | grep "$version"
+            if [ "$version" = "$GO_MINOR_VERSION" ]; then
+              echo "$GO_VERSION is part of an LTS release of $GO_MINOR_VERSION"
+              lts=true
+              echo "lts=${lts}" >> $GITHUB_OUTPUT
+              break
+            fi
+          done
+          if [ "$lts" = "false" ]; then
+            echo "$GO_VERSION is NOT part of an LTS release of $GO_MINOR_VERSION"
+            exit 1
+          fi
+
+          latest_patch_version=$(echo "$versions" | grep "$GO_MINOR_VERSION"| sed 's/go//' | sort -V | tail -1)
+          if [ "$latest_patch_version" != "$GO_VERSION" ]; then
+            echo "$GO_VERSION needs to be bumped to $latest_patch_version"
+            echo "latest_patch_version=${latest_patch_version}" >> $GITHUB_OUTPUT
+          fi
+
+      # Push changes to bump go version and sdlibs
+      - name: Push changes to bump go version and sdlibs
+        if: steps.check-lts.outputs.lts == 'true' && steps.get-go-version.outputs.latest-patch-version != ''
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"  
+          git checkout -b "bump-go-${{ steps.get-go-version.outputs.go-version }}"
+        
+          # Bumps go version to the latest patch version
+          echo "${{ steps.get-go-version.outputs.latest-patch-version }}" > .go-version
+
+          # Update packages that start with golang.org/x
+          find . -name go.mod -execdir sh -c 'awk "/golang.org\/x/ {print \$1}" go.mod | grep "golang.org/x" | while read -r line; do go get $line@latest; done' \;
+          
+          # Run go mod tidy on all modules
+          find . -name go.mod -execdir go mod tidy \;
+
+          git add .
+          git commit -m "Bump go version to ${{ steps.get-go-version.outputs.latest-patch-version }}"
+          git push origin "bump-go-${{ steps.get-go-version.outputs.go-version }}"
+
+      - name: Create PR to bump go version and stdlibs
+        if: steps.check-lts.outputs.lts == 'true' && steps.get-go-version.outputs.latest-patch-version != ''
+        run: |
+          gh pr create --base main --head "bump-go-${{ steps.get-go-version.outputs.go-version }}" --title "[auto] Bump go version to ${{ steps.get-go-version.outputs.latest-patch-version }}" --body "Bump go version to ${{ steps.get-go-version.outputs.latest-patch-version }}" --reviewer hashicorp/team-prodsec
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
