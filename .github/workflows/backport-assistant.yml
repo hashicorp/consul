@@ -45,7 +45,7 @@ jobs:
     needs:
       - backport
       - backport-ent
-    if: always() && needs.backport.result == 'failure'
+    if: always() && (needs.backport.result == 'failure' || needs.backport-ent.result == 'failure')
     runs-on: ubuntu-latest
     steps:
       - name: Comment on PR
