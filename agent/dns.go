@@ -18,7 +18,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/armon/go-radix"
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 
@@ -28,6 +27,7 @@ import (
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	libdns "github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -449,7 +449,11 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	// only look into the services if we didn't find a node
 	if len(m.Answer) == 0 {
 		// lookup the service address
-		serviceAddress := dnsutil.ExtractAddressFromReverse(qName)
+		ip := libdns.IPFromARPA(qName)
+		var serviceAddress string
+		if ip != nil {
+			serviceAddress = ip.String()
+		}
 		sargs := structs.ServiceSpecificRequest{
 			Datacenter: datacenter,
 			QueryOptions: structs.QueryOptions{
