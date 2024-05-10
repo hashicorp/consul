@@ -416,6 +416,14 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 			if o.Rules[i2].Filters.JWT != nil {
 				cp.Rules[i2].Filters.JWT = o.Rules[i2].Filters.JWT.DeepCopy()
 			}
+			if o.Rules[i2].Filters.RequestRedirect != nil {
+				cp.Rules[i2].Filters.RequestRedirect = new(RequestRedirectFilter)
+				*cp.Rules[i2].Filters.RequestRedirect = *o.Rules[i2].Filters.RequestRedirect
+				if o.Rules[i2].Filters.RequestRedirect.Path != nil {
+					cp.Rules[i2].Filters.RequestRedirect.Path = new(HTTPPathModifier)
+					*cp.Rules[i2].Filters.RequestRedirect.Path = *o.Rules[i2].Filters.RequestRedirect.Path
+				}
+			}
 			if o.Rules[i2].ResponseFilters.Headers != nil {
 				cp.Rules[i2].ResponseFilters.Headers = make([]HTTPHeaderFilter, len(o.Rules[i2].ResponseFilters.Headers))
 				copy(cp.Rules[i2].ResponseFilters.Headers, o.Rules[i2].ResponseFilters.Headers)
@@ -500,6 +508,14 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					}
 					if o.Rules[i2].Services[i4].Filters.JWT != nil {
 						cp.Rules[i2].Services[i4].Filters.JWT = o.Rules[i2].Services[i4].Filters.JWT.DeepCopy()
+					}
+					if o.Rules[i2].Services[i4].Filters.RequestRedirect != nil {
+						cp.Rules[i2].Services[i4].Filters.RequestRedirect = new(RequestRedirectFilter)
+						*cp.Rules[i2].Services[i4].Filters.RequestRedirect = *o.Rules[i2].Services[i4].Filters.RequestRedirect
+						if o.Rules[i2].Services[i4].Filters.RequestRedirect.Path != nil {
+							cp.Rules[i2].Services[i4].Filters.RequestRedirect.Path = new(HTTPPathModifier)
+							*cp.Rules[i2].Services[i4].Filters.RequestRedirect.Path = *o.Rules[i2].Services[i4].Filters.RequestRedirect.Path
+						}
 					}
 					if o.Rules[i2].Services[i4].ResponseFilters.Headers != nil {
 						cp.Rules[i2].Services[i4].ResponseFilters.Headers = make([]HTTPHeaderFilter, len(o.Rules[i2].Services[i4].ResponseFilters.Headers))

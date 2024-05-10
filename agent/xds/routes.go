@@ -653,9 +653,35 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute)
 
 			var (
-				routeAction *envoy_route_v3.Route_Route
-				err         error
+				routeAction    *envoy_route_v3.Route_Route
+				redirectAction *envoy_route_v3.Route_Redirect
+				err            error
 			)
+
+			// is terminal
+			if discoveryRoute.IsTerminal {
+				redirectAction = &envoy_route_v3.Route_Redirect{
+					Redirect: &envoy_route_v3.RedirectAction{
+						// TODO: only one of these should be set
+						SchemeRewriteSpecifier: &envoy_route_v3.RedirectAction_SchemeRedirect{
+							SchemeRedirect: discoveryRoute.Definition.Destination.RequestRedirect.Scheme,
+						},
+						HostRedirect:         discoveryRoute.Definition.Destination.RequestRedirect.Hostname,
+						PortRedirect:         0,
+						PathRewriteSpecifier: nil,
+						ResponseCode:         0,
+						StripQuery:           false,
+					},
+				}
+
+				route := &envoy_route_v3.Route{}
+
+				route.Match = routeMatch
+				route.Action = redirectAction
+
+				routes = append(routes, route)
+				continue
+			}
 
 			nextNode := chain.Nodes[discoveryRoute.NextNode]
 
@@ -664,6 +690,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 				lb = nextNode.LoadBalancer
 			}
 
+			// no node
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
 				routeAction, err = s.makeRouteActionForSplitter(upstreamsSnapshot, nextNode.Splits, chain, forMeshGateway)

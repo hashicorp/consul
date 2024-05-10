@@ -471,6 +471,9 @@ type ServiceRouteDestination struct {
 	// Allow HTTP header manipulation to be configured.
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+
+	// RequestRedirect TODO: Melisa update this comment
+	RequestRedirect *RequestRedirect `json:",omitempty" alias:"request_redirect"`
 }
 
 func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
@@ -1917,4 +1920,15 @@ func MergeHTTPHeaderModifiers(base, overrides *HTTPHeaderModifiers) (*HTTPHeader
 	}
 
 	return merged, nil
+}
+
+// RequestRedirect TODO: melisa
+type RequestRedirect struct {
+	// Scheme is the scheme to be used in the value of the location header in the response
+	Scheme string `json:",omitempty"`
+
+	// Hostname is the hostname to be used in the value of the location header in the response
+	Hostname string `json:",omitempty"`
+
+	// TODO: melisa add other fields
 }

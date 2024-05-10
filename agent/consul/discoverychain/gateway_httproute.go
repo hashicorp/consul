@@ -195,6 +195,14 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			destination.RequestTimeout = rule.Filters.TimeoutFilter.RequestTimeout
 		}
 
+		//TODO: Melisa this is not right
+		if rule.Filters.RequestRedirect != nil {
+			destination.RequestRedirect = &structs.RequestRedirect{
+				Scheme:   rule.Filters.RequestRedirect.Scheme,
+				Hostname: rule.Filters.RequestRedirect.Hostname,
+			}
+		}
+
 		// for each match rule a ServiceRoute is created for the service-router
 		// if there are no rules a single route with the destination is set
 		if len(rule.Matches) == 0 {

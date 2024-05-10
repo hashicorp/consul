@@ -631,6 +631,10 @@ func (c *compiler) assembleChain() error {
 		route := router.Routes[i]
 
 		compiledRoute := &structs.DiscoveryRoute{Definition: &route}
+		if route.Destination.RequestRedirect != nil {
+			compiledRoute.IsTerminal = true
+		}
+
 		routeNode.Routes = append(routeNode.Routes, compiledRoute)
 
 		dest := route.Destination

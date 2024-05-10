@@ -18,6 +18,19 @@ func TestAPI_ConfigEntries_HTTPRoute(t *testing.T) {
 	route1 := &HTTPRouteConfigEntry{
 		Kind: HTTPRoute,
 		Name: "route1",
+		Rules: []HTTPRouteRule{
+			{
+				Filters: HTTPFilters{
+					RequestRedirect: &RequestRedirectFilter{
+						Scheme:     "hi",
+						Hostname:   nil,
+						Path:       nil,
+						Port:       0,
+						StatusCode: 0,
+					},
+				},
+			},
+		},
 	}
 
 	route2 := &HTTPRouteConfigEntry{
