@@ -25,6 +25,12 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
+func addQueryParam(req *http.Request, param, value string) {
+	q := req.URL.Query()
+	q.Add(param, value)
+	req.URL.RawQuery = q.Encode()
+}
+
 func TestCatalogEndpointsFailInV2(t *testing.T) {
 	t.Parallel()
 
