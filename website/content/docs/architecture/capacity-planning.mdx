@@ -1,0 +1,234 @@
+---
+layout: docs
+page_title: Consul capacity planning
+description: >-
+  Learn how to maintain your Consul cluster in a healthy state by provisioning the correct resources.
+---
+
+# Consul capacity planning
+
+Capacity planning is often overlooked when organizations architect and deploy solutions. You can better allocate hardware resources for Consul when you have a good understanding of what it does. This article will guide you through several considerations you should keep in mind when deploying and maintaining a Consul cluster.
+
+## Introduction
+
+It is important to select the correct size for your server instances. Consul server environments have a standard set of minimum requirements. However, these requirements may vary depending on what you are using Consul for.
+
+## Minimum requirements
+
+Insufficient resource allocations or networking issues often cause general degraded performance. Eventually, the Consul leader node will not be able to respond to requests in sufficient time. When there is no leader response, the Consul cluster will trigger a re-election, pausing all requests and updates until the election ends.
+ 
+### Hardware requirements
+
+The minimum hardware requirements for Consul servers in production clusters as recommended by the [reference architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers) are:
+
+| CPU       | Memory       | Disk Capacity | Disk IO     | Disk Throughput | Avg Round-Trip-Time | 99% Round-Trip-Time |
+| --------- | ------------ | ------------- | ----------- | --------------- | ------------------- | ------------------- |
+| 8-16 core | 32-64 GB RAM | 200+ GB       | 7500+ IOPS  | 250+ MB/s       | Lower than 50ms     | Lower than 100ms    |
+
+We recommend starting from the following instances (or similar) and scaling up as needed. We also recommend avoiding "burstable" CPU and storage options where performance may drop after a consistent load.
+
+| Provider  | Size  | Instance/VM Types                     | Disk Volume Specs                 |
+| --------- | ----- | ------------------------------------- | --------------------------------- |
+| **AWS**   | Large | `m5.2xlarge`, `m5.4xlarge`            | 200+GB `gp3`, 10000 IOPS, 250MB/s |
+| **Azure** | Large | `Standard_D8s_v3`, `Standard_D16s_v3` | 2048GB `Premium SSD`, 7500 IOPS, 200MB/s |
+| **GCP**   | Large | `n2-standard-8`, `n2-standard-16`     | 1000GB `pd-ssd`, 30000 IOPS, 480MB/s |
+
+We recommend starting from the following instances (or similar) and scaling up as needed. We also recommend avoiding "burstable" CPU and storage options where performance may drop after a consistent load.
+
+| Provider  | Size  | Instance/VM Types                     | Disk Volume Specs                 |
+| --------- | ----- | ------------------------------------- | --------------------------------- |
+| **AWS**   | Large | `m5.2xlarge`, `m5.4xlarge`            | 200+GB `gp3`, 10000 IOPS, 250MB/s |
+| **Azure** | Large | `Standard_D8s_v3`, `Standard_D16s_v3` | 2048GB `Premium SSD`, 7500 IOPS, 200MB/s |
+| **GCP**   | Large | `n2-standard-8`, `n2-standard-16`     | 1000GB `pd-ssd`, 30000 IOPS, 480MB/s |
+
+For HashiCorp Cloud (HCP) Consul, cluster size is measured in the number of service instances supported. Find out more information in the [HCP Consul Dedicated pricing page](https://cloud.hashicorp.com/products/consul/pricing).
+
+### IOPS requirements
+
+Workloads are any actions that interact with the Consul cluster. These actions consist of key/value reads and writes, service registrations and deregistrations, adding or removing Consul client agents, and more.
+
+Input/output operations per second (IOPS) is a unit of measurement for the amount of reads and writes to non-adjacent storage locations.
+For high workloads, ensure that the Consul server disks support a high number of [IOPS](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-io-characteristics.html#ebs-io-iops) to keep up with the rapid Raft log update rate.
+For virtual instances in cloud environments, unlike bare-metal environments, IOPS is often tied to storage sizing - more storage GBs will grant you more IOPS. Therefore, we recommend deploying on [IOPS-optimized instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/provisioned-iops.html).
+
+Consul server agents are generally I/O bound for writes and CPU bound for reads. For additional tuning, refer to the [raft tuning section](#raft-tuning).
+
+### Memory requirements
+
+When planning for memory requirements, you should allocate RAM for server agents to contain 2 to 4 times the working set size. You can determine the working set size of a running cluster by noting the value of `consul.runtime.alloc_bytes` in the leader node's telemetry data. Inspect your monitoring solution for the telemetry value, or run the following commands with the [jq](https://stedolan.github.io/jq/download/) tool installed on your Consul leader instance.
+
+<Tip>
+
+For Kubernetes, execute the command from the leader pod - jq is available in the Consul server containers.
+
+</Tip>
+
+First, export your ACLs token.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=
+```
+
+Then, retrieve the working set size.
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" http://127.0.0.1:8500/v1/agent/metrics | jq '.Gauges[] | select(.Name=="consul.runtime.alloc_bytes") | .Value'`
+616017920
+```
+
+### Kubernetes storage requirements
+
+For Kubernetes deployments, when setting up persistent volumes (PV) resources, you should define the correct server storage class parameter since the default ones are likely insufficient in performance. Refer to the Kubernetes documentation on [storageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) about how to set the [storageClass](/consul/docs/k8s/helm#v-server-storageclass) Helm chart parameter and the specifics of each cloud provider.
+
+### Workload-specific recommendations
+
+Workloads that Consul perform could either read heavy, write heavy, or both. Refer to the following table for specific workload recommendations.
+
+| Workload type | Workload element examples | Instance Recommendations | Enterprise Feature Recommendations |
+| ------------- | ------------------------- | ------------------------ | ------------------------ |
+| Write heavy   | Consul agent joins and leaves, services registration and deregistration, key/value writes | IOPS performance of `10 000+` | [Network segments](/consul/docs/enterprise/network-segments/network-segments-overview) |
+| Read heavy    | Raft RPCs calls, DNS queries, key/value retrieval | Instances of type `m5.4xlarge (AWS)`, `Standard_D16s_v3 (Azure)`, `n2-standard-16 (GCP)` | [Read replicas](/consul/docs/enterprise/read-scale) |
+
+## Monitoring
+
+We recommend completing the [Monitor Consul server health and performance with metrics and logs](/consul/tutorials/observe-your-network/server-metrics-and-logs) tutorial as a starting point for Consul metrics and telemetry. The following tutorials will guide you through setting up specific monitoring solutions for your Consul cluster.
+
+- [Monitor Consul server health and performance with metrics and logs](/consul/tutorials/observe-your-network/server-metrics-and-logs)
+- [Observe Consul service mesh traffic](/consul/tutorials/get-started-kubernetes/kubernetes-gs-observability)
+
+Monitoring is critical for making sure that your Consul data center performs correctly. A proactive monitoring strategy is beneficial in spotting problems within the infrastructure before any impact has happened.
+
+### Key metrics
+
+A good place to start with monitoring is to create baselines for your Consul cluster's metrics. After you discover the baselines, you will be able to define alerts so it can notify you when there are unexpected values. For a detailed explanation on the metrics and their values, check out the [Consul Agent telemetry](/consul/docs/agent/telemetry) page.
+
+### Transaction-related metrics
+
+These metrics indicate how long it takes to complete write operations in various parts of the Consul cluster.
+
+- **consul.kvs.apply** measures the time it takes to complete an update to the KV store.	
+- **consul.txn.apply** measures the time spent applying a transaction operation.
+- **consul.raft.apply** counts the number of Raft transactions applied during the measurement interval. This metric is only reported on the leader.
+- **consul.raft.commitTime** measures the time it takes to commit a new entry to the Raft log on disk on the leader.
+
+### Memory-related metrics
+
+These performance indicators can help you diagnose if the current instance sizing is unable to handle the workload.
+
+- **consul.runtime.alloc_bytes** measures the number of bytes allocated by the Consul process.
+- **consul.runtime.sys_bytes** measures the total number of bytes of memory obtained from the OS.
+- **consul.runtime.heap_objects** measures the number of objects allocated on the heap and is a general memory pressure indicator.
+
+### Leadership-related metrics
+
+Leadership changes are not a cause for concern but can often be a symptom of a problem.  Frequent elections or leadership changes may indicate network issues between the Consul servers, or the Consul servers are unable to keep up with the load.
+
+- **consul.raft.leader.lastContact** measures the time since the leader was last able to contact the follower nodes when checking its leader lease.
+- **consul.raft.state.candidate** increments whenever a Consul server starts an election.	
+- **consul.raft.state.leader** increments whenever a Consul server becomes a leader.	
+- **consul.server.isLeader** tracks whether a server is a leader.
+
+### Network-related metrics
+
+Network activity and RPC count measurements indicate the current load created from a Consul agent, including when the load becomes high enough to be rate limited. If an unusually high RPC count occurs, you should investigate before it overloads the cluster.
+
+- **consul.client.rpc** increments whenever a Consul agent in client mode makes an RPC request to a Consul server.
+- **consul.client.rpc.exceeded** increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.
+- **consul.client.rpc.failed** increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.	
+
+## Guidance
+
+In this article, you learned how to select appropriate server requirements for your Consul cluster, suitable for how you will use Consul in your environment. Next, you learned which metrics to monitor to detect irregularities and signs of overloading. 
+
+For even more information, please check out the links in the following sections.
+
+### Tutorials
+
+- To learn how to improve application resilience, complete the [Consul and chaos engineering tutorial](/consul/tutorials/resiliency/introduction-chaos-engineering?in=consul%2Fresiliency)
+- To learn how to monitor Consul server health and performance, complete the [Monitor Consul server health and performance tutorial](/consul/tutorials/observe-your-network/server-metrics-and-logs)
+- To learn how to observe traffic within your Kubernets service mesh, complete the [Observe Consul service mesh traffic tutorial](/consul/tutorials/get-started-kubernetes/kubernetes-gs-observability)
+
+### Usage documentation
+
+Grouping links into lists that align with the order of the workflows on this page and the order of pages in the nav bar.
+
+- [Raft and Consensu protocol](/consul/docs/architecture/consensus)
+- [Consul Read replicas](/consul/docs/enterprise/read-scale)
+- [Consul Network segments](/consul/docs/enterprise/network-segments/network-segments-overview)
+- [Consul in Kubernetes](/consul/docs/k8s)
+- [Consul Helm Chart Reference](/consul/docs/k8s/helm#v-server-storageclass)
+
+### Articles
+
+- [Consul: Service mesh at global scale](https://www.hashicorp.com/cgsb)
+- [Stress testing HCP Consul Dedicated on AWS using ECS Fargate](https://www.hashicorp.com/resources/stress-testing-hcp-consul-on-aws-using-ecs-fargate)
+- [Roblox Return to Service analysis](https://blog.roblox.com/2022/01/roblox-return-to-service-10-28-10-31-2021/ )
+- [Criteo: Consul at scale](https://medium.com/criteo-engineering/configure-consul-for-performance-at-scale-f6a089706377)
+
+### Reference
+
+- [Consul reference architecture](/consul/tutorials/production-deploy/reference-architecture)
+- [Consul Kubernetes reference architecture](/consul/tutorials/kubernetes/kubernetes-reference-architecture)
+- [Consul server performance](/consul/docs/install/performance)
+- [Consul agent telemetry](/consul/docs/agent/telemetry)
+
+### Constraints, limitations, and alternate approaches
+
+If allocating the needed resources to Consul is impossible, alternate approaches exist to sacrifice the cluster's speed, resilience, or both. Soft limiting prevents your cluster from degrading due to overload, and Raft tuning lets you compensate for unfavorable environments.
+
+#### Soft Limiting
+
+The recommended maximum size for a single datacenter is 5,000 Consul client agents. This recommendation is based on a standard, non-tuned environment and considers a blast radius's risk management factor. The maximum number of agents may be lower, depending on how you use Consul (for example, write-heavy and/or read-heavy datacenter).
+
+If you require more than 5,000 client agents, you should:
+
+1. Break up the single Consul datacenter into multiple smaller datacenters.  If the nodes are spread across separate physical locations (e.g. across different regions), it will be easy to model your multiple datacenter structures based on physical locations.
+1. Add [network segments](/consul/docs/enterprise/network-segments/network-segments-overview) if every segment has low latency between clients and servers (e.g. within the same availability zone/region).
+
+When deploying [Consul in Kubernetes](/consul/docs/k8s), we recommend you set both **limits** and **requests** in the Helm chart. Refer to the [Helm chart documentation](/consul/docs/k8s/helm#v-server-resources) for reference settings.
+
+- Requests will allocate the required resources for your Consul workloads.
+- Defining limits will prevent your pods from being terminated and restarted if they consume more resources than requested and Kubernetes needs to reclaim these resources. This will prevent outage situations where the Consul leader container gets terminated and redeployed due to resource constraints.
+
+The following is an example Helm configuration that allocates 16 CPU cores and 64 Gigabytes of memory:
+
+<CodeBlockConfig hideClipboard>
+
+```yaml
+global:
+  image: "hashicorp/consul"
+## ...
+resources:
+  requests:
+    memory: '64G'
+    cpu: '16000m'
+  limits:
+    memory: '64G'
+    cpu: '16000m'
+```
+
+</CodeBlockConfig>
+
+### Raft Tuning
+
+Consul uses the [Raft](/consul/docs/architecture/consensus) consensus algorithm to provide [consistency (as defined by CAP)](https://en.wikipedia.org/wiki/CAP_theorem).
+You may need to adjust Raft to suit your specific environment by tweaking the [`raft_multiplier` configuration](/consul/docs/agent/config/config-files#raft_multiplier) attribute. The `raft_multiplier` multiplication factor defines the trade-off between leader stability and time to recover from a leader failure.
+
+- A short multiplier minimizes failure detection and election time but may be triggered frequently in high latency situations.
+- A high multiplier reduces the chances that spurious failures will cause leadership churn but it does this at the expense of taking longer to detect real failures and thus takes longer to restore cluster availability.
+
+The value of `raft_multiplier` (by default 5) is a scaling factor setting and directly affects the following parameters:
+
+| Parameter name | Default value | Derived from |
+| --- | --- | --- |
+| HeartbeatTimeout | 5000ms | 5 x 1000ms |
+| ElectionTimeout | 5000ms | 5 x 1000ms |
+| LeaderLeaseTimeout | 2500ms | 5 x 500ms |
+
+You can use the [`consul.raft.leader.lastContact`](/consul/docs/agent/telemetry#leadership-changes) telemetry to observe how the Raft timing is performing. Wide networks with more latency will perform better with larger values of `raft_multiplier`, however cluster failure detection will take longer. Therefore, we do not recommend setting the Raft multiplier higher than 5 (Raft down-tuning) to accommodate for slow network communication. Instead, replace the servers with more powerful ones, or minimize the network latency between nodes.
+
+We recommend starting from a baseline perspective and performing [chaos engineering testing](/consul/tutorials/resiliency/introduction-chaos-engineering?in=consul%2Fresiliency) with different values for the Raft multiplier to find the acceptable time for problem detection and recovery for the cluster. Then, you should scale the cluster and its dedicated resources with the number of workloads handled. This approach gives practitioners the best balance between pure resource growth and pure Raft tuning-focused strategies since it lets you use Raft tuning as a backup plan if you cannot scale your resources.
+
+The types of workloads the Consul cluster handles also play an important role in Raft tuning. For example, suppose your Consul clusters are mostly static and do not handle many events. Then, it would help if you increase your Raft multiplier instead of scaling your resources because the risk of an important event happening while the cluster is converging or re-electing a leader is lower.
+
+On the other hand, there are environments where it may be favorable for Consul to declare its leader unhealthy after only a short amount of time being unresponsive. In a well-architected solution, fast failure detection should be beneficial and should trigger either a high-availability switch over to a redundant cluster, or a response from a solution from the higher level of the platform stack.
