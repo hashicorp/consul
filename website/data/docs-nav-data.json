@@ -150,6 +150,10 @@
       {
         "title": "Consul at Scale",
         "path": "architecture/scale"
+      },
+      {
+        "title": "Consul Capacity Planning",
+        "path": "architecture/capacity-planning"
       }
     ]
   },
