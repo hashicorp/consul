@@ -182,8 +182,9 @@ func Test_FetchEndpoints(t *testing.T) {
 						Node:    "node-name",
 					},
 					Service: &structs.NodeService{
-						Address: "service-address",
-						Service: "service-name",
+						Address:  "service-address",
+						Service:  "service-name",
+						PeerName: "test-peer",
 					},
 				},
 			},
