@@ -2037,7 +2037,7 @@ func testHealthConnectServiceNodes_PassingFilter(t *testing.T, backendCfg *query
 		assert.True(t, isHTTPBadRequest(err))
 
 		assert.True(t, strings.Contains(err.Error(), "Invalid value for ?passing"))
-		require.Equal(t, backendCfg.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
+		require.Equal(t, "", resp.Header().Get("X-Consul-Query-Backend"))
 	})
 }
 
