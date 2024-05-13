@@ -1243,8 +1243,25 @@
         "path": "agent/config-entries"
       },
       {
-        "title": "Telemetry",
-        "path": "agent/telemetry"
+        "title": "Monitor Consul",
+        "routes": [
+          {
+            "title": "Agent telemetry",
+            "path": "agent/monitor/telemetry"
+          },
+          {
+            "title": "Monitor components",
+            "path": "agent/monitor/components"
+          },
+          {
+            "title": "Monitor service communication",
+            "path": "agent/monitor/service"
+          },
+          {
+            "title": "Recommendations",
+            "path": "agent/monitor/alerts"
+          }
+        ]
       },
       {
         "title": "Sentinel",
