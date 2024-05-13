@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"math/rand"
 	"os"
 	"reflect"
