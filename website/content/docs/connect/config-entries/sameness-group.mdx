@@ -149,7 +149,22 @@ Specifies the local admin partition that the sameness group applies to. Refer to
 
 Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, DNS queries and upstream requests automatically failover to services in the sameness group according to the order of the members in the `Members` list.
 
-When this field is set to `false`, you can still use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+When this field is set to `true`, upstream requests automatically fail over to services in the sameness group according to the order of the members in the `Members` list. It impacts all services on the partition.
+
+When this field is set to `false`, you can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+
+When you [query Consul DNS](/consul/docs/services/discovery/dns-static-lookups) using sameness groups, `DefaultForFailover` must be set to `true`.  Otherwise, Consul DNS returns an error.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `IncludeLocal`
+
+Determines whether the local partition should be considered the first member of the sameness group. When this field is set to `true`, DNS queries, upstream requests, and failover traffic returns a health instance from the local partition unless one does not exist.
+
+If you enable this parameter, you do not need to list the local partition as the first member in the group.
 
 #### Values
 
