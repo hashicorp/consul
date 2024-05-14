@@ -5,6 +5,8 @@
 SECURITY:
 
 * Bump Dockerfile base image to `alpine:3.19`. [[GH-20897](https://github.com/hashicorp/consul/issues/20897)]
+* Update `vault/api` to v1.12.2 to address [CVE-2024-28180](https://nvd.nist.gov/vuln/detail/CVE-2024-28180)
+  (removes indirect dependency on impacted `go-jose.v2`) [[GH-20910](https://github.com/hashicorp/consul/issues/20910)]
 * Upgrade Go to use 1.21.10. This addresses CVEs
   [CVE-2024-24787](https://nvd.nist.gov/vuln/detail/CVE-2024-24787) and
   [CVE-2024-24788](https://nvd.nist.gov/vuln/detail/CVE-2024-24788) [[GH-21074](https://github.com/hashicorp/consul/issues/21074)]
