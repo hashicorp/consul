@@ -573,14 +573,21 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 	if req.Tag != "" {
 		serviceTags = []string{req.Tag}
 	}
+
+	healthFilterType := structs.HealthFilterExcludeCritical
+	if cfg.OnlyPassing {
+		healthFilterType = structs.HealthFilterIncludeOnlyPassing
+	}
+
 	args := structs.ServiceSpecificRequest{
-		PeerName:    req.Tenancy.Peer,
-		Connect:     lookupType == LookupTypeConnect,
-		Ingress:     lookupType == LookupTypeIngress,
-		Datacenter:  datacenter,
-		ServiceName: req.Name,
-		ServiceTags: serviceTags,
-		TagFilter:   req.Tag != "",
+		PeerName:         req.Tenancy.Peer,
+		Connect:          lookupType == LookupTypeConnect,
+		Ingress:          lookupType == LookupTypeIngress,
+		Datacenter:       datacenter,
+		ServiceName:      req.Name,
+		ServiceTags:      serviceTags,
+		TagFilter:        req.Tag != "",
+		HealthFilterType: healthFilterType,
 		QueryOptions: structs.QueryOptions{
 			Token:            ctx.Token,
 			AllowStale:       cfg.AllowStale,
@@ -602,15 +609,6 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
 		return nil, ErrNotFound
-	}
-
-	// Filter out any service nodes due to health checks
-	// We copy the slice to avoid modifying the result if it comes from the cache
-	nodes := make(structs.CheckServiceNodes, len(out.Nodes))
-	copy(nodes, out.Nodes)
-	out.Nodes = nodes.Filter(cfg.OnlyPassing)
-	if err != nil {
-		return nil, fmt.Errorf("rpc request failed: %w", err)
 	}
 
 	// If we have no nodes, return not found!

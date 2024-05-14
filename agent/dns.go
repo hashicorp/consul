@@ -1450,14 +1450,19 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 	if lookup.Tag != "" {
 		serviceTags = []string{lookup.Tag}
 	}
+	healthFilterType := structs.HealthFilterExcludeCritical
+	if cfg.OnlyPassing {
+		healthFilterType = structs.HealthFilterIncludeOnlyPassing
+	}
 	args := structs.ServiceSpecificRequest{
-		PeerName:    lookup.PeerName,
-		Connect:     lookup.Connect,
-		Ingress:     lookup.Ingress,
-		Datacenter:  lookup.Datacenter,
-		ServiceName: lookup.Service,
-		ServiceTags: serviceTags,
-		TagFilter:   lookup.Tag != "",
+		PeerName:         lookup.PeerName,
+		Connect:          lookup.Connect,
+		Ingress:          lookup.Ingress,
+		Datacenter:       lookup.Datacenter,
+		ServiceName:      lookup.Service,
+		ServiceTags:      serviceTags,
+		TagFilter:        lookup.Tag != "",
+		HealthFilterType: healthFilterType,
 		QueryOptions: structs.QueryOptions{
 			Token:            d.coalesceDNSToken(),
 			AllowStale:       cfg.AllowStale,
@@ -1473,11 +1478,6 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 		return out, err
 	}
 
-	// Filter out any service nodes due to health checks
-	// We copy the slice to avoid modifying the result if it comes from the cache
-	nodes := make(structs.CheckServiceNodes, len(out.Nodes))
-	copy(nodes, out.Nodes)
-	out.Nodes = nodes.Filter(cfg.OnlyPassing)
 	return out, nil
 }
 

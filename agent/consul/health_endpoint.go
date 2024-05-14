@@ -301,7 +301,8 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			if err != nil {
 				return err
 			}
-			thisReply.Nodes = raw.(structs.CheckServiceNodes)
+			filteredNodes := raw.(structs.CheckServiceNodes)
+			thisReply.Nodes = filteredNodes.Filter(structs.CheckServiceNodeFilterOptions{FilterType: args.HealthFilterType})
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
