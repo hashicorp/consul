@@ -834,9 +834,6 @@ func testHealthServiceNodes(t *testing.T, backendCfg *queryBackendConfiguration)
 				_, err = strconv.ParseUint(header, 10, 64)
 				require.NoError(r, err)
 
-				// Should be a cache hit! The data should've updated in the cache
-				// in the background so this should've been fetched directly from
-				// the cache.
 				if backendCfg.cached {
 					// Should be a cache hit! The data should've updated in the cache
 					// in the background so this should've been fetched directly from
@@ -1763,6 +1760,8 @@ func testHealthConnectServiceNodes(t *testing.T, backendCfg *queryBackendConfigu
 	nodes := obj.(structs.CheckServiceNodes)
 	assert.Len(t, nodes, 1)
 	assert.Len(t, nodes[0].Checks, 0)
+
+	require.Equal(t, backendCfg.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
 }
 
 func TestHealthIngressServiceNodes(t *testing.T) {
@@ -2021,7 +2020,6 @@ func testHealthConnectServiceNodes_PassingFilter(t *testing.T, backendCfg *query
 		// Should be 1
 		nodes := obj.(structs.CheckServiceNodes)
 		assert.Len(t, nodes, 1)
-
 		require.Equal(t, backendCfg.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
 	})
 
