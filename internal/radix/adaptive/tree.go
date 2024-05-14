@@ -40,10 +40,12 @@ func (t *RadixTree[T]) GetPathIterator(path []byte) *PathIterator[T] {
 
 func (t *RadixTree[T]) Insert(key []byte, value T) T {
 	var old int
-	oldVal := t.recursiveInsert(t.root, &t.root, getTreeKey(key), value, 0, &old)
+	oldRoot := (*t.root).Clone()
+	oldVal := t.recursiveInsert(oldRoot, &oldRoot, getTreeKey(key), value, 0, &old)
 	if old == 0 {
 		t.size++
 	}
+	t.root = oldRoot
 	return oldVal
 }
 
@@ -62,6 +64,7 @@ func (t *RadixTree[T]) Maximum() *NodeLeaf[T] {
 
 func (t *RadixTree[T]) Delete(key []byte) T {
 	var zero T
+	oldRoot := (*t.root).Clone()
 	l := t.recursiveDelete(t.root, &t.root, getTreeKey(key), 0)
 	if t.root == nil {
 		nodeLeaf := t.allocNode(leafType)
@@ -72,6 +75,7 @@ func (t *RadixTree[T]) Delete(key []byte) T {
 		old := l.value
 		return old
 	}
+	t.root = oldRoot
 	return zero
 }
 

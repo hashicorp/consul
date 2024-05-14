@@ -17,8 +17,6 @@ type Iterator[T any] struct {
 }
 
 func (i *Iterator[T]) Next() ([]byte, T, bool) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
 	var zero T
 
 	if len(i.stack) == 0 {
