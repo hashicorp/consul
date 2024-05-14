@@ -10,8 +10,9 @@ import { setupTest } from 'ember-qunit';
 module('Unit | Ability | *', function (hooks) {
   setupTest(hooks);
 
+  // Replace this with your real tests.
   test('it exists', function (assert) {
-    assert.expect(240);
+    assert.expect(228);
 
     const abilities = Object.keys(requirejs.entries)
       .filter((key) => key.indexOf('/abilities/') !== -1)

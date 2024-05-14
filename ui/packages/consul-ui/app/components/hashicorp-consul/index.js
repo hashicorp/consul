@@ -11,7 +11,7 @@ export default class HashiCorpConsul extends Component {
   @service('env') env;
 
   get consulVersion() {
-    const suffix = this.env.isEnterprise ? '+ent' : '';
+    const suffix = !['', 'oss'].includes(this.env.var('CONSUL_BINARY_TYPE')) ? '+ent' : '';
     return `${this.env.var('CONSUL_VERSION')}${suffix}`;
   }
 }

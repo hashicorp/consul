@@ -27,22 +27,23 @@ import (
 )
 
 const (
-	ServiceDefaults    string = "service-defaults"
-	ProxyDefaults      string = "proxy-defaults"
-	ServiceRouter      string = "service-router"
-	ServiceSplitter    string = "service-splitter"
-	ServiceResolver    string = "service-resolver"
-	IngressGateway     string = "ingress-gateway"
-	TerminatingGateway string = "terminating-gateway"
-	ServiceIntentions  string = "service-intentions"
-	MeshConfig         string = "mesh"
-	ExportedServices   string = "exported-services"
-	SamenessGroup      string = "sameness-group"
-	APIGateway         string = "api-gateway"
-	BoundAPIGateway    string = "bound-api-gateway"
-	InlineCertificate  string = "inline-certificate"
-	HTTPRoute          string = "http-route"
-	TCPRoute           string = "tcp-route"
+	ServiceDefaults       string = "service-defaults"
+	ProxyDefaults         string = "proxy-defaults"
+	ServiceRouter         string = "service-router"
+	ServiceSplitter       string = "service-splitter"
+	ServiceResolver       string = "service-resolver"
+	IngressGateway        string = "ingress-gateway"
+	TerminatingGateway    string = "terminating-gateway"
+	ServiceIntentions     string = "service-intentions"
+	MeshConfig            string = "mesh"
+	ExportedServices      string = "exported-services"
+	SamenessGroup         string = "sameness-group"
+	APIGateway            string = "api-gateway"
+	BoundAPIGateway       string = "bound-api-gateway"
+	FileSystemCertificate string = "file-system-certificate"
+	InlineCertificate     string = "inline-certificate"
+	HTTPRoute             string = "http-route"
+	TCPRoute              string = "tcp-route"
 	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
 	RateLimitIPConfig string = "control-plane-request-limit"
 	JWTProvider       string = "jwt-provider"
@@ -71,6 +72,7 @@ var AllConfigEntryKinds = []string{
 	BoundAPIGateway,
 	HTTPRoute,
 	TCPRoute,
+	FileSystemCertificate,
 	InlineCertificate,
 	RateLimitIPConfig,
 	JWTProvider,
@@ -832,6 +834,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &APIGatewayConfigEntry{Name: name}, nil
 	case BoundAPIGateway:
 		return &BoundAPIGatewayConfigEntry{Name: name}, nil
+	case FileSystemCertificate:
+		return &FileSystemCertificateConfigEntry{Name: name}, nil
 	case InlineCertificate:
 		return &InlineCertificateConfigEntry{Name: name}, nil
 	case HTTPRoute:

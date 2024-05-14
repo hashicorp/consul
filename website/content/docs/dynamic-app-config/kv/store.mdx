@@ -1,0 +1,89 @@
+---
+layout: docs
+page_title: Store and access key/value data
+description: >-
+  Consul includes a key/value store for that you can use to dynamically configure apps. Learn how to add and manage data in the Consul KV store using the Consul
+  command-line interface.
+---
+
+# Store and access key/value data
+
+This page describes the processes for interacting with Consul's KV store. You can interact with the KV store using the [`consul kv` CLI command](/consul/commands/kv) or the [`/kv` endpoint](/consul/api-docs/kv).
+
+## Add data to KV store
+
+To insert values into the KV store or update an existing value, use the `consul kv put` command. The first entry after the command is the key and the second entry is the value.
+
+```shell-session
+$ consul kv put redis/config/minconns 1
+Success! Data written to: redis/config/minconns
+```
+
+In the following example, the key is `redis/config/maxconns` and the value is set to `25`.
+
+```shell-session
+$ consul kv put redis/config/maxconns 25
+Success! Data written to: redis/config/maxconns
+```
+
+In the following example, the command includes a `flags` value of 42. Keys support setting a 64-bit integer flag value that is not used internally by Consul but can be used by clients to add metadata to a KV pair.
+
+```shell-session
+$ consul kv put -flags=42 redis/config/users/admin zaphod
+Success! Data written to: redis/config/users/admin
+```
+
+## Query data from KV store
+
+To query for the value of one of the keys in the KV store, use the `consul kv get` command.
+
+```shell-session
+$ consul kv get redis/config/minconns
+1
+```
+
+To retrieve metadata you included as `flags`, using the `-detailed` command line flag.
+
+```shell-session
+$ consul kv get -detailed redis/config/users/admin
+```
+
+```plaintext hideClipboard
+CreateIndex      14
+Flags            42
+Key              redis/config/users/admin
+LockIndex        0
+ModifyIndex      14
+Session          -
+Value            zaphod
+```
+
+To list all the keys in the store, use the `recurse` option. Results return in lexicographical order.
+
+```shell-session
+$ consul kv get -recurse
+```
+
+```plaintext hideClipboard
+redis/config/maxconns:25
+redis/config/minconns:1
+redis/config/users/admin:zaphod
+```
+
+## Delete data
+
+To delete the value of one of the keys in the KV store, use the `consul kv delete` command.
+
+```shell-session
+$ consul kv delete redis/config/minconns
+Success! Deleted key: redis/config/minconns
+```
+
+Although the keys in the KV store are stored in a flat structure, you can manipulate keys that share a prefix as a group, as if they were in folders or subfolders, by using the `-recurse` flag.
+
+The following example deletes all the keys with the `redis` prefix using the `-recurse` option.
+
+```shell-session
+$ consul kv delete -recurse redis
+Success! Deleted keys with prefix: redis
+```

@@ -1,0 +1,3 @@
+```release-note:enhancement
+gateways: service defaults configuration entries can now be used to set default upstream limits for mesh-gateways
+```

@@ -763,3 +763,7 @@ func (s *Sprawl) dumpContainerLogs(ctx context.Context, containerName, outputRoo
 	keep = true
 	return nil
 }
+
+func (s *Sprawl) GetFileFromContainer(ctx context.Context, containerName string, filePath string) error {
+	return s.runner.DockerExec(ctx, []string{"cp", containerName + ":" + filePath, filePath}, nil, nil)
+}

@@ -8,6 +8,7 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 )
@@ -111,7 +112,7 @@ func IndexResources(logger hclog.Logger, resources map[string][]proto.Message) *
 }
 
 func GetResourceName(res proto.Message) string {
-	// NOTE: this only covers types that we currently care about for LDS/RDS/CDS/EDS
+	// NOTE: this only covers types that we currently care about for LDS/RDS/CDS/EDS/SDS
 	switch x := res.(type) {
 	case *envoy_listener_v3.Listener: // LDS
 		return x.Name
@@ -121,6 +122,8 @@ func GetResourceName(res proto.Message) string {
 		return x.Name
 	case *envoy_endpoint_v3.ClusterLoadAssignment: // EDS
 		return x.ClusterName
+	case *envoy_tls_v3.Secret: // SDS
+		return x.Name
 	default:
 		return ""
 	}
@@ -133,6 +136,7 @@ func EmptyIndexedResources() *IndexedResources {
 			RouteType:    make(map[string]proto.Message),
 			ClusterType:  make(map[string]proto.Message),
 			EndpointType: make(map[string]proto.Message),
+			SecretType:   make(map[string]proto.Message),
 		},
 		ChildIndex: map[string]map[string][]string{
 			ListenerType: make(map[string][]string),

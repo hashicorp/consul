@@ -14,15 +14,17 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -439,13 +441,13 @@ func (c *Client) Stats() map[string]map[string]string {
 // are ancillary members of.
 //
 // NOTE: This assumes coordinates are enabled, so check that before calling.
-func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
+func (c *Client) GetLANCoordinate() (librtt.CoordinateSet, error) {
 	lan, err := c.serf.GetCoordinate()
 	if err != nil {
 		return nil, err
 	}
 
-	cs := lib.CoordinateSet{c.config.Segment: lan}
+	cs := librtt.CoordinateSet{c.config.Segment: lan}
 	return cs, nil
 }
 

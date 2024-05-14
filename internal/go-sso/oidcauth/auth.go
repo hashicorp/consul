@@ -16,7 +16,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/coreos/go-oidc"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/hashicorp/go-hclog"
 	"github.com/patrickmn/go-cache"
 )

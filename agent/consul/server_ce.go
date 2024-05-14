@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/reporting"
 	resourcegrpc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -117,7 +117,7 @@ func (s *Server) GetMatchingLANCoordinate(_, _ string) (*coordinate.Coordinate, 
 	return s.serfLAN.GetCoordinate()
 }
 
-func (s *Server) addEnterpriseLANCoordinates(cs lib.CoordinateSet) error {
+func (s *Server) addEnterpriseLANCoordinates(cs librtt.CoordinateSet) error {
 	return nil
 }
 

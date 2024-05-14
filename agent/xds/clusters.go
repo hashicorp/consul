@@ -532,6 +532,7 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 			name:              connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain),
 			hostnameEndpoints: cfgSnap.MeshGateway.HostnameDatacenters[key.String()],
 			isRemote:          true,
+			limits:            cfgSnap.MeshGateway.Limits,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 		clusters = append(clusters, cluster)
@@ -554,6 +555,7 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 				name:              cfgSnap.ServerSNIFn(key.Datacenter, ""),
 				hostnameEndpoints: hostnameEndpoints,
 				isRemote:          !key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()),
+				limits:            cfgSnap.MeshGateway.Limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 			clusters = append(clusters, cluster)
@@ -563,7 +565,8 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 		for _, srv := range servers {
 			opts := clusterOpts{
-				name: cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node),
+				name:   cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node),
+				limits: cfgSnap.MeshGateway.Limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 			clusters = append(clusters, cluster)
@@ -579,14 +582,15 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		// We avoid routing to read replicas since they will never be Raft voters.
 		if haveVoters(servers) {
 			cluster := s.makeGatewayCluster(cfgSnap, clusterOpts{
-				name: connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+				name:   connect.PeeringServerSAN(cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+				limits: cfgSnap.MeshGateway.Limits,
 			})
 			clusters = append(clusters, cluster)
 		}
 	}
 
 	// generate the per-service/subset clusters
-	c, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.MeshGateway.ServiceGroups, cfgSnap.MeshGateway.ServiceResolvers)
+	c, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.MeshGateway.ServiceGroups, cfgSnap.MeshGateway.ServiceResolvers, cfgSnap.MeshGateway.Limits)
 	if err != nil {
 		return nil, err
 	}
@@ -664,7 +668,7 @@ func (s *ResourceGenerator) makePeerServerClusters(cfgSnap *proxycfg.ConfigSnaps
 // for a terminating gateway. This will include 1 cluster per Destination associated with this terminating gateway.
 func (s *ResourceGenerator) clustersFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	res := []proto.Message{}
-	gwClusters, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
+	gwClusters, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -683,6 +687,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 	cfgSnap *proxycfg.ConfigSnapshot,
 	services map[structs.ServiceName]structs.CheckServiceNodes,
 	resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry,
+	limits *structs.UpstreamLimits,
 ) ([]proto.Message, error) {
 	var hostnameEndpoints structs.CheckServiceNodes
 
@@ -724,6 +729,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			hostnameEndpoints: hostnameEndpoints,
 			connectTimeout:    resolver.ConnectTimeout,
 			isRemote:          isRemote,
+			limits:            limits,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -763,6 +769,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 				onlyPassing:       subset.OnlyPassing,
 				connectTimeout:    resolver.ConnectTimeout,
 				isRemote:          isRemote,
+				limits:            limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -812,6 +819,7 @@ func (s *ResourceGenerator) makeGatewayOutgoingClusterPeeringServiceClusters(cfg
 				name:              clusterName,
 				isRemote:          true,
 				hostnameEndpoints: hostnameEndpoints,
+				limits:            cfgSnap.MeshGateway.Limits,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -1706,6 +1714,8 @@ type clusterOpts struct {
 	// Corresponds to a valid address/port pairs to be routed externally
 	// these addresses will be embedded in the cluster configuration and will never use EDS
 	addresses []structs.ServiceAddress
+
+	limits *structs.UpstreamLimits
 }
 
 // makeGatewayCluster creates an Envoy cluster for a mesh or terminating gateway
@@ -1766,6 +1776,12 @@ func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, op
 			opts.isRemote,
 			opts.onlyPassing,
 		)
+	}
+
+	if opts.limits != nil {
+		cluster.CircuitBreakers = &envoy_cluster_v3.CircuitBreakers{
+			Thresholds: makeThresholdsIfNeeded(opts.limits),
+		}
 	}
 
 	return cluster

@@ -9,7 +9,7 @@ description: >-
 
 This topic provides configuration reference information for  details about the `RouteTimeoutFilter` resource, which defines timeout settings for specific routes from an API gateway listener to the destination service in Consul service mesh. 
 
-To apply retry settings to a `HTTPRoute`, set the `rules.filters.type` parameter in an route to `extensionRef` and specify the name of the filter in `rules.filters.extensionRef.name` field. Refer to [Route resource configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes) for additional information. 
+To apply timeout settings to an `HTTPRoute`, set the `rules.filters.type` parameter in the route to `extensionRef` and specify the name of the filter in the `rules.filters.extensionRef.name` field. Refer to [Route resource configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes) for additional information. 
 
 ## Configuration Model
 
@@ -95,7 +95,7 @@ Specifies the namespace that the configuration applies to. Refer to [namespaces]
 Map that contains the details about the gateway policy. The `apiVersion`, `kind`, and `metadata` fields are siblings of the `spec` field. All other configurations are children.
 
 
-### `spec.idleTimeout
+### `spec.idleTimeout`
 
 Specifies the total amount of time permitted for the request stream to be idle. Must specify a parseable number and a unit, for example "5s". 
 

@@ -353,7 +353,7 @@ func (b *balancer) switchServerLocked(newServer *serverInfo) {
 	b.updatePickerLocked()
 
 	if prevConn != nil {
-		b.conn.RemoveSubConn(prevConn)
+		prevConn.Shutdown()
 	}
 }
 

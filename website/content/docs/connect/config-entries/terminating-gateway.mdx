@@ -679,6 +679,12 @@ spec:
           `An optional hostname or domain name to specify during the TLS handshake. This option will also configure [strict SAN matching](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-certificatevalidationcontext-match-typed-subject-alt-names), which requires
             the external services to have certificates with SANs, not having which will result in \`CERTIFICATE_VERIFY_FAILED\` error.`,
         },
+        {
+          name: 'DisableAutoHostRewrite',
+          type: 'bool: ""',
+          description:
+            'When set to true, Terminating Gateway will not modify the incoming requests host header for this service.',
+        },
       ],
     },
   ]}

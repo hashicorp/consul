@@ -8,12 +8,13 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/serf/coordinate"
+
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -52,7 +53,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	coordinateWs := memdb.NewWatchSet()
 	_, coords, err := s.Coordinate(coordinateWs, "nope", nil)
 	require.NoError(t, err)
-	require.Equal(t, lib.CoordinateSet{}, coords)
+	require.Equal(t, librtt.CoordinateSet{}, coords)
 
 	// Make an update for nodes that don't exist and make sure they get
 	// ignored.
@@ -104,7 +105,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 		idx, coords, err := s.Coordinate(nodeWs[i], update.Node, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx, "bad index")
-		expected := lib.CoordinateSet{
+		expected := librtt.CoordinateSet{
 			"": update.Coord,
 		}
 		require.Equal(t, expected, coords)
@@ -133,7 +134,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 		idx, coords, err := s.Coordinate(nil, update.Node, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx, "bad index")
-		expected := lib.CoordinateSet{
+		expected := librtt.CoordinateSet{
 			"": update.Coord,
 		}
 		require.Equal(t, expected, coords)
@@ -178,7 +179,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	// Make sure it's in there.
 	_, coords, err := s.Coordinate(nil, "node1", nil)
 	require.NoError(t, err)
-	expected := lib.CoordinateSet{
+	expected := librtt.CoordinateSet{
 		"alpha": updates[0].Coord,
 		"beta":  updates[1].Coord,
 	}
@@ -190,7 +191,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	// Make sure the coordinate is gone.
 	_, coords, err = s.Coordinate(nil, "node1", nil)
 	require.NoError(t, err)
-	require.Equal(t, lib.CoordinateSet{}, coords)
+	require.Equal(t, librtt.CoordinateSet{}, coords)
 
 	// Make sure the index got updated.
 	idx, all, err := s.Coordinates(nil, nil)

@@ -15,78 +15,43 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/version"
 )
 
 var Gauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"consul", "state", "nodes"},
-		Help: "Deprecated - please use state_nodes instead.",
-	},
-	{
 		Name: []string{"state", "nodes"},
 		Help: "Measures the current number of nodes registered with Consul. It is only emitted by Consul servers. Added in v1.9.0.",
-	},
-	{
-		Name: []string{"consul", "state", "peerings"},
-		Help: "Deprecated - please use state_peerings instead.",
 	},
 	{
 		Name: []string{"state", "peerings"},
 		Help: "Measures the current number of peerings registered with Consul. It is only emitted by Consul servers. Added in v1.13.0.",
 	},
 	{
-		Name: []string{"consul", "state", "services"},
-		Help: "Deprecated - please use state_services instead.",
-	},
-	{
 		Name: []string{"state", "services"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
-	},
-	{
-		Name: []string{"consul", "state", "service_instances"},
-		Help: "Deprecated - please use state_service_instances instead.",
 	},
 	{
 		Name: []string{"state", "service_instances"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
-		Name: []string{"consul", "members", "clients"},
-		Help: "Deprecated - please use members_clients instead.",
-	},
-	{
 		Name: []string{"members", "clients"},
 		Help: "Measures the current number of client agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
-	},
-	{
-		Name: []string{"consul", "members", "servers"},
-		Help: "Deprecated - please use members_servers instead.",
 	},
 	{
 		Name: []string{"members", "servers"},
 		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
 	{
-		Name: []string{"consul", "state", "kv_entries"},
-		Help: "Deprecated - please use kv_entries instead.",
-	},
-	{
 		Name: []string{"state", "kv_entries"},
 		Help: "Measures the current number of entries in the Consul KV store. It is only emitted by Consul servers. Added in v1.10.3.",
 	},
 	{
-		Name: []string{"consul", "state", "connect_instances"},
-		Help: "Deprecated - please use state_connect_instances instead.",
-	},
-	{
 		Name: []string{"state", "connect_instances"},
 		Help: "Measures the current number of unique connect service instances registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
-	},
-	{
-		Name: []string{"consul", "state", "config_entries"},
-		Help: "Deprecated - please use state_config_entries instead.",
 	},
 	{
 		Name: []string{"state", "config_entries"},
@@ -112,12 +77,19 @@ type Config struct {
 	stateProvider  StateProvider
 	tickerInterval time.Duration
 	getMembersFunc getMembersFunc
+	excludeTenancy bool
 }
 
 // WithDatacenter adds the datacenter as a label to all metrics emitted by the
 // UsageMetricsReporter
 func (c *Config) WithDatacenter(dc string) *Config {
 	c.metricLabels = append(c.metricLabels, metrics.Label{Name: "datacenter", Value: dc})
+	return c
+}
+
+// WithDisabledTenancyMetrics opts the user out of specifying usage metrics for each tenancy.
+func (c *Config) WithDisabledTenancyMetrics(disabled bool) *Config {
+	c.excludeTenancy = disabled
 	return c
 }
 
@@ -161,6 +133,9 @@ type UsageMetricsReporter struct {
 	stateProvider  StateProvider
 	tickerInterval time.Duration
 	getMembersFunc getMembersFunc
+	excludeTenancy bool
+
+	usageReporter
 }
 
 func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
@@ -187,7 +162,10 @@ func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
 		metricLabels:   cfg.metricLabels,
 		tickerInterval: cfg.tickerInterval,
 		getMembersFunc: cfg.getMembersFunc,
+		excludeTenancy: cfg.excludeTenancy,
 	}
+
+	u.usageReporter = newTenancyUsageReporter(u)
 
 	return u, nil
 }
@@ -226,7 +204,7 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	u.emitPeeringUsage(peeringUsage)
 
-	_, serviceUsage, err := state.ServiceUsage(nil)
+	_, serviceUsage, err := state.ServiceUsage(nil, !u.excludeTenancy)
 	if err != nil {
 		u.logger.Warn("failed to retrieve services from state store", "error", err)
 	}
@@ -294,4 +272,113 @@ func versionWithMetadata() string {
 	}
 
 	return vsn
+}
+
+type usageReporter interface {
+	emitNodeUsage(nodeUsage state.NodeUsage)
+	emitPeeringUsage(peeringUsage state.PeeringUsage)
+	emitMemberUsage(members []serf.Member)
+	emitServiceUsage(serviceUsage structs.ServiceUsage)
+	emitKVUsage(kvUsage state.KVUsage)
+	emitConfigEntryUsage(configUsage state.ConfigEntryUsage)
+}
+
+type baseUsageReporter struct {
+	metricLabels []metrics.Label
+}
+
+var _ usageReporter = (*baseUsageReporter)(nil)
+
+func newBaseUsageReporter(u *UsageMetricsReporter) *baseUsageReporter {
+	return &baseUsageReporter{
+		metricLabels: u.metricLabels,
+	}
+}
+
+func (u *baseUsageReporter) emitNodeUsage(nodeUsage state.NodeUsage) {
+	metrics.SetGaugeWithLabels(
+		[]string{"state", "nodes"},
+		float32(nodeUsage.Nodes),
+		u.metricLabels,
+	)
+}
+
+func (u *baseUsageReporter) emitPeeringUsage(peeringUsage state.PeeringUsage) {
+	metrics.SetGaugeWithLabels(
+		[]string{"state", "peerings"},
+		float32(peeringUsage.Peerings),
+		u.metricLabels,
+	)
+}
+
+func (u *baseUsageReporter) emitMemberUsage(members []serf.Member) {
+	var (
+		servers int
+		clients int
+	)
+	for _, m := range members {
+		switch m.Tags["role"] {
+		case "node":
+			clients++
+		case "consul":
+			servers++
+		}
+	}
+
+	metrics.SetGaugeWithLabels(
+		[]string{"members", "clients"},
+		float32(clients),
+		u.metricLabels,
+	)
+
+	metrics.SetGaugeWithLabels(
+		[]string{"members", "servers"},
+		float32(servers),
+		u.metricLabels,
+	)
+}
+
+func (u *baseUsageReporter) emitServiceUsage(serviceUsage structs.ServiceUsage) {
+	metrics.SetGaugeWithLabels(
+		[]string{"state", "services"},
+		float32(serviceUsage.Services),
+		u.metricLabels,
+	)
+
+	metrics.SetGaugeWithLabels(
+		[]string{"state", "service_instances"},
+		float32(serviceUsage.ServiceInstances),
+		u.metricLabels,
+	)
+	metrics.SetGaugeWithLabels(
+		[]string{"state", "billable_service_instances"},
+		float32(serviceUsage.BillableServiceInstances),
+		u.metricLabels,
+	)
+
+	for k, i := range serviceUsage.ConnectServiceInstances {
+		metrics.SetGaugeWithLabels(
+			[]string{"state", "connect_instances"},
+			float32(i),
+			append(u.metricLabels, metrics.Label{Name: "kind", Value: k}),
+		)
+	}
+}
+
+func (u *baseUsageReporter) emitKVUsage(kvUsage state.KVUsage) {
+	metrics.SetGaugeWithLabels(
+		[]string{"state", "kv_entries"},
+		float32(kvUsage.KVCount),
+		u.metricLabels,
+	)
+}
+
+func (u *baseUsageReporter) emitConfigEntryUsage(configUsage state.ConfigEntryUsage) {
+	for k, i := range configUsage.ConfigByKind {
+		metrics.SetGaugeWithLabels(
+			[]string{"state", "config_entries"},
+			float32(i),
+			append(u.metricLabels, metrics.Label{Name: "kind", Value: k}),
+		)
+	}
 }

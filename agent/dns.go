@@ -92,6 +92,7 @@ type serviceLookup struct {
 	PeerName          string
 	Datacenter        string
 	Service           string
+	SamenessGroup     string
 	Tag               string
 	MaxRecursionLevel int
 	Connect           bool
@@ -439,18 +440,11 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	// server side to avoid transferring the entire node list.
 	if err := d.agent.RPC(context.Background(), "Catalog.ListNodes", &args, &out); err == nil {
 		for _, n := range out.Nodes {
-			lookup := serviceLookup{
-				// Peering PTR lookups are currently not supported, so we don't
-				// need to populate that field for creating the node FQDN.
-				// PeerName: n.PeerName,
-				Datacenter:     n.Datacenter,
-				EnterpriseMeta: *n.GetEnterpriseMeta(),
-			}
 			arpa, _ := dns.ReverseAddr(n.Address)
 			if arpa == qName {
 				ptr := &dns.PTR{
 					Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
-					Ptr: nodeCanonicalDNSName(lookup, n.Node, d.domain),
+					Ptr: nodeCanonicalDNSName(n, d.domain),
 				}
 				m.Answer = append(m.Answer, ptr)
 				break
@@ -738,6 +732,10 @@ type queryLocality struct {
 	// not be shared between datacenters. In all other cases, it should be considered a DC.
 	peerOrDatacenter string
 
+	// samenessGroup is the samenessGroup name parsed from a label that has explicit parts.
+	// Example query: <service>.service.<sameness group>.sg.consul
+	samenessGroup string
+
 	acl.EnterpriseMeta
 }
 
@@ -805,59 +803,56 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		localities, err := d.parseSamenessGroupLocality(cfg, querySuffixes, invalid)
+		locality, err := d.parseSamenessGroupLocality(cfg, querySuffixes, invalid)
 		if err != nil {
 			return err
 		}
 
-		// Loop over the localities and return as soon as a lookup is successful
-		for _, locality := range localities {
-			d.logger.Debug("labels", "querySuffixes", querySuffixes)
+		lookup := serviceLookup{
+			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
+			PeerName:          locality.peer,
+			SamenessGroup:     locality.samenessGroup,
+			Connect:           false,
+			Ingress:           false,
+			MaxRecursionLevel: maxRecursionLevel,
+			EnterpriseMeta:    locality.EnterpriseMeta,
+		}
 
-			lookup := serviceLookup{
-				Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
-				PeerName:          locality.peer,
-				Connect:           false,
-				Ingress:           false,
-				MaxRecursionLevel: maxRecursionLevel,
-				EnterpriseMeta:    locality.EnterpriseMeta,
-			}
-			// Only one of dc or peer can be used.
-			if lookup.PeerName != "" {
-				lookup.Datacenter = ""
-			}
+		// Only one of dc or peer can be used.
+		if lookup.PeerName != "" {
+			lookup.Datacenter = ""
+		}
 
-			// Support RFC 2782 style syntax
-			if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
-				// Grab the tag since we make nuke it if it's tcp
-				tag := queryParts[1][1:]
+		// Support RFC 2782 style syntax
+		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
+			// Grab the tag since we make nuke it if it's tcp
+			tag := queryParts[1][1:]
 
-				// Treat _name._tcp.service.consul as a default, no need to filter on that tag
-				if tag == "tcp" {
-					tag = ""
-				}
-
-				lookup.Tag = tag
-				lookup.Service = queryParts[0][1:]
-				// _name._tag.service.consul
-			} else {
-				// Consul 0.3 and prior format for SRV queries
-				// Support "." in the label, re-join all the parts
-				tag := ""
-				if n >= 2 {
-					tag = strings.Join(queryParts[:n-1], ".")
-				}
-
-				lookup.Tag = tag
-				lookup.Service = queryParts[n-1]
-				// tag[.tag].name.service.consul
+			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
+			if tag == "tcp" {
+				tag = ""
 			}
 
-			err = d.handleServiceQuery(cfg, lookup, req, resp)
-			// Return if we are error free right away, otherwise loop again if we can
-			if err == nil {
-				return nil
+			lookup.Tag = tag
+			lookup.Service = queryParts[0][1:]
+			// _name._tag.service.consul
+		} else {
+			// Consul 0.3 and prior format for SRV queries
+			// Support "." in the label, re-join all the parts
+			tag := ""
+			if n >= 2 {
+				tag = strings.Join(queryParts[:n-1], ".")
 			}
+
+			lookup.Tag = tag
+			lookup.Service = queryParts[n-1]
+			// tag[.tag].name.service.consul
+		}
+
+		err = d.handleServiceQuery(cfg, lookup, req, resp)
+		// Return if we are error free right away, otherwise loop again if we can
+		if err == nil {
+			return nil
 		}
 
 		// We've exhausted all DNS possibilities so return here
@@ -1450,14 +1445,20 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 	if lookup.Tag != "" {
 		serviceTags = []string{lookup.Tag}
 	}
+	healthFilterType := structs.HealthFilterExcludeCritical
+	if cfg.OnlyPassing {
+		healthFilterType = structs.HealthFilterIncludeOnlyPassing
+	}
 	args := structs.ServiceSpecificRequest{
-		PeerName:    lookup.PeerName,
-		Connect:     lookup.Connect,
-		Ingress:     lookup.Ingress,
-		Datacenter:  lookup.Datacenter,
-		ServiceName: lookup.Service,
-		ServiceTags: serviceTags,
-		TagFilter:   lookup.Tag != "",
+		PeerName:         lookup.PeerName,
+		SamenessGroup:    lookup.SamenessGroup,
+		Connect:          lookup.Connect,
+		Ingress:          lookup.Ingress,
+		Datacenter:       lookup.Datacenter,
+		ServiceName:      lookup.Service,
+		ServiceTags:      serviceTags,
+		TagFilter:        lookup.Tag != "",
+		HealthFilterType: healthFilterType,
 		QueryOptions: structs.QueryOptions{
 			Token:            d.coalesceDNSToken(),
 			AllowStale:       cfg.AllowStale,
@@ -1473,11 +1474,6 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 		return out, err
 	}
 
-	// Filter out any service nodes due to health checks
-	// We copy the slice to avoid modifying the result if it comes from the cache
-	nodes := make(structs.CheckServiceNodes, len(out.Nodes))
-	copy(nodes, out.Nodes)
-	out.Nodes = nodes.Filter(cfg.OnlyPassing)
 	return out, nil
 }
 
@@ -1758,20 +1754,20 @@ func findWeight(node structs.CheckServiceNode) int {
 	}
 }
 
-func (d *DNSServer) encodeIPAsFqdn(questionName string, lookup serviceLookup, ip net.IP) string {
+func (d *DNSServer) encodeIPAsFqdn(questionName string, serviceNode structs.CheckServiceNode, ip net.IP) string {
 	ipv4 := ip.To4()
 	respDomain := d.getResponseDomain(questionName)
 	ipStr := hex.EncodeToString(ip)
 	if ipv4 != nil {
 		ipStr = ipStr[len(ipStr)-(net.IPv4len*2):]
 	}
-	if lookup.PeerName != "" {
+	if serviceNode.Service.PeerName != "" {
 		// Exclude the datacenter from the FQDN on the addr for peers.
 		// This technically makes no difference, since the addr endpoint ignores the DC
 		// component of the request, but do it anyway for a less confusing experience.
 		return fmt.Sprintf("%s.addr.%s", ipStr, respDomain)
 	}
-	return fmt.Sprintf("%s.addr.%s.%s", ipStr, lookup.Datacenter, respDomain)
+	return fmt.Sprintf("%s.addr.%s.%s", ipStr, serviceNode.Node.Datacenter, respDomain)
 }
 
 // Craft dns records for a an A record for an IP address
@@ -1860,7 +1856,7 @@ func (d *DNSServer) makeRecordFromServiceNode(lookup serviceLookup, serviceNode 
 
 	if q.Qtype == dns.TypeSRV {
 		respDomain := d.getResponseDomain(q.Name)
-		nodeFQDN := nodeCanonicalDNSName(lookup, serviceNode.Node.Node, respDomain)
+		nodeFQDN := nodeCanonicalDNSName(serviceNode.Node, respDomain)
 		answers := []dns.RR{
 			&dns.SRV{
 				Hdr: dns.RR_Header{
@@ -1895,7 +1891,7 @@ func (d *DNSServer) makeRecordFromIP(lookup serviceLookup, addr net.IP, serviceN
 	}
 
 	if q.Qtype == dns.TypeSRV {
-		ipFQDN := d.encodeIPAsFqdn(q.Name, lookup, addr)
+		ipFQDN := d.encodeIPAsFqdn(q.Name, serviceNode, addr)
 		answers := []dns.RR{
 			&dns.SRV{
 				Hdr: dns.RR_Header{
@@ -2076,7 +2072,7 @@ func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsConfig, lookup service
 		resp.Extra = append(resp.Extra, extra...)
 
 		if cfg.NodeMetaTXT {
-			resp.Extra = append(resp.Extra, d.makeTXTRecordFromNodeMeta(nodeCanonicalDNSName(lookup, node.Node.Node, respDomain), node.Node, ttl)...)
+			resp.Extra = append(resp.Extra, d.makeTXTRecordFromNodeMeta(nodeCanonicalDNSName(node.Node, respDomain), node.Node, ttl)...)
 		}
 	}
 }

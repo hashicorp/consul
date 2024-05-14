@@ -100,7 +100,17 @@ func (c *Client) Notify(
 }
 
 func (c *Client) useStreaming(req structs.ServiceSpecificRequest) bool {
-	return c.UseStreamingBackend && !req.Ingress && req.Source.Node == ""
+	return c.UseStreamingBackend &&
+		!req.Ingress &&
+		// Streaming is incompatible with NearestN queries (due to lack of ordering),
+		// so we can only use it if the NearestN would never work (Node == "")
+		// or if we explicitly say to ignore the Node field for queries (agentless xDS).
+		(req.Source.Node == "" || req.Source.DisableNode) &&
+		// Streaming is incompatible with SamenessGroup queries at the moment because
+		// the subscribe functionality maps to queries based on the service name and tenancy information
+		// it does not support the ability to subscribe to the same service in different partitions or peers
+		// and materialize the results into a single view with the first healthy sameness group member.
+		req.SamenessGroup == ""
 }
 
 func (c *Client) newServiceRequest(req structs.ServiceSpecificRequest) serviceRequest {

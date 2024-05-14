@@ -70,6 +70,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	libdns "github.com/hashicorp/consul/internal/dnsutil"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -189,7 +190,7 @@ type delegate interface {
 	// are ancillary members of.
 	//
 	// NOTE: This assumes coordinates are enabled, so check that before calling.
-	GetLANCoordinate() (lib.CoordinateSet, error)
+	GetLANCoordinate() (librtt.CoordinateSet, error)
 
 	// JoinLAN is used to have Consul join the inner-DC pool The target address
 	// should be another node inside the DC listening on the Serf LAN address
@@ -833,6 +834,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			Segment:       a.config.SegmentName,
 			Node:          a.config.NodeName,
 			NodePartition: a.config.PartitionOrEmpty(),
+			DisableNode:   true, // Disable for agentless so that streaming RPCs can be used.
 		},
 		DNSConfig: proxycfg.DNSConfig{
 			Domain:    a.config.DNSDomain,
@@ -877,13 +879,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// start DNS servers
-	if a.baseDeps.UseV2DNS() {
-		a.logger.Warn("DNS v2 is under construction")
-		if err := a.listenAndServeV2DNS(); err != nil {
+	if a.baseDeps.UseV1DNS() {
+		if err := a.listenAndServeV1DNS(); err != nil {
 			return err
 		}
 	} else {
-		if err := a.listenAndServeV1DNS(); err != nil {
+		if err := a.listenAndServeV2DNS(); err != nil {
 			return err
 		}
 	}
@@ -1320,7 +1321,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 	}
 
 	httpAddrs := a.config.HTTPAddrs
-	if a.scadaProvider != nil {
+	if a.config.IsCloudEnabled() && a.scadaProvider != nil {
 		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
 	}
 
@@ -2149,7 +2150,7 @@ func (a *Agent) SyncPausedCh() <-chan struct{} {
 
 // GetLANCoordinate returns the coordinates of this node in the local pools
 // (assumes coordinates are enabled, so check that before calling).
-func (a *Agent) GetLANCoordinate() (lib.CoordinateSet, error) {
+func (a *Agent) GetLANCoordinate() (librtt.CoordinateSet, error) {
 	return a.delegate.GetLANCoordinate()
 }
 
