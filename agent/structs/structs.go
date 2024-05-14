@@ -753,6 +753,9 @@ type ServiceSpecificRequest struct {
 	// The name of the peer that the requested service was imported from.
 	PeerName string
 
+	// The name of the sameness group that should be the target of the query.
+	SamenessGroup string
+
 	NodeMetaFilters map[string]string
 	ServiceName     string
 	ServiceKind     ServiceKind
@@ -821,6 +824,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Filter,
 		r.EnterpriseMeta,
 		r.PeerName,
+		r.SamenessGroup,
 		r.Ingress,
 		r.ServiceKind,
 		r.MergeCentralConfig,

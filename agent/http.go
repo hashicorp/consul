@@ -739,7 +739,7 @@ func decodeBody(body io.Reader, out interface{}) error {
 	return lib.DecodeJSON(body, out)
 }
 
-// decodeBodyDeprecated is deprecated, please ues decodeBody above.
+// decodeBodyDeprecated is deprecated, please use decodeBody above.
 // decodeBodyDeprecated is used to decode a JSON request body
 func decodeBodyDeprecated(req *http.Request, out interface{}, cb func(interface{}) error) error {
 	// This generally only happens in tests since real HTTP requests set
@@ -1205,6 +1205,15 @@ func (s *HTTPHandlers) parseSource(req *http.Request, source *structs.QuerySourc
 func (s *HTTPHandlers) parsePeerName(req *http.Request, args *structs.ServiceSpecificRequest) {
 	if peer := req.URL.Query().Get("peer"); peer != "" {
 		args.PeerName = peer
+	}
+}
+
+func (s *HTTPHandlers) parseSamenessGroup(req *http.Request, args *structs.ServiceSpecificRequest) {
+	if sg := req.URL.Query().Get("sg"); sg != "" {
+		args.SamenessGroup = sg
+	}
+	if sg := req.URL.Query().Get("sameness-group"); sg != "" {
+		args.SamenessGroup = sg
 	}
 }
 

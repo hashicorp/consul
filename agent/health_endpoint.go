@@ -188,6 +188,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	}
 
 	s.parsePeerName(req, &args)
+	s.parseSamenessGroup(req, &args)
+	if args.SamenessGroup != "" && args.PeerName != "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "peer-name and sameness-group are mutually exclusive"}
+	}
 
 	// Check for tags
 	params := req.URL.Query()
@@ -214,7 +218,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		prefix = "/v1/health/service/"
 	}
 
-	// Parse out the service name from the query params
+	// Parse the service name from the query params
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, prefix)
 	if args.ServiceName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
