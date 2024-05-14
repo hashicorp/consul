@@ -10,6 +10,8 @@ SECURITY:
   [CVE-2024-24788](https://nvd.nist.gov/vuln/detail/CVE-2024-24788) [[GH-21074](https://github.com/hashicorp/consul/issues/21074)]
 * Upgrade to support Envoy `1.26.8`. This resolves CVE
   [CVE-2024-27919](https://nvd.nist.gov/vuln/detail/CVE-2024-27919) (`http2`). [[GH-20956](https://github.com/hashicorp/consul/issues/20956)]
+* Upgrade to support Envoy `1.27.5`. This resolves CVE
+  [CVE-2024-32475](https://nvd.nist.gov/vuln/detail/CVE-2024-32475) (`auto_sni`). [[GH-9295](https://github.com/hashicorp/consul/issues/9295)]
 * Upgrade to support k8s.io/apimachinery `v0.18.7 or higher`. This resolves CVE
   [CVE-2020-8559](https://nvd.nist.gov/vuln/detail/CVE-2020-8559). [[GH-21032](https://github.com/hashicorp/consul/issues/21032)]
 * Upgrade to use Go `1.21.9`. This resolves CVE
