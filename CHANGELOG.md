@@ -1,3 +1,29 @@
+## 1.17.5 Enterprise (May 14, 2024)
+
+SECURITY:
+
+* Bump Dockerfile base image to `alpine:3.19`. [[GH-20897](https://github.com/hashicorp/consul/issues/20897)]
+* Upgrade Go to use 1.21.10. This addresses CVEs
+  [CVE-2024-24787](https://nvd.nist.gov/vuln/detail/CVE-2024-24787) and
+  [CVE-2024-24788](https://nvd.nist.gov/vuln/detail/CVE-2024-24788) [[GH-21074](https://github.com/hashicorp/consul/issues/21074)]
+* Upgrade to support Envoy `1.26.8 and 1.27.4`. This resolves CVE
+  [CVE-2024-27919](https://nvd.nist.gov/vuln/detail/CVE-2024-27919) (`http2`). [[GH-20956](https://github.com/hashicorp/consul/issues/20956)]
+* Upgrade to support Envoy `1.27.5 and 1.28.3`. This resolves CVE
+  [CVE-2024-32475](https://nvd.nist.gov/vuln/detail/CVE-2024-32475) (`auto_sni`). [[GH-21033](https://github.com/hashicorp/consul/issues/21033)]
+* Upgrade to support k8s.io/apimachinery `v0.18.7 or higher`. This resolves CVE
+  [CVE-2020-8559](https://nvd.nist.gov/vuln/detail/CVE-2020-8559). [[GH-21033](https://github.com/hashicorp/consul/issues/21033)]
+* Upgrade to use Go `1.21.9`. This resolves CVE
+  [CVE-2023-45288](https://nvd.nist.gov/vuln/detail/CVE-2023-45288) (`http2`). [[GH-20956](https://github.com/hashicorp/consul/issues/20956)]
+* Upgrade to use golang.org/x/net `v0.24.0`. This resolves CVE
+  [CVE-2023-45288](https://nvd.nist.gov/vuln/detail/CVE-2023-45288) (`x/net`). [[GH-20956](https://github.com/hashicorp/consul/issues/20956)]
+* security: Remove `coredns/coredns` dependency to address [CVE-2024-0874](https://nvd.nist.gov/vuln/detail/CVE-2024-0874) [[GH-9243](https://github.com/hashicorp/consul/issues/9243)]
+
+BUG FIXES:
+
+* dns: fix a bug with sameness group queries in DNS where responses did not respect [`DefaultForFailover`](/consul/docs/connect/config-entries/sameness-group#defaultforfailover).
+  DNS requests against sameness groups without this field set will now error as intended.
+* xds: Make TCP external service registered with terminating gateway reachable from peered cluster [[GH-19881](https://github.com/hashicorp/consul/issues/19881)]
+
 ## 1.17.4 Enterprise (March 26, 2024)
 
 SECURITY:
