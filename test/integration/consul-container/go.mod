@@ -59,8 +59,8 @@ require (
 	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/envoyproxy/go-control-plane v0.11.1 // indirect
-	github.com/envoyproxy/protoc-gen-validate v1.0.1 // indirect
-	github.com/fatih/color v1.14.1 // indirect
+	github.com/envoyproxy/protoc-gen-validate v1.0.2 // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.0.1 // indirect
@@ -88,7 +88,7 @@ require (
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
