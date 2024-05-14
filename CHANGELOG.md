@@ -25,6 +25,7 @@ BUG FIXES:
 * dns: fix a bug with sameness group queries in DNS where responses did not respect [`DefaultForFailover`](/consul/docs/connect/config-entries/sameness-group#defaultforfailover).
   DNS requests against sameness groups without this field set will now error as intended.
 * xds: Make TCP external service registered with terminating gateway reachable from peered cluster [[GH-19881](https://github.com/hashicorp/consul/issues/19881)]
+
 ## 1.17.4 Enterprise (March 26, 2024)
 
 SECURITY:
