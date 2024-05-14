@@ -1,5 +1,7 @@
 ## 1.18.2 (May 14, 2024)
 
+**Enterprise LTS**: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
 SECURITY:
 
 * Bump Dockerfile base image to `alpine:3.19`. [[GH-20897](https://github.com/hashicorp/consul/issues/20897)]
