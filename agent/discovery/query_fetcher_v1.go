@@ -5,7 +5,6 @@ package discovery
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -469,7 +468,7 @@ func (f *V1DataFetcher) buildResultsFromServiceNodes(nodes []structs.CheckServic
 				Namespace:  n.Service.NamespaceOrEmpty(),
 				Partition:  n.Service.PartitionOrEmpty(),
 				Datacenter: n.Node.Datacenter,
-				PeerName:   req.Tenancy.Peer,
+				PeerName:   n.Service.PeerName,
 			},
 		})
 	}
@@ -542,23 +541,10 @@ RPC:
 	return &out, nil
 }
 
+// fetchService is used to look up a service in the Consul catalog.
 func (f *V1DataFetcher) fetchService(ctx Context, req *QueryPayload,
 	cfg *V1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
-	f.logger.Trace("fetchService", "req", req)
-	if req.Tenancy.SamenessGroup == "" {
-		return f.fetchServiceBasedOnTenancy(ctx, req, cfg, lookupType)
-	}
-
-	return f.fetchServiceFromSamenessGroup(ctx, req, cfg, lookupType)
-}
-
-// fetchServiceBasedOnTenancy is used to look up a service in the Consul catalog based on its tenancy or default tenancy.
-func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayload,
-	cfg *V1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
-	f.logger.Trace(fmt.Sprintf("fetchServiceBasedOnTenancy - req: %+v", req))
-	if req.Tenancy.SamenessGroup != "" {
-		return nil, errors.New("sameness groups are not allowed for service lookups based on tenancy")
-	}
+	f.logger.Trace(fmt.Sprintf("fetchService - req: %+v", req))
 
 	// If no datacenter is passed, default to our own
 	datacenter := cfg.Datacenter
@@ -573,14 +559,20 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 	if req.Tag != "" {
 		serviceTags = []string{req.Tag}
 	}
+	healthFilterType := structs.HealthFilterExcludeCritical
+	if cfg.OnlyPassing {
+		healthFilterType = structs.HealthFilterIncludeOnlyPassing
+	}
 	args := structs.ServiceSpecificRequest{
-		PeerName:    req.Tenancy.Peer,
-		Connect:     lookupType == LookupTypeConnect,
-		Ingress:     lookupType == LookupTypeIngress,
-		Datacenter:  datacenter,
-		ServiceName: req.Name,
-		ServiceTags: serviceTags,
-		TagFilter:   req.Tag != "",
+		PeerName:         req.Tenancy.Peer,
+		SamenessGroup:    req.Tenancy.SamenessGroup,
+		Connect:          lookupType == LookupTypeConnect,
+		Ingress:          lookupType == LookupTypeIngress,
+		Datacenter:       datacenter,
+		ServiceName:      req.Name,
+		ServiceTags:      serviceTags,
+		TagFilter:        req.Tag != "",
+		HealthFilterType: healthFilterType,
 		QueryOptions: structs.QueryOptions{
 			Token:            ctx.Token,
 			AllowStale:       cfg.AllowStale,
@@ -596,20 +588,6 @@ func (f *V1DataFetcher) fetchServiceBasedOnTenancy(ctx Context, req *QueryPayloa
 		if strings.Contains(err.Error(), structs.ErrNoDCPath.Error()) {
 			return nil, ErrNoPathToDatacenter
 		}
-		return nil, fmt.Errorf("rpc request failed: %w", err)
-	}
-
-	// If we have no nodes, return not found!
-	if len(out.Nodes) == 0 {
-		return nil, ErrNotFound
-	}
-
-	// Filter out any service nodes due to health checks
-	// We copy the slice to avoid modifying the result if it comes from the cache
-	nodes := make(structs.CheckServiceNodes, len(out.Nodes))
-	copy(nodes, out.Nodes)
-	out.Nodes = nodes.Filter(cfg.OnlyPassing)
-	if err != nil {
 		return nil, fmt.Errorf("rpc request failed: %w", err)
 	}
 

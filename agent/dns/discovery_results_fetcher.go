@@ -69,6 +69,9 @@ func (d discoveryResultsFetcher) getQueryResults(opts *getQueryOptions) ([]*disc
 
 		if getErrorFromECSNotGlobalError(err) != nil {
 			opts.logger.Error("error processing discovery query", "error", err)
+			if structs.IsErrSamenessGroupMustBeDefaultForFailover(err) {
+				return nil, query, errNameNotFound
+			}
 			return nil, query, err
 		}
 		return results, query, err

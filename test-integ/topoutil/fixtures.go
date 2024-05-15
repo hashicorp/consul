@@ -18,6 +18,9 @@ func NewFortioWorkloadWithDefaults(
 	nodeVersion topology.NodeVersion,
 	mut func(*topology.Workload),
 ) *topology.Workload {
+	if nodeVersion == topology.NodeVersionV2 {
+		panic("v2 nodes are not supported")
+	}
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079
@@ -30,6 +33,7 @@ func NewFortioWorkloadWithDefaults(
 		ID:             sid,
 		Image:          HashicorpDockerProxy + "/fortio/fortio",
 		EnvoyAdminPort: adminPort,
+		Port:           httpPort,
 		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
 		Env: []string{
 			"FORTIO_NAME=" + cluster + "::" + sid.String(),
@@ -41,17 +45,6 @@ func NewFortioWorkloadWithDefaults(
 			"-tcp-port", strconv.Itoa(tcpPort),
 			"-redirect-port", "-disabled",
 		},
-	}
-
-	if nodeVersion == topology.NodeVersionV2 {
-		wrk.Ports = map[string]*topology.Port{
-			"http":  {Number: httpPort, Protocol: "http"},
-			"http2": {Number: httpPort, Protocol: "http2"},
-			"grpc":  {Number: grpcPort, Protocol: "grpc"},
-			"tcp":   {Number: tcpPort, Protocol: "tcp"},
-		}
-	} else {
-		wrk.Port = httpPort
 	}
 
 	if mut != nil {
@@ -66,6 +59,9 @@ func NewBlankspaceWorkloadWithDefaults(
 	nodeVersion topology.NodeVersion,
 	mut func(*topology.Workload),
 ) *topology.Workload {
+	if nodeVersion == topology.NodeVersionV2 {
+		panic("v2 nodes are not supported")
+	}
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079
@@ -78,6 +74,7 @@ func NewBlankspaceWorkloadWithDefaults(
 		ID:             sid,
 		Image:          HashicorpDockerProxy + "/rboyer/blankspace",
 		EnvoyAdminPort: adminPort,
+		Port:           httpPort,
 		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
 		Command: []string{
 			"-name", cluster + "::" + sid.String(),
@@ -85,17 +82,6 @@ func NewBlankspaceWorkloadWithDefaults(
 			"-grpc-addr", fmt.Sprintf(":%d", grpcPort),
 			"-tcp-addr", fmt.Sprintf(":%d", tcpPort),
 		},
-	}
-
-	if nodeVersion == topology.NodeVersionV2 {
-		wrk.Ports = map[string]*topology.Port{
-			"http":  {Number: httpPort, Protocol: "http"},
-			"http2": {Number: httpPort, Protocol: "http2"},
-			"grpc":  {Number: grpcPort, Protocol: "grpc"},
-			"tcp":   {Number: tcpPort, Protocol: "tcp"},
-		}
-	} else {
-		wrk.Port = httpPort
 	}
 
 	if mut != nil {

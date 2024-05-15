@@ -42,6 +42,13 @@ container {
 				"CVE-2023-46219", # curl@8.4.0-r0
 				"CVE-2023-5678",  # openssl@3.1.4-r0
 			]
+			paths = [
+				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+				"test/integration/connect/envoy/test-sds-server/*",
+				"test/integration/consul-container/*",
+				"testing/deployer/*",
+				"test-integ/*",
+			]
 		}
 	}
 }
@@ -74,7 +81,13 @@ binary {
 		suppress {
 			# N.b. `vulnerabilites` is the correct spelling for this tool.
 			vulnerabilites = [
-				"GO-2024-2631", # go-jose/v3@v3.0.3 (false positive)
+			]
+			paths = [
+				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+				"test/integration/connect/envoy/test-sds-server/*",
+				"test/integration/consul-container/*",
+				"testing/deployer/*",
+				"test-integ/*",
 			]
 		}
 	}
