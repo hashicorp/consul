@@ -1096,9 +1096,10 @@ func rCodeFromError(err error) int {
 		return dns.RcodeSuccess
 	case errors.Is(err, errECSNotGlobal):
 		return rCodeFromError(errors.Unwrap(err))
-	case errors.Is(err, errNameNotFound):
-		return dns.RcodeNameError
-	case structs.IsErrNoDCPath(err) || structs.IsErrQueryNotFound(err):
+	case errors.Is(err, errNameNotFound),
+		structs.IsErrNoDCPath(err),
+		structs.IsErrQueryNotFound(err),
+		structs.IsErrSamenessGroupMustBeDefaultForFailover(err):
 		return dns.RcodeNameError
 	default:
 		return dns.RcodeServerFailure
