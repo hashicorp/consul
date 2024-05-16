@@ -90,7 +90,7 @@ func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 		// Might be a leaf
 		if isLeaf[T](n) {
 			// Check if the expanded path matches
-			if leafMatches[T](n, key, len(key)) == 0 {
+			if leafMatches(n.getKey(), key) == 0 {
 				return n.getValue(), true
 			}
 			return zero, false
@@ -98,7 +98,7 @@ func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 
 		// Bail if the prefix does not match
 		if n.getPartialLen() > 0 {
-			prefixLen := checkPrefix[T](n, key, len(key), depth)
+			prefixLen := checkPrefix(n.getPartial(), int(n.getPartialLen()), key, depth)
 			if prefixLen != min(maxPrefixLen, int(n.getPartialLen())) {
 				return zero, false
 			}
@@ -123,7 +123,6 @@ func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 
 func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int, old *int) (Node[T], T) {
 	var zero T
-	keyLen := len(key)
 
 	// If we are at a nil node, inject a leaf
 	if n == nil {
@@ -172,7 +171,7 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 	// Check if given node has a prefix
 	if node.getPartialLen() > 0 {
 		// Determine if the prefixes differ, since we need to split
-		prefixDiff := prefixMismatch[T](node, key, keyLen, depth)
+		prefixDiff := prefixMismatch[T](node, key, len(key), depth)
 		if prefixDiff >= int(node.getPartialLen()) {
 			depth += int(node.getPartialLen())
 			child, idx := t.findChild(node, key[depth])
@@ -231,7 +230,6 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 }
 
 func (t *RadixTree[T]) recursiveDelete(n Node[T], key []byte, depth int) (Node[T], *NodeLeaf[T]) {
-	keyLen := len(key)
 	// Search terminated
 	if n == nil {
 		return nil, nil
@@ -240,7 +238,7 @@ func (t *RadixTree[T]) recursiveDelete(n Node[T], key []byte, depth int) (Node[T
 	// Handle hitting a leaf node
 	if isLeaf[T](node) {
 		l := node.(*NodeLeaf[T])
-		if leafMatches[T](l, key, keyLen) == 0 {
+		if leafMatches(l.getKey(), key) == 0 {
 			return nil, l
 		}
 		return n, nil
@@ -248,7 +246,7 @@ func (t *RadixTree[T]) recursiveDelete(n Node[T], key []byte, depth int) (Node[T
 
 	// Bail if the prefix does not match
 	if node.getPartialLen() > 0 {
-		prefixLen := checkPrefix[T](node, key, keyLen, depth)
+		prefixLen := checkPrefix(node.getPartial(), int(node.getPartialLen()), key, depth)
 		if prefixLen != min(maxPrefixLen, int(node.getPartialLen())) {
 			return node, nil
 		}
@@ -265,7 +263,7 @@ func (t *RadixTree[T]) recursiveDelete(n Node[T], key []byte, depth int) (Node[T
 	if isLeaf[T](child) {
 		nodeChild := child
 		l := nodeChild.(*NodeLeaf[T])
-		if leafMatches[T](l, key, keyLen) == 0 {
+		if leafMatches(l.getKey(), key) == 0 {
 			node = t.removeChild(node.Clone(), key[depth], &child)
 			return node, l
 		}

@@ -8,24 +8,24 @@ import (
 	"math/bits"
 )
 
-func checkPrefix[T any](n Node[T], key []byte, keyLen, depth int) int {
-	maxCmp := min(min(int(n.getPartialLen()), maxPrefixLen), keyLen-depth)
+func checkPrefix(partial []byte, partialLen int, key []byte, depth int) int {
+	maxCmp := min(min(partialLen, maxPrefixLen), len(key)-depth)
 	var idx int
 	for idx = 0; idx < maxCmp; idx++ {
-		if n.getPartial()[idx] != key[depth+idx] {
+		if partial[idx] != key[depth+idx] {
 			return idx
 		}
 	}
 	return idx
 }
 
-func leafMatches[T any](n Node[T], key []byte, keyLen int) int {
+func leafMatches(nodeKey []byte, key []byte) int {
 	// Fail if the key lengths are different
-	if len(n.getKey()) != keyLen {
+	if len(nodeKey) != len(key) {
 		return 1
 	}
 	// Compare the keys
-	return bytes.Compare(n.getKey(), key)
+	return bytes.Compare(nodeKey, key)
 }
 
 func (t *RadixTree[T]) makeLeaf(key []byte, value T) Node[T] {
@@ -391,21 +391,12 @@ func findChild[T any](n Node[T], c byte) (Node[T], int) {
 }
 
 func getTreeKey(key []byte) []byte {
-	keyLen := len(key) + 1
-	newKey := make([]byte, keyLen)
-	copy(newKey, key)
-	newKey[keyLen-1] = '$'
-	return newKey
+	key = append(key, '$')
+	return key
 }
 
 func getKey(key []byte) []byte {
-	keyLen := len(key)
-	if keyLen == 0 {
-		return nil
-	}
-	newKey := make([]byte, keyLen-1)
-	copy(newKey, key)
-	return newKey
+	return key[:len(key)-1]
 }
 
 func (t *RadixTree[T]) removeChild(n Node[T], c byte, l *Node[T]) Node[T] {
