@@ -130,7 +130,7 @@ func (i *Iterator[T]) SeekPrefix(prefixKey []byte) {
 		}
 
 		// Get the next child node based on the prefix
-		child := findChild[T](node, prefix[depth])
+		child, _ := findChild[T](node, prefix[depth])
 		if child == nil {
 			// If the child node doesn't exist, break the loop
 			node = nil
