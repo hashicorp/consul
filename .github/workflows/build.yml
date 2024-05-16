@@ -132,8 +132,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-          WORKTREE_DIRTY: "true"
-        uses: hashicorp/actions-go-build@v1
+        uses: hashicorp/actions-go-build@v0.1.7
         with:
           product_name: ${{ env.PKG_NAME }}
           product_version: ${{ needs.set-product-version.outputs.product-version }}
@@ -233,8 +232,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-          WORKTREE_DIRTY: "true"
-        uses: hashicorp/actions-go-build@v1
+        uses: hashicorp/actions-go-build@v0.1.7
         with:
           product_name: ${{ env.PKG_NAME }}
           product_version: ${{ needs.set-product-version.outputs.product-version }}
@@ -285,8 +283,7 @@ jobs:
           PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
           CGO_ENABLED: "0"
           GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-          WORKTREE_DIRTY: "true"
-        uses: hashicorp/actions-go-build@v1
+        uses: hashicorp/actions-go-build@v0.1.7
         with:
           product_name: ${{ env.PKG_NAME }}
           product_version: ${{ needs.set-product-version.outputs.product-version }}
