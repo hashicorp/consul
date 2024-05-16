@@ -4542,4 +4542,4 @@ let l=e.split("."),r=l.pop(),i=l.join("."),u=(0,t.get)(o,i)
 return u&&u.hasOwnProperty&&u.hasOwnProperty(r)?n:(0,t.get)(a,e)}return o.hasOwnProperty(e)?(0,t.get)(o,e):(0,t.get)(a,e)}}
 return!n.call(u,o,a)||e(l,r,i,o,a)}}(e)}})),define("consul-ui/validations/token",["exports"],(function(e){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 e.default={}})),define("consul-ui/config/environment",[],(function(){try{var e="consul-ui/config/environment",t=document.querySelector('meta[name="'+e+'"]').getAttribute("content"),n={default:JSON.parse(decodeURIComponent(t))}
-return Object.defineProperty(n,"__esModule",{value:!0}),n}catch(l){throw new Error('Could not read config from meta tag with name "'+e+'".')}})),runningTests||require("consul-ui/app").default.create({name:"consul-ui",version:"2.2.0"})
+return Object.defineProperty(n,"__esModule",{value:!0}),n}catch(l){throw new Error('Could not read config from meta tag with name "'+e+'".')}})),runningTests||require("consul-ui/app").default.create({name:"consul-ui",version:"2.2.0+68ede1c4"})
