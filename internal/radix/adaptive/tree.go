@@ -229,19 +229,18 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 	return node, zero
 }
 
-func (t *RadixTree[T]) recursiveDelete(n Node[T], key []byte, depth int) (Node[T], *NodeLeaf[T]) {
+func (t *RadixTree[T]) recursiveDelete(node Node[T], key []byte, depth int) (Node[T], *NodeLeaf[T]) {
 	// Search terminated
-	if n == nil {
+	if node == nil {
 		return nil, nil
 	}
-	node := n
 	// Handle hitting a leaf node
 	if isLeaf[T](node) {
 		l := node.(*NodeLeaf[T])
 		if leafMatches(l.getKey(), key) == 0 {
 			return nil, l
 		}
-		return n, nil
+		return node, nil
 	}
 
 	// Bail if the prefix does not match
