@@ -64,12 +64,7 @@ func (t *RadixTree[T]) Maximum() *NodeLeaf[T] {
 func (t *RadixTree[T]) Delete(key []byte) T {
 	var zero T
 	newRoot, l := t.recursiveDelete(t.root, getTreeKey(key), 0)
-	if newRoot == nil {
-		nodeLeaf := t.allocNode(leafType)
-		t.root = &nodeLeaf
-	} else {
-		t.root = newRoot
-	}
+	t.root = newRoot
 	if l != nil {
 		t.size--
 		old := l.value
