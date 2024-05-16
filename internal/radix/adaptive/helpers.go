@@ -84,23 +84,23 @@ func longestCommonPrefix[T any](l1, l2 *NodeLeaf[T], depth int) int {
 }
 
 // addChild adds a child node to the parent node.
-func (t *RadixTree[T]) addChild(n Node[T], ref **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild(n Node[T], c byte, child Node[T]) Node[T] {
 	switch n.getArtNodeType() {
 	case node4:
-		t.addChild4(n.(*Node4[T]), ref, c, child)
+		return t.addChild4(n.(*Node4[T]), c, child)
 	case node16:
-		t.addChild16(n.(*Node16[T]), ref, c, child)
+		return t.addChild16(n.(*Node16[T]), c, child)
 	case node48:
-		t.addChild48(n.(*Node48[T]), ref, c, child)
+		return t.addChild48(n.(*Node48[T]), c, child)
 	case node256:
-		t.addChild256(n.(*Node256[T]), ref, c, child)
+		return t.addChild256(n.(*Node256[T]), c, child)
 	default:
 		panic("Unknown node type")
 	}
 }
 
 // addChild4 adds a child node to a node4.
-func (t *RadixTree[T]) addChild4(n *Node4[T], ref **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild4(n *Node4[T], c byte, child Node[T]) Node[T] {
 	if n.numChildren < 4 {
 		idx := 0
 		for idx = 0; idx < int(n.numChildren); idx++ {
@@ -118,21 +118,21 @@ func (t *RadixTree[T]) addChild4(n *Node4[T], ref **Node[T], c byte, child Node[
 		n.keys[idx] = c
 		n.children[idx] = &child
 		n.numChildren++
-
+		return n
 	} else {
 		newNode := t.allocNode(node16)
-		*ref = &newNode
 		n16 := newNode.(*Node16[T])
 		// Copy the child pointers and the key map
 		copy(n16.children[:], n.children[:n.numChildren])
 		copy(n16.keys[:], n.keys[:n.numChildren])
 		t.copyHeader(newNode, n)
-		t.addChild16(n16, ref, c, child)
+		newNode = t.addChild16(n16, c, child)
+		return newNode
 	}
 }
 
 // addChild16 adds a child node to a node16.
-func (t *RadixTree[T]) addChild16(n *Node16[T], ref **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild16(n *Node16[T], c byte, child Node[T]) Node[T] {
 	if n.numChildren < 16 {
 		var mask uint32 = (1 << n.numChildren) - 1
 		var bitfield uint32
@@ -162,11 +162,9 @@ func (t *RadixTree[T]) addChild16(n *Node16[T], ref **Node[T], c byte, child Nod
 		n.keys[idx] = c
 		n.children[idx] = &child
 		n.numChildren++
-
+		return n
 	} else {
 		newNode := t.allocNode(node48)
-		*ref = &newNode
-
 		n48 := newNode.(*Node48[T])
 		// Copy the child pointers and populate the key map
 		copy(n48.children[:], n.children[:n.numChildren])
@@ -175,12 +173,13 @@ func (t *RadixTree[T]) addChild16(n *Node16[T], ref **Node[T], c byte, child Nod
 		}
 
 		t.copyHeader(newNode, n)
-		t.addChild48(n48, ref, c, child)
+		newNode = t.addChild48(n48, c, child)
+		return newNode
 	}
 }
 
 // addChild48 adds a child node to a node48.
-func (t *RadixTree[T]) addChild48(n *Node48[T], ref **Node[T], c byte, child Node[T]) {
+func (t *RadixTree[T]) addChild48(n *Node48[T], c byte, child Node[T]) Node[T] {
 	if n.numChildren < 48 {
 		pos := 0
 		for n.children[pos] != nil {
@@ -189,9 +188,9 @@ func (t *RadixTree[T]) addChild48(n *Node48[T], ref **Node[T], c byte, child Nod
 		n.children[pos] = &child
 		n.keys[c] = byte(pos + 1)
 		n.numChildren++
+		return n
 	} else {
 		newNode := t.allocNode(node256)
-		*ref = &newNode
 		n256 := newNode.(*Node256[T])
 		for i := 0; i < 256; i++ {
 			if n.keys[i] != 0 {
@@ -199,8 +198,16 @@ func (t *RadixTree[T]) addChild48(n *Node48[T], ref **Node[T], c byte, child Nod
 			}
 		}
 		t.copyHeader(newNode, n)
-		t.addChild256(n256, ref, c, child)
+		newNode = t.addChild256(n256, c, child)
+		return newNode
 	}
+}
+
+// addChild256 adds a child node to a node256.
+func (t *RadixTree[T]) addChild256(n *Node256[T], c byte, child Node[T]) Node[T] {
+	n.numChildren++
+	n.children[c] = &child
+	return Node[T](n)
 }
 
 // copyHeader copies header information from src to dest node.
@@ -210,12 +217,6 @@ func (t *RadixTree[T]) copyHeader(dest, src Node[T]) {
 	length := min(maxPrefixLen, int(src.getPartialLen()))
 	partialToCopy := src.getPartial()[:length]
 	copy(dest.getPartial()[:length], partialToCopy)
-}
-
-// addChild256 adds a child node to a node256.
-func (t *RadixTree[T]) addChild256(n *Node256[T], _ **Node[T], c byte, child Node[T]) {
-	n.numChildren++
-	n.children[c] = &child
 }
 
 func min(a, b int) int {
