@@ -5,6 +5,7 @@ package adaptive
 
 import (
 	"bufio"
+	"github.com/hashicorp/go-uuid"
 	"os"
 	"testing"
 
@@ -168,5 +169,33 @@ func TestARTree_InsertSearchAndDelete(t *testing.T) {
 		require.Equal(t, val, lineNumber)
 		lineNumber += 1
 		require.Equal(t, art.size, uint64(len(lines)-lineNumber+1))
+	}
+}
+
+func BenchmarkInsertSearchART(b *testing.B) {
+	r := NewRadixTree[int]()
+	maxV := 100000
+	for i := 0; i < maxV; i++ {
+		uuid1, _ := uuid.GenerateUUID()
+		for j := 0; j < 10; j++ {
+			uuidx, _ := uuid.GenerateUUID()
+			uuid1 += uuidx
+		}
+		r.Insert([]byte(uuid1), i)
+	}
+	keys := make([]string, maxV)
+	for i := 0; i < maxV; i++ {
+		uuid1, _ := uuid.GenerateUUID()
+		for j := 0; j < 10; j++ {
+			uuidx, _ := uuid.GenerateUUID()
+			uuid1 += uuidx
+		}
+		keys[i] = uuid1
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		uuid1 := keys[n%maxV]
+		r.Insert([]byte(uuid1), n)
+		r.Search([]byte(uuid1))
 	}
 }
