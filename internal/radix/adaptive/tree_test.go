@@ -197,5 +197,6 @@ func BenchmarkInsertSearchART(b *testing.B) {
 		uuid1 := keys[n%maxV]
 		r.Insert([]byte(uuid1), n)
 		r.Search([]byte(uuid1))
+		r.Delete([]byte(uuid1))
 	}
 }
