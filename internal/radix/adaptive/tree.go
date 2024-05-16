@@ -175,16 +175,16 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 		if prefixDiff >= int(node.getPartialLen()) {
 			depth += int(node.getPartialLen())
 			child, idx := t.findChild(node, key[depth])
+			nodeClone := node.Clone()
 			if child != nil {
 				newChild, val := t.recursiveInsert(child, key, value, depth+1, old)
-				nodeClone := node.Clone()
 				nodeClone.setChild(idx, newChild)
 				return nodeClone, val
 			}
 
 			// No child, node goes within us
 			newLeaf := t.makeLeaf(key, value)
-			node = t.addChild(node, key[depth], newLeaf)
+			node = t.addChild(nodeClone, key[depth], newLeaf)
 			return node, zero
 		}
 
