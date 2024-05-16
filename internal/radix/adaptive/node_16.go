@@ -12,7 +12,7 @@ type Node16[T any] struct {
 	numChildren uint8
 	partial     []byte
 	keys        [16]byte
-	children    [16]*Node[T]
+	children    [16]Node[T]
 }
 
 func (n *Node16[T]) getPartialLen() uint32 {
@@ -72,10 +72,7 @@ func (n *Node16[T]) matchPrefix(prefix []byte) bool {
 	return bytes.HasPrefix(n.partial, prefix)
 }
 
-func (n *Node16[T]) getChild(index int) *Node[T] {
-	if index < 0 || index >= 16 {
-		return nil
-	}
+func (n *Node16[T]) getChild(index int) Node[T] {
 	return n.children[index]
 }
 
@@ -91,6 +88,6 @@ func (n *Node16[T]) Clone() Node[T] {
 	return nodeT
 }
 
-func (n *Node16[T]) setChild(index int, child *Node[T]) {
+func (n *Node16[T]) setChild(index int, child Node[T]) {
 	n.children[index] = child
 }

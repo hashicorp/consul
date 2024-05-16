@@ -109,7 +109,7 @@ func (n *NodeLeaf[T]) matchPrefix(prefix []byte) bool {
 	return bytes.HasPrefix(actualKey, actualPrefix)
 }
 
-func (n *NodeLeaf[T]) getChild(index int) *Node[T] {
+func (n *NodeLeaf[T]) getChild(index int) Node[T] {
 	return nil
 }
 
@@ -124,6 +124,6 @@ func (n *NodeLeaf[T]) Clone() Node[T] {
 	return nodeT
 }
 
-func (n *NodeLeaf[T]) setChild(int, *Node[T]) {
+func (n *NodeLeaf[T]) setChild(int, Node[T]) {
 	return
 }

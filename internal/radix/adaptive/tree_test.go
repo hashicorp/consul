@@ -174,7 +174,7 @@ func TestARTree_InsertSearchAndDelete(t *testing.T) {
 
 func BenchmarkInsertSearchART(b *testing.B) {
 	r := NewRadixTree[int]()
-	maxV := 1000
+	maxV := 100000
 	for i := 0; i < maxV; i++ {
 		uuid1, _ := uuid.GenerateUUID()
 		for j := 0; j < 10; j++ {
@@ -197,6 +197,6 @@ func BenchmarkInsertSearchART(b *testing.B) {
 		uuid1 := keys[n%maxV]
 		r.Insert([]byte(uuid1), n)
 		r.Search([]byte(uuid1))
-		r.Delete([]byte(uuid1))
+		//r.Delete([]byte(uuid1))
 	}
 }

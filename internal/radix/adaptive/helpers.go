@@ -115,7 +115,7 @@ func (t *RadixTree[T]) addChild4(n *Node4[T], c byte, child Node[T]) Node[T] {
 
 		// Insert element
 		n.keys[idx] = c
-		n.children[idx] = &child
+		n.children[idx] = child
 		n.numChildren++
 		return n
 	} else {
@@ -159,7 +159,7 @@ func (t *RadixTree[T]) addChild16(n *Node16[T], c byte, child Node[T]) Node[T] {
 
 		// Set the child
 		n.keys[idx] = c
-		n.children[idx] = &child
+		n.children[idx] = child
 		n.numChildren++
 		return n
 	} else {
@@ -183,7 +183,7 @@ func (t *RadixTree[T]) addChild48(n *Node48[T], c byte, child Node[T]) Node[T] {
 		for n.children[pos] != nil {
 			pos++
 		}
-		n.children[pos] = &child
+		n.children[pos] = child
 		n.keys[c] = byte(pos + 1)
 		n.numChildren++
 		return n
@@ -204,7 +204,7 @@ func (t *RadixTree[T]) addChild48(n *Node48[T], c byte, child Node[T]) Node[T] {
 // addChild256 adds a child node to a node256.
 func (t *RadixTree[T]) addChild256(n *Node256[T], c byte, child Node[T]) Node[T] {
 	n.numChildren++
-	n.children[c] = &child
+	n.children[c] = child
 	return Node[T](n)
 }
 
@@ -237,7 +237,7 @@ func prefixMismatch[T any](n Node[T], key []byte, keyLen, depth int) int {
 	// If the prefix is short we can avoid finding a leaf
 	if n.getPartialLen() > maxPrefixLen {
 		// Prefix is longer than what we've checked, find a leaf
-		l := minimum(&n)
+		l := minimum(n)
 		if l == nil {
 			return idx
 		}
@@ -252,12 +252,12 @@ func prefixMismatch[T any](n Node[T], key []byte, keyLen, depth int) int {
 }
 
 // minimum finds the minimum leaf under a node.
-func minimum[T any](n *Node[T]) *NodeLeaf[T] {
+func minimum[T any](n Node[T]) *NodeLeaf[T] {
 	// Handle base cases
 	if n == nil {
 		return nil
 	}
-	node := *n
+	node := n
 	if isLeaf[T](node) {
 		return node.(*NodeLeaf[T])
 	}
@@ -265,9 +265,9 @@ func minimum[T any](n *Node[T]) *NodeLeaf[T] {
 	var idx int
 	switch node.getArtNodeType() {
 	case node4:
-		return minimum[T](node.(*Node4[T]).children[0])
+		return minimum[T](node.getChild(0))
 	case node16:
-		return minimum[T](node.(*Node16[T]).children[0])
+		return minimum[T](node.getChild(0))
 	case node48:
 		idx = 0
 		n48 := node.(*Node48[T])
@@ -294,13 +294,13 @@ func minimum[T any](n *Node[T]) *NodeLeaf[T] {
 }
 
 // maximum finds the maximum leaf under a node.
-func maximum[T any](n *Node[T]) *NodeLeaf[T] {
+func maximum[T any](n Node[T]) *NodeLeaf[T] {
 	// Handle base cases
 	if n == nil {
 		return nil
 	}
 
-	node := *n
+	node := n
 
 	if isLeaf[T](node) {
 		return node.(*NodeLeaf[T])
@@ -341,16 +341,16 @@ func isLeaf[T any](node Node[T]) bool {
 }
 
 // findChild finds the child node pointer based on the given character in the ART tree node.
-func (t *RadixTree[T]) findChild(n Node[T], c byte) (**Node[T], int) {
+func (t *RadixTree[T]) findChild(n Node[T], c byte) (Node[T], int) {
 	return findChild(n, c)
 }
-func findChild[T any](n Node[T], c byte) (**Node[T], int) {
+func findChild[T any](n Node[T], c byte) (Node[T], int) {
 	switch n.getArtNodeType() {
 	case node4:
 		node := n.(*Node4[T])
 		for i := 0; i < int(n.getNumChildren()); i++ {
 			if node.keys[i] == c {
-				return &node.children[i], i
+				return node.children[i], i
 			}
 		}
 	case node16:
@@ -370,18 +370,18 @@ func findChild[T any](n Node[T], c byte) (**Node[T], int) {
 
 		// If we have a match (any bit set), return the pointer match
 		if bitfield != 0 {
-			return &node.children[bits.TrailingZeros16(bitfield)], bits.TrailingZeros16(bitfield)
+			return node.children[bits.TrailingZeros16(bitfield)], bits.TrailingZeros16(bitfield)
 		}
 	case node48:
 		node := n.(*Node48[T])
 		i := node.keys[c]
 		if i != 0 {
-			return &node.children[i-1], int(i - 1)
+			return node.children[i-1], int(i - 1)
 		}
 	case node256:
 		node := n.(*Node256[T])
 		if node.children[c] != nil {
-			return &node.children[c], int(c)
+			return node.children[c], int(c)
 		}
 	case leafType:
 		// no-op
@@ -410,7 +410,7 @@ func getKey(key []byte) []byte {
 	return newKey
 }
 
-func (t *RadixTree[T]) removeChild(n Node[T], c byte, l **Node[T]) Node[T] {
+func (t *RadixTree[T]) removeChild(n Node[T], c byte, l *Node[T]) Node[T] {
 	switch n.getArtNodeType() {
 	case node4:
 		return t.removeChild4(n.(*Node4[T]), l)
@@ -426,7 +426,7 @@ func (t *RadixTree[T]) removeChild(n Node[T], c byte, l **Node[T]) Node[T] {
 	return n
 }
 
-func (t *RadixTree[T]) removeChild4(n *Node4[T], l **Node[T]) Node[T] {
+func (t *RadixTree[T]) removeChild4(n *Node4[T], l *Node[T]) Node[T] {
 	pos := -1
 	for i, node := range n.children {
 		if node == *l {
@@ -444,7 +444,7 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], l **Node[T]) Node[T] {
 		if n.children[0] == nil {
 			return n
 		}
-		child := *n.children[0]
+		child := n.children[0]
 		// Is not leaf
 		if !child.isLeaf() {
 			// Concatenate the prefixes
@@ -468,7 +468,7 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], l **Node[T]) Node[T] {
 	return n
 }
 
-func (t *RadixTree[T]) removeChild16(n *Node16[T], l **Node[T]) Node[T] {
+func (t *RadixTree[T]) removeChild16(n *Node16[T], l *Node[T]) Node[T] {
 	pos := -1
 	for i, node := range n.children {
 		if node == *l {

@@ -7,7 +7,7 @@ type Node256[T any] struct {
 	partialLen  uint32
 	numChildren uint8
 	partial     []byte
-	children    [256]*Node[T]
+	children    [256]Node[T]
 }
 
 func (n *Node256[T]) getPartialLen() uint32 {
@@ -67,7 +67,7 @@ func (n *Node256[T]) matchPrefix(_ []byte) bool {
 	return true
 }
 
-func (n *Node256[T]) getChild(index int) *Node[T] {
+func (n *Node256[T]) getChild(index int) Node[T] {
 	if index < 0 || index >= 256 {
 		return nil
 	}
@@ -81,10 +81,9 @@ func (n *Node256[T]) Clone() Node[T] {
 		partial:     n.getPartial(),
 	}
 	copy(newNode.children[:], n.children[:])
-	nodeT := Node[T](newNode)
-	return nodeT
+	return newNode
 }
 
-func (n *Node256[T]) setChild(index int, child *Node[T]) {
+func (n *Node256[T]) setChild(index int, child Node[T]) {
 	n.children[index] = child
 }
