@@ -151,7 +151,7 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], key []byte, value T, depth in
 		nodeLeaf := node.(*NodeLeaf[T])
 
 		// Check if we are updating an existing value
-		if bytes.Equal(nodeLeaf.key, key) {
+		if len(key) == len(nodeLeaf.key) && bytes.Equal(nodeLeaf.key, key) {
 			*old = 1
 			oldVal := nodeLeaf.value
 			newNode := t.makeLeaf(key, value)
@@ -183,9 +183,8 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], key []byte, value T, depth in
 			child, idx := t.findChild(node, key[depth])
 			if child != nil {
 				newChild, val := t.recursiveInsert(*child, key, value, depth+1, old)
-				nodeClone := node.Clone()
-				nodeClone.setChild(idx, newChild)
-				return &nodeClone, val
+				node.setChild(idx, newChild)
+				return &node, val
 			}
 
 			// No child, node goes within us
