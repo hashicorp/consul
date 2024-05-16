@@ -47,6 +47,7 @@ import (
 
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
+	gengo "google.golang.org/protobuf/cmd/protoc-gen-go/internal_gengo"
 
 	"github.com/hashicorp/consul/proto-public/annotations/ratelimit"
 )
@@ -102,6 +103,7 @@ func main() {
 				return err
 			}
 		}
+		plugin.SupportedFeatures = gengo.SupportedFeatures
 		return nil
 	})
 }
