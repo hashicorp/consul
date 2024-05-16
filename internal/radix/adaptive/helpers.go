@@ -19,13 +19,13 @@ func checkPrefix[T any](n Node[T], key []byte, keyLen, depth int) int {
 	return idx
 }
 
-func leafMatches[T any](n *NodeLeaf[T], key []byte, keyLen int) int {
+func leafMatches[T any](n Node[T], key []byte, keyLen int) int {
 	// Fail if the key lengths are different
-	if int(n.keyLen) != keyLen {
+	if len(n.getKey()) != keyLen {
 		return 1
 	}
 	// Compare the keys
-	return bytes.Compare(n.key, key)
+	return bytes.Compare(n.getKey(), key)
 }
 
 func (t *RadixTree[T]) makeLeaf(key []byte, value T) Node[T] {
@@ -350,19 +350,16 @@ func (t *RadixTree[T]) findChild(n Node[T], c byte) (Node[T], int) {
 func findChild[T any](n Node[T], c byte) (Node[T], int) {
 	switch n.getArtNodeType() {
 	case node4:
-		node := n.(*Node4[T])
 		for i := 0; i < int(n.getNumChildren()); i++ {
-			if node.keys[i] == c {
-				return node.children[i], i
+			if n.getKeyAtIdx(i) == c {
+				return n.getChild(i), i
 			}
 		}
 	case node16:
-		node := n.(*Node16[T])
-
 		// Compare the key to all 16 stored keys
 		var bitfield uint16
 		for i := 0; i < 16; i++ {
-			if node.keys[i] == c {
+			if n.getKeyAtIdx(i) == c {
 				bitfield |= 1 << uint(i)
 			}
 		}
@@ -373,18 +370,16 @@ func findChild[T any](n Node[T], c byte) (Node[T], int) {
 
 		// If we have a match (any bit set), return the pointer match
 		if bitfield != 0 {
-			return node.children[bits.TrailingZeros16(bitfield)], bits.TrailingZeros16(bitfield)
+			return n.getChild(bits.TrailingZeros16(bitfield)), bits.TrailingZeros16(bitfield)
 		}
 	case node48:
-		node := n.(*Node48[T])
-		i := node.keys[c]
+		i := n.getKeyAtIdx(int(c))
 		if i != 0 {
-			return node.children[i-1], int(i - 1)
+			return n.getChild(int(i - 1)), int(i - 1)
 		}
 	case node256:
-		node := n.(*Node256[T])
-		if node.children[c] != nil {
-			return node.children[c], int(c)
+		if n.getChild(int(c)) != nil {
+			return n.getChild(int(c)), int(c)
 		}
 	case leafType:
 		// no-op

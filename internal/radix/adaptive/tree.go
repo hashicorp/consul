@@ -82,7 +82,6 @@ func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 	if t.root == nil {
 		return zero, false
 	}
-	keyLen := len(key)
 	var child Node[T]
 	depth := 0
 
@@ -90,27 +89,23 @@ func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 	for n != nil {
 		// Might be a leaf
 		if isLeaf[T](n) {
-			leaf, ok := n.(*NodeLeaf[T])
-			if !ok {
-				continue
-			}
 			// Check if the expanded path matches
-			if leafMatches[T](leaf, key, keyLen) == 0 {
-				return leaf.value, true
+			if leafMatches[T](n, key, len(key)) == 0 {
+				return n.getValue(), true
 			}
 			return zero, false
 		}
 
 		// Bail if the prefix does not match
 		if n.getPartialLen() > 0 {
-			prefixLen := checkPrefix[T](n, key, keyLen, depth)
+			prefixLen := checkPrefix[T](n, key, len(key), depth)
 			if prefixLen != min(maxPrefixLen, int(n.getPartialLen())) {
 				return zero, false
 			}
 			depth += int(n.getPartialLen())
 		}
 
-		if depth >= keyLen {
+		if depth >= len(key) {
 			return zero, false
 		}
 
@@ -183,8 +178,9 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 			child, idx := t.findChild(node, key[depth])
 			if child != nil {
 				newChild, val := t.recursiveInsert(child, key, value, depth+1, old)
-				node.setChild(idx, newChild)
-				return node, val
+				nodeClone := node.Clone()
+				nodeClone.setChild(idx, newChild)
+				return nodeClone, val
 			}
 
 			// No child, node goes within us

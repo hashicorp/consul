@@ -18,4 +18,7 @@ type Node[T any] interface {
 	getChild(int) Node[T]
 	setChild(int, Node[T])
 	Clone() Node[T]
+	getKey() []byte
+	getValue() T
+	getKeyAtIdx(int) byte
 }

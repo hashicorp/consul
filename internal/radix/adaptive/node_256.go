@@ -87,3 +87,18 @@ func (n *Node256[T]) Clone() Node[T] {
 func (n *Node256[T]) setChild(index int, child Node[T]) {
 	n.children[index] = child
 }
+
+func (n *Node256[T]) getKey() []byte {
+	//no op
+	return []byte{}
+}
+
+func (n *Node256[T]) getValue() T {
+	//no op
+	var zero T
+	return zero
+}
+
+func (n *Node256[T]) getKeyAtIdx(idx int) byte {
+	return 0
+}

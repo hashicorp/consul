@@ -127,3 +127,8 @@ func (n *NodeLeaf[T]) Clone() Node[T] {
 func (n *NodeLeaf[T]) setChild(int, Node[T]) {
 	return
 }
+
+func (n *NodeLeaf[T]) getKeyAtIdx(idx int) byte {
+	// no op
+	return 0
+}

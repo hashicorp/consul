@@ -91,3 +91,17 @@ func (n *Node16[T]) Clone() Node[T] {
 func (n *Node16[T]) setChild(index int, child Node[T]) {
 	n.children[index] = child
 }
+func (n *Node16[T]) getKey() []byte {
+	//no op
+	return []byte{}
+}
+
+func (n *Node16[T]) getValue() T {
+	//no op
+	var zero T
+	return zero
+}
+
+func (n *Node16[T]) getKeyAtIdx(idx int) byte {
+	return n.keys[idx]
+}
