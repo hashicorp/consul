@@ -64,7 +64,6 @@ func (t *RadixTree[T]) allocNode(ntype nodeType) Node[T] {
 	}
 	n.setPartial(make([]byte, maxPrefixLen))
 	n.setPartialLen(maxPrefixLen)
-	n.setMutex(t.mu)
 	return n
 }
 
@@ -343,16 +342,16 @@ func isLeaf[T any](node Node[T]) bool {
 }
 
 // findChild finds the child node pointer based on the given character in the ART tree node.
-func (t *RadixTree[T]) findChild(n Node[T], c byte) **Node[T] {
+func (t *RadixTree[T]) findChild(n Node[T], c byte) (**Node[T], int) {
 	return findChild(n, c)
 }
-func findChild[T any](n Node[T], c byte) **Node[T] {
+func findChild[T any](n Node[T], c byte) (**Node[T], int) {
 	switch n.getArtNodeType() {
 	case node4:
 		node := n.(*Node4[T])
 		for i := 0; i < int(n.getNumChildren()); i++ {
 			if node.keys[i] == c {
-				return &node.children[i]
+				return &node.children[i], i
 			}
 		}
 	case node16:
@@ -372,26 +371,26 @@ func findChild[T any](n Node[T], c byte) **Node[T] {
 
 		// If we have a match (any bit set), return the pointer match
 		if bitfield != 0 {
-			return &node.children[bits.TrailingZeros16(bitfield)]
+			return &node.children[bits.TrailingZeros16(bitfield)], bits.TrailingZeros16(bitfield)
 		}
 	case node48:
 		node := n.(*Node48[T])
 		i := node.keys[c]
 		if i != 0 {
-			return &node.children[i-1]
+			return &node.children[i-1], int(i - 1)
 		}
 	case node256:
 		node := n.(*Node256[T])
 		if node.children[c] != nil {
-			return &node.children[c]
+			return &node.children[c], int(c)
 		}
 	case leafType:
 		// no-op
-		return nil
+		return nil, 0
 	default:
 		panic("Unknown node type")
 	}
-	return nil
+	return nil, 0
 }
 
 func getTreeKey(key []byte) []byte {

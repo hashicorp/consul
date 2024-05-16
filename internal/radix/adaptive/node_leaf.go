@@ -5,14 +5,12 @@ package adaptive
 
 import (
 	"bytes"
-	"sync"
 )
 
 type NodeLeaf[T any] struct {
 	value  T
 	keyLen uint32
 	key    []byte
-	mu     *sync.RWMutex
 }
 
 func (n *NodeLeaf[T]) getPartialLen() uint32 {
@@ -91,7 +89,6 @@ func (n *NodeLeaf[T]) Iterator() *Iterator[T] {
 	return &Iterator[T]{
 		stack: stack,
 		root:  &nodeT,
-		mu:    n.mu,
 	}
 }
 
@@ -100,7 +97,6 @@ func (n *NodeLeaf[T]) PathIterator(path []byte) *PathIterator[T] {
 	return &PathIterator[T]{parent: &nodeT,
 		path:  getTreeKey(path),
 		stack: []Node[T]{nodeT},
-		mu:    n.mu,
 	}
 }
 
@@ -128,6 +124,6 @@ func (n *NodeLeaf[T]) Clone() *Node[T] {
 	return &nodeT
 }
 
-func (n *NodeLeaf[T]) setMutex(mu *sync.RWMutex) {
-	n.mu = mu
+func (n *NodeLeaf[T]) setChild(int, *Node[T]) {
+	return
 }

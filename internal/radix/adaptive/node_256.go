@@ -3,14 +3,11 @@
 
 package adaptive
 
-import "sync"
-
 type Node256[T any] struct {
 	partialLen  uint32
 	numChildren uint8
 	partial     []byte
 	children    [256]*Node[T]
-	mu          *sync.RWMutex
 }
 
 func (n *Node256[T]) getPartialLen() uint32 {
@@ -54,7 +51,6 @@ func (n *Node256[T]) Iterator() *Iterator[T] {
 	return &Iterator[T]{
 		stack: stack,
 		root:  &nodeT,
-		mu:    n.mu,
 	}
 }
 
@@ -83,13 +79,12 @@ func (n *Node256[T]) Clone() *Node[T] {
 		partialLen:  n.getPartialLen(),
 		numChildren: n.getNumChildren(),
 		partial:     n.getPartial(),
-		mu:          n.mu,
 	}
 	copy(newNode.children[:], n.children[:])
 	nodeT := Node[T](newNode)
 	return &nodeT
 }
 
-func (n *Node256[T]) setMutex(mu *sync.RWMutex) {
-	n.mu = mu
+func (n *Node256[T]) setChild(index int, child *Node[T]) {
+	n.children[index] = child
 }

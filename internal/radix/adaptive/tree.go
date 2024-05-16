@@ -116,7 +116,7 @@ func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 		}
 
 		// Recursively search
-		child = t.findChild(n, key[depth])
+		child, _ = t.findChild(n, key[depth])
 		if child != nil && *child != nil && **child != nil {
 			n = **child
 		} else {
@@ -181,10 +181,10 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], key []byte, value T, depth in
 		prefixDiff := prefixMismatch[T](node, key, keyLen, depth)
 		if prefixDiff >= int(node.getPartialLen()) {
 			depth += int(node.getPartialLen())
-			child := t.findChild(node, key[depth])
+			child, idx := t.findChild(node, key[depth])
 			if child != nil {
 				newChild, val := t.recursiveInsert(*child, key, value, depth+1, old)
-				child = &newChild
+				node.setChild(idx, newChild)
 				return &node, val
 			}
 
@@ -222,10 +222,10 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], key []byte, value T, depth in
 		return &newNode, zero
 	}
 	// Find a child to recurse to
-	child := t.findChild(node, key[depth])
+	child, idx := t.findChild(node, key[depth])
 	if child != nil {
 		newChild, val := t.recursiveInsert(*child, key, value, depth+1, old)
-		child = &newChild
+		node.setChild(idx, newChild)
 		return &node, val
 	}
 
@@ -262,7 +262,7 @@ func (t *RadixTree[T]) recursiveDelete(n *Node[T], ref **Node[T], key []byte, de
 	}
 
 	// Find child node
-	child := t.findChild(node, key[depth])
+	child, _ := t.findChild(node, key[depth])
 	if child == nil {
 		return nil
 	}
