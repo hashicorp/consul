@@ -21,4 +21,5 @@ type Node[T any] interface {
 	getKey() []byte
 	getValue() T
 	getKeyAtIdx(int) byte
+	setKeyAtIdx(int, byte)
 }

@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-const maxPrefixLen = 10
+const maxPrefixLen = 7
 
 type nodeType int
 
@@ -71,7 +71,7 @@ func (t *RadixTree[T]) Delete(key []byte) T {
 	}
 	if l != nil {
 		t.size--
-		old := l.value
+		old := l.getValue()
 		return old
 	}
 	return zero
@@ -229,16 +229,15 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 	return node, zero
 }
 
-func (t *RadixTree[T]) recursiveDelete(node Node[T], key []byte, depth int) (Node[T], *NodeLeaf[T]) {
+func (t *RadixTree[T]) recursiveDelete(node Node[T], key []byte, depth int) (Node[T], Node[T]) {
 	// Search terminated
 	if node == nil {
 		return nil, nil
 	}
 	// Handle hitting a leaf node
 	if isLeaf[T](node) {
-		l := node.(*NodeLeaf[T])
-		if leafMatches(l.getKey(), key) == 0 {
-			return nil, l
+		if leafMatches(node.getKey(), key) == 0 {
+			return nil, node
 		}
 		return node, nil
 	}
@@ -263,7 +262,7 @@ func (t *RadixTree[T]) recursiveDelete(node Node[T], key []byte, depth int) (Nod
 		nodeChild := child
 		l := nodeChild.(*NodeLeaf[T])
 		if leafMatches(l.getKey(), key) == 0 {
-			node = t.removeChild(node.Clone(), key[depth], &child)
+			node = t.removeChild(node, key[depth], &child)
 			return node, l
 		}
 		return node, nil
@@ -271,7 +270,6 @@ func (t *RadixTree[T]) recursiveDelete(node Node[T], key []byte, depth int) (Nod
 
 	// Recurse
 	newChild, val := t.recursiveDelete(child, key, depth+1)
-	newNode := node.Clone()
-	newNode.setChild(idx, newChild)
-	return newNode, val
+	node.setChild(idx, newChild)
+	return node, val
 }

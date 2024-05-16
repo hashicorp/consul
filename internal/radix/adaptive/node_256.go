@@ -102,3 +102,6 @@ func (n *Node256[T]) getValue() T {
 func (n *Node256[T]) getKeyAtIdx(idx int) byte {
 	return 0
 }
+
+func (n *Node256[T]) setKeyAtIdx(idx int, key byte) {
+}

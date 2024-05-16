@@ -132,3 +132,6 @@ func (n *NodeLeaf[T]) getKeyAtIdx(idx int) byte {
 	// no op
 	return 0
 }
+
+func (n *NodeLeaf[T]) setKeyAtIdx(idx int, key byte) {
+}

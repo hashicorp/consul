@@ -433,9 +433,8 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], l *Node[T]) Node[T] {
 		if n.children[0] == nil {
 			return n
 		}
-		child := n.children[0]
 		// Is not leaf
-		if !child.isLeaf() {
+		if !n.children[0].isLeaf() {
 			// Concatenate the prefixes
 			prefix := int(n.getPartialLen())
 			if prefix < maxPrefixLen {
@@ -443,16 +442,16 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], l *Node[T]) Node[T] {
 				prefix++
 			}
 			if prefix < maxPrefixLen {
-				subPrefix := min(int(child.getPartialLen()), maxPrefixLen-prefix)
-				copy(n.getPartial()[prefix:], child.getPartial()[:subPrefix])
+				subPrefix := min(int(n.children[0].getPartialLen()), maxPrefixLen-prefix)
+				copy(n.getPartial()[prefix:], n.children[0].getPartial()[:subPrefix])
 				prefix += subPrefix
 			}
 
 			// Store the prefix in the child
-			copy(child.getPartial(), n.partial[:min(prefix, maxPrefixLen)])
-			child.setPartialLen(child.getPartialLen() + n.getPartialLen() + 1)
+			copy(n.children[0].getPartial(), n.partial[:min(prefix, maxPrefixLen)])
+			n.children[0].setPartialLen(n.children[0].getPartialLen() + n.getPartialLen() + 1)
 		}
-		return child
+		return n.children[0]
 	}
 	return n
 }
@@ -489,14 +488,13 @@ func (t *RadixTree[T]) removeChild48(n *Node48[T], c uint8) Node[T] {
 
 	if n.numChildren == 12 {
 		newNode := t.allocNode(node16)
-		n16 := newNode.(*Node16[T])
 		t.copyHeader(newNode, n)
 		child := 0
 		for i := 0; i < 256; i++ {
 			pos = n.keys[i]
 			if pos != 0 {
-				n16.keys[child] = byte(i)
-				n16.children[child] = n.children[pos-1]
+				newNode.setKeyAtIdx(child, byte(i))
+				newNode.setChild(child, n.children[pos-1])
 				child++
 			}
 		}
@@ -513,14 +511,13 @@ func (t *RadixTree[T]) removeChild256(n *Node256[T], c uint8) Node[T] {
 	// trashing if we sit on the 48/49 boundary
 	if n.numChildren == 37 {
 		newNode := t.allocNode(node48)
-		n48 := newNode.(*Node48[T])
 		t.copyHeader(newNode, n)
 
 		pos := 0
 		for i := 0; i < 256; i++ {
 			if n.children[i] != nil {
-				n48.children[pos] = n.children[i]
-				n48.keys[i] = byte(pos + 1)
+				newNode.setChild(pos, n.children[i])
+				newNode.setKeyAtIdx(i, byte(pos+1))
 				pos++
 			}
 		}

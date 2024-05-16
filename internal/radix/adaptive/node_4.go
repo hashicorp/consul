@@ -104,3 +104,7 @@ func (n *Node4[T]) getValue() T {
 func (n *Node4[T]) getKeyAtIdx(idx int) byte {
 	return n.keys[idx]
 }
+
+func (n *Node4[T]) setKeyAtIdx(idx int, key byte) {
+	n.keys[idx] = key
+}
