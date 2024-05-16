@@ -278,6 +278,7 @@ func (t *RadixTree[T]) recursiveDelete(n *Node[T], key []byte, depth int) (*Node
 
 	// Recurse
 	newChild, val := t.recursiveDelete(*child, key, depth+1)
-	node.setChild(idx, newChild)
-	return &node, val
+	newNode := node.Clone()
+	newNode.setChild(idx, newChild)
+	return &newNode, val
 }
