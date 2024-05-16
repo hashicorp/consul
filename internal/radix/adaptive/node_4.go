@@ -91,8 +91,5 @@ func (n *Node4[T]) Clone() Node[T] {
 }
 
 func (n *Node4[T]) setChild(index int, child *Node[T]) {
-	if index < 0 || index >= 4 {
-		return
-	}
 	n.children[index] = child
 }

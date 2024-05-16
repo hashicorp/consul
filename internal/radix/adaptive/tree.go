@@ -183,8 +183,9 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], key []byte, value T, depth in
 			child, idx := t.findChild(node, key[depth])
 			if child != nil {
 				newChild, val := t.recursiveInsert(*child, key, value, depth+1, old)
-				node.setChild(idx, newChild)
-				return &node, val
+				nodeClone := node.Clone()
+				nodeClone.setChild(idx, newChild)
+				return &nodeClone, val
 			}
 
 			// No child, node goes within us
