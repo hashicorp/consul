@@ -170,7 +170,6 @@ func (t *RadixTree[T]) addChild16(n *Node16[T], c byte, child Node[T]) Node[T] {
 		for i := 0; i < int(n.numChildren); i++ {
 			n48.keys[n.keys[i]] = byte(i + 1)
 		}
-
 		t.copyHeader(newNode, n)
 		newNode = t.addChild48(n48, c, child)
 		return newNode
@@ -487,6 +486,7 @@ func (t *RadixTree[T]) removeChild16(n *Node16[T], l **Node[T]) Node[T] {
 		t.copyHeader(newNode, n)
 		copy(n4.keys[:], n.keys[:4])
 		copy(n4.children[:], n.children[:4])
+		newNode.setNumChildren(n.numChildren)
 		return newNode
 	}
 	return n
@@ -502,7 +502,6 @@ func (t *RadixTree[T]) removeChild48(n *Node48[T], c uint8) Node[T] {
 		newNode := t.allocNode(node16)
 		n16 := newNode.(*Node16[T])
 		t.copyHeader(newNode, n)
-
 		child := 0
 		for i := 0; i < 256; i++ {
 			pos = n.keys[i]
@@ -512,6 +511,7 @@ func (t *RadixTree[T]) removeChild48(n *Node48[T], c uint8) Node[T] {
 				child++
 			}
 		}
+		newNode.setNumChildren(12)
 		return newNode
 	}
 	return n
@@ -536,6 +536,7 @@ func (t *RadixTree[T]) removeChild256(n *Node256[T], c uint8) Node[T] {
 				pos++
 			}
 		}
+		newNode.setNumChildren(37)
 		return newNode
 	}
 	return n

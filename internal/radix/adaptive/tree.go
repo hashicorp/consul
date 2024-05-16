@@ -67,8 +67,9 @@ func (t *RadixTree[T]) Delete(key []byte) T {
 	if newRoot == nil {
 		nodeLeaf := t.allocNode(leafType)
 		t.root = &nodeLeaf
+	} else {
+		t.root = newRoot
 	}
-	t.root = newRoot
 	if l != nil {
 		t.size--
 		old := l.value
@@ -247,7 +248,7 @@ func (t *RadixTree[T]) recursiveDelete(n *Node[T], key []byte, depth int) (*Node
 		if leafMatches[T](l, key, keyLen) == 0 {
 			return nil, l
 		}
-		return nil, nil
+		return n, nil
 	}
 
 	// Bail if the prefix does not match
