@@ -74,7 +74,7 @@ func (n *Node256[T]) getChild(index int) *Node[T] {
 	return n.children[index]
 }
 
-func (n *Node256[T]) Clone() *Node[T] {
+func (n *Node256[T]) Clone() Node[T] {
 	newNode := &Node256[T]{
 		partialLen:  n.getPartialLen(),
 		numChildren: n.getNumChildren(),
@@ -82,7 +82,7 @@ func (n *Node256[T]) Clone() *Node[T] {
 	}
 	copy(newNode.children[:], n.children[:])
 	nodeT := Node[T](newNode)
-	return &nodeT
+	return nodeT
 }
 
 func (n *Node256[T]) setChild(index int, child *Node[T]) {

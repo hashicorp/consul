@@ -411,22 +411,23 @@ func getKey(key []byte) []byte {
 	return newKey
 }
 
-func (t *RadixTree[T]) removeChild(n Node[T], ref **Node[T], c byte, l **Node[T]) {
+func (t *RadixTree[T]) removeChild(n Node[T], c byte, l **Node[T]) Node[T] {
 	switch n.getArtNodeType() {
 	case node4:
-		t.removeChild4(n.(*Node4[T]), ref, l)
+		return t.removeChild4(n.(*Node4[T]), l)
 	case node16:
-		t.removeChild16(n.(*Node16[T]), ref, l)
+		return t.removeChild16(n.(*Node16[T]), l)
 	case node48:
-		t.removeChild48(n.(*Node48[T]), ref, c)
+		return t.removeChild48(n.(*Node48[T]), c)
 	case node256:
-		t.removeChild256(n.(*Node256[T]), ref, c)
+		return t.removeChild256(n.(*Node256[T]), c)
 	default:
 		panic("invalid node type")
 	}
+	return n
 }
 
-func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
+func (t *RadixTree[T]) removeChild4(n *Node4[T], l **Node[T]) Node[T] {
 	pos := -1
 	for i, node := range n.children {
 		if node == *l {
@@ -442,7 +443,7 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
 	// Remove nodes with only a single child
 	if n.numChildren == 1 {
 		if n.children[0] == nil {
-			return
+			return n
 		}
 		child := *n.children[0]
 		// Is not leaf
@@ -463,11 +464,11 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], ref **Node[T], l **Node[T]) {
 			copy(child.getPartial(), n.partial[:min(prefix, maxPrefixLen)])
 			child.setPartialLen(child.getPartialLen() + n.getPartialLen() + 1)
 		}
-		*ref = &child
 	}
+	return n
 }
 
-func (t *RadixTree[T]) removeChild16(n *Node16[T], ref **Node[T], l **Node[T]) {
+func (t *RadixTree[T]) removeChild16(n *Node16[T], l **Node[T]) Node[T] {
 	pos := -1
 	for i, node := range n.children {
 		if node == *l {
@@ -482,15 +483,16 @@ func (t *RadixTree[T]) removeChild16(n *Node16[T], ref **Node[T], l **Node[T]) {
 
 	if n.numChildren == 3 {
 		newNode := t.allocNode(node4)
-		*ref = &newNode
 		n4 := newNode.(*Node4[T])
 		t.copyHeader(newNode, n)
 		copy(n4.keys[:], n.keys[:4])
 		copy(n4.children[:], n.children[:4])
+		return newNode
 	}
+	return n
 }
 
-func (t *RadixTree[T]) removeChild48(n *Node48[T], ref **Node[T], c uint8) {
+func (t *RadixTree[T]) removeChild48(n *Node48[T], c uint8) Node[T] {
 	pos := n.keys[c]
 	n.keys[c] = 0
 	n.children[pos-1] = nil
@@ -498,7 +500,6 @@ func (t *RadixTree[T]) removeChild48(n *Node48[T], ref **Node[T], c uint8) {
 
 	if n.numChildren == 12 {
 		newNode := t.allocNode(node16)
-		*ref = &newNode
 		n16 := newNode.(*Node16[T])
 		t.copyHeader(newNode, n)
 
@@ -511,10 +512,12 @@ func (t *RadixTree[T]) removeChild48(n *Node48[T], ref **Node[T], c uint8) {
 				child++
 			}
 		}
+		return newNode
 	}
+	return n
 }
 
-func (t *RadixTree[T]) removeChild256(n *Node256[T], ref **Node[T], c uint8) {
+func (t *RadixTree[T]) removeChild256(n *Node256[T], c uint8) Node[T] {
 	n.children[c] = nil
 	n.numChildren--
 
@@ -522,7 +525,6 @@ func (t *RadixTree[T]) removeChild256(n *Node256[T], ref **Node[T], c uint8) {
 	// trashing if we sit on the 48/49 boundary
 	if n.numChildren == 37 {
 		newNode := t.allocNode(node48)
-		*ref = &newNode
 		n48 := newNode.(*Node48[T])
 		t.copyHeader(newNode, n)
 
@@ -534,5 +536,7 @@ func (t *RadixTree[T]) removeChild256(n *Node256[T], ref **Node[T], c uint8) {
 				pos++
 			}
 		}
+		return newNode
 	}
+	return n
 }

@@ -79,7 +79,7 @@ func (n *Node16[T]) getChild(index int) *Node[T] {
 	return n.children[index]
 }
 
-func (n *Node16[T]) Clone() *Node[T] {
+func (n *Node16[T]) Clone() Node[T] {
 	newNode := &Node16[T]{
 		partialLen:  n.getPartialLen(),
 		numChildren: n.getNumChildren(),
@@ -88,7 +88,7 @@ func (n *Node16[T]) Clone() *Node[T] {
 	copy(newNode.keys[:], n.keys[:])
 	copy(newNode.children[:], n.children[:])
 	nodeT := Node[T](newNode)
-	return &nodeT
+	return nodeT
 }
 
 func (n *Node16[T]) setChild(index int, child *Node[T]) {

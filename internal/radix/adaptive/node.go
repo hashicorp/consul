@@ -17,5 +17,5 @@ type Node[T any] interface {
 	matchPrefix([]byte) bool
 	getChild(int) *Node[T]
 	setChild(int, *Node[T])
-	Clone() *Node[T]
+	Clone() Node[T]
 }

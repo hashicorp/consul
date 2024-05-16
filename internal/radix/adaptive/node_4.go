@@ -78,7 +78,7 @@ func (n *Node4[T]) getChild(index int) *Node[T] {
 	return n.children[index]
 }
 
-func (n *Node4[T]) Clone() *Node[T] {
+func (n *Node4[T]) Clone() Node[T] {
 	newNode := &Node4[T]{
 		partialLen:  n.getPartialLen(),
 		numChildren: n.getNumChildren(),
@@ -87,7 +87,7 @@ func (n *Node4[T]) Clone() *Node[T] {
 	copy(newNode.keys[:], n.keys[:])
 	copy(newNode.children[:], n.children[:])
 	nodeT := Node[T](newNode)
-	return &nodeT
+	return nodeT
 }
 
 func (n *Node4[T]) setChild(index int, child *Node[T]) {

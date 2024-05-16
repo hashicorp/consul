@@ -63,18 +63,17 @@ func (t *RadixTree[T]) Maximum() *NodeLeaf[T] {
 
 func (t *RadixTree[T]) Delete(key []byte) T {
 	var zero T
-	oldRoot := (*t.root).Clone()
-	l := t.recursiveDelete(t.root, &t.root, getTreeKey(key), 0)
-	if t.root == nil {
+	newRoot, l := t.recursiveDelete(t.root, getTreeKey(key), 0)
+	if newRoot == nil {
 		nodeLeaf := t.allocNode(leafType)
 		t.root = &nodeLeaf
 	}
+	t.root = newRoot
 	if l != nil {
 		t.size--
 		old := l.value
 		return old
 	}
-	t.root = oldRoot
 	return zero
 }
 
@@ -235,36 +234,35 @@ func (t *RadixTree[T]) recursiveInsert(n *Node[T], key []byte, value T, depth in
 	return &node, zero
 }
 
-func (t *RadixTree[T]) recursiveDelete(n *Node[T], ref **Node[T], key []byte, depth int) *NodeLeaf[T] {
+func (t *RadixTree[T]) recursiveDelete(n *Node[T], key []byte, depth int) (*Node[T], *NodeLeaf[T]) {
 	keyLen := len(key)
 	// Search terminated
 	if n == nil {
-		return nil
+		return nil, nil
 	}
 	node := *n
 	// Handle hitting a leaf node
 	if isLeaf[T](node) {
 		l := node.(*NodeLeaf[T])
 		if leafMatches[T](l, key, keyLen) == 0 {
-			*ref = nil
-			return l
+			return nil, l
 		}
-		return nil
+		return nil, nil
 	}
 
 	// Bail if the prefix does not match
 	if node.getPartialLen() > 0 {
 		prefixLen := checkPrefix[T](node, key, keyLen, depth)
 		if prefixLen != min(maxPrefixLen, int(node.getPartialLen())) {
-			return nil
+			return &node, nil
 		}
 		depth += int(node.getPartialLen())
 	}
 
 	// Find child node
-	child, _ := t.findChild(node, key[depth])
+	child, idx := t.findChild(node, key[depth])
 	if child == nil {
-		return nil
+		return nil, nil
 	}
 
 	// If the child is a leaf, delete from this node
@@ -272,12 +270,14 @@ func (t *RadixTree[T]) recursiveDelete(n *Node[T], ref **Node[T], key []byte, de
 		nodeChild := **child
 		l := nodeChild.(*NodeLeaf[T])
 		if leafMatches[T](l, key, keyLen) == 0 {
-			t.removeChild(node, ref, key[depth], child)
-			return l
+			node = t.removeChild(node.Clone(), key[depth], child)
+			return &node, l
 		}
-		return nil
+		return &node, nil
 	}
 
 	// Recurse
-	return t.recursiveDelete(*child, child, key, depth+1)
+	newChild, val := t.recursiveDelete(*child, key, depth+1)
+	node.setChild(idx, newChild)
+	return &node, val
 }

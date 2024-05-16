@@ -113,7 +113,7 @@ func (n *NodeLeaf[T]) getChild(index int) *Node[T] {
 	return nil
 }
 
-func (n *NodeLeaf[T]) Clone() *Node[T] {
+func (n *NodeLeaf[T]) Clone() Node[T] {
 	newNode := &NodeLeaf[T]{
 		keyLen: n.getKeyLen(),
 		key:    make([]byte, len(n.getKey())),
@@ -121,7 +121,7 @@ func (n *NodeLeaf[T]) Clone() *Node[T] {
 	}
 	copy(newNode.key[:], n.key[:])
 	nodeT := Node[T](newNode)
-	return &nodeT
+	return nodeT
 }
 
 func (n *NodeLeaf[T]) setChild(int, *Node[T]) {
