@@ -337,6 +337,9 @@ func maximum[T any](n Node[T]) *NodeLeaf[T] {
 
 // IS_LEAF checks whether the least significant bit of the pointer x is set.
 func isLeaf[T any](node Node[T]) bool {
+	if node == nil {
+		return false
+	}
 	return node.isLeaf()
 }
 

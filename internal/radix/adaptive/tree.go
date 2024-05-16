@@ -87,7 +87,7 @@ func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 	depth := 0
 
 	n := t.root
-	for t.root != nil {
+	for n != nil {
 		// Might be a leaf
 		if isLeaf[T](n) {
 			leaf, ok := n.(*NodeLeaf[T])
