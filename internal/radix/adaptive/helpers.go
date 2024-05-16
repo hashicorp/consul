@@ -462,6 +462,7 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], l **Node[T]) Node[T] {
 			// Store the prefix in the child
 			copy(child.getPartial(), n.partial[:min(prefix, maxPrefixLen)])
 			child.setPartialLen(child.getPartialLen() + n.getPartialLen() + 1)
+			return child
 		}
 	}
 	return n
