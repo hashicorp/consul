@@ -52,6 +52,7 @@ deep-copy \
   -type ServiceRoute \
   -type ServiceRouteDestination \
   -type ServiceRouteMatch \
+  -type ServiceSpecificRequest \
   -type TCPRouteConfigEntry \
   -type Upstream \
   -type UpstreamConfiguration \

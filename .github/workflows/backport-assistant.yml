@@ -19,6 +19,9 @@ jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
+    # Temporarily use 0.4.0 to enable old + new label functionality prior
+    # to this fix in BPA that excludes CE labels: https://github.com/hashicorp/backport-assistant/pull/84
+    # After the Consul May patches, this can be removed and the version updated to latest.
     container: hashicorpdev/backport-assistant:0.4.0
     steps:
       - name: Run Backport Assistant for release branches
@@ -32,7 +35,6 @@ jobs:
   backport-ent:
     if: github.event.pull_request.merged && contains(join(github.event.pull_request.labels.*.name), 'backport/ent')
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.4.0
     steps:
       - name: Trigger backport for Enterprise
         uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3.0.0
