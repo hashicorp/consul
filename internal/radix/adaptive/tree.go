@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-const maxPrefixLen = 7
+const maxPrefixLen = 10
 
 type nodeType int
 
@@ -262,7 +262,7 @@ func (t *RadixTree[T]) recursiveDelete(node Node[T], key []byte, depth int) (Nod
 		nodeChild := child
 		l := nodeChild.(*NodeLeaf[T])
 		if leafMatches(l.getKey(), key) == 0 {
-			node = t.removeChild(node, key[depth], &child)
+			node = t.removeChild(node, key[depth])
 			return node, l
 		}
 		return node, nil

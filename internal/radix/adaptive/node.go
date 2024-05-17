@@ -20,6 +20,8 @@ type Node[T any] interface {
 	Clone() Node[T]
 	getKey() []byte
 	getValue() T
+	getKeyLen() uint32
+	setKeyLen(uint32)
 	getKeyAtIdx(int) byte
 	setKeyAtIdx(int, byte)
 }

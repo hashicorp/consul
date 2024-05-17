@@ -5,7 +5,7 @@ package adaptive
 
 import (
 	"bytes"
-	"math/bits"
+	"sort"
 )
 
 func checkPrefix(partial []byte, partialLen int, key []byte, depth int) int {
@@ -101,13 +101,9 @@ func (t *RadixTree[T]) addChild(n Node[T], c byte, child Node[T]) Node[T] {
 // addChild4 adds a child node to a node4.
 func (t *RadixTree[T]) addChild4(n *Node4[T], c byte, child Node[T]) Node[T] {
 	if n.numChildren < 4 {
-		idx := 0
-		for idx = 0; idx < int(n.numChildren); idx++ {
-			if c < n.keys[idx] {
-				break
-			}
-		}
-
+		idx := sort.Search(int(n.numChildren), func(i int) bool {
+			return n.keys[i] > c
+		})
 		// Shift to make room
 		length := int(n.numChildren) - idx
 		copy(n.keys[idx+1:], n.keys[idx:idx+length])
@@ -133,31 +129,15 @@ func (t *RadixTree[T]) addChild4(n *Node4[T], c byte, child Node[T]) Node[T] {
 // addChild16 adds a child node to a node16.
 func (t *RadixTree[T]) addChild16(n *Node16[T], c byte, child Node[T]) Node[T] {
 	if n.numChildren < 16 {
-		var mask uint32 = (1 << n.numChildren) - 1
-		var bitfield uint32
-
-		// Compare the key to all 16 stored keys
-		for i := 0; i < 16; i++ {
-			if c < n.keys[i] {
-				bitfield |= 1 << i
-			}
-		}
-
-		// Use a mask to ignore children that don't exist
-		bitfield &= mask
-
-		// Check if less than any
-		var idx int
-		if bitfield != 0 {
-			idx = bits.TrailingZeros32(bitfield)
-			length := int(n.numChildren) - idx
-			copy(n.keys[idx+1:], n.keys[idx:idx+length])
-			copy(n.children[idx+1:], n.children[idx:idx+length])
-		} else {
-			idx = int(n.numChildren)
-		}
-
+		idx := sort.Search(int(n.numChildren), func(i int) bool {
+			return n.keys[i] > c
+		})
 		// Set the child
+		length := int(n.numChildren) - idx
+		copy(n.keys[idx+1:], n.keys[idx:idx+length])
+		copy(n.children[idx+1:], n.children[idx:idx+length])
+
+		// Insert element
 		n.keys[idx] = c
 		n.children[idx] = child
 		n.numChildren++
@@ -213,8 +193,7 @@ func (t *RadixTree[T]) copyHeader(dest, src Node[T]) {
 	dest.setNumChildren(src.getNumChildren())
 	dest.setPartialLen(src.getPartialLen())
 	length := min(maxPrefixLen, int(src.getPartialLen()))
-	partialToCopy := src.getPartial()[:length]
-	copy(dest.getPartial()[:length], partialToCopy)
+	copy(dest.getPartial()[:length], src.getPartial()[:length])
 }
 
 func min(a, b int) int {
@@ -350,27 +329,19 @@ func (t *RadixTree[T]) findChild(n Node[T], c byte) (Node[T], int) {
 func findChild[T any](n Node[T], c byte) (Node[T], int) {
 	switch n.getArtNodeType() {
 	case node4:
-		for i := 0; i < int(n.getNumChildren()); i++ {
-			if n.getKeyAtIdx(i) == c {
-				return n.getChild(i), i
-			}
+		idx := sort.Search(int(n.getNumChildren()), func(i int) bool {
+			return n.getKeyAtIdx(i) > c
+		})
+		if idx >= 1 && n.getKeyAtIdx(idx-1) == c {
+			return n.getChild(idx - 1), idx - 1
 		}
 	case node16:
 		// Compare the key to all 16 stored keys
-		var bitfield uint16
-		for i := 0; i < 16; i++ {
-			if n.getKeyAtIdx(i) == c {
-				bitfield |= 1 << uint(i)
-			}
-		}
-
-		// Use a mask to ignore children that don't exist
-		mask := (1 << n.getNumChildren()) - 1
-		bitfield &= uint16(mask)
-
-		// If we have a match (any bit set), return the pointer match
-		if bitfield != 0 {
-			return n.getChild(bits.TrailingZeros16(bitfield)), bits.TrailingZeros16(bitfield)
+		idx := sort.Search(int(n.getNumChildren()), func(i int) bool {
+			return n.getKeyAtIdx(i) > c
+		})
+		if idx >= 1 && n.getKeyAtIdx(idx-1) == c {
+			return n.getChild(idx - 1), idx - 1
 		}
 	case node48:
 		i := n.getKeyAtIdx(int(c))
@@ -399,12 +370,12 @@ func getKey(key []byte) []byte {
 	return key[:len(key)-1]
 }
 
-func (t *RadixTree[T]) removeChild(n Node[T], c byte, l *Node[T]) Node[T] {
+func (t *RadixTree[T]) removeChild(n Node[T], c byte) Node[T] {
 	switch n.getArtNodeType() {
 	case node4:
-		return t.removeChild4(n.(*Node4[T]), l)
+		return t.removeChild4(n.(*Node4[T]), c)
 	case node16:
-		return t.removeChild16(n.(*Node16[T]), l)
+		return t.removeChild16(n.(*Node16[T]), c)
 	case node48:
 		return t.removeChild48(n.(*Node48[T]), c)
 	case node256:
@@ -415,14 +386,10 @@ func (t *RadixTree[T]) removeChild(n Node[T], c byte, l *Node[T]) Node[T] {
 	return n
 }
 
-func (t *RadixTree[T]) removeChild4(n *Node4[T], l *Node[T]) Node[T] {
-	pos := -1
-	for i, node := range n.children {
-		if node == *l {
-			pos = i
-			break
-		}
-	}
+func (t *RadixTree[T]) removeChild4(n *Node4[T], c byte) Node[T] {
+	pos := sort.Search(int(n.numChildren), func(i int) bool {
+		return n.keys[i] >= c
+	})
 
 	copy(n.keys[pos:], n.keys[pos+1:])
 	copy(n.children[pos:], n.children[pos+1:])
@@ -456,14 +423,10 @@ func (t *RadixTree[T]) removeChild4(n *Node4[T], l *Node[T]) Node[T] {
 	return n
 }
 
-func (t *RadixTree[T]) removeChild16(n *Node16[T], l *Node[T]) Node[T] {
-	pos := -1
-	for i, node := range n.children {
-		if node == *l {
-			pos = i
-			break
-		}
-	}
+func (t *RadixTree[T]) removeChild16(n *Node16[T], c byte) Node[T] {
+	pos := sort.Search(int(n.numChildren), func(i int) bool {
+		return n.keys[i] >= c
+	})
 
 	copy(n.keys[pos:], n.keys[pos+1:])
 	copy(n.children[pos:], n.children[pos+1:])

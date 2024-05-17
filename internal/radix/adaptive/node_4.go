@@ -86,6 +86,14 @@ func (n *Node4[T]) Clone() Node[T] {
 	return newNode
 }
 
+func (n *Node4[T]) getKeyLen() uint32 {
+	return 0
+}
+
+func (n *Node4[T]) setKeyLen(keyLen uint32) {
+
+}
+
 func (n *Node4[T]) setChild(index int, child Node[T]) {
 	n.children[index] = child
 }

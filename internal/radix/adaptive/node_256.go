@@ -18,6 +18,14 @@ func (n *Node256[T]) setPartialLen(partialLen uint32) {
 	n.partialLen = partialLen
 }
 
+func (n *Node256[T]) getKeyLen() uint32 {
+	return 0
+}
+
+func (n *Node256[T]) setKeyLen(keyLen uint32) {
+
+}
+
 func (n *Node256[T]) getArtNodeType() nodeType {
 	return node256
 }
