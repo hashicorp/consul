@@ -68,14 +68,14 @@ func (t *RadixTree[T]) allocNode(ntype nodeType) Node[T] {
 }
 
 // longestCommonPrefix finds the length of the longest common prefix between two leaf nodes.
-func longestCommonPrefix[T any](l1, l2 *NodeLeaf[T], depth int) int {
-	maxCmp := int(l2.keyLen) - depth
-	if int(l1.keyLen) < int(l2.keyLen) {
-		maxCmp = int(l1.keyLen) - depth
+func longestCommonPrefix[T any](l1, l2 Node[T], depth int) int {
+	maxCmp := len(l2.getKey()) - depth
+	if len(l1.getKey()) < len(l2.getKey()) {
+		maxCmp = int(l1.getKeyLen()) - depth
 	}
 	var idx int
 	for idx = 0; idx < maxCmp; idx++ {
-		if l1.key[depth+idx] != l2.key[depth+idx] {
+		if l1.getKey()[depth+idx] != l2.getKey()[depth+idx] {
 			return idx
 		}
 	}
