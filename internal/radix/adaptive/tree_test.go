@@ -174,7 +174,7 @@ func TestARTree_InsertSearchAndDelete(t *testing.T) {
 
 func BenchmarkInsertSearchART(b *testing.B) {
 	r := NewRadixTree[int]()
-	maxV := 10000
+	maxV := 100
 	for i := 0; i < maxV; i++ {
 		uuid1, _ := uuid.GenerateUUID()
 		for j := 0; j < 10; j++ {
