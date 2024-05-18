@@ -1910,6 +1910,9 @@ func (b *builder) pathsVal(v []ExposePath) []structs.ExposePath {
 			Path:          stringVal(p.Path),
 			LocalPathPort: intVal(p.LocalPathPort),
 			Protocol:      stringVal(p.Protocol),
+			CAFile:        stringVal(p.CAFile),
+			CertFile:      stringVal(p.CertFile),
+			KeyFile:       stringVal(p.KeyFile),
 		}
 	}
 	return paths

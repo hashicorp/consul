@@ -604,6 +604,15 @@ type ExposePath struct {
 
 	// LocalPathPort is the port that the service is listening on for the given path.
 	LocalPathPort *int `mapstructure:"local_path_port"`
+
+	// CAFile is the path to the CA file for the exposed external HTTPS path
+	CAFile *string `mapstructure:"cafile"`
+
+	// CertFile is the path to the Certificate file for the exposed external HTTPS path
+	CertFile *string `mapstructure:"certfile"`
+
+	// KeyFile is the path to the Private key file for the exposed external HTTPS path
+	KeyFile *string `mapstructure:"keyfile"`
 }
 
 // AutoEncrypt is the agent-global auto_encrypt configuration.

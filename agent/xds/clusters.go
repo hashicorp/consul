@@ -86,7 +86,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.DiscoveryChain)+1)
 
 	// Include the "app" cluster for the public listener
-	appCluster, err := s.makeAppCluster(cfgSnap, xdscommon.LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
+	appCluster, err := s.makeAppCluster(cfgSnap, xdscommon.LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 		if path.LocalPathPort == cfgSnap.Proxy.LocalServicePort {
 			continue
 		}
-		c, err := s.makeAppCluster(cfgSnap, makeExposeClusterName(path.LocalPathPort), path.Protocol, path.LocalPathPort)
+		c, err := s.makeAppCluster(cfgSnap, makeExposeClusterName(path.LocalPathPort), path.Protocol, path.LocalPathPort, path.CAFile, path.CertFile)
 		if err != nil {
 			s.Logger.Warn("failed to make local cluster", "path", path.Path, "error", err)
 			continue
@@ -1061,7 +1061,7 @@ func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Clu
 	c.OutlierDetection = outlierDetection
 }
 
-func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy_cluster_v3.Cluster, error) {
+func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int, caFilePath string, certFilePath string) (*envoy_cluster_v3.Cluster, error) {
 	var c *envoy_cluster_v3.Cluster
 	var err error
 
@@ -1120,6 +1120,31 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 				},
 			},
 		}
+	}
+
+	if certFilePath != "" {
+		var validationContextType *envoy_tls_v3.CommonTlsContext_ValidationContext
+		validationContextType = nil
+		if caFilePath != "" {
+			validationContextType = &envoy_tls_v3.CommonTlsContext_ValidationContext{
+				ValidationContext: &envoy_tls_v3.CertificateValidationContext{
+					TrustedCa: &envoy_core_v3.DataSource{
+						Specifier: &envoy_core_v3.DataSource_Filename{
+							Filename: caFilePath,
+						},
+					},
+				},
+			}
+		}
+
+		transportTLSContext, _ := makeUpstreamTLSTransportSocket(
+			&envoy_tls_v3.UpstreamTlsContext{
+				CommonTlsContext: &envoy_tls_v3.CommonTlsContext{
+					ValidationContextType: validationContextType,
+				},
+			},
+		)
+		c.TransportSocket = transportTLSContext
 	}
 
 	return c, err
