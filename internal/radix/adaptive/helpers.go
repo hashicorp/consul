@@ -264,13 +264,11 @@ func minimum[T any](node Node[T]) *NodeLeaf[T] {
 }
 
 // maximum finds the maximum leaf under a node.
-func maximum[T any](n Node[T]) *NodeLeaf[T] {
+func maximum[T any](node Node[T]) *NodeLeaf[T] {
 	// Handle base cases
-	if n == nil {
+	if node == nil {
 		return nil
 	}
-
-	node := n
 
 	if isLeaf[T](node) {
 		return node.(*NodeLeaf[T])
@@ -278,26 +276,24 @@ func maximum[T any](n Node[T]) *NodeLeaf[T] {
 	var idx int
 	switch node.getArtNodeType() {
 	case node4:
-		return maximum[T](node.(*Node4[T]).children[node.getNumChildren()-1])
+		return maximum[T](node.getChild(int(node.getNumChildren() - 1)))
 	case node16:
-		return maximum[T](node.(*Node16[T]).children[node.getNumChildren()-1])
+		return maximum[T](node.getChild(int(node.getNumChildren() - 1)))
 	case node48:
-		n48 := node.(*Node48[T])
 		idx = 255
-		for idx >= 0 && n48.children[idx] == nil {
+		for idx >= 0 && node.getChild(idx) == nil {
 			idx--
 		}
 		if idx >= 0 {
-			return maximum[T](n48.children[idx])
+			return maximum[T](node.getChild(idx))
 		}
 	case node256:
 		idx = 255
-		n256 := node.(*Node256[T])
-		for idx >= 0 && n256.children[idx] == nil {
+		for idx >= 0 && node.getChild(idx) == nil {
 			idx--
 		}
 		if idx >= 0 {
-			return maximum[T](n256.children[idx])
+			return maximum[T](node.getChild(idx))
 		}
 	default:
 		panic("Unknown node type")
