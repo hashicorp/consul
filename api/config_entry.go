@@ -168,6 +168,15 @@ type ExposePath struct {
 
 	// ParsedFromCheck is set if this path was parsed from a registered check
 	ParsedFromCheck bool
+
+	// CAFile is the path to the CA file for the exposed external HTTPS path
+	CAFile *string `json:",omitempty" alias:"cafile"`
+
+	// CertFile is the path to the Certificate file for the exposed external HTTPS path
+	CertFile *string `json:",omitempty" alias:"certfile"`
+
+	// KeyFile is the path to the Private key file for the exposed external HTTPS path
+	KeyFile *string `json:",omitempty" alias:"keyfile"`
 }
 
 type LogSinkType string
