@@ -225,12 +225,11 @@ func prefixMismatch[T any](n Node[T], key []byte, keyLen, depth int) int {
 }
 
 // minimum finds the minimum leaf under a node.
-func minimum[T any](n Node[T]) *NodeLeaf[T] {
+func minimum[T any](node Node[T]) *NodeLeaf[T] {
 	// Handle base cases
-	if n == nil {
+	if node == nil {
 		return nil
 	}
-	node := n
 	if isLeaf[T](node) {
 		return node.(*NodeLeaf[T])
 	}
@@ -243,22 +242,20 @@ func minimum[T any](n Node[T]) *NodeLeaf[T] {
 		return minimum[T](node.getChild(0))
 	case node48:
 		idx = 0
-		n48 := node.(*Node48[T])
-		for idx < 256 && n48.keys[idx] == 0 {
+		for idx < 256 && node.getKeyAtIdx(idx) == 0 {
 			idx++
 		}
-		idx = int(n48.keys[idx] - 1)
+		idx = int(node.getKeyAtIdx(idx) - 1)
 		if idx < 48 {
-			return minimum[T](n48.children[idx])
+			return minimum[T](node.getChild(idx))
 		}
 	case node256:
-		n256 := node.(*Node256[T])
 		idx = 0
-		for idx < 256 && n256.children[idx] == nil {
+		for idx < 256 && node.getChild(idx) == nil {
 			idx++
 		}
 		if idx < 256 {
-			return minimum[T](n256.children[idx])
+			return minimum[T](node.getChild(idx))
 		}
 	default:
 		panic("Unknown node type")
