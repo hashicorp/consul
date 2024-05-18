@@ -369,7 +369,6 @@ func (t *RadixTree[T]) removeChild(n Node[T], c byte) Node[T] {
 	default:
 		panic("invalid node type")
 	}
-	return n
 }
 
 func (t *RadixTree[T]) removeChild4(n *Node4[T], c byte) Node[T] {
