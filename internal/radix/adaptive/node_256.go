@@ -113,3 +113,11 @@ func (n *Node256[T]) getKeyAtIdx(idx int) byte {
 
 func (n *Node256[T]) setKeyAtIdx(idx int, key byte) {
 }
+
+func (n *Node256[T]) getChildren() []Node[T] {
+	return n.children[:]
+}
+
+func (n *Node256[T]) getKeys() []byte {
+	return nil
+}

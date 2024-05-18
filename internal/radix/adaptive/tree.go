@@ -121,21 +121,18 @@ func (t *RadixTree[T]) iterativeSearch(key []byte) (T, bool) {
 	return zero, false
 }
 
-func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int, old *int) (Node[T], T) {
+func (t *RadixTree[T]) recursiveInsert(node Node[T], key []byte, value T, depth int, old *int) (Node[T], T) {
 	var zero T
 
 	// If we are at a nil node, inject a leaf
-	if n == nil {
-		leafNode := t.makeLeaf(key, value)
-		return leafNode, zero
+	if node == nil {
+		return t.makeLeaf(key, value), zero
 	}
 
-	node := n
 	if node.isLeaf() {
 		// This means root is nil
 		if len(node.getKey()) == 0 {
-			leafNode := t.makeLeaf(key, value)
-			return leafNode, zero
+			return t.makeLeaf(key, value), zero
 		}
 	}
 
@@ -144,24 +141,21 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 		// Check if we are updating an existing value
 		if len(key) == len(node.getKey()) && bytes.Equal(node.getKey(), key) {
 			*old = 1
-			oldVal := node.getValue()
-			newNode := t.makeLeaf(key, value)
-			return newNode, oldVal
+			return t.makeLeaf(key, value), node.getValue()
 		}
 
 		// New value, we must split the leaf into a node4
-		newLeaf2 := t.makeLeaf(key, value).(*NodeLeaf[T])
+		newLeaf2 := t.makeLeaf(key, value)
 
 		// Determine longest prefix
 		longestPrefix := longestCommonPrefix[T](node, newLeaf2, depth)
 		newNode := t.allocNode(node4)
-		newNode4 := newNode.(*Node4[T])
-		newNode4.partialLen = uint32(longestPrefix)
-		copy(newNode4.partial[:], key[depth:depth+min(maxPrefixLen, longestPrefix)])
+		newNode.setPartialLen(uint32(longestPrefix))
+		copy(newNode.getPartial()[:], key[depth:depth+min(maxPrefixLen, longestPrefix)])
 
 		// Add the leafs to the new node4
-		newNode = t.addChild(newNode.Clone(), node.getKey()[depth+longestPrefix], node)
-		newNode = t.addChild(newNode.Clone(), newLeaf2.key[depth+longestPrefix], newLeaf2)
+		newNode = t.addChild(newNode, node.getKey()[depth+longestPrefix], node)
+		newNode = t.addChild(newNode, newLeaf2.getKey()[depth+longestPrefix], newLeaf2)
 		return newNode, zero
 	}
 
@@ -174,26 +168,24 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 			child, idx := t.findChild(node, key[depth])
 			if child != nil {
 				newChild, val := t.recursiveInsert(child, key, value, depth+1, old)
-				nodeClone := node.Clone()
-				nodeClone.setChild(idx, newChild)
-				return nodeClone, val
+				node.setChild(idx, newChild)
+				return node, val
 			}
 
 			// No child, node goes within us
 			newLeaf := t.makeLeaf(key, value)
-			node = t.addChild(node.Clone(), key[depth], newLeaf)
+			node = t.addChild(node, key[depth], newLeaf)
 			return node, zero
 		}
 
 		// Create a new node
 		newNode := t.allocNode(node4)
-		newNode4 := newNode.(*Node4[T])
-		newNode4.partialLen = uint32(prefixDiff)
-		copy(newNode4.partial[:], node.getPartial()[:min(maxPrefixLen, prefixDiff)])
+		newNode.setPartialLen(uint32(prefixDiff))
+		copy(newNode.getPartial()[:], node.getPartial()[:min(maxPrefixLen, prefixDiff)])
 
 		// Adjust the prefix of the old node
 		if node.getPartialLen() <= maxPrefixLen {
-			newNode = t.addChild(newNode.Clone(), node.getPartial()[prefixDiff], node)
+			newNode = t.addChild(newNode, node.getPartial()[prefixDiff], node)
 			node.setPartialLen(node.getPartialLen() - uint32(prefixDiff+1))
 			length := min(maxPrefixLen, int(node.getPartialLen()))
 			copy(node.getPartial()[:], node.getPartial()[prefixDiff+1:+prefixDiff+1+length])
@@ -203,13 +195,13 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 			if l == nil {
 				return node, zero
 			}
-			newNode = t.addChild(newNode.Clone(), l.key[depth+prefixDiff], node)
+			newNode = t.addChild(newNode, l.key[depth+prefixDiff], node)
 			length := min(maxPrefixLen, int(node.getPartialLen()))
 			copy(node.getPartial()[:], l.key[depth+prefixDiff+1:depth+prefixDiff+1+length])
 		}
 		// Insert the new leaf
 		newLeaf := t.makeLeaf(key, value)
-		newNode = t.addChild(newNode.Clone(), key[depth+prefixDiff], newLeaf)
+		newNode = t.addChild(newNode, key[depth+prefixDiff], newLeaf)
 		return newNode, zero
 	}
 	// Find a child to recurse to
@@ -222,8 +214,7 @@ func (t *RadixTree[T]) recursiveInsert(n Node[T], key []byte, value T, depth int
 
 	// No child, node goes within us
 	newLeaf := t.makeLeaf(key, value)
-	node = t.addChild(node.Clone(), key[depth], newLeaf)
-	return node, zero
+	return t.addChild(node, key[depth], newLeaf), zero
 }
 
 func (t *RadixTree[T]) recursiveDelete(node Node[T], key []byte, depth int) (Node[T], Node[T]) {

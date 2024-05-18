@@ -24,4 +24,6 @@ type Node[T any] interface {
 	setKeyLen(uint32)
 	getKeyAtIdx(int) byte
 	setKeyAtIdx(int, byte)
+	getChildren() []Node[T]
+	getKeys() []byte
 }

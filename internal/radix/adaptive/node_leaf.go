@@ -135,3 +135,11 @@ func (n *NodeLeaf[T]) getKeyAtIdx(idx int) byte {
 
 func (n *NodeLeaf[T]) setKeyAtIdx(idx int, key byte) {
 }
+
+func (n *NodeLeaf[T]) getChildren() []Node[T] {
+	return nil
+}
+
+func (n *NodeLeaf[T]) getKeys() []byte {
+	return nil
+}
