@@ -49,8 +49,7 @@ func (t *RadixTree[T]) Insert(key []byte, value T) T {
 }
 
 func (t *RadixTree[T]) Search(key []byte) (T, bool) {
-	val, found := t.iterativeSearch(getTreeKey(key))
-	return val, found
+	return t.iterativeSearch(getTreeKey(key))
 }
 
 func (t *RadixTree[T]) Minimum() *NodeLeaf[T] {
