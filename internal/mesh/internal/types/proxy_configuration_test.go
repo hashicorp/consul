@@ -130,7 +130,6 @@ func TestValidateProxyConfiguration_AllFieldsInvalid(t *testing.T) {
 		DynamicConfig: &pbmesh.DynamicConfig{
 			// Set unsupported fields.
 			MutualTlsMode:           pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_PERMISSIVE,
-			MeshGatewayMode:         pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_LOCAL,
 			AccessLogs:              &pbmesh.AccessLogsConfig{},
 			PublicListenerJson:      "listener-json",
 			ListenerTracingJson:     "tracing-json",
@@ -167,7 +166,6 @@ func TestValidateProxyConfiguration_AllFieldsInvalid(t *testing.T) {
 	var dynamicCfgErr error
 	unsupportedFields := []string{
 		"mutual_tls_mode",
-		"mesh_gateway_mode",
 		"access_logs",
 		"public_listener_json",
 		"listener_tracing_json",
@@ -246,7 +244,7 @@ func TestValidateProxyConfiguration_AllFieldsValid(t *testing.T) {
 
 		DynamicConfig: &pbmesh.DynamicConfig{
 			MutualTlsMode:   pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_DEFAULT,
-			MeshGatewayMode: pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_UNSPECIFIED,
+			MeshGatewayMode: pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_LOCAL,
 
 			TransparentProxy: &pbmesh.TransparentProxy{
 				DialedDirectly:       false,

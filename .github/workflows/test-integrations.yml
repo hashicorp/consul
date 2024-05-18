@@ -37,7 +37,7 @@ jobs:
     outputs:
       skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           fetch-depth: 0
       - name: Get changed files
@@ -56,17 +56,23 @@ jobs:
       compute-xl: ${{ steps.runners.outputs.compute-xl }}
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   dev-build:
-    needs: [setup]
+    needs:
+    - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -80,21 +86,22 @@ jobs:
       contents: read
     strategy:
       matrix:
-        nomad-version: ['v1.6.2', 'v1.5.9', 'v1.4.13']
+        nomad-version: ['v1.7.3', 'v1.6.6', 'v1.5.13']
     steps:
       - name: Checkout Nomad
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           repository: hashicorp/nomad
           ref: ${{ matrix.nomad-version }}
 
       - name: Install Go
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
+          # Do not explicitly set Go version here, as it should depend on what Nomad declares.
           go-version-file: 'go.mod'
 
       - name: Fetch Consul binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -119,15 +126,15 @@ jobs:
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -136,14 +143,14 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -153,26 +160,29 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
+      - get-go-version
       - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
     strategy:
       matrix:
-        vault-version: ["1.15.0", "1.14.4", "1.13.8", "1.12.11"]
+        vault-version: ["1.15.4", "1.14.8", "1.13.12"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version-file: 'go.mod'
+          # We use the current Consul Go version here since Vault is installed as a binary
+          # and tests are run from the Consul repo.
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Install Vault
         run: |
@@ -200,15 +210,15 @@ jobs:
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -217,14 +227,14 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -232,7 +242,7 @@ jobs:
 
       - name: upload leader coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -240,7 +250,7 @@ jobs:
 
       - name: upload agent coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -253,16 +263,16 @@ jobs:
     outputs:
       envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
           # this is further going to multiplied in envoy-integration tests by the
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 2 based on these values:
-          # envoy-version: ["1.27.2"]
+          # envoy-version: ["1.28.3"]
           # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 4
+          TOTAL_RUNNERS: 2
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
@@ -286,6 +296,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
+      - get-go-version
       - generate-envoy-job-matrices
       - dev-build
     permissions:
@@ -294,7 +305,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.27.2"]
+        envoy-version: ["1.28.3"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -302,13 +313,13 @@ jobs:
       XDS_TARGET: ${{ matrix.xds-target }}
       AWS_LAMBDA_REGION: us-west-2
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -316,7 +327,7 @@ jobs:
         run: chmod +x ./bin/consul
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
 
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
@@ -344,15 +355,15 @@ jobs:
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -361,14 +372,14 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -378,29 +389,30 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }} # NOTE: do not change without tuning the -p and -parallel flags in go test.
     needs:
       - setup
+      - get-go-version
       - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
     env:
-      ENVOY_VERSION: "1.25.4"
+      ENVOY_VERSION: "1.28.2"
       CONSUL_DATAPLANE_IMAGE: "docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi"
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
       - name: docker env
         run: |
           docker version
           docker info
       - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: .
@@ -456,15 +468,15 @@ jobs:
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -473,14 +485,14 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -490,6 +502,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     needs:
       - setup
+      - get-go-version
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -499,14 +512,14 @@ jobs:
       DEPLOYER_CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
     steps:
       - name: Checkout code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
       - name: Build image
         run: make test-deployer-setup
@@ -523,6 +536,7 @@ jobs:
             -tags "${{ env.GOTAGS }}" \
             -timeout=20m \
             -parallel=2 \
+            -failfast \
             -json \
             `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo | grep -v upgrade ` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
@@ -538,15 +552,15 @@ jobs:
           TERM: ansi
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -555,14 +569,14 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci

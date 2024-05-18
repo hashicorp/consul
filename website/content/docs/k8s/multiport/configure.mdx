@@ -8,21 +8,29 @@ description: Learn how to enable the v2 catalog and configure services to suppor
 
 <Warning>
 
-Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
+The v2 catalog API and Traffic Permissions API are currently in beta. This documentation supports testing and development scenarios. Do not use these APIs in secure production environments.
 
 </Warning>
 
+<Note>
+
+Multi-port services and selecting workloads using multiple services require enabling [Consul's v2 architecture](/consul/docs/architecture/v2).  
+
+</Note>
+
 This page describes the process for integrating a service that uses multiple ports in a single container when running Consul on Kubernetes deployments. It includes example configurations to demonstrate an end-to-end deployment test of Consul's multi-port features.
 
-## Prerequisites
+## Requirements
 
 Registering multi-port services with Consul requires Kubernetes. Multi-port services are not supported on VM deployments.
 
-The following minimum versions are required:
+### Version requirements
 
-- Consul v1.17.0
-- `consul-k8s` CLI v1.3.0 or `hashicorp/consul` Helm chart release v1.3.0
-- `consul-dataplanes` v1.3.0
+Consul deployments that use the v2 catalog enabled must meet the following minimum version requirements:  
+
+- `consul` v1.18.0
+- `consul-k8s` CLI v1.4.0 or `hashicorp/consul` Helm chart release v1.4.0
+- `consul-dataplane` v1.4.0
 
 To install or update the `consul-k8s CLI`, refer to [install the latest version](/consul/docs/k8s/installation/install-cli#install-the-latest-version) or [upgrade the CLI](/consul/docs/k8s/upgrade/upgrade-cli#upgrade-the-cli). 
 
@@ -30,7 +38,20 @@ The required version of Consul dataplanes deploy automatically when using the la
 
 For more information about upgrading Helm charts, refer to [Upgrade Helm chart version](/consul/docs/k8s/upgrade#upgrade-helm-chart-version).
 
-There are additional requirements for service mesh proxies in transparent proxy mode. This mode enables queries through Kube DNS instead of Consul DNS over permissive mTLS settings. For more information about the steps to configure global settings and enable permissive mTLS mode before registering a service, refer to the [onboard services in transparent mode workflow](/consul/docs/k8s/connect/onboarding-tproxy-mode#workflow).
+### Annotation requirements
+
+The examples on this page include the following required annotations in Kubernetes Deployment resources:
+
+```yaml
+spec:
+  template:
+    metadata:
+      annotations:
+        "consul.hashicorp.com/mesh-inject": "true"
+        "consul.hashicorp.com/transparent-proxy": "true"
+```
+
+These annotations inject Consul dataplanes and enable transparent proxy mode so that the services can curl each other on ports configured in the Kubernetes Service resource. Refer to [annotations and labels](/consul/docs/k8s/annotations-and-labels) for more information.
 
 ## Enable the v2 catalog
 
@@ -42,7 +63,7 @@ To enable the v2 catalog and its support for multi-port services, set `global.ex
 global:
   enabled: true
   name: consul
-  image: hashicorp/consul:1.17.0
+  image: hashicorp/consul:1.18.0
   datacenter: dc1
   tls:
     enabled: true
@@ -75,7 +96,7 @@ $ consul-k8s install -config-file=values.yaml
 <Tab heading="Helm" group="helm">
 
 ```shell-session
-$ helm install consul hashicorp/consul --create-namespace --namespace consul --version 1.3.0 --values values.yaml
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --version 1.4.0 --values values.yaml
 ```
 
 </Tab>
@@ -83,10 +104,10 @@ $ helm install consul hashicorp/consul --create-namespace --namespace consul --v
 
 ## Define the multi-port service
 
-Consul's v2 catalog supports two methods for defining multi-port services in Kubernetes:
+Consul's v2 catalog supports two new methods for registering services on the mesh in Kubernetes:
 
-- **Method 1**: Define a single Kubernetes Service that exposes multiple ports
-- **Method 2**: Define multiple Kubernetes Services that expose individual ports
+- **Method 1**: Register a Kubernetes service that select workloads which expose multiple ports
+- **Method 2**: Register multiple Kubernetes Services that direct traffic to an explicit port on the same workload
 
 These methods affect how the Services are addressed in Kubernetes.
 
@@ -138,7 +159,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
+          image: hashicorp/http-echo:latest
           args:
             - -text="hello world"
             - -listen=:8080
@@ -146,7 +167,7 @@ spec:
             - containerPort: 8080
               name: api
         - name: api-admin
-          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
+          image: hashicorp/http-echo:latest
           args:
             - -text="hello world from 9090 admin"
             - -listen=:9090
@@ -212,7 +233,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
+          image: hashicorp/http-echo:latest
           args:
             - -text="hello world"
             - -listen=:8080
@@ -220,7 +241,7 @@ spec:
             - containerPort: 8080
               name: api
         - name: api-admin
-          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
+          image: hashicorp/http-echo:latest
           args:
             - -text="hello world from 9090 admin"
             - -listen=:9090

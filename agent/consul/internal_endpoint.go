@@ -197,43 +197,44 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 				}
 				reply.Nodes = nodes
 
-				// get a list of all peerings
-				index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
-				if err != nil {
-					return fmt.Errorf("could not list peers for service dump %w", err)
-				}
-
-				if index > maxIndex {
-					maxIndex = index
-				}
-
-				for _, p := range listedPeerings {
-					// Note we fetch imported services with wildcard namespace because imported services' namespaces
-					// are in a different locality; regardless of our local namespace, we return all imported services
-					// of the local partition.
-					index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, args.EnterpriseMeta.WithWildcardNamespace(), p.Name)
+				if !args.NodesOnly {
+					// get a list of all peerings
+					index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
 					if err != nil {
-						return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+						return fmt.Errorf("could not list peers for service dump %w", err)
 					}
 
 					if index > maxIndex {
 						maxIndex = index
 					}
-					reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
-				}
 
-				// Get, store, and filter gateway services
-				idx, gatewayServices, err := state.DumpGatewayServices(ws)
-				if err != nil {
-					return err
-				}
-				reply.Gateways = gatewayServices
+					for _, p := range listedPeerings {
+						// Note we fetch imported services with wildcard namespace because imported services' namespaces
+						// are in a different locality; regardless of our local namespace, we return all imported services
+						// of the local partition.
+						index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, args.EnterpriseMeta.WithWildcardNamespace(), p.Name)
+						if err != nil {
+							return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+						}
 
-				if idx > maxIndex {
-					maxIndex = idx
+						if index > maxIndex {
+							maxIndex = index
+						}
+						reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
+					}
+
+					// Get, store, and filter gateway services
+					idx, gatewayServices, err := state.DumpGatewayServices(ws)
+					if err != nil {
+						return err
+					}
+					reply.Gateways = gatewayServices
+
+					if idx > maxIndex {
+						maxIndex = idx
+					}
 				}
 				reply.Index = maxIndex
-
 				raw, err := filter.Execute(reply.Nodes)
 				if err != nil {
 					return fmt.Errorf("could not filter local service dump: %w", err)
@@ -241,12 +242,13 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 				reply.Nodes = raw.(structs.CheckServiceNodes)
 			}
 
-			importedRaw, err := filter.Execute(reply.ImportedNodes)
-			if err != nil {
-				return fmt.Errorf("could not filter peer service dump: %w", err)
+			if !args.NodesOnly {
+				importedRaw, err := filter.Execute(reply.ImportedNodes)
+				if err != nil {
+					return fmt.Errorf("could not filter peer service dump: %w", err)
+				}
+				reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
 			}
-			reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
-
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
 			// results that would be filtered out even if the user did have permission.
@@ -304,7 +306,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultAllow := authz.IntentionDefaultAllow(nil)
+			defaultAllow := DefaultIntentionAllow(authz, m.srv.config.DefaultIntentionPolicy)
 
 			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, args.ServiceKind, defaultAllow, &args.EnterpriseMeta)
 			if err != nil {
@@ -373,10 +375,10 @@ func (m *Internal) internalUpstreams(args *structs.ServiceSpecificRequest, reply
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultDecision := authz.IntentionDefaultAllow(nil)
+			defaultAllow := DefaultIntentionAllow(authz, m.srv.config.DefaultIntentionPolicy)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
-			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision, intentionTarget)
+			index, services, err := state.IntentionTopology(ws, sn, false, defaultAllow, intentionTarget)
 			if err != nil {
 				return err
 			}

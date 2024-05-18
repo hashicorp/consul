@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/types"
 )
@@ -84,6 +85,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindFileSystemCertificate:
+		var target structs.FileSystemCertificateConfigEntry
+		target.Name = s.Name
+
+		FileSystemCertificateToStructs(s.GetFileSystemCertificate(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	case Kind_KindInlineCertificate:
 		var target structs.InlineCertificateConfigEntry
 		target.Name = s.Name
@@ -113,6 +122,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		target.Name = s.Name
 
 		JWTProviderToStructs(s.GetJWTProvider(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindExportedServices:
+		var target structs.ExportedServicesConfigEntry
+		target.Name = s.Name
+
+		ExportedServicesToStructs(s.GetExportedServices(), &target)
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
@@ -204,6 +221,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Entry = &ConfigEntry_HTTPRoute{
 			HTTPRoute: &route,
 		}
+	case *structs.FileSystemCertificateConfigEntry:
+		var cert FileSystemCertificate
+		FileSystemCertificateFromStructs(v, &cert)
+
+		configEntry.Kind = Kind_KindFileSystemCertificate
+		configEntry.Entry = &ConfigEntry_FileSystemCertificate{
+			FileSystemCertificate: &cert,
+		}
 	case *structs.InlineCertificateConfigEntry:
 		var cert InlineCertificate
 		InlineCertificateFromStructs(v, &cert)
@@ -226,6 +251,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindJWTProvider
 		configEntry.Entry = &ConfigEntry_JWTProvider{
 			JWTProvider: &jwtProvider,
+		}
+	case *structs.ExportedServicesConfigEntry:
+		var es ExportedServices
+		ExportedServicesFromStructs(v, &es)
+
+		configEntry.Kind = Kind_KindExportedServices
+		configEntry.Entry = &ConfigEntry_ExportedServices{
+			ExportedServices: &es,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
@@ -602,4 +635,19 @@ func serviceRefFromStructs(a structs.ServiceRouteReferences) map[string]*ListOfR
 		}
 	}
 	return m
+}
+
+func (r *ResolvedExportedService) ToAPI() *api.ResolvedExportedService {
+	var t api.ResolvedExportedService
+
+	t.Service = r.Service
+	if r.EnterpriseMeta != nil {
+		t.Namespace = r.EnterpriseMeta.Namespace
+		t.Partition = r.EnterpriseMeta.Partition
+	}
+
+	t.Consumers.Peers = r.Consumers.Peers
+	t.Consumers.Partitions = r.Consumers.Partitions
+
+	return &t
 }

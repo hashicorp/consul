@@ -5,11 +5,14 @@ package types
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	v2 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
+	v2beta1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 )
 
 type (
-	DecodedExportedServices          = resource.DecodedResource[*pbmulticluster.ExportedServices]
-	DecodedNamespaceExportedServices = resource.DecodedResource[*pbmulticluster.NamespaceExportedServices]
-	DecodedPartitionExportedServices = resource.DecodedResource[*pbmulticluster.PartitionExportedServices]
+	DecodedExportedServices          = resource.DecodedResource[*v2.ExportedServices]
+	DecodedNamespaceExportedServices = resource.DecodedResource[*v2.NamespaceExportedServices]
+	DecodedPartitionExportedServices = resource.DecodedResource[*v2.PartitionExportedServices]
+
+	DecodedSamenessGroup = resource.DecodedResource[*v2beta1.SamenessGroup]
 )

@@ -30,6 +30,7 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`PathExact`](#routes-match-http-pathexact): string
       - [`PathPrefix`](#routes-match-http-pathprefix): string
       - [`PathRegex`](#routes-match-http-pathregex): string
+      - [`CaseInsensitive`](#routes-match-http-caseinsensitive): boolean | `false`
       - [`Methods`](#routes-match-http-methods): list
       - [`Header`](#routes-match-http-header): list
         - [`Name`](#routes-match-http-header-name): string
@@ -455,6 +456,15 @@ Specifies the path prefix to match on the HTTP request path. When using this fie
 
 - Default: None
 - Data type: String
+
+### `Routes[].Match{}.HTTP{}.CaseInsensitive`
+
+Specifies the path prefix to match on the HTTP request path must be case insensitive or not.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
 
 ### `Routes[].Match{}.HTTP{}.PathRegex`
 
@@ -1359,6 +1369,78 @@ spec:
       "Match": {
         "HTTP": {
           "PathPrefix": "/admin"
+        }
+      },
+      "Destination": {
+        "Service": "admin"
+      }
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
+
+### Path prefix matching with case insensitive
+
+The following example routes HTTP requests for the `web` service to a service named `admin` when they have `/admin` or `/Admin` at the start of their path.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind = "service-router"
+Name = "web"
+Routes = [
+  {
+    Match {
+      HTTP {
+        PathPrefix = "/Admin"
+        CaseInsensitive = true
+      }
+    }
+
+    Destination {
+      Service = "admin"
+    }
+  },
+]
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceRouter
+metadata:
+  name: web
+spec:
+  routes:
+    - match:
+        http:
+          pathPrefix: /Admin
+          caseInsensitive: true
+      destination:
+        service: admin
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind": "service-router",
+  "Name": "web",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "PathPrefix": "/Admin",
+          "CaseInsensitive": true
         }
       },
       "Destination": {

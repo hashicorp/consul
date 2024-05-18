@@ -146,8 +146,13 @@ type TelemetryConfig struct {
 
 	// DisableHostname will disable hostname prefixing for all metrics.
 	//
-	// hcl: telemetry { disable_hostname = (true|false)
+	// hcl: telemetry { disable_hostname = (true|false) }
 	DisableHostname bool `json:"disable_hostname,omitempty" mapstructure:"disable_hostname"`
+
+	// DisablePerTenancyUsageMetrics will disable setting tenancy labels on usage metrics.
+	//
+	// hcl: telemetry { disable_per_tenancy_usage_metrics = (true|false) }
+	DisablePerTenancyUsageMetrics bool `json:"disable_per_tenancy_usage_metrics,omitempty" mapstructure:"disable_per_tenancy_usage_metrics"`
 
 	// DogStatsdAddr is the address of a dogstatsd instance. If provided,
 	// metrics will be sent to that instance
@@ -360,13 +365,9 @@ func configureSinks(cfg TelemetryConfig, memSink metrics.MetricSink, extraSinks 
 		}
 	}
 
-	if len(sinks) > 0 {
-		sinks = append(sinks, memSink)
-		metrics.NewGlobal(metricsConf, sinks)
-	} else {
-		metricsConf.EnableHostname = false
-		metrics.NewGlobal(metricsConf, memSink)
-	}
+	sinks = append(sinks, memSink)
+	metrics.NewGlobal(metricsConf, sinks)
+
 	return sinks, errors
 }
 

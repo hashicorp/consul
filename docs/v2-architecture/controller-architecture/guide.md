@@ -109,7 +109,6 @@ $ grpcurl -d @ \
         },
         "tenancy": {
           "partition": "default",
-          "peer_name": "local",
           "namespace": "default"
         }
       },
@@ -251,7 +250,7 @@ import (
 )
 
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
+	return controller.NewController("bar", pbv1alpha1.BarType).
 		WithReconciler(barReconciler{})
 }
 
@@ -387,7 +386,7 @@ controller also watches workloads and services.
 
 ```Go
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
+	return controller.NewController("bar", pbv1alpha1.BarType).
 		WithWatch(pbv1alpha1.BazType, controller.MapOwner)
 		WithReconciler(barReconciler{})
 }
@@ -397,11 +396,11 @@ The second argument to `WithWatch` is a [dependency mapper] function. Whenever a
 resource of the watched type is modified, the dependency mapper will be called
 to determine which of the controller's managed resources need to be reconciled.
 
-[`controller.MapOwner`] is a convenience function which causes the watched
+[`dependency.MapOwner`] is a convenience function which causes the watched
 resource's [owner](#ownership--cascading-deletion) to be reconciled.
 
 [dependency mapper]: https://pkg.go.dev/github.com/hashicorp/consul/internal/controller#DependencyMapper
-[`controller.MapOwner`]: https://pkg.go.dev/github.com/hashicorp/consul/internal/controller#MapOwner
+[`dependency.MapOwner`]: https://pkg.go.dev/github.com/hashicorp/consul/internal/controller/dependency#MapOwner
 
 ### Placement
 
@@ -413,7 +412,7 @@ the controller's placement.
 
 ```Go
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
+	return controller.NewController("bar", pbv1alpha1.BarType).
 		WithPlacement(controller.PlacementEachServer)
 		WithReconciler(barReconciler{})
 }
@@ -424,6 +423,126 @@ func barController() controller.Controller {
 > modify resources (as it could lead to race conditions).
 
 [`controller.PlacementEachServer`]: https://pkg.go.dev/github.com/hashicorp/consul/internal/controller#PlacementEachServer
+
+### Initializer
+
+If your controller needs to execute setup steps when the controller
+first starts and before any resources are reconciled, you can add an
+Initializer.
+
+If the controller has an Initializer, it will not start unless the
+Initialize method is successful. The controller does not have retry
+logic for the initialize method specifically, but the controller
+is restarted on error. When restarted, the controller will attempt
+to execute the initialization again.
+
+The example below has the controller creating a default resource as
+part of initialization.
+
+```Go
+package foo
+
+import (
+ "context"
+
+ "github.com/hashicorp/consul/internal/controller"
+ pbv1alpha1 "github.com/hashicorp/consul/proto-public/pbfoo/v1alpha1"
+ "github.com/hashicorp/consul/proto-public/pbresource"
+)
+
+func barController() controller.Controller {
+ return controller.ForType(pbv1alpha1.BarType).
+  WithReconciler(barReconciler{}).
+  WithInitializer(barInitializer{})
+}
+
+type barInitializer struct{}
+
+func (barInitializer) Initialize(ctx context.Context, rt controller.Runtime) error {
+  _, err := rt.Client.Write(ctx,
+    &pbresource.WriteRequest{
+    Resource: &pbresource.Resource{
+     Id: &pbresource.ID{
+      Name: "default",
+      Type: pbv1alpha1.BarType,
+     },
+    },
+   },
+  )
+  if err != nil {
+   return err
+  }
+
+  return nil
+}
+```
+
+### Finalizer
+
+A finalizer allows a controller to execute teardown logic before a
+resource is deleted. This can be useful to perform cleanup or block
+deletion until certain conditions are met.
+
+Finalizers are encoded as keys within a resource's metadata map. It
+is the responsibility of each controller that adds a finalizer to a
+resource to remove the finalizer when it is marked for deletion.
+Once a resource has no finalizers present, it is deleted by the
+resource service.
+
+When the `Delete` endpoint is called on a resource with one or more
+finalizers, the resource is marked for deletion by adding an immutable
+`deletionTimestamp` key to the resource's metadata map. The resource is
+now effectively frozen and will only accept subsequent `Write`s
+that remove finalizers. `WriteStatus` is still allowed.
+
+The `resource` package API can be used to manage finalizers and
+check whether a resource has been marked for deletion. You would
+typically use this API within the logic of your controller's
+`Reconcile` method to either put a finalizer in place or perform
+cleanup and then remove a finalizer. Don't forget to `Write` your
+changes once you add or remove finalizers.
+
+```Go
+package resource
+
+// IsMarkedForDeletion returns true if a resource has been marked for deletion,
+// false otherwise.
+func IsMarkedForDeletion(res *pbresource.Resource) bool { ... }
+
+// HasFinalizers returns true if a resource has one or more finalizers, false otherwise.
+func HasFinalizers(res *pbresource.Resource) bool { ... }
+
+// HasFinalizer returns true if a resource has a given finalizer, false otherwise.
+func HasFinalizer(res *pbresource.Resource, finalizer string) bool { ... }
+
+// AddFinalizer adds a finalizer to the given resource.
+func AddFinalizer(res *pbresource.Resource, finalizer string) { ... }
+
+// RemoveFinalizer removes a finalizer from the given resource.
+func RemoveFinalizer(res *pbresource.Resource, finalizer string) { ... }
+
+// GetFinalizers returns the set of finalizers for the given resource.
+func GetFinalizers(res *pbresource.Resource) mapset.Set[string] { ... }
+```
+
+Example flow in a controller's `Reconcile` method
+```Go
+const finalizer = "consul.io/bar-finalizer"
+
+func (barReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
+	...
+	// Check if resource is marked for deletion. If yes, perform cleanup, remove finalizer, and Write the resource
+	if resource.IsMarkedForDeletion(res) {
+		// Perform some cleanup...
+		return EnsureFinalizerRemoved(ctx, rt, res, finalizer)
+	}
+
+	// Check if resource has finalizer. If not, add it and Write the resource
+	if err := EnsureHasFinalizer(ctx, rt, res, finalizer); err != nil {
+		return err
+	}
+}
+```
 
 ## Ownership & Cascading Deletion
 
@@ -439,3 +558,7 @@ client.Write(ctx, &pbresource.WriteRequest{
 	},
 })
 ```
+
+## Testing
+
+Now that you have created your controller its time to test it. The types of tests each controller should have and boiler plat for test files is documented [here](./testing.md)

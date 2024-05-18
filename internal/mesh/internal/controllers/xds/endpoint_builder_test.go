@@ -18,7 +18,8 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 	type test struct {
 		name                        string
 		serviceEndpointsData        *ServiceEndpointsData
-		portName                    string
+		meshPortName                string
+		routePortName               string
 		expErr                      string
 		expectedProxyStateEndpoints *pbproxystate.Endpoints
 	}
@@ -26,7 +27,8 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 		{
 			name:                 "endpoints with passing health",
 			serviceEndpointsData: serviceEndpointsData("passing"),
-			portName:             "mesh",
+			meshPortName:         "mesh",
+			routePortName:        "api",
 			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
 				Endpoints: []*pbproxystate.Endpoint{
 					{
@@ -51,6 +53,34 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 						Address: &pbproxystate.Endpoint_HostPort{
 							HostPort: &pbproxystate.HostPortAddress{
 								Host: "10.3.3.3",
+								Port: 20000,
+							},
+						},
+						HealthStatus: pbproxystate.HealthStatus_HEALTH_STATUS_HEALTHY,
+					},
+				},
+			},
+		},
+		{
+			name:                 "endpoints with passing health for admin port only",
+			serviceEndpointsData: serviceEndpointsData("passing"),
+			meshPortName:         "mesh",
+			routePortName:        "admin",
+			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
+				Endpoints: []*pbproxystate.Endpoint{
+					{
+						Address: &pbproxystate.Endpoint_HostPort{
+							HostPort: &pbproxystate.HostPortAddress{
+								Host: "10.1.1.1",
+								Port: 20000,
+							},
+						},
+						HealthStatus: pbproxystate.HealthStatus_HEALTH_STATUS_HEALTHY,
+					},
+					{
+						Address: &pbproxystate.Endpoint_HostPort{
+							HostPort: &pbproxystate.HostPortAddress{
+								Host: "10.2.2.2",
 								Port: 20000,
 							},
 						},
@@ -62,7 +92,8 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 		{
 			name:                 "endpoints with critical health",
 			serviceEndpointsData: serviceEndpointsData("critical"),
-			portName:             "mesh",
+			meshPortName:         "mesh",
+			routePortName:        "api",
 			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
 				Endpoints: []*pbproxystate.Endpoint{
 					{
@@ -87,6 +118,34 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 						Address: &pbproxystate.Endpoint_HostPort{
 							HostPort: &pbproxystate.HostPortAddress{
 								Host: "10.3.3.3",
+								Port: 20000,
+							},
+						},
+						HealthStatus: pbproxystate.HealthStatus_HEALTH_STATUS_UNHEALTHY,
+					},
+				},
+			},
+		},
+		{
+			name:                 "endpoints with critical health for admin port only",
+			serviceEndpointsData: serviceEndpointsData("critical"),
+			meshPortName:         "mesh",
+			routePortName:        "admin",
+			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
+				Endpoints: []*pbproxystate.Endpoint{
+					{
+						Address: &pbproxystate.Endpoint_HostPort{
+							HostPort: &pbproxystate.HostPortAddress{
+								Host: "10.1.1.1",
+								Port: 20000,
+							},
+						},
+						HealthStatus: pbproxystate.HealthStatus_HEALTH_STATUS_UNHEALTHY,
+					},
+					{
+						Address: &pbproxystate.Endpoint_HostPort{
+							HostPort: &pbproxystate.HostPortAddress{
+								Host: "10.2.2.2",
 								Port: 20000,
 							},
 						},
@@ -98,7 +157,8 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 		{
 			name:                 "endpoints with any health are considered healthy",
 			serviceEndpointsData: serviceEndpointsData("any"),
-			portName:             "mesh",
+			meshPortName:         "mesh",
+			routePortName:        "api",
 			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
 				Endpoints: []*pbproxystate.Endpoint{
 					{
@@ -132,27 +192,59 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 			},
 		},
 		{
+			name:                 "endpoints with any health are considered healthy for admin port only",
+			serviceEndpointsData: serviceEndpointsData("any"),
+			meshPortName:         "mesh",
+			routePortName:        "admin",
+			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
+				Endpoints: []*pbproxystate.Endpoint{
+					{
+						Address: &pbproxystate.Endpoint_HostPort{
+							HostPort: &pbproxystate.HostPortAddress{
+								Host: "10.1.1.1",
+								Port: 20000,
+							},
+						},
+						HealthStatus: pbproxystate.HealthStatus_HEALTH_STATUS_HEALTHY,
+					},
+					{
+						Address: &pbproxystate.Endpoint_HostPort{
+							HostPort: &pbproxystate.HostPortAddress{
+								Host: "10.2.2.2",
+								Port: 20000,
+							},
+						},
+						HealthStatus: pbproxystate.HealthStatus_HEALTH_STATUS_HEALTHY,
+					},
+				},
+			},
+		},
+		{
 			name:                 "endpoints with missing ports returns an error",
 			serviceEndpointsData: serviceEndpointsData("missing port lookup"),
-			portName:             "mesh",
-			expErr:               "could not find portName",
+			meshPortName:         "mesh",
+			routePortName:        "api",
+			expErr:               "could not find meshPort",
 		},
 		{
 			name:                 "nil endpoints returns an error",
 			serviceEndpointsData: serviceEndpointsData("nil endpoints"),
-			portName:             "mesh",
+			meshPortName:         "mesh",
+			routePortName:        "api",
 			expErr:               "service endpoints requires both endpoints and resource",
 		},
 		{
 			name:                 "nil resource returns an error",
 			serviceEndpointsData: serviceEndpointsData("nil resource"),
-			portName:             "mesh",
+			meshPortName:         "mesh",
+			routePortName:        "api",
 			expErr:               "service endpoints requires both endpoints and resource",
 		},
 		{
-			name:                 "portName doesn't exist in endpoints results in empty endpoints",
+			name:                 "meshPortName doesn't exist in endpoints results in empty endpoints",
 			serviceEndpointsData: serviceEndpointsData("passing"),
-			portName:             "does-not-exist",
+			meshPortName:         "does-not-exist",
+			routePortName:        "api",
 			expectedProxyStateEndpoints: &pbproxystate.Endpoints{
 				Endpoints: []*pbproxystate.Endpoint{},
 			},
@@ -161,7 +253,7 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualEndpoints, err := generateProxyStateEndpoints(tc.serviceEndpointsData, tc.portName)
+			actualEndpoints, err := generateProxyStateEndpoints(tc.serviceEndpointsData, tc.routePortName, tc.meshPortName)
 			if tc.expErr != "" {
 				require.ErrorContains(t, err, tc.expErr)
 			} else {
@@ -171,6 +263,9 @@ func TestMakeProxyStateEndpointsFromServiceEndpoints(t *testing.T) {
 	}
 }
 
+// serviceEndpointsData returns a service endpoints where all addresses
+// implement the mesh and api ports, and only 2 of the addresses implement the
+// admin port.
 func serviceEndpointsData(variation string) *ServiceEndpointsData {
 	r := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "test").Build()
 	eps := &pbcatalog.ServiceEndpoints{
@@ -181,15 +276,23 @@ func serviceEndpointsData(variation string) *ServiceEndpointsData {
 						Port:     20000,
 						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 					},
+					"admin": {
+						Port:     1234,
+						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+					},
+					"api": {
+						Port:     2234,
+						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+					},
 				},
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
 						Host:  "10.1.1.1",
-						Ports: []string{"mesh"},
+						Ports: []string{"mesh", "admin", "api"},
 					},
 					{
 						Host:  "10.2.2.2",
-						Ports: []string{"mesh"},
+						Ports: []string{"mesh", "admin", "api"},
 					},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
@@ -200,11 +303,20 @@ func serviceEndpointsData(variation string) *ServiceEndpointsData {
 						Port:     20000,
 						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 					},
+					"admin": {
+						Port:     1234,
+						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+					},
+					"api": {
+						Port:     2234,
+						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+					},
 				},
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
-						Host:  "10.3.3.3",
-						Ports: []string{"mesh"},
+						Host: "10.3.3.3",
+						// does not implement admin port
+						Ports: []string{"mesh", "api"},
 					},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,

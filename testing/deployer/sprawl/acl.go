@@ -170,6 +170,8 @@ agent_prefix "" {
 node_prefix "" {
 	policy = "write"
 }
+
+operator = "write"
 `
 	policy, _, err := acl.PolicyCreate(
 		&api.ACLPolicy{

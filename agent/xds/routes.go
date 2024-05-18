@@ -17,16 +17,15 @@ import (
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/response"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
@@ -159,11 +158,13 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 				"error", err,
 			)
 		}
+		service := cfgSnap.TerminatingGateway.GatewayServices[svc]
+		autoHostRewrite := service.AutoHostRewrite
 		if !structs.IsProtocolHTTPLike(cfg.Protocol) {
 			// Routes can only be defined for HTTP services
 			continue
 		}
-		routes, err := s.makeRoutes(cfgSnap, svc, clusterName, true)
+		routes, err := s.makeRoutes(cfgSnap, svc, clusterName, autoHostRewrite)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +233,7 @@ func (s *ResourceGenerator) makeRoutes(
 	// If there is a service-resolver for this service then also setup routes for each subset
 	for name := range resolver.Subsets {
 		clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, true)
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite)
 		if err != nil {
 			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			return nil, err
@@ -536,7 +537,10 @@ func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.
 				Key:   k,
 				Value: v,
 			},
-			Append: response.MakeBoolValue(add),
+		}
+		if !add {
+			// default is APPEND_IF_EXISTS_OR_ADD
+			o.AppendAction = envoy_core_v3.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD
 		}
 		opts = append(opts, o)
 	}
@@ -696,9 +700,17 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 				if destination.RequestTimeout > 0 {
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
+				// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
+				if destination.RequestTimeout < 0 {
+					routeAction.Route.Timeout = durationpb.New(0 * time.Second)
+				}
 
 				if destination.IdleTimeout > 0 {
 					routeAction.Route.IdleTimeout = durationpb.New(destination.IdleTimeout)
+				}
+				// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
+				if destination.IdleTimeout < 0 {
+					routeAction.Route.IdleTimeout = durationpb.New(0 * time.Second)
 				}
 
 				if destination.HasRetryFeatures() {
@@ -754,8 +766,17 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
+		// A request timeout can be configured on a resolver or router. If configured on a resolver, the timeout will
+		// only apply if the start node is a resolver. This is because the timeout is attached to an (Envoy
+		// RouteAction)[https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction]
+		// If there is a splitter before this resolver, the branches of the split are configured within the same
+		// RouteAction, and the timeout cannot be shared between branches of a split.
 		if startNode.Resolver.RequestTimeout > 0 {
 			routeAction.Route.Timeout = durationpb.New(startNode.Resolver.RequestTimeout)
+		}
+		// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
+		if startNode.Resolver.RequestTimeout < 0 {
+			routeAction.Route.Timeout = durationpb.New(0 * time.Second)
 		}
 		defaultRoute := &envoy_route_v3.Route{
 			Match:  makeDefaultRouteMatch(),
@@ -841,6 +862,10 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 		}
 	}
 
+	if match.HTTP.CaseInsensitive {
+		em.CaseSensitive = wrapperspb.Bool(false)
+	}
+
 	if len(match.HTTP.Header) > 0 {
 		em.Headers = make([]*envoy_route_v3.HeaderMatcher, 0, len(match.HTTP.Header))
 		for _, hdr := range match.HTTP.Header {
@@ -909,8 +934,12 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+					},
+				},
 			},
 		}
 
@@ -999,7 +1028,6 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 	forMeshGateway bool,
 ) (*envoy_route_v3.Route_Route, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
-	totalWeight := 0
 	for _, split := range splits {
 		nextNode := chain.Nodes[split.NextNode]
 
@@ -1016,7 +1044,6 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
 		weight := int(split.Weight * 100)
-		totalWeight += weight
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
 			Weight: response.MakeUint32Value(weight),
 			Name:   clusterName,
@@ -1032,18 +1059,11 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
 	}
 
-	var envoyWeightScale *wrapperspb.UInt32Value
-	if totalWeight == 10000 {
-		envoyWeightScale = response.MakeUint32Value(10000)
-	}
-
 	return &envoy_route_v3.Route_Route{
 		Route: &envoy_route_v3.RouteAction{
 			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
 				WeightedClusters: &envoy_route_v3.WeightedCluster{
 					Clusters: clusters,
-					// this field is deprecated, and we should get the desired behavior with the front-end validation
-					TotalWeight: envoyWeightScale, // scaled up 100%
 				},
 			},
 		},
@@ -1120,6 +1140,7 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.Rout
 }
 
 func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_route_v3.Route) error {
+
 	if !dest.RequestHeaders.IsZero() {
 		r.RequestHeadersToAdd = append(
 			r.RequestHeadersToAdd,

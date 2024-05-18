@@ -34,10 +34,12 @@ const (
 	consulServerListWatchID            = "consul-server-list"
 	datacentersWatchID                 = "datacenters"
 	serviceResolversWatchID            = "service-resolvers"
+	serviceDefaultsWatchID             = "service-defaults"
 	gatewayServicesWatchID             = "gateway-services"
 	gatewayConfigWatchID               = "gateway-config"
 	apiGatewayConfigWatchID            = "api-gateway-config"
 	boundGatewayConfigWatchID          = "bound-gateway-config"
+	fileSystemCertificateConfigWatchID = "file-system-certificate-config"
 	inlineCertificateConfigWatchID     = "inline-certificate-config"
 	routeConfigWatchID                 = "route-config"
 	externalServiceIDPrefix            = "external-service:"
@@ -544,6 +546,7 @@ func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
 		QueryOptions:   structs.QueryOptions{Token: opts.token},
 		ServiceKind:    structs.ServiceKindMeshGateway,
 		UseServiceKind: true,
+		NodesOnly:      true,
 		Source:         opts.source,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
 	}, correlationId, opts.notifyCh)

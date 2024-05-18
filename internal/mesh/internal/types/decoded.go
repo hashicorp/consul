@@ -8,6 +8,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 )
 
 type (
@@ -18,6 +19,8 @@ type (
 	DecodedDestinationsConfiguration  = resource.DecodedResource[*pbmesh.DestinationsConfiguration]
 	DecodedComputedRoutes             = resource.DecodedResource[*pbmesh.ComputedRoutes]
 	DecodedComputedTrafficPermissions = resource.DecodedResource[*pbauth.ComputedTrafficPermissions]
+	DecodedTrafficPermissions         = resource.DecodedResource[*pbauth.TrafficPermissions]
+	DecodedComputedFailoverPolicy     = resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]
 	DecodedFailoverPolicy             = resource.DecodedResource[*pbcatalog.FailoverPolicy]
 	DecodedService                    = resource.DecodedResource[*pbcatalog.Service]
 	DecodedServiceEndpoints           = resource.DecodedResource[*pbcatalog.ServiceEndpoints]
@@ -27,4 +30,7 @@ type (
 	DecodedDestinations               = resource.DecodedResource[*pbmesh.Destinations]
 	DecodedComputedDestinations       = resource.DecodedResource[*pbmesh.ComputedExplicitDestinations]
 	DecodedProxyStateTemplate         = resource.DecodedResource[*pbmesh.ProxyStateTemplate]
+	DecodedMeshGateway                = resource.DecodedResource[*pbmesh.MeshGateway]
+	DecodedComputedExportedServices   = resource.DecodedResource[*pbmulticluster.ComputedExportedServices]
+	DecodedAPIGateway                 = resource.DecodedResource[*pbmesh.APIGateway]
 )

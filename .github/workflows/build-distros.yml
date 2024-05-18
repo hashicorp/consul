@@ -31,39 +31,45 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     - id: setup-outputs
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   check-go-mod:
     needs:
     - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-medium }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   build-386:
     needs:
     - setup
+    - get-go-version
     - check-go-mod
     env:
       XC_OS: "freebsd linux windows"
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: Build
       run: |
         for os in $XC_OS; do
@@ -73,21 +79,22 @@ jobs:
   build-amd64:
     needs:
     - setup
+    - get-go-version
     - check-go-mod
     env:
       XC_OS: "darwin freebsd linux solaris windows"
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: Build
       run: |
         for os in $XC_OS; do
@@ -97,13 +104,14 @@ jobs:
   build-arm:
     needs:
     - setup
+    - get-go-version
     - check-go-mod
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     env:
       CGO_ENABLED: 1
       GOOS: linux
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
@@ -111,9 +119,9 @@ jobs:
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
 
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: |
         sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
 
@@ -126,18 +134,19 @@ jobs:
     if: ${{ endsWith(github.repository, '-enterprise') }}
     needs:
     - setup
+    - get-go-version
     - check-go-mod
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: Build
       run: GOOS=linux GOARCH=s390x CGO_ENABLED=0 go build -tags "${{ env.GOTAGS }}"
 

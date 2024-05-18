@@ -49,7 +49,7 @@
         "path": "install"
       },
       {
-        "title": "Learn HCP Consul",
+        "title": "Learn HCP Consul Dedicated",
         "href": "https://developer.hashicorp.com/consul/tutorials/get-started-hcp"
       },
       {
@@ -103,15 +103,23 @@
         "path": "architecture"
       },
       {
-        "title": "Catalog",
+        "title": "v1 Catalog",
+        "path": "architecture/catalog"
+      },
+      {
+        "title": "v2 architecture",
         "routes": [
           {
-            "title": "v1 API",
-            "path": "architecture/catalog/v1"
+            "title": "Overview",
+            "path": "architecture/v2"
           },
           {
-            "title": "v2 API",
-            "path": "architecture/catalog/v2"
+            "title": "Catalog",
+            "path": "architecture/v2/catalog"
+          },
+          {
+            "title": "Resource groups",
+            "path": "architecture/v2/groups"
           }
         ]
       },
@@ -159,6 +167,14 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.19.x",
+            "path": "release-notes/consul/v1_19_x"
+          },
+          {
+            "title": "v1.18.x",
+            "path": "release-notes/consul/v1_18_x"
+          },
+          {
             "title": "v1.17.x",
             "path": "release-notes/consul/v1_17_x"
           },
@@ -199,6 +215,10 @@
       {
         "title": "Consul K8s",
         "routes": [
+          {
+            "title": "v1.4.x",
+            "path": "release-notes/consul-k8s/v1_4_x"
+          },
           {
             "title": "v1.3.x",
             "path": "release-notes/consul-k8s/v1_3_x"
@@ -383,6 +403,10 @@
             "path": "services/discovery/dns-static-lookups"
           },
           {
+            "title": "Cache DNS lookups",
+            "path": "services/discovery/dns-cache"
+          },
+          {           
             "title": "Enable dynamic DNS lookups",
             "path": "services/discovery/dns-dynamic-lookups"
           }
@@ -444,6 +468,10 @@
           {
             "title": "TCP route",
             "path": "connect/config-entries/tcp-route"
+          },
+          {
+            "title": "File system certificate",
+            "path": "connect/config-entries/file-system-certificate"
           },
           {
             "title": "Inline certificate",
@@ -659,6 +687,10 @@
           {
             "title": "Limit request rates to services",
             "path": "connect/manage-traffic/limit-request-rates"
+          },
+          {
+            "title": "Fault Injection",
+            "path": "connect/manage-traffic/fault-injection"
           },
           {
             "title": "Failover",
@@ -997,7 +1029,16 @@
     "routes": [
       {
         "title": "Consul KV",
-        "path": "dynamic-app-config/kv"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "dynamic-app-config/kv"
+          },
+          {
+            "title": "Store keys and values",
+            "path": "dynamic-app-config/kv/store"
+          }
+        ]
       },
       {
         "title": "Sessions",
@@ -1406,6 +1447,10 @@
                 "path": "k8s/deployment-configurations/vault/wan-federation"
               }
             ]
+          },
+          {
+            "title": "Datadog metrics",
+            "path": "k8s/deployment-configurations/datadog"
           }
         ]
       },
@@ -1536,7 +1581,7 @@
         ]
       },
       {
-        "title": "Multi-port services",
+        "title": "V2 Catalog API",
         "routes": [
           {
             "title": "Overview",
@@ -1547,16 +1592,12 @@
             "path": "k8s/multiport/configure"
           },
           {
-            "title": "Split TCP traffic between multi-port services",
+            "title": "Split TCP traffic between multiple ports",
             "path": "k8s/multiport/traffic-split"
           },
           {
             "title": "Reference",
             "routes": [
-              {
-                "title": "Consul resource command",
-                "path": "k8s/multiport/reference/resource-command"
-              },
               {
                 "title": "GRPCRoute resource",
                 "path": "k8s/multiport/reference/grpcroute"
@@ -1698,6 +1739,10 @@
     ]
   },
   {
+    "title": "Nomad",
+    "path": "nomad"
+  },
+  {
     "title": "AWS ECS",
     "routes": [
       {
@@ -1807,7 +1852,7 @@
     "divider": true
   },
   {
-    "title": "HCP Consul",
+    "title": "HCP Consul Dedicated",
     "href": "https://cloud.hashicorp.com/docs/consul"
   },
   {
@@ -1816,6 +1861,10 @@
       {
         "title": "Overview",
         "path": "enterprise"
+      },
+      {
+        "title": "Long Term Support (LTS)",
+        "path": "enterprise/long-term-support"
       },
       {
         "title": "Admin Partitions",
@@ -1836,6 +1885,10 @@
       {
         "title": "Enhanced Read Scalability",
         "path": "enterprise/read-scale"
+      },
+      {
+        "title": "Fault injection",
+        "href": "/docs/connect/manage-traffic/fault-injection"
       },
       {
         "title": "FIPS",
@@ -2007,7 +2060,7 @@
             "path": "nia/enterprise/license"
           },
           {
-            "title": "Terraform Cloud Driver",
+            "title": "HCP Terraform Driver",
             "href": "/docs/nia/network-drivers/terraform-cloud"
           }
         ]
@@ -2024,8 +2077,8 @@
             "path": "nia/network-drivers/terraform"
           },
           {
-            "title": "Terraform Cloud",
-            "path": "nia/network-drivers/terraform-cloud"
+            "title": "HCP Terraform",
+            "path": "nia/network-drivers/hcp-terraform"
           }
         ]
       },

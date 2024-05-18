@@ -23,7 +23,6 @@ func createWorkloadResource(t *testing.T, data protoreflect.ProtoMessage) *pbres
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
-				PeerName:  "local",
 			},
 			Name: "api-1234",
 		},
@@ -59,6 +58,21 @@ func validWorkload() *pbcatalog.Workload {
 
 func TestValidateWorkload_Ok(t *testing.T) {
 	res := createWorkloadResource(t, validWorkload())
+
+	err := ValidateWorkload(res)
+	require.NoError(t, err)
+}
+
+func TestValidateWorkload_OkWithDNSPolicy(t *testing.T) {
+	data := validWorkload()
+	data.Dns = &pbcatalog.DNSPolicy{
+		Weights: &pbcatalog.Weights{
+			Passing: 3,
+			Warning: 2,
+		},
+	}
+
+	res := createWorkloadResource(t, data)
 
 	err := ValidateWorkload(res)
 	require.NoError(t, err)
@@ -304,6 +318,24 @@ func TestValidateWorkload_Locality(t *testing.T) {
 	var actual resource.ErrInvalidField
 	require.ErrorAs(t, err, &actual)
 	require.Equal(t, expected, actual)
+}
+
+func TestValidateWorkload_DNSPolicy(t *testing.T) {
+	data := validWorkload()
+	data.Dns = &pbcatalog.DNSPolicy{
+		Weights: &pbcatalog.Weights{
+			Passing: 0, // Needs to be a positive integer
+		},
+	}
+
+	res := createWorkloadResource(t, data)
+
+	err := ValidateWorkload(res)
+	require.Error(t, err)
+
+	var actual resource.ErrInvalidField
+	require.ErrorAs(t, err, &actual)
+	require.ErrorIs(t, err, errDNSPassingWeightOutOfRange)
 }
 
 func TestWorkloadACLs(t *testing.T) {

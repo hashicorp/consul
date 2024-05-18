@@ -6,13 +6,14 @@ package builder
 import (
 	"fmt"
 
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
@@ -90,78 +91,140 @@ func buildTrafficPermissions(globalDefaultAllow bool, trustDomain string, worklo
 	for _, p := range computed.DenyPermissions {
 		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
 		principals := makePrincipals(trustDomain, p)
-		for port := range drsByPort {
-			out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
-				Principals: principals,
-			})
+		for port, rules := range drsByPort {
+			if len(rules) > 0 {
+				out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
+					Principals:       principals,
+					DestinationRules: rules,
+				})
+			} else {
+				out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
+					Principals: principals,
+				})
+			}
 		}
 	}
 
 	for _, p := range computed.AllowPermissions {
 		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
 		principals := makePrincipals(trustDomain, p)
-		for port := range drsByPort {
+		for port, rules := range drsByPort {
 			if _, ok := out[port]; !ok {
 				continue
 			}
-
-			out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
-				Principals: principals,
-			})
+			if len(rules) > 0 {
+				out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
+					Principals:       principals,
+					DestinationRules: rules,
+				})
+			} else {
+				out[port].AllowPermissions = append(out[port].AllowPermissions, &pbproxystate.Permission{
+					Principals: principals,
+				})
+			}
 		}
 	}
 
 	return out
 }
 
-// TODO this is a placeholder until we add them to the IR.
-type DestinationRule struct{}
-
-func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.DestinationRule) map[string][]DestinationRule {
-	out := make(map[string][]DestinationRule)
+func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.DestinationRule) map[string][]*pbproxystate.DestinationRule {
+	out := make(map[string][]*pbproxystate.DestinationRule)
 
 	if len(destinationRules) == 0 {
 		for _, p := range allPorts {
 			out[p] = nil
 		}
-
 		return out
 	}
 
 	for _, destinationRule := range destinationRules {
-		ports, dr := convertDestinationRule(allPorts, destinationRule)
-		for _, p := range ports {
-			out[p] = append(out[p], dr)
+		portRules := convertDestinationRule(allPorts, destinationRule)
+		for p, pr := range portRules {
+			if pr.rule == nil {
+				out[p] = nil
+				continue
+			}
+			out[p] = append(out[p], pr.rule)
 		}
 	}
 
 	return out
 }
 
-func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]string, DestinationRule) {
-	ports := make(map[string]struct{})
+type PortRule struct {
+	rule *pbproxystate.DestinationRule
+}
+
+func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) map[string]*PortRule {
+	portRules := make(map[string]*PortRule)
+	targetPorts := allPorts
 	if len(dr.PortNames) > 0 {
-		for _, p := range dr.PortNames {
-			ports[p] = struct{}{}
-		}
-	} else {
-		for _, p := range allPorts {
-			ports[p] = struct{}{}
+		targetPorts = dr.PortNames
+	}
+	for _, p := range targetPorts {
+		if dr.PortsOnly() {
+			portRules[p] = &PortRule{}
+			for _, exclude := range dr.Exclude {
+				for _, ep := range exclude.PortNames {
+					delete(portRules, ep)
+				}
+			}
+		} else {
+			portRules[p] = makePortRule(dr, p)
 		}
 	}
+	return portRules
+}
 
-	for _, exclude := range dr.Exclude {
-		for _, p := range exclude.PortNames {
-			delete(ports, p)
+func makePortRule(dr *pbauth.DestinationRule, p string) *PortRule {
+	psdr := &pbproxystate.DestinationRule{
+		PathExact:  dr.PathExact,
+		PathPrefix: dr.PathPrefix,
+		PathRegex:  dr.PathRegex,
+		Methods:    dr.Methods,
+	}
+	psdr.DestinationRuleHeader = destinationRuleHeaders(dr.Headers)
+
+	var excls []*pbproxystate.ExcludePermissionRule
+	for _, ex := range dr.Exclude {
+		if len(ex.PortNames) == 0 || listContains(ex.PortNames, p) {
+			excls = append(excls, &pbproxystate.ExcludePermissionRule{
+				PathExact:  ex.PathExact,
+				PathPrefix: ex.PathPrefix,
+				PathRegex:  ex.PathRegex,
+				Methods:    ex.Methods,
+				Headers:    destinationRuleHeaders(ex.Headers),
+			})
 		}
 	}
+	psdr.Exclude = excls
+	return &PortRule{psdr}
+}
 
-	var out []string
-	for p := range ports {
-		out = append(out, p)
+func listContains(list []string, str string) bool {
+	for _, item := range list {
+		if item == str {
+			return true
+		}
 	}
+	return false
+}
 
-	return out, DestinationRule{}
+func destinationRuleHeaders(headers []*pbauth.DestinationRuleHeader) []*pbproxystate.DestinationRuleHeader {
+	hrs := make([]*pbproxystate.DestinationRuleHeader, len(headers))
+	for i, hr := range headers {
+		hrs[i] = &pbproxystate.DestinationRuleHeader{
+			Name:    hr.Name,
+			Present: hr.Present,
+			Exact:   hr.Exact,
+			Prefix:  hr.Prefix,
+			Suffix:  hr.Suffix,
+			Regex:   hr.Regex,
+			Invert:  hr.Invert,
+		}
+	}
+	return hrs
 }
 
 func makePrincipals(trustDomain string, perm *pbauth.Permission) []*pbproxystate.Principal {
@@ -481,7 +544,7 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 			InboundMesh: &pbproxystate.InboundMeshMTLS{
 				IdentityKey: workloadIdentity,
 				ValidationContext: &pbproxystate.MeshInboundValidationContext{
-					TrustBundlePeerNameKeys: []string{l.builder.id.Tenancy.PeerName},
+					TrustBundlePeerNameKeys: []string{resource.DefaultPeerName},
 				},
 			},
 		},

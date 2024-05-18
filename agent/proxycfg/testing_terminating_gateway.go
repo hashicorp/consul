@@ -160,20 +160,24 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, ns
 
 		tgtwyServices = append(tgtwyServices,
 			&structs.GatewayService{
-				Service: web,
-				CAFile:  "ca.cert.pem",
+				Service:         web,
+				CAFile:          "ca.cert.pem",
+				AutoHostRewrite: true,
 			},
 			&structs.GatewayService{
-				Service:  api,
-				CAFile:   "ca.cert.pem",
-				CertFile: "api.cert.pem",
-				KeyFile:  "api.key.pem",
+				Service:         api,
+				CAFile:          "ca.cert.pem",
+				CertFile:        "api.cert.pem",
+				KeyFile:         "api.key.pem",
+				AutoHostRewrite: true,
 			},
 			&structs.GatewayService{
-				Service: db,
+				Service:         db,
+				AutoHostRewrite: true,
 			},
 			&structs.GatewayService{
-				Service: cache,
+				Service:         cache,
+				AutoHostRewrite: true,
 			},
 		)
 
@@ -359,26 +363,31 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 	if populateDestinations {
 		tgtwyServices = append(tgtwyServices,
 			&structs.GatewayService{
-				Service:     externalIPTCP,
-				ServiceKind: structs.GatewayServiceKindDestination,
+				Service:         externalIPTCP,
+				ServiceKind:     structs.GatewayServiceKindDestination,
+				AutoHostRewrite: true,
 			},
 			&structs.GatewayService{
-				Service:     externalHostnameTCP,
-				ServiceKind: structs.GatewayServiceKindDestination,
+				Service:         externalHostnameTCP,
+				ServiceKind:     structs.GatewayServiceKindDestination,
+				AutoHostRewrite: true,
 			},
 			&structs.GatewayService{
-				Service:     externalIPHTTP,
-				ServiceKind: structs.GatewayServiceKindDestination,
+				Service:         externalIPHTTP,
+				ServiceKind:     structs.GatewayServiceKindDestination,
+				AutoHostRewrite: true,
 			},
 			&structs.GatewayService{
-				Service:     externalHostnameHTTP,
-				ServiceKind: structs.GatewayServiceKindDestination,
+				Service:         externalHostnameHTTP,
+				ServiceKind:     structs.GatewayServiceKindDestination,
+				AutoHostRewrite: true,
 			},
 			&structs.GatewayService{
-				Service:     externalHostnameWithSNI,
-				ServiceKind: structs.GatewayServiceKindDestination,
-				CAFile:      "cert.pem",
-				SNI:         "api.test.com",
+				Service:         externalHostnameWithSNI,
+				ServiceKind:     structs.GatewayServiceKindDestination,
+				CAFile:          "cert.pem",
+				SNI:             "api.test.com",
+				AutoHostRewrite: true,
 			},
 		)
 
@@ -530,12 +539,12 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 }
 
 func TestConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotTerminatingGatewayServiceSubsets(t, false)
+	return testConfigSnapshotTerminatingGatewayServiceSubsets(t, false, nil)
 }
-func TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotTerminatingGatewayServiceSubsets(t, true)
+func TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t testing.T, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
+	return testConfigSnapshotTerminatingGatewayServiceSubsets(t, true, nsFn)
 }
-func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustCache bool) *ConfigSnapshot {
+func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustCache bool, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
 	var (
 		web   = structs.NewServiceName("web", nil)
 		cache = structs.NewServiceName("cache", nil)
@@ -593,7 +602,7 @@ func testConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T, alsoAdjustC
 		})
 	}
 
-	return TestConfigSnapshotTerminatingGateway(t, true, nil, events)
+	return TestConfigSnapshotTerminatingGateway(t, true, nsFn, events)
 }
 
 func TestConfigSnapshotTerminatingGatewayDefaultServiceSubset(t testing.T) *ConfigSnapshot {
@@ -713,16 +722,18 @@ func TestConfigSnapshotTerminatingGatewaySNI(t testing.T) *ConfigSnapshot {
 			Result: &structs.IndexedGatewayServices{
 				Services: []*structs.GatewayService{
 					{
-						Service: structs.NewServiceName("web", nil),
-						CAFile:  "ca.cert.pem",
-						SNI:     "foo.com",
+						Service:         structs.NewServiceName("web", nil),
+						CAFile:          "ca.cert.pem",
+						SNI:             "foo.com",
+						AutoHostRewrite: true,
 					},
 					{
-						Service:  structs.NewServiceName("api", nil),
-						CAFile:   "ca.cert.pem",
-						CertFile: "api.cert.pem",
-						KeyFile:  "api.key.pem",
-						SNI:      "bar.com",
+						Service:         structs.NewServiceName("api", nil),
+						CAFile:          "ca.cert.pem",
+						CertFile:        "api.cert.pem",
+						KeyFile:         "api.key.pem",
+						SNI:             "bar.com",
+						AutoHostRewrite: true,
 					},
 				},
 			},
@@ -739,8 +750,9 @@ func TestConfigSnapshotTerminatingGatewayHTTP2(t testing.T) *ConfigSnapshot {
 			Result: &structs.IndexedGatewayServices{
 				Services: []*structs.GatewayService{
 					{
-						Service: web,
-						CAFile:  "ca.cert.pem",
+						Service:         web,
+						CAFile:          "ca.cert.pem",
+						AutoHostRewrite: true,
 					},
 				},
 			},
@@ -799,8 +811,9 @@ func TestConfigSnapshotTerminatingGatewaySubsetsHTTP2(t testing.T) *ConfigSnapsh
 			Result: &structs.IndexedGatewayServices{
 				Services: []*structs.GatewayService{
 					{
-						Service: web,
-						CAFile:  "ca.cert.pem",
+						Service:         web,
+						CAFile:          "ca.cert.pem",
+						AutoHostRewrite: true,
 					},
 				},
 			},

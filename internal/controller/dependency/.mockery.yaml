@@ -1,0 +1,11 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+with-expecter: true
+all: true
+recursive: false
+dir: "{{.PackageName}}mock"
+outpkg: "{{.PackageName}}mock"
+mockname: "{{.InterfaceName}}"
+packages:
+  github.com/hashicorp/consul/internal/controller/dependency:

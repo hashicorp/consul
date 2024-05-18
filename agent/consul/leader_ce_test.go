@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/gossip/libserf"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
-	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 	"github.com/hashicorp/consul/testrpc"
@@ -48,16 +48,16 @@ func TestServer_InitTenancy(t *testing.T) {
 		Name:    resource.DefaultNamespaceName,
 	}
 
-	ns, err := s.resourceServiceServer.Backend.Read(context.Background(), storage.StrongConsistency, nsID)
+	ns, err := s.storageBackend.Read(context.Background(), storage.StrongConsistency, nsID)
 	require.NoError(t, err)
 	require.Equal(t, resource.DefaultNamespaceName, ns.Id.Name)
 
 	// explicitly call initiTenancy to verify we do not re-create namespace
-	err = s.initTenancy(context.Background(), s.resourceServiceServer.Backend)
+	err = s.initTenancy(context.Background(), s.storageBackend)
 	require.NoError(t, err)
 
 	// read again
-	actual, err := s.resourceServiceServer.Backend.Read(context.Background(), storage.StrongConsistency, nsID)
+	actual, err := s.storageBackend.Read(context.Background(), storage.StrongConsistency, nsID)
 	require.NoError(t, err)
 
 	require.Equal(t, ns.Id.Uid, actual.Id.Uid)

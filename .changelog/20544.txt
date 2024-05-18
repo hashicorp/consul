@@ -1,0 +1,3 @@
+```release-note:feature
+agent: Introduces a new agent config default_intention_policy to decouple the default intention behavior from ACLs
+```

@@ -6,6 +6,7 @@ package resource_test
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
@@ -150,7 +152,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: resource.DefaultNamespaceName,
-				PeerName:  "local",
 			},
 		},
 		"namespaced type with empty namespace": {
@@ -158,16 +159,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: resource.DefaultPartitionName,
 				Namespace: "",
-				PeerName:  "local",
-			},
-		},
-		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-		"namespaced type with empty peername": {
-			typ: demo.TypeV2Artist,
-			tenancy: &pbresource.Tenancy{
-				Partition: resource.DefaultPartitionName,
-				Namespace: resource.DefaultNamespaceName,
-				PeerName:  "",
 			},
 		},
 		"namespaced type with empty partition and namespace": {
@@ -175,7 +166,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
-				PeerName:  "local",
 			},
 		},
 		"namespaced type with wildcard partition and empty namespace": {
@@ -183,7 +173,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
 				Namespace: "",
-				PeerName:  "local",
 			},
 		},
 		"namespaced type with empty partition and wildcard namespace": {
@@ -191,7 +180,6 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "*",
-				PeerName:  "local",
 			},
 		},
 		"partitioned type with empty partition": {
@@ -199,14 +187,34 @@ func wildcardTenancyCases() map[string]struct {
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
-				PeerName:  "local",
 			},
 		},
 		"partitioned type with wildcard partition": {
 			typ: demo.TypeV1RecordLabel,
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
-				PeerName:  "local",
+			},
+		},
+		"partitioned type with wildcard partition and namespace": {
+			typ: demo.TypeV1RecordLabel,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				Namespace: "*",
+			},
+		},
+		"cluster type with empty partition and namespace": {
+			typ: demo.TypeV1Executive,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "",
+			},
+		},
+
+		"cluster type with wildcard partition and namespace": {
+			typ: demo.TypeV1Executive,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				Namespace: "*",
 			},
 		},
 	}
@@ -236,7 +244,7 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 			id.Tenancy.Namespace = ""
 			return id
 		},
-		"namespaced resource inherits tokens partition and namespace when tenacy nil": func(artistId, _ *pbresource.ID) *pbresource.ID {
+		"namespaced resource inherits tokens partition and namespace when tenancy nil": func(artistId, _ *pbresource.ID) *pbresource.ID {
 			id := clone(artistId)
 			id.Tenancy = nil
 			return id
@@ -256,6 +264,27 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 		},
 	}
 	return tenancyCases
+}
+
+type blockOnceBackend struct {
+	storage.Backend
+
+	done            uint32
+	readCompletedCh chan struct{}
+	blockCh         chan struct{}
+}
+
+func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
+	res, err := b.Backend.Read(ctx, consistency, id)
+
+	// Block for exactly one call to Read. All subsequent calls (including those
+	// concurrent to the blocked call) will return immediately.
+	if atomic.CompareAndSwapUint32(&b.done, 0, 1) {
+		close(b.readCompletedCh)
+		<-b.blockCh
+	}
+
+	return res, err
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

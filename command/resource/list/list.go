@@ -40,7 +40,8 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
-	flags.Merge(c.flags, c.http.AddPeerName())
+	// TODO(peering/v2) add back ability to query peers
+	// flags.Merge(c.flags, c.http.AddPeerName())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -76,7 +77,6 @@ func (c *cmd) Run(args []string) int {
 			opts = &client.QueryOptions{
 				Namespace:         parsedResource.Id.Tenancy.GetNamespace(),
 				Partition:         parsedResource.Id.Tenancy.GetPartition(),
-				Peer:              parsedResource.Id.Tenancy.GetPeerName(),
 				Token:             c.http.Token(),
 				RequireConsistent: !c.http.Stale(),
 			}
@@ -107,7 +107,6 @@ func (c *cmd) Run(args []string) int {
 		opts = &client.QueryOptions{
 			Namespace:         c.http.Namespace(),
 			Partition:         c.http.Partition(),
-			Peer:              c.http.PeerName(),
 			Token:             c.http.Token(),
 			RequireConsistent: !c.http.Stale(),
 		}
@@ -151,7 +150,7 @@ func getResourceType(args []string) (gvk *resource.GVK, e error) {
 
 	s := strings.Split(args[0], ".")
 	if len(s) < 3 {
-		return nil, fmt.Errorf("Must include resource type argument in group.verion.kind format")
+		return nil, fmt.Errorf("Must include resource type argument in group.version.kind format")
 	}
 	gvk = &resource.GVK{
 		Group:   s[0],
@@ -172,16 +171,16 @@ func (c *cmd) Help() string {
 
 const synopsis = "Reads all resources by type"
 const help = `
-Usage: consul resource list [type] -partition=<default> -namespace=<default> -peer=<local>
+Usage: consul resource list [type] -partition=<default> -namespace=<default>
 or
 consul resource list -f [path/to/file.hcl]
 
-Lists all the resources specified by the type under the given partition, namespace and peer
+Lists all the resources specified by the type under the given partition and namespace
 and outputs in JSON format.
 
 Example:
 
-$ consul resource list catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource list catalog.v2beta1.Service card-processor -partition=billing -namespace=payments
 
 $ consul resource list -f=demo.hcl
 
@@ -193,7 +192,6 @@ ID {
 	Tenancy {
 	  Namespace = "default"
 	  Partition = "default"
-	  PeerName = "local"
 	}
   }
 `

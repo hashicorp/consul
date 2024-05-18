@@ -8,7 +8,7 @@ description: Learn how to configure Consul to split TCP traffic between two port
 
 <Warning>
 
-Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
+The v2 catalog API is currently in beta. This documentation supports testing and development scenarios. Do not use the v2 catalog API in secure production environments.
 
 </Warning>
 
@@ -16,12 +16,12 @@ This page describes the process for splitting TCP, HTTP, and gRPC traffic betwee
 
 ## Prerequisites
 
-Splitting traffic between two ports of a multi-port service requires the [v2 catalog API](/consul/docs/architecture/catalog/v2).
+Splitting traffic between two ports of a multi-port service requires the [v2 catalog API](/consul/docs/architecture/v2/catalog).
 
-In addition, how you define a multi-port service affects how Services are addressed in Kubernetes. The instructions on this page offer examples for two configuration methods:
+In addition, they are two different workflows for registering Services in Kubernetes using the v2 catalog API. The instructions on this page offer examples for two configuration methods:
 
-- **Method 1**: Define a single Kubernetes Service that exposes multiple ports
-- **Method 2**: Define multiple Kubernetes Services that expose individual ports
+- **Method 1**: Register a Kubernetes service that select workloads which expose multiple ports
+- **Method 2**: Register multiple Kubernetes Services that direct traffic to an explicit port on the same workload
 
 For guidance on enabling the v2 catalog, deploying multi-port services using these methods, and applying traffic permissions to the services, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
 
@@ -34,13 +34,7 @@ Complete the following steps to implement a split in TCP traffic between two ser
 
 ## Define route resource
 
-The following example splits traffic for the services in the `api` Pod.
-
-<Tabs>
-
-<Tab heading="Method 1" group="method1">
-
-TCP traffic for services registered to the Consul catalog that are available at the `admin` port is split so that 50% of the traffic routes to the service at the `api` port and 50% routes to the service at the `admin` port.
+The following example splits traffic for the `api` service. TCP traffic for services registered to the Consul catalog that are available at the `api-workload` port is split so that 50% of the traffic routes to the service at the `api-workload` port and 50% routes to the service at the `admin-workload` port.
 
 <CodeBlockConfig filename="api-split.yaml">
 
@@ -52,83 +46,38 @@ metadata:
 spec:
   parentRefs:
     - ref:
-        type: 
+        type:
           group: catalog
           groupVersion: v2beta1
           kind: Service
         name: api
-      port: "admin"
+      # The virtual port number for the "api-workload" target port.
+      port: "80"
   rules:
     - backendRefs:
       - backendRef:
-          ref: 
+          ref:
             type:
               group: catalog
               groupVersion: v2beta1
               kind: Service
             name: api
-          port: "api"
+          # The virtual port number for the "api-workload" target port.
+          port: "80"
         weight: 50
       - backendRef:
-          ref: 
+          ref:
             type:
               group: catalog
               groupVersion: v2beta1
               kind: Service
             name: api
-          port: "admin"
+          # The virtual port number for the "admin-workload" target port.
+          port: "90"
         weight: 50
 ```
 
 </CodeBlockConfig>
-</Tab>
-
-<Tab heading="Method 2" group="method2">
-
-TCP traffic for services registered to the Consul catalog that are available at the `api-admin` port is split so that 50% of the traffic routes to the service at the `api` port and 50% routes to the service at the `api-admin` port.
-
-<CodeBlockConfig filename="api-split.yaml">
-
-```yaml
-apiVersion: mesh.consul.hashicorp.com/v2beta1
-kind: TCPRoute
-metadata:
-  name: api-split
-spec:
-  parentRefs:
-    - ref:
-        type: 
-          group: catalog
-          groupVersion: v2beta1
-          kind: Service
-        name: api-admin
-      port: "admin"
-  rules:
-    - backendRefs:
-      - backendRef:
-          ref: 
-            type:
-              group: catalog
-              groupVersion: v2beta1
-              kind: Service
-            name: api
-          port: "api"
-        weight: 50
-      - backendRef:
-          ref: 
-            type:
-              group: catalog
-              groupVersion: v2beta1
-              kind: Service
-            name: api-admin
-          port: "admin"
-        weight: 50
-```
-
-</CodeBlockConfig>
-
-</Tab>
-</Tabs>
 
 ## Apply the resource
 

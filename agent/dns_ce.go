@@ -10,7 +10,12 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/structs"
 )
+
+// NOTE: these functions have also been copied to agent/dns package for dns v2.
+// If you change these functions, please also change the ones in agent/dns as well.
+// These v1 versions will soon be deprecated.
 
 type enterpriseDNSConfig struct{}
 
@@ -59,27 +64,27 @@ func (d *DNSServer) parseLocality(labels []string, cfg *dnsConfig) (queryLocalit
 type querySameness struct{}
 
 // parseSamenessGroupLocality wraps parseLocality in CE
-func (d *DNSServer) parseSamenessGroupLocality(cfg *dnsConfig, labels []string, errfnc func() error) ([]queryLocality, error) {
+func (d *DNSServer) parseSamenessGroupLocality(cfg *dnsConfig, labels []string, errfnc func() error) (queryLocality, error) {
 	locality, ok := d.parseLocality(labels, cfg)
 	if !ok {
-		return nil, errfnc()
+		return queryLocality{}, errfnc()
 	}
-	return []queryLocality{locality}, nil
+	return locality, nil
 }
 
 func serviceCanonicalDNSName(name, kind, datacenter, domain string, _ *acl.EnterpriseMeta) string {
 	return fmt.Sprintf("%s.%s.%s.%s", name, kind, datacenter, domain)
 }
 
-func nodeCanonicalDNSName(lookup serviceLookup, nodeName, respDomain string) string {
-	if lookup.PeerName != "" {
+func nodeCanonicalDNSName(node *structs.Node, respDomain string) string {
+	if node.PeerName != "" {
 		// We must return a more-specific DNS name for peering so
 		// that there is no ambiguity with lookups.
 		return fmt.Sprintf("%s.node.%s.peer.%s",
-			nodeName,
-			lookup.PeerName,
+			node.Node,
+			node.PeerName,
 			respDomain)
 	}
 	// Return a simpler format for non-peering nodes.
-	return fmt.Sprintf("%s.node.%s.%s", nodeName, lookup.Datacenter, respDomain)
+	return fmt.Sprintf("%s.node.%s.%s", node.Node, node.Datacenter, respDomain)
 }

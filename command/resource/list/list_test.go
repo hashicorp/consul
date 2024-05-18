@@ -7,13 +7,14 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
 
 	"github.com/stretchr/testify/require"
 
-	apply "github.com/hashicorp/consul/command/resource/apply"
+	"github.com/hashicorp/consul/command/resource/apply"
 )
 
 func TestResourceListCommand(t *testing.T) {
@@ -49,7 +50,6 @@ func TestResourceListCommand(t *testing.T) {
 			extraArgs: []string{
 				"demo.v2.artist",
 				"-namespace=default",
-				"-peer=local",
 				"-partition=default",
 			},
 		},
@@ -131,7 +131,6 @@ func TestResourceListInvalidArgs(t *testing.T) {
 			args: []string{
 				"demo.v2.artist",
 				"-namespace=default",
-				"-peer=local",
 				"-partition=default",
 				"-http-addr=" + a.HTTPAddr(),
 				"-token=root",
@@ -144,18 +143,16 @@ func TestResourceListInvalidArgs(t *testing.T) {
 			args: []string{
 				"test",
 				"-namespace=default",
-				"-peer=local",
 				"-partition=default",
 			},
 			expectedCode: 1,
-			expectedErr:  errors.New("Must include resource type argument in group.verion.kind format"),
+			expectedErr:  errors.New("Must include resource type argument in group.version.kind format"),
 		},
 		"resource name is provided": {
 			args: []string{
 				"demo.v2.artist",
 				"test",
 				"-namespace=default",
-				"-peer=local",
 				"-partition=default",
 			},
 			expectedCode: 1,

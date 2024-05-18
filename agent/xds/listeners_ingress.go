@@ -9,7 +9,6 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	"github.com/hashicorp/consul/agent/xds/naming"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -17,13 +16,13 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
 func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
 		if !ok {
@@ -79,13 +78,14 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			l := makeListener(opts)
 
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				accessLogs:  &cfgSnap.Proxy.AccessLogs,
-				routeName:   uid.EnvoyID(),
-				useRDS:      useRDS,
-				clusterName: clusterName,
-				filterName:  filterName,
-				protocol:    cfg.Protocol,
-				tlsContext:  tlsContext,
+				accessLogs:      &cfgSnap.Proxy.AccessLogs,
+				routeName:       uid.EnvoyID(),
+				useRDS:          useRDS,
+				fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				clusterName:     clusterName,
+				filterName:      filterName,
+				protocol:        cfg.Protocol,
+				tlsContext:      tlsContext,
 			})
 			if err != nil {
 				return nil, err
@@ -110,6 +110,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			filterOpts := listenerFilterOpts{
 				useRDS:           true,
+				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 				protocol:         listenerKey.Protocol,
 				filterName:       listenerKey.RouteName(),
 				routeName:        listenerKey.RouteName(),
@@ -390,7 +391,26 @@ func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *env
 	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
 }
 
-func makeInlineTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, cert structs.InlineCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {
+func makeFileSystemTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, cert *structs.FileSystemCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg),
+		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
+			{
+				// Delivering via SDS is required in order to get file system watches today.
+				//   https://github.com/envoyproxy/envoy/issues/10387
+				Name: cert.Name, // Reference the secret returned in xds/secrets.go by name here
+				SdsConfig: &envoy_core_v3.ConfigSource{
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
+					},
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+				},
+			},
+		},
+	}
+}
+
+func makeInlineTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, cert *structs.InlineCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {
 	return &envoy_tls_v3.CommonTlsContext{
 		TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg),
 		TlsCertificates: []*envoy_tls_v3.TlsCertificate{{

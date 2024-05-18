@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
-	"github.com/hashicorp/consul/agent/xdsv2"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -20,19 +19,18 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/types"
-
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
 	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/consul/agent/xdsv2"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 var testTypeUrlToPrettyName = map[string]string{
@@ -369,6 +367,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getAccessLogsGoldenTestCases()...)
 	tests = append(tests, getTLSGoldenTestCases()...)
 	tests = append(tests, getPeeredGoldenTestCases()...)
+	tests = append(tests, getXDSFetchTimeoutTestCases()...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -406,7 +405,7 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 		{
 			name: "transparent-proxy-http-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 			},
 			alsoRunTestForV2: true,
 		},
@@ -740,6 +739,14 @@ func getMeshGatewayGoldenTestCases() []goldenTestCase {
 			name: "mesh-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-with-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "limits-added", nil, nil)
 			},
 			// TODO(proxystate): mesh gateway will come at a later time
 			alsoRunTestForV2: false,
@@ -2097,8 +2104,10 @@ func getTerminatingGatewayPeeringGoldenTestCases() []goldenTestCase {
 			alsoRunTestForV2: false,
 		},
 		{
-			name:   "terminating-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache,
+			name: "terminating-gateway-service-subsets",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t, nil)
+			},
 			// TODO(proxystate): terminating gateway will come at a later time
 			alsoRunTestForV2: false,
 		},
@@ -2279,32 +2288,25 @@ func getTerminatingGatewayPeeringGoldenTestCases() []goldenTestCase {
 		{
 			name: "terminating-gateway-with-peer-trust-bundle",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				roots, _ := proxycfg.TestCerts(t)
+				bundles := proxycfg.TestPeerTrustBundles(t)
 				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
 						CorrelationID: "peer-trust-bundle:web",
-						Result: &pbpeering.TrustBundleListByServiceResponse{
-							Bundles: []*pbpeering.PeeringTrustBundle{
-								{
-									TrustDomain: "foo.bar.gov",
-									PeerName:    "dc2",
-									Partition:   "default",
-									RootPEMs: []string{
-										roots.Roots[0].RootCert,
-									},
-									ExportedPartition: "default",
-									CreateIndex:       0,
-									ModifyIndex:       0,
-								},
-							},
-						},
+						Result:        bundles,
 					},
 					{
 						CorrelationID: "service-intentions:web",
 						Result: structs.SimplifiedIntentions{
 							{
 								SourceName:           "source",
-								SourcePeer:           "dc2",
+								SourcePeer:           bundles.Bundles[0].PeerName,
+								DestinationName:      "web",
+								DestinationPartition: "default",
+								Action:               structs.IntentionActionAllow,
+							},
+							{
+								SourceName:           "source",
+								SourcePeer:           bundles.Bundles[1].PeerName,
 								DestinationName:      "web",
 								DestinationPartition: "default",
 								Action:               structs.IntentionActionAllow,
@@ -3168,8 +3170,10 @@ func getPeeredGoldenTestCases() []goldenTestCase {
 			alsoRunTestForV2: false,
 		},
 		{
-			name:   "connect-proxy-with-peered-upstreams-http2",
-			create: proxycfg.TestConfigSnapshotPeeringWithHTTP2,
+			name: "connect-proxy-with-peered-upstreams-http2",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeringWithHTTP2(t, nil)
+			},
 			// TODO(proxystate): peering will come at a later date.
 			alsoRunTestForV2: false,
 		},
@@ -3183,6 +3187,89 @@ func getPeeredGoldenTestCases() []goldenTestCase {
 			name:   "local-mesh-gateway-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
 			// TODO(proxystate): mesh gateways and peering will come at a later date.
+			alsoRunTestForV2: false,
+		},
+	}
+}
+
+func getXDSFetchTimeoutTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "xds-fetch-timeout-ms-sidecar",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - clusters.go:makeUpstreamClustersForDiscoveryChain
+				// - clusters.go:makeUpstreamClusterForPreparedQuery
+				// - listeners.go:listenersFromSnapshotConnectProxy (partially)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-router", false, func(ns *structs.NodeService) {
+					ns.Proxy.Config["xds_fetch_timeout_ms"] = 9999
+				}, nil)
+			},
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "xds-fetch-timeout-ms-tproxy-http-peering",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - clusters.go:makeUpstreamClusterForPeerService
+				snap := proxycfg.TestConfigSnapshotPeeringWithHTTP2(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["xds_fetch_timeout_ms"] = 9999
+				})
+				return snap
+			},
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "xds-fetch-timeout-ms-tproxy-passthrough",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - clusters.go:makePassthrough
+				// - listeners.go:listenersFromSnapshotConnectProxy (partially)
+				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"xds_fetch_timeout_ms": 9999,
+					}
+				})
+			},
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "xds-fetch-timeout-ms-term-gw",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - listeners.go:makeFilterChainTerminatingGateway
+				// - clusters.go:makeGatewayCluster
+				return proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"xds_fetch_timeout_ms": 9999,
+					}
+				})
+			},
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "xds-fetch-timeout-ms-mgw-peering",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - listeners.go:makeMeshGatewayPeerFilterChain
+				// - clusters.go:makeGatewayCluster
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-http", func(ns *structs.NodeService) {
+					ns.Proxy.Config["xds_fetch_timeout_ms"] = 9999
+				}, nil)
+			},
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "xds-fetch-timeout-ms-ingress-with-router",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// Covers cases in:
+				// - listeners.go:makeIngressGatewayListeners (partially)
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http", "chain-and-router", func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"xds_fetch_timeout_ms": 9999,
+					}
+				}, nil, nil)
+			},
 			alsoRunTestForV2: false,
 		},
 	}

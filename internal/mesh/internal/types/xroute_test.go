@@ -176,7 +176,7 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 				newParentRef(pbcatalog.ServiceType, "", "api", "http"),
 				newParentRef(pbcatalog.ServiceType, "", "api", "http"),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.local.default/api" for port "http" exists twice`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.default/api" for port "http" exists twice`,
 		},
 		"duplicate wild parents": {
 			routeTenancy: resource.DefaultNamespacedTenancy(),
@@ -184,7 +184,7 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 				newParentRef(pbcatalog.ServiceType, "", "api", ""),
 				newParentRef(pbcatalog.ServiceType, "", "api", ""),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.local.default/api" for wildcard port exists twice`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.default/api" for wildcard port exists twice`,
 		},
 		"duplicate parents via exact+wild overlap": {
 			routeTenancy: resource.DefaultNamespacedTenancy(),
@@ -192,7 +192,7 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 				newParentRef(pbcatalog.ServiceType, "", "api", "http"),
 				newParentRef(pbcatalog.ServiceType, "", "api", ""),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.local.default/api" for ports [http] covered by wildcard port already`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.default/api" for ports [http] covered by wildcard port already`,
 		},
 		"duplicate parents via exact+wild overlap (reversed)": {
 			routeTenancy: resource.DefaultNamespacedTenancy(),
@@ -200,7 +200,7 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 				newParentRef(pbcatalog.ServiceType, "", "api", ""),
 				newParentRef(pbcatalog.ServiceType, "", "api", "http"),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.local.default/api" for port "http" covered by wildcard port already`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.default/api" for port "http" covered by wildcard port already`,
 		},
 		"good single parent ref": {
 			routeTenancy: resource.DefaultNamespacedTenancy(),

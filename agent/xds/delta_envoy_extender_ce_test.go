@@ -445,7 +445,7 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				extra := makeLambdaServiceDefaults(false)
 				extra.Name = "google"
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, extra)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil, extra)
 			},
 		},
 		// Make sure that if the upstream type is different from ExtensionConfiguration.Kind is, that the resources are not patched.
@@ -764,6 +764,23 @@ end`,
 						},
 					}
 				}, nil)
+			},
+		},
+		{
+			name: "tproxy-and-permissive-mtls-and-envoy-extension",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "http"}
+					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
+					ns.Proxy.Mode = structs.ProxyModeTransparent
+					ns.Proxy.TransparentProxy.OutboundListenerPort = 1234
+					// Arbitrarily chose ext-authz since it's available in CE
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
+						"https",
+						"dest=local",
+					)
+				},
+					nil)
 			},
 		},
 	}

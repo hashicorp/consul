@@ -23,7 +23,7 @@ type EventPublisher struct {
 	// seconds.
 	snapCacheTTL time.Duration
 
-	// This lock protects the snapCache, topicBuffers and topicBuffer.refs.
+	// This lock protects the snapCache, topicBuffers, snapshotHandlers, and topicBuffer.refs.
 	lock sync.RWMutex
 
 	// topicBuffers stores the head of the linked-list buffers to publish events to
@@ -116,15 +116,17 @@ func NewEventPublisher(snapCacheTTL time.Duration) *EventPublisher {
 }
 
 // RegisterHandler will register a new snapshot handler function. The expectation is
-// that all handlers get registered prior to the event publisher being Run. Handler
-// registration is therefore not concurrency safe and access to handlers is internally
-// not synchronized. Passing supportsWildcard allows consumers to subscribe to events
-// on this topic with *any* subject (by requesting SubjectWildcard) but this must be
-// supported by the handler function.
+// that all handlers get registered prior to the event publisher being Run. Passing
+// supportsWildcard allows consumers to subscribe to events on this topic with *any*
+// subject (by requesting SubjectWildcard) but this must be supported by the handler
+// function.
 func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supportsWildcard bool) error {
 	if topic.String() == "" {
 		return fmt.Errorf("the topic cannnot be empty")
 	}
+
+	e.lock.Lock()
+	defer e.lock.Unlock()
 
 	if _, found := e.snapshotHandlers[topic]; found {
 		return fmt.Errorf("a handler is already registered for the topic: %s", topic.String())
@@ -142,12 +144,33 @@ func (e *EventPublisher) RegisterHandler(topic Topic, handler SnapshotFunc, supp
 	return nil
 }
 
+func (e *EventPublisher) RefreshAllTopics() {
+	topics := make(map[Topic]struct{})
+
+	e.lock.Lock()
+	for topic := range e.snapshotHandlers {
+		topics[topic] = struct{}{}
+		e.forceEvictByTopicLocked(topic)
+	}
+	e.lock.Unlock()
+
+	for topic := range topics {
+		e.subscriptions.closeAllByTopic(topic)
+	}
+}
+
 func (e *EventPublisher) RefreshTopic(topic Topic) error {
-	if _, found := e.snapshotHandlers[topic]; !found {
+	e.lock.Lock()
+	_, found := e.snapshotHandlers[topic]
+	e.lock.Unlock()
+
+	if !found {
 		return fmt.Errorf("topic %s is not registered", topic)
 	}
 
-	e.forceEvictByTopic(topic)
+	e.lock.Lock()
+	e.forceEvictByTopicLocked(topic)
+	e.lock.Unlock()
 	e.subscriptions.closeAllByTopic(topic)
 
 	return nil
@@ -370,7 +393,7 @@ func (s *subscriptions) closeSubscriptionsForTokens(tokenSecretIDs []string) {
 	for _, secretID := range tokenSecretIDs {
 		if subs, ok := s.byToken[secretID]; ok {
 			for _, sub := range subs {
-				sub.forceClose()
+				sub.closeACLChanged()
 			}
 		}
 	}
@@ -438,14 +461,12 @@ func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *ev
 	})
 }
 
-// forceEvictByTopic will remove all entries from the snapshot cache for a given topic.
-// This method should be called while holding the publishers lock.
-func (e *EventPublisher) forceEvictByTopic(topic Topic) {
-	e.lock.Lock()
+// forceEvictByTopicLocked will remove all entries from the snapshot cache for a given topic.
+// This method should be called while holding the EventPublisher's lock.
+func (e *EventPublisher) forceEvictByTopicLocked(topic Topic) {
 	for key := range e.snapCache {
 		if key.Topic == topic.String() {
 			delete(e.snapCache, key)
 		}
 	}
-	e.lock.Unlock()
 }

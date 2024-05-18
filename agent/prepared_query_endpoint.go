@@ -11,6 +11,7 @@ import (
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 )
 
 // preparedQueryCreateResponse is used to wrap the query ID.
@@ -162,7 +163,7 @@ func (s *HTTPHandlers) preparedQueryExecute(id string, resp http.ResponseWriter,
 	// a query can fail over to a different DC than where the execute request
 	// was sent to. That's why we use the reply's DC and not the one from
 	// the args.
-	s.agent.TranslateAddresses(reply.Datacenter, reply.Nodes, TranslateAddressAcceptAny)
+	s.agent.TranslateAddresses(reply.Datacenter, reply.Nodes, dnsutil.TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil.
 	if reply.Nodes == nil {

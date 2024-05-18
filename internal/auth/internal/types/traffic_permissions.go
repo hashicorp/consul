@@ -50,7 +50,9 @@ func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Te
 
 	if t, c := defaultedSourceTenancy(src, parentTenancy); c {
 		src.Partition = t.Partition
-		src.Peer = t.PeerName
+		// TODO(peering/v2) revisit default peer source
+		// src.Peer = t.PeerName
+		src.Peer = resource.DefaultPeerName
 		src.Namespace = t.Namespace
 		changed = true
 	}
@@ -58,7 +60,9 @@ func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Te
 	for _, e := range src.Exclude {
 		if t, c := defaultedSourceTenancy(e, parentTenancy); c {
 			e.Partition = t.Partition
-			e.Peer = t.PeerName
+			// TODO(peering/v2) revisit default peer source
+			// e.Peer = t.PeerName
+			e.Peer = resource.DefaultPeerName
 			e.Namespace = t.Namespace
 			changed = true
 		}
@@ -74,8 +78,9 @@ func defaultedSourceTenancy(s pbauth.SourceToSpiffe, parentTenancy *pbresource.T
 
 	tenancy := pbauth.SourceToTenancy(s)
 
-	var peerChanged bool
-	tenancy.PeerName, peerChanged = firstNonEmptyString(tenancy.PeerName, parentTenancy.PeerName, resource.DefaultPeerName)
+	// TODO(peering/v2) default peer name somehow
+	// var peerChanged bool
+	// tenancy.PeerName, peerChanged = firstNonEmptyString(tenancy.PeerName, parentTenancy.PeerName, resource.DefaultPeerName)
 
 	var partitionChanged bool
 	tenancy.Partition, partitionChanged = firstNonEmptyString(tenancy.Partition, parentTenancy.Partition, resource.DefaultPartitionName)
@@ -89,7 +94,8 @@ func defaultedSourceTenancy(s pbauth.SourceToSpiffe, parentTenancy *pbresource.T
 		}
 	}
 
-	return tenancy, peerChanged || partitionChanged || namespaceChanged
+	// TODO(peering/v2) take peer being changed into account
+	return tenancy, partitionChanged || namespaceChanged // || peerChange
 }
 
 func firstNonEmptyString(a, b, c string) (string, bool) {
@@ -106,20 +112,17 @@ func firstNonEmptyString(a, b, c string) (string, bool) {
 
 var ValidateTrafficPermissions = resource.DecodeAndValidate(validateTrafficPermissions)
 
+// validator takes a traffic permission and ensures that it conforms to the actions allowed in
+// either CE or Enterprise versions of Consul
+type validator interface {
+	ValidateAction(data interface{ GetAction() pbauth.Action }) error
+}
+
 func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 	var merr error
 
-	// enumcover:pbauth.Action
-	switch res.Data.Action {
-	case pbauth.Action_ACTION_ALLOW:
-	case pbauth.Action_ACTION_DENY:
-	case pbauth.Action_ACTION_UNSPECIFIED:
-		fallthrough
-	default:
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "data.action",
-			Wrapped: errInvalidAction,
-		})
+	if err := validateAction(res.Data); err != nil {
+		merr = multierror.Append(merr, err)
 	}
 
 	if res.Data.Destination == nil || (len(res.Data.Destination.IdentityName) == 0) {
@@ -129,150 +132,11 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 		})
 	}
 	// Validate permissions
-	for i, permission := range res.Data.Permissions {
-		wrapErr := func(err error) error {
-			return resource.ErrInvalidListElement{
-				Name:    "permissions",
-				Index:   i,
-				Wrapped: err,
-			}
-		}
-		if err := validatePermission(permission, wrapErr); err != nil {
-			merr = multierror.Append(merr, err)
-		}
+	if err := validatePermissions(res.Id, res.Data); err != nil {
+		merr = multierror.Append(merr, err)
 	}
 
 	return merr
-}
-
-func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
-	var merr error
-
-	if len(p.Sources) == 0 {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "sources",
-			Wrapped: resource.ErrEmpty,
-		}))
-	}
-
-	for s, src := range p.Sources {
-		wrapSrcErr := func(err error) error {
-			return wrapErr(resource.ErrInvalidListElement{
-				Name:    "sources",
-				Index:   s,
-				Wrapped: err,
-			})
-		}
-		if sourceHasIncompatibleTenancies(src) {
-			merr = multierror.Append(merr, wrapSrcErr(resource.ErrInvalidListElement{
-				Name:    "source",
-				Wrapped: errSourcesTenancy,
-			}))
-		}
-
-		if src.Namespace == "" && src.IdentityName != "" {
-			merr = multierror.Append(merr, wrapSrcErr(resource.ErrInvalidField{
-				Name:    "source",
-				Wrapped: errSourceWildcards,
-			}))
-		}
-
-		// Excludes are only valid for wildcard sources.
-		if src.IdentityName != "" && len(src.Exclude) > 0 {
-			merr = multierror.Append(merr, wrapSrcErr(resource.ErrInvalidField{
-				Name:    "exclude_sources",
-				Wrapped: errSourceExcludes,
-			}))
-			continue
-		}
-
-		for e, d := range src.Exclude {
-			wrapExclSrcErr := func(err error) error {
-				return wrapErr(resource.ErrInvalidListElement{
-					Name:    "exclude_sources",
-					Index:   e,
-					Wrapped: err,
-				})
-			}
-			if sourceHasIncompatibleTenancies(d) {
-				merr = multierror.Append(merr, wrapExclSrcErr(resource.ErrInvalidField{
-					Name:    "exclude_source",
-					Wrapped: errSourcesTenancy,
-				}))
-			}
-
-			if d.Namespace == "" && d.IdentityName != "" {
-				merr = multierror.Append(merr, wrapExclSrcErr(resource.ErrInvalidField{
-					Name:    "source",
-					Wrapped: errSourceWildcards,
-				}))
-			}
-		}
-	}
-	for d, dest := range p.DestinationRules {
-		wrapDestRuleErr := func(err error) error {
-			return wrapErr(resource.ErrInvalidListElement{
-				Name:    "destination_rules",
-				Index:   d,
-				Wrapped: err,
-			})
-		}
-		// TODO: remove this when L7 traffic permissions are implemented
-		if len(dest.PathExact) > 0 || len(dest.PathPrefix) > 0 || len(dest.PathRegex) > 0 || len(dest.Methods) > 0 || dest.Header != nil {
-			merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
-				Name:    "destination_rule",
-				Wrapped: ErrL7NotSupported,
-			}))
-		}
-		if (len(dest.PathExact) > 0 && len(dest.PathPrefix) > 0) ||
-			(len(dest.PathRegex) > 0 && len(dest.PathExact) > 0) ||
-			(len(dest.PathRegex) > 0 && len(dest.PathPrefix) > 0) {
-			merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
-				Name:    "destination_rule",
-				Wrapped: errInvalidPrefixValues,
-			}))
-		}
-		if len(dest.Exclude) > 0 {
-			for e, excl := range dest.Exclude {
-				wrapExclPermRuleErr := func(err error) error {
-					return wrapDestRuleErr(resource.ErrInvalidListElement{
-						Name:    "exclude_permission_rules",
-						Index:   e,
-						Wrapped: err,
-					})
-				}
-				// TODO: remove this when L7 traffic permissions are implemented
-				if len(excl.PathExact) > 0 || len(excl.PathPrefix) > 0 || len(excl.PathRegex) > 0 || len(excl.Methods) > 0 || excl.Header != nil {
-					merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
-						Name:    "exclude_permission_rules",
-						Wrapped: ErrL7NotSupported,
-					}))
-				}
-				if (len(excl.PathExact) > 0 && len(excl.PathPrefix) > 0) ||
-					(len(excl.PathRegex) > 0 && len(excl.PathExact) > 0) ||
-					(len(excl.PathRegex) > 0 && len(excl.PathPrefix) > 0) {
-					merr = multierror.Append(merr, wrapExclPermRuleErr(resource.ErrInvalidListElement{
-						Name:    "exclude_permission_rule",
-						Wrapped: errInvalidPrefixValues,
-					}))
-				}
-			}
-		}
-	}
-
-	return merr
-}
-
-func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe) bool {
-	peerSet := src.GetPeer() != resource.DefaultPeerName
-	apSet := src.GetPartition() != resource.DefaultPartitionName
-	sgSet := src.GetSamenessGroup() != ""
-
-	return (apSet && peerSet) || (apSet && sgSet) || (peerSet && sgSet)
-}
-
-func isLocalPeer(p string) bool {
-	return p == "local" || p == ""
 }
 
 func aclReadHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *DecodedTrafficPermissions) error {

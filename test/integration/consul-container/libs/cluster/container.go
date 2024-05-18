@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	goretry "github.com/avast/retry-go"
@@ -39,6 +40,16 @@ const MaxEnvoyOnNode = 10                  // the max number of Envoy sidecar ca
 const ServiceUpstreamLocalBindPort = 5000  // local bind Port of service's upstream
 const ServiceUpstreamLocalBindPort2 = 5001 // local bind Port of service's upstream, for services with 2 upstreams
 const debugPort = "4000/tcp"
+
+// containerLock prevents starting multiple containers concurrently. This has not been confirmed as being necessary, but
+// it seems to help make the CICD pipeline pass without failures. These failures seem to be due to some form of docker
+// socket contention with errors of the form:
+//
+//	#1: error starting pod with image "docker.mirror.hashicorp.services/hashiderek/pause": Post "http://%2Fvar%2Frun%2Fdocker.sock/v1.43/containers/9b0e568744793e558d318af908c1052ab3d4d2f5a74c67b15d47a0570f141b1c/start": context deadline exceeded: failed to start container
+//
+// It may purely be due to the fact that starting containers takes longer than expected, and this lock avoids starting
+// the context cancel timer until after we have ensured the docker socket is freed up.
+var containerLock sync.Mutex
 
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
@@ -75,6 +86,10 @@ type consulContainerNode struct {
 
 func (c *consulContainerNode) GetPod() testcontainers.Container {
 	return c.pod
+}
+
+func (c *consulContainerNode) GetConsulContainer() testcontainers.Container {
+	return c.container
 }
 
 func (c *consulContainerNode) Logs(context context.Context) (io.ReadCloser, error) {
@@ -600,6 +615,8 @@ func (c *consulContainerNode) DataDir() string {
 }
 
 func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (testcontainers.Container, error) {
+	containerLock.Lock()
+	defer containerLock.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*40)
 	defer cancel()
 	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -608,7 +625,7 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 	})
 }
 
-const pauseImage = "registry.k8s.io/pause:3.3"
+const pauseImage = "docker.mirror.hashicorp.services/hashiderek/pause"
 
 type containerOpts struct {
 	configFile        string

@@ -32,6 +32,9 @@ func (m *mockTGW) QueryRangeBatch(params *hcptelemetry.QueryRangeBatchParams, au
 	return hcptelemetry.NewQueryRangeBatchOK(), nil
 }
 func (m *mockTGW) SetTransport(transport runtime.ClientTransport) {}
+func (m *mockTGW) GetServiceTopology(params *hcptelemetry.GetServiceTopologyParams, authInfo runtime.ClientAuthInfoWriter, opts ...hcptelemetry.ClientOption) (*hcptelemetry.GetServiceTopologyOK, error) {
+	return hcptelemetry.NewGetServiceTopologyOK(), nil
+}
 
 type expectedTelemetryCfg struct {
 	endpoint        string

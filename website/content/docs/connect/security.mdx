@@ -26,12 +26,20 @@ of Consul.
 
 ## Checklist
 
+### Default Intention Policy Set
+
+Consul should be configured with a default deny intention policy. This forces
+all service-to-service communication to be explicitly
+allowed via an allow [intention](/consul/docs/connect/intentions).
+
+In the absence of `default_intention_policy` Consul will fall back to the ACL
+default policy when determining whether to allow or deny communications without
+an explicit intention.
+
 ### ACLs Enabled with Default Deny
 
 Consul must be configured to use ACLs with a default deny policy. This forces
-all requests to have explicit anonymous access or provide an ACL token. The
-configuration also forces all service-to-service communication to be explicitly
-allowed via an allow [intention](/consul/docs/connect/intentions).
+all requests to have explicit anonymous access or provide an ACL token.
 
 To learn how to enable ACLs, please see the
 [tutorial on ACLs](/consul/tutorials/security/access-control-setup-production).
@@ -100,7 +108,7 @@ will not be encrypted or authorized via service mesh.
 
 Envoy exposes an **unauthenticated**
 [administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin)
-that can be used to query and modify the proxy. This interface 
+that can be used to query and modify the proxy. This interface
 allows potentially sensitive information to be retrieved, such as:
 
 * Envoy configuration

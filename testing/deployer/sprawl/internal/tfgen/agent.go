@@ -25,6 +25,12 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 
 	var b HCLBuilder
 
+	// We first write ExtraConfig since it could be overwritten by specific
+	// configurations below
+	if node.ExtraConfig != "" {
+		b.format(node.ExtraConfig)
+	}
+
 	b.add("server", node.IsServer())
 	b.add("bind_addr", "0.0.0.0")
 	b.add("client_addr", "0.0.0.0")
@@ -49,6 +55,7 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 	// speed up leaves
 	b.addBlock("performance", func() {
 		b.add("leave_drain_time", "50ms")
+		b.add("raft_multiplier", 1)
 	})
 
 	b.add("primary_datacenter", node.Datacenter)
@@ -59,6 +66,16 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 	b.addSlice("retry_join", []string{"server." + node.Cluster + "-consulcluster.lan"})
 	b.add("retry_interval", "1s")
 	// }
+
+	if node.Segment != nil {
+		if node.Kind != topology.NodeKindClient {
+			panic("segment only applies to client agent")
+		}
+		b.add("segment", node.Segment.Name)
+		b.addSlice("retry_join", []string{
+			fmt.Sprintf("server.%s-consulcluster.lan:%d", node.Cluster, node.Segment.Port),
+		})
+	}
 
 	if node.Images.GreaterThanVersion(topology.MinVersionPeering) {
 		if node.IsServer() {
@@ -77,7 +94,9 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 		b.add("prometheus_retention_time", "168h")
 	})
 
-	b.add("encrypt", g.sec.ReadGeneric(node.Cluster, secrets.GossipKey))
+	if !cluster.DisableGossipEncryption {
+		b.add("encrypt", g.sec.ReadGeneric(node.Cluster, secrets.GossipKey))
+	}
 
 	{
 		var (
@@ -208,6 +227,17 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 					b.add(k, v)
 				}
 			})
+		}
+
+		if cluster.Segments != nil {
+			b.format("segments = [")
+			for name, port := range cluster.Segments {
+				b.format("{")
+				b.add("name", name)
+				b.add("port", port)
+				b.format("},")
+			}
+			b.format("]")
 		}
 	} else {
 		if cluster.Enterprise && node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {

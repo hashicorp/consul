@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Remove code coupling where the xDS capacity controller could negatively affect raft autopilot performance.
+```

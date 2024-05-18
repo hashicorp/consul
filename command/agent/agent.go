@@ -21,7 +21,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
-	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
+	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap/config-loader"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
@@ -181,6 +181,8 @@ func (c *cmd) run(args []string) int {
 			ui.Error(err.Error())
 			return 1
 		}
+
+		loader = hcpbootstrap.AddAclPolicyAccessControlHeader(loader)
 	}
 
 	bd, err := agent.NewBaseDeps(loader, logGate, nil)

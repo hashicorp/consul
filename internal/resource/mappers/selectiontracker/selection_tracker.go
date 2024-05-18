@@ -72,6 +72,10 @@ func (t *WorkloadSelectionTracker) GetIDsForWorkload(id *pbresource.ID) []*pbres
 // TrackIDForSelector will associate workloads matching the specified workload
 // selector with the given resource id.
 func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selector *pbcatalog.WorkloadSelector) {
+	if selector == nil {
+		return
+	}
+
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -195,11 +199,11 @@ func removeIDFromTreeAtPaths(t *radix.Tree[[]*pbresource.ID], id *pbresource.ID,
 
 // treePathFromNameOrPrefix computes radix tree key from the resource tenancy and a selector name or prefix.
 // The keys will be computed in the following form:
-// <partition>/<peer>/<namespace>/<name or prefix>.
+// <partition>/<namespace>/<name or prefix>.
 func treePathFromNameOrPrefix(tenancy *pbresource.Tenancy, nameOrPrefix string) string {
-	return fmt.Sprintf("%s/%s/%s/%s",
+	// TODO(peering/v2) update paths for peer tenancy
+	return fmt.Sprintf("%s/%s/%s",
 		tenancy.GetPartition(),
-		tenancy.GetPeerName(),
 		tenancy.GetNamespace(),
 		nameOrPrefix)
 }

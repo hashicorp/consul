@@ -6,6 +6,7 @@ package types
 import (
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 )
@@ -18,7 +19,7 @@ func RegisterHealthChecks(r resource.Registry) {
 		Proto:    &pbcatalog.HealthChecks{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthChecks,
-		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.HealthChecks](),
+		ACLs:     workloadselector.ACLHooks[*pbcatalog.HealthChecks](),
 	})
 }
 

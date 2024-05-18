@@ -1,0 +1,92 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+      - release/**
+  pull_request:
+    branches:
+      - main
+      - release/**
+
+# cancel existing runs of the same workflow on the same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conditional-skip:
+    runs-on: ubuntu-latest
+    name: Get files changed and conditionally skip CI
+    outputs:
+      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          fetch-depth: 0
+      - name: Get changed files
+        id: read-files
+        run: ./.github/scripts/filter_changed_files_go_test.sh
+
+  setup:
+    needs: [conditional-skip]
+    name: Setup
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - id: setup-outputs
+        name: Setup outputs
+        run: ./.github/scripts/get_runner_classes.sh
+
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
+  scan:
+    needs:
+    - setup
+    - get-go-version
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    # The first check ensures this doesn't run on community-contributed PRs, who
+    # won't have the permissions to run this job.
+    if: ${{ (github.repository != 'hashicorp/consul' || (github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name))
+      && (github.actor != 'dependabot[bot]') && (github.actor != 'hc-github-team-consul-core') }}
+
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+
+      - name: Set up Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Clone Security Scanner repo
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          repository: hashicorp/security-scanner
+          token: ${{ secrets.HASHIBOT_PRODSEC_GITHUB_TOKEN }}
+          path: security-scanner
+          ref: main
+
+      - name: Scan
+        id: scan
+        uses: ./security-scanner
+        with:
+          repository: "$PWD"
+          # See scan.hcl at repository root for config.
+
+      - name: SARIF Output
+        shell: bash
+        run: |
+          cat results.sarif | jq
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@c4fb451437765abf5018c6fbf22cce1a7da1e5cc # codeql-bundle-v2.17.1
+        with:
+          sarif_file: results.sarif

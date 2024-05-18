@@ -29,13 +29,13 @@ const ControllerName = "consul.io/xds-controller"
 
 const defaultTenancy = "default"
 
-func Controller(endpointsMapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher, leafCertManager *leafcert.Manager, leafMapper *LeafMapper, leafCancels *LeafCancels, datacenter string) controller.Controller {
+func Controller(endpointsMapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher, leafCertManager *leafcert.Manager, leafMapper *LeafMapper, leafCancels *LeafCancels, datacenter string) *controller.Controller {
 	leafCertEvents := make(chan controller.Event, 1000)
 	if endpointsMapper == nil || fetcher == nil || leafCertManager == nil || leafMapper == nil || datacenter == "" {
 		panic("endpointsMapper, updater, fetcher, leafCertManager, leafMapper, and datacenter are required")
 	}
 
-	return controller.ForType(pbmesh.ProxyStateTemplateType).
+	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.ServiceEndpointsType, endpointsMapper.MapLink).
 		WithCustomWatch(proxySource(updater), proxyMapper).
 		WithCustomWatch(&controller.Source{Source: leafCertEvents}, leafMapper.EventMapLink).
@@ -138,7 +138,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 		proxyStateTemplate.Template.ProxyState.TrustBundles = make(map[string]*pbproxystate.TrustBundle)
 	}
 	// TODO: Figure out the correct key for the default trust bundle.
-	proxyStateTemplate.Template.ProxyState.TrustBundles["local"] = trustBundle
+	proxyStateTemplate.Template.ProxyState.TrustBundles[resource.DefaultPeerName] = trustBundle
 
 	if proxyStateTemplate.Template.ProxyState.Endpoints == nil {
 		proxyStateTemplate.Template.ProxyState.Endpoints = make(map[string]*pbproxystate.Endpoints)
@@ -178,7 +178,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 			}
 
 			// Step 2: Translate it into pbproxystate.Endpoints.
-			psEndpoints, err = generateProxyStateEndpoints(serviceEndpoints, endpointRef.Port)
+			psEndpoints, err = generateProxyStateEndpoints(serviceEndpoints, endpointRef.RoutePort, endpointRef.MeshPort)
 			if err != nil {
 				rt.Logger.Error("error translating service endpoints to proxy state endpoints", "endpoint", endpointRef.Id, "error", err)
 

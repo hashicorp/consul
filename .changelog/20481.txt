@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix issue where re-persisting existing proxy-defaults using `http` protocol fails with a protocol-mismatch error.
+```

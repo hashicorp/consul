@@ -41,7 +41,7 @@ func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) 
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, wrapErr); err != nil {
+		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
@@ -54,7 +54,7 @@ func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) 
 				Wrapped: err,
 			}
 		}
-		if err := validatePermission(permission, wrapErr); err != nil {
+		if err := validatePermission(permission, res.Id, wrapErr); err != nil {
 			merr = multierror.Append(merr, err)
 		}
 	}
@@ -63,9 +63,15 @@ func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) 
 }
 
 func aclReadHookComputedTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
-	return authorizer.ToAllowAuthorizer().TrafficPermissionsReadAllowed(id.Name, authzContext)
+	err := authorizer.ToAllowAuthorizer().TrafficPermissionsReadAllowed(id.Name, authzContext)
+	if err != nil {
+		// fallback to operator read
+		err = authorizer.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
+	}
+	return err
 }
 
 func aclWriteHookComputedTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-	return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(res.Id.Name, authzContext)
+	// Users should not be writing computed resources.
+	return authorizer.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
 }

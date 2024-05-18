@@ -7,11 +7,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"flag"
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -39,6 +37,7 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
@@ -230,6 +229,12 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 }
 
 func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *Server) {
+	return testServerWithDepsAndConfig(t, nil, configOpts...)
+}
+
+// testServerWithDepsAndConfig is similar to testServerWithConfig except that it also allows modifying dependencies.
+// This is useful for things like injecting experiment flags.
+func testServerWithDepsAndConfig(t *testing.T, depOpts func(*Deps), configOpts ...func(*Config)) (string, *Server) {
 	var dir string
 	var srv *Server
 
@@ -251,6 +256,11 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 
 		var err error
 		deps = newDefaultDeps(r, config)
+
+		if depOpts != nil {
+			depOpts(&deps)
+		}
+
 		srv, err = newServerWithDeps(r, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -341,7 +351,7 @@ func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, err
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{})
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{}, nil)
 	proxyUpdater := proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{})
 	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, proxyUpdater)
 	if err != nil {
@@ -2086,8 +2096,13 @@ func TestServer_Peering_LeadershipCheck(t *testing.T) {
 
 func TestServer_hcpManager(t *testing.T) {
 	_, conf1 := testServerConfig(t)
+
+	// Configure the server for the StatusFn
 	conf1.BootstrapExpect = 1
 	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
+	conf1.Cloud.ClientID = "test-client-id"
+	conf1.Cloud.ResourceID = "test-resource-id"
+	conf1.Cloud.ClientSecret = "test-client-secret"
 	hcp1 := hcpclient.NewMockClient(t)
 	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcpclient.ServerStatus) bool {
 		return status.ID == string(conf1.NodeID)
@@ -2095,8 +2110,10 @@ func TestServer_hcpManager(t *testing.T) {
 		require.Equal(t, status.LanAddress, "127.0.0.2")
 	}).Call.Return(nil)
 
+	// Configure the server for the ManagementTokenUpserterFn
+	conf1.ACLsEnabled = true
+
 	deps1 := newDefaultDeps(t, conf1)
-	deps1.HCP.Client = hcp1
 	s1, err := newServerWithDeps(t, conf1, deps1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -2104,8 +2121,36 @@ func TestServer_hcpManager(t *testing.T) {
 	defer s1.Shutdown()
 	require.NotNil(t, s1.hcpManager)
 	waitForLeaderEstablishment(t, s1)
+
+	// Update the HCP manager and start it
+	token, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+	s1.hcpManager.UpdateConfig(hcp1, hcpconfig.CloudConfig{
+		ManagementToken: token,
+	})
+	err = s1.hcpManager.Start(context.Background())
+	require.NoError(t, err)
+
+	// Validate that the server status pushed as expected
 	hcp1.AssertExpectations(t)
 
+	// Validate that the HCP token has been created as expected
+	retry.Run(t, func(r *retry.R) {
+		_, createdToken, err := s1.fsm.State().ACLTokenGetBySecret(nil, token, nil)
+		require.NoError(r, err)
+		require.NotNil(r, createdToken)
+	})
+
+	// Stop the HCP manager
+	err = s1.hcpManager.Stop()
+	require.NoError(t, err)
+
+	// Validate that the HCP token has been deleted as expected
+	retry.Run(t, func(r *retry.R) {
+		_, createdToken, err := s1.fsm.State().ACLTokenGetBySecret(nil, token, nil)
+		require.NoError(r, err)
+		require.Nil(r, createdToken)
+	})
 }
 
 func TestServer_addServerTLSInfo(t *testing.T) {
@@ -2252,37 +2297,34 @@ func TestServer_addServerTLSInfo(t *testing.T) {
 	}
 }
 
-// goldenMarkdown reads and optionally writes the expected data to the goldenMarkdown file,
-// returning the contents as a string.
-func goldenMarkdown(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".md")
-	update := flag.Lookup("update").Value.(flag.Getter).Get().(bool)
-	if update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
-
 func TestServer_ControllerDependencies(t *testing.T) {
-	t.Parallel()
+	// The original goal of this test was to track controller/resource type dependencies
+	// as they change over time. However, the test is difficult to maintain and provides
+	// only limited value as we were not even performing validations on them. The Server
+	// type itself will validate that no cyclical dependencies exist so this test really
+	// only produces a visual representation of the dependencies. That comes at the expense
+	// of having to maintain the golden files. What further complicates this is that
+	// Consul Enterprise will have potentially different dependencies that don't exist
+	// in CE. Therefore if we want to maintain this test, we would need to have a separate
+	// Enterprise and CE golden files and any CE PR which causes regeneration of the golden
+	// file would require another commit in enterprise to regen the enterprise golden file
+	// even if no new enterprise watches were added.
+	//
+	// Therefore until we have a better way of managing this, the test will be skipped.
+	t.Skip("This test would be very difficult to maintain and provides limited value")
 
 	_, conf := testServerConfig(t)
 	deps := newDefaultDeps(t, conf)
-	deps.Experiments = []string{"resource-apis"}
+	deps.Experiments = []string{"resource-apis", "v2tenancy"}
 	deps.LeafCertManager = &leafcert.Manager{}
 
 	s1, err := newServerWithDeps(t, conf, deps)
 	require.NoError(t, err)
 
 	waitForLeaderEstablishment(t, s1)
-	actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
-	expected := goldenMarkdown(t, "v2-resource-dependencies", actual)
-	require.Equal(t, expected, actual)
+	// gotest.tools/v3 defines CLI flags which are incompatible wit the golden package
+	// Once we eliminate gotest.tools/v3 from usage within Consul we could uncomment this
+	// actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
+	// expected := golden.Get(t, actual, "v2-resource-dependencies")
+	// require.Equal(t, expected, actual)
 }

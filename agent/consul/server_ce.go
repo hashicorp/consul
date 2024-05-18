@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"google.golang.org/grpc"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
@@ -19,8 +18,11 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/reporting"
+	resourcegrpc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/logging"
 )
 
 // runEnterpriseRateLimiterConfigEntryController start the rate limiter config controller
@@ -28,7 +30,9 @@ func (s *Server) runEnterpriseRateLimiterConfigEntryController() error {
 	return nil
 }
 
-func (s *Server) registerEnterpriseGRPCServices(deps Deps, srv *grpc.Server) {}
+func (s *Server) setupEnterpriseGRPCServices(config *Config, deps Deps) error {
+	return nil
+}
 
 func (s *Server) enterpriseValidateJoinWAN() error {
 	return nil // no-op
@@ -113,7 +117,7 @@ func (s *Server) GetMatchingLANCoordinate(_, _ string) (*coordinate.Coordinate, 
 	return s.serfLAN.GetCoordinate()
 }
 
-func (s *Server) addEnterpriseLANCoordinates(cs lib.CoordinateSet) error {
+func (s *Server) addEnterpriseLANCoordinates(cs librtt.CoordinateSet) error {
 	return nil
 }
 
@@ -191,4 +195,16 @@ func (s *Server) updateReportingConfig(config ReloadableConfig) {
 func getEnterpriseReportingDeps(deps Deps) reporting.EntDeps {
 	// no-op
 	return reporting.EntDeps{}
+}
+
+// CE version without LicenseManager
+func (s *Server) newResourceServiceConfig(typeRegistry resource.Registry, resolver resourcegrpc.ACLResolver, tenancyBridge resourcegrpc.TenancyBridge) resourcegrpc.Config {
+	return resourcegrpc.Config{
+		Registry:      typeRegistry,
+		Backend:       s.storageBackend,
+		ACLResolver:   resolver,
+		Logger:        s.loggers.Named(logging.GRPCAPI).Named(logging.Resource),
+		TenancyBridge: tenancyBridge,
+		UseV2Tenancy:  s.useV2Tenancy,
+	}
 }

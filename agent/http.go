@@ -188,7 +188,9 @@ func (s *HTTPHandlers) handler() http.Handler {
 		// Register the wrapper.
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-			handler(resp, req)
+
+			// this method is implemented by different flavours of consul e.g. oss, ce. ent.
+			s.enterpriseRequest(resp, req, handler)
 
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
@@ -260,9 +262,11 @@ func (s *HTTPHandlers) handler() http.Handler {
 	handlePProf("/debug/pprof/symbol", pprof.Symbol)
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
-	mux.Handle("/api/",
-		http.StripPrefix("/api",
+	resourceAPIPrefix := "/api"
+	mux.Handle(resourceAPIPrefix+"/",
+		http.StripPrefix(resourceAPIPrefix,
 			resourcehttp.NewHandler(
+				resourceAPIPrefix,
 				s.agent.delegate.ResourceServiceClient(),
 				s.agent.baseDeps.Registry,
 				s.parseToken,
@@ -311,7 +315,6 @@ func (s *HTTPHandlers) handler() http.Handler {
 		h = mux
 	}
 
-	h = s.enterpriseHandler(h)
 	h = withRemoteAddrHandler(h)
 	s.h = &wrappedMux{
 		mux:     mux,
@@ -389,7 +392,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 			httpLogger.Warn("This request used the token query parameter "+
-				"which is deprecated and will be removed in Consul 1.17",
+				"which is deprecated and will be removed in a future Consul version",
 				"logUrl", logURL)
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
@@ -736,7 +739,7 @@ func decodeBody(body io.Reader, out interface{}) error {
 	return lib.DecodeJSON(body, out)
 }
 
-// decodeBodyDeprecated is deprecated, please ues decodeBody above.
+// decodeBodyDeprecated is deprecated, please use decodeBody above.
 // decodeBodyDeprecated is used to decode a JSON request body
 func decodeBodyDeprecated(req *http.Request, out interface{}, cb func(interface{}) error) error {
 	// This generally only happens in tests since real HTTP requests set
@@ -1202,6 +1205,15 @@ func (s *HTTPHandlers) parseSource(req *http.Request, source *structs.QuerySourc
 func (s *HTTPHandlers) parsePeerName(req *http.Request, args *structs.ServiceSpecificRequest) {
 	if peer := req.URL.Query().Get("peer"); peer != "" {
 		args.PeerName = peer
+	}
+}
+
+func (s *HTTPHandlers) parseSamenessGroup(req *http.Request, args *structs.ServiceSpecificRequest) {
+	if sg := req.URL.Query().Get("sg"); sg != "" {
+		args.SamenessGroup = sg
+	}
+	if sg := req.URL.Query().Get("sameness-group"); sg != "" {
+		args.SamenessGroup = sg
 	}
 }
 

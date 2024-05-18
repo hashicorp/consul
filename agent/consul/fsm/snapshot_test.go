@@ -566,7 +566,6 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 			},
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				PeerName:  "local",
 				Namespace: "default",
 			},
 			Name: "bar",
@@ -815,14 +814,17 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	// Verify config entries are restored
 	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
+	serviceConfig.SetHash(serviceConfEntry.GetHash())
 	require.Equal(t, serviceConfig, serviceConfEntry)
 
 	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
+	proxyConfig.SetHash(proxyConfEntry.GetHash())
 	require.Equal(t, proxyConfig, proxyConfEntry)
 
 	_, ingressRestored, err := fsm2.state.ConfigEntry(nil, structs.IngressGateway, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
+	ingress.SetHash(ingressRestored.GetHash())
 	require.Equal(t, ingress, ingressRestored)
 
 	_, restoredGatewayServices, err := fsm2.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -856,11 +858,13 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	// Verify service-intentions is restored
 	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
+	serviceIxn.SetHash(serviceIxnEntry.GetHash())
 	require.Equal(t, serviceIxn, serviceIxnEntry)
 
 	// Verify mesh config entry is restored
 	_, meshConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
+	meshConfig.SetHash(meshConfigEntry.GetHash())
 	require.Equal(t, meshConfig, meshConfigEntry)
 
 	_, restoredServiceNames, err := fsm2.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)

@@ -217,15 +217,14 @@ func (l *loader) loadUpstreamService(
 	if service != nil {
 		l.out.AddService(service)
 
-		failoverPolicyID := changeResourceType(svcID, pbcatalog.FailoverPolicyType)
-		failoverPolicy, err := l.mem.GetFailoverPolicy(ctx, failoverPolicyID)
+		failoverPolicyID := changeResourceType(svcID, pbcatalog.ComputedFailoverPolicyType)
+		failoverPolicy, err := l.mem.GetComputedFailoverPolicy(ctx, failoverPolicyID)
 		if err != nil {
-			logger.Error("error retrieving the failover policy", "failoverPolicyID", failoverPolicyID, "error", err)
+			logger.Error("error retrieving the computed failover policy", "computedFailoverPolicyID", failoverPolicyID, "error", err)
 			return err
 		}
 		if failoverPolicy != nil {
-			l.mapper.TrackFailoverPolicy(failoverPolicy)
-			l.out.AddFailoverPolicy(failoverPolicy)
+			l.out.AddComputedFailoverPolicy(failoverPolicy)
 
 			destRefs := failoverPolicy.Data.GetUnderlyingDestinationRefs()
 			for _, destRef := range destRefs {
@@ -245,8 +244,6 @@ func (l *loader) loadUpstreamService(
 					}
 				}
 			}
-		} else {
-			l.mapper.UntrackFailoverPolicy(failoverPolicyID)
 		}
 
 		if err := l.loadDestConfig(ctx, logger, svcID); err != nil {

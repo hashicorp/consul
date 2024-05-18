@@ -1,0 +1,51 @@
+---
+layout: docs
+page_title: Consul resource groups
+description: Learn about resource groups in version 2 of Consul's internal architecture. The auth, catalog, and mesh groups structure Consul's ability to target individual workloads or an entire collection of workload endpoints.
+---
+
+<Warning>
+
+The v2 catalog API and Traffic Permissions API are currently in beta. This documentation supports testing and development scenarios. Do not use these APIs in secure production environments.
+
+</Warning>
+
+# Consul resource groups
+
+This topic provides an overview of resource groups in Consul's v2 architecture.
+
+Refer to the [`consul resource` CLI command reference](/consul/docs/commands/resource) to learn about using the Consul CLI to interact with resources.
+
+## Introduction
+
+Consul's v2 architecture manages workloads using _resources_. Each resource is part of a _resource group_.
+
+These resource groups structure Consul's ability to target either an _individual workload identity_ or an _entire collection of workload endpoints_ when managing service mesh traffic. There are three resource groups in the v2 API:
+
+- `auth` group: Resources apply to workload identity
+- `catalog` group: Resources apply to all workloads associated with a service
+- `mesh` group: Resources apply to either workload identities or all workloads
+
+For example, traffic permissions are part of the `auth` group. Permissions allow or deny traffic according to the other v2 catalog resource in the `auth` group, the workload identity. Meanwhile, when Consul routes service mesh traffic it applies rules to workloads based on the Service, which is a resource in the `catalog` group.
+
+One practical impact of resource groups is that the [HTTPRoute](/consul/docs/k8s/multiport/reference/httproute), [GRPCRoute](/consul/docs/k8s/multiport/reference/grpcroute), and [TCPRoute](/consul/docs/k8s/multiport/reference/tcproute) CRDs require you to specify a `name` and `type` in configuration blocks. The `catalog.v2beta1.Service` type indicates that the rules defined in these CRDs apply to all workloads registered in the Consul catalog under the given name.
+
+You can also use the `consul resource` command to return information about Consul resources in each group using a `group.groupVersion.kind` syntax. Refer to [`consul resource`](/consul/docs/commands/resource) for more information.
+
+## Resource group reference
+
+The following table describes the Consul resources that belong to each resource group and the resource's `group.groupVersion.kind` syntax.
+
+| Resource `group` | v2 resource | Consul resource syntax |
+| :------------------ | :-------- | :---- |
+| `auth` | Traffic permissions |  `auth.v2beta1.TrafficPermissions` |
+| `auth` | Workload identity |  `auth.v2beta1.WorkloadIdentity` |
+| `catalog` | Service  | `catalog.v2beta1.Service` |
+| `catalog` | Node | `catalog.v2beta1.Node` |
+| `catalog` | Workload | `catalog.v2beta1.Workload` |
+| `catalog` | Health status |  `catalog.v2beta1.HealthStatus` |
+| `catalog` | Destinations |  `catalog.v2beta1.Destination` |
+| `mesh` | GRPCRoute |  `mesh.v2beta1.GRPCRoute` |
+| `mesh` | HTTPRoute |  `mesh.v2beta1.HTTPRoute` |
+| `mesh` | Proxy configuration |  `mesh.v2beta1.ProxyConfiguration` |
+| `mesh` | TCPRoute |  `mesh.v2beta1.TCPRoute` |

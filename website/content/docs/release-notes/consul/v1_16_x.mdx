@@ -51,6 +51,10 @@ We are pleased to announce the following Consul updates.
 
   Consul's API gateway is the recommended alternative to ingress gateway. For ingress gateway features not currently supported by API gateway, equivalent functionality will be added to API gateway over the next several releases of Consul.
 
+- **Legacy API Gateway:** The Consul API Gateway that was previously packaged as `consul-api-gateway` and released separately from Consul K8s is now deprecated. This is referred to as the "legacy" API Gateway.
+
+  This version of Consul supports v0.5.4 of the legacy API Gateway in order to simplify the process of migrating from legacy to native API gateways.
+
 - **Connect Native Golang SDK:** The Connect Native [Golang SDK](https://github.com/hashicorp/consul/tree/main/connect) is deprecated and will be removed in a future release. No further enhancements or maintenance is expected in the future releases. We will remove the SDK when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
 
 - **Connect Native APIs:** The following APIs for Connect Native are deprecated: 
@@ -67,6 +71,11 @@ For more detailed information, please refer to the [upgrade details page](/consu
 ## Known Issues
 
 The following issues are known to exist in the v1.16.x releases:
+
+- v1.16.5 - Excessively strict TLS SAN verification is performed by terminating gateways,
+    which prevents connections outside of the mesh to upstream services. Terminating gateway
+    users are advised to avoid deploying these Consul versions. A fix will be present in a future
+    release of Consul 1.16.6 [[GH-20360](https://github.com/hashicorp/consul/issues/20360)].
 
 - v1.16.0 - v1.16.1 may have issues when a snapshot restore is performed
     and the servers are hosting xDS streams. When this bug triggers, it

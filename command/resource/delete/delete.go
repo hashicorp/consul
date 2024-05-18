@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -38,7 +39,8 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
-	flags.Merge(c.flags, c.http.AddPeerName())
+	// TODO(peering/v2) add back ability to query peers
+	// flags.Merge(c.flags, c.http.AddPeerName())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -76,7 +78,6 @@ func (c *cmd) Run(args []string) int {
 			opts = &client.QueryOptions{
 				Namespace: parsedResource.Id.Tenancy.GetNamespace(),
 				Partition: parsedResource.Id.Tenancy.GetPartition(),
-				Peer:      parsedResource.Id.Tenancy.GetPeerName(),
 				Token:     c.http.Token(),
 			}
 		} else {
@@ -85,7 +86,13 @@ func (c *cmd) Run(args []string) int {
 		}
 	} else {
 		var err error
-		gvk, resourceName, err = resource.GetTypeAndResourceName(args)
+		var resourceType *pbresource.Type
+		resourceType, resourceName, err = resource.GetTypeAndResourceName(args)
+		gvk = &resource.GVK{
+			Group:   resourceType.GetGroup(),
+			Version: resourceType.GetGroupVersion(),
+			Kind:    resourceType.GetKind(),
+		}
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
 			return 1
@@ -104,7 +111,6 @@ func (c *cmd) Run(args []string) int {
 		opts = &client.QueryOptions{
 			Namespace: c.http.Namespace(),
 			Partition: c.http.Partition(),
-			Peer:      c.http.PeerName(),
 			Token:     c.http.Token(),
 		}
 	}
@@ -140,16 +146,16 @@ func (c *cmd) Help() string {
 const synopsis = "Delete resource information"
 const help = `
 Usage: You have two options to delete the resource specified by the given
-type, name, partition, namespace and peer and outputs its JSON representation.
+type, name, partition and namespace and outputs its JSON representation.
 
-consul resource delete [type] [name] -partition=<default> -namespace=<default> -peer=<local>
+consul resource delete [type] [name] -partition=<default> -namespace=<default>
 consul resource delete -f [resource_file_path]
 
 But you could only use one of the approaches.
 
 Example:
 
-$ consul resource delete catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource delete catalog.v2beta1.Service card-processor -partition=billing -namespace=payments
 $ consul resource delete -f resource.hcl
 
 In resource.hcl, it could be:
@@ -159,7 +165,6 @@ ID {
   Tenancy {
     Namespace = "payments"
     Partition = "billing"
-    PeerName = "eu"
   }
 }
 `

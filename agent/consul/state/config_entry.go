@@ -6,7 +6,6 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
 	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
@@ -103,6 +102,13 @@ func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 
 // ConfigEntry is used when restoring from a snapshot.
 func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
+	// the hash is recalculated when restoring config entries
+	// in case a new field is added in a newer version.
+	h, err := structs.HashConfigEntry(c)
+	if err != nil {
+		return err
+	}
+	c.SetHash(h)
 	return insertConfigEntryWithTxn(s.tx, c.GetRaftIndex().ModifyIndex, c)
 }
 
@@ -521,7 +527,12 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 			return err
 		}
 	case structs.ProxyDefaults:
-		err := addProtocol(conf.(*structs.ProxyConfigEntry))
+		proxyDefaults, ok := conf.(*structs.ProxyConfigEntry)
+		if !ok {
+			return fmt.Errorf("unable to cast config entry to proxy-defaults")
+		}
+		// Ensure we pre-compute the protocol before persisting always.
+		err := proxyDefaults.ComputeProtocol()
 		if err != nil {
 			return err
 		}
@@ -547,21 +558,6 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		return fmt.Errorf("failed updating index: %v", err)
 	}
 
-	return nil
-}
-
-// proxyConfig is a snippet from agent/xds/config.go:ProxyConfig
-type proxyConfig struct {
-	Protocol string `mapstructure:"protocol"`
-}
-
-func addProtocol(conf *structs.ProxyConfigEntry) error {
-	var cfg proxyConfig
-	err := mapstructure.WeakDecode(conf.Config, &cfg)
-	if err != nil {
-		return err
-	}
-	conf.Protocol = cfg.Protocol
 	return nil
 }
 
@@ -650,6 +646,7 @@ func validateProposedConfigEntryInGraph(
 	case structs.ExportedServices:
 	case structs.APIGateway: // TODO Consider checkGatewayClash
 	case structs.BoundAPIGateway:
+	case structs.FileSystemCertificate:
 	case structs.InlineCertificate:
 	case structs.HTTPRoute:
 	case structs.TCPRoute:

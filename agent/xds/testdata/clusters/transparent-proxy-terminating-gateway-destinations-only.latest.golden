@@ -166,9 +166,30 @@
           "commonTlsContext": {
             "tlsParams": {},
             "validationContext": {
-              "matchSubjectAltNames": [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact": "api.test.com"
+                  "matcher": {
+                    "exact": "api.test.com"
+                  },
+                  "sanType": "URI"
+                },
+                {
+                  "matcher": {
+                    "exact": "api.test.com"
+                  },
+                  "sanType": "DNS"
+                },
+                {
+                  "matcher": {
+                    "exact": "api.test.com"
+                  },
+                  "sanType": "EMAIL"
+                },
+                {
+                  "matcher": {
+                    "exact": "api.test.com"
+                  },
+                  "sanType": "IP_ADDRESS"
                 }
               ],
               "trustedCa": {

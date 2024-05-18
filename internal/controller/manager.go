@@ -23,7 +23,7 @@ type Manager struct {
 
 	mu          sync.Mutex
 	running     bool
-	controllers []Controller
+	controllers []*Controller
 	leaseChans  []chan struct{}
 }
 
@@ -38,7 +38,7 @@ func NewManager(client pbresource.ResourceServiceClient, logger hclog.Logger) *M
 
 // Register the given controller to be executed by the Manager. Cannot be called
 // once the Manager is running.
-func (m *Manager) Register(ctrl Controller) {
+func (m *Manager) Register(ctrl *Controller) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -65,16 +65,7 @@ func (m *Manager) Run(ctx context.Context) {
 	m.running = true
 
 	for _, desc := range m.controllers {
-		logger := desc.logger
-		if logger == nil {
-			logger = m.logger.With("managed_type", desc.managedType.Kind)
-		}
-
-		runner := &controllerRunner{
-			ctrl:   desc,
-			client: m.client,
-			logger: logger,
-		}
+		runner := newControllerRunner(desc, m.client, m.logger)
 		go newSupervisor(runner.run, m.newLeaseLocked(desc)).run(ctx)
 	}
 }
@@ -100,7 +91,7 @@ func (m *Manager) SetRaftLeader(leader bool) {
 	}
 }
 
-func (m *Manager) newLeaseLocked(ctrl Controller) Lease {
+func (m *Manager) newLeaseLocked(ctrl *Controller) Lease {
 	if ctrl.placement == PlacementEachServer {
 		return eternalLease{}
 	}

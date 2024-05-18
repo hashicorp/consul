@@ -96,16 +96,16 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			return rtest.MustDecode[*pbmesh.DestinationPolicy](t, policy)
 		}
 
-		newFailPolicy := func(name string, data *pbcatalog.FailoverPolicy) *types.DecodedFailoverPolicy {
-			policy := rtest.Resource(pbcatalog.FailoverPolicyType, name).
+		newFailPolicy := func(name string, data *pbcatalog.ComputedFailoverPolicy) *types.DecodedComputedFailoverPolicy {
+			policy := rtest.Resource(pbcatalog.ComputedFailoverPolicyType, name).
 				WithTenancy(tenancy).
 				WithData(t, data).Build()
 			rtest.ValidateAndNormalize(t, registry, policy)
-			return rtest.MustDecode[*pbcatalog.FailoverPolicy](t, policy)
+			return rtest.MustDecode[*pbcatalog.ComputedFailoverPolicy](t, policy)
 		}
 
 		backendName := func(name, port string) string {
-			return fmt.Sprintf("catalog.v2beta1.Service/%s.local.%s/%s?port=%s", tenancy.Partition, tenancy.Namespace, name, port)
+			return fmt.Sprintf("catalog.v2beta1.Service/%s.%s/%s?port=%s", tenancy.Partition, tenancy.Namespace, name, port)
 		}
 
 		var (
@@ -1606,10 +1606,17 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			failoverPolicy := &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Destinations: []*pbcatalog.FailoverDestination{
-						{Ref: barServiceRef},
+						{Ref: barServiceRef},  // port is not supported in non-ported config
 						{Ref: deadServiceRef}, // no service
 					},
 				},
+			}
+
+			simplifiedFailoverPolicy := catalog.SimplifyFailoverPolicy(fooServiceData, failoverPolicy)
+
+			computedFailoverPolicy := &pbcatalog.ComputedFailoverPolicy{
+				PortConfigs:     simplifiedFailoverPolicy.PortConfigs,
+				BoundReferences: []*pbresource.Reference{barServiceRef},
 			}
 			portFailoverConfig := &pbmesh.ComputedFailoverConfig{
 				Destinations: []*pbmesh.ComputedFailoverDestination{
@@ -1625,7 +1632,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 					newService("foo", fooServiceData),
 					newService("bar", barServiceData),
 					newHTTPRoute("api-http-route1", httpRoute1),
-					newFailPolicy("foo", failoverPolicy),
+					newFailPolicy("foo", computedFailoverPolicy),
 				)
 
 			expect := []*ComputedRoutesResult{{
@@ -1633,7 +1640,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				OwnerID: apiServiceID,
 				Data: &pbmesh.ComputedRoutes{
 					BoundReferences: []*pbresource.Reference{
-						newRef(pbcatalog.FailoverPolicyType, "foo", tenancy),
+						newRef(pbcatalog.ComputedFailoverPolicyType, "foo", tenancy),
 						apiServiceRef,
 						barServiceRef,
 						fooServiceRef,
@@ -1681,6 +1688,290 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				},
 			}}
 			run(t, related, expect, nil)
+		})
+
+		// Same as above dest case, but tests various combinations of virtual and target port values
+		t.Run("http route with dest policy - virtual ports", func(t *testing.T) {
+			for _, parentRefPort := range []string{"http", "8080"} {
+				for _, backendRefPort := range []string{"http", "9090", ""} {
+					for _, configKeyPort := range []string{"http", "9090"} {
+						t.Run(fmt.Sprintf("%v, %v, %v", parentRefPort, backendRefPort, configKeyPort), func(t *testing.T) {
+							apiServiceData := &pbcatalog.Service{
+								Workloads: &pbcatalog.WorkloadSelector{
+									Prefixes: []string{"api-"},
+								},
+								Ports: []*pbcatalog.ServicePort{
+									{TargetPort: "mesh", VirtualPort: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+									{TargetPort: "http", VirtualPort: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+								},
+							}
+
+							fooServiceData := &pbcatalog.Service{
+								Workloads: &pbcatalog.WorkloadSelector{
+									Prefixes: []string{"foo-"},
+								},
+								Ports: []*pbcatalog.ServicePort{
+									{TargetPort: "mesh", VirtualPort: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+									{TargetPort: "http", VirtualPort: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+								},
+							}
+
+							httpRoute1 := &pbmesh.HTTPRoute{
+								ParentRefs: []*pbmesh.ParentReference{
+									newParentRef(newRef(pbcatalog.ServiceType, "api", tenancy), parentRefPort),
+								},
+								Rules: []*pbmesh.HTTPRouteRule{{
+									Matches: []*pbmesh.HTTPRouteMatch{{
+										Path: &pbmesh.HTTPPathMatch{
+											Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+											Value: "/",
+										},
+									}},
+									BackendRefs: []*pbmesh.HTTPBackendRef{{
+										BackendRef: newBackendRef(fooServiceRef, backendRefPort, ""),
+									}},
+								}},
+							}
+
+							destPolicy := &pbmesh.DestinationPolicy{
+								PortConfigs: map[string]*pbmesh.DestinationConfig{
+									configKeyPort: {
+										ConnectTimeout: durationpb.New(55 * time.Second),
+									},
+								},
+							}
+							expectedPortDestConfig := &pbmesh.DestinationConfig{
+								ConnectTimeout: durationpb.New(55 * time.Second),
+							}
+
+							related := loader.NewRelatedResources().
+								AddComputedRoutesIDs(apiComputedRoutesID).
+								AddResources(
+									newService("api", apiServiceData),
+									newService("foo", fooServiceData),
+									newHTTPRoute("api-http-route1", httpRoute1),
+									newDestPolicy("foo", destPolicy),
+								)
+
+							// Same result as non-virtual-port variant of test
+							expect := []*ComputedRoutesResult{{
+								ID:      apiComputedRoutesID,
+								OwnerID: apiServiceID,
+								Data: &pbmesh.ComputedRoutes{
+									BoundReferences: []*pbresource.Reference{
+										apiServiceRef,
+										fooServiceRef,
+										newRef(pbmesh.DestinationPolicyType, "foo", tenancy),
+										newRef(pbmesh.HTTPRouteType, "api-http-route1", tenancy),
+									},
+									PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+										"http": {
+											Config: &pbmesh.ComputedPortRoutes_Http{
+												Http: &pbmesh.ComputedHTTPRoute{
+													Rules: []*pbmesh.ComputedHTTPRouteRule{
+														{
+															Matches: defaultHTTPRouteMatches(),
+															BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+																BackendTarget: backendName("foo", "http"),
+															}},
+														},
+														{
+															Matches: defaultHTTPRouteMatches(),
+															BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+																BackendTarget: types.NullRouteBackend,
+															}},
+														},
+													},
+												},
+											},
+											ParentRef: newParentRef(apiServiceRef, "http"),
+											Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
+											Targets: map[string]*pbmesh.BackendTargetDetails{
+												backendName("foo", "http"): {
+													Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+													MeshPort:          "mesh",
+													BackendRef:        newBackendRef(fooServiceRef, "http", ""),
+													DestinationConfig: expectedPortDestConfig,
+												},
+											},
+										},
+									},
+								},
+							}}
+							run(t, related, expect, nil)
+						})
+					}
+				}
+			}
+		})
+
+		// Same as above failover case, but tests various combinations of virtual and target port values
+		t.Run("http route with failover policy - virtual ports", func(t *testing.T) {
+			for _, parentRefPort := range []string{"http", "8080"} {
+				for _, backendRefPortFoo := range []string{"http", "9090", ""} {
+					for _, backendRefPortBar := range []string{"http", "9091", ""} {
+						for _, configKeyPortFoo := range []string{"http", "9090", ""} {
+							t.Run(fmt.Sprintf("%v, %v, %v, %v", parentRefPort, backendRefPortFoo, backendRefPortBar, configKeyPortFoo), func(t *testing.T) {
+								apiServiceData := &pbcatalog.Service{
+									Workloads: &pbcatalog.WorkloadSelector{
+										Prefixes: []string{"api-"},
+									},
+									Ports: []*pbcatalog.ServicePort{
+										{TargetPort: "mesh", VirtualPort: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+										{TargetPort: "http", VirtualPort: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+									},
+								}
+
+								fooServiceData := &pbcatalog.Service{
+									Workloads: &pbcatalog.WorkloadSelector{
+										Prefixes: []string{"foo-"},
+									},
+									Ports: []*pbcatalog.ServicePort{
+										{TargetPort: "mesh", VirtualPort: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+										{TargetPort: "http", VirtualPort: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+									},
+								}
+
+								barServiceData := &pbcatalog.Service{
+									Workloads: &pbcatalog.WorkloadSelector{
+										Prefixes: []string{"bar-"},
+									},
+									Ports: []*pbcatalog.ServicePort{
+										{TargetPort: "mesh", VirtualPort: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+										{TargetPort: "http", VirtualPort: 9091, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+									},
+								}
+
+								httpRoute1 := &pbmesh.HTTPRoute{
+									ParentRefs: []*pbmesh.ParentReference{
+										newParentRef(newRef(pbcatalog.ServiceType, "api", tenancy), parentRefPort),
+									},
+									Rules: []*pbmesh.HTTPRouteRule{{
+										Matches: []*pbmesh.HTTPRouteMatch{{
+											Path: &pbmesh.HTTPPathMatch{
+												Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+												Value: "/",
+											},
+										}},
+										BackendRefs: []*pbmesh.HTTPBackendRef{{
+											BackendRef: newBackendRef(fooServiceRef, backendRefPortFoo, ""),
+										}},
+									}},
+								}
+
+								failoverPolicy := &pbcatalog.FailoverPolicy{
+									Config: &pbcatalog.FailoverConfig{
+										Destinations: []*pbcatalog.FailoverDestination{
+											{Ref: barServiceRef},  // port is not supported in non-ported config
+											{Ref: deadServiceRef}, // no service
+										},
+									},
+								}
+
+								simplifiedFailoverPolicy := catalog.SimplifyFailoverPolicy(fooServiceData, failoverPolicy)
+
+								computedFailoverPolicy := &pbcatalog.ComputedFailoverPolicy{
+									PortConfigs:     simplifiedFailoverPolicy.PortConfigs,
+									BoundReferences: []*pbresource.Reference{barServiceRef},
+								}
+
+								// Test ported config if used in test case
+								if configKeyPortFoo != "" {
+									failoverPolicy := &pbcatalog.FailoverPolicy{
+										PortConfigs: map[string]*pbcatalog.FailoverConfig{
+											configKeyPortFoo: {
+												Destinations: []*pbcatalog.FailoverDestination{
+													{Ref: barServiceRef, Port: backendRefPortBar},
+													{Ref: deadServiceRef}, // no service
+												},
+											},
+										},
+									}
+
+									simplifiedFailoverPolicy = catalog.SimplifyFailoverPolicy(fooServiceData, failoverPolicy)
+
+									computedFailoverPolicy = &pbcatalog.ComputedFailoverPolicy{
+										PortConfigs:     simplifiedFailoverPolicy.PortConfigs,
+										BoundReferences: []*pbresource.Reference{barServiceRef},
+									}
+								}
+								expectedPortFailoverConfig := &pbmesh.ComputedFailoverConfig{
+									Destinations: []*pbmesh.ComputedFailoverDestination{
+										{BackendTarget: backendName("bar", "http")},
+										// we skip the dead route
+									},
+								}
+
+								related := loader.NewRelatedResources().
+									AddComputedRoutesIDs(apiComputedRoutesID).
+									AddResources(
+										newService("api", apiServiceData),
+										newService("foo", fooServiceData),
+										newService("bar", barServiceData),
+										newHTTPRoute("api-http-route1", httpRoute1),
+										newFailPolicy("foo", computedFailoverPolicy),
+									)
+
+								// Same result as non-virtual-port variant of test
+								expect := []*ComputedRoutesResult{{
+									ID:      apiComputedRoutesID,
+									OwnerID: apiServiceID,
+									Data: &pbmesh.ComputedRoutes{
+										BoundReferences: []*pbresource.Reference{
+											newRef(pbcatalog.ComputedFailoverPolicyType, "foo", tenancy),
+											apiServiceRef,
+											barServiceRef,
+											fooServiceRef,
+											newRef(pbmesh.HTTPRouteType, "api-http-route1", tenancy),
+										},
+										PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+											"http": {
+												Config: &pbmesh.ComputedPortRoutes_Http{
+													Http: &pbmesh.ComputedHTTPRoute{
+														Rules: []*pbmesh.ComputedHTTPRouteRule{
+															{
+																Matches: defaultHTTPRouteMatches(),
+																BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+																	BackendTarget: backendName("foo", "http"),
+																}},
+															},
+															{
+																Matches: defaultHTTPRouteMatches(),
+																BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+																	BackendTarget: types.NullRouteBackend,
+																}},
+															},
+														},
+													},
+												},
+												ParentRef: newParentRef(apiServiceRef, "http"),
+												Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
+												Targets: map[string]*pbmesh.BackendTargetDetails{
+													backendName("foo", "http"): {
+														Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+														MeshPort:          "mesh",
+														BackendRef:        newBackendRef(fooServiceRef, "http", ""),
+														FailoverConfig:    expectedPortFailoverConfig,
+														DestinationConfig: defaultDestConfig(),
+													},
+													// Indirect target with unspecified port gets parent ref port
+													backendName("bar", "http"): {
+														Type:              pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_INDIRECT,
+														MeshPort:          "mesh",
+														BackendRef:        newBackendRef(barServiceRef, "http", ""),
+														DestinationConfig: defaultDestConfig(),
+													},
+												},
+											},
+										},
+									},
+								}}
+								run(t, related, expect, nil)
+							})
+						}
+					}
+				}
+			}
 		})
 	}
 }

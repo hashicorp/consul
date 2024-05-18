@@ -73,7 +73,7 @@
   </:notifications>
 
   <:side-nav>
-    <Hds::SideNav @isResponsive={{false}} class='consul-side-nav' data-test-navigation>
+    <Hds::SideNav @hasA11yRefocus={{false}} @isResponsive={{false}} class='consul-side-nav' data-test-navigation>
       <:header>
         <Hds::SideNav::Header>
           <:logo>
@@ -122,7 +122,7 @@
           class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
           as |SNL|
         >
-          <Consul::Hcp::Home @list={{SNL}} />
+          <HcpNavItem @list={{SNL}}/>
           <Consul::Datacenter::Selector
             @list={{SNL}}
             @dc={{@dc}}

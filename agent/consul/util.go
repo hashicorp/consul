@@ -11,7 +11,9 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // CanServersUnderstandProtocol checks to see if all the servers in the given
@@ -170,4 +172,15 @@ func isSerfMember(s *serf.Serf, nodeName string) bool {
 		}
 	}
 	return false
+}
+
+func DefaultIntentionAllow(authz acl.Authorizer, defaultIntentionPolicy string) bool {
+	// The default intention policy inherits from ACLs but
+	// is overridden by the agent's DefaultIntentionPolicy.
+	//nolint:staticcheck
+	defaultAllow := authz.IntentionDefaultAllow(nil) == acl.Allow
+	if defaultIntentionPolicy != "" {
+		defaultAllow = defaultIntentionPolicy == structs.IntentionDefaultPolicyAllow
+	}
+	return defaultAllow
 }

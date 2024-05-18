@@ -24,8 +24,8 @@ const (
 	// common.go for the full list.
 )
 
-func Controller(registry resource.Registry) controller.Controller {
-	return controller.ForType(pbtenancy.NamespaceType).
+func Controller(registry resource.Registry) *controller.Controller {
+	return controller.NewController(StatusKey, pbtenancy.NamespaceType).
 		WithReconciler(&Reconciler{Registry: registry})
 }
 
@@ -78,7 +78,6 @@ func ensureDeleted(ctx context.Context, rt controller.Runtime, registry resource
 	tenancy := &pbresource.Tenancy{
 		Partition: res.Id.Tenancy.Partition,
 		Namespace: res.Id.Name,
-		PeerName:  resource.DefaultPeerName,
 	}
 	// Delete namespace scoped tenants
 	if err := common.EnsureTenantsDeleted(ctx, rt, registry, res, resource.ScopeNamespace, tenancy); err != nil {

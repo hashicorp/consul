@@ -247,6 +247,61 @@ func (this *WatchEvent) UnmarshalJSON(b []byte) error {
 	return ResourceUnmarshaler.Unmarshal(b, this)
 }
 
+// MarshalJSON is a custom marshaler for WatchEvent_Upsert
+func (this *WatchEvent_Upsert) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for WatchEvent_Upsert
+func (this *WatchEvent_Upsert) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for WatchEvent_Delete
+func (this *WatchEvent_Delete) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for WatchEvent_Delete
+func (this *WatchEvent_Delete) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for WatchEvent_EndOfSnapshot
+func (this *WatchEvent_EndOfSnapshot) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for WatchEvent_EndOfSnapshot
+func (this *WatchEvent_EndOfSnapshot) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for MutateAndValidateRequest
+func (this *MutateAndValidateRequest) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for MutateAndValidateRequest
+func (this *MutateAndValidateRequest) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for MutateAndValidateResponse
+func (this *MutateAndValidateResponse) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for MutateAndValidateResponse
+func (this *MutateAndValidateResponse) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
 var (
 	ResourceMarshaler   = &protojson.MarshalOptions{}
 	ResourceUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

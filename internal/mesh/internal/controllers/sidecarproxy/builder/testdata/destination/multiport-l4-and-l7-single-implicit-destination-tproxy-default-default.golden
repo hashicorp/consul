@@ -101,8 +101,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "default",
-        "partition": "default",
-        "peerName": "local"
+        "partition": "default"
       },
       "type": {
         "group": "auth",
@@ -150,7 +149,7 @@
           {
             "l7": {
               "route": {
-                "name": "default/local/default/api-app:http"
+                "name": "default/default/api-app:http"
               },
               "statPrefix": "upstream.http.api-app.default.default.dc1"
             },
@@ -185,13 +184,13 @@
       }
     ],
     "routes": {
-      "default/local/default/api-app:http": {
+      "default/default/api-app:http": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "default/local/default/api-app:http",
+            "name": "default/default/api-app:http",
             "routeRules": [
               {
                 "destination": {
@@ -217,8 +216,7 @@
         "name": "api-app",
         "tenancy": {
           "namespace": "default",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -226,15 +224,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "http"
     },
     "tcp.api-app.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-app",
         "tenancy": {
           "namespace": "default",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -242,15 +240,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp2.api-app.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-app",
         "tenancy": {
           "namespace": "default",
-          "partition": "default",
-          "peerName": "local"
+          "partition": "default"
         },
         "type": {
           "group": "catalog",
@@ -258,7 +256,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp2"
     }
   },
   "requiredLeafCertificates": {

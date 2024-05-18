@@ -6,7 +6,6 @@ package client
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,7 +20,6 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-rootcerts"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -73,14 +71,6 @@ const (
 	// whether or not to disable certificate checking.
 	HTTPSSLVerifyEnvName = "CONSUL_HTTP_SSL_VERIFY"
 
-	// GRPCCAFileEnvName defines an environment variable name which sets the
-	// CA file to use for talking to Consul gRPC over TLS.
-	GRPCCAFileEnvName = "CONSUL_GRPC_CACERT"
-
-	// GRPCCAPathEnvName defines an environment variable name which sets the
-	// path to a directory of CA certs to use for talking to Consul gRPC over TLS.
-	GRPCCAPathEnvName = "CONSUL_GRPC_CAPATH"
-
 	// HTTPNamespaceEnvVar defines an environment variable name which sets
 	// the HTTP Namespace to be used by default. This can still be overridden.
 	HTTPNamespaceEnvName = "CONSUL_NAMESPACE"
@@ -118,9 +108,6 @@ type QueryOptions struct {
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
 	Datacenter string
-
-	// Providing a peer name in the query option
-	Peer string
 
 	// AllowStale allows any Consul server (non-leader) to service
 	// a read. This allows for lower latency and higher throughput
@@ -538,60 +525,6 @@ func defaultConfig(logger hclog.Logger, transportFn func() *http.Transport) *Con
 	return config
 }
 
-// TLSConfig is used to generate a TLSClientConfig that's useful for talking to
-// Consul using TLS.
-func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
-	tlsClientConfig := &tls.Config{
-		InsecureSkipVerify: tlsConfig.InsecureSkipVerify,
-	}
-
-	if tlsConfig.Address != "" {
-		server := tlsConfig.Address
-		hasPort := strings.LastIndex(server, ":") > strings.LastIndex(server, "]")
-		if hasPort {
-			var err error
-			server, _, err = net.SplitHostPort(server)
-			if err != nil {
-				return nil, err
-			}
-		}
-		tlsClientConfig.ServerName = server
-	}
-
-	if len(tlsConfig.CertPEM) != 0 && len(tlsConfig.KeyPEM) != 0 {
-		tlsCert, err := tls.X509KeyPair(tlsConfig.CertPEM, tlsConfig.KeyPEM)
-		if err != nil {
-			return nil, err
-		}
-		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
-	} else if len(tlsConfig.CertPEM) != 0 || len(tlsConfig.KeyPEM) != 0 {
-		return nil, fmt.Errorf("both client cert and client key must be provided")
-	}
-
-	if tlsConfig.CertFile != "" && tlsConfig.KeyFile != "" {
-		tlsCert, err := tls.LoadX509KeyPair(tlsConfig.CertFile, tlsConfig.KeyFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
-	} else if tlsConfig.CertFile != "" || tlsConfig.KeyFile != "" {
-		return nil, fmt.Errorf("both client cert and client key must be provided")
-	}
-
-	if tlsConfig.CAFile != "" || tlsConfig.CAPath != "" || len(tlsConfig.CAPem) != 0 {
-		rootConfig := &rootcerts.Config{
-			CAFile:        tlsConfig.CAFile,
-			CAPath:        tlsConfig.CAPath,
-			CACertificate: tlsConfig.CAPem,
-		}
-		if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
-			return nil, err
-		}
-	}
-
-	return tlsClientConfig, nil
-}
-
 func (c *Config) GenerateEnv() []string {
 	env := make([]string, 0, 10)
 
@@ -830,14 +763,12 @@ func (r *request) SetQueryOptions(q *QueryOptions) {
 		// rather than the alternative short-hand "ap"
 		r.params.Set("partition", q.Partition)
 	}
+	// TODO(peering/v2) handle peer tenancy
 	if q.Datacenter != "" {
 		// For backwards-compatibility with existing tests,
 		// use the short-hand query param name "dc"
 		// rather than the alternative long-hand "datacenter"
 		r.params.Set("dc", q.Datacenter)
-	}
-	if q.Peer != "" {
-		r.params.Set("peer", q.Peer)
 	}
 	if q.AllowStale {
 		r.params.Set("stale", "")

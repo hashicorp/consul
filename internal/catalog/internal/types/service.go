@@ -4,10 +4,9 @@
 package types
 
 import (
-	"math"
-
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 )
@@ -21,7 +20,7 @@ func RegisterService(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateService,
 		Mutate:   MutateService,
-		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.Service](),
+		ACLs:     workloadselector.ACLHooks[*pbcatalog.Service](),
 	})
 }
 
@@ -104,7 +103,7 @@ func validateService(res *DecodedService) error {
 		// validate the virtual port is within the allowed range - 0 is allowed
 		// to signify that no virtual port should be used and the port will not
 		// be available for transparent proxying within the mesh.
-		if port.VirtualPort > math.MaxUint16 {
+		if portErr := ValidateVirtualPort(port.VirtualPort); portErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:  "ports",
 				Index: idx,

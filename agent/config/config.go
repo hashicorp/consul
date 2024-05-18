@@ -165,6 +165,7 @@ type Config struct {
 	DataDir                          *string             `mapstructure:"data_dir" json:"data_dir,omitempty"`
 	Datacenter                       *string             `mapstructure:"datacenter" json:"datacenter,omitempty"`
 	DefaultQueryTime                 *string             `mapstructure:"default_query_time" json:"default_query_time,omitempty"`
+	DefaultIntentionPolicy           *string             `mapstructure:"default_intention_policy" json:"default_intention_policy,omitempty"`
 	DisableAnonymousSignature        *bool               `mapstructure:"disable_anonymous_signature" json:"disable_anonymous_signature,omitempty"`
 	DisableCoordinates               *bool               `mapstructure:"disable_coordinates" json:"disable_coordinates,omitempty"`
 	DisableHostNodeID                *bool               `mapstructure:"disable_host_node_id" json:"disable_host_node_id,omitempty"`
@@ -696,6 +697,7 @@ type Telemetry struct {
 	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval" json:"circonus_submission_interval,omitempty"`
 	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url" json:"circonus_submission_url,omitempty"`
 	DisableHostname                    *bool    `mapstructure:"disable_hostname" json:"disable_hostname,omitempty"`
+	DisablePerTenancyUsageMetrics      *bool    `mapstructure:"disable_per_tenancy_usage_metrics" json:"disable_per_tenancy_usage_metrics,omitempty"`
 	EnableHostMetrics                  *bool    `mapstructure:"enable_host_metrics" json:"enable_host_metrics,omitempty"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr" json:"dogstatsd_addr,omitempty"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags" json:"dogstatsd_tags,omitempty"`

@@ -4,12 +4,14 @@
 package builder
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/testing/golden"
@@ -102,8 +104,8 @@ func TestBuildLocalApp(t *testing.T) {
 
 		for name, c := range cases {
 			t.Run(resourcetest.AppendTenancyInfoSubtest(t.Name(), name, tenancy), func(t *testing.T) {
-				proxyTmpl := New(testProxyStateTemplateID(tenancy), testIdentityRef(tenancy), "foo.consul", "dc1", true, nil).
-					BuildLocalApp(c.workload, nil).
+				proxyTmpl := New(testProxyStateTemplateID(tenancy), testIdentityRef(tenancy), "foo.consul", "dc1", c.defaultAllow, nil).
+					BuildLocalApp(c.workload, c.ctp).
 					Build()
 
 				// sort routers because of test flakes where order was flip flopping.
@@ -113,7 +115,7 @@ func TestBuildLocalApp(t *testing.T) {
 				})
 
 				actual := protoToJSON(t, proxyTmpl)
-				expected := JSONToProxyTemplate(t, golden.GetBytes(t, actual, name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden"))
+				expected := JSONToProxyTemplate(t, golden.GetBytes(t, []byte(actual), name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden"))
 
 				// sort routers on listener from golden file
 				expectedRouters := expected.ProxyState.Listeners[0].Routers
@@ -167,7 +169,7 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 					},
 				},
 			},
-			// source/local-and-inbound-connections shows that configuring LocalCOnnection
+			// source/local-and-inbound-connections shows that configuring LocalConnection
 			// and InboundConnections in DynamicConfig will set fields on standard clusters and routes,
 			// but will not set fields on exposed path clusters and routes.
 			"source/local-and-inbound-connections": {
@@ -231,7 +233,7 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 				})
 
 				actual := protoToJSON(t, proxyTmpl)
-				expected := JSONToProxyTemplate(t, golden.GetBytes(t, actual, name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden"))
+				expected := JSONToProxyTemplate(t, golden.GetBytes(t, []byte(actual), name+"-"+tenancy.Partition+"-"+tenancy.Namespace+".golden"))
 
 				// sort routers on listener from golden file
 				expectedRouters := expected.ProxyState.Listeners[0].Routers
@@ -246,324 +248,863 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 	}, t)
 }
 
-func TestBuildL4TrafficPermissions(t *testing.T) {
-	testTrustDomain := "test.consul"
+func TestBuildTrafficPermissions(t *testing.T) {
+	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+		testTrustDomain := "test.consul"
 
-	cases := map[string]struct {
-		defaultAllow  bool
-		workloadPorts map[string]*pbcatalog.WorkloadPort
-		ctp           *pbauth.ComputedTrafficPermissions
-		expected      map[string]*pbproxystate.TrafficPermissions
-	}{
-		"empty": {
-			defaultAllow: true,
-			workloadPorts: map[string]*pbcatalog.WorkloadPort{
-				"p1": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+		cases := map[string]struct {
+			defaultAllow  bool
+			workloadPorts map[string]*pbcatalog.WorkloadPort
+			ctp           *pbauth.ComputedTrafficPermissions
+			expected      map[string]*pbproxystate.TrafficPermissions
+		}{
+			"empty": {
+				defaultAllow: true,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+					"p3": {},
+					"mesh": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+					},
 				},
-				"p2": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
-				},
-				"p3": {},
-				"mesh": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
-				},
-			},
-			expected: map[string]*pbproxystate.TrafficPermissions{
-				"p1": {
-					DefaultAllow: false,
-				},
-				"p2": {
-					DefaultAllow: false,
-				},
-				"p3": {
-					DefaultAllow: false,
-				},
-			},
-		},
-		"default allow everywhere": {
-			defaultAllow: true,
-			workloadPorts: map[string]*pbcatalog.WorkloadPort{
-				"p1": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
-				},
-				"p2": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
-				},
-				"p3": {},
-				"mesh": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
-				},
-			},
-			ctp: &pbauth.ComputedTrafficPermissions{
-				IsDefault: true,
-			},
-			expected: map[string]*pbproxystate.TrafficPermissions{
-				"p1": {
-					DefaultAllow: true,
-				},
-				"p2": {
-					DefaultAllow: true,
-				},
-				"p3": {
-					DefaultAllow: true,
-				},
-			},
-		},
-		"preserves default deny": {
-			defaultAllow: false,
-			workloadPorts: map[string]*pbcatalog.WorkloadPort{
-				"p1": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
-				},
-				"p2": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
-				},
-			},
-			ctp: &pbauth.ComputedTrafficPermissions{
-				AllowPermissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								IdentityName: "foo",
-								Partition:    "default",
-								Namespace:    "default",
-							},
-						},
-						DestinationRules: []*pbauth.DestinationRule{
-							{
-								PortNames: []string{"p1"},
-							},
-						},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+					},
+					"p2": {
+						DefaultAllow: false,
+					},
+					"p3": {
+						DefaultAllow: false,
 					},
 				},
 			},
-			expected: map[string]*pbproxystate.TrafficPermissions{
-				"p1": {
-					DefaultAllow: false,
-					AllowPermissions: []*pbproxystate.Permission{
+			"default allow everywhere": {
+				defaultAllow: true,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+					"p3": {},
+					"mesh": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					IsDefault: true,
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: true,
+					},
+					"p2": {
+						DefaultAllow: true,
+					},
+					"p3": {
+						DefaultAllow: true,
+					},
+				},
+			},
+			"preserves default deny": {
+				defaultAllow: false,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
 						{
-							Principals: []*pbproxystate.Principal{
+							Sources: []*pbauth.Source{
 								{
-									Spiffe: &pbproxystate.Spiffe{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/foo$"},
+									IdentityName: "foo",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PortNames: []string{"p1"},
 								},
 							},
 						},
 					},
 				},
-				"p2": {
-					DefaultAllow: false,
-				},
-			},
-		},
-		"default allow with a non-empty ctp becomes default deny on all ports": {
-			defaultAllow: true,
-			workloadPorts: map[string]*pbcatalog.WorkloadPort{
-				"p1": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
-				},
-				"p2": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
-				},
-			},
-			ctp: &pbauth.ComputedTrafficPermissions{
-				AllowPermissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
 							{
-								IdentityName: "baz",
-								Partition:    "default",
-								Namespace:    "default",
-							},
-						},
-						DestinationRules: []*pbauth.DestinationRule{
-							{
-								PortNames: []string{"no-match"},
-							},
-						},
-					},
-				},
-			},
-			expected: map[string]*pbproxystate.TrafficPermissions{
-				"p1": {
-					DefaultAllow: false,
-				},
-				"p2": {
-					DefaultAllow: false,
-				},
-			},
-		},
-		"kitchen sink": {
-			defaultAllow: true,
-			workloadPorts: map[string]*pbcatalog.WorkloadPort{
-				"p1": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
-				},
-				"p2": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
-				},
-			},
-			ctp: &pbauth.ComputedTrafficPermissions{
-				AllowPermissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								IdentityName: "foo",
-								Partition:    "default",
-								Namespace:    "default",
-							},
-							{
-								IdentityName: "",
-								Partition:    "default",
-								Namespace:    "default",
-								Exclude: []*pbauth.ExcludeSource{
+								Principals: []*pbproxystate.Principal{
 									{
-										IdentityName: "bar",
-										Namespace:    "default",
-										Partition:    "default",
-									},
-								},
-							},
-						},
-						DestinationRules: []*pbauth.DestinationRule{
-							// This should be p2.
-							{
-								Exclude: []*pbauth.ExcludePermissionRule{
-									{
-										PortNames: []string{"p1"},
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
 									},
 								},
 							},
 						},
 					},
-					{
-						Sources: []*pbauth.Source{
-							{
-								IdentityName: "baz",
-								Partition:    "default",
-								Namespace:    "default",
-							},
-						},
-						DestinationRules: []*pbauth.DestinationRule{
-							{
-								PortNames: []string{"p1"},
-							},
-						},
-					},
-				},
-				DenyPermissions: []*pbauth.Permission{
-					{
-						Sources: []*pbauth.Source{
-							{
-								IdentityName: "qux",
-								Partition:    "default",
-								Namespace:    "default",
-							},
-						},
-					},
-					{
-						Sources: []*pbauth.Source{
-							{
-								IdentityName: "",
-								Namespace:    "default",
-								Partition:    "default",
-								Exclude: []*pbauth.ExcludeSource{
-									{
-										IdentityName: "quux",
-										Partition:    "default",
-										Namespace:    "default",
-									},
-								},
-							},
-						},
+					"p2": {
+						DefaultAllow: false,
 					},
 				},
 			},
-			expected: map[string]*pbproxystate.TrafficPermissions{
-				"p1": {
-					DefaultAllow: false,
-					DenyPermissions: []*pbproxystate.Permission{
-						{
-							Principals: []*pbproxystate.Principal{
-								{
-									Spiffe: &pbproxystate.Spiffe{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/qux$"},
-								},
-							},
-						},
-						{
-							Principals: []*pbproxystate.Principal{
-								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
-									ExcludeSpiffes: []*pbproxystate.Spiffe{
-										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/quux$"},
-									},
-								},
-							},
-						},
+			"preserves default deny wildcard namespace": {
+				defaultAllow: false,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
 					},
-					AllowPermissions: []*pbproxystate.Permission{
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
 						{
-							Principals: []*pbproxystate.Principal{
+							Sources: []*pbauth.Source{
 								{
-									Spiffe: &pbproxystate.Spiffe{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/baz$"},
+									IdentityName: "",
+									Partition:    tenancy.Partition,
+									Namespace:    "",
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PortNames: []string{"p1"},
 								},
 							},
 						},
 					},
 				},
-				"p2": {
-					DefaultAllow: false,
-					DenyPermissions: []*pbproxystate.Permission{
-						{
-							Principals: []*pbproxystate.Principal{
-								{
-									Spiffe: &pbproxystate.Spiffe{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/qux$"},
-								},
-							},
-						},
-						{
-							Principals: []*pbproxystate.Principal{
-								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
-									ExcludeSpiffes: []*pbproxystate.Spiffe{
-										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/quux$"},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/[^/]+$", tenancy.Partition, anyPath)},
 									},
 								},
 							},
 						},
 					},
-					AllowPermissions: []*pbproxystate.Permission{
-						{
-							Principals: []*pbproxystate.Principal{
-								{
-									Spiffe: &pbproxystate.Spiffe{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/foo$"},
-								},
-								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
-									ExcludeSpiffes: []*pbproxystate.Spiffe{
-										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/bar$"},
-									},
-								},
-							},
-						},
+					"p2": {
+						DefaultAllow: false,
 					},
 				},
 			},
-		},
-	}
+			"preserves default deny wildcard namespace exclude source": {
+				defaultAllow: false,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "",
+									Partition:    tenancy.Partition,
+									Namespace:    "",
+									Exclude: []*pbauth.ExcludeSource{
+										{
+											IdentityName: "bar",
+											Namespace:    tenancy.Namespace,
+											Partition:    tenancy.Partition,
+										},
+									},
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PortNames: []string{"p1"},
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/[^/]+$", tenancy.Partition, anyPath)},
 
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			workload := &pbcatalog.Workload{
-				Ports: tc.workloadPorts,
-			}
-			permissions := buildTrafficPermissions(tc.defaultAllow, testTrustDomain, workload, tc.ctp)
-			require.Equal(t, len(tc.expected), len(permissions))
-			for k, v := range tc.expected {
-				prototest.AssertDeepEqual(t, v, permissions[k])
-			}
-		})
-	}
+										ExcludeSpiffes: []*pbproxystate.Spiffe{
+											{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/bar$", tenancy.Partition, tenancy.Namespace)},
+										},
+									},
+								},
+							},
+						},
+					},
+					"p2": {
+						DefaultAllow: false,
+					},
+				},
+			},
+			"default allow with a non-empty ctp becomes default deny on all ports": {
+				defaultAllow: true,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "baz",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PortNames: []string{"no-match"},
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+					},
+					"p2": {
+						DefaultAllow: false,
+					},
+				},
+			},
+			"preserves default deny http rules": {
+				defaultAllow: false,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "foo",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PortNames: []string{"p2"},
+									Methods:   []string{"GET"},
+									PathExact: "/bar",
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p2": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathExact: "/bar",
+										Methods:   []string{"GET"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"kitchen sink": {
+				defaultAllow: true,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "foo",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+								{
+									IdentityName: "",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+									Exclude: []*pbauth.ExcludeSource{
+										{
+											IdentityName: "bar",
+											Namespace:    tenancy.Namespace,
+											Partition:    tenancy.Partition,
+										},
+									},
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								// This should be p2.
+								{
+									Exclude: []*pbauth.ExcludePermissionRule{
+										{
+											PortNames: []string{"p1"},
+										},
+									},
+								},
+							},
+						},
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "baz",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PortNames: []string{"p1"},
+								},
+							},
+						},
+					},
+					DenyPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "qux",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+						},
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "",
+									Namespace:    tenancy.Namespace,
+									Partition:    tenancy.Partition,
+									Exclude: []*pbauth.ExcludeSource{
+										{
+											IdentityName: "quux",
+											Partition:    tenancy.Partition,
+											Namespace:    tenancy.Namespace,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+						DenyPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/qux$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+							},
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf(`^spiffe://test.consul/ap/%s/ns/%s/identity/[^/]+$`, tenancy.Partition, tenancy.Namespace)},
+										ExcludeSpiffes: []*pbproxystate.Spiffe{
+											{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/quux$", tenancy.Partition, tenancy.Namespace)},
+										},
+									},
+								},
+							},
+						},
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/baz$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+							},
+						},
+					},
+					"p2": {
+						DefaultAllow: false,
+						DenyPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/qux$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+							},
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf(`^spiffe://test.consul/ap/%s/ns/%s/identity/[^/]+$`, tenancy.Partition, tenancy.Namespace)},
+										ExcludeSpiffes: []*pbproxystate.Spiffe{
+											{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/quux$", tenancy.Partition, tenancy.Namespace)},
+										},
+									},
+								},
+							},
+						},
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf(`^spiffe://test.consul/ap/%s/ns/%s/identity/[^/]+$`, tenancy.Partition, tenancy.Namespace)},
+										ExcludeSpiffes: []*pbproxystate.Spiffe{
+											{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/bar$", tenancy.Partition, tenancy.Namespace)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"destination rules l7, exclude rules for one port": {
+				defaultAllow: true,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "foo",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PathPrefix: "/",
+									Methods:    []string{"get", "post"},
+									Exclude: []*pbauth.ExcludePermissionRule{
+										{
+											PathExact: "/secret",
+											Headers:   []*pbauth.DestinationRuleHeader{{Name: "restricted"}},
+											PortNames: []string{"p2"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathPrefix: "/",
+										Methods:    []string{"get", "post"},
+									},
+								},
+							},
+						},
+					},
+					"p2": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathPrefix: "/",
+										Methods:    []string{"get", "post"},
+										Exclude: []*pbproxystate.ExcludePermissionRule{
+											{
+												PathExact: "/secret",
+												Headers:   []*pbproxystate.DestinationRuleHeader{{Name: "restricted"}},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"destination rules l7, rules by port": {
+				defaultAllow: true,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+					"p3": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "foo",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PathPrefix: "/",
+									Methods:    []string{"get", "post"},
+									PortNames:  []string{"p1", "p2"},
+									Exclude: []*pbauth.ExcludePermissionRule{
+										{
+											PathExact: "/secret",
+											Headers:   []*pbauth.DestinationRuleHeader{{Name: "restricted"}},
+											PortNames: []string{"p2"},
+										},
+									},
+								},
+								{
+									PortNames: []string{"p3"},
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathPrefix: "/",
+										Methods:    []string{"get", "post"},
+									},
+								},
+							},
+						},
+					},
+					"p2": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathPrefix: "/",
+										Methods:    []string{"get", "post"},
+										Exclude: []*pbproxystate.ExcludePermissionRule{
+											{
+												PathExact: "/secret",
+												Headers:   []*pbproxystate.DestinationRuleHeader{{Name: "restricted"}},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					"p3": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"destination rules l7, exclude infer ports": {
+				defaultAllow: true,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "foo",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PathPrefix: "/",
+									Exclude: []*pbauth.ExcludePermissionRule{
+										{
+											PathExact: "/secret",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathPrefix: "/",
+										Exclude: []*pbproxystate.ExcludePermissionRule{
+											{
+												PathExact: "/secret",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					"p2": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathPrefix: "/",
+										Exclude: []*pbproxystate.ExcludePermissionRule{
+											{
+												PathExact: "/secret",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"destination rules l7, headers and methods exclude": {
+				defaultAllow: true,
+				workloadPorts: map[string]*pbcatalog.WorkloadPort{
+					"p1": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+					"p2": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+					},
+				},
+				ctp: &pbauth.ComputedTrafficPermissions{
+					AllowPermissions: []*pbauth.Permission{
+						{
+							Sources: []*pbauth.Source{
+								{
+									IdentityName: "foo",
+									Partition:    tenancy.Partition,
+									Namespace:    tenancy.Namespace,
+								},
+							},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PathPrefix: "/",
+									Headers: []*pbauth.DestinationRuleHeader{
+										{Name: "header1", Present: true},
+									},
+									Methods: []string{"POST, GET"},
+									Exclude: []*pbauth.ExcludePermissionRule{
+										{
+											PathExact: "/secret",
+											Headers: []*pbauth.DestinationRuleHeader{
+												{Name: "header2", Present: true},
+											},
+											Methods: []string{"POST"},
+										},
+										{
+											PathExact: "/config",
+											Headers: []*pbauth.DestinationRuleHeader{
+												{Name: "header3", Present: true},
+											},
+											Methods: []string{"GET"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				expected: map[string]*pbproxystate.TrafficPermissions{
+					"p1": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathPrefix: "/",
+										DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+											{Name: "header1", Present: true},
+										},
+										Methods: []string{"POST, GET"},
+										Exclude: []*pbproxystate.ExcludePermissionRule{
+											{
+												PathExact: "/secret",
+												Headers: []*pbproxystate.DestinationRuleHeader{
+													{Name: "header2", Present: true},
+												},
+												Methods: []string{"POST"},
+											},
+											{
+												PathExact: "/config",
+												Headers: []*pbproxystate.DestinationRuleHeader{
+													{Name: "header3", Present: true},
+												},
+												Methods: []string{"GET"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					"p2": {
+						DefaultAllow: false,
+						AllowPermissions: []*pbproxystate.Permission{
+							{
+								Principals: []*pbproxystate.Principal{
+									{
+										Spiffe: &pbproxystate.Spiffe{Regex: fmt.Sprintf("^spiffe://test.consul/ap/%s/ns/%s/identity/foo$", tenancy.Partition, tenancy.Namespace)},
+									},
+								},
+								DestinationRules: []*pbproxystate.DestinationRule{
+									{
+										PathPrefix: "/",
+										DestinationRuleHeader: []*pbproxystate.DestinationRuleHeader{
+											{Name: "header1", Present: true},
+										},
+										Methods: []string{"POST, GET"},
+										Exclude: []*pbproxystate.ExcludePermissionRule{
+											{
+												PathExact: "/secret",
+												Headers: []*pbproxystate.DestinationRuleHeader{
+													{Name: "header2", Present: true},
+												},
+												Methods: []string{"POST"},
+											},
+											{
+												PathExact: "/config",
+												Headers: []*pbproxystate.DestinationRuleHeader{
+													{Name: "header3", Present: true},
+												},
+												Methods: []string{"GET"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		for name, tc := range cases {
+			t.Run(resourcetest.AppendTenancyInfoSubtest(t.Name(), name, tenancy), func(t *testing.T) {
+				workload := &pbcatalog.Workload{
+					Ports: tc.workloadPorts,
+				}
+				permissions := buildTrafficPermissions(tc.defaultAllow, testTrustDomain, workload, tc.ctp)
+				require.Equal(t, len(tc.expected), len(permissions))
+				for k, v := range tc.expected {
+					prototest.AssertDeepEqual(t, v, permissions[k])
+				}
+			})
+		}
+	}, t)
 }
 
 func testProxyStateTemplateID(tenancy *pbresource.Tenancy) *pbresource.ID {

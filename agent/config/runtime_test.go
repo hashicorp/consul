@@ -2329,7 +2329,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Cloud = hcpconfig.CloudConfig{
-				// ID is only populated from env if not populated from other sources.
 				ResourceID: "env-id",
 				NodeName:   "thehostname",
 				NodeID:     "",
@@ -2371,8 +2370,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.Cloud = hcpconfig.CloudConfig{
-				// ID is only populated from env if not populated from other sources.
-				ResourceID: "file-id",
+				ResourceID: "env-id",
 				NodeName:   "thehostname",
 			}
 
@@ -6025,7 +6023,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		json: []string{`
 			{
 				"experiments": ["resource-apis"]
-			}	
+			}
 		`},
 		hcl: []string{`experiments=["resource-apis"]`},
 		expected: func(rt *RuntimeConfig) {
@@ -6227,6 +6225,9 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.NodeName = expected.NodeName
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
+		for i, e := range expected.ConfigEntryBootstrap {
+			e.SetHash(actual.ConfigEntryBootstrap[i].GetHash())
+		}
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 		if tc.cleanup != nil {
 			tc.cleanup()
@@ -6973,7 +6974,8 @@ func TestLoad_FullConfig(t *testing.T) {
 				Expiration: 15 * time.Second,
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
-			EnableHostMetrics: true,
+			EnableHostMetrics:             true,
+			DisablePerTenancyUsageMetrics: true,
 		},
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{
@@ -7122,6 +7124,9 @@ func TestLoad_FullConfig(t *testing.T) {
 				time.Date(2019, 11, 20, 5, 0, 0, 0, time.UTC)))
 			r, err := Load(opts)
 			require.NoError(t, err)
+			for i, e := range expected.ConfigEntryBootstrap {
+				e.SetHash(r.RuntimeConfig.ConfigEntryBootstrap[i].GetHash())
+			}
 			prototest.AssertDeepEqual(t, expected, r.RuntimeConfig)
 			require.ElementsMatch(t, expectedWarns, r.Warnings, "Warnings: %#v", r.Warnings)
 		})

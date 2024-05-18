@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/dnsutil"
 )
 
 const (
@@ -187,6 +188,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	}
 
 	s.parsePeerName(req, &args)
+	s.parseSamenessGroup(req, &args)
+	if args.SamenessGroup != "" && args.PeerName != "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "peer-name and sameness-group are mutually exclusive"}
+	}
 
 	// Check for tags
 	params := req.URL.Query()
@@ -213,11 +218,23 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		prefix = "/v1/health/service/"
 	}
 
-	// Pull out the service name
+	// Parse the service name from the query params
 	args.ServiceName = strings.TrimPrefix(req.URL.Path, prefix)
 	if args.ServiceName == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
+
+	// Parse the passing flag from the query params and use to set the health filter type
+	// to HealthFilterIncludeOnlyPassing if it is present.  Otherwise, do not filter by health.
+	passing, err := getBoolQueryParam(params, api.HealthPassing)
+	if err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid value for ?passing"}
+	}
+	healthFilterType := structs.HealthFilterIncludeAll
+	if passing {
+		healthFilterType = structs.HealthFilterIncludeOnlyPassing
+	}
+	args.HealthFilterType = healthFilterType
 
 	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)
 	if err != nil {
@@ -228,22 +245,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		setCacheMeta(resp, &md)
 	}
 	out.QueryMeta.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
-	setMeta(resp, &out.QueryMeta)
-
-	// FIXME: argument parsing should be done before performing the rpc
-	// Filter to only passing if specified
-	filter, err := getBoolQueryParam(params, api.HealthPassing)
-	if err != nil {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Invalid value for ?passing"}
-	}
-
-	// FIXME: remove filterNonPassing, replace with nodes.Filter, which is used by DNSServer
-	if filter {
-		out.Nodes = filterNonPassing(out.Nodes)
-	}
+	_ = setMeta(resp, &out.QueryMeta)
 
 	// Translate addresses after filtering so we don't waste effort.
-	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, TranslateAddressAcceptAny)
+	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, dnsutil.TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.Nodes == nil {
@@ -288,26 +293,4 @@ func getBoolQueryParam(params url.Values, key string) (bool, error) {
 		}
 	}
 	return param, nil
-}
-
-// filterNonPassing is used to filter out any nodes that have check that are not passing
-func filterNonPassing(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
-	n := len(nodes)
-
-	// Make a copy of the cached nodes rather than operating on the cache directly
-	out := append(nodes[:0:0], nodes...)
-
-OUTER:
-	for i := 0; i < n; i++ {
-		node := out[i]
-		for _, check := range node.Checks {
-			if check.Status != api.HealthPassing {
-				out[i], out[n-1] = out[n-1], structs.CheckServiceNode{}
-				n--
-				i--
-				continue OUTER
-			}
-		}
-	}
-	return out[:n]
 }

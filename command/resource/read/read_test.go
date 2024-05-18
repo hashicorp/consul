@@ -67,7 +67,7 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 		"invalid resource type format": {
 			args:         []string{"a.", "name", "-namespace", "default"},
 			expectedCode: 1,
-			expectedErr:  errors.New("Incorrect argument format: Must provide resource type argument with either in group.verion.kind format or its shorthand name"),
+			expectedErr:  errors.New("Incorrect argument format: Must provide resource type argument with either in group.version.kind format or its shorthand name"),
 		},
 	}
 
@@ -131,13 +131,13 @@ func TestResourceRead(t *testing.T) {
 		},
 		{
 			name:         "read resource in command line format",
-			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default", "-peer=local"},
+			args:         []string{"demo.v2.Artist", "korn", "-partition=default", "-namespace=default"},
 			expectedCode: 0,
 			errMsg:       "",
 		},
 		{
 			name:         "read resource that doesn't exist",
-			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
+			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default"},
 			expectedCode: 1,
 			errMsg:       "Error reading resource demo.v2.Artist/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
 		},

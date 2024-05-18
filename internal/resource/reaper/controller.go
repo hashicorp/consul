@@ -26,8 +26,8 @@ func RegisterControllers(mgr *controller.Manager) {
 	mgr.Register(reaperController())
 }
 
-func reaperController() controller.Controller {
-	return controller.ForType(resource.TypeV1Tombstone).
+func reaperController() *controller.Controller {
+	return controller.NewController(statusKeyReaperController, resource.TypeV1Tombstone).
 		WithReconciler(newReconciler())
 }
 

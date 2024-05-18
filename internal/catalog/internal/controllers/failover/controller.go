@@ -6,73 +6,92 @@ package failover
 import (
 	"context"
 
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/internal/catalog/internal/controllers/failover/expander"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
+	"github.com/hashicorp/consul/internal/controller/cache/indexers"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// FailoverMapper tracks the relationship between a FailoverPolicy an a Service
-// it references whether due to name-alignment or from a reference in a
-// FailoverDestination leg.
-type FailoverMapper interface {
-	// TrackFailover extracts all Service references from the provided
-	// FailoverPolicy and indexes them so that MapService can turn Service
-	// events into FailoverPolicy events properly.
-	TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy])
+const (
+	destRefsIndexName  = "destination-refs"
+	boundRefsIndexName = "bound-refs"
+)
 
-	// UntrackFailover forgets the links inserted by TrackFailover for the
-	// provided FailoverPolicyID.
-	UntrackFailover(failoverID *pbresource.ID)
+func FailoverPolicyController(sgExpander expander.SamenessGroupExpander) *controller.Controller {
+	ctrl := controller.NewController(
+		ControllerID,
+		pbcatalog.ComputedFailoverPolicyType,
+		indexers.BoundRefsIndex[*pbcatalog.ComputedFailoverPolicy](boundRefsIndexName),
+	).
+		WithWatch(
+			pbcatalog.ServiceType,
+			dependency.MultiMapper(
+				// FailoverPolicy is name-aligned with the Service it controls so always
+				// re-reconcile the corresponding FailoverPolicy when a Service changes.
+				dependency.ReplaceType(pbcatalog.ComputedFailoverPolicyType),
+				dependency.WrapAndReplaceType(
+					pbcatalog.ComputedFailoverPolicyType,
+					dependency.CacheParentsMapper(pbcatalog.ComputedFailoverPolicyType, boundRefsIndexName),
+				),
+			),
+		).
+		WithWatch(
+			pbcatalog.FailoverPolicyType,
+			dependency.ReplaceType(pbcatalog.ComputedFailoverPolicyType),
+			sgExpander.GetSamenessGroupIndex(),
+		).
+		WithReconciler(newFailoverPolicyReconciler(sgExpander))
 
-	// MapService will take a Service resource and return controller requests
-	// for all FailoverPolicies associated with the Service.
-	MapService(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error)
-}
-
-func FailoverPolicyController(mapper FailoverMapper) controller.Controller {
-	if mapper == nil {
-		panic("No FailoverMapper was provided to the FailoverPolicyController constructor")
-	}
-	return controller.ForType(pbcatalog.FailoverPolicyType).
-		WithWatch(pbcatalog.ServiceType, mapper.MapService).
-		WithReconciler(newFailoverPolicyReconciler(mapper))
+	return registerEnterpriseControllerWatchers(ctrl)
 }
 
 type failoverPolicyReconciler struct {
-	mapper FailoverMapper
+	sgExpander expander.SamenessGroupExpander
 }
 
-func newFailoverPolicyReconciler(mapper FailoverMapper) *failoverPolicyReconciler {
+func newFailoverPolicyReconciler(sgExpander expander.SamenessGroupExpander) *failoverPolicyReconciler {
 	return &failoverPolicyReconciler{
-		mapper: mapper,
+		sgExpander: sgExpander,
 	}
 }
 
 func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	// The runtime is passed by value so replacing it here for the remainder of this
 	// reconciliation request processing will not affect future invocations.
-	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
+	rt.Logger = rt.Logger.With("resource-id", req.ID)
 
-	rt.Logger.Trace("reconciling failover policy")
+	rt.Logger.Trace("reconciling computed failover policy")
 
-	failoverPolicyID := req.ID
-
-	failoverPolicy, err := getFailoverPolicy(ctx, rt, failoverPolicyID)
+	computedFailoverPolicy, err := cache.GetDecoded[*pbcatalog.ComputedFailoverPolicy](rt.Cache, pbcatalog.ComputedFailoverPolicyType, "id", req.ID)
+	if err != nil {
+		rt.Logger.Error("error retrieving computed failover policy", "error", err)
+		return err
+	}
+	failoverPolicyID := resource.ReplaceType(pbcatalog.FailoverPolicyType, req.ID)
+	failoverPolicy, err := cache.GetDecoded[*pbcatalog.FailoverPolicy](rt.Cache, pbcatalog.FailoverPolicyType, "id", failoverPolicyID)
 	if err != nil {
 		rt.Logger.Error("error retrieving failover policy", "error", err)
 		return err
 	}
 	if failoverPolicy == nil {
-		r.mapper.UntrackFailover(failoverPolicyID)
+		if err := deleteResource(ctx, rt, computedFailoverPolicy.GetResource()); err != nil {
+			rt.Logger.Error("failed to delete computed failover policy", "error", err)
+			return err
+		}
 
-		// Either the failover policy was deleted, or it doesn't exist but an
-		// update to a Service came through and we can ignore it.
 		return nil
 	}
-
-	r.mapper.TrackFailover(failoverPolicy)
+	// Capture original raw config for pre-normalization status conditions.
+	rawFailoverPolicy := failoverPolicy.Data
 
 	// FailoverPolicy is name-aligned with the Service it controls.
 	serviceID := &pbresource.ID{
@@ -81,94 +100,81 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		Name:    failoverPolicyID.Name,
 	}
 
-	service, err := getService(ctx, rt, serviceID)
+	service, err := cache.GetDecoded[*pbcatalog.Service](rt.Cache, pbcatalog.ServiceType, "id", serviceID)
 	if err != nil {
 		rt.Logger.Error("error retrieving corresponding service", "error", err)
 		return err
 	}
-	destServices := make(map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service])
-	if service != nil {
-		destServices[resource.NewReferenceKey(serviceID)] = service
-	}
 
-	// Denorm the ports and stuff. After this we have no empty ports.
-	if service != nil {
-		failoverPolicy.Data = types.SimplifyFailoverPolicy(
-			service.Data,
-			failoverPolicy.Data,
-		)
-	}
-
-	// Fetch services.
-	for _, dest := range failoverPolicy.Data.GetUnderlyingDestinations() {
-		if dest.Ref == nil || !isServiceType(dest.Ref.Type) || dest.Ref.Section != "" {
-			continue // invalid, not possible due to validation hook
-		}
-
-		key := resource.NewReferenceKey(dest.Ref)
-
-		if _, ok := destServices[key]; ok {
-			continue
-		}
-
-		destID := resource.IDFromReference(dest.Ref)
-
-		destService, err := getService(ctx, rt, destID)
-		if err != nil {
-			rt.Logger.Error("error retrieving destination service", "service", key, "error", err)
+	if service == nil {
+		if err := deleteResource(ctx, rt, computedFailoverPolicy.GetResource()); err != nil {
+			rt.Logger.Error("failed to delete computed failover policy", "error", err)
 			return err
 		}
 
-		if destService != nil {
-			destServices[key] = destService
+		conds := []*pbresource.Condition{ConditionMissingService}
+
+		if err := writeStatus(ctx, rt, failoverPolicy.Resource, conds); err != nil {
+			rt.Logger.Error("error encountered when attempting to update the resource's failover policy status", "error", err)
+			return err
 		}
-	}
-
-	newStatus := computeNewStatus(failoverPolicy, service, destServices)
-
-	if resource.EqualStatus(failoverPolicy.Resource.Status[StatusKey], newStatus, false) {
-		rt.Logger.Trace("resource's failover policy status is unchanged",
-			"conditions", newStatus.Conditions)
+		rt.Logger.Trace("resource's failover policy status was updated",
+			"conditions", conds)
 		return nil
 	}
 
-	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-		Id:     failoverPolicy.Resource.Id,
-		Key:    StatusKey,
-		Status: newStatus,
-	})
-
+	newComputedFailoverPolicy, destServices, missingSamenessGroups, err := makeComputedFailoverPolicy(ctx, rt, r.sgExpander, failoverPolicy, service)
 	if err != nil {
+		return err
+	}
+	computedFailoverResource := computedFailoverPolicy.GetResource()
+
+	if !proto.Equal(computedFailoverPolicy.GetData(), newComputedFailoverPolicy) {
+
+		newCFPData, err := anypb.New(newComputedFailoverPolicy)
+		if err != nil {
+			rt.Logger.Error("error marshalling new computed failover policy", "error", err)
+			return err
+		}
+		rt.Logger.Trace("writing computed failover policy")
+		rsp, err := rt.Client.Write(ctx, &pbresource.WriteRequest{
+			Resource: &pbresource.Resource{
+				Id:   req.ID,
+				Data: newCFPData,
+			},
+		})
+		if err != nil || rsp.Resource == nil {
+			rt.Logger.Error("error writing new computed failover policy", "error", err)
+			return err
+		} else {
+			rt.Logger.Trace("new computed failover policy was successfully written")
+			computedFailoverResource = rsp.Resource
+		}
+	}
+
+	conds := computeNewConditions(rawFailoverPolicy, failoverPolicy.Resource, newComputedFailoverPolicy, service, destServices, missingSamenessGroups)
+	if err := writeStatus(ctx, rt, failoverPolicy.Resource, conds); err != nil {
 		rt.Logger.Error("error encountered when attempting to update the resource's failover policy status", "error", err)
 		return err
 	}
 
-	rt.Logger.Trace("resource's failover policy status was updated",
-		"conditions", newStatus.Conditions)
+	conds = computeNewConditions(rawFailoverPolicy, computedFailoverResource, newComputedFailoverPolicy, service, destServices, missingSamenessGroups)
+	if err := writeStatus(ctx, rt, computedFailoverResource, conds); err != nil {
+		rt.Logger.Error("error encountered when attempting to update the resource's computed failover policy status", "error", err)
+		return err
+	}
+
 	return nil
 }
 
-func getFailoverPolicy(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[*pbcatalog.FailoverPolicy], error) {
-	return resource.GetDecodedResource[*pbcatalog.FailoverPolicy](ctx, rt.Client, id)
-}
-
-func getService(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*resource.DecodedResource[*pbcatalog.Service], error) {
-	return resource.GetDecodedResource[*pbcatalog.Service](ctx, rt.Client, id)
-}
-
-func computeNewStatus(
-	failoverPolicy *resource.DecodedResource[*pbcatalog.FailoverPolicy],
+func computeNewConditions(
+	rawFailoverPolicy *pbcatalog.FailoverPolicy,
+	fpRes *pbresource.Resource,
+	fp *pbcatalog.ComputedFailoverPolicy,
 	service *resource.DecodedResource[*pbcatalog.Service],
 	destServices map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service],
-) *pbresource.Status {
-	if service == nil {
-		return &pbresource.Status{
-			ObservedGeneration: failoverPolicy.Resource.Generation,
-			Conditions: []*pbresource.Condition{
-				ConditionMissingService,
-			},
-		}
-	}
+	missingSamenessGroups map[string]struct{},
+) []*pbresource.Condition {
 
 	allowedPortProtocols := make(map[string]pbcatalog.Protocol)
 	for _, port := range service.Data.Ports {
@@ -180,29 +186,27 @@ func computeNewStatus(
 
 	var conditions []*pbresource.Condition
 
-	if failoverPolicy.Data.Config != nil {
-		for _, dest := range failoverPolicy.Data.Config.Destinations {
-			// We know from validation that a Ref must be set, and the type it
-			// points to is a Service.
-			//
-			// Rather than do additional validation, just do a quick
-			// belt-and-suspenders check-and-skip if something looks weird.
-			if dest.Ref == nil || !isServiceType(dest.Ref.Type) {
-				continue
-			}
+	if rawFailoverPolicy != nil {
+		// We need to validate port mappings on the raw input config due to the
+		// possibility of duplicate mappings, which will be normalized into one
+		// mapping by target port key.
+		usedTargetPorts := make(map[string]any)
+		for port := range rawFailoverPolicy.PortConfigs {
+			svcPort := service.Data.FindPortByID(port)
+			targetPort := svcPort.GetTargetPort() // svcPort could be nil
 
-			if cond := serviceHasPort(dest, destServices); cond != nil {
-				conditions = append(conditions, cond)
+			serviceRef := resource.NewReferenceKey(service.Id).ToReference()
+			if svcPort == nil {
+				conditions = append(conditions, ConditionUnknownPort(serviceRef, port))
+			} else if _, ok := usedTargetPorts[targetPort]; ok {
+				conditions = append(conditions, ConditionConflictDestinationPort(serviceRef, svcPort))
+			} else {
+				usedTargetPorts[targetPort] = struct{}{}
 			}
 		}
-		// TODO: validate that referenced sameness groups exist
 	}
 
-	for port, pc := range failoverPolicy.Data.PortConfigs {
-		if _, ok := allowedPortProtocols[port]; !ok {
-			conditions = append(conditions, ConditionUnknownPort(port))
-		}
-
+	for _, pc := range fp.GetPortConfigs() {
 		for _, dest := range pc.Destinations {
 			// We know from validation that a Ref must be set, and the type it
 			// points to is a Service.
@@ -217,23 +221,27 @@ func computeNewStatus(
 				conditions = append(conditions, cond)
 			}
 		}
-
-		// TODO: validate that referenced sameness groups exist
 	}
 
-	if len(conditions) > 0 {
-		return &pbresource.Status{
-			ObservedGeneration: failoverPolicy.Resource.Generation,
-			Conditions:         conditions,
+	for destKey, svc := range destServices {
+		if svc != nil {
+			continue
 		}
+		conditions = append(conditions, ConditionMissingDestinationService(destKey.ToReference()))
 	}
 
-	return &pbresource.Status{
-		ObservedGeneration: failoverPolicy.Resource.Generation,
-		Conditions: []*pbresource.Condition{
-			ConditionOK,
-		},
+	for sg := range missingSamenessGroups {
+		ref := &pbresource.Reference{
+			Type: pbmulticluster.SamenessGroupType,
+			Tenancy: &pbresource.Tenancy{
+				Partition: fpRes.GetId().GetTenancy().GetPartition(),
+			},
+			Name: sg,
+		}
+		conditions = append(conditions, ConditionMissingSamenessGroup(ref))
 	}
+
+	return conditions
 }
 
 func serviceHasPort(
@@ -242,8 +250,8 @@ func serviceHasPort(
 ) *pbresource.Condition {
 	key := resource.NewReferenceKey(dest.Ref)
 	destService, ok := destServices[key]
-	if !ok {
-		return ConditionMissingDestinationService(dest.Ref)
+	if !ok || destService == nil {
+		return nil
 	}
 
 	found := false
@@ -273,4 +281,140 @@ func isServiceType(typ *pbresource.Type) bool {
 		return true
 	}
 	return false
+}
+
+func deleteResource(ctx context.Context, rt controller.Runtime, resource *pbresource.Resource) error {
+	if resource == nil {
+		return nil
+	}
+	_, err := rt.Client.Delete(ctx, &pbresource.DeleteRequest{
+		Id:      resource.GetId(),
+		Version: resource.GetVersion(),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func makeComputedFailoverPolicy(ctx context.Context, rt controller.Runtime, sgExpander expander.SamenessGroupExpander, failoverPolicy *resource.DecodedResource[*pbcatalog.FailoverPolicy], service *resource.DecodedResource[*pbcatalog.Service]) (*pbcatalog.ComputedFailoverPolicy, map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service], map[string]struct{}, error) {
+	simplified := types.SimplifyFailoverPolicy(
+		service.Data,
+		failoverPolicy.Data,
+	)
+	cfp := &pbcatalog.ComputedFailoverPolicy{
+
+		PortConfigs: simplified.PortConfigs,
+	}
+	missingSamenessGroups := make(map[string]struct{})
+	destServices := map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service]{
+		resource.NewReferenceKey(service.Id): service,
+	}
+
+	// Expand sameness group
+	for port, fc := range cfp.PortConfigs {
+		if fc.GetSamenessGroup() == "" {
+			continue
+		}
+
+		dests, missing, err := sgExpander.ComputeFailoverDestinationsFromSamenessGroup(rt, failoverPolicy.Id, fc.GetSamenessGroup(), port)
+		if err != nil {
+			return cfp, nil, missingSamenessGroups, err
+		}
+
+		if missing != "" {
+			delete(cfp.PortConfigs, port)
+			missingSamenessGroups[missing] = struct{}{}
+			continue
+		}
+
+		if len(dests) == 0 {
+			delete(cfp.PortConfigs, port)
+			continue
+		}
+
+		fc.SamenessGroup = ""
+		fc.Destinations = dests
+	}
+
+	// Filter missing destinations
+	for port, fc := range cfp.PortConfigs {
+		if len(fc.Destinations) == 0 {
+			continue
+		}
+
+		var err error
+		fc.Destinations, err = filterInvalidDests(ctx, rt, fc.Destinations, destServices)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		if len(fc.GetDestinations()) == 0 {
+			delete(cfp.GetPortConfigs(), port)
+
+		}
+	}
+
+	for ref := range destServices {
+		cfp.BoundReferences = append(cfp.BoundReferences, ref.ToReference())
+	}
+
+	return cfp, destServices, missingSamenessGroups, nil
+}
+
+func filterInvalidDests(ctx context.Context, rt controller.Runtime, dests []*pbcatalog.FailoverDestination, destServices map[resource.ReferenceKey]*resource.DecodedResource[*pbcatalog.Service]) ([]*pbcatalog.FailoverDestination, error) {
+	var out []*pbcatalog.FailoverDestination
+	for _, dest := range dests {
+		ref := resource.NewReferenceKey(dest.Ref)
+		if svc, ok := destServices[ref]; ok {
+			if svc != nil {
+				out = append(out, dest)
+			}
+			continue
+		}
+
+		destService, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, rt.Client, resource.IDFromReference(dest.Ref))
+		if err != nil {
+			rt.Logger.Error("error retrieving destination service while filtering", "service", dest, "error", err)
+			return nil, err
+		}
+		if destService != nil {
+			out = append(out, dest)
+		}
+		destServices[resource.NewReferenceKey(dest.Ref)] = destService
+	}
+	return out, nil
+}
+
+func writeStatus(ctx context.Context, rt controller.Runtime, res *pbresource.Resource, conditions []*pbresource.Condition) error {
+	newStatus := &pbresource.Status{
+		ObservedGeneration: res.GetGeneration(),
+		Conditions: []*pbresource.Condition{
+			ConditionOK,
+		},
+	}
+
+	if len(conditions) > 0 {
+		newStatus = &pbresource.Status{
+			ObservedGeneration: res.GetGeneration(),
+			Conditions:         conditions,
+		}
+	}
+
+	if !resource.EqualStatus(res.GetStatus()[ControllerID], newStatus, false) {
+
+		_, err := rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
+			Id:     res.Id,
+			Key:    ControllerID,
+			Status: newStatus,
+		})
+
+		if err != nil {
+			return err
+		}
+		rt.Logger.Trace("resource's status was updated",
+			"conditions", newStatus.Conditions)
+
+	}
+	return nil
 }

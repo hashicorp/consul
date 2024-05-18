@@ -24,6 +24,12 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/rboyer/safeio"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
+
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -31,10 +37,6 @@ import (
 	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -46,6 +48,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
+	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
@@ -66,6 +69,8 @@ import (
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
+	libdns "github.com/hashicorp/consul/internal/dnsutil"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -74,6 +79,7 @@ import (
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/pbconfigentry"
 	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
@@ -184,7 +190,7 @@ type delegate interface {
 	// are ancillary members of.
 	//
 	// NOTE: This assumes coordinates are enabled, so check that before calling.
-	GetLANCoordinate() (lib.CoordinateSet, error)
+	GetLANCoordinate() (librtt.CoordinateSet, error)
 
 	// JoinLAN is used to have Consul join the inner-DC pool The target address
 	// should be another node inside the DC listening on the Serf LAN address
@@ -216,6 +222,14 @@ type notifier interface {
 	Notify(string) error
 }
 
+// dnsServer abstracts the V1 and V2 implementations of the DNS server.
+type dnsServer interface {
+	GetAddr() string
+	ListenAndServe(string, string, func()) error
+	ReloadConfig(*config.RuntimeConfig) error
+	Shutdown()
+}
+
 // Agent is the long running process that is run on every machine.
 // It exposes an RPC interface that is used by the CLI to control the
 // agent. The agent runs the query interfaces like HTTP, DNS, and RPC.
@@ -228,6 +242,9 @@ type Agent struct {
 
 	// config is the agent configuration.
 	config *config.RuntimeConfig
+
+	displayOnlyConfigCopy     *config.RuntimeConfig
+	displayOnlyConfigCopyLock sync.Mutex
 
 	// Used for writing our logs
 	logger hclog.InterceptLogger
@@ -335,7 +352,11 @@ type Agent struct {
 	endpointsLock sync.RWMutex
 
 	// dnsServer provides the DNS API
-	dnsServers []*DNSServer
+	dnsServers []dnsServer
+
+	// catalogDataFetcher is used as an interface to the catalog for service discovery
+	// (aka DNS). Only applicable to the V2 DNS server (agent/dns).
+	catalogDataFetcher discovery.CatalogDataFetcher
 
 	// apiServers listening for connections. If any of these server goroutines
 	// fail, the agent will be shutdown.
@@ -396,10 +417,11 @@ type Agent struct {
 	// they can update their internal state.
 	configReloaders []ConfigReloader
 
-	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
+	// TODO: pass directly to HTTPHandlers and dnsServer once those are passed
 	// into Agent, which will allow us to remove this field.
-	rpcClientHealth      *health.Client
-	rpcClientConfigEntry *configentry.Client
+	rpcClientHealth       *health.Client
+	rpcClientConfigEntry  *configentry.Client
+	grpcClientConfigEntry pbconfigentry.ConfigEntryServiceClient
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
@@ -502,6 +524,7 @@ func New(bd BaseDeps) (*Agent, error) {
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
 	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
+	a.grpcClientConfigEntry = pbconfigentry.NewConfigEntryServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
 	a.rpcClientConfigEntry = &configentry.Client{
@@ -696,6 +719,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				Time:    a.config.GRPCKeepaliveInterval,
 				Timeout: a.config.GRPCKeepaliveTimeout,
 			},
+			nil,
 		)
 
 		if a.baseDeps.UseV2Resources() {
@@ -728,6 +752,15 @@ func (a *Agent) Start(ctx context.Context) error {
 			}
 		}
 	} else {
+		if a.baseDeps.UseV2Resources() {
+			return fmt.Errorf("can't start agent: client agents are not supported with v2 resources")
+		}
+
+		// the conn is used to connect to the consul server agent
+		conn, err := a.baseDeps.GRPCConnPool.ClientConn(a.baseDeps.RuntimeConfig.Datacenter)
+		if err != nil {
+			return err
+		}
 		a.externalGRPCServer = external.NewServer(
 			a.logger.Named("grpc.external"),
 			metrics.Default(),
@@ -737,6 +770,7 @@ func (a *Agent) Start(ctx context.Context) error {
 				Time:    a.config.GRPCKeepaliveInterval,
 				Timeout: a.config.GRPCKeepaliveTimeout,
 			},
+			conn,
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
@@ -780,6 +814,15 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
 	}
 
+	// If DefaultIntentionPolicy is defined, it should override
+	// the values inherited from ACLDefaultPolicy.
+	switch a.config.DefaultIntentionPolicy {
+	case "allow":
+		intentionDefaultAllow = true
+	case "deny":
+		intentionDefaultAllow = false
+	}
+
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// Start the proxy config manager.
@@ -791,6 +834,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			Segment:       a.config.SegmentName,
 			Node:          a.config.NodeName,
 			NodePartition: a.config.PartitionOrEmpty(),
+			DisableNode:   true, // Disable for agentless so that streaming RPCs can be used.
 		},
 		DNSConfig: proxycfg.DNSConfig{
 			Domain:    a.config.DNSDomain,
@@ -835,8 +879,14 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// start DNS servers
-	if err := a.listenAndServeDNS(); err != nil {
-		return err
+	if a.baseDeps.UseV1DNS() {
+		if err := a.listenAndServeV1DNS(); err != nil {
+			return err
+		}
+	} else {
+		if err := a.listenAndServeV2DNS(); err != nil {
+			return err
+		}
 	}
 
 	// Configure the http connection limiter.
@@ -893,17 +943,6 @@ func (a *Agent) Start(ctx context.Context) error {
 				}
 			}
 		}()
-	}
-
-	if a.scadaProvider != nil {
-		a.scadaProvider.UpdateMeta(map[string]string{
-			"consul_server_id": string(a.config.NodeID),
-		})
-
-		if err = a.scadaProvider.Start(); err != nil {
-			a.baseDeps.Logger.Error("scada provider failed to start, some HashiCorp Cloud Platform functionality has been disabled",
-				"error", err, "resource_id", a.config.Cloud.ResourceID)
-		}
 	}
 
 	return nil
@@ -1026,7 +1065,7 @@ func (a *Agent) listenAndServeGRPC(proxyTracker *proxytracker.ProxyTracker, serv
 	return nil
 }
 
-func (a *Agent) listenAndServeDNS() error {
+func (a *Agent) listenAndServeV1DNS() error {
 	notif := make(chan net.Addr, len(a.config.DNSAddrs))
 	errCh := make(chan error, len(a.config.DNSAddrs))
 	for _, addr := range a.config.DNSAddrs {
@@ -1053,6 +1092,92 @@ func (a *Agent) listenAndServeDNS() error {
 		Logger:      a.logger.Named("grpc-api.dns"),
 		DNSServeMux: s.mux,
 		LocalAddr:   grpcDNS.LocalAddr{IP: net.IPv4(127, 0, 0, 1), Port: a.config.GRPCPort},
+	}).Register(a.externalGRPCServer)
+
+	a.dnsServers = append(a.dnsServers, s)
+
+	// wait for servers to be up
+	timeout := time.After(time.Second)
+	var merr *multierror.Error
+	for range a.config.DNSAddrs {
+		select {
+		case addr := <-notif:
+			a.logger.Info("Started DNS server",
+				"address", addr.String(),
+				"network", addr.Network(),
+			)
+
+		case err := <-errCh:
+			merr = multierror.Append(merr, err)
+		case <-timeout:
+			merr = multierror.Append(merr, fmt.Errorf("agent: timeout starting DNS servers"))
+			return merr.ErrorOrNil()
+		}
+	}
+	return merr.ErrorOrNil()
+}
+
+func (a *Agent) listenAndServeV2DNS() error {
+
+	// Check the catalog version and decide which implementation of the data fetcher to implement
+	if a.baseDeps.UseV2Resources() {
+		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config, a.delegate.ResourceServiceClient(), a.logger.Named("catalog-data-fetcher"))
+	} else {
+		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config,
+			a.AgentEnterpriseMeta(),
+			a.cache.Get,
+			a.RPC,
+			a.rpcClientHealth.ServiceNodes,
+			a.rpcClientConfigEntry.GetSamenessGroup,
+			a.TranslateServicePort,
+			a.logger.Named("catalog-data-fetcher"))
+	}
+
+	// Generate a Query Processor with the appropriate data fetcher
+	processor := discovery.NewQueryProcessor(a.catalogDataFetcher)
+
+	notif := make(chan net.Addr, len(a.config.DNSAddrs))
+	errCh := make(chan error, len(a.config.DNSAddrs))
+
+	// create server
+	cfg := dns.Config{
+		AgentConfig:                 a.config,
+		EntMeta:                     *a.AgentEnterpriseMeta(),
+		Logger:                      a.logger,
+		Processor:                   processor,
+		TokenFunc:                   a.getTokenFunc(),
+		TranslateAddressFunc:        a.TranslateAddress,
+		TranslateServiceAddressFunc: a.TranslateServiceAddress,
+	}
+
+	for _, addr := range a.config.DNSAddrs {
+		s, err := dns.NewServer(cfg)
+		if err != nil {
+			return err
+		}
+		a.dnsServers = append(a.dnsServers, s)
+
+		// start server
+		a.wgServers.Add(1)
+		go func(addr net.Addr) {
+			defer a.wgServers.Done()
+			err := s.ListenAndServe(addr.Network(), addr.String(), func() { notif <- addr })
+			if err != nil && !strings.Contains(err.Error(), "accept") {
+				errCh <- err
+			}
+		}(addr)
+	}
+
+	s, err := dns.NewServer(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create grpc dns server: %w", err)
+	}
+
+	// Create a v2 compatible grpc dns server
+	grpcDNS.NewServerV2(grpcDNS.ConfigV2{
+		Logger:    a.logger.Named("grpc-api.dns"),
+		DNSRouter: s.Router,
+		TokenFunc: a.getTokenFunc(),
 	}).Register(a.externalGRPCServer)
 
 	a.dnsServers = append(a.dnsServers, s)
@@ -1196,7 +1321,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 	}
 
 	httpAddrs := a.config.HTTPAddrs
-	if a.config.IsCloudEnabled() {
+	if a.config.IsCloudEnabled() && a.scadaProvider != nil {
 		httpAddrs = append(httpAddrs, scada.CAPCoreAPI)
 	}
 
@@ -1597,7 +1722,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
 	cfg.Locality = runtimeCfg.StructLocality()
 
-	cfg.Cloud.ManagementToken = runtimeCfg.Cloud.ManagementToken
+	cfg.Cloud = runtimeCfg.Cloud
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
@@ -1813,14 +1938,7 @@ func (a *Agent) ShutdownEndpoints() {
 	ctx := context.TODO()
 
 	for _, srv := range a.dnsServers {
-		if srv.Server != nil {
-			a.logger.Info("Stopping server",
-				"protocol", "DNS",
-				"address", srv.Server.Addr,
-				"network", srv.Server.Net,
-			)
-			srv.Shutdown()
-		}
+		srv.Shutdown()
 	}
 	a.dnsServers = nil
 
@@ -2032,7 +2150,7 @@ func (a *Agent) SyncPausedCh() <-chan struct{} {
 
 // GetLANCoordinate returns the coordinates of this node in the local pools
 // (assumes coordinates are enabled, so check that before calling).
-func (a *Agent) GetLANCoordinate() (lib.CoordinateSet, error) {
+func (a *Agent) GetLANCoordinate() (librtt.CoordinateSet, error) {
 	return a.delegate.GetLANCoordinate()
 }
 
@@ -2655,13 +2773,13 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 	}
 
 	// Warn if the service name is incompatible with DNS
-	if dns.InvalidNameRe.MatchString(service.Service) {
+	if libdns.InvalidNameRe.MatchString(service.Service) {
 		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.",
 			"service", service.Service,
 		)
-	} else if len(service.Service) > dns.MaxLabelLength {
+	} else if len(service.Service) > libdns.MaxLabelLength {
 		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.",
@@ -2671,13 +2789,13 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
-		if dns.InvalidNameRe.MatchString(tag) {
+		if libdns.InvalidNameRe.MatchString(tag) {
 			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.",
 				"tag", tag,
 			)
-		} else if len(tag) > dns.MaxLabelLength {
+		} else if len(tag) > libdns.MaxLabelLength {
 			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to it being too long. Valid lengths are between "+
 				"1 and 63 bytes.",
@@ -4296,6 +4414,10 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 			return fmt.Errorf("Failed reloading dns config : %v", err)
 		}
 	}
+	// This field is only populated for the V2 DNS server
+	if a.catalogDataFetcher != nil {
+		a.catalogDataFetcher.LoadConfig(newCfg)
+	}
 
 	err := a.reloadEnterprise(newCfg)
 	if err != nil {
@@ -4352,9 +4474,20 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	a.config.EnableDebug = newCfg.EnableDebug
 
 	// update Agent config with new config
-	a.config = newCfg.DeepCopy()
+	a.displayOnlyConfigCopyLock.Lock()
+	a.displayOnlyConfigCopy = newCfg.DeepCopy()
+	a.displayOnlyConfigCopyLock.Unlock()
 
 	return nil
+}
+
+func (a *Agent) getRuntimeConfigForDisplay() *config.RuntimeConfig {
+	a.displayOnlyConfigCopyLock.Lock()
+	defer a.displayOnlyConfigCopyLock.Unlock()
+	if a.displayOnlyConfigCopy != nil {
+		return a.displayOnlyConfigCopy.DeepCopy()
+	}
+	return a.config
 }
 
 // LocalBlockingQuery performs a blocking query in a generic way against
@@ -4626,8 +4759,8 @@ func (a *Agent) proxyDataSources(server *consul.Server) proxycfg.DataSources {
 		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.HTTPChecks = proxycfgglue.ServerHTTPChecks(deps, a.config.NodeName, proxycfgglue.CacheHTTPChecks(a.cache), a.State)
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
-		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)
-		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps)
+		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps, a.config.DefaultIntentionPolicy)
+		sources.IntentionUpstreamsDestination = proxycfgglue.ServerIntentionUpstreamsDestination(deps, a.config.DefaultIntentionPolicy)
 		sources.InternalServiceDump = proxycfgglue.ServerInternalServiceDump(deps, proxycfgglue.CacheInternalServiceDump(a.cache))
 		sources.PeeringList = proxycfgglue.ServerPeeringList(deps)
 		sources.PeeredUpstreams = proxycfgglue.ServerPeeredUpstreams(deps)
@@ -4668,6 +4801,14 @@ func (a *Agent) persistServerMetadata() {
 				continue
 			}
 
+			// Use safeio.File to ensure the file is written to disk atomically
+			if sf, ok := f.(*safeio.File); ok {
+				if err := sf.Commit(); err != nil {
+					sf.Close()
+					a.logger.Error("failed to commit server metadata", "error", err)
+					continue
+				}
+			}
 			f.Close()
 		case <-a.shutdownCh:
 			return
@@ -4752,4 +4893,14 @@ func defaultIfEmpty(val, defaultVal string) string {
 		return val
 	}
 	return defaultVal
+}
+
+func (a *Agent) getTokenFunc() func() string {
+	return func() string {
+		if a.tokens.DNSToken() != "" {
+			return a.tokens.DNSToken()
+		} else {
+			return a.tokens.UserToken()
+		}
+	}
 }

@@ -36,7 +36,7 @@ jobs:
     outputs:
       skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           fetch-depth: 0  
       - name: Get changed files
@@ -54,34 +54,40 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     - id: setup-outputs
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   check-go-mod:
     needs:
     - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-small }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   check-generated-protobuf:
     needs:
     - setup
+    - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make proto-tools
       name: Install protobuf
     - run: make proto-format
@@ -97,16 +103,17 @@ jobs:
   check-codegen:
      needs:
      - setup
+     - get-go-version
      runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
      steps:
-     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
      - name: Setup Git
        if: ${{ endsWith(github.repository, '-enterprise') }}
        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+     - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
        with:
-         go-version-file: 'go.mod'
+         go-version: ${{ needs.get-go-version.outputs.go-version }}
      - run: make --always-make codegen
      - run: |
          if ! git diff --exit-code; then
@@ -117,65 +124,72 @@ jobs:
   lint-enums:
     needs:
     - setup
+    - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
 
   lint-container-test-deps:
     needs:
     - setup
+    - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make lint-container-test-deps
 
   lint-consul-retry:
     needs:
     - setup
+    - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make lint-consul-retry
 
   lint:
     needs:
     - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-lint.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   lint-32bit:
     needs:
     - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-lint.yml
     with:
       go-arch: "386"
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -183,10 +197,12 @@ jobs:
   dev-build:
     needs:
     - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -194,11 +210,13 @@ jobs:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
+  #   - get-go-version
   #   uses: ./.github/workflows/reusable-dev-build.yml
   #   with:
   #     uploaded-binary-name: 'consul-bin-s390x'
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     go-arch: "s390x"
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #     repository-name: ${{ github.repository }}
   #   secrets:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -208,11 +226,13 @@ jobs:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
+  #   - get-go-version
   #   uses: ./.github/workflows/reusable-dev-build.yml
   #   with:
   #     uploaded-binary-name: 'consul-bin-arm64'
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     go-arch: "arm64"
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #     repository-name: ${{ github.repository }}
   #   secrets:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -222,6 +242,7 @@ jobs:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
+  #   - get-go-version
   #   - dev-build-arm64
   #   uses: ./.github/workflows/reusable-unit-split.yml
   #   with:
@@ -230,6 +251,7 @@ jobs:
   #     runner-count: 12
   #     runs-on: "['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']"
   #     go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #     repository-name: ${{ github.repository }}
   #   secrets:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -239,6 +261,7 @@ jobs:
   go-test-ce:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
@@ -247,7 +270,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: ""
-      go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -260,6 +283,7 @@ jobs:
     if: ${{ endsWith(github.repository, '-enterprise') }}
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
@@ -268,7 +292,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -280,6 +304,7 @@ jobs:
   go-test-race:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -289,6 +314,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -300,6 +326,7 @@ jobs:
   go-test-32bit:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -309,6 +336,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -321,6 +349,7 @@ jobs:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
+  #   - get-go-version
   #   - dev-build-s390x
   #   uses: ./.github/workflows/reusable-unit.yml
   #   with:
@@ -330,6 +359,7 @@ jobs:
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     repository-name: ${{ github.repository }}
   #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #   permissions:
   #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
   #     contents: read
@@ -341,6 +371,7 @@ jobs:
   go-test-envoyextensions:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -348,6 +379,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -359,6 +391,7 @@ jobs:
   go-test-troubleshoot:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -366,6 +399,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -374,9 +408,11 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-api-1-19:
+  go-test-api-backwards-compatibility:
+    name: go-test-api-${{ needs.get-go-version.outputs.go-version-previous }}
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -384,7 +420,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-version: "1.19"
+      go-version: ${{ needs.get-go-version.outputs.go-version-previous }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -393,9 +429,10 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-api-1-20:
+  go-test-api:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -403,7 +440,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-version: "1.20"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -412,9 +449,11 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-sdk-1-19:
+  go-test-sdk-backwards-compatibility:
+    name: go-test-sdk-${{ needs.get-go-version.outputs.go-version-previous }}
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -422,7 +461,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-version: "1.19"
+      go-version: ${{ needs.get-go-version.outputs.go-version-previous }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -431,9 +470,10 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
       datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-sdk-1-20:
+  go-test-sdk:
     needs:
     - setup
+    - get-go-version
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -441,7 +481,27 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-version: "1.20"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+
+  go-test-testing-deployer:
+    needs:
+    - setup
+    - get-go-version
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: testing/deployer
+      runs-on: ${{ needs.setup.outputs.compute-large }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -487,11 +547,12 @@ jobs:
     - go-test-race
     - go-test-envoyextensions
     - go-test-troubleshoot
-    - go-test-api-1-19
-    - go-test-api-1-20
-    - go-test-sdk-1-19
-    - go-test-sdk-1-20
+    - go-test-api-backwards-compatibility
+    - go-test-api
+    - go-test-sdk-backwards-compatibility
+    - go-test-sdk
     - go-test-32bit
+    - go-test-testing-deployer
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
@@ -508,24 +569,41 @@ jobs:
       - name: Set failure Slack commit message summary
         # failure() ensures this runs even if the test eval step exits 1
         if: failure()
+        env:
+          # Capturing in an env var makes this safe against GHA shell injection via commit message.
+          # See https://securitylab.github.com/research/github-actions-untrusted-input/
+          COMMIT_MESSAGE_FULL: ${{ github.event.head_commit.message }}
         run: |
           # if failure (not cancelled), notify Slack
           if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
             printf "Tests failed, notifying Slack"
             echo "FAILED_TESTS=true" >> $GITHUB_ENV
-            echo "COMMIT_MESSAGE_SUMMARY=$(echo '${{ github.event.head_commit.message }}' | head -n 1)" >> $GITHUB_ENV
+          
+            # 'echo ... | head -n 1' does not work reliably, so use bash-ism to get first line.
+            COMMIT_MESSAGE_SUMMARY=${COMMIT_MESSAGE_FULL%%$'\n'*}
+  
+            # Send multi-line env var to GITHUB_ENV.
+            # github.event.head_commit.message and github.ref_name both rely on this event occurring on a push / merge
+            echo "SLACK_MESSAGE_RAW<<EOF" >> $GITHUB_ENV
+            echo "❌ ${{ github.workflow }} workflow failed:
+            
+            - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            - Branch: ${{ github.ref_name }}
+            - Message: ${COMMIT_MESSAGE_SUMMARY}
+            - Author: ${{ github.event.sender.login }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
           fi
       - name: Notify Slack
         # failure() ensures this runs even if the test eval step exits 1
         # FAILED_TESTS must also be checked to avoid running this step on cancellation due to the summary check above
         if: ${{ failure() && env.FAILED_TESTS == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }}
         id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
         with:
-          # github.event.head_commit.message and github.ref_name both rely on this event occurring on a push / merge
+          # Escape entire message string to ensure valid JSON. If invalid, the notification will fail silently in CI.
           payload: |
             {
-              "message": "❌ ${{ github.workflow }} workflow failed: \n\n- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \n- Branch: ${{ github.ref_name }} \n- Message: ${{ env.COMMIT_MESSAGE_SUMMARY }} \n- Author: ${{ github.event.sender.login }}"
+              "message": ${{ toJSON(env.SLACK_MESSAGE_RAW) }}
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_PROTECTED_BRANCH_TEST_SLACK_WEBHOOK }}

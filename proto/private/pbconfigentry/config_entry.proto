@@ -5,9 +5,39 @@ syntax = "proto3";
 
 package hashicorp.consul.internal.configentry;
 
+import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "private/pbcommon/common.proto";
+
+// ConfigEntryService handles operations related to config entries
+service ConfigEntryService {
+  rpc GetResolvedExportedServices(GetResolvedExportedServicesRequest) returns (GetResolvedExportedServicesResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_CONFIGENTRY
+    };
+  }
+}
+
+message GetResolvedExportedServicesRequest {
+  string Partition = 1;
+}
+
+message GetResolvedExportedServicesResponse {
+  repeated ResolvedExportedService services = 1;
+}
+
+message ResolvedExportedService {
+  string Service = 1;
+  common.EnterpriseMeta EnterpriseMeta = 2;
+  Consumers Consumers = 3;
+}
+
+message Consumers {
+  repeated string Peers = 1;
+  repeated string Partitions = 2;
+}
 
 enum Kind {
   KindUnknown = 0;
@@ -23,6 +53,8 @@ enum Kind {
   KindTCPRoute = 10;
   KindSamenessGroup = 11;
   KindJWTProvider = 12;
+  KindExportedServices = 13;
+  KindFileSystemCertificate = 14;
 }
 
 message ConfigEntry {
@@ -45,6 +77,8 @@ message ConfigEntry {
     InlineCertificate InlineCertificate = 14;
     SamenessGroup SamenessGroup = 15;
     JWTProvider JWTProvider = 16;
+    ExportedServices ExportedServices = 17;
+    FileSystemCertificate FileSystemCertificate = 18;
   }
 }
 
@@ -61,6 +95,7 @@ message MeshConfig {
   map<string, string> Meta = 4;
   PeeringMeshConfig Peering = 5;
   bool AllowEnablingPermissiveMutualTLS = 6;
+  uint64 Hash = 7;
 }
 
 // mog annotation:
@@ -132,6 +167,7 @@ message ServiceResolver {
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration RequestTimeout = 8;
   ServiceResolverPrioritizeByLocality PrioritizeByLocality = 9;
+  uint64 Hash = 10;
 }
 
 // mog annotation:
@@ -274,6 +310,7 @@ message IngressGateway {
   repeated IngressListener Listeners = 2;
   map<string, string> Meta = 3;
   IngressServiceConfig Defaults = 4;
+  uint64 Hash = 5;
 }
 
 // mog annotation:
@@ -377,6 +414,7 @@ message ServiceIntentions {
   repeated SourceIntention Sources = 1;
   map<string, string> Meta = 2;
   IntentionJWTRequirement JWT = 3;
+  uint64 Hash = 4;
 }
 
 // mog annotation:
@@ -513,6 +551,7 @@ message ServiceDefaults {
   repeated hashicorp.consul.internal.common.EnvoyExtension EnvoyExtensions = 14;
   // mog: func-to=mutualTLSModeToStructs func-from=mutualTLSModeFromStructs
   MutualTLSMode MutualTLSMode = 15;
+  uint64 Hash = 17;
 }
 
 enum ProxyMode {
@@ -700,6 +739,7 @@ message APIGateway {
   map<string, string> Meta = 1;
   repeated APIGatewayListener Listeners = 2;
   Status Status = 3;
+  uint64 Hash = 4;
 }
 
 // mog annotation:
@@ -811,6 +851,7 @@ message BoundAPIGateway {
   repeated BoundAPIGatewayListener Listeners = 2;
   // mog: func-to=serviceRefsToStructs func-from=serviceRefFromStructs
   map<string, ListOfResourceReference> Services = 3;
+  uint64 Hash = 4;
 }
 
 message ListOfResourceReference {
@@ -830,6 +871,19 @@ message BoundAPIGatewayListener {
 
 // mog annotation:
 //
+// target=github.com/hashicorp/consul/agent/structs.FileSystemCertificateConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message FileSystemCertificate {
+  map<string, string> Meta = 1;
+  string Certificate = 2;
+  string PrivateKey = 3;
+  uint64 Hash = 4;
+}
+
+// mog annotation:
+//
 // target=github.com/hashicorp/consul/agent/structs.InlineCertificateConfigEntry
 // output=config_entry.gen.go
 // name=Structs
@@ -838,6 +892,7 @@ message InlineCertificate {
   map<string, string> Meta = 1;
   string Certificate = 2;
   string PrivateKey = 3;
+  uint64 Hash = 4;
 }
 
 // mog annotation:
@@ -852,6 +907,7 @@ message HTTPRoute {
   repeated HTTPRouteRule Rules = 3;
   repeated string Hostnames = 4;
   Status Status = 5;
+  uint64 Hash = 6;
 }
 
 // mog annotation:
@@ -1044,6 +1100,7 @@ message TCPRoute {
   repeated ResourceReference Parents = 2;
   repeated TCPService Services = 3;
   Status Status = 4;
+  uint64 Hash = 5;
 }
 
 // mog annotation:
@@ -1071,6 +1128,7 @@ message SamenessGroup {
   map<string, string> Meta = 5;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 6;
+  uint64 Hash = 7;
 }
 
 // mog annotation:
@@ -1099,6 +1157,7 @@ message JWTProvider {
   map<string, string> Meta = 7;
   // mog: func-to=int func-from=int32
   int32 ClockSkewSeconds = 8;
+  uint64 Hash = 9;
 }
 
 // mog annotation:
@@ -1262,4 +1321,41 @@ message JWTForwardingConfig {
 message JWTCacheConfig {
   // mog: func-to=int func-from=int32
   int32 Size = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExportedServicesConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
+message ExportedServices {
+  string Name = 1;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 2;
+  map<string, string> Meta = 3;
+  uint64 Hash = 4;
+  repeated ExportedServicesService Services = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ExportedService
+// output=config_entry.gen.go
+// name=Structs
+message ExportedServicesService {
+  string Name = 1;
+  string Namespace = 2;
+  repeated ExportedServicesConsumer Consumers = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceConsumer
+// output=config_entry.gen.go
+// name=Structs
+message ExportedServicesConsumer {
+  string Partition = 1;
+  string Peer = 2;
+  string SamenessGroup = 3;
 }

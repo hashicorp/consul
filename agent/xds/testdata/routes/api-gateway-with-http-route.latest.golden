@@ -19,14 +19,13 @@
               },
               "requestHeadersToAdd": [
                 {
-                  "append": true,
                   "header": {
                     "key": "X-Header-Add",
                     "value": "added"
                   }
                 },
                 {
-                  "append": false,
+                  "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                   "header": {
                     "key": "X-Header-Set",
                     "value": "set"

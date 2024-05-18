@@ -85,7 +85,6 @@ func (ts *nsTestSuite) TestNamespaceController_HappyPath() {
 		WithTenancy(&pbresource.Tenancy{
 			Partition: resource.DefaultPartitionName,
 			Namespace: ns1.Id.Name,
-			PeerName:  resource.DefaultPeerName,
 		}).
 		WithData(ts.T(), &pbdemo.Artist{Name: "Moonchild"}).
 		Write(ts.T(), ts.client)
@@ -116,7 +115,6 @@ func (ts *nsTestSuite) TestNamespaceController_DeleteBlockedByTenantsWithFinaliz
 		WithTenancy(&pbresource.Tenancy{
 			Partition: resource.DefaultPartitionName,
 			Namespace: ns1.Id.Name,
-			PeerName:  resource.DefaultPeerName,
 		}).
 		WithData(ts.T(), &pbdemo.Artist{Name: "Weezer"}).
 		Write(ts.T(), ts.client)
@@ -126,7 +124,6 @@ func (ts *nsTestSuite) TestNamespaceController_DeleteBlockedByTenantsWithFinaliz
 		WithTenancy(&pbresource.Tenancy{
 			Partition: resource.DefaultPartitionName,
 			Namespace: ns1.Id.Name,
-			PeerName:  resource.DefaultPeerName,
 		}).
 		WithData(ts.T(), &pbdemo.Artist{Name: "Foo Fighters"}).
 		WithMeta(resource.FinalizerKey, "finalizer2").

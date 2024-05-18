@@ -18,13 +18,11 @@ var (
 	defaultEndpointTenancy = &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "default",
-		PeerName:  "local",
 	}
 
 	badEndpointTenancy = &pbresource.Tenancy{
 		Partition: "default",
 		Namespace: "bad",
-		PeerName:  "local",
 	}
 )
 
@@ -49,6 +47,12 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 					},
 				},
 				HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+				Dns: &pbcatalog.DNSPolicy{
+					Weights: &pbcatalog.Weights{
+						Passing: 3,
+						Warning: 2,
+					},
+				},
 			},
 		},
 	}
@@ -196,14 +200,14 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 		},
 		"invalid-owner": {
 			owner: &pbresource.ID{
-				Type:    pbcatalog.DNSPolicyType,
+				Type:    pbcatalog.HealthStatusType,
 				Tenancy: badEndpointTenancy,
 				Name:    "wrong",
 			},
 			validateErr: func(t *testing.T, err error) {
 				rtest.RequireError(t, err, resource.ErrOwnerTypeInvalid{
 					ResourceType: pbcatalog.ServiceEndpointsType,
-					OwnerType:    pbcatalog.DNSPolicyType})
+					OwnerType:    pbcatalog.HealthStatusType})
 				rtest.RequireError(t, err, resource.ErrOwnerTenantInvalid{
 					ResourceType:    pbcatalog.ServiceEndpointsType,
 					ResourceTenancy: defaultEndpointTenancy,
@@ -215,6 +219,20 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 						Name:      "test-service",
 						OwnerName: "wrong"},
 				})
+			},
+		},
+		"dns-policy-invalid": {
+			modify: func(endpoint *pbcatalog.Endpoint) {
+				endpoint.Dns = &pbcatalog.DNSPolicy{
+					Weights: &pbcatalog.Weights{
+						Passing: 0,
+					},
+				}
+			},
+			validateErr: func(t *testing.T, err error) {
+				var actual resource.ErrInvalidField
+				require.ErrorAs(t, err, &actual)
+				require.ErrorIs(t, err, errDNSPassingWeightOutOfRange)
 			},
 		},
 	}

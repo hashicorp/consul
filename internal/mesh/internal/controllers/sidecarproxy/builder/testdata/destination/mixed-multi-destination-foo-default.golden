@@ -162,8 +162,7 @@
       "name": "test-identity",
       "tenancy": {
         "namespace": "default",
-        "partition": "foo",
-        "peerName": "local"
+        "partition": "foo"
       },
       "type": {
         "group": "auth",
@@ -178,7 +177,7 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "foo/local/default/api-1:tcp:1.1.1.1:1234",
+        "name": "foo/default/api-1:tcp:1.1.1.1:1234",
         "routers": [
           {
             "l4": {
@@ -205,7 +204,7 @@
       },
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "foo/local/default/api-2:tcp:/path/to/socket",
+        "name": "foo/default/api-2:tcp:/path/to/socket",
         "routers": [
           {
             "l4": {
@@ -227,12 +226,12 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "foo/local/default/api-1:http:1.1.1.1:1234",
+        "name": "foo/default/api-1:http:1.1.1.1:1234",
         "routers": [
           {
             "l7": {
               "route": {
-                "name": "foo/local/default/api-1:http:1.1.1.1:1234"
+                "name": "foo/default/api-1:http:1.1.1.1:1234"
               },
               "statPrefix": "upstream.http.api-1.default.foo.dc1"
             }
@@ -241,13 +240,13 @@
       }
     ],
     "routes": {
-      "foo/local/default/api-1:http:1.1.1.1:1234": {
+      "foo/default/api-1:http:1.1.1.1:1234": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "foo/local/default/api-1:http:1.1.1.1:1234",
+            "name": "foo/default/api-1:http:1.1.1.1:1234",
             "routeRules": [
               {
                 "destination": {
@@ -324,8 +323,7 @@
         "name": "backup-1",
         "tenancy": {
           "namespace": "default",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -333,15 +331,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "http"
     },
     "http.api-1.default.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-1",
         "tenancy": {
           "namespace": "default",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -349,15 +347,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "http"
     },
     "http.api-2.default.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-2",
         "tenancy": {
           "namespace": "default",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -365,15 +363,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "http"
     },
     "tcp.api-1.default.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-1",
         "tenancy": {
           "namespace": "default",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -381,15 +379,15 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     },
     "tcp.api-2.default.foo.dc1.internal-v1.foo.consul": {
       "id": {
         "name": "api-2",
         "tenancy": {
           "namespace": "default",
-          "partition": "foo",
-          "peerName": "local"
+          "partition": "foo"
         },
         "type": {
           "group": "catalog",
@@ -397,7 +395,8 @@
           "kind": "ServiceEndpoints"
         }
       },
-      "port": "mesh"
+      "meshPort": "mesh",
+      "routePort": "tcp"
     }
   },
   "requiredLeafCertificates": {

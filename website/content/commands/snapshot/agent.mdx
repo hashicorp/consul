@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Snapshot Agent'
 description: |
-  The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers in Consul Enterprise. It can capture server state once or it can run as daemon that captures snapshots at defined intervals.
+  The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers in Consul Enterprise. It can capture server state once or it can run as a daemon that captures snapshots at defined intervals.
 ---
 
 # Consul Snapshot Agent
@@ -17,8 +17,8 @@ version 0.7.1 and later. All other [snapshot subcommands](/consul/commands/snaps
 are available in the community edition of Consul.
 
 The `snapshot agent` subcommand starts a process that takes snapshots of the
-state of the Consul servers and saves them locally, or pushes them to an
-optional remote storage service.
+state of the Consul servers and saves them locally, or pushes them to optional
+remote storage services.
 
 The agent can be run as a long-running daemon process or in a one-shot mode
 from a batch job, based on the [`-interval`](#interval) argument. Snapshotting
@@ -36,10 +36,10 @@ leader and starting saving snapshots.
 As snapshots are saved, they will be reported in the log produced by the agent:
 
 ```log
-2016/11/16 21:21:13 [INFO] Snapshot agent running
-2016/11/16 21:21:13 [INFO] Waiting to obtain leadership...
-2016/11/16 21:21:13 [INFO] Obtained leadership
-2016/11/16 21:21:13 [INFO] Saved snapshot 1479360073448728784
+2023/11/16 21:21:13 [INFO] Snapshot agent running
+2023/11/16 21:21:13 [INFO] Waiting to obtain leadership...
+2023/11/16 21:21:13 [INFO] Obtained leadership
+2023/11/16 21:21:13 [INFO] Saved snapshot 1479360073448728784
 ```
 
 The number shown with the saved snapshot is its ID, which is based on a UNIX
@@ -133,6 +133,8 @@ Usage: `consul snapshot agent [options]`
   Config files referenced using `-config-dir` and `-config-file` have the following
   format (shown populated with default values):
 
+~> Top-level single snapshot destinations in a config file are deprecated and will be removed in a future version. Move top-level `local_storage`, `aws_storage`, `azure_blob_storage`, and `google_storage` config objects to `snapshot_agent -> backup_destinations` instead.
+
 ```json
 {
   "snapshot_agent": {
@@ -149,7 +151,7 @@ Usage: `consul snapshot agent [options]`
       "auth_method": "",
       "bearer_token": "",
       "bearer_token_file": "",
-      "meta": {},
+      "meta": {}
     },
     "log": {
       "level": "INFO",
@@ -166,32 +168,40 @@ Usage: `consul snapshot agent [options]`
       "max_failures": 3,
       "local_scratch_path": ""
     },
-    "local_storage": {
-      "path": "."
-    },
-    "aws_storage": {
-      "access_key_id": "",
-      "secret_access_key": "",
-      "session_token": "",
-      "iam_endpoint": "",
-      "role_arn": "",
-      "role_session_name": "",
-      "web_identity_token_file": "",
-      "sts_endpoint": "",
-      "s3_region": "",
-      "s3_bucket": "",
-      "s3_key_prefix": "consul-snapshot",
-      "s3_server_side_encryption": false,
-      "s3_static_snapshot_name": "",
-      "s3_force_path_style": false
-    },
-    "azure_blob_storage": {
-      "account_name": "",
-      "account_key": "",
-      "container_name": ""
-    },
-    "google_storage": {
-      "bucket": ""
+    "backup_destinations": {
+      "local_storage": [
+        {
+          "path": "."
+        }
+      ],
+      "aws_storage": [
+        {
+          "access_key_id": "",
+          "secret_access_key": "",
+          "session_token": "",
+          "iam_endpoint": "",
+          "role_arn": "",
+          "role_session_name": "",
+          "web_identity_token_file": "",
+          "sts_endpoint": "",
+          "s3_region": "",
+          "s3_endpoint": "",
+          "s3_bucket": "",
+          "s3_key_prefix": "consul-snapshot"
+        }
+      ],
+      "azure_blob_storage": [
+        {
+          "account_name": "",
+          "account_key": "",
+          "container_name": ""
+        }
+      ],
+      "google_storage": [
+        {
+          "bucket": ""
+        }
+      ]
     }
   }
 }
@@ -211,7 +221,7 @@ if desired.
   is useful for running snapshots via batch jobs. Defaults to "1h"
 
 - `-lock-key` - A prefix in Consul's KV store used to coordinate between
-  different instances of the snapshot agent order to only have one active instance
+  different instances of the snapshot agent in order to only have one active instance
   at a time. For highly available operation of the snapshot agent, simply run
   multiple instances. All instances must be configured with the same lock key in
   order to properly coordinate. Defaults to "consul-snapshot/lock".
@@ -229,8 +239,7 @@ if desired.
 
 - `-local-scratch-path` - Location to store all temporary snapshots in prior to
   sending them off to the configured storage backend. If not configured the
-  system temporary directory will be used. When using the local storage backend
-  this is not configurable and `-local-path` will be used.
+  system temporary directory will be used.
 
 #### Agent Options
 
@@ -242,7 +251,7 @@ if desired.
 - `-log-level` - Controls verbosity of snapshot agent logs. Valid options are
   "trace", "debug", "info", "warn", "error". Defaults to "info".
 
-- `-service` - The service name to used when registering the agent with Consul.
+- `-service` - The service name to use when registering the agent with Consul.
   Registering helps monitor running agents and the leader registers an additional
   health check to monitor that snapshots are taking place. Defaults to
   "consul-snapshot".
@@ -264,13 +273,21 @@ if desired.
 
 #### Local Storage Options
 
+~> This option is deprecated when used with a top-level `local_storage` object in a config file. Use `snapshot_agent -> backup_destinations -> local_storage[0]` in a config file instead.
+
+This option cannot be used when using `backup_destinations` in a config file.
+
 - `-local-path` - Location to store snapshots locally. The default behavior
   of the snapshot agent is to store snapshots locally in this directory. Defaults
-  to "." to use the current working directory. If an alternate storage option is
-  configured, then local storage will be disabled and this option will be ignored.
+  to "." to use the current working directory. If an alternate remote storage 
+  option is configured, then local storage will be disabled and this option will 
+  be ignored.
 
 #### S3 Storage Options
 
+~> These options are deprecated when used with a top-level `aws_storage` object in a config file. Use `snapshot_agent -> backup_destinations -> aws_storage[0]` in a config file instead.
+
+These options cannot be used when using `backup_destinations` in a config file.
 Note that despite the AWS references, any S3-compatible endpoint can be specified with `-aws-s3-endpoint`.
 
 - `-aws-access-key-id`, `-aws-secret-access-key` and `-aws-session-token` - These arguments supply static
@@ -365,9 +382,13 @@ The following example IAM policy document assumes that the `aws-s3-bucket` is `c
 
 #### Azure Blob Storage options
 
+~> These options are deprecated when used with a top-level `azure_blob_storage` object in a config file. Use `snapshot_agent -> backup_destinations -> azure_blob_storage[0]` in a config file instead.
+
 ** Note: This currently only works on non-Solaris platforms due to library limitations **
 
 From Consul Enterprise version `1.5.0` onwards, you can store snapshots in Azure Blob storage.
+
+These options cannot be used when using `backup_destinations` in a config file.
 
 - `-azure-blob-account-name` and `-azure-blob-account-key` - These arguments supply
   authentication information for connecting to Azure Blob storage.
@@ -380,13 +401,18 @@ From Consul Enterprise version `1.5.0` onwards, you can store snapshots in Azure
 
 #### Google Cloud Storage options
 
+~> This option is deprecated when used with a top-level `google_storage` object in a config file. Use `snapshot_agent -> backup_destinations -> google_storage[0]` in a config file instead.
+
 From Consul Enterprise version `1.6.1` onwards, you can store snapshots in Google Cloud Storage. Authentication relies on automatic discovery through the sdk as described [here](https://cloud.google.com/docs/authentication/production):
+
 
 - First, ADC checks to see if the environment variable GOOGLE_APPLICATION_CREDENTIALS is set. If the variable is set, ADC uses the service account file that the variable points to. The next section describes how to set the environment variable.
 
 - If the environment variable isn't set, ADC uses the default service account that Compute Engine, Kubernetes Engine, App Engine, and Cloud Functions provide, for applications that run on those services.
 
 - If ADC can't use either of the above credentials, an error occurs.
+
+This option cannot be used when using `backup_destinations` in a config file.
 
 This integration needs the following information:
 

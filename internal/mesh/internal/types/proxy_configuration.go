@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/catalog/workloadselector"
 
 	"github.com/hashicorp/go-multierror"
 
@@ -22,7 +23,7 @@ func RegisterProxyConfiguration(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateProxyConfiguration,
 		Validate: ValidateProxyConfiguration,
-		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.ProxyConfiguration](),
+		ACLs:     workloadselector.ACLHooks[*pbmesh.ProxyConfiguration](),
 	})
 }
 
@@ -95,13 +96,6 @@ func validateDynamicProxyConfiguration(cfg *pbmesh.DynamicConfig) error {
 	if cfg.GetMutualTlsMode() != pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_DEFAULT {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "mutual_tls_mode",
-			Wrapped: resource.ErrUnsupported,
-		})
-	}
-
-	if cfg.GetMeshGatewayMode() != pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_UNSPECIFIED {
-		err = multierror.Append(err, resource.ErrInvalidField{
-			Name:    "mesh_gateway_mode",
 			Wrapped: resource.ErrUnsupported,
 		})
 	}

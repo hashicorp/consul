@@ -45,8 +45,17 @@ type IngressGatewayConfigEntry struct {
 	Defaults *IngressServiceConfig `json:",omitempty"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *IngressGatewayConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *IngressGatewayConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 type IngressServiceConfig struct {
@@ -195,6 +204,12 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 		// pointers to structs
 		e.Listeners[i] = listener
 	}
+
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 
 	return nil
 }
@@ -470,8 +485,17 @@ type TerminatingGatewayConfigEntry struct {
 	Services []LinkedService
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *TerminatingGatewayConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *TerminatingGatewayConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 // A LinkedService is a service represented by a terminating gateway
@@ -493,6 +517,9 @@ type LinkedService struct {
 
 	// SNI is the optional name to specify during the TLS handshake with a linked service
 	SNI string `json:",omitempty"`
+
+	//DisableAutoHostRewrite disables terminating gateways auto host rewrite feature when set to true.
+	DisableAutoHostRewrite bool `json:",omitempty"`
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
@@ -529,6 +556,11 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 		e.Services[i].EnterpriseMeta.Normalize()
 	}
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -639,6 +671,7 @@ type GatewayService struct {
 	FromWildcard bool               `json:",omitempty"`
 	ServiceKind  GatewayServiceKind `json:",omitempty"`
 	RaftIndex
+	AutoHostRewrite bool `json:",omitempty"`
 }
 
 type GatewayServices []*GatewayService
@@ -686,14 +719,15 @@ func (g *GatewayService) Clone() *GatewayService {
 		Port:        g.Port,
 		Protocol:    g.Protocol,
 		// See https://github.com/go101/go101/wiki/How-to-efficiently-clone-a-slice%3F
-		Hosts:        append(g.Hosts[:0:0], g.Hosts...),
-		CAFile:       g.CAFile,
-		CertFile:     g.CertFile,
-		KeyFile:      g.KeyFile,
-		SNI:          g.SNI,
-		FromWildcard: g.FromWildcard,
-		RaftIndex:    g.RaftIndex,
-		ServiceKind:  g.ServiceKind,
+		Hosts:           append(g.Hosts[:0:0], g.Hosts...),
+		CAFile:          g.CAFile,
+		CertFile:        g.CertFile,
+		KeyFile:         g.KeyFile,
+		SNI:             g.SNI,
+		FromWildcard:    g.FromWildcard,
+		RaftIndex:       g.RaftIndex,
+		ServiceKind:     g.ServiceKind,
+		AutoHostRewrite: g.AutoHostRewrite,
 	}
 }
 
@@ -715,8 +749,17 @@ type APIGatewayConfigEntry struct {
 	Status Status
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *APIGatewayConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *APIGatewayConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *APIGatewayConfigEntry) GetKind() string                        { return APIGateway }
@@ -767,6 +810,11 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 		}
 	}
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -822,7 +870,8 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		ListenerProtocolTCP:  true,
 	}
 	allowedCertificateKinds := map[string]bool{
-		InlineCertificate: true,
+		FileSystemCertificate: true,
+		InlineCertificate:     true,
 	}
 
 	for _, listener := range e.Listeners {
@@ -841,7 +890,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		}
 		for _, certificate := range listener.TLS.Certificates {
 			if !allowedCertificateKinds[certificate.Kind] {
-				return fmt.Errorf("unsupported certificate kind: %q, must be 'inline-certificate'", certificate.Kind)
+				return fmt.Errorf("unsupported certificate kind: %q, must be 'file-system-certificate' or 'inline-certificate'", certificate.Kind)
 			}
 			if certificate.Name == "" {
 				return fmt.Errorf("certificate reference must have a name")
@@ -930,6 +979,16 @@ func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
 	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
 
+func (a *APIGatewayTLSConfiguration) ToGatewayTLSConfig() GatewayTLSConfig {
+	return GatewayTLSConfig{
+		Enabled:       true,
+		SDS:           nil,
+		TLSMinVersion: a.MinVersion,
+		TLSMaxVersion: a.MaxVersion,
+		CipherSuites:  a.CipherSuites,
+	}
+}
+
 // ServiceRouteReferences is a map with a key of ServiceName type for a routed to service from a
 // bound gateway listener with a value being a slice of resource references of the routes that reference the service
 type ServiceRouteReferences map[ServiceName][]ResourceReference
@@ -990,8 +1049,17 @@ type BoundAPIGatewayConfigEntry struct {
 	Services ServiceRouteReferences
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *BoundAPIGatewayConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) bool {
@@ -1083,6 +1151,12 @@ func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 
 		e.Listeners[i] = listener
 	}
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
+
 	return nil
 }
 

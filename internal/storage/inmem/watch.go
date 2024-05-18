@@ -36,7 +36,20 @@ func (w *Watch) Next(ctx context.Context) (*pbresource.WatchEvent, error) {
 		}
 
 		event := e.Payload.(eventPayload).event
-		if w.query.matches(event.Resource) {
+
+		var resource *pbresource.Resource
+		switch {
+		case event.GetUpsert() != nil:
+			resource = event.GetUpsert().GetResource()
+		case event.GetDelete() != nil:
+			resource = event.GetDelete().GetResource()
+		case event.GetEndOfSnapshot() != nil:
+			return event, nil
+		default:
+			return nil, fmt.Errorf("unexpected resource event type: %T", event.GetEvent())
+		}
+
+		if w.query.matches(resource) {
 			return event, nil
 		}
 	}
@@ -108,7 +121,8 @@ type eventPayload struct {
 func (p eventPayload) Subject() stream.Subject { return p.subject }
 
 // These methods are required by the stream.Payload interface, but we don't use them.
-func (eventPayload) HasReadPermission(acl.Authorizer) bool         { return false }
+func (eventPayload) HasReadPermission(acl.Authorizer) bool { return false }
+
 func (eventPayload) ToSubscriptionEvent(uint64) *pbsubscribe.Event { return nil }
 
 type wildcardSubject struct {
@@ -122,6 +136,7 @@ func (s wildcardSubject) String() string {
 }
 
 type tenancySubject struct {
+	// TODO(peering/v2) update tenancy subject to account for peer tenancies
 	resourceType storage.UnversionedType
 	tenancy      *pbresource.Tenancy
 }
@@ -130,15 +145,22 @@ func (s tenancySubject) String() string {
 	return s.resourceType.Group + indexSeparator +
 		s.resourceType.Kind + indexSeparator +
 		s.tenancy.Partition + indexSeparator +
-		s.tenancy.PeerName + indexSeparator +
+
 		s.tenancy.Namespace
 }
 
 // publishEvent sends the event to the relevant Watches.
-func (s *Store) publishEvent(idx uint64, op pbresource.WatchEvent_Operation, res *pbresource.Resource) {
-	id := res.Id
+func (s *Store) publishEvent(idx uint64, event *pbresource.WatchEvent) {
+	var id *pbresource.ID
+	switch {
+	case event.GetUpsert() != nil:
+		id = event.GetUpsert().GetResource().GetId()
+	case event.GetDelete() != nil:
+		id = event.GetDelete().GetResource().GetId()
+	default:
+		panic(fmt.Sprintf("(*Store).publishEvent cannot handle events of type %T", event.GetEvent()))
+	}
 	resourceType := storage.UnversionedTypeFrom(id.Type)
-	event := &pbresource.WatchEvent{Operation: op, Resource: res}
 
 	// We publish two copies of the event: one to the tenancy-specific subject and
 	// another to a wildcard subject. Ideally, we'd be able to put the type in the
@@ -179,9 +201,9 @@ func (s *Store) watchSnapshot(req stream.SubscribeRequest, snap stream.SnapshotA
 		q.resourceType = t.resourceType
 		q.tenancy = &pbresource.Tenancy{
 			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
 			Namespace: storage.Wildcard,
 		}
+		// TODO(peering/v2) maybe handle wildcards in peer tenancy
 	default:
 		return 0, fmt.Errorf("unhandled subject type: %T", req.Subject)
 	}
@@ -199,20 +221,32 @@ func (s *Store) watchSnapshot(req stream.SubscribeRequest, snap stream.SnapshotA
 		return 0, nil
 	}
 
-	events := make([]stream.Event, len(results))
-	for i, r := range results {
-		events[i] = stream.Event{
+	events := make([]stream.Event, 0, len(results)+1)
+	addEvent := func(event *pbresource.WatchEvent) {
+		events = append(events, stream.Event{
 			Topic: eventTopic,
 			Index: idx,
 			Payload: eventPayload{
 				subject: req.Subject,
-				event: &pbresource.WatchEvent{
-					Operation: pbresource.WatchEvent_OPERATION_UPSERT,
-					Resource:  r,
+				event:   event,
+			},
+		})
+	}
+
+	for _, r := range results {
+		addEvent(&pbresource.WatchEvent{
+			Event: &pbresource.WatchEvent_Upsert_{
+				Upsert: &pbresource.WatchEvent_Upsert{
+					Resource: r,
 				},
 			},
-		}
+		})
 	}
+	addEvent(&pbresource.WatchEvent{
+		Event: &pbresource.WatchEvent_EndOfSnapshot_{
+			EndOfSnapshot: &pbresource.WatchEvent_EndOfSnapshot{},
+		},
+	})
 	snap.Append(events)
 
 	return idx, nil

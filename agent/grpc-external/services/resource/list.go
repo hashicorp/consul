@@ -100,6 +100,10 @@ func (s *Server) ensureListRequestValid(req *pbresource.ListRequest) (*resource.
 		return nil, err
 	}
 
+	// Ignore return value since read ops are allowed but will log a warning if the feature is
+	// not enabled in the license.
+	_ = s.FeatureCheck(reg)
+
 	if err = checkV2Tenancy(s.UseV2Tenancy, req.Type); err != nil {
 		return nil, err
 	}
@@ -109,7 +113,7 @@ func (s *Server) ensureListRequestValid(req *pbresource.ListRequest) (*resource.
 	}
 
 	// Error when partition scoped and namespace not empty.
-	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" {
+	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" && req.Tenancy.Namespace != storage.Wildcard {
 		return nil, status.Errorf(
 			codes.InvalidArgument,
 			"partition scoped type %s cannot have a namespace. got: %s",

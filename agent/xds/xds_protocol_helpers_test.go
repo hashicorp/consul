@@ -38,7 +38,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -73,16 +73,18 @@ func newTestSnapshot(
 // testing. It also implements ConnectAuthz to allow control over authorization.
 type testManager struct {
 	sync.Mutex
-	stateChans map[structs.ServiceID]chan proxysnapshot.ProxySnapshot
-	drainChans map[structs.ServiceID]chan struct{}
-	cancels    chan structs.ServiceID
+	stateChans           map[structs.ServiceID]chan proxysnapshot.ProxySnapshot
+	drainChans           map[structs.ServiceID]chan struct{}
+	cfgSrcTerminateChans map[structs.ServiceID]chan struct{}
+	cancels              chan structs.ServiceID
 }
 
 func newTestManager(t *testing.T) *testManager {
 	return &testManager{
-		stateChans: map[structs.ServiceID]chan proxysnapshot.ProxySnapshot{},
-		drainChans: map[structs.ServiceID]chan struct{}{},
-		cancels:    make(chan structs.ServiceID, 10),
+		stateChans:           map[structs.ServiceID]chan proxysnapshot.ProxySnapshot{},
+		drainChans:           map[structs.ServiceID]chan struct{}{},
+		cfgSrcTerminateChans: map[structs.ServiceID]chan struct{}{},
+		cancels:              make(chan structs.ServiceID, 10),
 	}
 }
 
@@ -92,6 +94,7 @@ func (m *testManager) RegisterProxy(t *testing.T, proxyID structs.ServiceID) {
 	defer m.Unlock()
 	m.stateChans[proxyID] = make(chan proxysnapshot.ProxySnapshot, 1)
 	m.drainChans[proxyID] = make(chan struct{})
+	m.cfgSrcTerminateChans[proxyID] = make(chan struct{})
 }
 
 // Deliver simulates a proxy registration
@@ -121,9 +124,23 @@ func (m *testManager) DrainStreams(proxyID structs.ServiceID) {
 	close(ch)
 }
 
+// CfgSrcTerminate terminates any open streams for the given proxyID by indicating that the
+// corresponding config-source terminated unexpectedly.
+func (m *testManager) CfgSrcTerminate(proxyID structs.ServiceID) {
+	m.Lock()
+	defer m.Unlock()
+
+	ch, ok := m.cfgSrcTerminateChans[proxyID]
+	if !ok {
+		ch = make(chan struct{})
+		m.cfgSrcTerminateChans[proxyID] = ch
+	}
+	close(ch)
+}
+
 // Watch implements ConfigManager
 func (m *testManager) Watch(id *pbresource.ID, _ string, _ string) (<-chan proxysnapshot.ProxySnapshot,
-	limiter.SessionTerminatedChan, proxysnapshot.CancelFunc, error) {
+	limiter.SessionTerminatedChan, proxycfg.SrcTerminatedChan, proxysnapshot.CancelFunc, error) {
 	// Create service ID
 	proxyID := structs.NewServiceID(id.Name, catalog.GetEnterpriseMetaFromResourceID(id))
 	m.Lock()
@@ -133,12 +150,12 @@ func (m *testManager) Watch(id *pbresource.ID, _ string, _ string) (<-chan proxy
 	drainCh := m.drainChans[proxyID]
 	select {
 	case <-drainCh:
-		return nil, nil, nil, limiter.ErrCapacityReached
+		return nil, nil, nil, nil, limiter.ErrCapacityReached
 	default:
 	}
 
 	// ch might be nil but then it will just block forever
-	return m.stateChans[proxyID], drainCh, func() {
+	return m.stateChans[proxyID], drainCh, m.cfgSrcTerminateChans[proxyID], func() {
 		m.cancels <- proxyID
 	}, nil
 }
@@ -295,7 +312,7 @@ func xdsNewTransportSocket(
 		},
 	}
 	if len(spiffeID) > 0 {
-		require.NoError(t, injectSANMatcher(commonTLSContext, spiffeID...))
+		require.NoError(t, injectSANMatcher(commonTLSContext, false, spiffeID...))
 	}
 
 	var tlsContext proto.Message

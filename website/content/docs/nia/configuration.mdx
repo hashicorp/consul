@@ -86,7 +86,7 @@ license {
 
 You can use the `auto_retrieval` block to configure the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/consul/docs/nia/enterprise/license#license-expiration-handling).
 
-~> Enabling `auto_retrieval` is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you have to restart CTS every time you load a new license.
+~> Enabling `auto_retrieval` is recommended when using HCP Consul Dedicated, as HCP Consul Dedicated licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you have to restart CTS every time you load a new license.
 
 | Parameter | Required | Type | Description | Default |
 | --------- | -------- | ---- | ----------- | ------- |
@@ -302,7 +302,7 @@ task {
 - `module` - (string: required) Module is the location the driver uses to discover the Terraform module used for automation. The module's source can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source and other supported types here](/terraform/language/modules/sources).
 
   - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](/terraform/tutorials/cloud/cloud-login?utm_source=docs) to authenticate the local Terraform CLI prior to starting CTS.
-  - To use a private module with the [`terraform_cloud` driver](#terraform-cloud-driver), no extra steps are needed.
+  - To use a private module with the [`terraform_cloud` driver](#hcp-terraform-driver), no extra steps are needed.
 
     ```hcl
     // local module example: "./terraform-cts-hello"
@@ -339,12 +339,12 @@ task {
 - `condition` - (obj: required) The requirement that, when met, triggers CTS to execute the task. Only one `condition` may be configured per task. CTS supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
 - `source_input` - (obj) **Deprecated in CTS 0.5.0 and will be removed in 0.8.0. See the `module_input` block instead.**
 - `module_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. The `module_input` block defines any extra module inputs needed for task execution.  This is in addition to any module input provided by the `condition` block or `services` field (deprecated). Multiple `module_input` blocks can be configured per task. [Task Module Input](#task-module-input) configuration for full details on usage and restrictions.
-- `terraform_version` - (string) <EnterpriseAlert inline />  **Deprecated in CTS 0.6.0 and will be removed in 0.8.0. Review `terraform_cloud_workspace.terraform_version` instead.** The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
-- `terraform_cloud_workspace` - (obj) <EnterpriseAlert inline /> Configures attributes of the Terraform Cloud workspace associated with the task. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver). For global configurations of all workspaces, review [`driver.workspaces`](#workspaces).
-  - `execution_mode` - (string: "remote") The execution mode that determines whether to use Terraform Cloud as the Terraform execution platform. Only supports "remote" or "agent".
+- `terraform_version` - (string) <EnterpriseAlert inline />  **Deprecated in CTS 0.6.0 and will be removed in 0.8.0. Review `terraform_cloud_workspace.terraform_version` instead.** The version of Terraform to use for the HCP Terraform workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [HCP Terraform driver](#hcp-terraform-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
+- `terraform_cloud_workspace` - (obj) <EnterpriseAlert inline /> Configures attributes of the HCP Terraform workspace associated with the task. This option is only available when used with the [HCP Terraform driver](#hcp-terraform-driver). For global configurations of all workspaces, review [`driver.workspaces`](#workspaces).
+  - `execution_mode` - (string: "remote") The execution mode that determines whether to use HCP Terraform as the Terraform execution platform. Only supports "remote" or "agent".
   - `agent_pool_id` - (string) Only supported if `execution_mode` is set to "agent". The ID of the agent pool that should run the Terraform workloads. Either `agent_pool_id` or `agent_pool_name` are required if `execution_mode` is set to "agent". `agent_pool_id` takes precedence over `agent_pool_name` if both are provided.
   - `agent_pool_name` - (string) Only supported if `execution_mode` is set to "agent". The name of the agent pool that should run the Terraform workloads. Only supported if `execution_mode` is set to "agent". Either `agent_pool_id` or `agent_pool_name` are required. `agent_pool_id` takes precedence over `agent_pool_name` if both are provided.
-  - `terraform_version` - (string) The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization.
+  - `terraform_version` - (string) The version of Terraform to use for the HCP Terraform workspace associated with the task. Defaults to the latest compatible version supported by the organization.
 
 ### Task Condition
 
@@ -653,7 +653,7 @@ driver "terraform" {
 - `backend` - (obj) The backend stores [Terraform state files](/terraform/language/state) for each task. This option is similar to the [Terraform backend configuration](/terraform/language/settings/backends/configuration). CTS supports Terraform backends used as a state store.
   - Supported backend options: [azurerm](/terraform/language/settings/backends/azurerm), [consul](/terraform/language/settings/backends/consul), [cos](/terraform/language/settings/backends/cos), [gcs](/terraform/language/settings/backends/gcs), [kubernetes](/terraform/language/settings/backends/kubernetes), [local](/terraform/language/settings/backends/local), [manta](/terraform/language/v1.2.x/settings/backends/manta), [pg](/terraform/language/settings/backends/pg) (Terraform v0.14+), [s3](/terraform/language/settings/backends/s3). Visit the Terraform documentation links for details on backend configuration options.
   - If omitted, CTS will generate default values and use configurations from the [`consul` block](#consul) to configure [Consul as the backend](/terraform/language/settings/backends/consul), which stores Terraform statefiles in the Consul KV. The [ACL token provided for Consul authentication](#consul) is used to read and write to the KV store and requires [Consul KV privileges](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-secure?utm_source=docs#configure-acl-privileges-for-consul-terraform-sync). The Consul KV path is the base path to store state files for tasks. The full path of each state file will have the task identifier appended to the end of the path, e.g. `consul-terraform-sync/terraform-env:task-name`.
-  - The remote enhanced backend is not supported with the Terraform driver to run operations in Terraform Cloud. Use the [Terraform Cloud driver](#terraform-cloud-driver) to integrate CTS with Terraform Cloud for remote workspaces and remote operations.
+  - The remote enhanced backend is not supported with the Terraform driver to run operations in HCP Terraform. Use the [HCP Terraform driver](#hcp-terraform-driver) to integrate CTS with HCP Terraform for remote workspaces and remote operations.
   - The `local` backend type is not supported with CTS instances configured for high availability. If high availability is configured and the Terraform backend type is `local`, CTS logs an error and exits.
 - `log` - (bool) Enable all Terraform output (stderr and stdout) to be included in the CTS log. This is useful for debugging and development purposes. It may be difficult to work with log aggregators that expect uniform log format.
 - `path` - (string) The file path to install Terraform or discover an existing Terraform binary. If omitted, Terraform will be installed in the same directory as the CTS daemon. To resolve an incompatible Terraform version or to change versions will require removing the existing binary or change to a different path.
@@ -661,7 +661,7 @@ driver "terraform" {
 - `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This can be configured the same as how you would configure [Terraform `terraform.required_providers`](/terraform/language/providers/requirements#requiring-providers) field to specify the source and version for each provider. CTS will process these requirements when preparing each task that uses the provider.
 - `version` - (string) The Terraform version to install and run in automation for task execution. If omitted, the driver will install the latest [compatible release of Terraform](/consul/docs/nia/compatibility#terraform). To change versions, remove the existing binary or change the path to install the desired version. Verify that the desired Terraform version is compatible across all Terraform modules used for CTS automation.
 
-## Terraform Cloud Driver
+## HCP Terraform Driver
 
 <EnterpriseAlert>
   This feature requires{' '}
@@ -671,9 +671,9 @@ driver "terraform" {
   which is available with <strong>Consul Enterprise</strong>.
 </EnterpriseAlert>
 
-The Terraform Cloud driver enables CTS Enterprise to integrate with **Terraform Cloud**, including both the [self-hosted distribution](https://www.hashicorp.com/products/terraform/editions/enterprise) and the [managed service](https://www.hashicorp.com/products/terraform/editions/cloud). With this driver, CTS automates Terraform runs and remote operations for workspaces.
+The HCP Terraform driver enables CTS Enterprise to integrate with HCP Terraform, including both the [self-hosted distribution](https://www.hashicorp.com/products/terraform/editions/enterprise) and the [managed service](https://www.hashicorp.com/products/terraform/editions/cloud). With this driver, CTS automates Terraform runs and remote operations for workspaces.
 
-An overview of features enabled with Terraform Cloud can be viewed within the [Network Drivers](/consul/docs/nia/network-drivers) documentation.
+An overview of features enabled with HCP Terraform can be viewed within the [Network Drivers](/consul/docs/nia/network-drivers) documentation.
 
 Only one network driver can be configured per deployment of CTS.
 
@@ -701,16 +701,16 @@ driver "terraform-cloud" {
 }
 ```
 
-- `hostname` - (string) The Terraform Cloud hostname to connect to. Can be overridden with the `TFC_HOSTNAME` environment variable.
-- `organization` - (string) The Terraform Cloud organization that hosts the managed workspaces by CTS. Can be overridden with the `TFC_ORGANIZATION` environment variable.
-- `token` - (string) Required [Team API token](/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens) used for authentication with Terraform Cloud and workspace management. Only workspace permissions are needed for CTS. The token can also be provided using the `TFC_TOKEN` environment variable.
-  - We recommend creating a dedicated team and team API token to isolate automation by CTS from other Terraform Cloud operations.
+- `hostname` - (string) The HCP Terraform hostname to connect to. Can be overridden with the `TFC_HOSTNAME` environment variable.
+- `organization` - (string) The HCP Terraform organization that hosts the managed workspaces by CTS. Can be overridden with the `TFC_ORGANIZATION` environment variable.
+- `token` - (string) Required [Team API token](/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens) used for authentication with HCP Terraform and workspace management. Only workspace permissions are needed for CTS. The token can also be provided using the `TFC_TOKEN` environment variable.
+  - We recommend creating a dedicated team and team API token to isolate automation by CTS from other HCP Terraform operations.
 - `workspace_prefix` - (string) **Deprecated in CTS 0.5.0**, use the [`workspaces.prefix`](#prefix) option instead. Specifies a prefix to prepend to the automatically-generated workspace names used for automation. This prefix will be used by all tasks that use this driver. By default, when no prefix is configured, the workspace name will be the task name. When a prefix is configured, the workspace name will be `<workspace_prefix value>-<task name>`, with the character '-' between the workspace prefix and task name. For example, if you configure the prefix as "cts", then a task with the name "task-firewall" will have the workspace name "cts-task-firewall".
-- `workspaces` - Configure CTS management of Terraform Cloud workspaces.
+- `workspaces` - Configure CTS management of HCP Terraform workspaces.
   - `prefix` - (string) Specifies a prefix to prepend to the workspace names used for CTS task automation. This prefix will be used by all tasks that use this driver. By default, when no prefix is configured, the workspace name will be the task name. When a prefix is configured, the workspace name will be `<prefix><task name>`. For example, if you configure the prefix as "cts_", then a task with the name "task_firewall" will have the workspace name "cts_task_firewall".
-  - `tags` - (list[string]) Tags for CTS to add to all automated workspaces when the workspace is first created or discovered. Tags are added to discovered workspaces only if the workspace meets [automation requirements](/consul/docs/nia/network-drivers/terraform-cloud#remote-workspaces) and satisfies the allowlist and denylist tag options. This option will not affect existing tags. Tags that were manually removed during runtime will be re-tagged when CTS restarts. Compatible with Terraform Cloud and Terraform Enterprise v202108-1+
-  - `tags_allowlist` - (list[string]) Tag requirement to use as a provision check for CTS automation of workspaces. When configured, Terraform Cloud workspaces must have at least one tag from the allow list for CTS to automate the workspace and runs. Compatible with Terraform Cloud and Terraform Enterprise v202108-1+.
-  - `tags_denylist` - (list[string]) Tag restriction to use as a provision check for CTS automation of workspaces. When configured, Terraform Cloud workspaces must not have any tag from the deny list for CTS to automate the workspace and runs. Denied tags have higher priority than tags set in the `tags_allowlist` option. Compatible with Terraform Cloud and Terraform Enterprise v202108-1+.
+  - `tags` - (list[string]) Tags for CTS to add to all automated workspaces when the workspace is first created or discovered. Tags are added to discovered workspaces only if the workspace meets [automation requirements](/consul/docs/nia/network-drivers/hcp-terraform#remote-workspaces) and satisfies the allowlist and denylist tag options. This option will not affect existing tags. Tags that were manually removed during runtime will be re-tagged when CTS restarts. Compatible with HCP Terraform and Terraform Enterprise v202108-1+
+  - `tags_allowlist` - (list[string]) Tag requirement to use as a provision check for CTS automation of workspaces. When configured, HCP Terraform workspaces must have at least one tag from the allow list for CTS to automate the workspace and runs. Compatible with HCP Terraform and Terraform Enterprise v202108-1+.
+  - `tags_denylist` - (list[string]) Tag restriction to use as a provision check for CTS automation of workspaces. When configured, HCP Terraform workspaces must not have any tag from the deny list for CTS to automate the workspace and runs. Denied tags have higher priority than tags set in the `tags_allowlist` option. Compatible with HCP Terraform and Terraform Enterprise v202108-1+.
 - `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This can be configured the same as how you would configure [Terraform `terraform.required_providers`](/terraform/language/providers/requirements#requiring-providers) field to specify the source and version for each provider. CTS will process these requirements when preparing each task that uses the provider.
 - `tls` - Configure TLS to allow HTTPS connections to [Terraform Enterprise](/terraform/enterprise/install/interactive/installer#tls-key-amp-cert).
   - `enabled` - (bool) Enable TLS. Providing a value for any of the TLS options will enable this parameter implicitly.
@@ -727,7 +727,7 @@ driver "terraform-cloud" {
       }
       ```
 
-CTS generates local artifacts to prepare configuration versions used for workspace runs. The location of the files created can be set with the [`working_dir`](/consul/docs/nia/configuration#working_dir) option or configured per task. When a task is configured with a local module and is run with the Terraform Cloud driver, the local module is copied and uploaded as a part of the configuration version.
+CTS generates local artifacts to prepare configuration versions used for workspace runs. The location of the files created can be set with the [`working_dir`](/consul/docs/nia/configuration#working_dir) option or configured per task. When a task is configured with a local module and is run with the HCP Terraform driver, the local module is copied and uploaded as a part of the configuration version.
 
 The version of Terraform to use for each workspace can also be set within the [task](#task) configuration.
 

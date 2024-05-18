@@ -1,0 +1,3 @@
+```release-note:bug
+xds: ensure child resources are re-sent to Envoy when the parent is updated even if the child already has pending updates.
+```
