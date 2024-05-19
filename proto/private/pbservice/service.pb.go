@@ -628,6 +628,12 @@ type ExposePath struct {
 	Protocol string `protobuf:"bytes,4,opt,name=Protocol,proto3" json:"Protocol,omitempty"`
 	// ParsedFromCheck is set if this path was parsed from a registered check
 	ParsedFromCheck bool `protobuf:"varint,5,opt,name=ParsedFromCheck,proto3" json:"ParsedFromCheck,omitempty"`
+	// CAFile is the path to the CA file for the exposed external HTTPS path
+	CAFile string `protobuf:"bytes,6,opt,name=cafile,proto3" json:"cafile,omitempty"`
+	// CertFile is the path to the Certificate file for the exposed external HTTPS path
+	CertFile string `protobuf:"bytes,7,opt,name=certfile,proto3" json:"certfile,omitempty"`
+	// KeyFile is the path to the Private key file for the exposed external HTTPS path
+	KeyFile string `protobuf:"bytes,8,opt,name=keyfile,proto3" json:"keyfile,omitempty"`
 }
 
 func (x *ExposePath) Reset() {
@@ -695,6 +701,27 @@ func (x *ExposePath) GetParsedFromCheck() bool {
 		return x.ParsedFromCheck
 	}
 	return false
+}
+
+func (x *ExposePath) GetCAFile() string {
+	if x != nil {
+		return x.CAFile
+	}
+	return ""
+}
+
+func (x *ExposePath) GetCertFile() string {
+	if x != nil {
+		return x.CertFile
+	}
+	return ""
+}
+
+func (x *ExposePath) GetKeyFile() string {
+	if x != nil {
+		return x.KeyFile
+	}
+	return ""
 }
 
 // mog annotation:
