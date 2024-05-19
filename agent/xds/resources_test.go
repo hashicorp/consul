@@ -1676,6 +1676,20 @@ func getExposePathGoldenTestCases() []goldenTestCase {
 			alsoRunTestForV2: true,
 		},
 		{
+			name: "expose-paths-new-cluster-https",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotExposeConfig(t, func(ns *structs.NodeService) {
+					ns.Proxy.Expose.Paths[1] = structs.ExposePath{
+						LocalPathPort: 9090,
+						Path:          "/externalService/Check",
+						ListenerPort:  21501,
+						CertFile:      "/certs/Certificate.crt",
+						KeyFile:       "/certs/Private.key",
+					}
+				})
+			},
+		},
+		{
 			name:   "expose-checks",
 			create: proxycfg.TestConfigSnapshotExposeChecks,
 			generatorSetup: func(s *ResourceGenerator) {
