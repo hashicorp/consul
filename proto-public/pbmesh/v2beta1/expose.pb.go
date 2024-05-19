@@ -128,9 +128,6 @@ type ExposePath struct {
 	Path          string             `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	LocalPathPort uint32             `protobuf:"varint,3,opt,name=local_path_port,json=localPathPort,proto3" json:"local_path_port,omitempty"`
 	Protocol      ExposePathProtocol `protobuf:"varint,4,opt,name=protocol,proto3,enum=hashicorp.consul.mesh.v2beta1.ExposePathProtocol" json:"protocol,omitempty"`
-	CAFile    	  string 			 `protobuf:"bytes,5,opt,name=cafile,proto3" json:"cafile,omitempty"`
-	CertFile      string 			 `protobuf:"bytes,6,opt,name=certfile,proto3" json:"certfile,omitempty"`
-	KeyFile       string 			 `protobuf:"bytes,7,opt,name=keyfile,proto3" json:"keyfile,omitempty"`
 }
 
 func (x *ExposePath) Reset() {
@@ -191,27 +188,6 @@ func (x *ExposePath) GetProtocol() ExposePathProtocol {
 		return x.Protocol
 	}
 	return ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP
-}
-
-func (x *ExposePath) GetCAFile() string {
-	if x != nil {
-		return x.CAFile
-	}
-	return ""
-}
-
-func (x *ExposePath) GetCertFile() string {
-	if x != nil {
-		return x.CertFile
-	}
-	return ""
-}
-
-func (x *ExposePath) GetKeyFile() string {
-	if x != nil {
-		return x.KeyFile
-	}
-	return ""
 }
 
 var File_pbmesh_v2beta1_expose_proto protoreflect.FileDescriptor

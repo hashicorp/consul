@@ -218,6 +218,15 @@ message ExposePath {
 
   // ParsedFromCheck is set if this path was parsed from a registered check
   bool ParsedFromCheck = 5;
+
+  // CAFile is the path to the CA file for the exposed external HTTPS path
+  string CAFile = 6;
+
+  // CertFile is the path to the Certificate file for the exposed external HTTPS path
+  string CertFile = 7;
+
+  // KeyFile is the path to the Private key file for the exposed external HTTPS path
+  string KeyFile = 8;
 }
 
 // mog annotation:

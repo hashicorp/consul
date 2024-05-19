@@ -109,6 +109,9 @@ func ExposePathToStructs(s *ExposePath, t *structs.ExposePath) {
 	t.LocalPathPort = int(s.LocalPathPort)
 	t.Protocol = s.Protocol
 	t.ParsedFromCheck = s.ParsedFromCheck
+	t.CAFile = s.CAFile
+	t.CertFile = s.CertFile
+	t.KeyFile = s.KeyFile
 }
 func ExposePathFromStructs(t *structs.ExposePath, s *ExposePath) {
 	if s == nil {
@@ -119,6 +122,9 @@ func ExposePathFromStructs(t *structs.ExposePath, s *ExposePath) {
 	s.LocalPathPort = int32(t.LocalPathPort)
 	s.Protocol = t.Protocol
 	s.ParsedFromCheck = t.ParsedFromCheck
+	s.CAFile = t.CAFile
+	s.CertFile = t.CertFile
+	s.KeyFile = t.KeyFile
 }
 func MeshGatewayConfigToStructs(s *MeshGatewayConfig, t *structs.MeshGatewayConfig) {
 	if s == nil {
