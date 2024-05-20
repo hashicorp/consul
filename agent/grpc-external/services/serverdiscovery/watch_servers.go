@@ -6,6 +6,7 @@ package serverdiscovery
 import (
 	"context"
 	"errors"
+	"math/rand"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
@@ -39,7 +40,7 @@ func (s *Server) WatchServers(req *pbserverdiscovery.WatchServersRequest, server
 	for {
 		var err error
 		idx, err = s.serveReadyServers(options.Token, idx, req, serverStream, logger)
-		if errors.Is(err, stream.ErrSubForceClosed) {
+		if errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrACLChanged) {
 			logger.Trace("subscription force-closed due to an ACL change or snapshot restore, will attempt to re-auth and resume")
 		} else {
 			return err
@@ -68,7 +69,7 @@ func (s *Server) serveReadyServers(token string, index uint64, req *pbserverdisc
 	for {
 		event, err := sub.Next(serverStream.Context())
 		switch {
-		case errors.Is(err, stream.ErrSubForceClosed):
+		case errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrACLChanged):
 			return index, err
 		case errors.Is(err, context.Canceled):
 			return 0, nil
@@ -130,6 +131,10 @@ func eventToResponse(req *pbserverdiscovery.WatchServersRequest, event stream.Ev
 		})
 	}
 
+	// Shuffle servers so that consul-dataplane doesn't consistently choose the same connections on startup.
+	rand.Shuffle(len(servers), func(i, j int) {
+		servers[i], servers[j] = servers[j], servers[i]
+	})
 	return &pbserverdiscovery.WatchServersResponse{
 		Servers: servers,
 	}, nil

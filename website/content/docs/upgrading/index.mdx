@@ -56,15 +56,40 @@ Consul is A, and version B is released.
    by running `consul members` to make sure all members have the latest
    build and highest protocol version.
 
+## Upgrade recommendation
+
+We encourage organizations to use a maintained version of Consul
+so that they benefit from bug and security fixes in minor releases.
+
+### Consul community edition
+
+For Consul community edition users,
+consistently operating a maintained version requires upgrading
+every 4 months to the latest major release.
+
+### Consul Enterprise
+
+Standard major releases of Consul Enterprise are maintained for approximately 1 year.
+[Consul Enterprise Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)
+releases are maintained for approximately 2 years.
+
+For Consul Enterprise customers,
+consistently operating a maintained version requires a major upgrade every 12 months
+on average when using [LTS](/consul/docs/enterprise/long-term-support) releases.
+LTS releases support an upgrade jump of at most 3 major versions.
+For more details, refer to
+[Long Term Support upgrade recommendation](/consul/docs/enterprise/long-term-support#annual-upgrade-to-next-lts-release).
+
 ## Large Version Jumps
 
-Operating a Consul datacenter that is multiple major versions behind the current major
-version can increase the risk incurred during upgrades. We encourage our users to
-remain no more than two major versions behind (i.e., if 1.8.x is the current release,
-do not use versions older than 1.6.x). If you find yourself in a situation where you
-are many major versions behind, and need to upgrade, please review our
-[Upgrade Instructions page](/consul/docs/upgrading/instructions) for information on
-how to perform those upgrades.
+If your Consul deployment is many major versions behind the latest release
+and you need to upgrade, review our
+[upgrade instructions](/consul/docs/upgrading/instructions)
+for more information about how to perform those upgrades.
+
+After upgrading to a maintained version of Consul, refer to our
+[upgrade recommendation](#upgrade-recommendation)
+to inform planning for future upgrades.
 
 ## Backward Incompatible Upgrades
 

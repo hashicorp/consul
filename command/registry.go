@@ -115,9 +115,13 @@ import (
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/resource"
 	resourceapply "github.com/hashicorp/consul/command/resource/apply"
+	resourceapplygrpc "github.com/hashicorp/consul/command/resource/apply-grpc"
 	resourcedelete "github.com/hashicorp/consul/command/resource/delete"
+	resourcedeletegrpc "github.com/hashicorp/consul/command/resource/delete-grpc"
 	resourcelist "github.com/hashicorp/consul/command/resource/list"
+	resourcelistgrpc "github.com/hashicorp/consul/command/resource/list-grpc"
 	resourceread "github.com/hashicorp/consul/command/resource/read"
+	resourcereadgrpc "github.com/hashicorp/consul/command/resource/read-grpc"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
@@ -125,6 +129,7 @@ import (
 	exportedservices "github.com/hashicorp/consul/command/services/exportedservices"
 	svcsregister "github.com/hashicorp/consul/command/services/register"
 	"github.com/hashicorp/consul/command/snapshot"
+	snapdecode "github.com/hashicorp/consul/command/snapshot/decode"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
 	snaprestore "github.com/hashicorp/consul/command/snapshot/restore"
 	snapsave "github.com/hashicorp/consul/command/snapshot/save"
@@ -256,10 +261,15 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
 		entry{"resource", func(cli.Ui) (cli.Command, error) { return resource.New(), nil }},
-		entry{"resource apply", func(ui cli.Ui) (cli.Command, error) { return resourceapply.New(ui), nil }},
-		entry{"resource delete", func(ui cli.Ui) (cli.Command, error) { return resourcedelete.New(ui), nil }},
-		entry{"resource list", func(ui cli.Ui) (cli.Command, error) { return resourcelist.New(ui), nil }},
 		entry{"resource read", func(ui cli.Ui) (cli.Command, error) { return resourceread.New(ui), nil }},
+		entry{"resource delete", func(ui cli.Ui) (cli.Command, error) { return resourcedelete.New(ui), nil }},
+		entry{"resource apply", func(ui cli.Ui) (cli.Command, error) { return resourceapply.New(ui), nil }},
+		// will be refactored to resource apply
+		entry{"resource apply-grpc", func(ui cli.Ui) (cli.Command, error) { return resourceapplygrpc.New(ui), nil }},
+		entry{"resource read-grpc", func(ui cli.Ui) (cli.Command, error) { return resourcereadgrpc.New(ui), nil }},
+		entry{"resource list-grpc", func(ui cli.Ui) (cli.Command, error) { return resourcelistgrpc.New(ui), nil }},
+		entry{"resource delete-grpc", func(ui cli.Ui) (cli.Command, error) { return resourcedeletegrpc.New(ui), nil }},
+		entry{"resource list", func(ui cli.Ui) (cli.Command, error) { return resourcelist.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
 		entry{"services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil }},
@@ -267,6 +277,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"services export", func(ui cli.Ui) (cli.Command, error) { return svcsexport.New(ui), nil }},
 		entry{"services exported-services", func(ui cli.Ui) (cli.Command, error) { return exportedservices.New(ui), nil }},
 		entry{"snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil }},
+		entry{"snapshot decode", func(ui cli.Ui) (cli.Command, error) { return snapdecode.New(ui), nil }},
 		entry{"snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil }},
 		entry{"snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil }},
 		entry{"snapshot save", func(ui cli.Ui) (cli.Command, error) { return snapsave.New(ui), nil }},

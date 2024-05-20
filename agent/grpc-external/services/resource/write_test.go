@@ -349,7 +349,7 @@ func TestWrite_Update_StatusModified(t *testing.T) {
 	require.NoError(t, err)
 	res = statusRsp.Resource
 
-	// Passing the staus unmodified should be fine.
+	// Passing the status unmodified should be fine.
 	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 	require.NoError(t, err)
 

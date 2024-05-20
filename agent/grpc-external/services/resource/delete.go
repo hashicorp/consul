@@ -28,6 +28,7 @@ import (
 // - Delete of a previously deleted or non-existent resource is a no-op to support idempotency.
 // - Errors with Aborted if the requested Version does not match the stored Version.
 // - Errors with PermissionDenied if ACL check fails
+// - Errors with PermissionDenied if a license feature tied to the resource type is not allowed.
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	reg, err := s.ensureDeleteRequestValid(req)
 	if err != nil {
@@ -192,6 +193,10 @@ func (s *Server) ensureDeleteRequestValid(req *pbresource.DeleteRequest) (*resou
 
 	reg, err := s.resolveType(req.Id.Type)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = s.FeatureCheck(reg); err != nil {
 		return nil, err
 	}
 

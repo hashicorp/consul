@@ -15,4 +15,6 @@ message Partition {
 
   // Optional user provided description. It is not used internally.
   string description = 1;
+
+  bool disable_gossip = 2;
 }

@@ -11,14 +11,14 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # or the string @DEV to imply use what is currently installed locally.
 ###
 GOLANGCI_LINT_VERSION='v1.55.2'
-MOCKERY_VERSION='v2.37.1'
+MOCKERY_VERSION='v2.41.0'
 BUF_VERSION='v1.26.0'
 
 PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'
-MOG_VERSION='v0.4.1'
+MOG_VERSION='v0.4.2'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION='v0.1.0'
-DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
+DEEP_COPY_VERSION='e112476c0181d3d69067bac191f9b6bcda2ce812'
 COPYWRITE_TOOL_VERSION='v0.16.4'
 LINT_CONSUL_RETRY_VERSION='v1.4.0'
 # Go imports formatter
@@ -236,6 +236,19 @@ go-mod-tidy: $(foreach mod,$(GO_MODULES),go-mod-tidy/$(mod)) ## Run go mod tidy 
 
 .PHONY: mod-tidy/%
 go-mod-tidy/%:
+	@echo "--> Running go mod tidy ($*)"
+	@cd $* && go mod tidy
+
+.PHONY: go-mod-get
+go-mod-get: $(foreach mod,$(GO_MODULES),go-mod-get/$(mod)) ## Run go get and go mod tidy in every module for the given dependency
+
+.PHONY: go-mod-get/%
+go-mod-get/%:
+ifndef DEP_VERSION
+	$(error DEP_VERSION is undefined: set this to <dependency>@<version>, e.g. github.com/hashicorp/go-hclog@v1.5.0)
+endif
+	@echo "--> Running go get ${DEP_VERSION} ($*)"
+	@cd $* && go get $(DEP_VERSION)
 	@echo "--> Running go mod tidy ($*)"
 	@cd $* && go mod tidy
 

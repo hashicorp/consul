@@ -25,9 +25,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// v2DataFetcherDynamicConfig is used to store the dynamic configuration of the V2 data fetcher.
-type v2DataFetcherDynamicConfig struct {
-	onlyPassing bool
+// V2DataFetcherDynamicConfig is used to store the dynamic configuration of the V2 data fetcher.
+type V2DataFetcherDynamicConfig struct {
+	OnlyPassing bool
 }
 
 // V2DataFetcher is used to fetch data from the V2 catalog.
@@ -54,10 +54,15 @@ func NewV2DataFetcher(config *config.RuntimeConfig, client pbresource.ResourceSe
 
 // LoadConfig loads the configuration for the V2 data fetcher.
 func (f *V2DataFetcher) LoadConfig(config *config.RuntimeConfig) {
-	dynamicConfig := &v2DataFetcherDynamicConfig{
-		onlyPassing: config.DNSOnlyPassing,
+	dynamicConfig := &V2DataFetcherDynamicConfig{
+		OnlyPassing: config.DNSOnlyPassing,
 	}
 	f.dynamicConfig.Store(dynamicConfig)
+}
+
+// GetConfig loads the configuration for the V2 data fetcher.
+func (f *V2DataFetcher) GetConfig() *V2DataFetcherDynamicConfig {
+	return f.dynamicConfig.Load().(*V2DataFetcherDynamicConfig)
 }
 
 // FetchNodes fetches A/AAAA/CNAME
@@ -73,7 +78,7 @@ func (f *V2DataFetcher) FetchEndpoints(reqContext Context, req *QueryPayload, lo
 		return nil, ErrNotSupported
 	}
 
-	configCtx := f.dynamicConfig.Load().(*v2DataFetcherDynamicConfig)
+	configCtx := f.dynamicConfig.Load().(*V2DataFetcherDynamicConfig)
 
 	serviceEndpoints := pbcatalog.ServiceEndpoints{}
 	serviceEndpointsResource, err := f.fetchResource(reqContext, *req, pbcatalog.ServiceEndpointsType, &serviceEndpoints)
@@ -262,7 +267,7 @@ func (f *V2DataFetcher) addressFromWorkloadAddresses(addresses []*pbcatalog.Work
 
 // getEndpointWeight returns the weight of the endpoint and a boolean indicating if the endpoint should be included
 // based on it's health status.
-func getEndpointWeight(endpoint *pbcatalog.Endpoint, configCtx *v2DataFetcherDynamicConfig) (uint32, bool) {
+func getEndpointWeight(endpoint *pbcatalog.Endpoint, configCtx *V2DataFetcherDynamicConfig) (uint32, bool) {
 	health := endpoint.GetHealthStatus().Enum()
 	if health == nil {
 		return 0, false
@@ -277,7 +282,7 @@ func getEndpointWeight(endpoint *pbcatalog.Endpoint, configCtx *v2DataFetcherDyn
 	case pbcatalog.Health_HEALTH_CRITICAL:
 		return 0, false // always filtered out
 	case pbcatalog.Health_HEALTH_WARNING:
-		if configCtx.onlyPassing {
+		if configCtx.OnlyPassing {
 			return 0, false // filtered out
 		}
 		weight = endpoint.GetDns().GetWeights().GetWarning()
@@ -342,6 +347,7 @@ func queryTenancyToResourceTenancy(qTenancy QueryTenancy) *pbresource.Tenancy {
 		rTenancy.Namespace = qTenancy.Namespace
 	}
 	// In the case of partition, we have the agent's partition as the fallback.
+	// That is handled in NormalizeRequest.
 	if qTenancy.Partition != "" {
 		rTenancy.Partition = qTenancy.Partition
 	}

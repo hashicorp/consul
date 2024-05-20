@@ -1,0 +1,3 @@
+```release-note:improvement
+snapshot: Add `consul snapshot decode` CLI command to output a JSON object stream of all the snapshots data.
+```

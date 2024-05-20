@@ -25,6 +25,12 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
+func addQueryParam(req *http.Request, param, value string) {
+	q := req.URL.Query()
+	q.Add(param, value)
+	req.URL.RawQuery = q.Encode()
+}
+
 func TestCatalogEndpointsFailInV2(t *testing.T) {
 	t.Parallel()
 
@@ -1938,11 +1944,12 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 					SNI:      "my-domain",
 				},
 				{
-					Name:     "*",
-					CAFile:   "ca.crt",
-					CertFile: "client.crt",
-					KeyFile:  "client.key",
-					SNI:      "my-alt-domain",
+					Name:                   "*",
+					CAFile:                 "ca.crt",
+					CertFile:               "client.crt",
+					KeyFile:                "client.key",
+					SNI:                    "my-alt-domain",
+					DisableAutoHostRewrite: true,
 				},
 			},
 		},
@@ -1965,23 +1972,25 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 
 		expect := structs.GatewayServices{
 			{
-				Service:     structs.NewServiceName("api", nil),
-				Gateway:     structs.NewServiceName("terminating", nil),
-				GatewayKind: structs.ServiceKindTerminatingGateway,
-				CAFile:      "api/ca.crt",
-				CertFile:    "api/client.crt",
-				KeyFile:     "api/client.key",
-				SNI:         "my-domain",
+				Service:         structs.NewServiceName("api", nil),
+				Gateway:         structs.NewServiceName("terminating", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				CAFile:          "api/ca.crt",
+				CertFile:        "api/client.crt",
+				KeyFile:         "api/client.key",
+				SNI:             "my-domain",
+				AutoHostRewrite: true,
 			},
 			{
-				Service:      structs.NewServiceName("redis", nil),
-				Gateway:      structs.NewServiceName("terminating", nil),
-				GatewayKind:  structs.ServiceKindTerminatingGateway,
-				CAFile:       "ca.crt",
-				CertFile:     "client.crt",
-				KeyFile:      "client.key",
-				SNI:          "my-alt-domain",
-				FromWildcard: true,
+				Service:         structs.NewServiceName("redis", nil),
+				Gateway:         structs.NewServiceName("terminating", nil),
+				GatewayKind:     structs.ServiceKindTerminatingGateway,
+				CAFile:          "ca.crt",
+				CertFile:        "client.crt",
+				KeyFile:         "client.key",
+				SNI:             "my-alt-domain",
+				FromWildcard:    true,
+				AutoHostRewrite: false,
 			},
 		}
 

@@ -137,3 +137,56 @@ func TestCalcRateLimit(t *testing.T) {
 		require.Equalf(t, out, calcRateLimit(in), "calcRateLimit(%d)", in)
 	}
 }
+
+func BenchmarkCountProxies(b *testing.B) {
+	const index = 123
+
+	store := state.NewStateStore(nil)
+
+	// This loop generates:
+	//
+	//	4 (service kind) * 100 (service) * 5 * (node) = 2000 proxy services. And 500 non-proxy services.
+	for _, kind := range []structs.ServiceKind{
+		// These will be included in the count.
+		structs.ServiceKindConnectProxy,
+		structs.ServiceKindIngressGateway,
+		structs.ServiceKindTerminatingGateway,
+		structs.ServiceKindMeshGateway,
+
+		// This one will not.
+		structs.ServiceKindTypical,
+	} {
+		for i := 0; i < 100; i++ {
+			serviceName := fmt.Sprintf("%s-%d", kind, i)
+
+			for j := 0; j < 5; j++ {
+				nodeName := fmt.Sprintf("%s-node-%d", serviceName, j)
+
+				require.NoError(b, store.EnsureRegistration(index, &structs.RegisterRequest{
+					Node: nodeName,
+					Service: &structs.NodeService{
+						ID:      serviceName,
+						Service: serviceName,
+						Kind:    kind,
+					},
+				}))
+			}
+		}
+	}
+
+	ctx := testutil.TestContext(b)
+	c := &Controller{
+		cfg: Config{
+			GetStore: func() Store { return store },
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, numProxies, err := c.countProxies(ctx); err != nil {
+			b.Fatalf("encountered unexpected error: %v", err)
+		} else if numProxies != 2000 {
+			b.Fatalf("unexpected count: %d", numProxies)
+		}
+	}
+}

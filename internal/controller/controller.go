@@ -58,7 +58,7 @@ type RuntimeCallback func(context.Context, Runtime)
 // NewController creates a controller that is setup to watched the managed type.
 // Extra cache indexes may be provided as well and these indexes will be automatically managed.
 // Typically, further calls to other builder methods will be needed to fully configure
-// the controller such as using WithReconcile to define the the code that will be called
+// the controller such as using WithReconcile to define the code that will be called
 // when the managed resource needs reconciliation.
 func NewController(name string, managedType *pbresource.Type, indexes ...*index.Index) *Controller {
 	w := &watch{

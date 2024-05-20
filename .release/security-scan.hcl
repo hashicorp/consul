@@ -42,6 +42,13 @@ container {
 				"CVE-2023-46219", # curl@8.4.0-r0
 				"CVE-2023-5678",  # openssl@3.1.4-r0
 			]
+			paths = [
+				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+				"test/integration/connect/envoy/test-sds-server/*",
+				"test/integration/consul-container/*",
+				"testing/deployer/*",
+				"test-integ/*",
+			]
 		}
 	}
 }
@@ -64,6 +71,23 @@ binary {
 				"github",
 				"azure",
 				"npm",
+			]
+		}
+	}
+
+	# Triage items that are _safe_ to ignore here. Note that this list should be
+	# periodically cleaned up to remove items that are no longer found by the scanner.
+	triage {
+		suppress {
+			# N.b. `vulnerabilites` is the correct spelling for this tool.
+			vulnerabilites = [
+			]
+			paths = [
+				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+				"test/integration/connect/envoy/test-sds-server/*",
+				"test/integration/consul-container/*",
+				"testing/deployer/*",
+				"test-integ/*",
 			]
 		}
 	}

@@ -4,7 +4,6 @@ package read
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/mitchellh/cli"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/command/resource/apply"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -86,12 +84,12 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 	}
 }
 
-func createResource(t *testing.T, port int) {
+func createResource(t *testing.T, a *agent.TestAgent) {
 	applyUi := cli.NewMockUi()
 	applyCmd := apply.New(applyUi)
 
 	args := []string{
-		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", port),
+		"-http-addr=" + a.HTTPAddr(),
 		"-token=root",
 	}
 
@@ -109,19 +107,16 @@ func TestResourceRead(t *testing.T) {
 
 	t.Parallel()
 
-	availablePort := freeport.GetOne(t)
-	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-	t.Cleanup(func() {
-		a.Shutdown()
-	})
 
 	defaultCmdArgs := []string{
-		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
+		"-http-addr=" + a.HTTPAddr(),
 		"-token=root",
 	}
 
-	createResource(t, availablePort)
+	createResource(t, a)
 	cases := []struct {
 		name         string
 		args         []string
@@ -144,7 +139,7 @@ func TestResourceRead(t *testing.T) {
 			name:         "read resource that doesn't exist",
 			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default"},
 			expectedCode: 1,
-			errMsg:       "error reading resource: rpc error: code = NotFound desc = resource not found\n",
+			errMsg:       "Error reading resource demo.v2.Artist/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
 		},
 	}
 
@@ -154,7 +149,7 @@ func TestResourceRead(t *testing.T) {
 			c := New(ui)
 			cliArgs := append(tc.args, defaultCmdArgs...)
 			code := c.Run(cliArgs)
-			require.Contains(t, ui.ErrorWriter.String(), tc.errMsg)
+			require.Equal(t, tc.errMsg, ui.ErrorWriter.String())
 			require.Equal(t, tc.expectedCode, code)
 		})
 	}

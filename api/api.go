@@ -117,6 +117,13 @@ type QueryOptions struct {
 	// Note: Partitions are available only in Consul Enterprise
 	Partition string
 
+	// SamenessGroup is used find the SamenessGroup in the given
+	// Partition and will find the failover order for the Service
+	// from the SamenessGroup Members, with the given Partition being
+	// the first member.
+	// Note: SamenessGroups are available only in Consul Enterprise
+	SamenessGroup string
+
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
 	Datacenter string
@@ -847,6 +854,12 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		// rather than the alternative short-hand "ap"
 		r.params.Set("partition", q.Partition)
 	}
+	if q.SamenessGroup != "" {
+		// For backwards-compatibility with existing tests,
+		// use the long-hand query param name "sameness-group"
+		// rather than the alternative short-hand "sg"
+		r.params.Set("sameness-group", q.SamenessGroup)
+	}
 	if q.Datacenter != "" {
 		// For backwards-compatibility with existing tests,
 		// use the short-hand query param name "dc"
@@ -1126,6 +1139,23 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 	} else if _, err := io.ReadAll(resp.Body); err != nil {
 		return nil, err
 	}
+	return wm, nil
+}
+
+// delete is used to do a DELETE request against an endpoint
+func (c *Client) delete(endpoint string, q *QueryOptions) (*WriteMeta, error) {
+	r := c.newRequest("DELETE", endpoint)
+	r.setQueryOptions(q)
+	rtt, resp, err := c.doRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+	if err = requireHttpCodes(resp, 204, 200); err != nil {
+		return nil, err
+	}
+
+	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
 }
 

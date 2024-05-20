@@ -104,7 +104,7 @@ NAME: consul
 ...
 ```
 
-### Install Consul on OpenShift clusters
+### Install Consul on Red Hat OpenShift
 
 [Red Hat OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift) is a security-conscious, opinionated wrapper for Kubernetes. To install Consul on OpenShift-managed Kubernetes, set `global.openshift.enabled=true` in your [custom installation](#custom-installation) values file:
 
@@ -114,7 +114,41 @@ global:
     enabled: true
 ```
 
-Refer to [`openshift` in the Helm chart reference](/consul/docs/k8s/helm#v-global-openshift) for additional information.  
+Refer to [`openshift` in the Helm chart reference](/consul/docs/k8s/helm#v-global-openshift) for additional information regarding the OpenShift stanza. In addition, refer to the [Deploy Consul on RedHat OpenShift tutorial](/consul/tutorials/kubernetes/kubernetes-openshift-red-hat) for a complete working example that deploys Consul Service Mesh using Red Hat Certified UBI images. 
+
+### Install Consul on GKE Autopilot 
+
+GKE Autopilot provides a fully managed environment for containerized workloads and requires the Consul CNI plugin to be installed. Refer to [Enable the Consul CNI plugin](#enable-the-consul-cni-plugin) for a full reference on how to enable the CNI plugin. 
+
+By default, GKE Autopilot also installs [Gateway API resources](https://gateway-api.sigs.k8s.io), so we recommend customizing the `connectInject.apiGateway` stanza to accommodate for the pre-installed Gateway API CRDs. 
+
+The following working example enables both Consul Service Mesh and Consul API Gateway on GKE Autopilot. Refer to [`connectInject.agiGateway` in the Helm chart reference](https://developer.hashicorp.com/consul/docs/k8s/helm#v-connectinject-apigateway) for additional information. 
+
+<CodeBlockConfig filename="values.yaml">
+
+  ```yaml
+  global:
+    name: consul
+  connectInject:
+    enabled: true
+    apiGateway:
+      manageExternalCRDs: false
+      manageNonStandardCRDs: true
+    cni:
+      enabled: true
+      logLevel: debug
+      cniBinDir: "/home/kubernetes/bin"
+      cniNetDir: "/etc/cni/net.d"
+  server:
+    resources:
+      requests:
+        memory: "500Mi"
+        cpu: "500m"
+      limits:
+        memory: "500Mi"
+        cpu: "500m"
+  ```
+</CodeBlockConfig>
 
 ### Enable the Consul CNI plugin
 

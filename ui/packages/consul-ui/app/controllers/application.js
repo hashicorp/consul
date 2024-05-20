@@ -13,7 +13,6 @@ export default class ApplicationController extends Controller {
   @service('router') router;
   @service('store') store;
   @service('feedback') feedback;
-  @service('hcp-link-modal') hcpLinkModal;
 
   // TODO: We currently do this in the controller instead of the router
   // as the nspace and dc variables aren't available directly on the Route

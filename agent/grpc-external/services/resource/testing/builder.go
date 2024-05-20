@@ -20,16 +20,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-type Builder struct {
-	registry     resource.Registry
-	registerFns  []func(resource.Registry)
-	useV2Tenancy bool
-	tenancies    []*pbresource.Tenancy
-	aclResolver  svc.ACLResolver
-	serviceImpl  *svc.Server
-	cloning      bool
-}
-
 // NewResourceServiceBuilder is the preferred way to configure and run
 // an isolated in-process instance of the resource service for unit
 // testing. The final call to `Run()` returns a client you can use for
@@ -61,7 +51,7 @@ func (b *Builder) Registry() resource.Registry {
 	return b.registry
 }
 
-// ServiceImpl provides access to the actual server side implemenation of the resource service. This should never be used
+// ServiceImpl provides access to the actual server side implementation of the resource service. This should never be
 // used/accessed without good reason. The current justifying use case is to monkeypatch the ACL resolver post-creation
 // to allow unfettered writes which some ACL related tests require to put test data in place.
 func (b *Builder) ServiceImpl() *svc.Server {
@@ -167,16 +157,12 @@ func (b *Builder) Run(t testutil.TestingTB) pbresource.ResourceServiceClient {
 		b.aclResolver = mockACLResolver
 	}
 
-	config := svc.Config{
-		Logger:        testutil.Logger(t),
-		Registry:      b.registry,
-		Backend:       backend,
-		ACLResolver:   b.aclResolver,
-		TenancyBridge: tenancyBridge,
-		UseV2Tenancy:  b.useV2Tenancy,
-	}
+	// ent only
+	b.ensureLicenseManager()
 
-	b.serviceImpl = svc.NewServer(config)
+	config := b.newConfig(testutil.Logger(t), backend, tenancyBridge)
+
+	b.serviceImpl = svc.NewServer(*config)
 	ch := &inprocgrpc.Channel{}
 	pbresource.RegisterResourceServiceServer(ch, b.serviceImpl)
 	client := pbresource.NewResourceServiceClient(ch)
@@ -187,7 +173,7 @@ func (b *Builder) Run(t testutil.TestingTB) pbresource.ResourceServiceClient {
 	}
 
 	// HACK ALERT: The client needs to be injected into the V2TenancyBridge
-	// after it has been created due the the circular dependency. This will
+	// after it has been created due the circular dependency. This will
 	// go away when the tenancy bridge is removed and V1 is no more, however
 	// long that takes.
 	switch config.TenancyBridge.(type) {

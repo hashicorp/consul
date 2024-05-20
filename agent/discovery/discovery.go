@@ -106,7 +106,6 @@ const (
 type Result struct {
 	Service  *Location         // The name and address of the service.
 	Node     *Location         // The name and address of the node.
-	Weight   uint32            // SRV queries
 	Metadata map[string]string // Used to collect metadata into TXT Records
 	Type     ResultType        // Used to reconstruct the fqdn name of the resource
 	DNS      DNSConfig         // Used for DNS-specific configuration for this result

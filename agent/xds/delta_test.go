@@ -1608,6 +1608,34 @@ func TestServer_DeltaAggregatedResources_v3_CapacityReached(t *testing.T) {
 	}
 }
 
+func TestServer_DeltaAggregatedResources_v3_CfgSrcTerminated(t *testing.T) {
+	aclResolve := func(id string) (acl.Authorizer, error) { return acl.ManageAll(), nil }
+
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
+	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
+
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
+
+	mgr.RegisterProxy(t, sid)
+
+	snap := newTestSnapshot(t, nil, "", nil)
+	envoy.SendDeltaReq(t, xdscommon.ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+		InitialResourceVersions: mustMakeVersionMap(t,
+			makeTestCluster(t, snap, "tcp:geo-cache"),
+		),
+	})
+	mgr.CfgSrcTerminate(sid)
+
+	select {
+	case err := <-errCh:
+		require.Error(t, err)
+		require.Equal(t, codes.Internal.String(), status.Code(err).String())
+		require.Equal(t, errConfigSyncError, err)
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
+	}
+}
+
 type capacityReachedLimiter struct{}
 
 func (capacityReachedLimiter) BeginSession() (limiter.Session, error) {

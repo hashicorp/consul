@@ -77,7 +77,7 @@ Consul server agents are an important part of Consul’s architecture. This sect
 
 Consul servers can be deployed on a few different runtimes:
 
-- **HashiCorp Cloud Platform (HCP) Consul (Managed)**. These Consul servers are deployed in a hosted environment managed by HCP. To get started with HCP Consul servers in Kubernetes or VM deployments, refer to the [Deploy HCP Consul tutorial](/consul/tutorials/get-started-hcp/hcp-gs-deploy).
+- **HashiCorp Cloud Platform (HCP) Consul Dedicated**. These Consul servers are deployed in a hosted environment managed by HCP. To get started with HCP Consul Dedicated servers in Kubernetes or VM deployments, refer to the [Deploy HCP Consul Dedicated tutorial](/consul/tutorials/get-started-hcp/hcp-gs-deploy).
 - **VMs or bare metal servers (Self-managed)**. To get started with Consul on VMs or bare metal servers, refer to the [Deploy Consul server tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy). For a full list of configuration options, refer to [Agents Overview](/consul/docs/agent).
 - **Kubernetes (Self-managed)**. To get started with Consul on Kubernetes, refer to the [Deploy Consul on Kubernetes tutorial](/consul/tutorials/get-started-kubernetes/kubernetes-gs-deploy).
 - **Other container environments, including Docker, Rancher, and Mesos (Self-managed)**.
@@ -126,7 +126,7 @@ We strongly recommend using [stale consistency mode for DNS lookups](/consul/api
 
 We also recommend that you do not configure [`dns_config.max_stale` to limit the staleness of DNS responses](/consul/api-docs/features/consistency#limiting-staleness-advanced-usage), as it may result in a prolonged outage if your Consul servers become overloaded. If bounded result consistency is required by a service, consider modifying the service to use consistent service discovery HTTP API queries instead of DNS lookups.
 
-Avoid using [`dns_config.use_cache`](/consul/docs/agent/config/config-files#dns_use_cache) when operating Consul at scale. Because the Consul agent cache allocates memory for each requested route and each allocation can live up to 3 days, severe memory issues may occur. To implement DNS caching, we instead recommend that you [configure TTLs for services and nodes](/consul/tutorials/networking/dns-caching#ttl) to enable the DNS client to cache responses from Consul.
+Avoid using [`dns_config.use_cache`](/consul/docs/agent/config/config-files#dns_use_cache) when operating Consul at scale. Because the Consul agent cache allocates memory for each requested route and each allocation can live up to 3 days, severe memory issues may occur. To implement DNS caching, we instead recommend that you [configure TTLs for services and nodes](/consul/docs/services/discovery/dns-cache#ttl) to enable the DNS client to cache responses from Consul.
 
 #### HTTP API
 

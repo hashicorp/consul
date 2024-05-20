@@ -1,25 +1,25 @@
 ---
 layout: docs
-page_title: Multi-port services overview
-description: Consul on Kubernetes supports multi-port services for both service discovery and service mesh scenarios. Learn how Consul’s v2 catalog supports multiple ports for a service running in a single container.
+page_title: Use the v2 Catalog API
+description: Consul on Kubernetes supports the Catalog V2 API, which unlocks new service discovery and service mesh workflows. Learn how Consul’s Catalog V2 API supports workloads with multiple ports and selecting a workload using multiple services.  
 ---
-
-# Multi-port services overview
 
 <Warning>
 
-Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
+The v2 catalog API and Traffic Permissions API are currently in beta. This documentation supports testing and development scenarios. Do not use these APIs in secure production environments.
 
 </Warning>
 
-This topic describes the process to register a service with multiple ports on Kubernetes deployments using the v2 catalog API. For information about the v2 catalog’s contents and structure, refer to [v2 catalog API](/consul/docs/architecture/catalog/v2).
+# Use the v2 Catalog API
+
+This topic describes the process to use the v2 catalog API to register a service with multiple ports or select a workload using multiple services on Kubernetes deployments. For information about the v2 catalog’s contents and structure, refer to [v2 catalog architecture](/consul/docs/architecture/v2/catalog).
 
 ## Workflow
 
 To use a multi-port service in Consul on Kubernetes deployments, complete the following steps:
 
 1. Enable the v2 catalog with ACLs enabled. Add `global.experiments: ["resource-apis"]`, `ui.enabled: false`, and `manageSystemACLs: true` to a cluster's Helm chart before deploying Consul.
-1. Use the `"consul.hashicorp.com/mesh-inject": "true"` annotation so that Consul registers the service automatically when Kubernetes deploys containers.
+1. Use the `"consul.hashicorp.com/mesh-inject": "true"` and `"consul.hashicorp.com/transparent-proxy": "true"` annotations so that Consul automatically registers the service with transparent proxy mode enabled when Kubernetes deploys containers.
 1. Configure traffic permissions. When ACLs are enabled, Consul denies all traffic by default. You can use the `TrafficPermissions` CRD to allow traffic to services.
 
 For an example configuration and instructions for each of the steps in this workflow, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
@@ -38,27 +38,31 @@ For an example configuration and instructions for each of the steps in this work
 Be aware of the following constraints and technical limitations on using multi-port services and the v2 catalog API:
 
 - Multi-port services are available for deployments using [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents. Consul on Kubernetes uses dataplanes by default.
-- When running the v2 catalog for multi-port services, you cannot run the v1 catalog API at the same time.
+- When running the v2 catalog for multi-port services, you cannot run the v1 catalog API at the same time. 
+- Because configuration entries are part of the v1 catalog, you cannot use them when the v2 catalog is enabled. Use v2 resources instead to configure multi-port service behavior in the service mesh.
 - The Consul UI does not support multi-port services in this release. You must disable the UI in the Helm chart in order to use multi-port services.
-- HCP Consul does not support multi-port services in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
+- HCP Consul Dedicated does not support multi-port services in this release. 
+- You cannot [link a self-managed Enterprise cluster to HCP Consul Central](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
 - We do not recommend updating existing clusters to enable the v2 catalog in this release. To register multi-port services, deploy a new Consul cluster that enables the v2 catalog.
 
 ## Guidance
 
-The following resources are available to help you use multi-port services:
+The following resources are available to help you use the v2 Catalog API:
 
-### Concepts
+### Architecture
 
-- [v2 catalog API](/consul/docs/architecture/catalog/v2)
+- [v2 architecture overview](/consul/docs/architecture/v2/catalog)
+- [v2 Consul catalog](/consul/docs/architecture/v2/catalog)
+- [v2 resource groups](/consul/docs/architecture/v2/catalog)
 
 ### Usage documentation
 
-- [Configure multi-port services](/consul/docs/k8s/multiport/configure)
-- [Split TCP traffic between multi-port services](/consul/docs/k8s/multiport/traffic-split)
+- [Configure v2 services with multiple ports](/consul/docs/k8s/multiport/configure)
+- [Split TCP traffic between v2 services with multiple ports](/consul/docs/k8s/multiport/traffic-split)
 
 ### Reference documentation
 
-- [`consul resource` CLI command](/consul/docs/k8s/multiport/reference/resource-command)
+- [`consul resource` CLI command](/consul/commands/resource)
 - [`GRPCRoute` resource configuration reference](/consul/docs/k8s/multiport/reference/grpcroute)
 - [`HTTPRoute` resource configuration reference](/consul/docs/k8s/multiport/reference/httproute)
 - [`ProxyConfiguration` resource configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration)

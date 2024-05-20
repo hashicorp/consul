@@ -4,19 +4,9 @@
 package topoutil
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"regexp"
-	"strings"
-	"testing"
-	"time"
-
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -24,6 +14,16 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"regexp"
+	"strings"
+	"testing"
+	"time"
 )
 
 // Asserter is a utility to help in reducing boilerplate in invoking test
@@ -438,4 +438,105 @@ func (a *Asserter) TokenExist(t *testing.T, cluster string, node *topology.Node,
 		require.NoError(r, err)
 		require.True(r, cmp.Equal(expectedToken, retrievedToken), "token %s", expectedToken.Description)
 	})
+}
+
+// AutopilotHealth asserts the autopilot health endpoint return expected state
+func (a *Asserter) AutopilotHealth(t *testing.T, cluster *topology.Cluster, leaderName string, expectedHealthy bool) {
+	t.Helper()
+
+	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 10}, t, func(r *retry.R) {
+		var out *api.OperatorHealthReply
+		for _, node := range cluster.Nodes {
+			if node.Name == leaderName {
+				client, err := a.sp.APIClientForNode(cluster.Name, node.ID(), "")
+				if err != nil {
+					r.Log("err at node", node.Name, err)
+					continue
+				}
+				operator := client.Operator()
+				out, err = operator.AutopilotServerHealth(&api.QueryOptions{})
+				if err != nil {
+					r.Log("err at node", node.Name, err)
+					continue
+				}
+
+				// Got the Autopilot server health response, break the loop
+				r.Log("Got response at node", node.Name)
+				break
+			}
+		}
+		r.Log("out", out, "health", out.Healthy)
+		require.Equal(r, expectedHealthy, out.Healthy)
+	})
+	return
+}
+
+type AuditEntry struct {
+	CreatedAt time.Time `json:"created_at"`
+	EventType string    `json:"event_type"`
+	Payload   Payload   `json:"payload"`
+}
+
+type Payload struct {
+	ID        string    `json:"id"`
+	Version   string    `json:"version"`
+	Type      string    `json:"type"`
+	Timestamp time.Time `json:"timestamp"`
+	Auth      Auth      `json:"auth"`
+	Request   Request   `json:"request"`
+	Response  Response  `json:"response,omitempty"` // Response is not present in OperationStart log
+	Stage     string    `json:"stage"`
+}
+
+type Auth struct {
+	AccessorID  string    `json:"accessor_id"`
+	Description string    `json:"description"`
+	CreateTime  time.Time `json:"create_time"`
+}
+
+type Request struct {
+	Operation   string            `json:"operation"`
+	Endpoint    string            `json:"endpoint"`
+	RemoteAddr  string            `json:"remote_addr"`
+	UserAgent   string            `json:"user_agent"`
+	Host        string            `json:"host"`
+	QueryParams map[string]string `json:"query_params,omitempty"` // QueryParams might not be present in all cases
+}
+
+type Response struct {
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"` // Error field is optional,shows up only with the status is non 2xx
+}
+
+func (a *Asserter) ValidateHealthEndpointAuditLog(t *testing.T, filePath string) {
+	boolIsErrorJSON := false
+	jsonData, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	// Print details of each AuditEntry
+	var entry AuditEntry
+	events := strings.Split(strings.TrimSpace(string(jsonData)), "\n")
+
+	// function to validate the error object when the health endpoint is returning 429
+	isErrorJSONObject := func(errorString string) error {
+		// Attempt to unmarshal the error string into a map[string]interface{}
+		var m map[string]interface{}
+		err := json.Unmarshal([]byte(errorString), &m)
+		return err
+	}
+
+	for _, event := range events {
+		if strings.Contains(event, "/v1/operator/autopilot/health") && strings.Contains(event, "OperationComplete") {
+			err = json.Unmarshal([]byte(event), &entry)
+			require.NoError(t, err, "Error unmarshalling JSON: %v\", err")
+			if entry.Payload.Response.Status == "429" {
+				boolIsErrorJSON = true
+				errResponse := entry.Payload.Response.Error
+				err = isErrorJSONObject(errResponse)
+				require.NoError(t, err, "Autopilot Health endpoint error response in the audit log is in unexpected format: %v\", err")
+				break
+			}
+		}
+	}
+	require.Equal(t, boolIsErrorJSON, true, "Unable to verify audit log health endpoint error message")
 }

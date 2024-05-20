@@ -33,8 +33,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/discovery"
+	dnsConsul "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -119,11 +121,11 @@ func dnsTXT(src string, txt []string) *dns.TXT {
 
 func getVersionHCL(enableV2 bool) map[string]string {
 	versions := map[string]string{
-		"DNS: v1 / Catalog: v1": "",
+		"DNS: v1 / Catalog: v1": "experiments=[\"v1dns\"]",
 	}
 
 	if enableV2 {
-		versions["DNS: v2 / Catalog: v1"] = `experiments=["v2dns"]`
+		versions["DNS: v2 / Catalog: v1"] = ""
 	}
 	return versions
 }
@@ -466,149 +468,6 @@ func TestDNS_EDNS0_ECS(t *testing.T) {
 					require.Equal(t, tc.ExpectedScope, subnet.SourceScope)
 					require.Equal(t, net.ParseIP(tc.SubnetAddr), subnet.Address)
 				})
-			}
-		})
-	}
-}
-
-func TestDNS_ReverseLookup(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	for name, experimentsHCL := range getVersionHCL(true) {
-		t.Run(name, func(t *testing.T) {
-			a := NewTestAgent(t, experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			// Register node
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       "foo2",
-				Address:    "127.0.0.2",
-			}
-
-			var out struct{}
-			if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			m := new(dns.Msg)
-			m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
-
-			c := new(dns.Client)
-			in, _, err := c.Exchange(m, a.DNSAddr())
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			if len(in.Answer) != 1 {
-				t.Fatalf("Bad: %#v", in)
-			}
-
-			ptrRec, ok := in.Answer[0].(*dns.PTR)
-			if !ok {
-				t.Fatalf("Bad: %#v", in.Answer[0])
-			}
-			if ptrRec.Ptr != "foo2.node.dc1.consul." {
-				t.Fatalf("Bad: %#v", ptrRec)
-			}
-		})
-	}
-}
-
-func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	for name, experimentsHCL := range getVersionHCL(true) {
-		t.Run(name, func(t *testing.T) {
-			a := NewTestAgent(t, `
-		domain = "custom"
-	`+experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			// Register node
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       "foo2",
-				Address:    "127.0.0.2",
-			}
-
-			var out struct{}
-			if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			m := new(dns.Msg)
-			m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
-
-			c := new(dns.Client)
-			in, _, err := c.Exchange(m, a.DNSAddr())
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			if len(in.Answer) != 1 {
-				t.Fatalf("Bad: %#v", in)
-			}
-
-			ptrRec, ok := in.Answer[0].(*dns.PTR)
-			if !ok {
-				t.Fatalf("Bad: %#v", in.Answer[0])
-			}
-			if ptrRec.Ptr != "foo2.node.dc1.custom." {
-				t.Fatalf("Bad: %#v", ptrRec)
-			}
-		})
-	}
-}
-
-func TestDNS_ReverseLookup_IPV6(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	for name, experimentsHCL := range getVersionHCL(true) {
-		t.Run(name, func(t *testing.T) {
-			a := NewTestAgent(t, experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			// Register node
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       "bar",
-				Address:    "::4242:4242",
-			}
-
-			var out struct{}
-			if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			m := new(dns.Msg)
-			m.SetQuestion("2.4.2.4.2.4.2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa.", dns.TypeANY)
-
-			c := new(dns.Client)
-			in, _, err := c.Exchange(m, a.DNSAddr())
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			if len(in.Answer) != 1 {
-				t.Fatalf("Bad: %#v", in)
-			}
-
-			ptrRec, ok := in.Answer[0].(*dns.PTR)
-			if !ok {
-				t.Fatalf("Bad: %#v", in.Answer[0])
-			}
-			if ptrRec.Ptr != "bar.node.dc1.consul." {
-				t.Fatalf("Bad: %#v", ptrRec)
 			}
 		})
 	}
@@ -1210,15 +1069,15 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	ipCoord := librtt.GenerateCoordinate(1 * time.Millisecond)
 	serviceNodes := []struct {
 		name    string
 		address string
 		coord   *coordinate.Coordinate
 	}{
-		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
-		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
-		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
+		{"foo1", "198.18.0.1", librtt.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", librtt.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", librtt.GenerateCoordinate(30 * time.Millisecond)},
 	}
 
 	for name, experimentsHCL := range getVersionHCL(true) {
@@ -1344,15 +1203,15 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	ipCoord := librtt.GenerateCoordinate(1 * time.Millisecond)
 	serviceNodes := []struct {
 		name    string
 		address string
 		coord   *coordinate.Coordinate
 	}{
-		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
-		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
-		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
+		{"foo1", "198.18.0.1", librtt.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", librtt.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", librtt.GenerateCoordinate(30 * time.Millisecond)},
 	}
 
 	for name, experimentsHCL := range getVersionHCL(true) {
@@ -3392,66 +3251,6 @@ func TestDNS_Compression_Query(t *testing.T) {
 	}
 }
 
-func TestDNS_Compression_ReverseLookup(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	for name, experimentsHCL := range getVersionHCL(true) {
-		t.Run(name, func(t *testing.T) {
-
-			a := NewTestAgent(t, experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			// Register node.
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       "foo2",
-				Address:    "127.0.0.2",
-			}
-			var out struct{}
-			if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			m := new(dns.Msg)
-			m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
-
-			conn, err := dns.Dial("udp", a.DNSAddr())
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			// Do a manual exchange with compression on (the default).
-			if err := conn.WriteMsg(m); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			p := make([]byte, dns.MaxMsgSize)
-			compressed, err := conn.Read(p)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			// Disable compression and try again.
-			a.DNSDisableCompression(true)
-			if err := conn.WriteMsg(m); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			unc, err := conn.Read(p)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-
-			// We can't see the compressed status given the DNS API, so we just make
-			// sure the message is smaller to see if it's respecting the flag.
-			if compressed == 0 || unc == 0 || compressed >= unc {
-				t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
-			}
-		})
-	}
-}
-
 func TestDNS_Compression_Recurse(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -3508,6 +3307,8 @@ func TestDNS_Compression_Recurse(t *testing.T) {
 	}
 }
 
+// TestDNS_V1ConfigReload validates that the dns configuration is saved to the
+// DNS server when v1 DNS is configured and reload config internal is called.
 func TestDNS_V1ConfigReload(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -3537,6 +3338,7 @@ func TestDNS_V1ConfigReload(t *testing.T) {
 				min_ttl = 4
 			}
 		}
+		experiments = ["v1dns"]
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -3620,10 +3422,252 @@ func TestDNS_V1ConfigReload(t *testing.T) {
 		require.Equal(t, uint32(30), cfg.SOAConfig.Expire)
 		require.Equal(t, uint32(40), cfg.SOAConfig.Minttl)
 	}
-
 }
 
-// TODO (v2-dns) add a test for checking the V2 DNS Server reloads the config (NET-8056)
+// TestDNS_V2ConfigReload_WithV1DataFetcher validates that the dns configuration is saved to the
+// DNS server when v2 DNS is configured with V1 catalog and reload config internal is called.
+func TestDNS_V2ConfigReload_WithV1DataFetcher(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		experiments=["v2dns"]
+		recursors = ["8.8.8.8:53"]
+		dns_config = {
+			allow_stale = false
+			max_stale = "20s"
+			node_ttl = "10s"
+			service_ttl = {
+				"my_services*" = "5s"
+				"my_specific_service" = "30s"
+			}
+			enable_truncate = false
+			only_passing = false
+			recursor_strategy = "sequential"
+			recursor_timeout = "15s"
+			disable_compression = false
+			a_record_limit = 1
+			enable_additional_node_meta_txt = false
+			soa = {
+				refresh = 1
+				retry = 2
+				expire = 3
+				min_ttl = 4
+			}
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	for _, s := range a.dnsServers {
+		server, ok := s.(*dnsConsul.Server)
+		require.True(t, ok)
+
+		cfg := server.Router.GetConfig()
+		require.Equal(t, []string{"8.8.8.8:53"}, cfg.Recursors)
+		require.Equal(t, structs.RecursorStrategy("sequential"), cfg.RecursorStrategy)
+		df := a.catalogDataFetcher.(*discovery.V1DataFetcher)
+		dfCfg := df.GetConfig()
+
+		require.False(t, dfCfg.AllowStale)
+		require.Equal(t, 20*time.Second, dfCfg.MaxStale)
+		require.Equal(t, 10*time.Second, cfg.NodeTTL)
+		ttl, _ := cfg.GetTTLForService("my_services_1")
+		require.Equal(t, 5*time.Second, ttl)
+		ttl, _ = cfg.GetTTLForService("my_specific_service")
+		require.Equal(t, 30*time.Second, ttl)
+		require.False(t, cfg.EnableTruncate)
+		require.False(t, dfCfg.OnlyPassing)
+		require.Equal(t, 15*time.Second, cfg.RecursorTimeout)
+		require.False(t, cfg.DisableCompression)
+		require.Equal(t, 1, cfg.ARecordLimit)
+		require.False(t, cfg.NodeMetaTXT)
+		require.Equal(t, uint32(1), cfg.SOAConfig.Refresh)
+		require.Equal(t, uint32(2), cfg.SOAConfig.Retry)
+		require.Equal(t, uint32(3), cfg.SOAConfig.Expire)
+		require.Equal(t, uint32(4), cfg.SOAConfig.Minttl)
+	}
+
+	newCfg := *a.Config
+	newCfg.DNSRecursors = []string{"1.1.1.1:53"}
+	newCfg.DNSAllowStale = true
+	newCfg.DNSMaxStale = 21 * time.Second
+	newCfg.DNSNodeTTL = 11 * time.Second
+	newCfg.DNSServiceTTL = map[string]time.Duration{
+		"2_my_services*":        6 * time.Second,
+		"2_my_specific_service": 31 * time.Second,
+	}
+	newCfg.DNSEnableTruncate = true
+	newCfg.DNSOnlyPassing = true
+	newCfg.DNSRecursorStrategy = "random"
+	newCfg.DNSRecursorTimeout = 16 * time.Second
+	newCfg.DNSDisableCompression = true
+	newCfg.DNSARecordLimit = 2
+	newCfg.DNSNodeMetaTXT = true
+	newCfg.DNSSOA.Refresh = 10
+	newCfg.DNSSOA.Retry = 20
+	newCfg.DNSSOA.Expire = 30
+	newCfg.DNSSOA.Minttl = 40
+
+	err := a.reloadConfigInternal(&newCfg)
+	require.NoError(t, err)
+
+	for _, s := range a.dnsServers {
+		server, ok := s.(*dnsConsul.Server)
+		require.True(t, ok)
+
+		cfg := server.Router.GetConfig()
+		require.Equal(t, []string{"1.1.1.1:53"}, cfg.Recursors)
+		require.Equal(t, structs.RecursorStrategy("random"), cfg.RecursorStrategy)
+		df := a.catalogDataFetcher.(*discovery.V1DataFetcher)
+		dfCfg := df.GetConfig()
+		require.True(t, dfCfg.AllowStale)
+		require.Equal(t, 21*time.Second, dfCfg.MaxStale)
+		require.Equal(t, 11*time.Second, cfg.NodeTTL)
+		ttl, _ := cfg.GetTTLForService("my_services_1")
+		require.Equal(t, time.Duration(0), ttl)
+		ttl, _ = cfg.GetTTLForService("2_my_services_1")
+		require.Equal(t, 6*time.Second, ttl)
+		ttl, _ = cfg.GetTTLForService("my_specific_service")
+		require.Equal(t, time.Duration(0), ttl)
+		ttl, _ = cfg.GetTTLForService("2_my_specific_service")
+		require.Equal(t, 31*time.Second, ttl)
+		require.True(t, cfg.EnableTruncate)
+		require.True(t, dfCfg.OnlyPassing)
+		require.Equal(t, 16*time.Second, cfg.RecursorTimeout)
+		require.True(t, cfg.DisableCompression)
+		require.Equal(t, 2, cfg.ARecordLimit)
+		require.True(t, cfg.NodeMetaTXT)
+		require.Equal(t, uint32(10), cfg.SOAConfig.Refresh)
+		require.Equal(t, uint32(20), cfg.SOAConfig.Retry)
+		require.Equal(t, uint32(30), cfg.SOAConfig.Expire)
+		require.Equal(t, uint32(40), cfg.SOAConfig.Minttl)
+	}
+}
+
+// TestDNS_V2ConfigReload_WithV2DataFetcher validates that the dns configuration is saved to the
+// DNS server when v2 DNS is configured with V1 catalog and reload config internal is called.
+func TestDNS_V2ConfigReload_WithV2DataFetcher(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := NewTestAgent(t, `
+		experiments=["v2dns", "resource-apis"]
+		recursors = ["8.8.8.8:53"]
+		dns_config = {
+			allow_stale = false
+			max_stale = "20s"
+			node_ttl = "10s"
+			service_ttl = {
+				"my_services*" = "5s"
+				"my_specific_service" = "30s"
+			}
+			enable_truncate = false
+			only_passing = false
+			recursor_strategy = "sequential"
+			recursor_timeout = "15s"
+			disable_compression = false
+			a_record_limit = 1
+			enable_additional_node_meta_txt = false
+			soa = {
+				refresh = 1
+				retry = 2
+				expire = 3
+				min_ttl = 4
+			}
+		}
+	`)
+	defer a.Shutdown()
+	// use WaitForRaftLeader with v2 resource apis
+	testrpc.WaitForRaftLeader(t, a.RPC, "dc1")
+
+	for _, s := range a.dnsServers {
+		server, ok := s.(*dnsConsul.Server)
+		require.True(t, ok)
+
+		cfg := server.Router.GetConfig()
+		require.Equal(t, []string{"8.8.8.8:53"}, cfg.Recursors)
+		require.Equal(t, structs.RecursorStrategy("sequential"), cfg.RecursorStrategy)
+		df := a.catalogDataFetcher.(*discovery.V2DataFetcher)
+		dfCfg := df.GetConfig()
+
+		//require.False(t, dfCfg.AllowStale)
+		//require.Equal(t, 20*time.Second, dfCfg.MaxStale)
+		require.Equal(t, 10*time.Second, cfg.NodeTTL)
+		ttl, _ := cfg.GetTTLForService("my_services_1")
+		require.Equal(t, 5*time.Second, ttl)
+		ttl, _ = cfg.GetTTLForService("my_specific_service")
+		require.Equal(t, 30*time.Second, ttl)
+		require.False(t, cfg.EnableTruncate)
+		require.False(t, dfCfg.OnlyPassing)
+		require.Equal(t, 15*time.Second, cfg.RecursorTimeout)
+		require.False(t, cfg.DisableCompression)
+		require.Equal(t, 1, cfg.ARecordLimit)
+		require.False(t, cfg.NodeMetaTXT)
+		require.Equal(t, uint32(1), cfg.SOAConfig.Refresh)
+		require.Equal(t, uint32(2), cfg.SOAConfig.Retry)
+		require.Equal(t, uint32(3), cfg.SOAConfig.Expire)
+		require.Equal(t, uint32(4), cfg.SOAConfig.Minttl)
+	}
+
+	newCfg := *a.Config
+	newCfg.DNSRecursors = []string{"1.1.1.1:53"}
+	newCfg.DNSAllowStale = true
+	newCfg.DNSMaxStale = 21 * time.Second
+	newCfg.DNSNodeTTL = 11 * time.Second
+	newCfg.DNSServiceTTL = map[string]time.Duration{
+		"2_my_services*":        6 * time.Second,
+		"2_my_specific_service": 31 * time.Second,
+	}
+	newCfg.DNSEnableTruncate = true
+	newCfg.DNSOnlyPassing = true
+	newCfg.DNSRecursorStrategy = "random"
+	newCfg.DNSRecursorTimeout = 16 * time.Second
+	newCfg.DNSDisableCompression = true
+	newCfg.DNSARecordLimit = 2
+	newCfg.DNSNodeMetaTXT = true
+	newCfg.DNSSOA.Refresh = 10
+	newCfg.DNSSOA.Retry = 20
+	newCfg.DNSSOA.Expire = 30
+	newCfg.DNSSOA.Minttl = 40
+
+	err := a.reloadConfigInternal(&newCfg)
+	require.NoError(t, err)
+
+	for _, s := range a.dnsServers {
+		server, ok := s.(*dnsConsul.Server)
+		require.True(t, ok)
+
+		cfg := server.Router.GetConfig()
+		require.Equal(t, []string{"1.1.1.1:53"}, cfg.Recursors)
+		require.Equal(t, structs.RecursorStrategy("random"), cfg.RecursorStrategy)
+		df := a.catalogDataFetcher.(*discovery.V2DataFetcher)
+		dfCfg := df.GetConfig()
+		//require.True(t, dfCfg.AllowStale)
+		//require.Equal(t, 21*time.Second, dfCfg.MaxStale)
+		require.Equal(t, 11*time.Second, cfg.NodeTTL)
+		ttl, _ := cfg.GetTTLForService("my_services_1")
+		require.Equal(t, time.Duration(0), ttl)
+		ttl, _ = cfg.GetTTLForService("2_my_services_1")
+		require.Equal(t, 6*time.Second, ttl)
+		ttl, _ = cfg.GetTTLForService("my_specific_service")
+		require.Equal(t, time.Duration(0), ttl)
+		ttl, _ = cfg.GetTTLForService("2_my_specific_service")
+		require.Equal(t, 31*time.Second, ttl)
+		require.True(t, cfg.EnableTruncate)
+		require.True(t, dfCfg.OnlyPassing)
+		require.Equal(t, 16*time.Second, cfg.RecursorTimeout)
+		require.True(t, cfg.DisableCompression)
+		require.Equal(t, 2, cfg.ARecordLimit)
+		require.True(t, cfg.NodeMetaTXT)
+		require.Equal(t, uint32(10), cfg.SOAConfig.Refresh)
+		require.Equal(t, uint32(20), cfg.SOAConfig.Retry)
+		require.Equal(t, uint32(30), cfg.SOAConfig.Expire)
+		require.Equal(t, uint32(40), cfg.SOAConfig.Minttl)
+	}
+}
 
 func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 	if testing.Short() {

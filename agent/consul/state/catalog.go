@@ -3557,7 +3557,7 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 	for _, svc := range gatewayServices {
 		// If the service is a wildcard we need to target all services within the namespace
 		if svc.Service.Name == structs.WildcardSpecifier {
-			if err := updateGatewayNamespace(tx, idx, svc, entMeta); err != nil {
+			if err := updateGatewayNamespace(tx, idx, svc, &svc.Service.EnterpriseMeta); err != nil {
 				return fmt.Errorf("failed to associate gateway %q with wildcard: %v", gateway.String(), err)
 			}
 			// Skip service-specific update below if there was a wildcard update
@@ -3757,14 +3757,15 @@ func terminatingConfigGatewayServices(
 			return false, nil, fmt.Errorf("failed to get gateway service kind for service %s: %v", svc.Name, err)
 		}
 		mapping := &structs.GatewayService{
-			Gateway:     gateway,
-			Service:     structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
-			GatewayKind: structs.ServiceKindTerminatingGateway,
-			KeyFile:     svc.KeyFile,
-			CertFile:    svc.CertFile,
-			CAFile:      svc.CAFile,
-			SNI:         svc.SNI,
-			ServiceKind: kind,
+			Gateway:         gateway,
+			Service:         structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
+			GatewayKind:     structs.ServiceKindTerminatingGateway,
+			KeyFile:         svc.KeyFile,
+			CertFile:        svc.CertFile,
+			CAFile:          svc.CAFile,
+			SNI:             svc.SNI,
+			ServiceKind:     kind,
+			AutoHostRewrite: !svc.DisableAutoHostRewrite,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)

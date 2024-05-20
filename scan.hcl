@@ -22,4 +22,21 @@ repository {
   secrets {
     all = true
   }
+
+  # Triage items that are _safe_ to ignore here. Note that this list should be
+  # periodically cleaned up to remove items that are no longer found by the scanner.
+  triage {
+    suppress {
+      # N.b. `vulnerabilites` is the correct spelling for this tool.
+      vulnerabilites = [
+      ]
+      paths = [
+        "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+        "test/integration/connect/envoy/test-sds-server/*",
+        "test/integration/consul-container/*",
+        "testing/deployer/*",
+        "test-integ/*",
+      ]
+    }
+  }
 }

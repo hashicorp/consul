@@ -244,7 +244,7 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 			id.Tenancy.Namespace = ""
 			return id
 		},
-		"namespaced resource inherits tokens partition and namespace when tenacy nil": func(artistId, _ *pbresource.ID) *pbresource.ID {
+		"namespaced resource inherits tokens partition and namespace when tenancy nil": func(artistId, _ *pbresource.ID) *pbresource.ID {
 			id := clone(artistId)
 			id.Tenancy = nil
 			return id

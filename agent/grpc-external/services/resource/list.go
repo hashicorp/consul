@@ -100,6 +100,10 @@ func (s *Server) ensureListRequestValid(req *pbresource.ListRequest) (*resource.
 		return nil, err
 	}
 
+	// Ignore return value since read ops are allowed but will log a warning if the feature is
+	// not enabled in the license.
+	_ = s.FeatureCheck(reg)
+
 	if err = checkV2Tenancy(s.UseV2Tenancy, req.Type); err != nil {
 		return nil, err
 	}
