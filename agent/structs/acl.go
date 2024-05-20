@@ -13,16 +13,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/stringslice"
-
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 )
 
 type ACLMode string
+
+// RANDOM COMMENT HERE
 
 const (
 	// ACLModeDisabled indicates the ACL system is disabled
