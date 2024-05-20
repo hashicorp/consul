@@ -356,10 +356,6 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 							}
 						}
 					}
-					if o.Cloud.TLSConfig.Certificates[i5].Leaf.Policies != nil {
-						cp.Cloud.TLSConfig.Certificates[i5].Leaf.Policies = make([]x509.OID, len(o.Cloud.TLSConfig.Certificates[i5].Leaf.Policies))
-						copy(cp.Cloud.TLSConfig.Certificates[i5].Leaf.Policies, o.Cloud.TLSConfig.Certificates[i5].Leaf.Policies)
-					}
 				}
 			}
 		}
@@ -698,10 +694,6 @@ func (o *RuntimeConfig) DeepCopy() *RuntimeConfig {
 									copy(cp_Cloud_TLSConfig_NameToCertificate_v5.Leaf.PolicyIdentifiers[i10], v5.Leaf.PolicyIdentifiers[i10])
 								}
 							}
-						}
-						if v5.Leaf.Policies != nil {
-							cp_Cloud_TLSConfig_NameToCertificate_v5.Leaf.Policies = make([]x509.OID, len(v5.Leaf.Policies))
-							copy(cp_Cloud_TLSConfig_NameToCertificate_v5.Leaf.Policies, v5.Leaf.Policies)
 						}
 					}
 				}
