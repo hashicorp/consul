@@ -18,7 +18,7 @@ const (
 	defaultExposeProtocol = "http"
 )
 
-var allowedExposeProtocols = map[string]bool{"http": true, "http2": true}
+var allowedExposeProtocols = map[string]bool{"http": true, "http2": true, "tcp": true}
 
 type MeshGatewayMode string
 
