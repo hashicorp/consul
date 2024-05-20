@@ -4,8 +4,7 @@
 package index
 
 import (
-	adaptive "github.com/hashicorp/go-immutable-adaptive-radix"
-
+	"github.com/hashicorp/consul/adaptive"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
