@@ -4,14 +4,14 @@
 package index
 
 import (
-	iradix "github.com/hashicorp/go-immutable-radix/v2"
+	adaptive "github.com/hashicorp/go-immutable-adaptive-radix"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type txn struct {
-	inner *iradix.Txn[[]*pbresource.Resource]
+	inner *adaptive.Txn[[]*pbresource.Resource]
 	index *IndexedData
 	dirty bool
 }
