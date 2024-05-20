@@ -660,6 +660,10 @@
             "path": "connect/observability/access-logs"
           },
           {
+            "title": "Monitor service-to-service communication",
+            "path": "connect/observability/service"
+          },
+          {
             "title": "UI Visualization",
             "path": "connect/observability/ui-visualization"
           }
@@ -1252,10 +1256,6 @@
           {
             "title": "Monitor components",
             "path": "agent/monitor/components"
-          },
-          {
-            "title": "Monitor service communication",
-            "path": "agent/monitor/service"
           },
           {
             "title": "Recommendations",
