@@ -668,6 +668,10 @@
             "path": "connect/observability/access-logs"
           },
           {
+            "title": "Monitor service-to-service communication",
+            "path": "connect/observability/service"
+          },
+          {
             "title": "UI Visualization",
             "path": "connect/observability/ui-visualization"
           }
@@ -1251,8 +1255,21 @@
         "path": "agent/config-entries"
       },
       {
-        "title": "Telemetry",
-        "path": "agent/telemetry"
+        "title": "Monitor Consul",
+        "routes": [
+          {
+            "title": "Agent telemetry",
+            "path": "agent/monitor/telemetry"
+          },
+          {
+            "title": "Monitor components",
+            "path": "agent/monitor/components"
+          },
+          {
+            "title": "Recommendations",
+            "path": "agent/monitor/alerts"
+          }
+        ]
       },
       {
         "title": "Sentinel",
