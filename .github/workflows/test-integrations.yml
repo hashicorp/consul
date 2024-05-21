@@ -167,7 +167,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        vault-version: ["1.16.2", "1.15.8", "1.14.12"]
+        vault-version: ["1.16.2", "1.15.6", "1.14.10"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
