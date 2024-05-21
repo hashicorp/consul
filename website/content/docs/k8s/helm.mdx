@@ -694,7 +694,7 @@ Use these links to navigate to a particular top-level stanza.
       This can either be used to [configure a new cluster](/hcp/docs/consul/self-managed/new)
       or [link an existing one](/hcp/docs/consul/self-managed/existing).
 
-      Note: this setting should not be enabled for [HCP Consul Dedicated clusters](/hcp/docs/consul/dedicated).
+      Note: this setting should not be enabled for [HashiCorp-managed clusters](/hcp/docs/consul/hcp-managed).
       It is strictly for linking self-managed clusters.
 
     - `resourceId` ((#v-global-cloud-resourceid)) - The resource id of the HCP Consul Central cluster to link to. Eg:
@@ -1796,6 +1796,9 @@ Use these links to navigate to a particular top-level stanza.
     or may not be broadly accessible depending on your Kubernetes cluster.
     Set this to false to skip syncing ClusterIP services.
 
+  - `syncLoadBalancerEndpoints` ((#v-synccatalog-syncloadbalancerendpoints)) (`boolean: false`) - If true, LoadBalancer service endpoints instead of ingress addresses will be synced to Consul. 
+    If false, LoadBalancer endpoints are not synced to Consul.
+
   - `ingress` ((#v-synccatalog-ingress))
 
     - `enabled` ((#v-synccatalog-ingress-enabled)) (`boolean: false`) - Syncs the hostname from a Kubernetes Ingress resource to service registrations
@@ -1965,6 +1968,15 @@ Use these links to navigate to a particular top-level stanza.
             annotations: |
               - external-dns.alpha.kubernetes.io/hostname
           ```
+
+      - `metrics` ((#v-connectinject-apigateway-managedgatewayclass-metrics)) - Metrics settings for gateways created with this gateway class configuration.
+
+        - `enabled` ((#v-connectinject-apigateway-managedgatewayclass-metrics-enabled)) (`boolean: -`) - This value enables or disables metrics collection on a gateway, overriding the global gateway metrics collection settings.
+
+        - `port` ((#v-connectinject-apigateway-managedgatewayclass-metrics-port)) (`int: null`) - This value sets the port to use for scraping gateway metrics via prometheus, defaults to 20200 if not set. Must be in the port
+          range of 1024-65535.
+
+        - `path` ((#v-connectinject-apigateway-managedgatewayclass-metrics-path)) (`string: null`) - This value sets the path to use for scraping gateway metrics via prometheus, defaults to /metrics if not set.
 
       - `resources` ((#v-connectinject-apigateway-managedgatewayclass-resources)) (`map`) - The resource settings for Pods handling traffic for Gateway API.
 
@@ -2310,8 +2322,10 @@ Use these links to navigate to a particular top-level stanza.
       - `consul.hashicorp.com/enable-sidecar-proxy-lifecycle`
       - `consul.hashicorp.com/enable-sidecar-proxy-shutdown-drain-listeners`
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-shutdown-grace-period-seconds`
+      - `consul.hashicorp.com/sidecar-proxy-lifecycle-startup-grace-period-seconds`
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port`
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path`
+      - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-startup-path`
 
       - `defaultEnabled` ((#v-connectinject-sidecarproxy-lifecycle-defaultenabled)) (`boolean: true`)
 
@@ -2319,9 +2333,13 @@ Use these links to navigate to a particular top-level stanza.
 
       - `defaultShutdownGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)) (`integer: 30`)
 
+      - `defaultStartupGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultstartupgraceperiodseconds)) (`integer: 0`)
+
       - `defaultGracefulPort` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)) (`integer: 20600`)
 
       - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
+
+      - `defaultGracefulStartupPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulstartuppath)) (`string: /graceful_startup`)
 
     - `defaultStartupFailureSeconds` ((#v-connectinject-sidecarproxy-defaultstartupfailureseconds)) (`integer: 0`) - Configures how long the k8s startup probe will wait before the proxy is considered to be unhealthy and the container is restarted.
       A value of zero disables the probe.
@@ -2955,8 +2973,8 @@ Use these links to navigate to a particular top-level stanza.
     - `resourceId` ((#v-telemetrycollector-cloud-resourceid)) - The resource id of the HCP Consul Central cluster to push metrics for. Eg:
       `organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster`
 
-      This is used for HCP Consul Central-linked or HCP Consul Dedicated clusters where global.cloud.resourceId is unset. For example, when using externalServers
-      with HCP Consul Dedicated clusters or HCP Consul Central-linked clusters in a different admin partition.
+      This is used for HCP Consul Central-linked or managed clusters where global.cloud.resourceId is unset. For example, when using externalServers
+      with HCP Consul-managed clusters or HCP Consul Central-linked clusters in a different admin partition.
 
       If global.cloud.resourceId is set, this should either be unset (defaulting to global.cloud.resourceId) or be the same as global.cloud.resourceId.
 
