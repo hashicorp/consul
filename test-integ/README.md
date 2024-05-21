@@ -25,7 +25,7 @@ You can run the entire set of deployer integration tests using:
 
 You can also run them one by one if you like:
 
-    go test ./catalogv2 -run TestBasicL4ExplicitDestinations -v
+    go test ./connect/ -run Test_Snapshot_Restore_Agentless -v
 
 You can have the logs stream unbuffered directly to your terminal which can
 help diagnose stuck tests that would otherwise need to fully timeout before the
@@ -65,26 +65,18 @@ These are comprised of 4 main parts:
   - **Nodes**: A "box with ip address(es)". This should feel a bit like a VM or
                a Kubernetes Pod as an enclosing entity.
 
-    - **Workloads**: The list of service instances (v1) or workloads
-                     (v2) that will execute on the given node. v2 Services will
-                     be implied by similarly named workloads here unless opted
-                     out. This helps define a v1-compatible topology and
-                     repurpose it for v2 without reworking it.
+    - **Workloads**: The list of service instances that will execute on the given node.
 
-  - **Services** (v2): v2 Service definitions to define explicitly, in addition
-                       to the inferred ones.
+  - **InitialConfigEntries**: Config entries that should be created as
+                              part of the fixture and that make sense to
+                              include as part of the test definition, rather
+                              than something created during the test assertion
+                              phase.
 
-  - **InitialConfigEntries** (v1): Config entries that should be created as
-                                   part of the fixture and that make sense to
-                                   include as part of the test definition,
-                                   rather than something created during the
-                                   test assertion phase.
-
-  - **InitialResources** (v2): v2 Resources that should be created as part of
-                               the fixture and that make sense to include as
-                               part of the test definition, rather than
-                               something created during the test assertion
-                               phase.
+  - **InitialResources**: Resources that should be created as part of
+                          the fixture and that make sense to include as part of
+                          the test definition, rather than something created
+                          during the test assertion phase.
 
 - **Peerings**: The peering relationships between Clusters to establish.
 
@@ -102,15 +94,13 @@ a variety of axes:
 - agentful (clients) vs agentless (dataplane)
 - tenancies (partitions, namespaces)
 - locally or across a peering
-- catalog v1 or v2 object model
 
 Since the topology is just a declarative struct, a test author could rewrite
-any one of these attributes with a single field (such as `Node.Kind` or
-`Node.Version`) and cause the identical test to run against the other
-configuration. With the addition of a few `if enterprise {}` blocks and `for`
-loops, a test author could easily write one test of a behavior and execute it
-to cover agentless, agentful, non-default tenancy, and v1/v2 in a few extra
-lines of code.
+any one of these attributes with a single field (such as `Node.Kind`) and cause
+the identical test to run against the other configuration. With the addition of
+a few `if enterprise {}` blocks and `for` loops, a test author could easily
+write one test of a behavior and execute it to cover agentless, agentful, and
+non-default tenancy in a few extra lines of code.
 
 #### Non-optional security settings
 
@@ -197,12 +187,3 @@ and Envoy that you can create in your test:
     asserter := topoutil.NewAsserter(sp)
 
     asserter.UpstreamEndpointStatus(t, svc, clusterPrefix+".", "HEALTHY", 1)
-
-## Examples
-
-- `catalogv2`
-  - [Explicit L4 destinations](./catalogv2/explicit_destinations_test.go)
-  - [Implicit L4 destinations](./catalogv2/implicit_destinations_test.go)
-  - [Explicit L7 destinations with traffic splits](./catalogv2/explicit_destinations_l7_test.go)
-- [`peering_commontopo`](./peering_commontopo)
-  - A variety of extensive v1 Peering tests. 
