@@ -6,9 +6,6 @@
 package discovery
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/hashicorp/consul/acl"
 )
 
@@ -26,13 +23,4 @@ func validateEnterpriseTenancy(req QueryTenancy) error {
 
 func queryTenancyToEntMeta(_ QueryTenancy) acl.EnterpriseMeta {
 	return acl.EnterpriseMeta{}
-}
-
-// fetchServiceFromSamenessGroup fetches a service from a sameness group.
-func (f *V1DataFetcher) fetchServiceFromSamenessGroup(ctx Context, req *QueryPayload, cfg *V1DataFetcherDynamicConfig, lookupType LookupType) ([]*Result, error) {
-	f.logger.Trace(fmt.Sprintf("fetchServiceFromSamenessGroup - req: %+v", req))
-	if req.Tenancy.SamenessGroup == "" {
-		return nil, errors.New("sameness groups must be provided for service lookups")
-	}
-	return f.fetchServiceBasedOnTenancy(ctx, req, cfg, lookupType)
 }

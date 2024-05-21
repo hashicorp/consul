@@ -117,6 +117,13 @@ type QueryOptions struct {
 	// Note: Partitions are available only in Consul Enterprise
 	Partition string
 
+	// SamenessGroup is used find the SamenessGroup in the given
+	// Partition and will find the failover order for the Service
+	// from the SamenessGroup Members, with the given Partition being
+	// the first member.
+	// Note: SamenessGroups are available only in Consul Enterprise
+	SamenessGroup string
+
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
 	Datacenter string
@@ -846,6 +853,12 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		// use the long-hand query param name "partition"
 		// rather than the alternative short-hand "ap"
 		r.params.Set("partition", q.Partition)
+	}
+	if q.SamenessGroup != "" {
+		// For backwards-compatibility with existing tests,
+		// use the long-hand query param name "sameness-group"
+		// rather than the alternative short-hand "sg"
+		r.params.Set("sameness-group", q.SamenessGroup)
 	}
 	if q.Datacenter != "" {
 		// For backwards-compatibility with existing tests,
