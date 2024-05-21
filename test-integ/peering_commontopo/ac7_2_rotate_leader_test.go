@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mitchellh/copystructure"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/mitchellh/copystructure"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // TestAC7_2RotateLeader ensures that after a leader rotation, information continues to replicate to peers
@@ -29,7 +30,7 @@ type ac7_2RotateLeaderSuite struct {
 	sidClient  topology.ID
 	nodeClient topology.NodeID
 
-	upstream *topology.Destination
+	upstream *topology.Upstream
 }
 
 func TestAC7_2RotateLeader(t *testing.T) {
@@ -71,7 +72,7 @@ func (s *ac7_2RotateLeaderSuite) setup(t *testing.T, ct *commonTopo) {
 	)
 
 	// Make clients which have server upstreams
-	upstream := &topology.Destination{
+	upstream := &topology.Upstream{
 		ID: topology.ID{
 			Name:      server.ID.Name,
 			Partition: partition,
@@ -87,7 +88,7 @@ func (s *ac7_2RotateLeaderSuite) setup(t *testing.T, ct *commonTopo) {
 			Partition: partition,
 		},
 		func(s *topology.Workload) {
-			s.Destinations = []*topology.Destination{
+			s.Upstreams = []*topology.Upstream{
 				upstream,
 			}
 		},
