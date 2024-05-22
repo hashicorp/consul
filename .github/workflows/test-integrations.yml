@@ -27,7 +27,7 @@ env:
   SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: "${{ github.workflow }}-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -86,7 +86,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        nomad-version: ['v1.7.3', 'v1.6.6', 'v1.5.13']
+        nomad-version: ['v1.7.7', 'v1.6.10', 'v1.5.17']
     steps:
       - name: Checkout Nomad
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -111,7 +111,9 @@ jobs:
           echo "$(pwd)/bin" >> $GITHUB_PATH
 
       - name: Make Nomad dev build
-        run: make pkg/linux_amd64/nomad
+        run: |
+          make pkg/linux_amd64/nomad
+          echo "$(pwd)/pkg/linux_amd64" >> $GITHUB_PATH
 
       - name: Run integration tests
         run: |
@@ -167,7 +169,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        vault-version: ["1.15.4", "1.14.8", "1.13.12"]
+        vault-version: ["1.16.2", "1.15.6", "1.14.10"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
