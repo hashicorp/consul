@@ -1,0 +1,83 @@
+---
+layout: docs
+page_title: Consul monitoring and alerts recommendations
+description: >-
+  Apply best practices towards Consul monitoring and alerts.
+---
+
+# Consul monitoring and alerts recommendations
+
+This document will guide you through which host resources to monitor and how monitoring tools can help you set up alerts to notify you when your Consul cluster exceeds its limits. By monitoring Consul and setting up alerts, you can ensure Consul works as expected for all your service discovery and service mesh needs.
+
+## Instance level monitoring
+
+While each host environment and Consul deployment is unique, these recommendations can serve as a starting point for you to reference to meet the unique needs of your deployment.
+
+A Consul datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations like service discovery or service mesh. A datacenter contains at least one Consul server agent, but a real-world deployment contains three or five server agents and several Consul client agents. 
+
+Consul server agents store all state information, including service and node IP addresses, health checks, and configuration. Consul clients report node and service health status to the Consul cluster. In a typical deployment, you must run client agents on every compute node in your datacenter. If you have Kubernetes workloads, you can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified service mesh with Consul dataplanes](/consul/docs/connect/dataplane) for more information.
+
+We recommend monitoring the following parameters for Consul agents health:
+- Disk space and file handles
+- [RAM utilization](/consul/docs/agent/telemetry#memory-usage)
+- CPU utilization 
+- Network activity and utilization 
+
+We recommend using an [application performance monitoring (APM) system](#monitoring-tools) to track these metrics. For a full list of key metrics, visit the [Key metrics](/consul/docs/agent/telemetry#key-metrics) section of Telemetry documentation.
+
+## Recommendations for host-level alerts
+
+We recommend starting with a small cluster for most initial production deployments or for testing environments. For production environments with a consistently high workload, we recommend large clusters . Refer to the [Consul capacity planning](/well-architected-framework/reliability/reliability-consul-capacity-planning#minimum-hardware-requirements) article for more information.
+
+When collecting metrics, it is important to establish a baseline. This baseline ensures your Consul deployment is healthy, and serves as a reference point when troubleshooting abnormal Cluster behavior. Complete the [Monitor Consul datacenter health](/consul/tutorials/day-2-operations/monitor-datacenter-health#how-to-collect-metrics) tutorial to learn how to collect metrics.
+
+Once you have established a baseline for your metrics, use them and the following recommendations to configure reasonable alerts for your Consul agent. 
+
+### Memory alert recommendations
+
+Consul uses RAM as the primary storage for data on its leader node, while periodically flushing it to disk. Reference the [Memory usage](/consul/docs/agent/telemetry#memory-usage) section of the Telemetry documentation for more details. The recommended instance type depends on your hosting provider. Refer to the [Hardware sizing for Consul servers](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers) for recommended instance types for most cloud providers along with other up-to-date hardware recommendations. 
+
+When determining how much RAM you should allocate, we recommend enough RAM for your server agents to contain between 2 to 4 times the working set size. You can determine the working set size by noting the value of `consul.runtime.alloc_bytes` in the telemetry data. 
+
+Set up an alert if your RAM usage exceeds a reasonable threshold (for example, 90% of your allocated RAM).
+
+### CPU alert recommendations
+
+Your Consul servers should scale up to handle peak CPU load, not idle load. When idle, Consul servers are waiting to react to changes in service health, placement, or other configuration. If there are any service state changes, the Consul server has to notify all impacted Consul clients simultaneously. For example, if the Consul server has to notify hundreds or thousands of Consul clients of a service state update, the Consul server CPU may spike. 
+
+If this happens, your monitoring dashboard will show a CPU spike on all servers immediately after a big registration/deregistration operation. This should not happen — you should be able to do a rollout or other high-change operation without taxing the Consul servers.
+
+Set up an alert to detect CPU spikes on your Consul server agents. When this happens, evaluate the size of your Consul servers and upgrade them accordingly.
+
+### Network recommendations
+
+The data sent between all Consul agents must follow latency requirements for total round trip time (RTT):
+
+Average RTT for all traffic cannot exceed 50ms.
+RTT for 99 percent of traffic cannot exceed 100ms.
+
+Refer to the [Reference architecture](/consul/tutorials/production-deploy/reference-architecture#network-latency-and-bandwidth) to learn more about network latency and bandwidth guidance.
+
+Set an alert to detect when the RTT exceeds these values. When this happens, Therefore, you should monitor metrics related to the host's network latency so the RTT does not exceed these values.
+
+### Monitoring Consul using Prometheus and Grafana
+
+Time series based observability tools, such as Grafana and Prometheus, help you monitor the health of Consul clusters over long intervals of time. Refer to the
+[Monitoring for Layer 7 observability with Prometheus, Grafana, and Kubernetes](/consul/tutorials/day-2-operations/kubernetes-layer7-observability) tutorial for additional information.
+
+### Monitoring Consul using Datadog
+
+Datadog is a SaaS-based monitoring and analytics platform for large-scale applications and infrastructure. It is one of the supported platforms for monitoring Consul. Datadogs agents run on your host reporting logs, metrics and traces. By configuring Datadog agents on your Consul server and client instances, you can monitor your Consul cluster's health.
+
+Refer to the following resources for more information:
+
+- [Setup Consul logging with DataDog](https://www.datadoghq.com/blog/consul-datadog/)
+- [Datadog monitoring solutions brief](https://www.datocms-assets.com/2885/1576713622-datadog-consul.pdf)
+- [Hashicorp partner portal for Consul support on Datadog](https://www.hashicorp.com/partners/tech/datadog#consul)
+
+## Next steps
+
+In this guide, you learned which host resources to monitor and how monitoring tools can help you set up alerts to notify you when your Consul cluster exceeds its limits.
+
+- To learn about monitoring the Consul control and data plane, visit our [Monitoring Consul components](/well-architected-framework/reliability/reliability-consul-monitoring-consul-components) documentation.
+- Complete the [Monitor Consul datacenter health with Telegraf](/consul/tutorials/day-2-operations/monitor-health-telegraf) tutorial for additional metrics and alerting recommendations.
