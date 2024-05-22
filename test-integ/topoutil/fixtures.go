@@ -15,12 +15,8 @@ const HashicorpDockerProxy = "docker.mirror.hashicorp.services"
 func NewFortioWorkloadWithDefaults(
 	cluster string,
 	sid topology.ID,
-	nodeVersion topology.NodeVersion,
 	mut func(*topology.Workload),
 ) *topology.Workload {
-	if nodeVersion == topology.NodeVersionV2 {
-		panic("v2 nodes are not supported")
-	}
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079
@@ -56,12 +52,8 @@ func NewFortioWorkloadWithDefaults(
 func NewBlankspaceWorkloadWithDefaults(
 	cluster string,
 	sid topology.ID,
-	nodeVersion topology.NodeVersion,
 	mut func(*topology.Workload),
 ) *topology.Workload {
-	if nodeVersion == topology.NodeVersionV2 {
-		panic("v2 nodes are not supported")
-	}
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079

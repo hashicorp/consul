@@ -39,5 +39,5 @@ func NewServiceID(name, namespace, partition string) ID {
 	return NewID(name, namespace, partition)
 }
 
-// Deprecated: Destination
-type Upstream = Destination
+// Deprecated:
+type Destination = Upstream
