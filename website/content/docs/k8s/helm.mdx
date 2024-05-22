@@ -694,7 +694,7 @@ Use these links to navigate to a particular top-level stanza.
       This can either be used to [configure a new cluster](/hcp/docs/consul/self-managed/new)
       or [link an existing one](/hcp/docs/consul/self-managed/existing).
 
-      Note: this setting should not be enabled for [HashiCorp-managed clusters](/hcp/docs/consul/hcp-managed).
+      Note: this setting should not be enabled for [HCP Consul Dedicated clusters](/hcp/docs/consul/dedicated).
       It is strictly for linking self-managed clusters.
 
     - `resourceId` ((#v-global-cloud-resourceid)) - The resource id of the HCP Consul Central cluster to link to. Eg:
@@ -2973,8 +2973,8 @@ Use these links to navigate to a particular top-level stanza.
     - `resourceId` ((#v-telemetrycollector-cloud-resourceid)) - The resource id of the HCP Consul Central cluster to push metrics for. Eg:
       `organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster`
 
-      This is used for HCP Consul Central-linked or managed clusters where global.cloud.resourceId is unset. For example, when using externalServers
-      with HCP Consul-managed clusters or HCP Consul Central-linked clusters in a different admin partition.
+      This is used for HCP Consul Central-linked or HCP Consul Dedicated clusters where global.cloud.resourceId is unset. For example, when using externalServers
+      with HCP Consul Dedicated clusters or HCP Consul Central-linked clusters in a different admin partition.
 
       If global.cloud.resourceId is set, this should either be unset (defaulting to global.cloud.resourceId) or be the same as global.cloud.resourceId.
 
