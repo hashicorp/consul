@@ -27,7 +27,7 @@ env:
   SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: "${{ github.workflow }}-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -111,7 +111,9 @@ jobs:
           echo "$(pwd)/bin" >> $GITHUB_PATH
 
       - name: Make Nomad dev build
-        run: make pkg/linux_amd64/nomad
+        run: |
+          make pkg/linux_amd64/nomad
+          echo "$(pwd)/pkg/linux_amd64" >> $GITHUB_PATH
 
       - name: Run integration tests
         run: |
