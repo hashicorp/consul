@@ -210,7 +210,7 @@ Provide Consul server connection settings to the mesh task module so that the mo
   }
 
   ```
-1. Add an `environment` block to the control-plane and ECS controller containers definition
+1. Add an `environment` block to the control-plane and ECS controller containers definition.
 1. Set the `environment.name` field to the `CONSUL_ECS_CONFIG_JSON` environment variable and the value to `local.encoded_config`.
 
   ```hcl
