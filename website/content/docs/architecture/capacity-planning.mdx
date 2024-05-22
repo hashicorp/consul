@@ -7,7 +7,7 @@ description: >-
 
 # Consul capacity planning
 
-This page describes our capacity planning recommendations when deploying and maintaining a Consul cluster in production. When your organization architects a production environment, you should consider your available resources and their impact on network capacity. 
+This page describes our capacity planning recommendations when deploying and maintaining a Consul cluster in production. When your organization designs a production environment, you should consider your available resources and their impact on network capacity. 
 
 ## Introduction
 
@@ -23,7 +23,7 @@ The minimum hardware requirements for Consul servers in production clusters as r
 | --------- | ------------ | ------------- | ----------- | --------------- | ------------------- | ------------------- |
 | 8-16 core | 32-64 GB RAM | 200+ GB       | 7500+ IOPS  | 250+ MB/s       | Lower than 50ms     | Lower than 100ms    |
 
-For the major cloud providers, we recommend starting with specs that match following instances and scaling up as needed. We also recommend avoiding "burstable" CPU and storage options where performance may drop after a consistent load.
+For the major cloud providers, we recommend starting with one of the following instances that meet the minimum requirements. Then scale up as needed. We also recommend avoiding "burstable" CPU and storage options where performance may drop after a consistent load.
 
 | Provider  | Size  | Instance/VM Types                     | Disk Volume Specs                 |
 | --------- | ----- | ------------------------------------- | --------------------------------- |
@@ -42,7 +42,7 @@ Input/output operations per second (IOPS) is a unit of measurement for the amoun
 For high workloads, ensure that the Consul server disks support a [high number of IOPS](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-io-characteristics.html#ebs-io-iops) to keep up with the rapid Raft log update rate.
 Unlike bare-metal environments, IOPS for virtual instances in cloud environments is often tied to storage sizing. More storage GBs typically grants you more IOPS. Therefore, we recommend deploying on [IOPS-optimized instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/provisioned-iops.html).
 
-Consul server agents are generally I/O bound for writes and CPU bound for reads. For additional tuning, refer to the [raft tuning section](#raft-tuning).
+Consul server agents are generally I/O bound for writes and CPU bound for reads. For additional tuning recommendations, refer to [raft tuning](#raft-tuning).
 
 ## Memory requirements
 
@@ -63,7 +63,7 @@ $ curl --silent --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" http://127.0.0.1:8
 
 ## Kubernetes storage requirements
 
-When setting up persistent volumes (PV) resources, you should define the correct server storage class parameter because the defaults are likely insufficient in performance. To set the [storageClass Helm chart parameter](/consul/docs/k8s/helm#v-server-storageclass), refer to the [Kubernetes documentation on storageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) for specifics about each cloud provider.
+When you set up persistent volumes (PV) resources, you should define the correct server storage class parameter because the defaults are likely insufficient in performance. To set the [storageClass Helm chart parameter](/consul/docs/k8s/helm#v-server-storageclass), refer to the [Kubernetes documentation on storageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) for more information about your specific cloud provider.
 
 ## Read and write heavy workload recommendations
 
@@ -74,18 +74,18 @@ In production, your use case may lead to Consul performing read-heavy workloads,
 | Read-heavy    | Instances of type `m5.4xlarge (AWS)`, `Standard_D16s_v3 (Azure)`, `n2-standard-16 (GCP)` | Raft RPCs calls, DNS queries, key/value retrieval | [Read replicas](/consul/docs/enterprise/read-scale) |
 | Write-heavy   | IOPS performance of `10 000+` | Consul agent joins and leaves, services registration and deregistration, key/value writes | [Network segments](/consul/docs/enterprise/network-segments/network-segments-overview) |
 
-For recommendations on troubleshooting issues with read-heavy or write-heavy workloads, refer to [Consul at Scale](https://developer.hashicorp.com/consul/docs/architecture/scale#resource-usage-and-metrics-recommendations)/
+For recommendations on troubleshooting issues with read-heavy or write-heavy workloads, refer to [Consul at Scale](/consul/docs/architecture/scale#resource-usage-and-metrics-recommendations).
 
 ## Monitor performance
 
-Monitoring is critical to ensure that your Consul datacenter performs correctly. A proactive monitoring strategy helps you find problems in your network before they impact your deployments.
+Monitoring is critical to ensure that your Consul datacenter has sufficient resources to continue operations. A proactive monitoring strategy helps you find problems in your network before they impact your deployments.
 
 We recommend completing the [Monitor Consul server health and performance with metrics and logs](/consul/tutorials/observe-your-network/server-metrics-and-logs) tutorial as a starting point for Consul metrics and telemetry. The following tutorials guide you through specific monitoring solutions for your Consul cluster.
 
 - [Monitor Consul server health and performance with metrics and logs](/consul/tutorials/observe-your-network/server-metrics-and-logs)
 - [Observe Consul service mesh traffic](/consul/tutorials/get-started-kubernetes/kubernetes-gs-observability)
 
-### Key metrics
+### Important metrics
 
 In production environments, create baselines for your Consul cluster's metrics. After you discover the baselines, you will be able to define alerts and receive notifications when there are unexpected values. For a detailed explanation on the metrics and their values, refer to [Consul Agent telemetry](/consul/docs/agent/telemetry).
 
@@ -123,7 +123,6 @@ Network activity and RPC count measurements indicate the current load created fr
 - **consul.client.rpc.exceeded** increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.
 - **consul.client.rpc.failed** increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.	
 
-
 ## Network constraints and alternate approaches
 
 If it is impossible for you to allocate the required resources, you can make changes to Consul's performance so that it operates with lower speed or resilience. These changes ensure that your cluster remains within its resource capacity. 
@@ -140,7 +139,7 @@ If you require more than 5,000 client agents, you should break up the single Con
 - When the nodes are spread across separate physical locations such as different regions, you can model multiple datacenter structures based on physical locations.
 - Use [network segments](/consul/docs/enterprise/network-segments/network-segments-overview) in a single available zone or region to lower overall resource usage in a single datacenter.
 
-When deploying [Consul in Kubernetes](/consul/docs/k8s), we recommend you set both _limits_ and _requests_ in the Helm chart. Refer to the [Helm chart documentation](/consul/docs/k8s/helm#v-server-resources) for more information.
+When deploying [Consul in Kubernetes](/consul/docs/k8s), we recommend you set both _requests_ and  _limits_ in the Helm chart. Refer to the [Helm chart documentation](/consul/docs/k8s/helm#v-server-resources) for more information.
 
 - Requests allocate the required resources for your Consul workloads.
 - Limits prevent your pods from being terminated and restarted if they consume more resources than requested and Kubernetes needs to reclaim these resources. Limits can prevent outage situations where the Consul leader's container gets terminated and redeployed due to resource constraints.
@@ -167,10 +166,10 @@ resources:
 ### Raft tuning
 
 Consul uses the [Raft consensus algorithm](/consul/docs/architecture/consensus) to provide consistency.
-You may need to adjust Raft to suit your specific environment. Adjust the [`raft_multiplier` configuration](/consul/docs/agent/config/config-files#raft_multiplier) to  define the trade-off between leader stability and time to recover from a leader failure.
+You may need to adjust Raft to suit your specific environment. Adjust the [`raft_multiplier` configuration](/consul/docs/agent/config/config-files#raft_multiplier) to define the trade-off between leader stability and time to recover from a leader failure.
 
 - A lower multiplier minimizes failure detection and election time, but it may trigger frequently in high latency situations.
-- A higher multiplier reduces the chances that failures cause leadership churn, but you cluster takes longer to detect real failures and restore availability.
+- A higher multiplier reduces the chances that failures cause leadership churn, but your cluster takes longer to detect real failures and restore availability.
 
 The value of `raft_multiplier` has a default value of 5. It is a scaling factor setting that directly affects the following parameters:
 
@@ -180,10 +179,10 @@ The value of `raft_multiplier` has a default value of 5. It is a scaling factor 
 | ElectionTimeout | 5000ms | 5 x 1000ms |
 | LeaderLeaseTimeout | 2500ms | 5 x 500ms |
 
-You can use the [`consul.raft.leader.lastContact`](/consul/docs/agent/telemetry#leadership-changes) telemetry to observe Raft timing performance. 
+You can use the telemetry from [`consul.raft.leader.lastContact`](/consul/docs/agent/telemetry#leadership-changes) to observe Raft timing performance. 
 
-Wide networks with more latency perform better with larger values of `raft_multiplier`, but cluster failure detection will take longer. We recommend that you do not set the Raft multiplier higher than 5 to accommodate for slow network communication. Instead, replace the servers with more powerful ones, or minimize the network latency between nodes.
+Wide networks with more latency perform better with larger values of `raft_multiplier`, but cluster failure detection will take longer. If your network operates with low latency, we recommend that you do not set the Raft multiplier higher than 5. Instead, you should either replace the servers with more powerful ones or minimize the network latency between nodes.
 
-We recommend starting from a baseline perspective and performing [chaos engineering testing](/consul/tutorials/resiliency/introduction-chaos-engineering?in=consul%2Fresiliency) with different values for the Raft multiplier to find the acceptable time for problem detection and recovery for the cluster. Then scale the cluster and its dedicated resources with the number of workloads handled. This approach gives you the best balance between pure resource growth and pure Raft tuning strategies because it lets you use Raft tuning as a backup plan if you cannot scale your resources.
+We recommend you start from a baseline and perform [chaos engineering testing](/consul/tutorials/resiliency/introduction-chaos-engineering?in=consul%2Fresiliency) with different values for the Raft multiplier to find the acceptable time for problem detection and recovery for the cluster. Then scale the cluster and its dedicated resources with the number of workloads handled. This approach gives you the best balance between pure resource growth and pure Raft tuning strategies because it lets you use Raft tuning as a backup plan if you cannot scale your resources.
 
 The types of workloads the Consul cluster handles also play an important role in Raft tuning. For example, if your Consul clusters are mostly static and do not handle many events, you should increase your Raft multiplier instead of scaling your resources because the risk of an important event happening while the cluster is converging or re-electing a leader is lower.
