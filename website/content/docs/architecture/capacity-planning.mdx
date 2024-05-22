@@ -93,35 +93,35 @@ In production environments, create baselines for your Consul cluster's metrics. 
 
 These metrics indicate how long it takes to complete write operations in various parts of the Consul cluster.
 
-- **consul.kvs.apply** measures the time it takes to complete an update to the KV store.	
-- **consul.txn.apply** measures the time spent applying a transaction operation.
-- **consul.raft.apply** counts the number of Raft transactions applied during the measurement interval. This metric is only reported on the leader.
-- **consul.raft.commitTime** measures the time it takes to commit a new entry to the Raft log on disk on the leader.
+- [`consul.kvs.apply`](/consul/docs/agent/monitor/telemetry#transaction-timing) measures the time it takes to complete an update to the KV store.	
+- [`consul.txn.apply`](/consul/docs/agent/monitor/telemetry#transaction-timing) measures the time spent applying a transaction operation.
+- [`consul.raft.apply`](/consul/docs/agent/monitor/telemetry#transaction-timing) counts the number of Raft transactions applied during the measurement interval. This metric is only reported on the leader.
+- [`consul.raft.commitTime`](/consul/docs/agent/monitor/telemetry#transaction-timing) measures the time it takes to commit a new entry to the Raft log on disk on the leader.
 
 ### Memory metrics
 
 These performance indicators can help you diagnose if the current instance sizing is unable to handle the workload.
 
-- **consul.runtime.alloc_bytes** measures the number of bytes allocated by the Consul process.
-- **consul.runtime.sys_bytes** measures the total number of bytes of memory obtained from the OS.
-- **consul.runtime.heap_objects** measures the number of objects allocated on the heap and is a general memory pressure indicator.
+- [`consul.runtime.alloc_bytes`](/consul/docs/agent/monitor/telemetry#memory-usage) measures the number of bytes allocated by the Consul process.
+- [`consul.runtime.sys_bytes`](/consul/docs/agent/monitor/telemetry#memory-usage) measures the total number of bytes of memory obtained from the OS.
+- [`consul.runtime.heap_objects`](/consul/docs/agent/monitor/telemetry#metrics-reference) measures the number of objects allocated on the heap and is a general memory pressure indicator.
 
 ### Leadership metrics
 
 Leadership changes are not a cause for concern but frequent changes may be a symptom of a deeper problem. Frequent elections or leadership changes may indicate network issues between the Consul servers, or the Consul servers are unable to keep up with the load.
 
-- **consul.raft.leader.lastContact** measures the time since the leader was last able to contact the follower nodes when checking its leader lease.
-- **consul.raft.state.candidate** increments whenever a Consul server starts an election.	
-- **consul.raft.state.leader** increments whenever a Consul server becomes a leader.	
-- **consul.server.isLeader** tracks whether a server is a leader.
+- [`consul.raft.leader.lastContact`](/consul/docs/agent/monitor/telemetry#leadership-changes) measures the time since the leader was last able to contact the follower nodes when checking its leader lease.
+- [`consul.raft.state.candidate`](/consul/docs/agent/monitor/telemetry#leadership-changes) increments whenever a Consul server starts an election.	
+- [`consul.raft.state.leader`](/consul/docs/agent/monitor/telemetry#leadership-changes) increments whenever a Consul server becomes a leader.	
+- [`consul.server.isLeader`](/consul/docs/agent/monitor/telemetry#leadership-changes) tracks whether a server is a leader.
 
 ### Network metrics
 
 Network activity and RPC count measurements indicate the current load created from a Consul agent, including when the load becomes high enough to be rate limited. If an unusually high RPC count occurs, you should investigate before it overloads the cluster.
 
-- **consul.client.rpc** increments whenever a Consul agent in client mode makes an RPC request to a Consul server.
-- **consul.client.rpc.exceeded** increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.
-- **consul.client.rpc.failed** increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.	
+- [`consul.client.rpc`](/consul/docs/agent/monitor/telemetry#network-activity-rpc-count) increments whenever a Consul agent in client mode makes an RPC request to a Consul server.
+- [`consul.client.rpc.exceeded`](/consul/docs/agent/monitor/telemetry#network-activity-rpc-count) increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.
+- [`consul.client.rpc.failed`](/consul/docs/agent/monitor/telemetry#network-activity-rpc-count) increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.	
 
 ## Network constraints and alternate approaches
 
