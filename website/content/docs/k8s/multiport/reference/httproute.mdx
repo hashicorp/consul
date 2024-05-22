@@ -90,7 +90,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 When every field is defined, an HTTP route CRD has the following form:
 
 ```yaml
-apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
+apiVersion: mesh.consul.hashicorp.com/v2beta1        # required
 kind: HTTPRoute                                      # required
 metadata:
   name: <crdName>
@@ -100,7 +100,7 @@ spec:
     port: <portRoutedFrom>
     - ref:
       name: <nameRoutedFrom>
-      type: 
+      type:
         group: <catalog>
         groupVersion: <v2beta1>
         kind: <Service>
@@ -132,10 +132,10 @@ spec:
           remove:
             name: <headerName>
             value: <headerValue>
-      responseHeaderModifier:      
+      responseHeaderModifier:
           add:
             name: <headerName>
-            value: <headerValue>         
+            value: <headerValue>
       urlRewrite:
         pathPrefix: <path/prefix>
     matches:
@@ -144,7 +144,7 @@ spec:
         type: <HEADER_MATCH_TYPE_EXACT>
         value: <valueToMatch>
       method: <methodToMatch>
-      path: 
+      path:
         type: <PATH_MATCH_TYPE_EXACT>
         value: /
       queryParams:
@@ -277,7 +277,7 @@ Specifies the type of resource that the configuration applies to. To reference a
   | Parameter     | Description                                                          | Data type | Default  |
   | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
   | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
-  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String  | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String  | None     |
   | `kind`    | Specifies the kind of the Kubernetes object the resource applies to. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
 
 ### `spec.rules`
@@ -360,7 +360,7 @@ Specifies the type of resource that the configuration routes traffic to. To refe
 
   | Parameter     | Description                                                          | Data type | Default  |
   | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
-  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String | None     |
   | `kind`    | Specifies the kind of the Kubernetes object for the resource. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
 
 ### `spec.rules.backendRefs.filters`
@@ -435,9 +435,9 @@ Specifies a path to modify the URL with when a request is forwarded.
 
 ### `spec.rules.backendRefs.weight`
 
-Specifies the proportion of requests routed to the specified service. 
+Specifies the proportion of requests routed to the specified service.
 
-This proportion is relative to the sum of all weights in the [`spec.rules.backendRefs`](#spec-rules-backendrefs) block. As a result, weights do not need to add up to 100. When only one backend is specified and the weight is greater then 0, Consul forwards 100% of traffic to the backend. 
+This proportion is relative to the sum of all weights in the [`spec.rules.backendRefs`](#spec-rules-backendrefs) block. As a result, weights do not need to add up to 100. When only one backend is specified and the weight is greater then 0, Consul forwards 100% of traffic to the backend.
 
 When this parameter is not specified, Consul defaults to `1`.
 
@@ -687,7 +687,7 @@ Specifies Envoy conditions that cause an automatic retry attempt.
 - Default: None
 - Data type: Map of strings
 
-### `spec.rules.retries.onConnnectFailure`
+### `spec.rules.retries.onConnectFailure`
 
 Enables an automatic retry attempt when a connection failure error occurs.
 
@@ -753,7 +753,7 @@ metadata:
 spec:
   parentRefs:
     - ref:
-        type: 
+        type:
           group: catalog
           groupVersion: v2beta1
           kind: Service
@@ -763,7 +763,7 @@ spec:
   rules:
     - backendRefs:
       - backendRef:
-          ref: 
+          ref:
             type:
               group: catalog
               groupVersion: v2beta1
@@ -773,7 +773,7 @@ spec:
           port: "80"
         weight: 50
       - backendRef:
-          ref: 
+          ref:
             type:
               group: catalog
               groupVersion: v2beta1
@@ -802,7 +802,7 @@ metadata:
 spec:
   parentRefs:
     - ref:
-        type: 
+        type:
           group: catalog
           groupVersion: v2beta1
           kind: Service
@@ -876,7 +876,7 @@ metadata:
 spec:
   parentRefs:
     - ref:
-        type: 
+        type:
           group: catalog
           groupVersion: v2beta1
           kind: Service

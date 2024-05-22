@@ -6,13 +6,13 @@ description: You can configure sameness groups so that when a service instance f
 
 # Failover with sameness groups
 
-This page describes how to use sameness groups to automatically redirect service traffic to healthy instances in failover scenarios. Sameness groups are a user-defined set of Consul admin partitions with identical registered services. These admin paritions typically belong to Consul datacenters in different cloud regions, which enables sameness groups to participate in several service failover configuration strategies.
+This page describes how to use sameness groups to automatically redirect service traffic to healthy instances in failover scenarios. Sameness groups are a user-defined set of Consul admin partitions with identical registered services. These admin partitions typically belong to Consul datacenters in different cloud regions, which enables sameness groups to participate in several service failover configuration strategies.
 
 To create a sameness group and configure each Consul datacenter to allow traffic from other members of the group, refer to [create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups).
 
 ## Failover strategies
 
-You can edit a sameness group configuration entry so that all services failover to healthy instances on other members of a sameness group by default. You can also reference the sameness group in other configuration entries to enact other failover strategies for your network. 
+You can edit a sameness group configuration entry so that all services failover to healthy instances on other members of a sameness group by default. You can also reference the sameness group in other configuration entries to enact other failover strategies for your network.
 
 You can establish a failover strategy by configuring sameness group behavior in the following locations:
 
@@ -33,9 +33,9 @@ In the following example configuration entry, datacenter `dc1` has two partition
 <Tab heading="HCL" group="hcl">
 
 ```hcl
-Kind                     = "sameness-group"  
+Kind                     = "sameness-group"
 Name                     = "example-sg"
-Partition                = "partition-1" 
+Partition                = "partition-1"
 DefaultForFailover       = true
 Members                = [
       {Partition = "partition-1"},
@@ -50,8 +50,8 @@ Members                = [
 
 ```
 {
-    "Kind": "sameness-group", 
-    "Name": "example-sg", 
+    "Kind": "sameness-group",
+    "Name": "example-sg",
     "Partition": "partition-1",
     "DefaultForFailover": true,
     "Members": [
@@ -74,12 +74,12 @@ Members                = [
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: SamenessGroup 
+kind: SamenessGroup
 metadata:
   name: example-sg
 spec:
   defaultForFailover: true
-  members:                                   
+  members:
     - partition: partition-1
     - partition: partition-2
     - peer: dc2-partition-1
@@ -132,8 +132,8 @@ Failover {
 
 ```
 {
-  "Kind": "service-resolver", 
-  "Name": "db", 
+  "Kind": "service-resolver",
+  "Name": "db",
   "DefaultSubset": "v1",
   "Subsets": {
     "v1": {
@@ -142,7 +142,7 @@ Failover {
     "v2": {
       "Filter": "Service.Meta.version == v2"
     }
-  },   
+  },
   "Failover": {
       "v1": {
             "SamenessGroup": "product-group"
