@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 	autopilot "github.com/hashicorp/raft-autopilot"
 
 	"github.com/hashicorp/consul/acl"

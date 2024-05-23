@@ -6,7 +6,7 @@ package blockingquery
 import (
 	"fmt"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"

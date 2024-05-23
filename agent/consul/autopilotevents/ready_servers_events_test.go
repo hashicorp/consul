@@ -7,7 +7,7 @@ import (
 	"testing"
 	time "time"
 
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	mock "github.com/stretchr/testify/mock"

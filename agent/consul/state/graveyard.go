@@ -6,7 +6,7 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 )

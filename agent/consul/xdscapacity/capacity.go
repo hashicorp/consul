@@ -11,7 +11,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/structs"

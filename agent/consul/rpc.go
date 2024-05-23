@@ -19,7 +19,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"

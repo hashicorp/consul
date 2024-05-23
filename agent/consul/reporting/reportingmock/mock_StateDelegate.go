@@ -3,7 +3,7 @@
 package reportingmock
 
 import (
-	memdb "github.com/hashicorp/go-memdb"
+	memdb "github.com/absolutelightning/go-memdb"
 	mock "github.com/stretchr/testify/mock"
 
 	state "github.com/hashicorp/consul/agent/consul/state"

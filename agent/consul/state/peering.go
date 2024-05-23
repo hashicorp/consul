@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
