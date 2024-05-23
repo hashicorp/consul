@@ -6,6 +6,7 @@ package inmem
 import (
 	"bytes"
 	"fmt"
+	"github.com/absolutelightning/go-memdb"
 	"strings"
 
 	"github.com/hashicorp/consul/internal/storage"

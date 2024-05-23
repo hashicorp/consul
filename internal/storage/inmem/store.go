@@ -5,6 +5,7 @@ package inmem
 
 import (
 	"context"
+	"github.com/absolutelightning/go-memdb"
 	"sync"
 	"time"
 

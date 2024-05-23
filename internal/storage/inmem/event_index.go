@@ -3,6 +3,8 @@
 
 package inmem
 
+import "github.com/absolutelightning/go-memdb"
+
 type meta struct {
 	Key   string
 	Value any
