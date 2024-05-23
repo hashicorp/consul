@@ -368,7 +368,8 @@ type Config struct {
 	// HttpAuth is the auth info to use for http access.
 	HttpAuth *HttpBasicAuth
 
-	// HostOverride is the override to host. Default is Address.
+	// HostOverride forces a specific host header value to be sent with requests.
+	// If not specified, defaults to the value parsed from the `Address` field.
 	HostOverride string
 
 	// WaitTime limits how long a Watch will block. If not provided,
