@@ -2,8 +2,6 @@ module github.com/hashicorp/consul
 
 go 1.21
 
-toolchain go1.21.5
-
 replace (
 	github.com/hashicorp/consul/api => ./api
 	github.com/hashicorp/consul/envoyextensions => ./envoyextensions
