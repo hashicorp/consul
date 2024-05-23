@@ -368,6 +368,9 @@ type Config struct {
 	// HttpAuth is the auth info to use for http access.
 	HttpAuth *HttpBasicAuth
 
+	// HostOverride is the override to host. Default is Address.
+	HostOverride string
+
 	// WaitTime limits how long a Watch will block. If not provided,
 	// the agent default values will be used.
 	WaitTime time.Duration
@@ -1029,6 +1032,9 @@ func (r *request) toHTTP() (*http.Request, error) {
 	req.URL.Host = r.url.Host
 	req.URL.Scheme = r.url.Scheme
 	req.Host = r.url.Host
+	if r.config.HostOverride != "" {
+		req.Host = r.config.HostOverride
+	}
 	req.Header = r.header
 
 	// Content-Type must always be set when a body is present

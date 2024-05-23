@@ -994,6 +994,22 @@ func TestAPI_RequestToHTTP(t *testing.T) {
 	}
 }
 
+func TestAPI_RequestToHTTP_HostOverride(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	r := c.newRequest("DELETE", "/v1/kv/foo")
+	q := &QueryOptions{
+		Datacenter: "foo",
+	}
+	r.setQueryOptions(q)
+	r.config.HostOverride = "https.consul.unix.socket"
+	req, err := r.toHTTP()
+	require.NoError(t, err)
+	require.Equal(t, "https.consul.unix.socket", req.Host)
+}
+
 func TestAPI_ParseQueryMeta(t *testing.T) {
 	t.Parallel()
 	resp := &http.Response{
