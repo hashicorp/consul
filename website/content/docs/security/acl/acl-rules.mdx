@@ -638,7 +638,7 @@ Read access to all imported nodes is granted when either of the following rule s
 - `service:write` is granted to any service.
 - `node:read` is granted to all nodes.
 
-For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
+For Consul Enterprise, either set of rules must be scoped to the requesting service's partition and at least one namespace.
 
 You may need similarly scoped [Service Rules](#reading-imported-services) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
 These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).
@@ -877,7 +877,7 @@ Read access to all imported services is granted when either of the following rul
 - `service:write` is granted to any service.
 - `service:read` is granted to all services.
 
-For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
+For Consul Enterprise, either set of rules must be scoped to the requesting service's partition and at least one namespace.
 
 You may need similarly scoped [Node Rules](#reading-imported-nodes) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
 These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).

@@ -41,7 +41,7 @@ Create a `GatewayPolicy` values file and configure the following fields to defin
 - `metadata.name`: Specifies a name for the policy.
 - `spec.targetRef.name`: Specifies the name of the API gateway to attach the policy to.
 - `spec.targetRef.kind`: Specifies the kind of resource to attach to the policy to. Must be set to `Gateway`.
-- `spec.targetRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kuberenetes.io`.
+- `spec.targetRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kubernetes.io`.
 - `spec.targetRef.sectionName`: Specifies a part of the gateway that the policy applies to.
 - `spec.targetRef.override.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
 - `spec.targetRef.default.jwt.providers`: Specifies a list of default providers and claims used to verify requests to the gateway.
@@ -60,7 +60,7 @@ Create an `RouteAuthFilter` values file and configure the following fields. Refe
 In the `filters` field of your HTTP route configuration, add the following fields. Refer to the [`extensionRef` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes#rules-filters-extensionref) for details:
 
 - `type: extensionRef`: Declare list of extension references.
-- `extensionRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kuberenetes.io`.
+- `extensionRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kubernetes.io`.
 - `extensionRef.kind`: Specifies the type of extension reference to attach to the route. Must be `RouteAuthFilter`
 - `extensionRef.name`: Specifies the name of the auth filter.
 
