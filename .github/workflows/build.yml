@@ -19,9 +19,13 @@ env:
 
 jobs:
   get-go-version:
+    # Skip build for inactive CE branches
+    if: ${{ endsWith(github.repository, '-enterprise') }}
     uses: ./.github/workflows/reusable-get-go-version.yml
 
   set-product-version:
+    # Skip build for inactive CE branches
+    if: ${{ endsWith(github.repository, '-enterprise') }}
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.set-product-version.outputs.product-version }}
