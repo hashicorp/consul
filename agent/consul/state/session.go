@@ -47,7 +47,7 @@ func sessionsTableSchema() *memdb.TableSchema {
 			},
 			indexNode: {
 				Name:         indexNode,
-				AllowMissing: false,
+				AllowMissing: true,
 				Unique:       false,
 				Indexer:      nodeSessionsIndexer(),
 			},
@@ -251,13 +251,17 @@ func sessionCreateTxn(tx WriteTxn, idx uint64, sess *structs.Session) error {
 	sess.CreateIndex = idx
 	sess.ModifyIndex = idx
 
-	// Check that the node exists
-	node, err := tx.First(tableNodes, indexID, Query{Value: sess.Node, EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(sess.PartitionOrDefault())})
-	if err != nil {
-		return fmt.Errorf("failed node lookup: %s", err)
-	}
-	if node == nil {
-		return ErrMissingNode
+	// We only require a node to be specified if node checks were also passed
+	// in. This is necessary to allow for manually-renewed cross-datacenter
+	// sessions.
+	if sess.Node != "" && len(sess.NodeChecks) > 0 {
+		node, err := tx.First(tableNodes, indexID, Query{Value: sess.Node, EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(sess.PartitionOrDefault())})
+		if err != nil {
+			return fmt.Errorf("failed node lookup: %s", err)
+		}
+		if node == nil {
+			return ErrMissingNode
+		}
 	}
 
 	// Verify that all session checks exist

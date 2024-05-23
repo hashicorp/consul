@@ -50,8 +50,19 @@ func (s *HTTPHandlers) SessionCreate(resp http.ResponseWriter, req *http.Request
 
 	fixupEmptySessionChecks(&args.Session)
 
-	if (s.agent.config.Datacenter != args.Datacenter) && (!s.agent.config.ServerMode) {
-		return nil, fmt.Errorf("cross datacenter lock must be created at server agent")
+	if s.agent.config.Datacenter != args.Datacenter && !s.agent.config.ServerMode {
+		if len(args.Session.NodeChecks) > 0 {
+			return nil, fmt.Errorf("cross-datacenter sessions on client agents cannot be created with NodeChecks")
+		}
+
+		if args.Session.TTL != "" {
+			ttl, _ := time.ParseDuration(args.Session.TTL)
+			if ttl == 0 {
+				return nil, fmt.Errorf("cross-datacenter sessions on client agents cannot be created without a TTL")
+			}
+		}
+
+		args.Session.Node = ""
 	}
 
 	// Create the session, get the ID

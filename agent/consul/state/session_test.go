@@ -53,7 +53,11 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 
 	// Registering with an unknown node is disallowed
-	sess = &structs.Session{ID: testUUID()}
+	sess = &structs.Session{
+		ID:         testUUID(),
+		Node:       "nonextant-node",
+		NodeChecks: []string{string(structs.SerfCheckID)},
+	}
 	if err := s.SessionCreate(1, sess); err != ErrMissingNode {
 		t.Fatalf("expected %#v, got: %#v", ErrMissingNode, err)
 	}
