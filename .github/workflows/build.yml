@@ -139,7 +139,7 @@ jobs:
           go_version: ${{ needs.get-go-version.outputs.go-version }}
           os: ${{ matrix.goos }}
           arch: ${{ matrix.goarch }}
-          reproducible: report
+          reproducible: nope
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
@@ -240,7 +240,7 @@ jobs:
           go_version: ${{ needs.get-go-version.outputs.go-version }}
           os: ${{ matrix.goos }}
           arch: ${{ matrix.goarch }}
-          reproducible: report
+          reproducible: nope
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
@@ -292,7 +292,7 @@ jobs:
           go_version: ${{ needs.get-go-version.outputs.go-version }}
           os: ${{ matrix.goos }}
           arch: ${{ matrix.goarch }}
-          reproducible: report
+          reproducible: nope
           clean: false
           instructions: |-
             cp LICENSE $TARGET_DIR/LICENSE.txt
