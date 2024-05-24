@@ -102,7 +102,7 @@ func (s *Session) Create(se *SessionEntry, q *WriteOptions) (string, *WriteMeta,
 		if len(se.Checks) > 0 {
 			body["Checks"] = se.Checks
 		}
-		if len(se.NodeChecks) > 0 {
+		if se.NodeChecks != nil {
 			body["NodeChecks"] = se.NodeChecks
 		}
 		if len(se.ServiceChecks) > 0 {
