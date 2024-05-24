@@ -15,6 +15,8 @@ exclude (
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
 )
 
+replace github.com/absolutelightning/go-immutable-adaptive-radix => ../go-immutable-adaptive-radix-tree
+
 require (
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/absolutelightning/go-immutable-adaptive-radix v1.0.17

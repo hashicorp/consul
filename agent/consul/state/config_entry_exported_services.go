@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/absolutelightning/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbconfigentry"
-	"github.com/absolutelightning/go-memdb"
 )
 
 // SimplifiedExportedServices contains a version of the exported-services that has

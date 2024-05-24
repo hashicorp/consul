@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/lib/retry"
 	"github.com/absolutelightning/go-memdb"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 type mockStoreProvider struct {
