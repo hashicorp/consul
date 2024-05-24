@@ -71,7 +71,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.25.11", "1.26.8", "1.27.5", "1.28.3"]
+          # envoy-version: ["1.26.8", "1.27.5", "1.28.3", "1.29.4"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 8
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -106,7 +106,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.25.11", "1.26.8", "1.27.5", "1.28.3"]
+        envoy-version: ["1.26.8", "1.27.5", "1.28.3", "1.29.4"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -201,13 +201,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.16", "1.17"]
+        consul-version: [ "1.17", "1.18"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       # ENVOY_VERSION should be the latest version upported by all
       # consul versions in the matrix.consul-version, since we are testing upgrade from
-      # an older consul version, e.g., 1.26.6 is supported by both 1.16 and 1.17.
-      ENVOY_VERSION: "1.26.6"
+      # an older consul version, e.g., 1.27.5 is supported by both 1.16 and 1.17.
+      ENVOY_VERSION: "1.27.5"
     steps:
       - name: Checkout code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
