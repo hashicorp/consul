@@ -4120,6 +4120,7 @@ func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
 	require.Equal(t, uint64(2), snap.LastIndex())
 
 	iter, err := snap.ACLBindingRules()
+
 	require.NoError(t, err)
 
 	var dump structs.ACLBindingRules
