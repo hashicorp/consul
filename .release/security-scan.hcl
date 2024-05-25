@@ -56,6 +56,7 @@ container {
 binary {
 	go_modules   = true
 	osv          = true
+	go_stdlib    = true
 	# We can't enable npm for binary targets today because we don't yet embed the relevant file
 	# (yarn.lock) in the Consul binary. This is something we may investigate in the future.
 	

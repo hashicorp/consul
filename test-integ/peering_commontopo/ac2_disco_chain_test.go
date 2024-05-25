@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/require"
 )
 
 type ac2DiscoChainSuite struct {
@@ -84,7 +85,7 @@ func (s *ac2DiscoChainSuite) setup(t *testing.T, ct *commonTopo) {
 	ct.AddServiceNode(clu, serviceExt{Workload: server})
 
 	// Define server as upstream for client
-	upstream := &topology.Destination{
+	upstream := &topology.Upstream{
 		ID: topology.ID{
 			Name:      server.ID.Name,
 			Partition: partition, // TODO: iterate over all possible partitions
@@ -105,7 +106,7 @@ func (s *ac2DiscoChainSuite) setup(t *testing.T, ct *commonTopo) {
 		clu.Datacenter,
 		clientSID,
 		func(s *topology.Workload) {
-			s.Destinations = []*topology.Destination{
+			s.Upstreams = []*topology.Upstream{
 				upstream,
 			}
 		},
@@ -164,8 +165,8 @@ func (s *ac2DiscoChainSuite) test(t *testing.T, ct *commonTopo) {
 	require.Len(t, svcs, 1, "expected exactly one client in datacenter")
 
 	client := svcs[0]
-	require.Len(t, client.Destinations, 1, "expected exactly one upstream for client")
-	u := client.Destinations[0]
+	require.Len(t, client.Upstreams, 1, "expected exactly one upstream for client")
+	u := client.Upstreams[0]
 
 	t.Run("peered upstream exists in catalog", func(t *testing.T) {
 		t.Parallel()
@@ -176,7 +177,7 @@ func (s *ac2DiscoChainSuite) test(t *testing.T, ct *commonTopo) {
 
 	t.Run("peered upstream endpoint status is healthy", func(t *testing.T) {
 		t.Parallel()
-		ct.Assert.DestinationEndpointStatus(t, client, peerClusterPrefix(u), "HEALTHY", 1)
+		ct.Assert.UpstreamEndpointStatus(t, client, peerClusterPrefix(u), "HEALTHY", 1)
 	})
 
 	t.Run("response contains header injected by splitter", func(t *testing.T) {
@@ -196,7 +197,7 @@ func (s *ac2DiscoChainSuite) test(t *testing.T, ct *commonTopo) {
 //	func (s *ResourceGenerator) getTargetClusterName
 //
 // and connect/sni.go
-func peerClusterPrefix(u *topology.Destination) string {
+func peerClusterPrefix(u *topology.Upstream) string {
 	if u.Peer == "" {
 		panic("upstream is not from a peer")
 	}

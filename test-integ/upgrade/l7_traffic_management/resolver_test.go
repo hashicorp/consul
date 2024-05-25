@@ -38,15 +38,15 @@ func TestTrafficManagement_ResolverDefaultSubset_Agentless(t *testing.T) {
 			topology.NewNodeID("dc1-client2", defaultPartition),
 			ct.StaticClientSID,
 		)
-		ct.Assert.FortioFetch2HeaderEcho(t, staticClientWorkload, &topology.Destination{
+		ct.Assert.FortioFetch2HeaderEcho(t, staticClientWorkload, &topology.Upstream{
 			ID:        ct.StaticServerSID,
 			LocalPort: 5000,
 		})
-		ct.Assert.FortioFetch2FortioName(t, staticClientWorkload, &topology.Destination{
+		ct.Assert.FortioFetch2FortioName(t, staticClientWorkload, &topology.Upstream{
 			ID:        ct.StaticServerSID,
 			LocalPort: 5000,
 		}, dc1, staticServerSID)
-		ct.Assert.DestinationEndpointStatus(t, staticClientWorkload, "v2.static-server.default", "HEALTHY", 1)
+		ct.Assert.UpstreamEndpointStatus(t, staticClientWorkload, "v2.static-server.default", "HEALTHY", 1)
 	}
 	resolverV2AssertFn()
 
@@ -82,7 +82,7 @@ func TestTrafficManagement_ResolverDefaultSubset_Agentless(t *testing.T) {
 			topology.NewNodeID("dc1-client2", defaultPartition),
 			ct.StaticClientSID,
 		)
-		ct.Assert.FortioFetch2ServiceUnavailable(t, staticClientWorkload, &topology.Destination{
+		ct.Assert.FortioFetch2ServiceUnavailable(t, staticClientWorkload, &topology.Upstream{
 			ID:        ct.StaticServerSID,
 			LocalPort: 5000,
 		})
