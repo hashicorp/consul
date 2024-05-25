@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly test-integrations 1.16.x
+name: Nightly test-integrations 1.19.x
 
 on:
   schedule:
@@ -19,8 +19,8 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
-  BRANCH: "release/1.16.x"
-  BRANCH_NAME: "release-1.16.x"   # Used for naming artifacts
+  BRANCH: "release/1.19.x"
+  BRANCH_NAME: "release-1.19.x"   # Used for naming artifacts
 
 jobs:
   setup:
@@ -52,7 +52,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
-      branch-name: "release/1.16.x"
+      branch-name: "release/1.17.x"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -74,9 +74,9 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.23.12", "1.24.12", "1.25.11", "1.26.8"]
+          # envoy-version: ["1.24.12", "1.25.11", "1.26.8", "1.27.5"]
           # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 8
+          TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.23.12", "1.24.12", "1.25.11", "1.26.8"]
+        envoy-version: ["1.24.12", "1.25.11", "1.26.8", "1.27.5"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -204,7 +204,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: ["1.14", "1.15", "1.16"]
+        consul-version: ["1.15", "1.16", "1.17"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       ENVOY_VERSION: "1.24.6"
@@ -318,6 +318,96 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
+  upgrade-integration-test-deployer:
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
+    needs:
+      - setup
+      - get-go-version
+      - dev-build
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        consul-version: [ "1.15", "1.16", "1.17"]
+    env:
+      CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          ref: ${{ env.BRANCH }}
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+      - run: go env
+      - name: Build image
+        run: make test-deployer-setup
+      - name: Upgrade Integration Tests
+        run: |
+          mkdir -p "${{ env.TEST_RESULTS_DIR }}"
+          export NOLOGBUFFER=1
+          cd ./test-integ/upgrade
+          docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+            --raw-command \
+            --format=standard-verbose \
+            --debug \
+            --packages="./..." \
+            -- \
+            go test \
+            -tags "${{ env.GOTAGS }}" \
+            -timeout=60m \
+            -parallel=2 \
+            -json \
+            ./... \
+            --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --target-version local \
+            --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --latest-version "${{ env.CONSUL_LATEST_VERSION }}"
+        env:
+          # this is needed because of incompatibility between RYUK container and GHA
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          # tput complains if this isn't set to something.
+          TERM: ansi
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+
+      - name: prepare datadog-ci
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        # do not run on forks
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   test-integrations-success:
     needs: 
@@ -326,6 +416,7 @@ jobs:
     - generate-envoy-job-matrices
     - envoy-integration-test
     - upgrade-integration-test
+    - upgrade-integration-test-deployer
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
     steps:
