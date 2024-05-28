@@ -12,12 +12,6 @@ replace (
 	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
 )
 
-
-replace (
-	github.com/absolutelightning/go-immutable-adaptive-radix => ../go-immutable-adaptive-radix-tree
-	github.com/absolutelightning/go-memdb => ../go-memdb
-)
-
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
