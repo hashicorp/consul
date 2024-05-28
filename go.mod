@@ -19,8 +19,8 @@ exclude (
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1
-	github.com/absolutelightning/go-immutable-adaptive-radix v1.0.37
-	github.com/absolutelightning/go-memdb v1.0.22
+	github.com/absolutelightning/go-immutable-adaptive-radix v1.0.38
+	github.com/absolutelightning/go-memdb v1.0.23
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.156
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.4.1
@@ -114,7 +114,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.17.0
 	go.opentelemetry.io/otel/sdk/metric v0.39.0
 	go.opentelemetry.io/proto/otlp v1.0.0
-	go.uber.org/goleak v1.1.10
+	go.uber.org/goleak v1.3.0
 	golang.org/x/crypto v0.23.0
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
 	golang.org/x/net v0.25.0
@@ -262,7 +262,6 @@ require (
 	go.mongodb.org/mongo-driver v1.13.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.17.0 // indirect
-	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
