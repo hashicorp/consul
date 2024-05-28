@@ -424,7 +424,6 @@ RPC:
 }
 
 func (f *V1DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
-	f.logger.Debug(fmt.Sprintf("req %+v", req))
 	if req.EnableFailover {
 		return ErrNotSupported
 	}
