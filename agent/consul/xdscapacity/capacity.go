@@ -8,10 +8,10 @@ import (
 	"math"
 	"time"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
-	"github.com/absolutelightning/go-memdb"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/structs"

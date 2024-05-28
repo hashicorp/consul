@@ -6,8 +6,8 @@ package proxycfgglue
 import (
 	"context"
 
-	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/absolutelightning/go-memdb"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"

@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	memdb "github.com/absolutelightning/go-memdb"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/state"

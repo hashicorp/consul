@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
-	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

@@ -25,10 +25,10 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
-	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"

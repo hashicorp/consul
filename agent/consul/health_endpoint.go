@@ -10,13 +10,13 @@ import (
 	"github.com/armon/go-metrics"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
-	"github.com/absolutelightning/go-memdb"
 )
 
 // Health endpoint is used to query the health information

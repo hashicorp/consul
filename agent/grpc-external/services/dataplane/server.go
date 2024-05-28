@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/absolutelightning/go-memdb"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"

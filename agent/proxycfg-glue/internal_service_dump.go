@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/go-bexpr"
 	"github.com/absolutelightning/go-memdb"
+	"github.com/hashicorp/go-bexpr"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"

@@ -8,9 +8,9 @@ package state
 import (
 	"testing"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbconfigentry"
-	"github.com/absolutelightning/go-memdb"
 	"github.com/stretchr/testify/require"
 )
 
