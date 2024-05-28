@@ -7,6 +7,7 @@ package discovery
 
 import (
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
 )
 
 func (f *V1DataFetcher) NormalizeRequest(req *QueryPayload) {
@@ -15,7 +16,7 @@ func (f *V1DataFetcher) NormalizeRequest(req *QueryPayload) {
 }
 
 func validateEnterpriseTenancy(req QueryTenancy) error {
-	if !(req.Namespace == "" || req.Namespace == acl.DefaultNamespaceName) || !(req.Partition == acl.DefaultPartitionName || req.Partition == "default") {
+	if !(req.Namespace == "" || req.Namespace == acl.DefaultNamespaceName) || !(req.Partition == "" || req.Partition == api.PartitionDefaultName) {
 		return ErrNotSupported
 	}
 	return nil
