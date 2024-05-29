@@ -5,7 +5,7 @@ description: >-
   The security model for Consul Core details requirements and recommendations for securing your deployment of Consul. Learn about potential threats and how to protect Consul from malicious actors.
 ---
 
-## Overview
+# Consul security model overview
 
 Consul enables automation of network configurations, service discovery, and secure network connectivity across any
 cloud or runtime.
@@ -32,7 +32,7 @@ environment, but the general mechanisms for a secure Consul deployment revolve a
 - **Sentinel Policies** <EnterpriseAlert inline /> - Sentinel policies enable policy-as-code for granular control over
   the built-in key-value store.
 
-### Personas
+## Personas
 
 It helps to consider the following types of personas when managing the security requirements of a Consul deployment.
 The granularity may change depending on your team's requirements.
@@ -60,14 +60,14 @@ The granularity may change depending on your team's requirements.
   be public facing on the internet such as a web server, typically through a load-balancer, or ingress gateway. This is
   someone who should not have any network access to the Consul agent APIs.
 
-### Secure Configuration
+## Secure Configuration
 
 Consul's security model is applicable only if all parts of the system are running with a secure configuration; **Consul
 is not secure-by-default.** Without the following mechanisms enabled in Consul's configuration, it may be possible to
 abuse access to a cluster. Like all security considerations, administrators must determine what is appropriate for their
 environment and adapt these configurations accordingly.
 
-#### Requirements
+## Requirements
 
 - **mTLS** - Mutual authentication of both the TLS server and client x509 certificates prevents internal abuse through
   unauthorized access to Consul agents within the cluster.
@@ -212,7 +212,7 @@ environment and adapt these configurations accordingly.
   commands across the cluster. This is disabled by default since 0.8.0. We recommend leaving it disabled. If enabled,
   extreme care must be taken to ensure correct ACLs restrict access to execute arbitrary code on the cluster.
 
-#### Recommendations
+## Recommendations
 
 - **Rotate Credentials** - Using short-lived credentials and rotating them frequently is highly recommended for
   production environments to limit the blast radius from potentially compromised secrets, and enabling basic auditing.
@@ -307,7 +307,7 @@ environment and adapt these configurations accordingly.
   }
   ```
 
-### Threat Model
+## Threat Model
 
 The following are parts of the core Consul threat model:
 
@@ -381,7 +381,7 @@ The following are not part of the threat model for client agents:
   endpoint. If any of this isn't performed correctly, the proxy or service may allow unauthenticated or unauthorized
   connections.
 
-#### Internal Threats
+## Internal Threats
 
 - **Operator** - A malicious internal Consul operator with a valid mTLS certificate and ACL token may still be a threat
   to your cluster in certain situations, especially in multi-team deployments. They may accidentally or intentionally
@@ -409,7 +409,7 @@ The following are not part of the threat model for client agents:
   information. When ACLs and HTTPS are enabled, the gRPC endpoint serving up the xDS service requires (m)TLS and a
   valid ACL token.
 
-#### External Threats
+## External Threats
 
 - **Agents** - External access to the Consul agent's various network endpoints should be considered including the
   gossip, HTTP, RPC, and gRPC ports. Furthermore, access through other services like SSH or `exec` functionality in
