@@ -19,8 +19,8 @@ exclude (
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1
-	github.com/absolutelightning/go-immutable-adaptive-radix v1.0.54
-	github.com/absolutelightning/go-memdb v1.0.40
+	github.com/absolutelightning/go-immutable-adaptive-radix v1.0.55
+	github.com/absolutelightning/go-memdb v1.0.41
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.156
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.4.1
