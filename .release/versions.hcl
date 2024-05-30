@@ -15,6 +15,7 @@ active_versions {
     lts       = true
   }
   version "1.17" {}
+  version "1.16" {}
   version "1.15" {
     lts = true
   }
