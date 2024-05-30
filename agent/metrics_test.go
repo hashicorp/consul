@@ -264,10 +264,12 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		`
 
 		s1 := StartTestAgent(t, TestAgent{Name: "s1", HCL: hcl1, Overrides: overrides})
-		s2 := StartTestAgent(t, TestAgent{Name: "s2", HCL: hcl2, Overrides: overrides})
-		s3 := StartTestAgent(t, TestAgent{Name: "s3", HCL: hcl3, Overrides: overrides})
 		defer s1.Shutdown()
+
+		s2 := StartTestAgent(t, TestAgent{Name: "s2", HCL: hcl2, Overrides: overrides})
 		defer s2.Shutdown()
+
+		s3 := StartTestAgent(t, TestAgent{Name: "s3", HCL: hcl3, Overrides: overrides})
 		defer s3.Shutdown()
 
 		// agent hasn't become a leader
@@ -282,6 +284,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		require.NoError(t, err)
 		_, err = s3.JoinLAN([]string{s1.Config.SerfBindAddrLAN.String()}, nil)
 		require.NoError(t, err)
+
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
 		testrpc.WaitForLeader(t, s2.RPC, "dc1")
 		testrpc.WaitForLeader(t, s3.RPC, "dc1")
