@@ -1694,7 +1694,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if watchFired(ws) {
-		//t.Fatalf("bad")
+		t.Fatalf("bad")
 	}
 
 	// Retrieve the services.
@@ -2292,7 +2292,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
-		//t.Fatalf("expected the watch to be triggered by the queries")
+		t.Fatalf("expected the watch to be triggered by the queries")
 	}
 
 	ws = memdb.NewWatchSet()
