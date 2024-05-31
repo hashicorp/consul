@@ -2368,9 +2368,9 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		require.NoError(t, err)
 
 		testRegisterService(t, s, idx, "nope", "more-nope")
-		if !watchFired(ws) {
-			//t.Fatalf("expected the watch to timeout and not be triggered")
-		}
+		//if !watchFired(ws) {
+		//t.Fatalf("expected the watch to timeout and not be triggered")
+		//}
 	})
 }
 
