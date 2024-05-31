@@ -18,7 +18,7 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
       go-version-previous: ${{ steps.get-go-version.outputs.go-version-previous }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Determine Go version
         id: get-go-version
         # We use .go-version as our source of truth for current Go

@@ -4,6 +4,7 @@ resource "docker_container" "{{.DockerNetworkName}}-coredns" {
   restart  = "always"
   dns      = ["8.8.8.8"]
 
+  network_mode = "bridge"
   networks_advanced {
     name         = docker_network.{{.DockerNetworkName}}.name
     ipv4_address = "{{.IPAddress}}"

@@ -242,4 +242,14 @@ module.exports = [
     destination: '/consul/docs/:version/architecture/catalog/v2/:slug',
     permanent: true
   },
+  {
+    source: '/consul/docs/nia/network-drivers/terraform-cloud',
+    destination: '/consul/docs/nia/network-drivers/hcp-terraform',
+    permanent: true
+  },
+  {
+    source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/nia/network-drivers/hcp-terraform',
+    destination: '/consul/docs/:version/nia/network-drivers/terraform-cloud',
+    permanent: true
+  },
 ]

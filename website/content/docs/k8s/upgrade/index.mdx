@@ -15,6 +15,8 @@ As of Consul v1.14.0 and the corresponding Helm chart version v1.0.0, Kubernetes
 
 The v1.0.0 release of the Consul on Kubernetes Helm chart also introduced a change to the [`externalServers[].hosts` parameter](/consul/docs/k8s/helm#v-externalservers-hosts). Previously, you were able to enter a provider lookup as a string in this field. Now, you must include `exec=` at the start of a string containing a provider lookup. Otherwise, the string is treated as a DNS name. Refer to the [`go-netaddrs`](https://github.com/hashicorp/go-netaddrs) library and command line tool for more information.
 
+If you configured your Consul agents to use [`ports.grpc_tls`](https://developer.hashicorp.com/consul/docs/agent/config/config-files#grpc_tls_port) instead of [`ports.grpc`](https://developer.hashicorp.com/consul/docs/agent/config/config-files#grpc_port) and you want to upgrade a multi-datacenter deployment with Consul servers running outside of the Kubernetes cluster to v1.0.0 or higher, set [`externalServers.tlsServerName`](/consul/docs/k8s/helm#v-externalservers-tlsservername) to `server.<primary-datacenter>.domain`.
+
 ## Upgrade types
 
 We recommend updating Consul on Kubernetes when:

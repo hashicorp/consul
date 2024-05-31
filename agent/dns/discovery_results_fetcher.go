@@ -69,6 +69,9 @@ func (d discoveryResultsFetcher) getQueryResults(opts *getQueryOptions) ([]*disc
 
 		if getErrorFromECSNotGlobalError(err) != nil {
 			opts.logger.Error("error processing discovery query", "error", err)
+			if structs.IsErrSamenessGroupMustBeDefaultForFailover(err) {
+				return nil, query, errNameNotFound
+			}
 			return nil, query, err
 		}
 		return results, query, err
@@ -206,11 +209,15 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 		return discovery.QueryTenancy{}, errNameNotFound
 	}
 
-	// If we don't have an explicit partition in the request, try the first fallback
+	// If we don't have an explicit partition/ns in the request, try the first fallback
 	// which was supplied in the request context. The agent's partition will be used as the last fallback
 	// later in the query processor.
 	if labels.Partition == "" {
 		labels.Partition = reqCtx.DefaultPartition
+	}
+
+	if labels.Namespace == "" {
+		labels.Namespace = reqCtx.DefaultNamespace
 	}
 
 	// If we have a sameness group, we can return early without further data massage.
@@ -219,7 +226,7 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 			Namespace:     labels.Namespace,
 			Partition:     labels.Partition,
 			SamenessGroup: labels.SamenessGroup,
-			Datacenter:    reqCtx.DefaultDatacenter,
+			// Datacenter is not supported
 		}, nil
 	}
 
@@ -234,19 +241,19 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 		Namespace:  labels.Namespace,
 		Partition:  labels.Partition,
 		Peer:       labels.Peer,
-		Datacenter: getEffectiveDatacenter(labels, reqCtx.DefaultDatacenter),
+		Datacenter: getEffectiveDatacenter(labels),
 	}, nil
 }
 
 // getEffectiveDatacenter returns the effective datacenter from the parsed labels.
-func getEffectiveDatacenter(labels *parsedLabels, defaultDC string) string {
+func getEffectiveDatacenter(labels *parsedLabels) string {
 	switch {
 	case labels.Datacenter != "":
 		return labels.Datacenter
 	case labels.PeerOrDatacenter != "" && labels.Peer != labels.PeerOrDatacenter:
 		return labels.PeerOrDatacenter
 	}
-	return defaultDC
+	return ""
 }
 
 // getQueryTypePartsAndSuffixesFromDNSMessage returns the query type, the parts, and suffixes of the query name.

@@ -947,6 +947,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			CirconusSubmissionInterval:         stringVal(c.Telemetry.CirconusSubmissionInterval),
 			CirconusSubmissionURL:              stringVal(c.Telemetry.CirconusSubmissionURL),
 			DisableHostname:                    boolVal(c.Telemetry.DisableHostname),
+			DisablePerTenancyUsageMetrics:      boolVal(c.Telemetry.DisablePerTenancyUsageMetrics),
 			DogstatsdAddr:                      stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
 			RetryFailedConfiguration:           boolVal(c.Telemetry.RetryFailedConfiguration),
@@ -1114,8 +1115,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		LocalProxyConfigResyncInterval:    30 * time.Second,
 	}
 
-	// host metrics are enabled by default to support HashiCorp Cloud Platform integration
-	rt.Telemetry.EnableHostMetrics = boolValWithDefault(c.Telemetry.EnableHostMetrics, true)
+	// host metrics are enabled if consul is configured with HashiCorp Cloud Platform integration
+	rt.Telemetry.EnableHostMetrics = boolValWithDefault(c.Telemetry.EnableHostMetrics, rt.IsCloudEnabled())
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
 	if err != nil {

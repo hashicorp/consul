@@ -27,7 +27,7 @@ env:
   SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: "${{ github.workflow }}-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
     outputs:
       skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           fetch-depth: 0
       - name: Get changed files
@@ -56,7 +56,7 @@ jobs:
       compute-xl: ${{ steps.runners.outputs.compute-xl }}
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
@@ -86,22 +86,22 @@ jobs:
       contents: read
     strategy:
       matrix:
-        nomad-version: ['v1.7.3', 'v1.6.6', 'v1.5.13']
+        nomad-version: ['v1.7.7', 'v1.6.10', 'v1.5.17']
     steps:
       - name: Checkout Nomad
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           repository: hashicorp/nomad
           ref: ${{ matrix.nomad-version }}
 
       - name: Install Go
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           # Do not explicitly set Go version here, as it should depend on what Nomad declares.
           go-version-file: 'go.mod'
 
       - name: Fetch Consul binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -111,7 +111,9 @@ jobs:
           echo "$(pwd)/bin" >> $GITHUB_PATH
 
       - name: Make Nomad dev build
-        run: make pkg/linux_amd64/nomad
+        run: |
+          make pkg/linux_amd64/nomad
+          echo "$(pwd)/pkg/linux_amd64" >> $GITHUB_PATH
 
       - name: Run integration tests
         run: |
@@ -134,7 +136,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -167,18 +169,18 @@ jobs:
       contents: read
     strategy:
       matrix:
-        vault-version: ["1.15.4", "1.14.8", "1.13.12"]
+        vault-version: ["1.16.2", "1.15.6", "1.14.10"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           # We use the current Consul Go version here since Vault is installed as a binary
           # and tests are run from the Consul repo.
@@ -218,7 +220,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -263,14 +265,14 @@ jobs:
     outputs:
       envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
           # this is further going to multiplied in envoy-integration tests by the
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 2 based on these values:
-          # envoy-version: ["1.28.1"]
+          # envoy-version: ["1.29.4"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 2
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -305,7 +307,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.28.1"]
+        envoy-version: ["1.29.4"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -313,13 +315,13 @@ jobs:
       XDS_TARGET: ${{ matrix.xds-target }}
       AWS_LAMBDA_REGION: us-west-2
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -327,7 +329,7 @@ jobs:
         run: chmod +x ./bin/consul
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
 
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
@@ -363,7 +365,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -395,15 +397,15 @@ jobs:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
     env:
-      ENVOY_VERSION: "1.28.1"
+      ENVOY_VERSION: "1.29.4"
       CONSUL_DATAPLANE_IMAGE: "docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi"
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
@@ -412,7 +414,7 @@ jobs:
           docker version
           docker info
       - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: .
@@ -476,7 +478,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -512,12 +514,12 @@ jobs:
       DEPLOYER_CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
     steps:
       - name: Checkout code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
@@ -560,7 +562,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}

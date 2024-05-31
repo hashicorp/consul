@@ -15,7 +15,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.27.0"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.29.4"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -179,14 +179,6 @@ function start_consul {
     license=$(cat $CONSUL_LICENSE_PATH)
   fi
 
-  USE_RESOURCE_APIS=${USE_RESOURCE_APIS:-false}
-
-  experiments="experiments=[]"
-  # set up consul to run in V1 or V2 catalog mode
-  if [[ "${USE_RESOURCE_APIS}" == true ]]; then
-   experiments="experiments=[\"resource-apis\"]"
-  fi
-
   # We currently run these integration tests in two modes: one in which Envoy's
   # xDS sessions are served directly by a Consul server, and another in which it
   # goes through a client agent.
@@ -227,7 +219,7 @@ function start_consul {
     docker_kill_rm consul-${DC}-server
     docker_kill_rm consul-${DC}
 
-    docker run -d --name envoy_consul-${DC}-server_1 \
+    docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_consul-${DC}-server_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}-server" \
@@ -240,7 +232,7 @@ function start_consul {
       -client "0.0.0.0" \
       -bind "0.0.0.0" >/dev/null
 
-    docker run -d --name envoy_consul-${DC}_1 \
+    docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}-client" \
@@ -258,7 +250,7 @@ function start_consul {
   else
     docker_kill_rm consul-${DC}
 
-    docker run -d --name envoy_consul-${DC}_1 \
+    docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}" \
@@ -270,7 +262,6 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
-      -hcl=${experiments} \
       -client "0.0.0.0" >/dev/null
   fi
 }
@@ -295,7 +286,7 @@ function start_partitioned_client {
   # Run consul and expose some ports to the host to make debugging locally a
   # bit easier.
   #
-  docker run -d --name envoy_consul-${PARTITION}_1 \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_consul-${PARTITION}_1 \
     --net=envoy-tests \
     $WORKDIR_SNIPPET \
     --hostname "consul-${PARTITION}-client" \
@@ -351,7 +342,7 @@ function verify {
 
   # need to tell the PID 1 inside of the container that it won't be actual PID
   # 1 because we're using --pid=host so we use TINI_SUBREAPER
-  if docker run --name envoy_verify-${CLUSTER}_1 -t \
+  if docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 --name envoy_verify-${CLUSTER}_1 -t \
     -e TINI_SUBREAPER=1 \
     -e ENVOY_VERSION \
     $WORKDIR_SNIPPET \
@@ -442,7 +433,7 @@ function global_setup {
 }
 
 function wipe_volumes {
-  docker run --rm -i \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 --rm -i \
     $WORKDIR_SNIPPET \
     --net=none \
     "${HASHICORP_DOCKER_PROXY}/alpine" \
@@ -556,7 +547,7 @@ function suite_setup {
     # This is a dummy container that we use to create volume and keep it
     # accessible while other containers are down.
     docker volume create envoy_workdir &>/dev/null
-    docker run -d --name envoy_workdir_1 \
+    docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
         k8s.gcr.io/pause &>/dev/null
@@ -567,7 +558,7 @@ function suite_setup {
     retry_default docker build -t bats-verify -f Dockerfile-bats .
 
     echo "Checking bats image..."
-    docker run --rm -t bats-verify -v
+    docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 --rm -t bats-verify -v
 
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
@@ -615,7 +606,7 @@ function common_run_container_service {
   local httpPort="$3"
   local grpcPort="$4"
 
-  docker run -d --name $(container_name_prev) \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
     -e "FORTIO_NAME=${service}" \
     $(network_snippet $CLUSTER) \
     "${HASHICORP_DOCKER_PROXY}/fortio/fortio" \
@@ -696,7 +687,7 @@ function common_run_container_sidecar_proxy {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker run -d --name $(container_name_prev) \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
@@ -717,7 +708,7 @@ function run_container_s1-ap1-sidecar-proxy {
 }
 
 function run_container_s1-sidecar-proxy-consul-exec {
-  docker run -d --name $(container_name) \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name) \
     $(network_snippet primary) \
     consul-dev-envoy:${ENVOY_VERSION} \
     consul connect envoy -sidecar-for s1 \
@@ -783,7 +774,7 @@ function common_run_container_gateway {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker run -d --name $(container_name_prev) \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
     $(aws_snippet) \
@@ -824,7 +815,7 @@ function run_container_fake-statsd {
   # This magic SYSTEM incantation is needed since Envoy doesn't add newlines and so
   # we need each packet to be passed to echo to add a new line before
   # appending.
-  docker run -d --name $(container_name) \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/alpine/socat:1.7.3.4-r1" \
@@ -833,14 +824,14 @@ function run_container_fake-statsd {
 }
 
 function run_container_zipkin {
-  docker run -d --name $(container_name) \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/openzipkin/zipkin"
 }
 
 function run_container_jaeger {
-  docker run -d --name $(container_name) \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11" \
@@ -848,7 +839,7 @@ function run_container_jaeger {
 }
 
 function run_container_test-sds-server {
-  docker run -d --name $(container_name) \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
     "test-sds-server"
@@ -863,7 +854,7 @@ function container_name_prev {
 
 # This is a debugging tool. Run via './run-tests.sh debug_dump_volumes'
 function debug_dump_volumes {
-  docker run --rm -it \
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 --rm -it \
     $WORKDIR_SNIPPET \
     -v ./:/cwd \
     --net=none \
@@ -891,7 +882,7 @@ function common_run_container_tcpdump {
 
     retry_default docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
 
-    docker run -d --name $(container_name_prev) \
+    docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
         $(network_snippet $DC) \
         -v $(pwd)/workdir/${DC}/envoy/:/data \
         --privileged \

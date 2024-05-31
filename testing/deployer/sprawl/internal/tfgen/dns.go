@@ -8,10 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
-
-	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"
@@ -66,22 +63,6 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 			}
 		}
 
-		// Until Consul DNS understands v2, simulate it.
-		//
-		// NOTE: this DNS is not quite what consul normally does. It's simpler
-		// to simulate this format here.
-		virtualNames := make(map[string][]string)
-		for id, svcData := range cluster.Services {
-			if len(svcData.VirtualIps) == 0 {
-				continue
-			}
-			vips := svcData.VirtualIps
-
-			// <service>--<namespace>--<partition>.virtual.<domain>
-			name := fmt.Sprintf("%s--%s--%s", id.Name, id.Namespace, id.Partition)
-			virtualNames[name] = vips
-		}
-
 		var (
 			clusterDNSName = cluster.Name + "-consulcluster.lan"
 			virtualDNSName = "virtual.consul"
@@ -132,7 +113,6 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 			generateCoreDNSVirtualZoneFile(
 				dnsIPAddress,
 				virtualDNSName,
-				virtualNames,
 			),
 			virtualZonefilePath,
 			0644,
@@ -230,7 +210,6 @@ server IN A %s ; Consul server
 func generateCoreDNSVirtualZoneFile(
 	dnsIPAddress string,
 	virtualDNSName string,
-	nameToAddr map[string][]string,
 ) []byte {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf(`
@@ -246,18 +225,6 @@ $ORIGIN %[1]s.
 @  IN NS ns.%[1]s. ; Name server
 ns IN A  %[2]s     ; self
 `, virtualDNSName, dnsIPAddress))
-
-	names := maps.Keys(nameToAddr)
-	sort.Strings(names)
-
-	for _, name := range names {
-		vips := nameToAddr[name]
-		for _, vip := range vips {
-			buf.WriteString(fmt.Sprintf(`
-%s IN A %s ; Consul server
-`, name, vip))
-		}
-	}
 
 	return buf.Bytes()
 }

@@ -98,6 +98,17 @@ func TestClient_ServiceNodes_BackendRouting(t *testing.T) {
 			},
 			expected: useRPC,
 		},
+		{
+			name: "rpc if sameness group",
+			req: structs.ServiceSpecificRequest{
+				Datacenter:         "dc1",
+				ServiceName:        "web1",
+				SamenessGroup:      "sg1",
+				MergeCentralConfig: false,
+				QueryOptions:       structs.QueryOptions{MinQueryIndex: 22},
+			},
+			expected: useRPC,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -243,6 +254,15 @@ func TestClient_Notify_BackendRouting(t *testing.T) {
 				Datacenter:  "dc1",
 				ServiceName: "web1",
 				Source:      structs.QuerySource{Node: "node1"},
+			},
+			expected: useCache,
+		},
+		{
+			name: "use cache for sameness group request",
+			req: structs.ServiceSpecificRequest{
+				Datacenter:    "dc1",
+				ServiceName:   "web1",
+				SamenessGroup: "test-group",
 			},
 			expected: useCache,
 		},

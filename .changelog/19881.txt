@@ -1,0 +1,3 @@
+```release-note:bug
+xds: Make TCP external service registered with terminating gateway reachable from peered cluster
+```
