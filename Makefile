@@ -71,7 +71,8 @@ CONSUL_IMAGE_VERSION?=latest
 # When changing the method of Go version detection, also update
 # version detection in CI workflows (reusable-get-go-version.yml).
 GOLANG_VERSION?=$(shell head -n 1 .go-version)
-ENVOY_VERSION?='1.28.4'
+# Takes the highest version from the ENVOY_VERSIONS file.
+ENVOY_VERSION?=$(shell cat envoyextensions/xdscommon/ENVOY_VERSIONS | grep '^[[:digit:]]' | sort -nr | head -n 1)
 CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi")
 DEPLOYER_CONSUL_DATAPLANE_IMAGE := $(or $(DEPLOYER_CONSUL_DATAPLANE_IMAGE), "docker.io/hashicorppreview/consul-dataplane:1.3-dev")
 

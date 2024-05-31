@@ -1052,7 +1052,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 
 	// Next build the constraint string using the bounds, make sure that we are less than but not equal to
 	// maxSupported since we will add 1. Need to add one to the max minor version so that we accept all patches
-	splitS := strings.Split(xdscommon.GetMaxEnvoyMinorVersion(), ".")
+	splitS := strings.Split(xdscommon.GetMaxEnvoyMajorVersion(), ".")
 	minor, err := strconv.Atoi(splitS[1])
 	if err != nil {
 		return envoyCompat{}, err
@@ -1061,7 +1061,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
 
 	cs.Reset()
-	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMinorVersion(), maxSupported))
+	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMajorVersion(), maxSupported))
 	constraints, err := version.NewConstraint(cs.String())
 	if err != nil {
 		return envoyCompat{}, err
