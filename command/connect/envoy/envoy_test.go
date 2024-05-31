@@ -1850,7 +1850,7 @@ func TestCheckEnvoyVersionCompatibility(t *testing.T) {
 		},
 		{
 			name:            "supported-at-max",
-			envoyVersion:    xdscommon.GetMaxEnvoyMinorVersion(),
+			envoyVersion:    xdscommon.GetMaxEnvoyMajorVersion(),
 			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
 			expectedCompat: envoyCompat{
 				isCompatible: true,

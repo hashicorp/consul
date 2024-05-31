@@ -40,11 +40,17 @@ jobs:
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
 
+  get-envoy-versions:
+    uses: ./.github/workflows/reusable-get-envoy-versions.yml
+    with:
+      ref: ${{ inputs.branch }}
+
   tests:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl ) }}
     needs:
       - setup
       - get-go-version
+      - get-envoy-versions
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -62,7 +68,7 @@ jobs:
     name: '${{matrix.test-case}}'
 
     env:
-      ENVOY_VERSION: "1.29.5"
+      ENVOY_VERSION: ${{ needs.get-envoy-versions.outputs.max-envoy-version }}
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
