@@ -349,7 +349,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `Listeners[].TLS.Certificates[]`
 
-The list of references to file system or inline certificates that the listener uses for TLS termination.
+The list of references to [file system](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificates](/consul/docs/connect/config-entries/inline-certificate) that the listener uses for TLS termination. You should create the configuration entry for the certificate separately and then reference the configuration entry in the `Name` field.
 
 #### Values
 
@@ -372,7 +372,7 @@ The list of references to certificates that the listener uses for TLS terminatio
 
 ### `Listeners[].TLS.Certificates[].Name`
 
-Specifies the name of the file system or inline certificate that the listener uses for TLS termination.
+Specifies the name of the [file system](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificates](/consul/docs/connect/config-entries/inline-certificate) that the listener uses for TLS termination.
 
 #### Values
 
