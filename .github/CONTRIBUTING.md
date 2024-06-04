@@ -156,13 +156,16 @@ When you're ready to submit a pull request:
 5. If there's any reason Consul users might need to know about this change,
    [add a changelog entry](../docs/contributing/add-a-changelog-entry.md).
 6. Add labels to your pull request. A table of commonly use labels is below. 
-   If you have any questions about which to apply, feel free to call it out in the PR or comments.
-   | Label | When to Use |
-   | --- | --- |
-   | `pr/no-changelog` | This PR does not have an intended changelog entry |
+   If you have any questions about which to apply, feel free to call it out in the PR or comments. Other labels may automatically be added by GitHub Actions CI.
+
+   | Label                | When to Use |
+   |----------------------| --- |
+   | `pr/no-changelog`    | This PR does not have an intended changelog entry |
+   | `pr/no-backport`     | This PR does not have an intended backport target |
    | `pr/no-metrics-test` | This PR does not require any testing for metrics |
-   | `backport/1.12.x` | Backport the changes in this PR to the targeted release branch. Consult the [Consul Release Notes](https://www.consul.io/docs/release-notes) page to view active releases. Website documentation merged to the latest release branch is deployed immediately |
-   Other labels may automatically be added by the Github Action CI.
+   | `backport/1.12.x`    | Backport the changes in this PR to the targeted release branch. Consult the [Consul Release Notes](https://www.consul.io/docs/release-notes) page and [`versions.hcl`](/.release/versions.hcl) to view active releases. Website documentation merged to the latest release branch is deployed immediately. See [backport policy](#backport-policy) for more information. |
+   | `backport/all`       | If contributing a bug fix or other change applicable to all branches, use `backport/all` to target all active branches automatically. See [backport policy](#backport-policy) for more information. |
+
 7. After you submit, the Consul maintainers team needs time to carefully review your
    contribution and ensure it is production-ready, considering factors such as: security,
    backwards-compatibility, potential regressions, etc.
@@ -173,6 +176,10 @@ When you're ready to submit a pull request:
    These will be linked in the original PR.
    Assuming the tests pass, the PR will be merged automatically. 
    If the tests fail, it is you responsibility to resolve the issues with backports and request another reviewer.
+
+### Backport Policy
+
+Consul is maintained as a Community Edition (CE) and an Enterprise product. Bug fixes and patches may be backported to the current major release in CE. In Enterprise, bug fixes and patches may be backported to all maintained releases: the N-2 releases and the 2 latest Long-Term Support (LTS) releases. For more information, refer to Consul’s [LTS documentation](https://developer.hashicorp.com/consul/docs/enterprise/long-term-support).
 
 #### Checklists
 
