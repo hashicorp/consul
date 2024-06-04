@@ -764,17 +764,20 @@ func makeListenerWithDefault(opts makeListenerOpts) *pbproxystate.Listener {
 	//	// Since access logging is non-essential for routing, warn and move on
 	//	opts.logger.Warn("error generating access log xds", err)
 	//}
-	return &pbproxystate.Listener{
-		Name: fmt.Sprintf("%s:%s:%d", opts.name, opts.addr, opts.port),
-		//AccessLog:        accessLog,
-		BindAddress: &pbproxystate.Listener_HostPort{
-			HostPort: &pbproxystate.HostPortAddress{
-				Host: opts.addr,
-				Port: uint32(opts.port),
+	if opts.port >= 0 && opts.port <= 65535 {
+		return &pbproxystate.Listener{
+			Name: fmt.Sprintf("%s:%s:%d", opts.name, opts.addr, opts.port),
+			//AccessLog:        accessLog,
+			BindAddress: &pbproxystate.Listener_HostPort{
+				HostPort: &pbproxystate.HostPortAddress{
+					Host: opts.addr,
+					Port: uint32(opts.port),
+				},
 			},
-		},
-		Direction: opts.direction,
+			Direction: opts.direction,
+		}
 	}
+	return nil
 }
 
 func makePipeListener(opts makeListenerOpts) *pbproxystate.Listener {
