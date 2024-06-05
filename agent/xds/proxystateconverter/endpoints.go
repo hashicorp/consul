@@ -301,14 +301,17 @@ func (s *Converter) filterSubsetEndpoints(subset *structs.ServiceResolverSubset,
 
 // used in clusters.go
 func makeHostPortEndpoint(host string, port int) *pbproxystate.Endpoint {
-	return &pbproxystate.Endpoint{
-		Address: &pbproxystate.Endpoint_HostPort{
-			HostPort: &pbproxystate.HostPortAddress{
-				Host: host,
-				Port: uint32(port),
+	if port >= 0 && port <= 65535 {
+		return &pbproxystate.Endpoint{
+			Address: &pbproxystate.Endpoint_HostPort{
+				HostPort: &pbproxystate.HostPortAddress{
+					Host: host,
+					Port: uint32(port),
+				},
 			},
-		},
+		}
 	}
+	return nil
 }
 
 func makeUnixSocketEndpoint(path string) *pbproxystate.Endpoint {
