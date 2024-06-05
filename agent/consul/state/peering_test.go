@@ -1179,9 +1179,9 @@ func TestStore_PeeringWrite(t *testing.T) {
 		require.Equal(t, tc.expect.peering.State, p.State)
 		require.Equal(t, tc.expect.peering.Name, p.Name)
 		require.Equal(t, tc.expect.peering.Meta, p.Meta)
-		require.Equal(t, tc.expect.peering.Remote, p.Remote)
+		prototest.AssertDeepEqual(t, tc.expect.peering.Remote, p.Remote)
 		if tc.expect.peering.DeletedAt != nil {
-			require.Equal(t, tc.expect.peering.DeletedAt, p.DeletedAt)
+			prototest.AssertDeepEqual(t, tc.expect.peering.DeletedAt, p.DeletedAt)
 		}
 
 		secrets, err := s.PeeringSecretsRead(nil, tc.input.Peering.ID)
@@ -2388,7 +2388,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 				got.ModifyIndex = 0
 				got.CreateIndex = 0
 			}
-			require.ElementsMatch(t, tc.expect[resultIdx], peers)
+			prototest.AssertDeepEqual(t, tc.expect[resultIdx], peers)
 		}
 	}
 
