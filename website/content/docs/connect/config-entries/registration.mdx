@@ -1,0 +1,604 @@
+---
+layout: docs
+page_title: Registration CRD configuration reference
+description: The Registration CRD enables Consul on Kubernetes to register an external service without a terminating gateway. Learn how to configure a Registration CRD in YAML with a specification reference, configuration model, a complete example, and example code.
+---
+
+# Registration CRD configuration reference
+
+This topic provides reference information for `Registration` custom resource definitions (CRDs). You can use this CRD to register an external service with Consul on Kubernetes using the [`/catalog/register` HTTP API endpoint](/consul/api-docs/catalog#register-entity).
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in a `Registration` CRD. Click on a property name to view additional details, including default values.
+
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `Registration`
+- [`metadata`](#metadata): map | required
+  - [`name`](#metadata-name): string
+- [`spec`](#spec): map | required
+  - [`address`](#spec-address): string
+  - [`check`](#spec-check): map
+    - [`checkId`](#spec-check-checkid): string | required
+    - [`definition`](#spec-check-defintion): map | required
+      - [`body`](#spec-check-defintion): string
+      - [`deregisterCriticalServiceAfterDuration`](#spec-check-defintion): string | required
+      - [`grpc:`](#spec-check-defintion): string
+      - [`grpcUseTLS:`](#spec-check-defintion): boolean
+      - [`header`](#spec-check-defintion): map of strings
+      - [`http`](#spec-check-defintion): string
+      - [`intervalDuration`](#spec-check-defintion): string | required
+      - [`method`](#spec-check-defintion): string 
+      - [`osService`](#spec-check-defintion): string
+      - [`tcp`](#spec-check-defintion): string
+      - [`tcpUseTLS`](#spec-check-defintion): boolean
+      - [`timeoutDuration`](#spec-check-defintion): string | required
+      - [`tlsServerName`](#spec-check-defintion): string
+      - [`tlsSkipVerify`](#spec-check-defintion): boolean
+      - [`udp`](#spec-check-defintion): string
+    - [`exposedPort`](#spec-check-exposed-port): integer
+    - [`name`](#spec-check-name): string | required
+    - [`namespace`](#spec-check-namespace): string
+    - [`node`](#spec-check-node): string | required
+    - [`notes`](#spec-check-notes): string
+    - [`output`](#spec-check-output): string
+    - [`partition`](#spec-check-partition): string
+    - [`serviceId`](#spec-check-serviceid): string | required
+    - [`serviceName`](#spec-check-servicename): string | required
+    - [`status`](#spec-check-status): string | required
+    - [`type`](#spec-check-type): string
+  - [`datacenter`](#spec-datacenter): string
+  - [`id`](#spec-id): string
+  - [`locality`](#spec-locality): map
+    - [`region`](#spec-locality): string
+    - [`zone`](#spec-locality): string
+  - [`node`](#spec-node): string
+  - [`nodeMeta`](#spec-nodemeta): map of strings
+  - [`partition`](#spec-partition): string
+  - [`service`](#spec-service): map
+    - [`address`](#spec-service-address): string | required
+    - [`enableTagOverride`](#spec-service-enabletagoverride): boolean
+    - [`id`](#spec-service-id): string
+    - [`locality`](#spec-service-locality): map
+      - [`region`](#spec-service-locality): string
+      - [`zone`](#spec-service-locality): string
+    - [`meta`](#spec-service-meta): map of strings
+    - [`name`](#spec-service-name): string | required
+    - [`namespace`](#spec-service-namespace): string
+    - [`partition`](#spec-service-partition): string
+    - [`port`](#spec-service-port): integer | required
+    - [`socketPath`](#spec-service-socketpath): string
+    - [`taggedAddresses`](#spec-service-taggedaddresses): map
+      - [`address`](#spec-service-taggedaddresses): string | required
+      - [`port`](#spec-service-port): integer | required
+    - [`tags`](#spec-service-tags): map of strings
+    - [`weights`](#spec-service-weights): map
+      - [`passing`](#spec-service-weights): integer | required
+      - [`warning`](#spec-service-weights): integer | required
+  - [`skipNodeUpdate`](#spec-skipnodeupdate): boolean
+  - [`taggedAddresses`](#spec-taggedaddresses): map of strings
+
+## Complete configuration
+
+When every field is defined, a `Registration` CRD has the following form:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1         # required
+kind: Registration                                # required
+metadata:
+  name: <groupName>
+spec:
+  address: 
+  check:
+    checkId:  # required
+    definition:  # required
+      body:
+      deregisterCriticalServiceAfterDuration: #required
+      grpc:
+      grpcUseTLS:
+      header:
+      http:
+      intervalDuration: #required
+      method:
+      osService:
+      tcp:
+      tcpUseTLS:
+      timeoutDuration: # required
+      tlsServerName:
+      tlsSkipVerify:
+      udp:
+    exposedPort:
+    name: # required
+    namespace:
+    node: # required
+    notes:
+    output:
+    partition:
+    serviceId: # required
+    serviceName: # required
+    status: # required
+    type:
+  datacenter:
+  id:
+  locality:
+    region:
+    zone:
+  node:
+  nodeMeta:
+  partition:
+  service:
+    address: # required
+    enableTagOverride:
+    id:
+    locality:
+      region:
+      zone:
+    meta:
+    name: # required
+    namespace:
+    partition:
+    port: # required
+    socketPath:
+    taggedAddresses:
+      address: # required
+      port: # required
+    tags:
+    weights:
+      passing: # required
+      warning: # required
+  skipNodeUpdate:
+  taggedAddresses:
+``` 
+
+## Specification
+
+This section provides details about the fields you can configure in the `Registration` CRD.
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `consul.hashicorp.com/v1alpha1`.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to `Registration`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `Registration`.
+
+### `metadata`
+
+Map that contains an arbitrary name for the configuration entry and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the configuration entry that is used to identify the sameness group. To ensure consistency, use descriptive names and make sure that the same name is used when creating configuration entries to add each member to the sameness group.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `Registration` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.address`
+
+Specifies the IP address where the external service is available.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check`
+
+Specifies the details for a health check that Consul runs on the service. 
+
+For more information about configuring health checks for Consul, refer to [health check configuration reference](/consul/docs/services/configuration/checks-configuration-reference).
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.check.checkId`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.definition`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map
+  
+        body:
+      deregisterCriticalServiceAfterDuration: #required
+      grpc:
+      grpcUseTLS:
+      header:
+      http:
+      intervalDuration: #required
+      method:
+      osService:
+      tcp:
+      tcpUseTLS:
+      timeoutDuration: # required
+      tlsServerName:
+      tlsSkipVerify:
+      udp:
+    
+### `spec.check.exposedPort`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Integer
+
+### `spec.check.name`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.namespace`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.node`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.notes`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.output`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.partition`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.serviceId`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.serviceName`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.status`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.check.type`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.datacenter`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.id`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.locality`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+    region:
+    zone:
+
+### `spec.node`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.nodeMeta`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map of strings
+
+### `spec.partition`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.service`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.service.address`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.service.enableTagOverride`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Boolean
+
+### `spec.service.id`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.service.locality
+`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+      region:
+      zone:
+
+### `spec.service.meta`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map of strings
+
+### `spec.service.name`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.service.namespace`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.service.partition`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.service.port`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Integer
+
+### `spec.service.socketPath`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.service.taggedAddresses`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+      address: # required
+      port: # required
+
+### `spec.service.tags`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map of strings
+
+### `spec.service.weights`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+      passing: # required
+      warning: # required
+
+### `spec.skipNodeUpdate`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Boolean
+
+### `spec.taggedAddresses`
+
+Specifies
+
+#### Values
+
+- Default: None
+- Data type: Map of strings
+
+## Examples
+
+The following example demonstrates a common `Registration` CRD configuration pattern. In this example, Consul registers a database service available at the IP address `10.96.32.66` that runs outside of the Kubernetes cluster where Consul is deployed. Consul runs an HTTP health check on this service every 10 seconds.
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: Registration
+metadata:
+  name: external-database
+spec:
+  node: node-virtual
+  check:
+    node: node-virtual
+    checkId: db-check
+    name: db
+    serviceName: db
+    serviceId: db-external
+    notes: "Runs the external health check for the database."
+    status: "passing"
+    output: "This service is healthy."
+    definition:
+      http: "10.96.32.66:8081/health"
+      intervalDuration: "10s"
+      timeoutDuration: "10s"
+      deregisterCriticalServiceAfterDuration: "30s"
+  service:
+    name: db
+    id: db-external
+    address: "10.96.32.66"
+    port: 8081
+    weights:
+      passing: 1
+      warning: 1
+  address: 10.96.32.66
+```
