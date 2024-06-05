@@ -502,6 +502,10 @@
             "path": "connect/config-entries/proxy-defaults"
           },
           {
+            "title": "Registration",
+            "path": "connect/config-entries/registration"
+          },
+          {
             "title": "Sameness Group",
             "path": "connect/config-entries/sameness-group"
           },
