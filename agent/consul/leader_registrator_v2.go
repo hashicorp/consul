@@ -175,6 +175,10 @@ func (r V2ConsulRegistrator) createWorkloadFromMember(member serf.Member, parts 
 		workloadMeta["grpc_tls_port"] = strconv.Itoa(parts.ExternalGRPCTLSPort)
 	}
 
+	if parts.Port < 0 || parts.Port > 65535 {
+		return nil, fmt.Errorf("invalid port: %d", parts.Port)
+	}
+
 	workload := &pbcatalog.Workload{
 		Addresses: []*pbcatalog.WorkloadAddress{
 			{Host: member.Addr.String(), Ports: []string{consulPortNameServer}},
