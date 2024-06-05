@@ -2401,7 +2401,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 			peerings: []testPeering{},
 			entry:    nil,
 			query:    []string{"foo"},
-			expect:   [][]*pbpeering.Peering{{}},
+			expect:   [][]*pbpeering.Peering{nil},
 		},
 		{
 			name: "peerings marked for deletion are excluded",
