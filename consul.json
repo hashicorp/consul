@@ -1,0 +1,5 @@
+{
+    "addresses": {
+        "http": "unix://./consul.sock"
+    }
+}
