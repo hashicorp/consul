@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -1181,6 +1182,9 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 	if err != nil {
 		return fmt.Errorf("Failed to parse X-Consul-LastContact: %v", err)
 	}
+	if last > math.MaxInt64 {
+		return fmt.Errorf("X-Consul-LastContact Header value is out of range: %d", last)
+	}
 	q.LastContact = time.Duration(last) * time.Millisecond
 
 	// Parse the X-Consul-KnownLeader
@@ -1221,6 +1225,9 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		age, err := strconv.ParseUint(ageStr, 10, 64)
 		if err != nil {
 			return fmt.Errorf("Failed to parse Age Header: %v", err)
+		}
+		if age > math.MaxInt64 {
+			return fmt.Errorf("Age Header value is out of range: %d", last)
 		}
 		q.CacheAge = time.Duration(age) * time.Second
 	}
