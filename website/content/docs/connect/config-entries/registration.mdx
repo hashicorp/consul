@@ -214,7 +214,7 @@ Specifies the IP address where the external service is available.
 
 ### `spec.check`
 
-Specifies the details for a health check that Consul runs on the service. 
+Specifies details for a health check. Health checks perform several safety functions, such as allowing a web balancer to gracefully remove failing nodes and allowing a database to replace a failed secondary. You can configure health checks to monitor the health of the entire node.
 
 For more information about configuring health checks for Consul, refer to [health check configuration reference](/consul/docs/services/configuration/checks-configuration-reference).
 
@@ -225,7 +225,7 @@ For more information about configuring health checks for Consul, refer to [healt
 
 ### `spec.check.checkId`
 
-Specifies
+Specifies an ID for the health check. When `name` values conflict, provide a unique identifier to avoid overwriting existing checks.
 
 #### Values
 
@@ -234,32 +234,36 @@ Specifies
 
 ### `spec.check.definition`
 
-Specifies
+Specifies additional configuration details for the health check.
+
+Requires child parameters `deregisterCriticalServiceAfterDuration`, `intervalDuration`, and `timeoutDuration`.
 
 #### Values
 
 - Default: None
-- Data type: Map
-  
-        body:
-      deregisterCriticalServiceAfterDuration: #required
-      grpc:
-      grpcUseTLS:
-      header:
-      http:
-      intervalDuration: #required
-      method:
-      osService:
-      tcp:
-      tcpUseTLS:
-      timeoutDuration: # required
-      tlsServerName:
-      tlsSkipVerify:
-      udp:
-    
+- Data type: Map that can contain the following parameters:
+
+| Parameter                                                      | Description | Type        | Default     |
+| :------------------------------------------------------------- | :---------- | :---------- | :---------- |
+| `spec.check.definition.body`                                   | Specifies JSON attributes to send in HTTP check requests. You must escape the quotation marks around the keys and values for each attribute. | String | None |
+| `spec.check.definition.deregisterCriticalServiceAfterDuration` |  Specifies how long a service and its associated checks are allowed to be in a `critical` state. Consul deregisters services if they are `critical` for the specified amount of time. This parameter is required to configure `spec.check.definition`. | String | `"30s"` |
+| `spec.check.definition.grpc`                                   | Specifies the gRPC endpoint, including port number, to send requests to. Append the endpoint with `:/` and a service identifier to check a specific service. The endpoint must support the [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md). | String | None |
+| `spec.check.definition.grpcUseTLS`                             | Enables TLS for gRPC checks when set to `true`. | Boolean | `false` |
+| `spec.check.definition.header`                                 | Specifies header fields to send in HTTP check requests. | Map of strings | None |
+| `spec.check.definition.http`                                   | Specifies an HTTP endpoint to send requests to. | String | None |
+| `spec.check.definition.intervalDuration`                       | Specifies how frequently to run the health check. This parameter is required to configure `spec.check.definition`. | String | `"5s"` |
+| `spec.check.definition.method`                                 | Specifies the request method to send during HTTP checks. | String | `GET` |
+| `spec.check.definition.osService`                              | Specifies the name of the name of a service to check during an OSService check. | String | None |
+| `spec.check.definition.tcp`                                    | Specifies an IP address or host and port number that the check establishes a TCP connection with. | String | None |
+| `spec.check.definition.tcpUseTLS`                              | Enables TLS for TCP checks when set to `true`. | Boolean | `false` |
+| `spec.check.definition.timeoutDuration`                        | Specifies how long unsuccessful requests take to end with a timeout. This parameter is required to configure `spec.check.definition`. | String | `"10s"` |
+| `spec.check.definition.tlsServerName`                          | Specifies the server name used to verify the hostname on the returned certificates unless `tls_skip_verify` is configured. This value is also included in the client's handshake to support SNI. It is recommended that this field be left unspecified. Refer to [health check configuration reference](/consul/docs/services/configuration/checks-configuration-reference#check-block) for more information. | String | None |
+| `spec.check.definition.tlsSkipVerify`                          | Determines if the check verifies the chain and hostname of the certificate that the server presents. Set to `true` to disable verification. We recommend setting to `false` in production environments. | Boolean | `false` |
+| `spec.check.definition.udp`                                    | Specifies an IP address or host and port number for the check to send UDP datagrams to. | String | None |
+
 ### `spec.check.exposedPort`
 
-Specifies
+Specifies the port the service exposes to health checks.
 
 #### Values
 
@@ -268,16 +272,16 @@ Specifies
 
 ### `spec.check.name`
 
-Specifies
+Specifies a name for the health check. Defaults to [`spec.service.id`](#spec-service-id).
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `spec.check.namespace`
+### `spec.check.namespace` <EnterpriseAlert inline />
 
-Specifies
+Specifies the Consul namespace the health check applies to. Refer to [namespaces](/consul/docs/enterprise/namespace) for more information.
 
 #### Values
 
@@ -286,7 +290,7 @@ Specifies
 
 ### `spec.check.node`
 
-Specifies
+Specifies the name of the node the health check applies to.
 
 #### Values
 
@@ -295,7 +299,7 @@ Specifies
 
 ### `spec.check.notes`
 
-Specifies
+Provides a human-readable description of the health check. The contents are not visible to Consul.
 
 #### Values
 
@@ -304,16 +308,16 @@ Specifies
 
 ### `spec.check.output`
 
-Specifies
+Specifies human readable output in response to a health check.
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `spec.check.partition`
+### `spec.check.partition` <EnterpriseAlert inline />
 
-Specifies
+Specifies the Consul admin partition the health check applies to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
 
 #### Values
 
@@ -322,7 +326,7 @@ Specifies
 
 ### `spec.check.serviceId`
 
-Specifies
+Specifies the ID of the service to perform the health check on.
 
 #### Values
 
@@ -331,7 +335,7 @@ Specifies
 
 ### `spec.check.serviceName`
 
-Specifies
+Specifies the name of the service to perform the health check on.
 
 #### Values
 
@@ -340,16 +344,20 @@ Specifies
 
 ### `spec.check.status`
 
-Specifies
+Specifies the initial status of the health check. The default value for this field is `critical`, which requires services to pass a health check before making them available for service disocvery. You can specify one the following values:
+
+- `critical`
+- `warning`
+- `passing`
 
 #### Values
 
-- Default: None
+- Default: `critical`
 - Data type: String
 
 ### `spec.check.type`
 
-Specifies
+Specifies the type health check in the form of a Kubernetes probe.
 
 #### Values
 
@@ -358,7 +366,7 @@ Specifies
 
 ### `spec.datacenter`
 
-Specifies
+Specifies the datacenter to register the external service in.
 
 #### Values
 
@@ -367,7 +375,7 @@ Specifies
 
 ### `spec.id`
 
-Specifies
+Specifies a unique ID for the external service
 
 #### Values
 
@@ -376,15 +384,17 @@ Specifies
 
 ### `spec.locality`
 
-Specifies
+Specifies the cloud region and zone where the service is available.
 
 #### Values
 
 - Default: None
-- Data type: Map
+- Data type: Map that can contain the following parameters:
 
-    region:
-    zone:
+| Parameter | Description | Data type | Default |
+| :-------- | :---------- | :-------- | :------ |
+| `spec.locality.region` | Specifies the region where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS. | String | None |
+| `spec.locality.zone` | Specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS. | String | None |
 
 ### `spec.node`
 
@@ -415,7 +425,7 @@ Specifies
 
 ### `spec.service`
 
-Specifies
+Specifies 
 
 #### Values
 
@@ -424,7 +434,7 @@ Specifies
 
 ### `spec.service.address`
 
-Specifies
+Specifies a service-specific IP address or hostname. If no value is specified, the IP address of the agent node is used by default. There is no service-side validation of this parameter.
 
 #### Values
 
@@ -433,38 +443,51 @@ Specifies
 
 ### `spec.service.enableTagOverride`
 
-Specifies
+Setermines if the anti-entropy feature for the service is enabled.
+
+Set to `true` to allow external Consul agents to modify tags on the services in the Consul catalog. The local Consul agent ignores updated tags during subsequent sync operations.
+
+This parameter only applies to the locally-registered service. When multiple nodes register a service with the same name, the `enable_tag_override` configuration and all other service configuration items operate independently.
+
+Refer to [Modify anti-entropy synchronization](/consul/docs/services/usage/define-services#modify-anti-entropy-synchronization) for additional information.
 
 #### Values
 
-- Default: None
+- Default: `false`
 - Data type: Boolean
 
 ### `spec.service.id`
 
-Specifies
+Specifies an ID for the service. Services on the same node must have unique IDs. We recommend specifying unique values if the default name conflicts with other services.
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `spec.service.locality
-`
+### `spec.service.locality`
 
-Specifies
+Specifies the region and zone in the cloud service provider (CSP) where the service is available. Configure this field to enable Consul to route traffic to the nearest physical service instance. Services inherit the `locality` configuration of the Consul agent they are registered with, but you can explicitly define locality for your service instances if an override is needed. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
 
 #### Values
 
 - Default: None
-- Data type: Map
+- Data type: Map that can contain the following parameters:
 
-      region:
-      zone:
+| Parameter | Description | Data type | Default |
+| :-------- | :---------- | :-------- | :------ |
+| `spec.service.locality.region` | Specifies the region where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS. | String | None |
+| `spec.service.locality.zone` | Specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS. | String | None |
 
 ### `spec.service.meta`
 
-Specifies
+Specifies custom key-value pairs that associate semantic metadata with the service. You can specify up to 64 pairs that meet the following requirements: 
+
+- Keys and values must be strings.
+- Keys can only contain ASCII characters (`A` -` Z`, `a`- `z`, `0` - `9`, `_`, and `-`).
+- Keys can not have special characters.
+- Keys are limited to 128 characters.
+- Values are limited to 512 characters.
 
 #### Values
 
@@ -473,25 +496,25 @@ Specifies
 
 ### `spec.service.name`
 
-Specifies
+Specifies a name for the service. We recommend using valid DNS labels for service definition names for compatibility with external DNSs. The value of this parameter is also used as the service ID if the `spec.service.id` parameter is not specified.
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `spec.service.namespace`
+### `spec.service.namespace` <EnterpriseAlert inline />
 
-Specifies
+Specifies the Consul namespace to register the service in. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `spec.service.partition`
+### `spec.service.partition` <EnterpriseAlert inline />
 
-Specifies
+Specifies the Consul admin partition to register the service in. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
 
 #### Values
 
@@ -500,7 +523,7 @@ Specifies
 
 ### `spec.service.port`
 
-Specifies
+Specifies a port number for the service. To improve service discoverability, we recommend specifying the port number, as well as an address in the tagged_addresses parameter.
 
 #### Values
 
@@ -509,7 +532,7 @@ Specifies
 
 ### `spec.service.socketPath`
 
-Specifies
+Specifies the path to the service socket. Specify this parameter to expose the service to the mesh if the service listens on a Unix Domain socket.
 
 #### Values
 
@@ -518,19 +541,37 @@ Specifies
 
 ### `spec.service.taggedAddresses`
 
-Specifies
+Configures additional addresses for a node or service. Remote agents and services can communicate with the service using a tagged address as an alternative to the address specified in [`spec.service.address`](#spec-serviceaddress). You can configure multiple addresses for a node or service. The following tags are supported:
+
+- `lan`: IPv4 LAN address where the node or service is accessible.
+- `lan_ipv4`: IPv4 LAN address where the node or service is accessible.
+- `lan_ipv6`: IPv6 LAN address where the node or service is accessible.
+- `virtual`: A fixed address for the instances of a given logical service.
+- `wan`: IPv4 WAN address where the node or service is accessible when dialed from a remote data center.
+- `wan_ipv4`: IPv4 WAN address where the node or service is accessible when dialed from a remote data center.
+- `wan_ipv6`: IPv6 WAN address at which the node or service is accessible when being dialed from a remote data center.
 
 #### Values
 
 - Default: None
-- Data type: Map
+- Data type: Map that contains a supported tag and a child map containing the following fields:
 
-      address: # required
-      port: # required
+| Parameter                              | Description                   | Type        | Default     |
+| :------------------------------------- | :---------------------------- | :---------- | :---------- |
+| `spec.service.taggedAddresses.address` | The address saved in the tag. | String      | None        |
+| `spec.service.taggedAddresses.port`    | The port saved in the tag.    | String      | None        |
 
 ### `spec.service.tags`
 
-Specifies
+Specifies a list of string values that add service-level labels. Tag values are opaque to Consul. We recommend using valid DNS labels for service definition IDs for compatibility with external DNSs. In the following example, the service is tagged as `v2` and `primary`:
+
+```yaml
+spec:
+  service:
+    tags: ["v2", "primary"]
+```
+
+Consul uses tags as an anti-entropy mechanism to maintain the state of the cluster. You can disable the anti-entropy feature for a service using [`spec.service.enable_tag_override`](#spec-service-enabletagoverride), which enables external agents to modify tags on services in the catalog. Refer to [Modify anti-entropy synchronization](/consul/docs/services/usage/define-services#modify-anti-entropy-synchronization) for additional usage information.
 
 #### Values
 
@@ -539,15 +580,26 @@ Specifies
 
 ### `spec.service.weights`
 
-Specifies
+Configures how a service instance is weighted in a DNS SRV request based on the service's health status. Configuring tells DNS clients to direct more traffic to instances with a higher weight. A use case would be adjusting the weight higher for an instance with large capacity. It could also be used to reduce the load on services with checks in `warning` status by favoring passing instances with a higher weight. 
+
+Larger integer values increase the weight state.
+
+You can specify one or more of the following states and configure an integer value indicating its weight:
+
+- `passing`
+- `warning`
+  
+Services in a `critical` state are excluded from DNS responses. Services with `warning` checks are included in responses by default.
 
 #### Values
 
 - Default: None
-- Data type: Map
+- Data type: Map containing the following parameters:
 
-      passing: # required
-      warning: # required
+| Parameter                      | Description                   | Type        | Default     |
+| :----------------------------- | :---------------------------- | :---------- | :---------- |
+| `spec.service.weights.passing` | Higher values increases the likelihood that a request is routed to a service in a `passing` state. | Integer | `1` |
+| `spec.service.weights.warning` | Higher values increases the likelihood that a request is routed to a service in a `warning` state. | Integer | `1` |
 
 ### `spec.skipNodeUpdate`
 
@@ -586,7 +638,6 @@ spec:
     serviceId: db-external
     notes: "Runs the external health check for the database."
     status: "passing"
-    output: "This service is healthy."
     definition:
       http: "10.96.32.66:8081/health"
       intervalDuration: "10s"
