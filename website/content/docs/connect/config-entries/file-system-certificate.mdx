@@ -1,13 +1,13 @@
 ---
 layout: docs
-page_title: File system certificate - Configuration entry reference
+page_title: File system certificate configuration reference
 description: Learn how to configure a file system certificate bound to an API Gateway on VMs.
 ---
 
-# File system certificate configuration entry reference
+# File system certificate configuration reference
 
 This topic provides reference information for the file system certificate
-configuration entry. The file system certificate is a more secure alternative to the [inline certificate configuration entry](/consul/docs/connect/config-entries/inline-certificate) when using Consul API Gateway on VMs. File system certificates include a file system watch that implements certificate and key changes without restarting the gateway.
+configuration entry. The file system certificate is a more secure alternative to the [inline certificate configuration entry](/consul/docs/connect/config-entries/inline-certificate) when using Consul API Gateway on VMs because it references a local filepath instead of including sensitive information in the configuration entry itself. File system certificates also include a file system watch that implements certificate and key changes without restarting the gateway.
 
 Consul on Kubernetes deployments that use `consul-k8s` Helm chart v1.5.0 or later use file system certificates without additional configuration. To learn about configuring certificates for Kubernetes environments, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
 
@@ -36,7 +36,8 @@ When every field is defined, a `file-system-certificate` configuration entry has
 ```hcl
 Kind = "file-system-certificate"
 Name = "<name of certificate>"
-
+Namespace = "ns"
+Partition = "default"
 Meta = {
 	"<key>" = "<value>"
 }
@@ -53,6 +54,8 @@ PrivateKey = "<filepath/to/private/key>"
 {
 	"Kind": "file-system-certificate",
 	"Name": "<name of certificate>",
+	"Namespace": "ns",
+	"Partition": "default",
 	"Meta": {
 		"key": "value"
 	},
