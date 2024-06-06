@@ -23,8 +23,8 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`definition`](#spec-check-defintion): map
       - [`body`](#spec-check-defintion): string
       - [`deregisterCriticalServiceAfterDuration`](#spec-check-defintion): string
-      - [`grpc:`](#spec-check-defintion): string
-      - [`grpcUseTLS:`](#spec-check-defintion): boolean | `false`
+      - [`grpc`](#spec-check-defintion): string
+      - [`grpcUseTLS`](#spec-check-defintion): boolean | `false`
       - [`header`](#spec-check-defintion): map of strings
       - [`http`](#spec-check-defintion): string
       - [`intervalDuration`](#spec-check-defintion): string
@@ -38,11 +38,11 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`udp`](#spec-check-defintion): string
     - [`exposedPort`](#spec-check-exposed-port): integer
     - [`name`](#spec-check-name): string
-    - [`namespace`](#spec-check-namespace): string
+    - [`namespace`](#spec-check-namespace): string <EnterpriseAlert inline />
     - [`node`](#spec-check-node): string
     - [`notes`](#spec-check-notes): string
     - [`output`](#spec-check-output): string
-    - [`partition`](#spec-check-partition): string
+    - [`partition`](#spec-check-partition): string <EnterpriseAlert inline />
     - [`serviceId`](#spec-check-serviceid): string
     - [`serviceName`](#spec-check-servicename): string
     - [`status`](#spec-check-status): string
@@ -54,7 +54,7 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`zone`](#spec-locality): string
   - [`node`](#spec-node): string
   - [`nodeMeta`](#spec-nodemeta): map of strings
-  - [`partition`](#spec-partition): string
+  - [`partition`](#spec-partition): string <EnterpriseAlert inline />
   - [`service`](#spec-service): map
     - [`address`](#spec-service-address): string
     - [`enableTagOverride`](#spec-service-enabletagoverride): boolean | `false`
@@ -64,8 +64,8 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`zone`](#spec-service-locality): string
     - [`meta`](#spec-service-meta): map of strings
     - [`name`](#spec-service-name): string
-    - [`namespace`](#spec-service-namespace): string
-    - [`partition`](#spec-service-partition): string
+    - [`namespace`](#spec-service-namespace): string <EnterpriseAlert inline />
+    - [`partition`](#spec-service-partition): string <EnterpriseAlert inline />
     - [`port`](#spec-service-port): integer
     - [`socketPath`](#spec-service-socketpath): string
     - [`taggedAddresses`](#spec-service-taggedaddresses): map
