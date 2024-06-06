@@ -1480,7 +1480,7 @@
           {
             "title": "Register external services",
             "path": "k8s/deployment-configurations/external-service"
-          },
+          }
         ]
       },
       {
