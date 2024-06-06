@@ -14,38 +14,38 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 - [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
 - [`kind`](#kind): string | required | must be set to `Registration`
-- [`metadata`](#metadata): map | required
+- [`metadata`](#metadata): map
   - [`name`](#metadata-name): string
 - [`spec`](#spec): map | required
   - [`address`](#spec-address): string
   - [`check`](#spec-check): map
-    - [`checkId`](#spec-check-checkid): string | required
-    - [`definition`](#spec-check-defintion): map | required
+    - [`checkId`](#spec-check-checkid): string
+    - [`definition`](#spec-check-defintion): map
       - [`body`](#spec-check-defintion): string
-      - [`deregisterCriticalServiceAfterDuration`](#spec-check-defintion): string | required
+      - [`deregisterCriticalServiceAfterDuration`](#spec-check-defintion): string
       - [`grpc:`](#spec-check-defintion): string
-      - [`grpcUseTLS:`](#spec-check-defintion): boolean
+      - [`grpcUseTLS:`](#spec-check-defintion): boolean | `false`
       - [`header`](#spec-check-defintion): map of strings
       - [`http`](#spec-check-defintion): string
-      - [`intervalDuration`](#spec-check-defintion): string | required
-      - [`method`](#spec-check-defintion): string 
+      - [`intervalDuration`](#spec-check-defintion): string
+      - [`method`](#spec-check-defintion): string
       - [`osService`](#spec-check-defintion): string
       - [`tcp`](#spec-check-defintion): string
       - [`tcpUseTLS`](#spec-check-defintion): boolean
-      - [`timeoutDuration`](#spec-check-defintion): string | required
+      - [`timeoutDuration`](#spec-check-defintion): string
       - [`tlsServerName`](#spec-check-defintion): string
-      - [`tlsSkipVerify`](#spec-check-defintion): boolean
+      - [`tlsSkipVerify`](#spec-check-defintion): boolean | `false`
       - [`udp`](#spec-check-defintion): string
     - [`exposedPort`](#spec-check-exposed-port): integer
-    - [`name`](#spec-check-name): string | required
+    - [`name`](#spec-check-name): string
     - [`namespace`](#spec-check-namespace): string
-    - [`node`](#spec-check-node): string | required
+    - [`node`](#spec-check-node): string
     - [`notes`](#spec-check-notes): string
     - [`output`](#spec-check-output): string
     - [`partition`](#spec-check-partition): string
-    - [`serviceId`](#spec-check-serviceid): string | required
-    - [`serviceName`](#spec-check-servicename): string | required
-    - [`status`](#spec-check-status): string | required
+    - [`serviceId`](#spec-check-serviceid): string
+    - [`serviceName`](#spec-check-servicename): string
+    - [`status`](#spec-check-status): string
     - [`type`](#spec-check-type): string
   - [`datacenter`](#spec-datacenter): string
   - [`id`](#spec-id): string
@@ -56,26 +56,26 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`nodeMeta`](#spec-nodemeta): map of strings
   - [`partition`](#spec-partition): string
   - [`service`](#spec-service): map
-    - [`address`](#spec-service-address): string | required
-    - [`enableTagOverride`](#spec-service-enabletagoverride): boolean
+    - [`address`](#spec-service-address): string
+    - [`enableTagOverride`](#spec-service-enabletagoverride): boolean | `false`
     - [`id`](#spec-service-id): string
     - [`locality`](#spec-service-locality): map
       - [`region`](#spec-service-locality): string
       - [`zone`](#spec-service-locality): string
     - [`meta`](#spec-service-meta): map of strings
-    - [`name`](#spec-service-name): string | required
+    - [`name`](#spec-service-name): string
     - [`namespace`](#spec-service-namespace): string
     - [`partition`](#spec-service-partition): string
-    - [`port`](#spec-service-port): integer | required
+    - [`port`](#spec-service-port): integer
     - [`socketPath`](#spec-service-socketpath): string
     - [`taggedAddresses`](#spec-service-taggedaddresses): map
-      - [`address`](#spec-service-taggedaddresses): string | required
-      - [`port`](#spec-service-port): integer | required
+      - [`address`](#spec-service-taggedaddresses): string
+      - [`port`](#spec-service-port): integer
     - [`tags`](#spec-service-tags): map of strings
     - [`weights`](#spec-service-weights): map
-      - [`passing`](#spec-service-weights): integer | required
-      - [`warning`](#spec-service-weights): integer | required
-  - [`skipNodeUpdate`](#spec-skipnodeupdate): boolean
+      - [`passing`](#spec-service-weights): integer | `1`
+      - [`warning`](#spec-service-weights): integer | `1`
+  - [`skipNodeUpdate`](#spec-skipnodeupdate): boolean | `false`
   - [`taggedAddresses`](#spec-taggedaddresses): map of strings
 
 ## Complete configuration
@@ -88,66 +88,71 @@ kind: Registration                                # required
 metadata:
   name: <groupName>
 spec:
-  address: 
+  address: 10.0.0.1
   check:
-    checkId:  # required
-    definition:  # required
-      body:
-      deregisterCriticalServiceAfterDuration: #required
-      grpc:
-      grpcUseTLS:
+    name: external-health-check
+    checkId:  unique-id
+    definition:  
+      body: "{\"custom\": \"json\"}"
+      deregisterCriticalServiceAfterDuration: false
+      grpc: 127.0.0.1:443
+      grpcUseTLS: false
       header:
-      http:
-      intervalDuration: #required
-      method:
-      osService:
-      tcp:
-      tcpUseTLS:
-      timeoutDuration: # required
-      tlsServerName:
-      tlsSkipVerify:
-      udp:
-    exposedPort:
-    name: # required
-    namespace:
-    node: # required
-    notes:
-    output:
-    partition:
-    serviceId: # required
-    serviceName: # required
-    status: # required
-    type:
-  datacenter:
-  id:
+        name: <http-header-name>
+      intervalDuration: "5s"
+      method: "GET"
+      osService: <service-name>
+      tcp: 127.0.0.1:4242
+      tcpUseTLS: false
+      timeoutDuration: 10s
+      tlsServerName: <server-name>
+      tlsSkipVerify: false
+      udp: 127.0.0.1:80
+    exposedPort: 200
+    namespace: default
+    notes: "Human readable description"
+    output: "Human readable output"
+    partition: default
+    serviceId: <unique-service-ID>
+    serviceName: <service-name>
+    status: critical
+    type: HTTP
+  datacenter: dc1
+  id: <unique-node-identifier>
   locality:
-    region:
-    zone:
-  node:
+    region: us-east-1
+    zone: us-east-1a
+  node: <node-name>
   nodeMeta:
-  partition:
+    - key: value
+  partition: default
   service:
-    address: # required
-    enableTagOverride:
-    id:
+    address: "10.0.0.1:8300"
+    enableTagOverride: false
+    id: <unique-id>
     locality:
-      region:
-      zone:
+      region: us-east-1
+      zone: us-east-1a
     meta:
-    name: # required
-    namespace:
-    partition:
-    port: # required
-    socketPath:
+      key: value
+    name: <service-name>
+    namespace: default
+    partition: default
+    port: 5400
+    socketPath: /folder/socket
     taggedAddresses:
-      address: # required
-      port: # required
-    tags:
+      lan: 
+        address: 127.0.1.0 
+        port: 80
+    tags: 
+      - "v2" 
+      - "primary"
     weights:
-      passing: # required
-      warning: # required
-  skipNodeUpdate:
+      passing: 1
+      warning: 1
+  skipNodeUpdate: false
   taggedAddresses:
+    lan: "192.168.10.10"
 ``` 
 
 ## Specification
@@ -366,7 +371,7 @@ Specifies the type health check in the form of a Kubernetes probe.
 
 ### `spec.datacenter`
 
-Specifies the datacenter to register the external service in.
+Specifies the datacenter to register the service's node in, which defaults to the agent's datacenter if not provided.
 
 #### Values
 
@@ -375,7 +380,7 @@ Specifies the datacenter to register the external service in.
 
 ### `spec.id`
 
-Specifies a unique ID for the external service
+Specifies a unique ID for the node to register. This optional ID must be a 36-character UUID-formatted string.
 
 #### Values
 
@@ -384,7 +389,7 @@ Specifies a unique ID for the external service
 
 ### `spec.locality`
 
-Specifies the cloud region and zone where the service is available.
+Specifies the cloud region and zone where the node is available.
 
 #### Values
 
@@ -393,12 +398,12 @@ Specifies the cloud region and zone where the service is available.
 
 | Parameter | Description | Data type | Default |
 | :-------- | :---------- | :-------- | :------ |
-| `spec.locality.region` | Specifies the region where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS. | String | None |
-| `spec.locality.zone` | Specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS. | String | None |
+| `spec.locality.region` | Specifies the region where the node is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS. | String | None |
+| `spec.locality.zone` | Specifies the availability zone where the node is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS. | String | None |
 
 ### `spec.node`
 
-Specifies
+Specifies the name of the node to register.
 
 #### Values
 
@@ -407,16 +412,16 @@ Specifies
 
 ### `spec.nodeMeta`
 
-Specifies
+Specifies arbitrary KV metadata pairs for filtering purposes.
 
 #### Values
 
 - Default: None
 - Data type: Map of strings
 
-### `spec.partition`
+### `spec.partition` <EnterpriseAlert inline />
 
-Specifies
+Specifies the admin partition of the node to register.
 
 #### Values
 
@@ -425,7 +430,9 @@ Specifies
 
 ### `spec.service`
 
-Specifies 
+Specifies the service to register. The `Service.Service` field is required. If `Service.ID` is not provided, the default is the `Service.Service`.
+
+You can only specify one service with a given `ID` per node. We recommend using valid DNS labels for service definition names. Refer to [Internet Engineering Task Force's RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Service names that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference#name) for more information.
 
 #### Values
 
@@ -603,16 +610,24 @@ Services in a `critical` state are excluded from DNS responses. Services with `w
 
 ### `spec.skipNodeUpdate`
 
-Specifies
+Specifies whether to skip updating the node's information in the registration. This field is useful in casew where only a health check or service entry on a node needs to be updated or when a register request is intended to update a service entry or health check. In both use cases, node information is not be overwritten, if the node is already registered. Note, if the parameter is enabled for a node that does not exist, it is still be created.
 
 #### Values
 
-- Default: None
+- Default: `false`
 - Data type: Boolean
 
 ### `spec.taggedAddresses`
 
-Specifies
+Specifies tagged addresses for the node. Remote agents and services can communicate with the service using a tagged address as an alternative to the address specified in [`spec.address`](#spec-serviceaddress). You can configure multiple addresses for a node or service. The following tags are supported:
+
+- `lan`: IPv4 LAN address where the node or service is accessible.
+- `lan_ipv4`: IPv4 LAN address where the node or service is accessible.
+- `lan_ipv6`: IPv6 LAN address where the node or service is accessible.
+- `virtual`: A fixed address for the instances of a given logical service.
+- `wan`: IPv4 WAN address where the node or service is accessible when dialed from a remote data center.
+- `wan_ipv4`: IPv4 WAN address where the node or service is accessible when dialed from a remote data center.
+- `wan_ipv6`: IPv6 WAN address at which the node or service is accessible when being dialed from a remote data center.
 
 #### Values
 
