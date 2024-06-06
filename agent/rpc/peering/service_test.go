@@ -979,7 +979,7 @@ func TestPeeringService_Delete(t *testing.T) {
 
 				// Initially the peering will be marked for deletion but eventually the leader
 				// routine will clean it up.
-				prototest.AssertDeepEqual(t, nil, resp)
+				require.Nil(r, resp)
 			})
 		})
 	}
