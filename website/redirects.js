@@ -220,17 +220,17 @@ module.exports = [
   {
     source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/architecture/catalog/:slug*',
     destination: '/consul/docs/:version/architecture/catalog/v1/:slug',
-    permanent: true
+    permanent: true,
   },
   {
     source: '/consul/docs/nia/network-drivers/terraform-cloud',
     destination: '/consul/docs/nia/network-drivers/hcp-terraform',
-    permanent: true
+    permanent: true,
   },
   {
     source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/nia/network-drivers/hcp-terraform',
     destination: '/consul/docs/:version/nia/network-drivers/terraform-cloud',
-    permanent: true
+    permanent: true,
   },
   {
     source: '/consul/docs/k8s/multiport/:slug',
@@ -238,9 +238,9 @@ module.exports = [
     permanent: true,
   },
   {
-    source: 'https://developer.hashicorp.com/consul/docs/architecture/v2/:slug*',
+    source: 'consul/docs/architecture/v2/:slug*',
     destination: '/consul/docs/architecture/catalog#v2-catalog',
-    permanent: true
+    permanent: true,
   },
   {
     source: '/consul/commands/resource/:slug',
