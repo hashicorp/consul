@@ -763,25 +763,14 @@ Use these links to navigate to a particular top-level stanza.
 
   - `experiments` ((#v-global-experiments)) (`array<string>: []`) - Consul feature flags that will be enabled across components.
     Supported feature flags:
-    - `resource-apis`:
-      _**Warning**_! This feature is under active development. It is not
-      recommended for production use. Setting this flag during an
-      upgrade could risk breaking your Consul cluster.
-      If this flag is set, Consul components will use the
-      V2 resources APIs for all operations.
-    - `v2tenancy`:
-      _**Warning**_! This feature is under active development. It is not
-      recommended for production use. Setting this flag during an
-      upgrade could risk breaking your Consul cluster.
-      If this flag is set, Consul V2 resources (catalog, mesh, auth, etc)
-      will use V2 implementations for tenancy (partitions and namesapces)
-      instead of bridging to the existing V1 implementations. The
-      `resource-apis` feature flag must also be set.
+    - `v1dns`:
+      If this flag is set, Consul agents will use the legacy DNS implementation.
+      This would only be required in the case of a DNS bug found in the refactoring introduced in 1.19.
 
     Example:
 
     ```yaml
-    experiments: [ "resource-apis" ]
+    experiments: [ "v1dns" ]
     ```
 
 ### server ((#h-server))
