@@ -252,4 +252,19 @@ module.exports = [
     destination: '/consul/docs/:version/nia/network-drivers/terraform-cloud',
     permanent: true
   },
+  {
+    source: '/consul/docs/k8s/multiport/:slug',
+    destination: '/consul/docs/architecture/catalog#v2-catalog',
+    permanent: true,
+  },
+  {
+    source: 'https://developer.hashicorp.com/consul/docs/architecture/v2/:slug*',
+    destination: '/consul/docs/architecture/catalog#v2-catalog',
+    permanent: true
+  },
+  {
+    source: '/consul/commands/resource/:slug',
+    destination: '/consul/docs/architecture/catalog#v2-catalog',
+    permanent: true,
+  },
 ]
