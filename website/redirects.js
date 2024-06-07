@@ -213,16 +213,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/k8s/multiport/reference/resource-command/:slug',
-    destination: '/consul/commands/resource/:slug',
-    permanent: true,
-  },
-  {
-    source: '/consul/commands/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/resource/:slug*',
-    destination: '/consul/docs/:version/k8s/multiport/reference/resource-command/:slug',
-    permanent: true
-  },
-  {
     source: '/consul/docs/architecture/catalog/v1/:slug',
     destination: '/consul/docs/architecture/catalog/:slug',
     permanent: true,
@@ -230,16 +220,6 @@ module.exports = [
   {
     source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/architecture/catalog/:slug*',
     destination: '/consul/docs/:version/architecture/catalog/v1/:slug',
-    permanent: true
-  },
-  {
-    source: '/consul/docs/architecture/catalog/v2/:slug',
-    destination: '/consul/docs/architecture/v2/catalog/:slug',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/architecture/v2/catalog/:slug*',
-    destination: '/consul/docs/:version/architecture/catalog/v2/:slug',
     permanent: true
   },
   {
