@@ -30,8 +30,6 @@ To track the free space, Consul must write extra metadata to disk with every wri
 
 To mitigate risks associated with sudden bursts of log data, Consul tries to limit lots of logs from accumulating in the LogStore. Significantly larger BoltDB files are slower to append to because the tree is deeper and freelist larger. For this reason, Consul's default options associated with snapshots, truncating logs, and keeping the log history have been aggressively set toward keeping BoltDB small rather than using disk IO optimally.
 
-But the larger the file, the more likely it is to have a large freelist or suddenly form one after a burst of writes. For this reason, the many of Consul's default options associated with snapshots, truncating logs, and keeping the log history aggressively keep BoltDT small rather than using disk IO more efficiently.
-
 Other reliability issues, such as [raft replication capacity issues](/consul/docs/agent/telemetry#raft-replication-capacity-issues), are much simpler to solve without the performance concerns caused by storing more logs in BoltDB.
 
 ### WAL approaches storage issues differently
