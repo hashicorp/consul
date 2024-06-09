@@ -2,7 +2,7 @@ module github.com/hashicorp/consul
 
 go 1.21
 
-toolchain go1.22.3
+toolchain go1.22.4
 
 replace (
 	github.com/hashicorp/consul/api => ./api
