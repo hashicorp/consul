@@ -764,8 +764,8 @@ Use these links to navigate to a particular top-level stanza.
   - `experiments` ((#v-global-experiments)) (`array<string>: []`) - Consul feature flags that will be enabled across components.
     Supported feature flags:
     - `v1dns`:
-      If this flag is set, Consul agents will use the legacy DNS implementation.
-      This would only be required in the case of a DNS bug found in the refactoring introduced in 1.19.
+      When this flag is set, Consul agents use the legacy DNS implementation.
+      This setting exists in the case a DNS bug is found after the refactoring introduced in v1.19.0.
 
     Example:
 
