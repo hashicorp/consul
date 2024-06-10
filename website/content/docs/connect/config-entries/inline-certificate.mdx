@@ -144,7 +144,7 @@ The following example demonstrates an inline certificate configuration.
 <Tab heading="HCL" group="hcl">
 
 ```hcl
-Kind                     = "file-system-certificate"
+Kind                     = "inline-certificate"
 Name                     = "tls-certificate"
 Certificate              = "<complete-public-certificate>"
 PrivateKey               = "<complete-private-key>"
@@ -156,7 +156,7 @@ PrivateKey               = "<complete-private-key>"
 
 ```json
 {
-  "Kind": "file-system-certificate",
+  "Kind": "inline-certificate",
   "Name": "tls-certificate",
 	"Certificate": "<complete-public-certificate>",
 	"PrivateKey": "<complete-private-key>"
