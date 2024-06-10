@@ -270,7 +270,11 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 2 based on these values:
+<<<<<<< HEAD
           # envoy-version: ["1.28.3"]
+=======
+          # envoy-version: ["1.29.5"]
+>>>>>>> 44412be4a3 (update envoy versions)
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 2
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -305,7 +309,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+<<<<<<< HEAD
         envoy-version: ["1.28.3"]
+=======
+        envoy-version: ["1.29.5"]
+>>>>>>> 44412be4a3 (update envoy versions)
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -395,7 +403,7 @@ jobs:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
     env:
-      ENVOY_VERSION: "1.28.2"
+      ENVOY_VERSION: "1.28.4"
       CONSUL_DATAPLANE_IMAGE: "docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi"
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
