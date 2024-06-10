@@ -14,7 +14,9 @@ For more information about the information returned when querying the catalog, i
 
 Consul tracks information about registered services through its catalog API. This API records user-defined information about the external services, such as their partitions and required health checks. It also records information that Consul assigns for its own operations, such as an ID for each service instance and the [Raft indices](/consul/docs/architecture/consensus) when the instance is registered and modified.
 
-Consul uses v1 of the catalog API by default. Consul v1.17.0 and later ships with version 2 (v2) of the catalog API. V2 is intended for testing and development purposes. V1 and V2 of the catalog APIs cannot run concurrently in a Consul deployment. There is no migration path between catalog versions. For more information, refer to [Consul v2 Catalog API](/consul/docs/architecture/v2/catalog).
+### v2 Catalog
+
+Consul introduced an experimental v2 Catalog API in v1.17.0. This API supported multi-port Service configurations on Kubernetes, and it was made available for testing and development purposes. The v2 catalog and its support for multiport Kubernetes Services were deprecated in the v1.19.0 release.
 
 ## Catalog structure
 
