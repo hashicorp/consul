@@ -12,8 +12,8 @@ import "strings"
 //
 // see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
 var EnvoyVersions = []string{
-	"1.28.3",
-	"1.27.5",
+	"1.28.4",
+	"1.27.6",
 	"1.26.8",
 	"1.25.11",
 }
