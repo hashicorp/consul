@@ -288,7 +288,8 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 			"44ef9aec-7654-4401-901b-4d4a8b3c80fc",
 			"8ea41efb-8519-4091-bc91-c42da0cda9ae",
 			"539f1cb6-40aa-464f-ae66-a900d26bc1b2",
-			"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926"})
+			"c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
+		})
 	})
 }
 
