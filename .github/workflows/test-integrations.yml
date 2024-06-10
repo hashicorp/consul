@@ -305,7 +305,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.29.5"]
+        envoy-version: ["1.28.4"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
