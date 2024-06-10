@@ -15,13 +15,12 @@ replace (
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
-
 )
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1
-	github.com/absolutelightning/go-immutable-adaptive-radix v1.0.80
-	github.com/absolutelightning/go-memdb v1.0.63
+	github.com/absolutelightning/go-immutable-adaptive-radix v1.0.81
+	github.com/absolutelightning/go-memdb v1.0.65
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.156
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.4.1
