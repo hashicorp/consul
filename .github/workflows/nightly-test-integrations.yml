@@ -6,7 +6,7 @@ name: Nightly test-integrations
 on:
   schedule:
     # Run nightly at 12AM UTC/8PM EST/5PM PST
-    - cron: '* 0 * * *'
+    - cron: '0 0 * * *'
   workflow_dispatch: {}
 
 env:
