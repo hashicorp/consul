@@ -107,23 +107,6 @@
         "path": "architecture/catalog"
       },
       {
-        "title": "v2 architecture",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "architecture/v2"
-          },
-          {
-            "title": "Catalog",
-            "path": "architecture/v2/catalog"
-          },
-          {
-            "title": "Resource groups",
-            "path": "architecture/v2/groups"
-          }
-        ]
-      },
-      {
         "title": "Improving Consul Resilience",
         "path": "architecture/improving-consul-resilience"
       },
@@ -1604,48 +1587,6 @@
               {
                 "title": "Metrics",
                 "path": "k8s/connect/observability/metrics"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "title": "V2 Catalog API",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "k8s/multiport"
-          },
-          {
-            "title": "Configure multi-port services",
-            "path": "k8s/multiport/configure"
-          },
-          {
-            "title": "Split TCP traffic between multiple ports",
-            "path": "k8s/multiport/traffic-split"
-          },
-          {
-            "title": "Reference",
-            "routes": [
-              {
-                "title": "GRPCRoute resource",
-                "path": "k8s/multiport/reference/grpcroute"
-              },
-              {
-                "title": "HTTPRoute resource",
-                "path": "k8s/multiport/reference/httproute"
-              },
-              {
-                "title": "ProxyConfiguration resource",
-                "path": "k8s/multiport/reference/proxyconfiguration"
-              },
-              {
-                "title": "TCPRoute resource",
-                "path": "k8s/multiport/reference/tcproute"
-              },
-              {
-                "title": "TrafficPermissions resource",
-                "path": "k8s/multiport/reference/trafficpermissions"
               }
             ]
           }
