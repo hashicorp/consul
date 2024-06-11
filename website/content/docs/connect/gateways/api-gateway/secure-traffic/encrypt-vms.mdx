@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Encrypt API gateway traffic on virtual machines
-description: Learn how to define inline certificate config entries and deploy them to Consul. Inline certificate configuration entries enable you to attach TLS certificates and keys to gateway listeners so that traffic between external clients and gateway listeners is encrypted.
+description: Learn how to define inline certificate config entries and deploy them to Consul. Inline certificate and file system certificate configuration entries enable you to attach TLS certificates and keys to gateway listeners so that traffic between external clients and gateway listeners is encrypted.
 ---
 
 # Encrypt API gateway traffic on virtual machines
@@ -10,8 +10,9 @@ This topic describes how to make TLS certificates available to API gateways so t
 
 ## Requirements
 
-- Consul 1.15 or later
-- You must have a certificate and key from your CA   
+- Consul v1.15 or later is required to use the Consul API gateway on VMs
+  - Consul v1.19 or later is required to use the [file system certificate configuration entry](/consul/docs/connect/config-entries/file-system-certificate)
+- You must have a certificate and key from your CA
 - A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
 - Network connectivity between the machine deploying the API gateway and a
   Consul cluster agent or server
@@ -30,13 +31,19 @@ with Consul API gateway configurations.
 
 ## Define TLS certificates
 
-1. Create an [`inline-certificate` configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate) and specify the following fields:
-   - `Kind`: Specifies the type of configuration entry. This must be set to `inline-certificate`.
+1. Create a [file system certificate](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificate](/consul/docs/connect/config-entries/inline-certificate) and specify the following fields:
+   - `Kind`: Specifies the type of configuration entry. This must be set to `file-system-certificate` or `inline-certificate`.
    - `Name`: Specify the name in the [API gateway listener configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway#listeners) to bind the certificate to that listener.  
-   - `Certificate`: Specifies the inline public certificate to use for TLS as plain text.
-   - `PrivateKey`: Specifies the inline private key to use for TLS as plain text.
-1. Configure any additional fields necessary for your use case, such as the namespace or admin partition. Refer to the [`inline-certificate` configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate) reference for additional information.
+   - `Certificate`: Specifies the filepath to the certificate on the local system or the inline public certificate as plain text.
+   - `PrivateKey`: Specifies the filepath to private key on the local system or the inline private key to  as plain text.
+1. Configure any additional fields necessary for your use case, such as the namespace or admin partition. Refer to the [file system certificate configuration reference](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificate configuration reference](/consul/docs/connect/config-entries/inline-certificate) for more information.
 1. Save the configuration.
+
+### Examples
+
+<Tabs>
+
+<Tab heading="Inline certificate">
 
 The following example defines a certificate named `my-certificate`. API gateway configurations that specify `inline-certificate` in the `Certificate.Kind` field and `my-certificate` in the `Certificate.Name` field are able to use the certificate.
 
@@ -56,6 +63,22 @@ PrivateKey = <<EOF
 -----END RSA PRIVATE KEY-----
 EOF
 ```
+
+</Tab>
+
+<Tab heading="File system certificate">
+
+The following example defines a certificate named `my-certificate`. API gateway configurations that specify `file-system-certificate` in the `Certificate.Kind` field and `my-certificate` in the `Certificate.Name` field are able to use the certificate.
+
+```hcl
+Kind                     = "file-system-certificate"
+Name                     = "my-certificate"
+Certificate              = "/opt/consul/tls/api-gateway.crt"
+PrivateKey               = "/opt/consul/tls/api-gateway.key"
+```
+
+</Tab>
+</Tabs>
 
 ## Deploy the configuration to Consul
 
