@@ -11,7 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-- **Argo Rollouts**: Argo Rollouts can progressively deploy new versions of applications into Consul service mesh on Kubernetes using the new Argo Rollouts plugin. You can incrementally release and test new versions of applications and rollback to previous versions by splitting traffic between subsets of services. For more information, refer to [Argo rollouts](/consul/docs/k8s/deployment-configurations/argo-rollouts-configuration).
+- **Argo Rollouts**: Argo Rollouts can progressively deploy new versions of applications into Consul service mesh on Kubernetes using the new Argo Rollouts plugin. You can incrementally release and test new versions of applications and roll back to previous versions by splitting traffic between subsets of services. For more information, refer to [Argo rollouts](/consul/docs/k8s/deployment-configurations/argo-rollouts-configuration).
 
 - **External Services CRD**: You can now configure and register external services, including their health checks, alongside existing Kubernetes application manifests with the new [`Registration` Custom Resource Definition (CRD)](/consul/docs/connect/config-entries/registration). The CRD removes the requirement to deploy a terminating gateway in order to register a service running on an external node in Consul on Kubernetes. Refer to [Register external services on Kubernetes overview](/consul/docs/k8s/deployment-configurations/external-service) for more information.
 
@@ -19,7 +19,7 @@ We are pleased to announce the following Consul updates.
 
 - **API Gateway metrics**: The Consul API Gateway now provides a Prometheus metrics endpoint you can use to gather information about the health of the gateway, as well as traffic for proxied connections or requests.
 
-- **File system certificate configuration entry**: A new [`file-system-certificate` configuration entry](/consul/docs/connect/config-entries/file-system-certificate) supports specifing a filepath to the certificate and private key for Consul API Gateway on VMs on the local system. Previously, the certificate and private key were specificed directly in the `inline-certificate` configuration entry. When using the file system certificates, the Consul server never sees the contents of these files. 
+- **File system certificate configuration entry**: A new [`file-system-certificate` configuration entry](/consul/docs/connect/config-entries/file-system-certificate) supports specifying a filepath to the certificate and private key for Consul API Gateway on VMs on the local system. Previously, the certificate and private key were specified directly in the `inline-certificate` configuration entry. When using the file system certificates, the Consul server never sees the contents of these files. 
 
   File system certificates also include a file system watch that implements certificate and key changes without restarting the gateway. They also require that you have access to the gateway's file system in order to place the certificate or update it.
 
