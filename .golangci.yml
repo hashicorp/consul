@@ -75,6 +75,7 @@ linters-settings:
     simplify: true
   forbidigo:
     # Forbid the following identifiers (list of regexp).
+    # Format includes custom message based on https://github.com/ashanbrown/forbidigo/pull/11
     forbid:
       - '\bhtml\/template\b(# Use text/template instead)?'
       - '\bioutil\b(# Use io and os packages instead of ioutil)?'
