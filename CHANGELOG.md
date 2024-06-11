@@ -1,4 +1,4 @@
-## 1.19.0 (June 11, 2024)
+## 1.19.0 (June 12, 2024)
 
 BREAKING CHANGES:
 
@@ -13,8 +13,8 @@ SECURITY:
 
 FEATURES:
 
-* dns: queries now default to a refactored DNS server that is v1 and v2 Catalog compatible.
-Use `v1dns` in the `experiments` agent config to disable.
+* dns: queries now default to a refactored DNS server that is v1 and v2 Catalog compatible. 
+Use `v1dns` in the `experiments` agent config to disable. 
 The legacy server will be removed in a future release of Consul.
 See the [Consul 1.19.x Release Notes](https://developer.hashicorp.com/consul/docs/release-notes/consul/v1_19_x) for removed DNS features. [[GH-20715](https://github.com/hashicorp/consul/issues/20715)]
 * gateways: api-gateway can leverage listener TLS certificates available on the gateway's local filesystem by specifying the public certificate and private key path in the new file-system-certificate configuration entry [[GH-20873](https://github.com/hashicorp/consul/issues/20873)]
@@ -24,6 +24,7 @@ IMPROVEMENTS:
 * dns: new version was not supporting partition or namespace being set to 'default' in CE version. [[GH-21230](https://github.com/hashicorp/consul/issues/21230)]
 * mesh: update supported envoy version 1.29.4 in addition to 1.28.3, 1.27.5, 1.26.8. [[GH-21142](https://github.com/hashicorp/consul/issues/21142)]
 * upgrade go version to v1.22.3. [[GH-21113](https://github.com/hashicorp/consul/issues/21113)]
+* upgrade go version to v1.22.4. [[GH-21265](https://github.com/hashicorp/consul/issues/21265)]
 * Upgrade `github.com/envoyproxy/go-control-plane` to 0.12.0. [[GH-20973](https://github.com/hashicorp/consul/issues/20973)]
 * dns: DNS-over-grpc when using `consul-dataplane` now accepts partition, namespace, token as metadata to default those query parameters.
 `consul-dataplane` v1.5+ will send this information automatically. [[GH-20899](https://github.com/hashicorp/consul/issues/20899)]
