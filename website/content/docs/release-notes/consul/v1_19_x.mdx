@@ -11,7 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-- **External Services CRD**: You can now configure and register external services, including their health checks, alongside existing Kubernetes application manifests with the new [`Registration` Custom Resource Definition (CRD)](/consul/docs/connect/config-entries/registration). The CRD removes the requirement to deploy a terminating gateway in order to register a service running on an external node in Consul on Kubernetes. Refer to [Register external services on Kubernetes overview](/consul/docs/k8s/deployment-configurations/external-service) for more information.
+- **External Services CRD**: You can now configure and register external services, including their health checks, alongside existing Kubernetes application manifests with the new [`Registration` Custom Resource Definition (CRD)](/consul/docs/connect/config-entries/registration). The CRD removes the requirement to deploy a terminating gateway in order to register a service running on an external node in Consul on Kubernetes, but a terminating gateway is still required to make the external service available to downstream services in the service mesh. Refer to [Register external services on Kubernetes overview](/consul/docs/k8s/deployment-configurations/external-service) for more information.
 
 - **Transparent Proxy on Nomad**: Consul’s CNI plugin enables the use of transparent proxy for seamlessly redirecting traffic through the Envoy proxy without requiring application changes, or elevated network privileges for the workload. As a result, you can onboard applications without additional configuration between a service and its upstreams.
 
@@ -19,7 +19,7 @@ We are pleased to announce the following Consul updates.
 
 - **File system certificate configuration entry**: A new [`file-system-certificate` configuration entry](/consul/docs/connect/config-entries/file-system-certificate) supports specifying a filepath to the certificate and private key for Consul API Gateway on VMs on the local system. Previously, the certificate and private key were specified directly in the `inline-certificate` configuration entry. When using the file system certificates, the Consul server never sees the contents of these files. 
 
-  File system certificates also include a file system watch that implements certificate and key changes without restarting the gateway. They also require that you have access to the gateway's file system in order to place the certificate or update it.
+  File system certificates also include a file system watch that allows for changing the certificate and key without restarting the gateway. This feature requires that you have access to the gateway’s file system in order to place the certificate or update it.
 
   Consul on Kubernetes deployments that use `consul-k8s` Helm chart v1.5.0 or later use file system certificates without additional configuration. For more information, refer to [File system certificate configuration reference](/consul/docs/connect/config-entries/file-system-certificate).
 
