@@ -23,7 +23,6 @@ IMPROVEMENTS:
 
 * dns: new version was not supporting partition or namespace being set to 'default' in CE version. [[GH-21230](https://github.com/hashicorp/consul/issues/21230)]
 * mesh: update supported envoy version 1.29.4 in addition to 1.28.3, 1.27.5, 1.26.8. [[GH-21142](https://github.com/hashicorp/consul/issues/21142)]
-* upgrade go version to v1.22.3. [[GH-21113](https://github.com/hashicorp/consul/issues/21113)]
 * upgrade go version to v1.22.4. [[GH-21265](https://github.com/hashicorp/consul/issues/21265)]
 * Upgrade `github.com/envoyproxy/go-control-plane` to 0.12.0. [[GH-20973](https://github.com/hashicorp/consul/issues/20973)]
 * dns: DNS-over-grpc when using `consul-dataplane` now accepts partition, namespace, token as metadata to default those query parameters.
