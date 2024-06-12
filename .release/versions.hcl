@@ -10,12 +10,9 @@ active_versions {
     ce_active = true
   }
   version "1.18" {
-    # This release should remain active until 1.19 GA
-    ce_active = true
     lts       = true
   }
   version "1.17" {}
-  version "1.16" {}
   version "1.15" {
     lts = true
   }
