@@ -489,6 +489,10 @@
             "path": "connect/config-entries/proxy-defaults"
           },
           {
+            "title": "Registration",
+            "path": "connect/config-entries/registration"
+          },
+          {
             "title": "Sameness Group",
             "path": "connect/config-entries/sameness-group"
           },
@@ -1459,6 +1463,10 @@
           {
             "title": "Datadog metrics",
             "path": "k8s/deployment-configurations/datadog"
+          },
+          {
+            "title": "Register external services",
+            "path": "k8s/deployment-configurations/external-service"
           }
         ]
       },
