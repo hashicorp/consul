@@ -1,10 +1,10 @@
 ---
 layout: docs
-page_title: API Gateway Configuration Entry Reference
+page_title: API Gateway configuration reference
 description: Learn how to configure a Consul API gateway on VMs.
 ---
 
-# API gateway configuration entry reference
+# API gateway configuration reference
 
 This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
 
@@ -349,7 +349,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `Listeners[].TLS.Certificates[]`
 
-The list of references to file system or inline certificates that the listener uses for TLS termination.
+The list of references to [file system](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificates](/consul/docs/connect/config-entries/inline-certificate) that the listener uses for TLS termination. You should create the configuration entry for the certificate separately and then reference the configuration entry in the `Name` field.
 
 #### Values
 
@@ -372,7 +372,7 @@ The list of references to certificates that the listener uses for TLS terminatio
 
 ### `Listeners[].TLS.Certificates[].Name`
 
-Specifies the name of the file system or inline certificate that the listener uses for TLS termination.
+Specifies the name of the [file system certificate](/consul/docs/connect/config-entries/file-system-certificate) or [inline certificate](/consul/docs/connect/config-entries/inline-certificate) that the listener uses for TLS termination.
 
 #### Values
 
