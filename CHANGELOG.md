@@ -1,3 +1,46 @@
+## 1.19.0 (June 12, 2024)
+
+BREAKING CHANGES:
+
+* telemetry: State store usage metrics with a double `consul` element in the metric name have been removed. Please use the same metric without the second `consul` instead. As an example instead of `consul.consul.state.config_entries` use `consul.state.config_entries` [[GH-20674](https://github.com/hashicorp/consul/issues/20674)]
+
+SECURITY:
+
+* Upgrade to support Envoy `1.27.5 and 1.28.3`. This resolves CVE
+[CVE-2024-32475](https://nvd.nist.gov/vuln/detail/CVE-2024-32475) (`auto_sni`). [[GH-21017](https://github.com/hashicorp/consul/issues/21017)]
+* Upgrade to support k8s.io/apimachinery `v0.18.7 or higher`. This resolves CVE
+[CVE-2020-8559](https://nvd.nist.gov/vuln/detail/CVE-2020-8559). [[GH-21017](https://github.com/hashicorp/consul/issues/21017)]
+
+FEATURES:
+
+* dns: queries now default to a refactored DNS server that is v1 and v2 Catalog compatible. 
+Use `v1dns` in the `experiments` agent config to disable. 
+The legacy server will be removed in a future release of Consul.
+See the [Consul 1.19.x Release Notes](https://developer.hashicorp.com/consul/docs/release-notes/consul/v1_19_x) for removed DNS features. [[GH-20715](https://github.com/hashicorp/consul/issues/20715)]
+* gateways: api-gateway can leverage listener TLS certificates available on the gateway's local filesystem by specifying the public certificate and private key path in the new file-system-certificate configuration entry [[GH-20873](https://github.com/hashicorp/consul/issues/20873)]
+
+IMPROVEMENTS:
+
+* dns: new version was not supporting partition or namespace being set to 'default' in CE version. [[GH-21230](https://github.com/hashicorp/consul/issues/21230)]
+* mesh: update supported envoy version 1.29.4 in addition to 1.28.3, 1.27.5, 1.26.8. [[GH-21142](https://github.com/hashicorp/consul/issues/21142)]
+* upgrade go version to v1.22.4. [[GH-21265](https://github.com/hashicorp/consul/issues/21265)]
+* Upgrade `github.com/envoyproxy/go-control-plane` to 0.12.0. [[GH-20973](https://github.com/hashicorp/consul/issues/20973)]
+* dns: DNS-over-grpc when using `consul-dataplane` now accepts partition, namespace, token as metadata to default those query parameters.
+`consul-dataplane` v1.5+ will send this information automatically. [[GH-20899](https://github.com/hashicorp/consul/issues/20899)]
+* snapshot: Add `consul snapshot decode` CLI command to output a JSON object stream of all the snapshots data. [[GH-20824](https://github.com/hashicorp/consul/issues/20824)]
+* telemetry: Add `telemetry.disable_per_tenancy_usage_metrics` in agent configuration to disable setting tenancy labels on usage metrics. This significantly decreases CPU utilization in clusters with many admin partitions or namespaces.
+* telemetry: Improved the performance usage metrics emission by not outputting redundant metrics. [[GH-20674](https://github.com/hashicorp/consul/issues/20674)]
+
+DEPRECATIONS:
+
+* snapshot agent: **(Enterprise only)** Top level single snapshot destinations `local_storage`, `aws_storage`, `azure_blob_storage`, and `google_storage` in snapshot agent configuration files are now deprecated. Use the `backup_destinations` config object instead.
+
+BUG FIXES:
+
+* docs: Consul DNS Forwarding configuration for OpenShift update for [Resolve Consul DNS Requests in Kubernetes](https://developer.hashicorp.com/consul/docs/k8s/dns) [[GH-20439](https://github.com/hashicorp/consul/issues/20439)]
+* hcp: fix error logs when failing to push metrics [[GH-20514](https://github.com/hashicorp/consul/issues/20514)]
+* streaming: Handle ACL errors consistently when blocking query timeout is reached. [[GH-20876](https://github.com/hashicorp/consul/issues/20876)]
+
 ## 1.18.2 (May 14, 2024)
 
 **Enterprise LTS**: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
