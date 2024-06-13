@@ -95,6 +95,8 @@ jobs:
           - {goos: "linux", goarch: "amd64"}
           - {goos: "linux", goarch: "arm"}
           - {goos: "linux", goarch: "arm64"}
+          - {goos: "darwin", goarch: "amd64"}
+          - {goos: "darwin", goarch: "arm64"}
           - {goos: "freebsd", goarch: "386"}
           - {goos: "freebsd", goarch: "amd64"}
           - {goos: "windows", goarch: "386"}
@@ -246,58 +248,6 @@ jobs:
             cp LICENSE $TARGET_DIR/LICENSE.txt
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
-  build-darwin:
-    needs:
-    - set-product-version
-    - get-go-version
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        goos: [ darwin ]
-        goarch: [ "amd64", "arm64" ]
-      fail-fast: true
-
-    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Setup with node and yarn
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-        with:
-          node-version: '18'
-          cache: 'yarn'
-          cache-dependency-path: 'ui/yarn.lock'
-
-      - name: Build UI
-        run: |
-          CONSUL_VERSION=${{ needs.set-product-version.outputs.product-version }}
-          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
-          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
-          echo "consul_version is ${CONSUL_VERSION}"
-          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
-          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
-          cd ui && make && cd ..
-          rm -rf agent/uiserver/dist
-          mv ui/packages/consul-ui/dist agent/uiserver/
-      - name: Go Build
-        env:
-          PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}
-          PRERELEASE_VERSION: ${{ needs.set-product-version.outputs.pre-version }}
-          CGO_ENABLED: "0"
-          GOLDFLAGS: "${{needs.set-product-version.outputs.shared-ldflags}}"
-        uses: hashicorp/actions-go-build@make-clean-flag-optional
-        with:
-          product_name: ${{ env.PKG_NAME }}
-          product_version: ${{ needs.set-product-version.outputs.product-version }}
-          go_version: ${{ needs.get-go-version.outputs.go-version }}
-          os: ${{ matrix.goos }}
-          arch: ${{ matrix.goarch }}
-          reproducible: nope
-          clean: false
-          instructions: |-
-            cp LICENSE $TARGET_DIR/LICENSE.txt
-            go build -ldflags="$GOLDFLAGS" -tags netcgo -o "$BIN_PATH" -trimpath -buildvcs=false
-
   build-docker:
     name: Docker ${{ matrix.arch }} build
     needs:
@@ -419,32 +369,6 @@ jobs:
       - name: Run verification for ${{ matrix.arch }} binary
         if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
         run: .github/scripts/verify_artifact.sh ${{ env.zip_name }} v${{ env.version }}
-
-  verify-darwin:
-    needs:
-      - set-product-version
-      - build-darwin
-    runs-on: macos-latest
-    strategy:
-      fail-fast: true
-    env:
-      version: ${{needs.set-product-version.outputs.product-version}}
-      zip_name: consul_${{ needs.set-product-version.outputs.product-version }}_darwin_amd64.zip
-
-    name: Verify amd64 darwin binary
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Download amd64 darwin zip
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        with:
-          name: ${{ env.zip_name }}
-
-      - name: Unzip amd64 darwin zip
-        run: unzip ${{ env.zip_name }}
-
-      - name: Run verification for amd64 darwin binary
-        run: .github/scripts/verify_bin.sh ./consul v${{ env.version }}
 
   verify-linux-packages-deb:
     needs:
