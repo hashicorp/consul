@@ -144,6 +144,9 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 type CheckIfServiceIDExists func(*structs.ServiceID) bool
 
 func (c *CheckAlias) checkServiceExistsOnRemoteServer(serviceID *structs.ServiceID) (bool, error) {
+	if serviceID == nil {
+		return false, fmt.Errorf("serviceID cannot be nil")
+	}
 	args := c.RPCReq
 	args.Node = c.Node
 	args.AllowStale = true
