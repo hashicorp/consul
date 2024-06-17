@@ -65,7 +65,7 @@ type IndexedData struct {
 
 func (i *IndexedData) Txn() Txn {
 	return &txn{
-		inner: i.tree.Txn(),
+		inner: i.tree.Txn(true),
 		index: i,
 		dirty: false,
 	}
