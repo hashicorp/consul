@@ -42,6 +42,8 @@ jobs:
 
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
+    with:
+      ref: release/1.19.x
 
   get-envoy-versions:
     uses: ./.github/workflows/reusable-get-envoy-versions.yml

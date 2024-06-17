@@ -39,6 +39,8 @@ jobs:
 
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
+    with:
+      ref: ${{ inputs.branch }}
 
   get-envoy-versions:
     uses: ./.github/workflows/reusable-get-envoy-versions.yml
