@@ -381,6 +381,105 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	}
 }
 
+// TestDNS_ServiceAddressWithTagLookup tests some specific cases that Nomad would exercise,
+// Like registering a service w/o a Node. https://github.com/hashicorp/nomad/blob/1174019676ff3d65b39323eb0c7234fb1e09b80c/command/agent/consul/service_client.go#L1366-L1381
+// Errors with this were reported in https://github.com/hashicorp/consul/issues/21325#issuecomment-2166845574
+// Also we test that only one tag is valid in the URL.
+func TestDNS_ServiceAddressWithTagLookup(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	for name, experimentsHCL := range getVersionHCL(true) {
+		t.Run(name, func(t *testing.T) {
+			a := NewTestAgent(t, experimentsHCL)
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			{
+				// This emulates a Nomad service registration.
+				// Using an internal RPC for Catalog.Register will not trigger the same condition.
+				err := a.Client().Agent().ServiceRegister(&api.AgentServiceRegistration{
+					Kind:    api.ServiceKindTypical,
+					ID:      "db-1",
+					Name:    "db",
+					Tags:    []string{"primary"},
+					Address: "127.0.0.1",
+					Port:    12345,
+					Checks:  make([]*api.AgentServiceCheck, 0),
+				})
+				require.NoError(t, err)
+			}
+
+			{
+				err := a.Client().Agent().ServiceRegister(&api.AgentServiceRegistration{
+					Kind:    api.ServiceKindTypical,
+					ID:      "db-2",
+					Name:    "db",
+					Tags:    []string{"secondary"},
+					Address: "127.0.0.2", // The address here has to be different, or the DNS server will dedupe it.
+					Port:    12345,
+					Checks:  make([]*api.AgentServiceCheck, 0),
+				})
+				require.NoError(t, err)
+			}
+
+			// Query the service using a tag - this also checks that we're filtering correctly
+			questions := []string{
+				"_db._primary.service.dc1.consul.", // w/ RFC 2782 style syntax
+				"primary.db.service.dc1.consul.",
+			}
+			for _, question := range questions {
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeSRV)
+
+				c := new(dns.Client)
+				in, _, err := c.Exchange(m, a.DNSAddr())
+				require.NoError(t, err)
+				require.Len(t, in.Answer, 1, "Expected only one result in the Answer section")
+
+				srvRec, ok := in.Answer[0].(*dns.SRV)
+				require.True(t, ok, "Expected an SRV record in the Answer section")
+				require.Equal(t, uint16(12345), srvRec.Port)
+				require.Equal(t, "7f000001.addr.dc1.consul.", srvRec.Target)
+
+				aRec, ok := in.Extra[0].(*dns.A)
+				require.True(t, ok, "Expected an A record in the Extra section")
+				require.Equal(t, "7f000001.addr.dc1.consul.", aRec.Hdr.Name)
+				require.Equal(t, "127.0.0.1", aRec.A.String())
+
+				if strings.Contains(question, "query") {
+					// The query should have the TTL associated with the query registration.
+					require.Equal(t, uint32(3), srvRec.Hdr.Ttl)
+					require.Equal(t, uint32(3), aRec.Hdr.Ttl)
+				} else {
+					require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
+					require.Equal(t, uint32(0), aRec.Hdr.Ttl)
+				}
+			}
+
+			// Multiple tags are not supported in the legacy DNS server
+			questions = []string{
+				"banana._db._primary.service.dc1.consul.",
+			}
+			for _, question := range questions {
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeSRV)
+
+				c := new(dns.Client)
+				in, _, err := c.Exchange(m, a.DNSAddr())
+				require.NoError(t, err)
+				require.Len(t, in.Answer, 0, "Expected no results in the Answer section")
+
+				// For v1dns, we combine the tags with a period, which results in NXDOMAIN
+				// For v2dns, we are also return NXDomain
+				// The reported issue says that v2dns this is returning valid results.
+				require.Equal(t, dns.RcodeNameError, in.Rcode)
+			}
+		})
+	}
+}
+
 func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1835,6 +1934,49 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 			if aRec.A.String() != "127.0.0.1" {
 				t.Fatalf("Bad: %#v", in.Extra[0])
 			}
+		})
+	}
+}
+
+// TestDNS_ServiceLookup_ExtraTags tests tag behavior.
+// With v1dns, we still support period tags, but if a tag is not found it's an NXDOMAIN code.
+// With v2dns, we do not support period tags, so it's an NXDOMAIN code because the name is not valid.
+func TestDNS_ServiceLookup_ExtraTags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	for name, experimentsHCL := range getVersionHCL(true) {
+		t.Run(name, func(t *testing.T) {
+			a := NewTestAgent(t, experimentsHCL)
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			// Register node
+			args := &structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					Service: "db",
+					Tags:    []string{"primary"},
+					Port:    12345,
+				},
+			}
+
+			var out struct{}
+			if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			m1 := new(dns.Msg)
+			m1.SetQuestion("dummy.primary.db.service.consul.", dns.TypeSRV)
+
+			c1 := new(dns.Client)
+			in, _, err := c1.Exchange(m1, a.DNSAddr())
+			require.NoError(t, err)
+			require.Len(t, in.Answer, 0, "Expected no answer")
+			require.Equal(t, dns.RcodeNameError, in.Rcode)
 		})
 	}
 }
