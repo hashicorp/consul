@@ -106,7 +106,10 @@ func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain st
 		return nil, err
 	}
 
-	name, tag := getQueryNameAndTagFromParts(queryType, queryParts)
+	name, tag, err := getQueryNameAndTagFromParts(queryType, queryParts)
+	if err != nil {
+		return nil, err
+	}
 
 	portName := parsePort(queryParts)
 
@@ -157,14 +160,28 @@ func buildAddressResults(req *dns.Msg) ([]*discovery.Result, error) {
 }
 
 // getQueryNameAndTagFromParts returns the query name and tag from the query parts that are taken from the original dns question.
-func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []string) (string, string) {
+//
+// Valid Query Parts:
+// [<tag>.]<service>
+// [<port>.port.]<service>
+// _<service>._<tag> // RFC 2782 style
+func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []string) (string, string, error) {
 	n := len(queryParts)
 	if n == 0 {
-		return "", ""
+		return "", "", errInvalidQuestion
 	}
 
 	switch queryType {
 	case discovery.QueryTypeService:
+		if n > 3 {
+			// Having this many fields is never valid.
+			return "", "", errInvalidQuestion
+		}
+		if n == 3 && queryParts[n-2] != "port" {
+			// This probably means that someone was trying to use a tag name with a period.
+			// This was deprecated in Consul 0.3.
+			return "", "", errInvalidQuestion
+		}
 		// Support RFC 2782 style syntax
 		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
 			// Grab the tag since we make nuke it if it's tcp
@@ -177,9 +194,14 @@ func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []str
 
 			name := queryParts[0][1:]
 			// _name._tag.service.consul
-			return name, tag
+			return name, tag, nil
 		}
-		return queryParts[n-1], ""
+		// Standard-style lookup w/ tag
+		if n == 2 {
+			return queryParts[1], queryParts[0], nil
+		}
+		// This works for the v1 and v2 catalog queries, even if a port name was specified.
+		return queryParts[n-1], "", nil
 	case discovery.QueryTypePreparedQuery:
 		name := ""
 
@@ -197,9 +219,17 @@ func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []str
 			// Allow a "." in the query name, just join all the parts.
 			name = strings.Join(queryParts, ".")
 		}
-		return name, ""
+
+		if name == "" {
+			return "", "", errInvalidQuestion
+		}
+		return name, "", nil
 	}
-	return queryParts[n-1], ""
+	name := queryParts[n-1]
+	if name == "" {
+		return "", "", errInvalidQuestion
+	}
+	return queryParts[n-1], "", nil
 }
 
 // getQueryTenancy returns a discovery.QueryTenancy from a DNS message.
