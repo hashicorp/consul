@@ -1,7 +1,9 @@
-<h1>
+<h1
   <img src="./website/public/img/logo.svg" align="left" height="46px" alt="Consul logo"/>
   <span>Consul</span>
 </h1>
+
+foo!
 
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL--1.1-yellow.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/hashicorp/consul.svg)](https://hub.docker.com/r/hashicorp/consul)
