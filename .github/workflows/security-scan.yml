@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
       - name: Get changed files
         id: read-files
-        run: ./.github/scripts/filter_changed_files_go_test.sh
+        run: ./.github/scripts/check_skip_ci.sh
 
   setup:
     needs: [conditional-skip]
