@@ -390,6 +390,10 @@
             "path": "services/discovery/dns-configuration"
           },
           {
+            "title": "Configure DNS forwarding",
+            "path": "services/discovery/dns-forwarding"
+          },
+          {
             "title": "Perform static DNS lookups",
             "path": "services/discovery/dns-static-lookups"
           },

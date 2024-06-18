@@ -1,239 +1,77 @@
 ---
 layout: docs
-page_title: Enable dynamic DNS queries
+page_title: DNS Forwarding
 description: ->
-    You tune Consul DNS query handling to balance between current information and reducing request response time. Learn how to enable caching by modifying TTL values, how to return stale results from the DNS cache, and how to configure Consul for negative response caching.
+    Learn how to configure your local DNS servers to perform DNS forwarding to Consul servers.
 ---
 
-# DNS caching
+# DNS Forwarding
 
-This page describes the process to return cached results in response to DNS lookups. Consul agents can use DNS caching to reduce response time, but might provide stale information in the process.
+The first block is the description. It explains what the topic is about. If the page description and the topic introduction are short, you can merge the information into a single description block, but we recommend using separate blocks to help you draft the content. 
 
-## Introduction
+> **Tutorial**: Learn how to perform this task in a [tutorial](link). 
 
-By default, Consul serves all DNS results with a `0` TTL value, which prevents any 
-caching. This configuration returns the most recent information because each DNS lookup 
-runs every time. However, this configuration adds latency to each lookup and can potentially 
-exhaust the query throughput of a datacenter.
+## Background
 
-There are several ways you can modify to fine-tune Consul DNS lookup behavior to best suit your network's requirements.
+By default, DNS is served from port 53. On most operating systems, this requires elevated privileges. Rather than running Consul with an administrative or root account, you can forward appropriate queries to Consul (running on an unprivileged port) from another DNS server or port redirect.
 
-## TTL values ((#ttl))
+## Requirements
 
-You can configure TTL values in the [agent configuration file](/consul/docs/agent/config/config-files) to allow DNS results to be cached downstream of Consul. 
-Higher TTL values reduce the number of lookups on the Consul servers and speed 
-lookups for clients, at the cost of increasingly stale results. By default, all 
-TTLs are zero, preventing any caching.
+To complete this tutorial, you will need a running Consul agent. Consul should be running with default settings and serving DNS on port 8600.
 
-<CodeTabs>
+By default, Consul does not resolve DNS records outside the .consul. zone unless the recursors configuration option has been set. For example, if a Consul DNS reply includes a CNAME record pointing outside the .consul top level domain (TLD), then the DNS reply will only include CNAME records by default. When recursors is set and the upstream resolver is functioning correctly, however, Consul will try to resolve CNAMEs and include any records (e.g., A, AAAA, PTR) for them in its DNS reply. 
 
-```hcl
-dns_config {
-  service_ttl {
-    "*" = "0s"
-  }
-  node_ttl = "0s"
-}
-```
+The requirements block describes the following information necessary to operate the product as described in the topic:
 
-```json
-{
-  "dns_config": {
-    "service_ttl": {
-      "*": "0s"
-    },
-    "node_ttl": "0s"
-  }
-}
-```
+- system
+- environment
+- software requirements
+- product version: Note that because we have versioned docs, specifying the core product version is not as important as version requirements for ancillary software, such as `kubectl`.
 
-</CodeTabs>
+### Sub requirement 
 
-### Enable caching
+The requirements section may include the following information:
 
-To enable caching of node lookups, set the
-[`dns_config.node_ttl`](/consul/docs/agent/config/config-files#node_ttl) 
-value. This can be set to `10s` for example, and all node lookups will serve 
-results with a 10 second TTL.
+- prerequisites
+- constraints
+- any other conditions or operating parameters
 
-Service TTLs can be specified in a more granular fashion. You can set TTLs
-per-service, with a wildcard TTL as the default. This is specified using the
-[`dns_config.service_ttl`](/consul/docs/agent/config/config-files#service_ttl)
-map. The `*` is supported at the end of any prefix and has a lower precedence
-than strict match, so `my-service-x` has precedence over `my-service-*`. When
-performing wildcard match, the longest path is taken into account, thus
-`my-service-*` TTL will be used instead of `my-*` or `*`. With the same rule,
-`*` is the default value when nothing else matches. If no match is found the TTL
-defaults to 0.
+## Multi-step procedure
 
-For example, a [`dns_config`](/consul/docs/agent/config/config-files#dns_config) 
-that provides a wildcard TTL and a specific TTL for a service might look like this:
+Depending on the context, you can either add an introduction statement about the procedure or begin describing the procedure directly.
 
-<CodeTabs>
+1. If the procedure describes a series of commands, we recommend setting environment variables as the first step so that you can use the variable name in subsequent commands. In some cases, you can place the response or output into the same code block. Always link to the relevant [reference documentation](link):
 
-```hcl
-dns_config {
-  service_ttl {
-    "*" = "5s"
-    "web" = "30s"
-    "db*" = "10s"
-    "db-master" = "3s"
-  }
-}
-```
+   <COMMAND>
+   <RESPONSE>
 
-```json
-{
-  "dns_config": {
-    "service_ttl": {
-      "*": "5s",
-      "web": "30s",
-      "db*": "10s",
-      "db-master": "3s"
-    }
-  }
-}
-```
+   Provide any additional context about the step as either a new paragraph in the step or as a list nested within the step.
 
-</CodeTabs>
+1. The next step may require the user to configure a file. Always link to the relevant [reference documentation](link). Use appropriate code blocks as necessary:
 
-This sets all lookups to "web.service.consul" to use a 30 second TTL
-while lookups to "api.service.consul" will use the 5 second TTL from the wildcard.
-All lookups matching "db\*" would get a 10 seconds TTL except "db-master" that 
-would have a 3 seconds TTL.
+   <CodeBlock>
 
-### Prepared queries
+   ```lang
+   Some.code = value
+   ```
 
-[Prepared Queries](/consul/api-docs/query) provide an additional
-level of control over TTL. They allow for the TTL to be defined along with
-the query, and they can be changed on the fly by updating the query definition.
-If a TTL is not configured for a prepared query, then it will fall back to the
-service-specific configuration defined in the Consul agent as described above,
-and ultimately to 0 if no TTL is configured for the service in the Consul agent.
+   </CodeBlock>
 
-<a name="stale"></a>
+1. The final step may require another command. Always link to the relevant [reference documentation](link):
 
-## Stale reads
+   <COMMAND>
 
-Stale reads can be used to reduce latency and increase the throughput of DNS
-queries. The [settings](/consul/docs/agent/config/config-files) used to
-control stale reads of DNS queries are:
+   If the response or outcome requires additional explanation, describe it as part of the step:
 
-- [`dns_config.allow_stale`](/consul/docs/agent/config/config-files#allow_stale) must be
-  set to true to enable stale reads.
-- [`dns_config.max_stale`](/consul/docs/agent/config/config-files#max_stale) limits how stale results
-  are allowed to be when querying DNS.
+   <RESPONSE>
 
-With these two settings you can allow or prevent stale reads. Below we will 
-discuss the advantages and disadvantages of both.
+### Single-step procedure   
 
-### Allow stale reads
+The single-step procedure (SSP) block describes a procedure or group of procedures that result in a specific outcome. Use SSP blocks when step-by-step instructions are not feasible. 
 
-Since Consul 0.7.1, `allow_stale` is enabled by default and uses a `max_stale`
-value that defaults to a near-indefinite threshold (10 years). This allows DNS 
-queries to continue to be served in the event of a long outage with no leader. A 
-new telemetry counter has also been added at `consul.dns.stale_queries` to track 
-when agents serve DNS queries that are stale by more than 5 seconds.
+## Next steps
 
-<CodeTabs>
+Introduce related tasks that either enhance this topic or are necessary to achieve a larger goal. Next steps link to other usage pages, rather than additional conceptual or reference information:  
 
-```hcl
-dns_config {
-  allow_stale = true
-  max_stale = "87600h"
-}
-```
-
-```json
-{
-  "dns_config": {
-    "allow_stale": true,
-    "max_stale": "87600h"
-  }
-}
-```
-
-</CodeTabs>
-
-
-<Note>
-
- The above example is the default setting. You do not need to set it explicitly.
-
-</Note>
-
-Doing a stale read allows any Consul server to service a query, but non-leader 
-nodes may return data that is out-of-date. By allowing data to be slightly 
-stale, you get horizontal read scalability. Now any Consul server can service 
-the request, so you increase throughput by the number of servers in a datacenter.
-
-### Prevent stale reads
-
-If you want to prevent stale reads or limit how stale they can be, you can set 
-`allow_stale` to false or use a lower value for `max_stale`. Doing the first 
-will ensure that all reads are serviced by a 
-[single leader node](/consul/docs/architecture/consensus).
-The reads will then be strongly consistent but will be limited by the throughput
-of a single node.
-
-<CodeTabs>
-
-```hcl
-dns_config {
-  allow_stale = false
-}
-```
-
-```json
-{
-  "dns_config": {
-    "allow_stale": false
-  }
-}
-```
-
-</CodeTabs>
-
-## Negative response caching
-
-Although DNS clients cache negative responses, Consul returns a "not
-found" style response when a service exists but there are no healthy
-endpoints. When using DNS for service discovery, cached negative responses may
-cause a service to appear down for longer than it is actually unavailable.
-
-### Configure SOA
-
-In Consul v1.3.0 and newer, it is now possible to tune SOA responses and modify 
-the negative TTL cache for some resolvers. It can be achieved using the 
-[`soa.min_ttl`](/consul/docs/agent/config/config-files#soa_min_ttl)
-configuration within the [`soa`](/consul/docs/agent/config/config-files#soa) configuration.
-
-<CodeTabs>
-
-```hcl
-dns_config {
-  soa {
-    min_ttl = 60
-  }
-}
-```
-
-```json
-{
-  "dns_config": {
-    "soa": {
-      "min_ttl": 60
-    }
-  }
-}
-```
-
-</CodeTabs>
-
-One common example is that Windows will default to caching negative responses
-for 15 minutes. DNS forwarders may also cache negative responses, with the same
-effect. To avoid this problem, check the negative response cache defaults for
-your client operating system and any DNS forwarder on the path between the
-client and Consul and set the cache values appropriately. In many cases
-"appropriately" means turning negative response caching off to get the best
-recovery time when a service becomes available again.
+- [Title of the topic]()
+- [Title of the topic]()
