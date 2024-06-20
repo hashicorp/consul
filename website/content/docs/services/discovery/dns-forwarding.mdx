@@ -174,9 +174,9 @@ In this example, BIND and Consul are running on the same machine.
 
  If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
  
+ </Note>
+ 
  <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
-
-</Note>
 
 First, disable DNSSEC so that Consul and [BIND](https://www.isc.org/downloads/bind/) can communicate. The following example shows a BIND configuration with DNSSEC disabled.
 
@@ -230,9 +230,9 @@ zone "consul" IN {
 
  If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
  
- <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
-
 </Note>
+
+ <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
 
 [Dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) is typically configured via a `dnsmasq.conf` or a series of files in
 the `/etc/dnsmasq.d` directory. Add the following settings to your dnsmasq configuration file
@@ -300,9 +300,9 @@ for additional details.
 
  If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
  
- <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
-
 </Note>
+ 
+ <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
 
 [Unbound](https://www.unbound.net/) is typically configured in a `unbound.conf` file or a series of files in
 the `/etc/unbound/unbound.conf.d` directory. Add the following settings to your Unbound configuration file
@@ -334,7 +334,6 @@ include: "/etc/unbound/unbound.conf.d/*.conf"
 ```
 
 </CodeBlockConfig>
-
 
 </Tab>
 <Tab heading="iptables" group="iptables">
