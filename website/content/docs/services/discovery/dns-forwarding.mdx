@@ -160,9 +160,9 @@ DNSStubListener=false
 
 </CodeBlockConfig>
 
-Disabling the local resolver stub can also solve other DNS configuration issues. 
+Disabling the local resolver stub can also solve other DNS configuration issues.
 
-<!-- See [Troubleshooting](#troubleshooting) for additional information. -->
+{/* <!-- See [Troubleshooting](#troubleshooting) for additional information. --> */}
 
 </Tab>
 <Tab heading="BIND" group="bind">
@@ -171,11 +171,11 @@ In this example, BIND and Consul are running on the same machine.
 
 <Note>
 
- If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
- 
+ If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example.
+
  </Note>
- 
- <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
+
+ {/* <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. --> */}
 
 First, disable DNSSEC so that Consul and [BIND](https://www.isc.org/downloads/bind/) can communicate. The following example shows a BIND configuration with DNSSEC disabled.
 
@@ -227,11 +227,11 @@ zone "consul" IN {
 
 <Note>
 
- If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
- 
+ If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example.
+
 </Note>
 
- <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
+ {/* <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. --> */}
 
 [Dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) is typically configured via a `dnsmasq.conf` or a series of files in
 the `/etc/dnsmasq.d` directory. Add the following settings to your dnsmasq configuration file
@@ -298,11 +298,11 @@ for additional details.
 
 <Note>
 
- If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
- 
+ If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example.
+
 </Note>
- 
- <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
+
+ {/* <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. --> */}
 
 [Unbound](https://www.unbound.net/) is typically configured in a `unbound.conf` file or a series of files in
 the `/etc/unbound/unbound.conf.d` directory. Add the following settings to your Unbound configuration file
@@ -383,9 +383,9 @@ The configuration informs the macOS resolver daemon to forward all `.consul` TLD
 </Tab>
 </Tabs>
 
-<!-- The first block is the description. It explains what the topic is about. If the page description and the topic introduction are short, you can merge the information into a single description block, but we recommend using separate blocks to help you draft the content. 
+{/* <!-- The first block is the description. It explains what the topic is about. If the page description and the topic introduction are short, you can merge the information into a single description block, but we recommend using separate blocks to help you draft the content. --> */}
 
-> **Tutorial**: Learn how to perform this task in a [tutorial](link). 
+> **Tutorial**: Learn how to perform this task in a [tutorial](link).
 
 ## Background
 
@@ -395,7 +395,7 @@ By default, DNS is served from port 53. On most operating systems, this requires
 
 To complete this tutorial, you will need a running Consul agent. Consul should be running with default settings and serving DNS on port 8600.
 
-By default, Consul does not resolve DNS records outside the .consul. zone unless the recursors configuration option has been set. For example, if a Consul DNS reply includes a CNAME record pointing outside the .consul top level domain (TLD), then the DNS reply will only include CNAME records by default. When recursors is set and the upstream resolver is functioning correctly, however, Consul will try to resolve CNAMEs and include any records (e.g., A, AAAA, PTR) for them in its DNS reply. 
+By default, Consul does not resolve DNS records outside the .consul. zone unless the recursors configuration option has been set. For example, if a Consul DNS reply includes a CNAME record pointing outside the .consul top level domain (TLD), then the DNS reply will only include CNAME records by default. When recursors is set and the upstream resolver is functioning correctly, however, Consul will try to resolve CNAMEs and include any records (e.g., A, AAAA, PTR) for them in its DNS reply.
 
 The requirements block describes the following information necessary to operate the product as described in the topic:
 
@@ -404,7 +404,7 @@ The requirements block describes the following information necessary to operate 
 - software requirements
 - product version: Note that because we have versioned docs, specifying the core product version is not as important as version requirements for ancillary software, such as `kubectl`.
 
-### Sub requirement 
+### Sub requirement
 
 The requirements section may include the following information:
 
@@ -418,8 +418,10 @@ Depending on the context, you can either add an introduction statement about the
 
 1. If the procedure describes a series of commands, we recommend setting environment variables as the first step so that you can use the variable name in subsequent commands. In some cases, you can place the response or output into the same code block. Always link to the relevant [reference documentation](link):
 
-   <COMMAND>
-   <RESPONSE>
+  ```
+  <COMMAND>
+  <RESPONSE>
+  ```
 
    Provide any additional context about the step as either a new paragraph in the step or as a list nested within the step.
 
@@ -435,19 +437,19 @@ Depending on the context, you can either add an introduction statement about the
 
 1. The final step may require another command. Always link to the relevant [reference documentation](link):
 
-   <COMMAND>
+   `<COMMAND>`
 
    If the response or outcome requires additional explanation, describe it as part of the step:
 
-   <RESPONSE>
+   `<RESPONSE>`
 
-### Single-step procedure   
+### Single-step procedure
 
-The single-step procedure (SSP) block describes a procedure or group of procedures that result in a specific outcome. Use SSP blocks when step-by-step instructions are not feasible. 
+The single-step procedure (SSP) block describes a procedure or group of procedures that result in a specific outcome. Use SSP blocks when step-by-step instructions are not feasible.
 
 ## Next steps
 
-Introduce related tasks that either enhance this topic or are necessary to achieve a larger goal. Next steps link to other usage pages, rather than additional conceptual or reference information:  
+Introduce related tasks that either enhance this topic or are necessary to achieve a larger goal. Next steps link to other usage pages, rather than additional conceptual or reference information:
 
 - [Title of the topic]()
-- [Title of the topic]() -->
+- [Title of the topic]()
