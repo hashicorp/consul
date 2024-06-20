@@ -22,8 +22,8 @@ Test content
 You can use the [`systemd-resolved`](https://www.freedesktop.org/wiki/Software/systemd/resolved/) service to resolve local application names in your network. To use the service, configure `systemd-resolved` to send `.consul` domain queries to Consul by creating `consul.conf` file located in the /etc/systemd/resolved.conf.d/ directory.
 
 <Tabs>
-  <Tab heading="systemd 245 and older">
 
+  <Tab heading="systemd 245 and older">
 
 Add the following settings to your resolved configuration file:
 
@@ -56,8 +56,8 @@ address. If Consul is not listening on the loopback IP, replace the references
 to 'localhost' and '127.0.0.1' with the appropriate IP address for your environment.
 
 </Tab>
-<Tab heading="systemd 246 and newer">
 
+<Tab heading="systemd 246 and newer">
 
 If your distribution uses systemd 246 and newer, you can specify the DNS port directly in the `systemd-resolved` configuration file.
 Previous versions of systemd required iptables rules to direct DNS traffic to Consul.
@@ -75,7 +75,6 @@ Domains=~consul
 
 </Tab>
 </Tabs>
-
 
 <Note>
 
@@ -294,6 +293,7 @@ for additional details.
 </CodeBlockConfig>
 
 </Tab>
+
 <Tab heading="Unbound" group="unbound">
 
 <Note>
@@ -336,6 +336,7 @@ include: "/etc/unbound/unbound.conf.d/*.conf"
 </CodeBlockConfig>
 
 </Tab>
+
 <Tab heading="iptables" group="iptables">
 
 The rules must be set on the same host as the Consul instance. Relay hosts _should not_ be on the same host, otherwise the redirects will intercept the traffic.
