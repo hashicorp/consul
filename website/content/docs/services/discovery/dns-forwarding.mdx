@@ -16,6 +16,7 @@ Test content
 ## DNS forwarding
 
 <Tabs>
+
 <Tab heading="systemd-resolved" group="systemd-resolved">
 
 You can use the [`systemd-resolved`](https://www.freedesktop.org/wiki/Software/systemd/resolved/) service to resolve local application names in your network. To use the service, configure `systemd-resolved` to send `.consul` domain queries to Consul by creating `consul.conf` file located in the /etc/systemd/resolved.conf.d/ directory.
