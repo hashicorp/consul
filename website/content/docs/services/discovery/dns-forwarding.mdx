@@ -21,61 +21,6 @@ Test content
 
 You can use the [`systemd-resolved`](https://www.freedesktop.org/wiki/Software/systemd/resolved/) service to resolve local application names in your network. To use the service, configure `systemd-resolved` to send `.consul` domain queries to Consul by creating `consul.conf` file located in the /etc/systemd/resolved.conf.d/ directory.
 
-<Tabs>
-
-  <Tab heading="systemd 245 and older">
-
-Add the following settings to your resolved configuration file:
-
-<CodeBlockConfig filename="/etc/systemd/resolved.conf.d/consul.conf">
-
-```ini
-[Resolve]
-DNS=127.0.0.1
-DNSSEC=false
-Domains=~consul
-```
-
-</CodeBlockConfig>
-
-The main limitation with this configuration is that systemd 245 and older does not support configuring port numbers in the DNS field. You can either [configure Consul to listen on port 53](/consul/docs/agent/config/config-files#dns_port)
-instead of 8600, or map port 53 to 8600 using `iptables`.
-
-Binding to port 53 usually requires running `systemd-resolved` as a privileged user or running Linux with the
-CAP_NET_BIND_SERVICE capability. If you are using the Consul Docker image, then you will need to add the following to the environment to allow Consul to use the port: `CONSUL_ALLOW_PRIVILEGED_PORTS=yes`
-
-The following `iptables` commands are sufficient to map the ports.
-
-```shell-session
-iptables --table nat --append OUTPUT --destination localhost --protocol udp --match udp --dport 53 --jump REDIRECT --to-ports 8600
-iptables --table nat --append OUTPUT --destination localhost --protocol tcp --match tcp --dport 53 --jump REDIRECT --to-ports 8600
-```
-
-~> The above configuration assumes Consul's DNS server is listening on the loopback
-address. If Consul is not listening on the loopback IP, replace the references
-to 'localhost' and '127.0.0.1' with the appropriate IP address for your environment.
-
-</Tab>
-
-<Tab heading="systemd 246 and newer">
-
-If your distribution uses systemd 246 and newer, you can specify the DNS port directly in the `systemd-resolved` configuration file.
-Previous versions of systemd required iptables rules to direct DNS traffic to Consul.
-
-<CodeBlockConfig filename="/etc/systemd/resolved.conf.d/consul.conf">
-
-```ini
-[Resolve]
-DNS=127.0.0.1:8600
-DNSSEC=false
-Domains=~consul
-```
-
-</CodeBlockConfig>
-
-</Tab>
-</Tabs>
-
 <Note>
 
  PTR record queries will still be sent out to the other configured resolvers, in addition to Consul.
@@ -162,8 +107,6 @@ DNSStubListener=false
 
 Disabling the local resolver stub can also solve other DNS configuration issues. 
 
-<!-- See [Troubleshooting](#troubleshooting) for additional information. -->
-
 </Tab>
 <Tab heading="BIND" group="bind">
 
@@ -175,8 +118,6 @@ In this example, BIND and Consul are running on the same machine.
  
  </Note>
  
- <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
-
 First, disable DNSSEC so that Consul and [BIND](https://www.isc.org/downloads/bind/) can communicate. The following example shows a BIND configuration with DNSSEC disabled.
 
 <CodeBlockConfig filename="/etc/named.conf">
@@ -230,8 +171,6 @@ zone "consul" IN {
  If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
  
 </Note>
-
- <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
 
 [Dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) is typically configured via a `dnsmasq.conf` or a series of files in
 the `/etc/dnsmasq.d` directory. Add the following settings to your dnsmasq configuration file
@@ -301,8 +240,6 @@ for additional details.
  If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
  
 </Note>
- 
- <!-- Refer to the guidance in the [systemd-resolved](#systemd-resolved-setup) instructions for additional information. -->
 
 [Unbound](https://www.unbound.net/) is typically configured in a `unbound.conf` file or a series of files in
 the `/etc/unbound/unbound.conf.d` directory. Add the following settings to your Unbound configuration file
@@ -383,71 +320,4 @@ The configuration informs the macOS resolver daemon to forward all `.consul` TLD
 </Tab>
 </Tabs>
 
-<!-- The first block is the description. It explains what the topic is about. If the page description and the topic introduction are short, you can merge the information into a single description block, but we recommend using separate blocks to help you draft the content. 
 
-> **Tutorial**: Learn how to perform this task in a [tutorial](link). 
-
-## Background
-
-By default, DNS is served from port 53. On most operating systems, this requires elevated privileges. Rather than running Consul with an administrative or root account, you can forward appropriate queries to Consul (running on an unprivileged port) from another DNS server or port redirect.
-
-## Requirements
-
-To complete this tutorial, you will need a running Consul agent. Consul should be running with default settings and serving DNS on port 8600.
-
-By default, Consul does not resolve DNS records outside the .consul. zone unless the recursors configuration option has been set. For example, if a Consul DNS reply includes a CNAME record pointing outside the .consul top level domain (TLD), then the DNS reply will only include CNAME records by default. When recursors is set and the upstream resolver is functioning correctly, however, Consul will try to resolve CNAMEs and include any records (e.g., A, AAAA, PTR) for them in its DNS reply. 
-
-The requirements block describes the following information necessary to operate the product as described in the topic:
-
-- system
-- environment
-- software requirements
-- product version: Note that because we have versioned docs, specifying the core product version is not as important as version requirements for ancillary software, such as `kubectl`.
-
-### Sub requirement 
-
-The requirements section may include the following information:
-
-- prerequisites
-- constraints
-- any other conditions or operating parameters
-
-## Multi-step procedure
-
-Depending on the context, you can either add an introduction statement about the procedure or begin describing the procedure directly.
-
-1. If the procedure describes a series of commands, we recommend setting environment variables as the first step so that you can use the variable name in subsequent commands. In some cases, you can place the response or output into the same code block. Always link to the relevant [reference documentation](link):
-
-   <COMMAND>
-   <RESPONSE>
-
-   Provide any additional context about the step as either a new paragraph in the step or as a list nested within the step.
-
-1. The next step may require the user to configure a file. Always link to the relevant [reference documentation](link). Use appropriate code blocks as necessary:
-
-   <CodeBlock>
-
-   ```lang
-   Some.code = value
-   ```
-
-   </CodeBlock>
-
-1. The final step may require another command. Always link to the relevant [reference documentation](link):
-
-   <COMMAND>
-
-   If the response or outcome requires additional explanation, describe it as part of the step:
-
-   <RESPONSE>
-
-### Single-step procedure   
-
-The single-step procedure (SSP) block describes a procedure or group of procedures that result in a specific outcome. Use SSP blocks when step-by-step instructions are not feasible. 
-
-## Next steps
-
-Introduce related tasks that either enhance this topic or are necessary to achieve a larger goal. Next steps link to other usage pages, rather than additional conceptual or reference information:  
-
-- [Title of the topic]()
-- [Title of the topic]() -->
