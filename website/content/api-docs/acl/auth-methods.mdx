@@ -107,6 +107,8 @@ The corresponding CLI command is [`consul acl auth-method create`](/consul/comma
     prefixed-${serviceaccount.name}
     ```
 
+@include 'http-api-body-options-partition.mdx'
+
 ### Sample Payload
 
 ```json
@@ -175,8 +177,10 @@ The corresponding CLI command is [`consul acl auth-method read`](/consul/command
 
 ### Query Parameters
 
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you lookup.
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you look up.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -291,8 +295,10 @@ The corresponding CLI command is [`consul acl auth-method update`](/consul/comma
     same values that are usable by the `Selector` syntax. For example:
 
     ```text
-    prefixed-${serviceaccount.name}
+    prefixed-${serviceaccount.name}    
     ```
+
+@include 'http-api-body-options-partition.mdx'
 
 ### Sample Payload
 
@@ -369,6 +375,8 @@ The corresponding CLI command is [`consul acl auth-method delete`](/consul/comma
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the auth method you delete.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
+@include 'http-api-query-parms-partition.mdx'
+
 ### Sample Request
 
 ```shell-session
@@ -408,8 +416,9 @@ The corresponding CLI command is [`consul acl auth-method list`](/consul/command
   The namespace may be specified as '\*' to return results for all namespaces.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-The namespace may be specified as '\*' and then
-  results will be returned for all namespaces.
+  The namespace may be specified as '\*' and then results are returned for all namespaces.
+
+@include 'http-api-query-parms-partition.mdx'
 
 ## Sample Request
 
