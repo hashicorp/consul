@@ -398,27 +398,27 @@
               },
               {
                 "title": "systemd-resolved",
-                "path": "services/discovery/systemd-resolved"
+                "path": "services/discovery/dns-forwarding/systemd-resolved"
               },
               {
                 "title": "dnsmasq",
-                "path": "services/discovery/dnsmasq"
+                "path": "services/discovery/dns-forwarding/dnsmasq"
               },
               {
                 "title": "BIND",
-                "path": "services/discovery/bind"
+                "path": "services/discovery/dns-forwarding/bind"
               },
               {
                 "title": "Unbound",
-                "path": "services/discovery/unbound"
+                "path": "services/discovery/dns-forwarding/unbound"
               },
               {
                 "title": "iptables",
-                "path": "services/discovery/iptables"
+                "path": "services/discovery/dns-forwarding/iptables"
               },
               {
                 "title": "macOS",
-                "path": "services/discovery/macOS"
+                "path": "services/discovery/dns-forwarding/macOS"
               }
             ]
           },
