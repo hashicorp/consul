@@ -390,35 +390,15 @@
             "path": "services/discovery/dns-configuration"
           },
           {
-            "title": "Configure DNS forwarding",
+            "title": "DNS forwarding",
             "routes": [
               {
                 "title": "Overview",
                 "path": "services/discovery/dns-forwarding"
               },
               {
-                "title": "systemd-resolved",
-                "path": "services/discovery/dns-forwarding/systemd-resolved"
-              },
-              {
-                "title": "dnsmasq",
-                "path": "services/discovery/dns-forwarding/dnsmasq"
-              },
-              {
-                "title": "BIND",
-                "path": "services/discovery/dns-forwarding/bind"
-              },
-              {
-                "title": "Unbound",
-                "path": "services/discovery/dns-forwarding/unbound"
-              },
-              {
-                "title": "iptables",
-                "path": "services/discovery/dns-forwarding/iptables"
-              },
-              {
-                "title": "macOS",
-                "path": "services/discovery/dns-forwarding/macOS"
+                "title": "Enable DNS forwarding",
+                "path": "services/discovery/dns-forwarding/enable"
               }
             ]
           },
