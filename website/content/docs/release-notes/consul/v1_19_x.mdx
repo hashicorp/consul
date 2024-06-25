@@ -37,11 +37,15 @@ For more detailed information, please refer to the [upgrade details page](/consu
 
 The following issues are known to exist in the v1.19.x releases:
 
-- v1.19.0 - DNS SRV records for registrations that specify a service address instead of a node address return identical `.service` hostnames instead of unique `.addr` addresses.
-    As a result, it is impossible to resolve the individual service addresses.
-    This bug can affect Nomad installations using Consul for service discovery because the service address field is always specified to Consul.
-    To revert to the old DNS behavior, set `experiments: [ "v1dns" ]` in the agent configuration.
-    We plan to include a fix in a future release of Consul v1.19.1 [[GH-21325](https://github.com/hashicorp/consul/issues/21325)].
+- v1.19.0 - There are known issues with the new DNS server implementation.
+To revert to the old DNS behavior, set `experiments: [ "v1dns" ]` in the agent configuration.
+Fixes will be included in Consul v1.19.1.
+  - DNS SRV records for registrations that specify a service address instead of a node address return identical `.service` hostnames instead of unique `.addr` addresses.
+  As a result, it is impossible to resolve the individual service addresses.
+  This bug can affect Nomad installations using Consul for service discovery because the service address field is always specified to Consul.
+  [[GH-21325](https://github.com/hashicorp/consul/issues/21325)].
+  - DNS Tags are not resolved when using the Standard query format, `tag.name.service.consul`. 
+  [[GH-21326](https://github.com/hashicorp/consul/issues/21336)].
 
 ## Changelogs
 
