@@ -23,6 +23,8 @@ We are pleased to announce the following Consul updates.
 
   Consul on Kubernetes deployments that use `consul-k8s` Helm chart v1.5.0 or later use file system certificates without additional configuration. For more information, refer to [File system certificate configuration reference](/consul/docs/connect/config-entries/file-system-certificate).
 
+- **Argo Rollouts Plugin**: A new Argo Rollouts plugin for progressive delivery is now available for `consul-k8s`. This plugin supports canary deployments by allowing you to incrementally release and test new versions of applications and roll back to previous versions by splitting traffic between subsets of services. Refer to [Argo Rollouts Progressive Delivery with Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/argo-rollouts-configuration) for more information. 
+
 ## What's deprecated
 
 - **Snapshot Agent (Enterprise):** Starting with this release, top level single snapshot destinations `local_storage`, `aws_storage`, `azure_blob_storage`, and `google_storage` in snapshot agent configuration files are deprecated. Use the [`backup_destinations`](/consul/commands/snapshot/agent#config-file) config object instead. 
