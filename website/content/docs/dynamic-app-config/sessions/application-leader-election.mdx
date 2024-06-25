@@ -7,4 +7,130 @@ description: >-
 
 # Application leader election
 
-test content
+Some distributed application, like HDFS, require to setup one instance as a 
+*leader*. This ensures the application data is current and stable.
+
+This guide describes how to build client-side leader elections for service
+instances, using Consul. Consul's support for
+[sessions](/consul/docs/dynamic-app-config/sessions) allows you to build a 
+system that can gracefully handle failures.
+
+This tutorial is not related to Consul's leader election. If you are interested 
+in the leader election used internally by Consul, please refer to the
+[consensus protocol](/consul/docs/architecture/consensus) documentation instead.
+
+<Tip>
+
+ The content of this guide also applies to Consul clusters hosted on HashiCorp Cloud (HCP).
+
+</Tip>
+
+## Background
+
+You have a set of service instances who are attempting to acquire leadership for 
+a given service. All service instances that are participating should agree on a 
+given key to coordinate. 
+
+A good pattern for choosing the key is:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+service/<service name>/leader
+```
+
+</CodeBlockConfig>
+
+For this guide, our key will be `service/dbservice/leader`.
+
+## Requirements
+
+- A running Consul server
+- If ACLs are enabled, a token with 
+  - `session:write` permissions over the session name, `dbservice` in this example
+  - `key:write` permissions over the agreed key, `service/dbservice/leader` in this example
+- The `curl` command
+
+## Multi-step procedure
+
+
+- Create a session
+- Acquire a session
+- Watch the session
+- Release the session
+
+### Create a new session
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=cc3c73f6-667a-339b-3de1-7167f8465c68
+```
+
+```shell-session
+$ curl --silent \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{"Name": "test"}' \
+  --request PUT \
+  http://127.0.0.1:8500/v1/session/create
+```
+
+```json
+{
+  "ID":"edccc8f5-62a6-dcbf-045b-514b440c9bc3"
+}
+```
+
+Check existing sessions
+
+```shell-session
+$ curl --silent \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --request GET \
+  http://127.0.0.1:8500/v1/session/list | jq
+```
+
+```json
+[
+  {
+    "ID": "edccc8f5-62a6-dcbf-045b-514b440c9bc3",
+    "Name": "test",
+    "Node": "hashicups-db-0",
+    "LockDelay": 15000000000,
+    "Behavior": "release",
+    "TTL": "",
+    "NodeChecks": [
+      "serfHealth"
+    ],
+    "ServiceChecks": null,
+    "CreateIndex": 131,
+    "ModifyIndex": 131
+  }
+]
+```
+
+
+### Acquire the session
+
+```shell-session
+$ curl --silent \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{"Node": "'`hostname`'"}' \
+  --request PUT \
+  http://localhost:8500/v1/kv/service/dbservice/leader?acquire=edccc8f5-62a6-dcbf-045b-514b440c9bc3 | jq
+```
+
+```shell-session
+$ curl  -X PUT -d '{"Name": "dbservice"}' http://localhost:8500/v1/session/create
+```
+
+```shell-session
+$ curl --silent \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data @svc-hashicups-db-api.json \
+  --request PUT \
+  http://127.0.0.1:8500/v1/agent/service/register
+```
+
+
+
+## Next steps
+
