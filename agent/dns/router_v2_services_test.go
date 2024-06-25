@@ -462,7 +462,7 @@ func Test_HandleRequest_V2Services(t *testing.T) {
 			},
 		},
 		{
-			name: "SRV Query with a multi-port service that has workloads w/ hostnames (no recursor)",
+			name: "SRV Query with a multi-port service that has workloads w/ hostnames (with recursor)",
 			request: &dns.Msg{
 				MsgHdr: dns.MsgHdr{
 					Opcode: dns.OpcodeQuery,
