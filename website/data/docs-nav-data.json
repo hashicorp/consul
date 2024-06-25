@@ -391,7 +391,36 @@
           },
           {
             "title": "Configure DNS forwarding",
-            "path": "services/discovery/dns-forwarding"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "services/discovery/dns-forwarding"
+              },
+              {
+                "title": "systemd-resolved",
+                "path": "services/discovery/systemd-resolved"
+              },
+              {
+                "title": "dnsmasq",
+                "path": "services/discovery/dnsmasq"
+              },
+              {
+                "title": "BIND",
+                "path": "services/discovery/bind"
+              },
+              {
+                "title": "Unbound",
+                "path": "services/discovery/unbound"
+              },
+              {
+                "title": "iptables",
+                "path": "services/discovery/iptables"
+              },
+              {
+                "title": "macOS",
+                "path": "services/discovery/macOS"
+              }
+            ]
           },
           {
             "title": "Perform static DNS lookups",
@@ -1045,16 +1074,7 @@
       },
       {
         "title": "Sessions",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "dynamic-app-config/sessions"
-          },
-          {
-            "title": "Application leader election",
-            "path": "dynamic-app-config/kv/application-leader-election"
-          }
-        ]
+        "path": "dynamic-app-config/sessions"
       },
       {
         "title": "Watches",

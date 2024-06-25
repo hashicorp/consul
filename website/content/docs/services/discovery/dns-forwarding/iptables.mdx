@@ -1,0 +1,43 @@
+---
+layout: docs
+page_title: DNS Forwarding with iptables
+description: ->
+  Learn how to configure iptablers to perform DNS forwarding to Consul servers.
+---
+
+# DNS Forwarding with iptables
+
+Test content
+
+## Background
+
+## Requirements
+
+## DNS forwarding
+
+
+
+The rules must be set on the same host as the Consul instance. Relay hosts _should not_ be on the same host, otherwise the redirects will intercept the traffic.
+
+On Linux systems that support it, incoming requests and requests to
+the local host can use [`iptables`](http://www.netfilter.org/) to forward to ports on the same machine
+without using a secondary service. The [`recursors`](/consul/docs/agent/config/config-files#recursors) flag is especially important for resolving other domains with `iptables`.
+This is because Consul only resolves the `.consul` TLD by default.
+Recursors should not include the local host address because the `iptables` redirects would intercept the requests.
+
+The `iptables` method is suitable for situations where an external DNS
+service is already running in your infrastructure and is used as the
+recursor. It is also a suitable method if you want to use an existing DNS server as your query
+endpoint and forward requests for the `consul` domain to the Consul
+server. In both cases, you may want to query the Consul server without the overhead of running a separate service on the Consul host.
+
+```shell-session
+iptables -t nat -A PREROUTING -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+iptables -t nat -A PREROUTING -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
+iptables -t nat -A OUTPUT -d localhost -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
+```
+
+## Next steps
+
+

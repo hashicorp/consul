@@ -1,0 +1,57 @@
+---
+layout: docs
+page_title: DNS Forwarding with Unbound
+description: ->
+  Learn how to configure your local unbound DNS server to perform DNS forwarding to Consul servers.
+---
+
+# DNS Forwarding with unbound
+
+Test content
+
+## Background
+
+## Requirements
+
+## DNS forwarding
+
+
+<Note>
+
+ If your distribution uses systemd, you may need to disable `systemd-resolved` prior to following this example. 
+ 
+</Note>
+
+[Unbound](https://www.unbound.net/) is typically configured in a `unbound.conf` file or a series of files in
+the `/etc/unbound/unbound.conf.d` directory. Add the following settings to your Unbound configuration file
+(e.g., `/etc/unbound/unbound.conf.d/consul.conf`):
+
+<CodeBlockConfig filename="/etc/unbound/unbound.conf.d/consul.conf">
+
+```plaintext
+#Allow insecure queries to local resolvers
+server:
+  do-not-query-localhost: no
+  domain-insecure: "consul"
+
+#Add consul as a stub-zone
+stub-zone:
+  name: "consul"
+  stub-addr: 127.0.0.1@8600
+```
+
+</CodeBlockConfig>
+
+You may have to add the following line to the bottom of your
+`/etc/unbound/unbound.conf` file for the new configuration to be included.
+
+<CodeBlockConfig filename="/etc/unbound/unbound.conf">
+
+```plaintext
+include: "/etc/unbound/unbound.conf.d/*.conf"
+```
+
+</CodeBlockConfig>
+
+## Next steps
+
