@@ -57,7 +57,7 @@ To use DNS forwarding in Consul deployments, complete the following steps:
 1. Query the Consul DNS to confirm that DNS forwarding functions correctly.
 
     ```shell-session
-    dig consul.service.consul A
+    $ dig consul.service.consul A
     
     ; <<>> DiG 9.16.48-Debian <<>> consul.service.consul A
     ;; global options: +cmd
@@ -139,7 +139,7 @@ Disable query logging:
 # resolvectl log-level info
 ```
 
-DNS forwarding may fail if you use the default `systemd-resolved` configuration and attempt to bind to 0.0.0.0. The default configuration uses a DNS stub that listens for UDP and TCP requests at 127.0.0.53. As a result, attempting to bind to 127.0.0.53 conflicts with the running stub. You can disable the stub as described in the [Using any local resolver with systemd](#using-any-local-resolver-with-systemd) section to troubleshoot this problem.
+DNS forwarding may fail if you use the default `systemd-resolved` configuration and attempt to bind to `0.0.0.0`. The default configuration uses a DNS stub that listens for UDP and TCP requests at `127.0.0.53`. As a result, attempting to bind to `127.0.0.53` conflicts with the running stub. You can disable the stub as described in the [Using any local resolver with systemd](/consul/docs/services/discovery/dns-forwarding/enable#using-any-local-resolver-with-systemd) section to troubleshoot this problem.
 
 ### Dnsmasq
 
@@ -158,16 +158,21 @@ $ rndc querylog
 ```
 
 Check logs:
+
 ```shell-session
 $ tail -f /var/log/messages
 ```
 
 The log may show errors like this:
 
-```plaintext hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```plaintext
 error (no valid RRSIG) resolving
 error (no valid DS) resolving
 ```
+
+</CodeBlockConfig>
 
 This indicates that `DNSSEC` is not disabled properly.
 
