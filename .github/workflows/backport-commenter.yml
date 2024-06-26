@@ -1,0 +1,79 @@
+# This workflow is responsible for validating backports and commenting on backport PRs tagging PR authors to merge in their backport PRs.
+# It is scheduled to run at 9:00 AM every day and will also run when manually triggered.
+
+name: Backport Commenter
+run-name: Validate backports and notify PRs owners
+on:
+  # TODO(jmurret): Re-enable before we merge this PR.
+  #   schedule:
+  #     - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: "A comma seperated string of the x.y versions representing the backport labels to check. Example: 1.13,1.14,1.15"
+        required: true
+        type: string
+      begin-date:
+        description: Begin Date to check for PRs being merged.  In the format of YYYY-MM-DD.
+        required: true
+        type: string
+  # TODO(jmurret): Remove this before we merge this PR.
+  push:
+    branches:
+      - jm/**
+
+env:
+  GOPRIVATE: github.com/hashicorp # Required for private/internal backport-checker repo
+  GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
+jobs:
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+  validate-backports-oss:
+    container: hashicorpdev/backport-assistant:claire-dev
+    runs-on: [ 'ubuntu-latest' ]
+    needs:
+      - get-go-version
+    steps:
+      - name: backport commenter
+        env:
+          # this allows us to be able to run the workflow manually and input the versions and begin date
+          # and also allows us to use the repository environment variables as well if we were to run the workflow on a schedule.
+          # NOTE: The repository variables override the inputs if they are set. If you are using the workflow_dispatch, ensure
+          # you are unsetting the repository variables if you want to use the inputs.
+
+          # TODO(jmurret): Remove this before we merge this PR.
+          BEGIN_DATE: "2024-03-26" # "${{ github.event.inputs.begin-date || vars.BEGIN_DATE }}"
+          VERSIONS: "1.15,1.16,1.17,1.18,1.19" #"${{ github.event.inputs.versions || vars.VERSIONS }}"
+          OWNER: hashicorp
+          REPO: consul
+          SYNC_REPO: consul-enterprise
+        run: |
+          backport-assistant validate \
+            --owner ${{ env.OWNER }} --repo ${{ env.REPO }} --sync-repo ${{ env.SYNC_REPO }} --versions "${{ env.VERSIONS }}" \
+            --begin-date ${{ env.BEGIN_DATE }} --add-comment
+  validate-backports-enterprise:
+    container: hashicorpdev/backport-assistant:claire-dev
+    runs-on: [ 'ubuntu-latest' ]
+    # needs to run serially because github search api limits to 30 req/minute.
+    # running in parallel will push it over the limit.
+    needs:
+      - validate-backports-oss
+      - get-go-version
+    if: ${{ always() }}
+    steps:
+      - name: backport commenter
+        env:
+          # this allows us to be able to run the workflow manually and input the versions and begin date
+          # and also allows us to use the repository environment variables as well if we were to run the workflow on a schedule.
+          # NOTE: The repository variables override the inputs if they are set. If you are using the workflow_dispatch, ensure
+          # you are unsetting the repository variables if you want to use the inputs.
+          # TODO(jmurret): Remove this before we merge this PR.
+          BEGIN_DATE: "2024-03-26" # "${{ github.event.inputs.begin-date || vars.BEGIN_DATE }}"
+          VERSIONS: "1.15,1.16,1.17,1.18,1.19" #"${{ github.event.inputs.versions || vars.VERSIONS }}"
+          OWNER: hashicorp
+          REPO: consul-enterprise
+        run: |
+          backport-assistant validate \
+            --owner ${{ env.OWNER }} --repo ${{ env.REPO }} --versions "${{ env.VERSIONS }}" \
+            --begin-date ${{ env.BEGIN_DATE }} --add-comment
