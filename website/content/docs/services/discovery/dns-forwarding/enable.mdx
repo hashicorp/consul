@@ -193,7 +193,7 @@ Disabling the local resolver stub can also solve other DNS configuration issues.
 
 ## Dnsmasq
 
-[Dnsmasq]((http://www.thekelleys.org.uk/dnsmasq/doc.html)) provides network infrastructure for small networks: DNS, DHCP, router advertisement and network boot. It is designed to be lightweight and have a small footprint.
+[Dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) provides network infrastructure for small networks: DNS, DHCP, router advertisement and network boot. It is designed to be lightweight and have a small footprint.
 
 <Note>
 
@@ -408,10 +408,17 @@ Once configured Consul to use a valid recursor, add rules to `iptables` to redir
 ## macOS
 
 On macOS systems, you can use the macOS system resolver to point all `.consul` requests to Consul.
-Documentation for this feature is available via: `man 5 resolver`.
-You must add a resolver entry in `/etc/resolver/` to point at Consul. If you do not have this folder, create it.
-To configure a resolver entry, you will need sudo/root access. Create a new file `/etc/resolver/consul`,
-and add the following text to the file:
+Documentation for this feature is available via the `man 5 resolver` command.
+
+To configure the macOS system resolver to forward DNS queries to Consul you must add a resolver entry in the `/etc/resolver/` directory that points at the Consul agent. 
+
+If you do not have this folder, create it.
+
+```shell-session
+# mkdir -p /etc/resolver
+```
+ 
+Create a new file `/etc/resolver/consul`, and add the following text to the file:
 
 <CodeBlockConfig filename="/etc/resolver/consul">
 
@@ -423,3 +430,11 @@ port 8600
 </CodeBlockConfig>
 
 The configuration informs the macOS resolver daemon to forward all `.consul` TLD requests to 127.0.0.1 on port 8600.
+
+## Next steps
+
+This guide helped you configure your node DNS to forward requests to Consul.
+
+To learn more on how to query Consul DNS once forwarding is enabled refer to [DNS forwarding workflow](/consul/docs/services/discovery/dns-forwarding#workflow).
+
+For more information over other DNS features and configurations available in Consul refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview).
