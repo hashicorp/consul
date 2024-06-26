@@ -85,7 +85,7 @@ jobs:
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+    - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make proto-tools
@@ -111,7 +111,7 @@ jobs:
      - name: Setup Git
        if: ${{ endsWith(github.repository, '-enterprise') }}
        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-     - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+     - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
        with:
          go-version: ${{ needs.get-go-version.outputs.go-version }}
      - run: make --always-make codegen
@@ -132,7 +132,7 @@ jobs:
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+    - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
@@ -147,7 +147,7 @@ jobs:
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+    - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make lint-container-test-deps
@@ -163,7 +163,7 @@ jobs:
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+    - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make lint-consul-retry
