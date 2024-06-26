@@ -172,6 +172,8 @@ The corresponding CLI command is [`consul acl binding-rule create`](/consul/comm
   This field takes precedence over the `ns` query parameter,
   one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
+@include 'http-api-body-options-partition.mdx'
+
 ### Sample Payload
 
 ```json
@@ -237,6 +239,8 @@ The corresponding CLI command is [`consul acl binding-rule read`](/consul/comman
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the binding rule you lookup.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -423,6 +427,8 @@ The corresponding CLI command is [`consul acl binding-rule update`](/consul/comm
   This field takes precedence over the `ns` query parameter,
   one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
+@include 'http-api-body-options-partition.mdx'
+
 ### Sample Payload
 
 ```json
@@ -489,6 +495,8 @@ The corresponding CLI command is [`consul acl binding-rule delete`](/consul/comm
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the binding rule you delete.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
+@include 'http-api-query-parms-partition.mdx'
+
 ### Sample Request
 
 ```shell-session
@@ -530,6 +538,8 @@ The corresponding CLI command is [`consul acl binding-rule list`](/consul/comman
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Return only the binding rules in the specified namespace.
   The namespace may be specified as '\*' to return results for all namespaces.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ## Sample Request
 
