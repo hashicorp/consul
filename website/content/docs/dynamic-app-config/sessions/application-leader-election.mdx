@@ -57,7 +57,7 @@ The workflow for building a client-side leader election process is composed of t
 
 * For the client that acquires the lock
     1. Periodically, [renew the session](#renew-a-session) to avoid expiration.
-    1. Optionally, [release the session](#release-a-session).
+    1. Optionally, [release the lock](#release-a-lock).
 
 * For other services
     1. [Watch the KV key](#watch-the-kv-key-for-locks) to verify there is at least one process holding the lock.
@@ -65,41 +65,42 @@ The workflow for building a client-side leader election process is composed of t
 
 ## Create a new session
 
-Create a configuration for the session.
+Create a configuration for the session. 
+The minimum viable configuration is shown in the example below and only requires to specify the session name:
 
+<CodeBlockConfig hideClipboard>
 
+```json
+{
+  "Name": "session_name"
+}
+```
+
+</CodeBlockConfig>
 
 Create a session using the [Session HTTP API](/consul/api-docs/session).
-
-
-
-## Acquire the lock
-
-## Watch the KV key for locks
-
-## Renew a session
-
-## Release a session
-
-```shell-session
-$ export CONSUL_HTTP_TOKEN=cc3c73f6-667a-339b-3de1-7167f8465c68
-```
 
 ```shell-session
 $ curl --silent \
   --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
-  --data '{"Name": "test"}' \
+  --data '{"Name": "'`hostname`'"}' \
   --request PUT \
-  http://127.0.0.1:8500/v1/session/create
+  http://127.0.0.1:8500/v1/session/create | jq
 ```
+
+In the example we use the `hostname` of the node as the session name.
+
+The command returns a JSON object containing the ID of the newly created session:
 
 ```json
 {
-  "ID":"edccc8f5-62a6-dcbf-045b-514b440c9bc3"
+  "ID": "d21d60ad-c2d2-b32a-7432-ca4048a4a7d6"
 }
 ```
 
-Check existing sessions
+### Verify created session info
+
+Use the `/v1/session/list` endpoint to retrieve existing sessions.
 
 ```shell-session
 $ curl --silent \
@@ -108,11 +109,15 @@ $ curl --silent \
   http://127.0.0.1:8500/v1/session/list | jq
 ```
 
+The command returns a JSON array containing all available sessions in the system.
+
+<CodeBlockConfig hideClipboard>
+
 ```json
 [
   {
-    "ID": "edccc8f5-62a6-dcbf-045b-514b440c9bc3",
-    "Name": "test",
+    "ID": "d21d60ad-c2d2-b32a-7432-ca4048a4a7d6",
+    "Name": "hashicups-db-0",
     "Node": "hashicups-db-0",
     "LockDelay": 15000000000,
     "Behavior": "release",
@@ -121,36 +126,291 @@ $ curl --silent \
       "serfHealth"
     ],
     "ServiceChecks": null,
-    "CreateIndex": 131,
-    "ModifyIndex": 131
+    "CreateIndex": 11956,
+    "ModifyIndex": 11956
   }
 ]
 ```
 
+</CodeBlockConfig>
 
-### Acquire the session
+You can verify from thre output that the session got reated associated with the `hashicups-db-0` node that is the client agent where the API request was made.
+
+With the exception of the `Name` parameter, all other settings are left to the default value. The session is created without a `TTL` value, this means that it will never expire and will require an explicit deletion.
+
+Depending on your needs you can create sessions specifying more parameters such as:
+
+- `TTL` - If provided, the session is invalidated and deleted if it is not renewed before the TTL expires.
+- `ServiceChecks` - Specifies a list of service checks to monitor. The session is invalidated if the checks get into critical state.
+
+By setting these extra parameters you can create client-side leader election workflow that will automatically release the lock after a certain period of time after the latest renew or that automatically release locks when the service holding them fails.
+
+For a full list of parameters available refer to the [Create Session API documentation](/consul/api-docs/session#create-session).
+
+## Acquire the lock
+
+Create the data object to associate to the lock request.
+
+The data of the request should be a JSON object representing the local instance. This value is opaque to Consul, but it should contain whatever information clients require to communicate with your application. For example it could be a JSON object that contains the node's name and the application's port.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+{
+  "Node": "node-name",
+  "Port": "8080"
+}
+```
+
+</CodeBlockConfig>
+
+
+
+<Tabs>
+<Tab heading="API" group="api">
+
+Acquire a lock for a given key using the PUT method on a [KV entry](/consul/api-docs/kv) with the
+`?acquire=<session>` query parameter.
 
 ```shell-session
 $ curl --silent \
   --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
   --data '{"Node": "'`hostname`'"}' \
   --request PUT \
-  http://localhost:8500/v1/kv/service/dbservice/leader?acquire=edccc8f5-62a6-dcbf-045b-514b440c9bc3 | jq
+  http://localhost:8500/v1/kv/service/leader?acquire=d21d60ad-c2d2-b32a-7432-ca4048a4a7d6 | jq
 ```
 
+This will either return `true` or `false`. If `true`, the lock has been acquired and
+the local service instance is now the leader. If `false` is returned, some other node has acquired
+the lock.
+
+
+</Tab>
+<Tab heading="CLI" group="cli">
+
+
+
 ```shell-session
-$ curl  -X PUT -d '{"Name": "dbservice"}' http://localhost:8500/v1/session/create
+$ consul kv put -acquire -session=d21d60ad-c2d2-b32a-7432-ca4048a4a7d6 /service/leader '{"Node": "'`hostname`'"}'
 ```
+
+In case of success the command will exit with exit code `0` and output the following:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Lock acquired on: service/leader
+```
+
+</CodeBlockConfig>
+
+If the lock was already acquired by another node, the command will exit with exit code `1` and output the following:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Error! Did not acquire lock
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+In the example we used the `hostname` of the node as the key data. This can be used by the other services to create the configuration files.
+
+<Note>
+
+This locking system is purely _advisory_. There is no enforcement that clients must acquire a lock to perform any operation. Any client can read, write, and delete a key without owning the corresponding lock. It is not the goal of Consul to protect against misbehaving clients.
+
+</Note>
+
+## Watch the KV key for locks
+
+Existing locks needs to be monitored by all nodes involved in the client-side leader elections as well as by the other nodes that need to know the identity of the leader.
+
+ - lock holders need to monitor the lock because the session might get invalidated by an operator
+ - other services that want to acquire the lock need to monitor it to check if the lock is released and they can try acquire the lock
+ - other nodes need to monitor the lock to see if the value of the key changed and they need to update their configuration accordingly
+
+<Tabs>
+<Tab heading="API" group="api">
+
+Monitor the lock using the GET method on a [KV entry](/consul/api-docs/kv) with the blocking query enabled.
+
+First, verify the latest index for the current value:
 
 ```shell-session
 $ curl --silent \
   --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
-  --data @svc-hashicups-db-api.json \
-  --request PUT \
-  http://127.0.0.1:8500/v1/agent/service/register
+  --request GET \
+  http://127.0.0.1:8500/v1/kv/service/leader?index=1 | jq
 ```
 
+The command will output the key data, including the `ModifyIndex` for the object.
 
+<CodeBlockConfig hideClipboard highlight="9">
 
-## Next steps
+```json
+[
+  {
+    "LockIndex": 0,
+    "Key": "service/leader",
+    "Flags": 0,
+    "Value": "eyJOb2RlIjogImhhc2hpY3Vwcy1kYi0wIn0=",
+    "Session": "d21d60ad-c2d2-b32a-7432-ca4048a4a7d6",
+    "CreateIndex": 12399,
+    "ModifyIndex": 13061
+  }
+]
+```
+
+</CodeBlockConfig>
+
+Using the value of the `ModifyIndex` it is possible to run a blocking query against the lock:
+
+```shell-session
+$ curl --silent \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --request GET \
+  http://127.0.0.1:8500/v1/kv/service/leader?index=13061 | jq
+```
+The command will hang until a change is made on the KV path and after that the path data will be printed on the console.
+
+<CodeBlockConfig hideClipboard highlight="9">
+
+```json
+[
+  {
+    "LockIndex": 0,
+    "Key": "service/leader",
+    "Flags": 0,
+    "Value": "eyJOb2RlIjogImhhc2hpY3Vwcy1kYi0xIn0=",
+    "Session": "d21d60ad-c2d2-b32a-7432-ca4048a4a7d6",
+    "CreateIndex": 12399,
+    "ModifyIndex": 13329
+  }
+]
+```
+
+</CodeBlockConfig>
+
+For automation purposes it will be necessary to add some more logic to the blocking query mechanism to trigger a command everytime a change is returned.
+A better approach is to use the CLI command `consul watch`.
+
+</Tab>
+<Tab heading="CLI" group="cli">
+
+Monitor the lock using the [`consul watch`](/consul/commands/watch) command.
+
+```shell-session
+$ consul watch -type=key -key=service/leader cat | jq
+```
+
+In this example the output of the command is printed on the shell, but is possible to pass more complex option to ther command as well as a script that contains more complex logic to react to the lock data change.
+
+An example output for the command is:
+
+<CodeBlockConfig hideClipboard>
+
+```json
+{
+  "Key": "service/leader",
+  "CreateIndex": 12399,
+  "ModifyIndex": 13061,
+  "LockIndex": 0,
+  "Flags": 0,
+  "Value": "eyJOb2RlIjogImhhc2hpY3Vwcy1kYi0wIn0=",
+  "Session": "d21d60ad-c2d2-b32a-7432-ca4048a4a7d6"
+}
+```
+
+</CodeBlockConfig>
+
+The `consul watch` command will keep polling the KV path for changes and will run the specified command on the output when a change is made.
+
+</Tab>
+</Tabs>
+
+From the output you can notice that, once the lock is acquired the `Session` parameter contains the ID of the session that holds the lock.
+
+## Renew a session
+
+If a session is created with a `TTL` value set it needs to be renewed before the TTL expires.
+
+Use the `/v1/session/renew` endpoint to renew existing sessions.
+
+```shell-session
+$ curl --silent \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --request PUT \
+  http://127.0.0.1:8500/v1/session/renew/f027470f-2759-6b53-542d-066ae4185e67 | jq
+```
+
+If the command succeeds, the session information in JSON format will be printed.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+[
+  {
+    "ID": "f027470f-2759-6b53-542d-066ae4185e67",
+    "Name": "test",
+    "Node": "consul-server-0",
+    "LockDelay": 15000000000,
+    "Behavior": "release",
+    "TTL": "30s",
+    "NodeChecks": [
+      "serfHealth"
+    ],
+    "ServiceChecks": null,
+    "CreateIndex": 11842,
+    "ModifyIndex": 11842
+  }
+]
+```
+
+</CodeBlockConfig>
+
+## Release a lock
+
+A lock associated with a session with no `TTL` value set, might never be released, even when the service holding it fails.
+
+In such cases it is possible to manually release a lock.
+
+<Tabs>
+<Tab heading="API" group="api">
+
+```shell-session
+$ curl --silent \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{"Node": "'`hostname`'"}' \
+  --request PUT \
+  http://localhost:8500/v1/kv/service/leader?release=d21d60ad-c2d2-b32a-7432-ca4048a4a7d6 | jq
+```
+
+The command prints `true` on success.
+
+</Tab>
+<Tab heading="CLI" group="cli">
+
+```shell-session
+$ consul kv put -release -session=d21d60ad-c2d2-b32a-7432-ca4048a4a7d6 service/leader '{"Node": "'`hostname`'"}'
+```
+
+On success the command will output the following:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Success! Lock released on: service/leader
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+After a lock is released, the key data do not show a value for `Session` in the results.
+Other clients can use this as a way to coordinate their lock requests.
 
