@@ -7,17 +7,7 @@ description: >-
 
 # Application leader election
 
-Some distributed application, like HDFS, require to setup one instance as a 
-*leader*. This ensures the application data is current and stable.
-
-This guide describes how to build client-side leader elections for service
-instances, using Consul. Consul's support for
-[sessions](/consul/docs/dynamic-app-config/sessions) allows you to build a 
-system that can gracefully handle failures.
-
-This tutorial is not related to Consul's leader election. If you are interested 
-in the leader election used internally by Consul, please refer to the
-[consensus protocol](/consul/docs/architecture/consensus) documentation instead.
+This topic describes the process of performing client-side leader elections using sessions and Consul key/value (KV) store. 
 
 <Tip>
 
@@ -25,41 +15,71 @@ in the leader election used internally by Consul, please refer to the
 
 </Tip>
 
+<Note>
+
+This tutorial is not related to Consul's leader election. If you are interested 
+in the leader election used internally by Consul, please refer to the
+[consensus protocol](/consul/docs/architecture/consensus) documentation instead.
+
+</Note>
+
 ## Background
 
-You have a set of service instances who are attempting to acquire leadership for 
-a given service. All service instances that are participating should agree on a 
-given key to coordinate. 
+Some distributed application, like HDFS or ActiveMQ, require to setup one instance as a *leader*. This ensures the application data is current and stable.
 
-A good pattern for choosing the key is:
+Consul's support for [sessions](/consul/docs/dynamic-app-config/sessions) and [watches](/consul/docs/dynamic-app-config/watches) allows you to build a client-side leader election process where clients use lock on a key in the KV datastore to ensure mutual exclusion and to gracefully handle failures.
 
-<CodeBlockConfig hideClipboard>
+All service instances that are participating should agree on a given key to coordinate. A good pattern is simply:
 
 ```plaintext
 service/<service name>/leader
 ```
 
-</CodeBlockConfig>
-
-For this guide, our key will be `service/dbservice/leader`.
-
 ## Requirements
 
 - A running Consul server
+- A path in the Consul KV datastore to acquire locks and to store infromation about the leader
+    For this guide, our key will be `service/leader`.
 - If ACLs are enabled, a token with 
-  - `session:write` permissions over the session name, `dbservice` in this example
-  - `key:write` permissions over the agreed key, `service/dbservice/leader` in this example
+  - `session:write` permissions over the service session name
+  - `key:write` permissions over the agreed key
+  for this topic we expose the token using the `CONSUL_HTTP_TOKEN` environment variable
 - The `curl` command
 
-## Multi-step procedure
+## Client-side leader election procedure
+
+The workflow for building a client-side leader election process is composed of the following steps:
+
+* For each client trying to acquire the lock:
+    1. [Create a session](#create-a-new-session) associated with the client node.
+    1. Try to [acquire the lock](#acquire-the-lock) on the agreed key in the KV store using the `acquire` parameter.
+    1. [Watch the KV key](#watch-the-kv-key-for-locks) to verify if the lock was released and if no lock is present, try to acquire a lock.
+
+* For the client that acquires the lock
+    1. Periodically, [renew the session](#renew-a-session) to avoid expiration.
+    1. Optionally, [release the session](#release-a-session).
+
+* For other services
+    1. [Watch the KV key](#watch-the-kv-key-for-locks) to verify there is at least one process holding the lock.
+    1. Use the values written under the KV path to identify the leader and update configuration accordingly.
+
+## Create a new session
+
+Create a configuration for the session.
 
 
-- Create a session
-- Acquire a session
-- Watch the session
-- Release the session
 
-### Create a new session
+Create a session using the [Session HTTP API](/consul/api-docs/session).
+
+
+
+## Acquire the lock
+
+## Watch the KV key for locks
+
+## Renew a session
+
+## Release a session
 
 ```shell-session
 $ export CONSUL_HTTP_TOKEN=cc3c73f6-667a-339b-3de1-7167f8465c68
