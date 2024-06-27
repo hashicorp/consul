@@ -191,6 +191,7 @@ func TestCommand_FileWithUnnamedCheck(t *testing.T) {
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
+		"-meta=foo=bar",
 		f.Name(),
 	}
 
@@ -206,6 +207,8 @@ func TestCommand_FileWithUnnamedCheck(t *testing.T) {
 	checks, err := client.Agent().Checks()
 	require.NoError(t, err)
 	require.Len(t, checks, 1)
+
+	require.Contains(t, svc.Meta, "foo")
 }
 
 func testFile(t *testing.T, suffix string) *os.File {
