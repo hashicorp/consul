@@ -4,8 +4,9 @@
 package index
 
 import (
+	adaptive "github.com/absolutelightning/go-immutable-adaptive-radix"
+
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	iradix "github.com/hashicorp/go-immutable-radix/v2"
 )
 
 type Index struct {
@@ -52,19 +53,19 @@ func (i *Index) Name() string {
 func (i *Index) IndexedData() *IndexedData {
 	return &IndexedData{
 		Index: i,
-		tree:  iradix.New[[]*pbresource.Resource](),
+		tree:  adaptive.NewRadixTree[[]*pbresource.Resource](),
 	}
 }
 
 // IndexedData is a wrapper around an Index and an radix tree for index and resource storage.
 type IndexedData struct {
 	*Index
-	tree *iradix.Tree[[]*pbresource.Resource]
+	tree *adaptive.RadixTree[[]*pbresource.Resource]
 }
 
 func (i *IndexedData) Txn() Txn {
 	return &txn{
-		inner: i.tree.Txn(),
+		inner: i.tree.Txn(true),
 		index: i,
 		dirty: false,
 	}

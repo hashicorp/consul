@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/lib"

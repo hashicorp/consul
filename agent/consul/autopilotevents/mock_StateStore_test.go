@@ -3,8 +3,8 @@
 package autopilotevents
 
 import (
+	memdb "github.com/absolutelightning/go-memdb"
 	acl "github.com/hashicorp/consul/acl"
-	memdb "github.com/hashicorp/go-memdb"
 
 	mock "github.com/stretchr/testify/mock"
 

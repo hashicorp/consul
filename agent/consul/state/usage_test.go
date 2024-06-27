@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	memdb "github.com/hashicorp/go-memdb"
+	memdb "github.com/absolutelightning/go-memdb"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"

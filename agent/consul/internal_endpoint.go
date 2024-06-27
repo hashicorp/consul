@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/serf"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 

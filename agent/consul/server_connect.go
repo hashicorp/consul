@@ -6,7 +6,7 @@ package consul
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
