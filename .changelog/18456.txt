@@ -1,0 +1,4 @@
+```release-note:feature
+UI : Services list view is updated to show overall status of the service with green passing icon or
+with critical icon or warning icon based on the "ui_config"."mark_service_status_threshold".
+```
