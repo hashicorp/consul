@@ -1,0 +1,3 @@
+session "{{.Name}}" {
+    policy = "write"
+}
