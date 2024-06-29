@@ -32,7 +32,7 @@ To mitigate risks associated with sudden bursts of log data, Consul tries to lim
 
 But the larger the file, the more likely it is to have a large freelist or suddenly form one after a burst of writes. For this reason, the many of Consul's default options associated with snapshots, truncating logs, and keeping the log history aggressively keep BoltDT small rather than using disk IO more efficiently.
 
-Other reliability issues, such as [raft replication capacity issues](/consul/docs/agent/telemetry#raft-replication-capacity-issues), are much simpler to solve without the performance concerns caused by storing more logs in BoltDB.
+Other reliability issues, such as [raft replication capacity issues](/consul/docs/agent/monitor/telemetry#raft-replication-capacity-issues), are much simpler to solve without the performance concerns caused by storing more logs in BoltDB.
 
 ### WAL approaches storage issues differently
 
