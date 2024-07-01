@@ -107,7 +107,7 @@ message QueryOptions {
   // returned. Clients that wish to allow for stale results on error can set
   // StaleIfError to a longer duration to change this behavior. It is ignored
   // if the endpoint supports background refresh caching. See
-  // https://www.consul.io/api/index.html#agent-caching for more details.
+  // https://developer.hashicorp.com/consul/api-docs/features/caching for more details.
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration MaxAge = 8;
 
@@ -122,7 +122,7 @@ message QueryOptions {
   // if the servers are unavailable to fetch a fresh one. Only makes sense when
   // UseCache is true and MaxAge is set to a lower, non-zero value. It is
   // ignored if the endpoint supports background refresh caching. See
-  // https://www.consul.io/api/index.html#agent-caching for more details.
+  // https://developer.hashicorp.com/consul/api-docs/features/caching for more details.
   google.protobuf.Duration StaleIfError = 10;
 
   // Filter specifies the go-bexpr filter expression to be used for

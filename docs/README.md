@@ -12,7 +12,7 @@ either a significant architectural layer, or major functional area of Consul.
 These documents assume a basic understanding of Consul's feature set, which can
 be found in the public [user documentation].
 
-[user documentation]: https://www.consul.io/docs
+[user documentation]: https://developer.hashicorp.com/consul/docs
 
 ![Overview](./overview.svg)
 
