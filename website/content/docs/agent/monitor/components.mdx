@@ -1,0 +1,121 @@
+---
+layout: docs
+page_title: Monitoring Consul components
+description: >-
+  Apply best practices monitoring your Consul control and data plane.
+---
+
+# Monitoring Consul components
+
+This document will guide you recommendations for monitoring your Consul control and data plane. By keeping track of these components and setting up alerts, you can better maintain the overall health and resilience of your service mesh.
+
+## Background
+
+A Consul datacenter is the smallest unit of Consul infrastructure that can perform basic Consul operations like service discovery or service mesh. A datacenter contains at least one Consul server agent, but a real-world deployment contains three or five server agents and several Consul client agents.
+
+The Consul control plane consists of server agents that store all state information, including service and node IP addresses, health checks, and configuration. In addition, the control plane is responsible for securing the mesh, facilitating service discovery, health checking, policy enforcement, and other similar operational concerns. In addition, the control plane contains client agents that report node and service health status to the Consul cluster. In a typical deployment, you must run client agents on every compute node in your datacenter.
+
+The Consul data plane consists of proxies deployed locally alongside each service instance. These proxies, called sidecar proxies, receive mesh configuration data from the control plane, and control network communication between their local service instance and other services in the network. The sidecar proxy handles inbound and outbound service connections, and ensures TLS connections between services are both verified and encrypted.
+
+If you have Kubernetes workloads, you can also run Consul with an alternate service mesh configuration that deploys Envoy proxies but not client agents. Refer to [Simplified service mesh with Consul dataplanes](/consul/docs/connect/dataplane) for more information.
+
+## Consul control plane monitoring
+
+The Consul control plane consists of the following components:
+
+- RPC Communication between Consul servers and clients.
+- Data plane routing instructions for the Envoy Layer 7 proxy.
+- Serf Traffic: LAN and WAN
+- Consul cluster peering and server federation
+
+It is important to monitor and establish baseline and alert thresholds for Consul control plane components for abnormal behavior detection. Note that these alerts can also be triggered by some planned events like Consul cluster upgrades, configuration changes, or leadership change.
+
+To help monitor your Consul control plane, we recommend to establish a baseline and standard deviation for the following:
+
+- [Server health](/consul/docs/agent/telemetry#server-health)
+- [Leadership changes](/consul/docs/agent/telemetry#leadership-changes)
+- [Key metrics](/consul/docs/agent/telemetry#key-metrics)
+- [Autopilot](/consul/docs/agent/telemetry#autopilot)
+- [Network activity](/consul/docs/agent/telemetry#network-activity-rpc-count)
+- [Certificate authority expiration](/consul/docs/agent/telemetry#certificate-authority-expiration)
+
+It is important to have a highly performant network with low network latency. Ensure network latency for gossip in all datacenters are within the 8ms latency budget for all Consul agents. View the [Production server requirements](/consul/docs/install/performance#production-server-requirements) for more information.
+
+### Raft recommendations
+
+Consul uses [Raft for consensus protocol](/consul/docs/architecture/consensus). High saturation of the Raft goroutines can lead to elevated latency in the rest of the system and may cause the Consul cluster to be unstable. As a result, it is important to monitor Raft to track your control plane health. We recommend the following actions to keep control plane healthy:
+- Create an alert that notifies you when [Raft thread saturation](/consul/docs/agent/telemetry#raft-thread-saturation) exceeds 50%.
+- Monitor [Raft replication capacity](/consul/docs/agent/telemetry#raft-replication-capacity-issues) when Consul is handling large amounts of data and high write throughput.
+- Lower [`raft_multiplier`](/consul/docs/install/performance#production) to keep your Consul cluster stable. The value of `raft_multiplier` defines the scaling factor for Consul. Default value for raft_multiplier is 5.
+
+    A short multiplier minimizes failure detection and election time but may trigger frequently in high latency situations. This can cause constant leadership churn and associated unavailability. A high multiplier reduces the chances that spurious failures will cause leadership churn but it does this at the expense of taking longer to detect real failures and thus takes longer to restore Consul cluster availability.
+
+    Wide networks with higher latency will perform better with larger `raft_multiplier` values.
+
+Raft uses BoltDB for storing data and maintaining its own state. Refer to the [Bolt DB performance metrics](/consul/docs/agent/telemetry#bolt-db-performance) when you are troubleshooting Raft performance issues.
+
+## Consul data plane monitoring
+
+The data plane of Consul consists of Consul clients or [Connect proxies](/consul/docs/connect/proxies) interacting with each other through service-to-service communication. Service-to-service traffic always stays within the data plane, while the control plane only enforces traffic rules. Monitoring service-to-service communication is important but may become extremely  complex in an enterprise setup with multiple services communicating to each other across federated Consul clusters through mesh, ingress and terminating gateways.
+
+### Service monitoring
+
+You can extract the following service-related information:
+
+- Use the [`catalog`](/consul/commands/catalog) command or the Consul UI to query all registered services in a Consul datacenter.
+- Use the [`/agent/service/:service_id`](/consul/api-docs/agent/service#get-service-configuration) API endpoint to query individual services. Connect proxies use this endpoint to discover embedded configuration.
+
+### Proxy monitoring
+
+Envoy is the supported Connect proxy for Consul service mesh. For virtual machines (VMs), Envoy starts as a sidecar service process. For Kubernetes, Envoy starts as a sidecar container in a Kubernetes service pod.
+Refer to the [Supported Envoy versions](/consul/docs/connect/proxies/envoy#supported-versions) documentation to find the compatible Envoy versions for your version of Consul.
+
+For troubleshooting service mesh issues, set Consul logs to `trace` or `debug`. The following example annotation sets Envoy logging to `debug`.
+
+```yaml
+annotations:
+  consul.hashicorp.com/envoy-extra-args: '--log-level debug --disable-hot-restart'
+```
+
+Refer to the [Enable logging on Envoy sidecar pods](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-envoy-extra-args) documentation for more information.
+
+#### Envoy Admin Interface
+
+To troubleshoot service-to-service communication issues, monitor Envoy host statistics. Envoy exposes a local administration interface that can be used to query and modify different aspects of the server on port `19000` by default. Envoy also exposes a public listener port to receive mTLS connections from other proxies in the mesh on port `20000` by default.
+
+All endpoints exposed by Envoy are available at the node running Envoy on port `19000`. The node can either be a pod in Kubernetes or VM running Consul Service Mesh. For example, if you forward the Envoy port to your local machine, you can access the Envoy admin interface at `http://localhost:19000/`.
+
+The following Envoy admin interface endpoints are particularly useful:
+
+- The `listeners` endpoint lists all listeners running on `localhost`. This allows you to confirm whether the upstream services are binding correctly to Envoy.
+
+```shell-session
+$ curl http://localhost:19000/listeners
+public_listener:192.168.19.168:20000::192.168.19.168:20000
+Outbound_listener:127.0.0.1:15001::127.0.0.1:15001
+```
+
+- The `/clusters` endpoint displays information about the xDS clusters, such as service requests and mTLS related data. The following example shows a truncated output.
+
+```shell-session
+$ http://localhost:19000/clusters
+`local_app::observability_name::local_app
+local_app::default_priority::max_connections::1024
+local_app::default_priority::max_pending_requests::1024
+local_app::default_priority::max_requests::1024
+local_app::default_priority::max_retries::3
+local_app::high_priority::max_connections::1024
+local_app::high_priority::max_pending_requests::1024
+local_app::high_priority::max_requests::1024
+local_app::high_priority::max_retries::3
+local_app::added_via_api::true
+## ...
+```
+
+Visit the main admin interface (`http://localhost:19000`) to find the full list of possible Consul admin endpoints. Refer to the [Envoy docs](https://www.envoyproxy.io/docs/envoy/latest/operations/admin) for more information.
+
+## Next steps
+
+In this guide, you learned recommendations for monitoring your Consul control and data plane.
+
+To learn about monitoring the Consul host and instance resources, visit our [Monitoring best practices](/well-architected-framework/reliability/reliability-monitoring-service-to-service-communication-with-envoy) documentation.

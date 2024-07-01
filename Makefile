@@ -18,7 +18,7 @@ PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'
 MOG_VERSION='v0.4.2'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION='v0.1.0'
-DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
+DEEP_COPY_VERSION='e112476c0181d3d69067bac191f9b6bcda2ce812'
 COPYWRITE_TOOL_VERSION='v0.16.4'
 LINT_CONSUL_RETRY_VERSION='v1.4.0'
 # Go imports formatter
@@ -71,7 +71,7 @@ CONSUL_IMAGE_VERSION?=latest
 # When changing the method of Go version detection, also update
 # version detection in CI workflows (reusable-get-go-version.yml).
 GOLANG_VERSION?=$(shell head -n 1 .go-version)
-ENVOY_VERSION?='1.28.0'
+ENVOY_VERSION?='1.29.5'
 CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi")
 DEPLOYER_CONSUL_DATAPLANE_IMAGE := $(or $(DEPLOYER_CONSUL_DATAPLANE_IMAGE), "docker.io/hashicorppreview/consul-dataplane:1.3-dev")
 

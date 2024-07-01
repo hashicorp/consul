@@ -8,7 +8,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 )
 
 // nodeSorter takes a list of nodes and a parallel vector of distances and
@@ -21,7 +21,7 @@ type nodeSorter struct {
 
 // newNodeSorter returns a new sorter for the given source coordinate and set of
 // nodes.
-func (s *Server) newNodeSorter(cs lib.CoordinateSet, nodes structs.Nodes) (sort.Interface, error) {
+func (s *Server) newNodeSorter(cs librtt.CoordinateSet, nodes structs.Nodes) (sort.Interface, error) {
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
@@ -30,7 +30,7 @@ func (s *Server) newNodeSorter(cs lib.CoordinateSet, nodes structs.Nodes) (sort.
 			return nil, err
 		}
 		c1, c2 := cs.Intersect(other)
-		vec[i] = lib.ComputeDistance(c1, c2)
+		vec[i] = librtt.ComputeDistance(c1, c2)
 	}
 	return &nodeSorter{nodes, vec}, nil
 }
@@ -61,7 +61,7 @@ type serviceNodeSorter struct {
 
 // newServiceNodeSorter returns a new sorter for the given source coordinate and
 // set of service nodes.
-func (s *Server) newServiceNodeSorter(cs lib.CoordinateSet, nodes structs.ServiceNodes) (sort.Interface, error) {
+func (s *Server) newServiceNodeSorter(cs librtt.CoordinateSet, nodes structs.ServiceNodes) (sort.Interface, error) {
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
@@ -70,7 +70,7 @@ func (s *Server) newServiceNodeSorter(cs lib.CoordinateSet, nodes structs.Servic
 			return nil, err
 		}
 		c1, c2 := cs.Intersect(other)
-		vec[i] = lib.ComputeDistance(c1, c2)
+		vec[i] = librtt.ComputeDistance(c1, c2)
 	}
 	return &serviceNodeSorter{nodes, vec}, nil
 }
@@ -101,7 +101,7 @@ type healthCheckSorter struct {
 
 // newHealthCheckSorter returns a new sorter for the given source coordinate and
 // set of health checks with nodes.
-func (s *Server) newHealthCheckSorter(cs lib.CoordinateSet, checks structs.HealthChecks) (sort.Interface, error) {
+func (s *Server) newHealthCheckSorter(cs librtt.CoordinateSet, checks structs.HealthChecks) (sort.Interface, error) {
 	state := s.fsm.State()
 	vec := make([]float64, len(checks))
 	for i, check := range checks {
@@ -110,7 +110,7 @@ func (s *Server) newHealthCheckSorter(cs lib.CoordinateSet, checks structs.Healt
 			return nil, err
 		}
 		c1, c2 := cs.Intersect(other)
-		vec[i] = lib.ComputeDistance(c1, c2)
+		vec[i] = librtt.ComputeDistance(c1, c2)
 	}
 	return &healthCheckSorter{checks, vec}, nil
 }
@@ -141,7 +141,7 @@ type checkServiceNodeSorter struct {
 
 // newCheckServiceNodeSorter returns a new sorter for the given source coordinate
 // and set of nodes with health checks.
-func (s *Server) newCheckServiceNodeSorter(cs lib.CoordinateSet, nodes structs.CheckServiceNodes) (sort.Interface, error) {
+func (s *Server) newCheckServiceNodeSorter(cs librtt.CoordinateSet, nodes structs.CheckServiceNodes) (sort.Interface, error) {
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
@@ -150,7 +150,7 @@ func (s *Server) newCheckServiceNodeSorter(cs lib.CoordinateSet, nodes structs.C
 			return nil, err
 		}
 		c1, c2 := cs.Intersect(other)
-		vec[i] = lib.ComputeDistance(c1, c2)
+		vec[i] = librtt.ComputeDistance(c1, c2)
 	}
 	return &checkServiceNodeSorter{nodes, vec}, nil
 }
@@ -172,7 +172,7 @@ func (n *checkServiceNodeSorter) Less(i, j int) bool {
 }
 
 // newSorterByDistanceFrom returns a sorter for the given type.
-func (s *Server) newSorterByDistanceFrom(cs lib.CoordinateSet, subj interface{}) (sort.Interface, error) {
+func (s *Server) newSorterByDistanceFrom(cs librtt.CoordinateSet, subj interface{}) (sort.Interface, error) {
 	switch v := subj.(type) {
 	case structs.Nodes:
 		return s.newNodeSorter(cs, v)

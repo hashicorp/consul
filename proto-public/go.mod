@@ -3,7 +3,7 @@ module github.com/hashicorp/consul/proto-public
 go 1.19
 
 require (
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	google.golang.org/grpc v1.56.3
 	google.golang.org/protobuf v1.33.0

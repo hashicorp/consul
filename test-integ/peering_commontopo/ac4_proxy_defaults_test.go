@@ -9,10 +9,12 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-cleanhttp"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/stretchr/testify/require"
 )
 
 type ac4ProxyDefaultsSuite struct {
@@ -24,7 +26,7 @@ type ac4ProxyDefaultsSuite struct {
 
 	serverSID topology.ID
 	clientSID topology.ID
-	upstream  *topology.Destination
+	upstream  *topology.Upstream
 }
 
 var ac4ProxyDefaultsSuites []sharedTopoSuite = []sharedTopoSuite{
@@ -54,7 +56,7 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 		Partition: partition,
 	}
 	// Define server as upstream for client
-	upstream := &topology.Destination{
+	upstream := &topology.Upstream{
 		ID:        serverSID,
 		LocalPort: 5000,
 		Peer:      peer,
@@ -70,7 +72,7 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 			clu.Datacenter,
 			clientSID,
 			func(s *topology.Workload) {
-				s.Destinations = []*topology.Destination{
+				s.Upstreams = []*topology.Upstream{
 					upstream,
 				}
 			},
@@ -165,11 +167,11 @@ func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 		dcSvcs := dc.WorkloadsByID(s.clientSID)
 		require.Len(t, dcSvcs, 1, "expected exactly one client")
 		client = dcSvcs[0]
-		require.Len(t, client.Destinations, 1, "expected exactly one upstream for client")
+		require.Len(t, client.Upstreams, 1, "expected exactly one upstream for client")
 
 		server := dc.WorkloadsByID(s.serverSID)
 		require.Len(t, server, 1, "expected exactly one server")
-		require.Len(t, server[0].Destinations, 0, "expected no upstream for server")
+		require.Len(t, server[0].Upstreams, 0, "expected no upstream for server")
 	})
 
 	t.Run("peered upstream exists in catalog", func(t *testing.T) {
@@ -179,11 +181,11 @@ func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	})
 
 	t.Run("HTTP service fails due to connection timeout", func(t *testing.T) {
-		url504 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort(""),
+		url504 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort(),
 			url.QueryEscape(fmt.Sprintf("http://localhost:%d/?delay=1000ms", s.upstream.LocalPort)),
 		)
 
-		url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort(""),
+		url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort(),
 			url.QueryEscape(fmt.Sprintf("http://localhost:%d/", s.upstream.LocalPort)),
 		)
 

@@ -1,0 +1,52 @@
+---
+layout: commands
+page_title: 'Commands: Snapshot Decode'
+description: |
+  The `consul snapshot decode` command outputs a stream of line delimited JSON objects for an atomic, point-in-time snapshot of the state of the Consul servers. Output includes key/value entries, registered services in the catalog, prepared queries, sessions, and ACLs.
+---
+
+# Consul Snapshot Decode
+
+Command: `consul snapshot decode`
+
+The `snapshot decode` command is used to decode an atomic, point-in-time
+snapshot of the state of the Consul servers which includes key/value entries,
+service catalog, prepared queries, sessions, and ACLs. The snapshot is read
+from the given file and decode to `stdout` as JSON data for interpretation and
+review.
+
+-> Typically this is used with Consul self-contained Snapshot files obtained
+using the [`consul snapshot`](/consul/commands/snapshot) command or [Snapshot
+API](/consul/api-docs/snapshot#generate-snapshot).
+
+The JSON stream information format:
+
+```json
+  {"Type": "SnapshotHeader", "Data": {"<json encoded snapshot header>"}}
+  {"Type": "<type name>","Data": {<json encoded data>}}
+  {"Type": "<type name>","Data": {<json encoded data>}}
+  ...
+```
+
+## Usage
+
+Usage: `consul snapshot decode FILE`
+
+## Examples
+
+To decode a snapshot from the file "backup.snap":
+
+```shell-session
+$ consul snapshot decode backup.snap
+{"Data":{"Version":1,"ID":"2-134-1713801971207","Index":134,"Term":2,"Peers":"ka4xMjcuMC4wLjE6ODMwMA==","Configuration":{"Servers":[{"Suffrage":0,"ID":"673f5fe3-0c2a-bef5-7719-c9ddbbc7a1c5","Address":"127.0.0.1:8300"}]},"ConfigurationIndex":1,"Size":20448157},"Type":"SnapshotHeader"}
+{"Data":{"Name":"consul-support-namespace-1","Description":"Test namespace consul-support-namespace-1","CreateIndex":102,"ModifyIndex":102},"Type":"Namespace"}
+{"Data":{"Name":"consul-support-namespace-10","Description":"Test namespace consul-support-namespace-10","CreateIndex":120,"ModifyIndex":120},"Type":"Namespace"}
+{"Data":{"Name":"default","Description":"Builtin Default Partition","CreateIndex":4,"ModifyIndex":4},"Type":"Partition"}
+{"Data":{"IP":"0.0.0.3","IsCounter":true},"Type":"FreeVirtualIP"}
+{"Data":{"Datacenter":"dc2","ID":"df779ee7-c5ef-46d1-30cf-e46f0166cdf4","Node":"consul-server-dc2","Address":"127.0.0.2","TaggedAddresses":{"lan":"127.0.0.2","lan_ipv4":"127.0.0.2","wan":"127.0.0.2","wan_ipv4":"127.0.0.2"},"NodeMeta":{"consul-network-segment":"","consul-version":"1.18.0"},"Service":null,"Check":null,"Checks":null,"Locality":null,"SkipNodeUpdate":false,"PeerName":"dc2-peer","Partition":"default","Token":"","CreateIndex":40,"ModifyIndex":40},"Type":"Register"}
+...
+```
+
+
+Please see the [HTTP API](/consul/api-docs/snapshot) documentation for
+more details about snapshot internals.

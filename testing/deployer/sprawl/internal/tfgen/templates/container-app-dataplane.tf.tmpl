@@ -17,37 +17,18 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Workload.ID.TFString}}-side
     read_only      = true
   }
 
-{{ if .Workload.EnableTransparentProxy }}
-  capabilities {
-    add = ["NET_ADMIN"]
-  }
-  entrypoint = [ "/bin/tproxy-startup.sh" ]
-{{ end }}
-
   env = [
     "DP_CONSUL_ADDRESSES=server.{{.Node.Cluster}}-consulcluster.lan",
-{{ if .Node.IsV2 }}
-    "DP_PROXY_ID={{.Workload.Workload}}",
-{{ if .Enterprise }}
-    "DP_PROXY_NAMESPACE={{.Workload.ID.Namespace}}",
-    "DP_PROXY_PARTITION={{.Workload.ID.Partition}}",
-{{ end }}
-{{ else }}
     "DP_SERVICE_NODE_NAME={{.Node.PodName}}",
     "DP_PROXY_SERVICE_ID={{.Workload.ID.Name}}-sidecar-proxy",
 {{ if .Enterprise }}
     "DP_SERVICE_NAMESPACE={{.Workload.ID.Namespace}}",
     "DP_SERVICE_PARTITION={{.Workload.ID.Partition}}",
 {{ end }}
-{{ end }}
 
 {{ if .Token }}
     "DP_CREDENTIAL_TYPE=static",
     "DP_CREDENTIAL_STATIC_TOKEN={{.Token}}",
-{{ end }}
-
-{{ if .Workload.EnableTransparentProxy }}
-    "REDIRECT_TRAFFIC_ARGS=-exclude-inbound-port=19000",
 {{ end }}
 
     // for demo purposes

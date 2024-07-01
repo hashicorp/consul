@@ -1,0 +1,38 @@
+---
+layout: docs
+page_title: Register services running on external nodes to Consul on Kubernetes
+description: >-
+  Learn how to register a service running on an external node to the Consul catalog when running Consul on Kubernetes.
+---
+
+# Register services running on external nodes to Consul on Kubernetes
+
+This page provides an overview for registering services in the Consul catalog when the service runs on a node that is not part of the Kubernetes cluster.
+
+## Introduction
+
+Because Kubernetes has built-in service discovery capabilities, Consul on Kubernetes includes components such as [Consul dataplanes](/consul/docs/connect/dataplane) and [service sync](/consul/docs/k8s/service-sync) so that operators can continue to use Kubernetes tools and processes. However, this approach to service networking still requires a service to run on a node that Consul is aware of, either through a local Consul client agent or the Kubernetes cluster. We call services that run on external nodes that Consul cannot automatically recognize _external services_.
+
+Previously, the only way to register an external service when running Consul on Kubernetes was using Consul's HTTP API. This approach requires additional ACLs and direct access to Consul's HTTP API endpoint. Consul now supports registering external services and their associated health checks in the Consul catalog using a [`Registration` custom resource definition (CRD)](/consul/docs/connect/config-entries/registration) that follows the format of [Consul's service definitions](/consul/docs/services/configuration/services-configuration-reference).
+
+## Workflows
+
+The process to register an external service in Consul on Kubernetes consists of the following steps:
+
+1. [Start Consul ESM](/consul/tutorials/connect-services/service-registration-external-services#monitor-the-external-service-with-consul-esm). You must use Consul ESM to run health checks on external services.
+1. Define the external service and its health checks in a [`Registration` CRD](/consul/docs/connect/config-entries/registration).
+1. Apply the CRD to your Kubernetes cluster. Internally, this action triggers an API call to Consul's [`/catalog/register` endpoint](/consul/api-docs/catalog#register-entity) to register the service.
+1. When using Consul's service mesh, you should also:
+  - Deploy a [terminating gateway](/consul/docs/k8s/connect/terminating-gateways) so that downstream services can communicate with the external service.
+  - Define [service intentions](/consul/docs/connect/intentions) for the external service and the downstream services that communicate with it.
+
+## Guidance
+
+The following resources are available to help you register external services to Consul on Kubernetes.
+
+### Reference
+
+- [`Registration` custom resource definition (CRD) configuration reference](/consul/docs/connect/config-entries/registration)
+- [`/catalog/register` HTTP API endpoint reference](/consul/api-docs/catalog#register-entity)
+- [Service configuration reference](/consul/docs/services/configuration/services-configuration-reference)
+- [Health check configuration reference](/consul/docs/services/configuration/checks-configuration-reference)

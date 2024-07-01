@@ -75,6 +75,14 @@ We are pleased to announce the following Consul updates.
 
 For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
 
+## Known Issues
+
+The following issues are known to exist in the v1.2.x releases. Refer to the changelog for more information.
+
+- v1.2.8 - Service-to-service networking is broken when deployed on OpenShift. OpenShift users are advised to avoid deploying this version of consul-k8s.
+    A fix is present in the v1.2.9 release [[GH-4038](https://github.com/hashicorp/consul-k8s/pull/4038)].
+
+
 ## Changelogs
 
 The changelogs for this major release version and any maintenance versions are listed below.

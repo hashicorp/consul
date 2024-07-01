@@ -495,15 +495,6 @@
     "path": "reload"
   },
   {
-    "title": "resource",
-    "path": "resource",
-    "badge": {
-      "text": "v2",
-      "type": "outlined",
-      "color": "neutral"
-    }
-  },
-  {
     "title": "rtt",
     "path": "rtt"
   },
@@ -542,6 +533,10 @@
       {
         "title": "agent",
         "path": "snapshot/agent"
+      },
+      {
+        "title": "decode",
+        "path": "snapshot/decode"
       },
       {
         "title": "inspect",

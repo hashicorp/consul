@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"hash"
 	"hash/fnv"
-	"html/template"
+	"text/template"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/xeipuuv/gojsonschema"
