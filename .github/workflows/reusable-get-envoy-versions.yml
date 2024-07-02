@@ -1,0 +1,71 @@
+name: get-envoy-versions
+
+# Reads the canonical ENVOY_VERSIONS file for either the current branch or a specified version of Consul,
+# and returns both the max and all supported Envoy versions.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: |
+          The Consul ref/branch (e.g. release/1.18.x) for which to determine supported Envoy versions.
+          If not provided, the default actions/checkout value (current ref) is used.
+        type: string
+    outputs:
+      max-envoy-version:
+        description: The max supported Envoy version for the specified Consul version
+        value: ${{ jobs.get-envoy-versions.outputs.max-envoy-version }}
+      envoy-versions:
+        description: |
+          All supported Envoy versions for the specified Consul version (formatted as multiline string with one version 
+          per line, in descending order)
+        value: ${{ jobs.get-envoy-versions.outputs.envoy-versions }}
+      envoy-versions-json:
+        description: |
+          All supported Envoy versions for the specified Consul version (formatted as JSON array)
+        value: ${{ jobs.get-envoy-versions.outputs.envoy-versions-json }}
+
+jobs:
+  get-envoy-versions:
+    name: "Determine supported Envoy versions"
+    runs-on: ubuntu-latest
+    outputs:
+      max-envoy-version: ${{ steps.get-envoy-versions.outputs.max-envoy-version }}
+      envoy-versions: ${{ steps.get-envoy-versions.outputs.envoy-versions }}
+      envoy-versions-json: ${{ steps.get-envoy-versions.outputs.envoy-versions-json }}
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          # If not set, will default to current branch.
+          ref: ${{ inputs.ref }}
+      - name: Determine Envoy versions
+        id: get-envoy-versions
+        # Note that this script assumes that the ENVOY_VERSIONS file is in the envoyextensions/xdscommon directory.
+        # If in the future this file moves between branches, we could introduce a workflow input for the path that
+        # defaults to the new value, and manually configure the old value as needed.
+        run: |
+          MAX_ENVOY_VERSION=$(cat envoyextensions/xdscommon/ENVOY_VERSIONS | grep '^[[:digit:]]' | sort -nr | head -n 1)
+          ENVOY_VERSIONS=$(cat envoyextensions/xdscommon/ENVOY_VERSIONS | grep '^[[:digit:]]' | sort -nr)
+          ENVOY_VERSIONS_JSON=$(echo -n '[' && echo "${ENVOY_VERSIONS}" | awk '{printf "\"%s\",", $0}' | sed 's/,$//' && echo -n ']')
+          
+          # Loop through each line of ENVOY_VERSIONS and compare it to the regex
+          while IFS= read -r version; do
+            if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo 'Invalid version in ENVOY_VERSIONS: '$version' does not match the pattern ^[0-9]+\.[0-9]+\.[0-9]+$'
+              exit 1
+            fi
+          done <<< "$ENVOY_VERSIONS"
+          if ! [[ $MAX_ENVOY_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'Invalid MAX_ENVOY_VERSION: '$MAX_ENVOY_VERSION' does not match the pattern ^[0-9]+\.[0-9]+\.[0-9]+$'
+            exit 1
+          fi
+          
+          echo "Supported Envoy versions:"
+          echo "${ENVOY_VERSIONS}"
+          echo "envoy-versions<<EOF" >> $GITHUB_OUTPUT
+          echo "${ENVOY_VERSIONS}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "Supported Envoy versions JSON: ${ENVOY_VERSIONS_JSON}"
+          echo "envoy-versions-json=${ENVOY_VERSIONS_JSON}" >> $GITHUB_OUTPUT
+          echo "Max supported Envoy version: ${MAX_ENVOY_VERSION}"
+          echo "max-envoy-version=${MAX_ENVOY_VERSION}" >> $GITHUB_OUTPUT
