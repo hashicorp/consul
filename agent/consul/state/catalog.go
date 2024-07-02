@@ -942,7 +942,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 			}
 			if conf != nil {
 				termGatewayConf := conf.(*structs.TerminatingGatewayConfigEntry)
-				addrs, err := getTermGatewayVirtualIPs(tx, idx, termGatewayConf.Services, &svc.EnterpriseMeta)
+				addrs, err := getTermGatewayVirtualIPs(tx, idx, termGatewayConf.Services)
 				if err != nil {
 					return err
 				}
@@ -3585,11 +3585,10 @@ func getTermGatewayVirtualIPs(
 	tx WriteTxn,
 	idx uint64,
 	services []structs.LinkedService,
-	entMeta *acl.EnterpriseMeta,
 ) (map[string]structs.ServiceAddress, error) {
 	addrs := make(map[string]structs.ServiceAddress, len(services))
 	for _, s := range services {
-		sn := structs.ServiceName{Name: s.Name, EnterpriseMeta: *entMeta}
+		sn := structs.ServiceName{Name: s.Name, EnterpriseMeta: s.EnterpriseMeta}
 		// Terminating Gateways cannot route to services in peered clusters
 		psn := structs.PeeredServiceName{ServiceName: sn, Peer: structs.DefaultPeerKeyword}
 		vip, err := assignServiceVirtualIP(tx, idx, psn)
@@ -3606,7 +3605,7 @@ func getTermGatewayVirtualIPs(
 func updateTerminatingGatewayVirtualIPs(tx WriteTxn, idx uint64, conf *structs.TerminatingGatewayConfigEntry, entMeta *acl.EnterpriseMeta) error {
 	// Build the current map of services with virtual IPs for this gateway
 	services := conf.Services
-	addrs, err := getTermGatewayVirtualIPs(tx, idx, services, entMeta)
+	addrs, err := getTermGatewayVirtualIPs(tx, idx, services)
 	if err != nil {
 		return err
 	}
