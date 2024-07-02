@@ -1,5 +1,5 @@
 {
-  "name": "consul-nspaces",
+  "name": "@hashicorp/consul-nspaces",
   "version": "0.1.0",
   "private": true
 }

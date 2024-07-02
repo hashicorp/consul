@@ -1,5 +1,5 @@
 {
-  "name": "consul-acls",
+  "name": "@hashicorp/consul-acls",
   "version": "0.1.0",
   "private": true
 }

@@ -33,12 +33,12 @@ module.exports = function (defaults, $ = process.env) {
   let excludeFiles = [];
 
   const apps = [
-    'consul-ui',
-    'consul-acls',
-    'consul-lock-sessions',
-    'consul-peerings',
-    'consul-partitions',
-    'consul-nspaces',
+    '@hashicorp/consul-ui',
+    '@hashicorp/consul-acls',
+    '@hashicorp/consul-lock-sessions',
+    '@hashicorp/consul-peerings',
+    '@hashicorp/consul-partitions',
+    '@hashicorp/consul-nspaces',
   ].map((item) => {
     return {
       name: item,
