@@ -17,6 +17,8 @@ We are pleased to announce the following Consul updates.
 
 - **v2 catalog API deprecation**: Consul introduced an experimental v2 Catalog API in v1.17.0. This API supported multi-port Service configurations on Kubernetes, and it was made available for testing and development purposes. The v2 catalog and its support for multiport Kubernetes Services were deprecated in the v1.19.0 release.
 
+- **Argo Rollouts Plugin**: A new Argo Rollouts plugin for progressive delivery is now available for `consul-k8s`. This plugin supports canary deployments by allowing you to incrementally release and test new versions of applications and roll back to previous versions by splitting traffic between subsets of services. Refer to [Argo Rollouts Progressive Delivery with Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/argo-rollouts-configuration) for more information.
+
 ## Supported software
 
 This version of Consul on Kubernetes supports the following software versions:
