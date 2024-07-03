@@ -6,7 +6,7 @@ name: Nightly test-integrations
 on:
   schedule:
     # Run nightly at 12AM UTC/8PM EST/5PM PST
-    - cron: '* 0 * * *'
+    - cron: '0 0 * * *'
   workflow_dispatch: {}
 
 env:
@@ -106,7 +106,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.26.8", "1.27.5", "1.28.3", "1.29.4"]
+        envoy-version: ["1.26.8", "1.27.6", "1.28.4", "1.29.5"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -206,8 +206,8 @@ jobs:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       # ENVOY_VERSION should be the latest version upported by all
       # consul versions in the matrix.consul-version, since we are testing upgrade from
-      # an older consul version, e.g., 1.27.5 is supported by both 1.16 and 1.17.
-      ENVOY_VERSION: "1.27.5"
+      # an older consul version, e.g., 1.27.x is supported by both 1.17 and 1.18.
+      ENVOY_VERSION: "1.27.6"
     steps:
       - name: Checkout code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
@@ -329,7 +329,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.16", "1.17"]
+        consul-version: [ "1.17", "1.18"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
     steps:

@@ -6,7 +6,7 @@ name: Nightly test-integrations 1.19.x
 on:
   schedule:
     # Run nightly at 1AM UTC/9PM EST/6PM PST
-    - cron: '* 1 * * *'
+    - cron: '0 1 * * *'
   workflow_dispatch: {}
 
 env:
@@ -74,7 +74,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.24.12", "1.25.11", "1.26.8", "1.27.5"]
+          # envoy-version: ["1.24.12", "1.25.11", "1.26.8", "1.27.6"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.24.12", "1.25.11", "1.26.8", "1.27.5"]
+        envoy-version: ["1.26.8", "1.27.6", "1.28.4", "1.29.5"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:

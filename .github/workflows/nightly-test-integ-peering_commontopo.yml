@@ -6,7 +6,7 @@ name: Nightly test integrations - peering_common_topo
 on:
   schedule:
     # Run nightly at 12AM UTC/8PM EST/5PM PST
-    - cron: '* 0 * * *'
+    - cron: '0 0 * * *'
   workflow_dispatch: {}
 
 env:
@@ -62,7 +62,7 @@ jobs:
     name: '${{matrix.test-case}}'
 
     env:
-      ENVOY_VERSION: "1.29.4"
+      ENVOY_VERSION: "1.29.5"
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
