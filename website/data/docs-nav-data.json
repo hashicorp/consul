@@ -1057,6 +1057,23 @@
         "path": "security"
       },
       {
+        "title": "Security Models",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "security/security-models"
+          },
+          {
+            "title": "Core",
+            "path": "security/security-models/core"
+          },
+          {
+            "title": "Network Infrastructure Automation",
+            "path": "security/security-models/nia"
+          }
+        ]
+      },
+      {
         "title": "Access Control (ACLs)",
         "routes": [
           {
@@ -1166,22 +1183,18 @@
       },
       {
         "title": "Encryption",
-        "path": "security/encryption"
-      },
-      {
-        "title": "Security Models",
         "routes": [
           {
             "title": "Overview",
-            "path": "security/security-models"
+            "path": "security/encryption"
           },
           {
-            "title": "Core",
-            "path": "security/security-models/core"
+            "title": "Gossip encryption",
+            "path": "security/encryption/gossip"
           },
           {
-            "title": "Network Infrastructure Automation",
-            "path": "security/security-models/nia"
+            "title": "mTLS",
+            "path": "security/encryption/mtls"
           }
         ]
       }
