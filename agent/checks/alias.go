@@ -164,6 +164,12 @@ RETRY_CALL:
 		}
 		return false, err
 	}
+
+	// Do not proceed for nil returned services.
+	if out.NodeServices == nil {
+		return false, fmt.Errorf("no services found on node")
+	}
+
 	for _, srv := range out.NodeServices.Services {
 		if serviceID.Matches(srv.CompoundServiceID()) {
 			return true, nil
