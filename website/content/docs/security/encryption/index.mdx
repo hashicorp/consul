@@ -2,10 +2,40 @@
 layout: docs
 page_title: Encryption Systems
 description: >-
-  Consul supports encrypting all of its network traffic. Remote Process Calls (RPCs) between client and server agents can be encrypted with TLS and authenticated with certificates. Gossip communication between all agents can also be encrypted.
+  Consul supports encrypting all of its network traffic. Remote Procedure Calls (RPCs) between client and server agents can be encrypted with TLS and authenticated with certificates. Gossip communication between all agents can also be encrypted.
 ---
 
 # Encryption
+
+This topic describes the two different encryption systems available in Consul to secure network traffic, Gossip encryption and mTLS.
+
+## Gossip Encryption
+
+Consul uses a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol) to manage membership and broadcast messages to the cluster.
+
+Using the gossip protocol Consul is able to:
+- Identify datacenter members.
+- Quickly detect failed members and notify the rest of the cluster.
+- Broadcast custom events and queries. These can be used to trigger custom workflows.
+
+The protocol, membership management, and message broadcasting is provided through the [Serf library](https://www.serf.io/). 
+
+Gossip protocol uses, in a default Consul configuration, ports [`8301`](/consul/docs/install/ports#lan-serf) for LAN based communications and [`8302`](/consul/docs/install/ports#lan-serf) for WAN based comminications in federated datacenters. Enabling Gossip encryption on a Consul datacenter will secure traffic on these two ports.
+
+Gossip encryption is symmetric and based on a single key that is shared acros all members of the datacenter.
+
+Learn more on how to enable gossip encryption on your COnsul datacenter in [Gossip Encryption](/consul/docs/security/encryption/gossip) documentation.
+
+## mTLS Encryption
+
+Consul uses other communication protocols over different ports:
+
+- A [consensus protocol](/consul/docs/architecture/consensus), used to provide consistency over the cluster data stored by Consul servers. It tipically uses port [`8300`](/consul/docs/install/ports#server-rpc).
+- Remote Procedure Calls (RPC), to forward requests from client agents to server agents. They use the same port used by the consensus protocol.
+- An HTTP[S] interface, tipically exposed on ports [`8500`](/consul/docs/install/ports#http) and [`8501`](/consul/docs/install/ports#https). This interface is used to permit client communication using Consul API interface, CLI, and UI.
+
+
+
 
 The Consul agent supports encrypting all of its network traffic. The exact
 method of encryption is described on the [encryption internals page](/consul/docs/security).

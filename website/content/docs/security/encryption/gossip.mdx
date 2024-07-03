@@ -17,8 +17,31 @@ This topics describes how to enable gossip encryption on a Consul datacenter.
 
 ## Enable gossip encryption
 
+We recommend enablying gossip erncryption to all new deployed Consul datacenters. 
+If you have an existing datacenter running Consul `0.8.4` and above, it is possible to modify its configuration to support gossip encryption.
+
+Below are listed the steps required for both scenarios:
+
+- [Enable gossip encryption on a new datacenter](#enable-gossip-encryption-on-a-new-datacenter)
+    1. Use `consul keygen` to generate a new gossip encryption key.
+    1. Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
+    1. Distribute the configuration file to all the agent nodes that need to be pert of the datacenter.
+    1. Start the Consul agent on all the nodes.
+- [Enable gossip encryption on an existing datacenter](#enable-gossip-encryption-on-an-existing-datacenter)
+    1. Use `consul keygen` to generate a new gossip encryption key.
+    1. Create a configuration file that includes the `encrypt` parameter set to the newly generated key and `encrypt_verify_incoming` and `encrypt_verify_outgoing` set to `false`. 
+    1. Distribute the configuration file to all the agent nodes that need to be pert of the datacenter.
+    1. Perform a rolling restart of all the agents.
+    1. Update the `encrypt_verify_outgoing` setting to `true` and perform a rolling restart of all the agents.
+    1. Update the `encrypt_verify_incoming` setting to `true` and perform a rolling restart of all the agents.
 
 ## Enable gossip encryption on a new datacenter
+
+
+
+### Generate a new gossip encryption key
+
+Consul 
 
 
 ## Enable gossip encryption on an existing datacenter
