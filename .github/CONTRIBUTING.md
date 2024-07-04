@@ -23,14 +23,14 @@ work on an issue, comment on it first and tell us the approach you want to take.
 * Increase our test coverage.
 * Fix a [bug](https://github.com/hashicorp/consul/labels/type/bug).
 * Implement a requested [enhancement](https://github.com/hashicorp/consul/labels/type/enhancement).
-* Improve our guides and documentation. Consul's [Guides](https://www.consul.io/docs/guides/index.html), [Docs](https://www.consul.io/docs/index.html), and [api godoc](https://godoc.org/github.com/hashicorp/consul/api)
+* Improve our guides and documentation. Consul's [Guides](https://developer.hashicorp.com/consul/docs/guides), [Docs](https://developer.hashicorp.com/consul/docs), and [api godoc](https://godoc.org/github.com/hashicorp/consul/api)
 are deployed from this repo.
 * Respond to questions about usage on the issue tracker or the Consul section of the [HashiCorp forum]: (https://discuss.hashicorp.com/c/consul)
 
 ### Reporting an Issue
 
 >Note: Issues on GitHub for Consul are intended to be related to bugs or feature requests. 
->Questions should be directed to other community resources such as the: [Discuss Forum](https://discuss.hashicorp.com/c/consul/29), [FAQ](https://www.consul.io/docs/faq.html), or [Guides](https://www.consul.io/docs/guides/index.html).
+>Questions should be directed to other community resources such as the: [Discuss Forum](https://discuss.hashicorp.com/c/consul/29), [FAQ](https://developer.hashicorp.com/consul/docs/troubleshoot/faq), or [Guides](https://developer.hashicorp.com/consul/docs/guides).
 
 * Make sure you test against the latest released version. It is possible we 
 already fixed the bug you're experiencing. However, if you are on an older 

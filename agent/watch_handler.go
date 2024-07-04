@@ -199,7 +199,7 @@ func makeWatchPlan(logger hclog.Logger, params map[string]interface{}) (*watch.P
 	handler, hasHandler := wp.Exempt["handler"]
 	if hasHandler {
 		logger.Warn("The 'handler' field in watches has been deprecated " +
-			"and replaced with the 'args' field. See https://www.consul.io/docs/agent/watches.html")
+			"and replaced with the 'args' field. See https://developer.hashicorp.com/consul/docs/dynamic-app-config/watches")
 	}
 	if _, ok := handler.(string); hasHandler && !ok {
 		return nil, fmt.Errorf("Watch handler must be a string")

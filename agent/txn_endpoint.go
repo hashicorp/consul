@@ -94,7 +94,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 		return nil, 0, HTTPError{
 			StatusCode: http.StatusRequestEntityTooLarge,
 			Reason: fmt.Sprintf("Request body(%d bytes) too large, max size: %d bytes. See %s.",
-				req.ContentLength, maxTxnLen, "https://www.consul.io/docs/agent/config/config-files#txn_max_req_len"),
+				req.ContentLength, maxTxnLen, "https://developer.hashicorp.com/consul/docs/agent/config/config-files#txn_max_req_len"),
 		}
 	}
 
@@ -107,7 +107,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 			return nil, 0, HTTPError{
 				StatusCode: http.StatusRequestEntityTooLarge,
 				Reason: fmt.Sprintf("Request body too large, max size: %d bytes. See %s.",
-					maxTxnLen, "https://www.consul.io/docs/agent/config/config-files#txn_max_req_len"),
+					maxTxnLen, "https://developer.hashicorp.com/consul/docs/agent/config/config-files#txn_max_req_len"),
 			}
 		} else {
 			// Note the body is in API format, and not the RPC format. If we can't

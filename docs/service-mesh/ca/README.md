@@ -27,8 +27,8 @@ Those certificates will be used to authenticate/encrypt communication between se
 <sup>[source](./hl-ca-overview.mmd)</sup>
 
 The features that benefit from Consul CA management are:
-- [service Mesh/Connect](https://www.consul.io/docs/connect)
-- [auto encrypt](https://www.consul.io/docs/agent/options#auto_encrypt)
+- [service Mesh/Connect](https://developer.hashicorp.com/consul/docs/connect)
+- [auto encrypt](https://developer.hashicorp.com/consul/docs/agent/config/config-files#auto_encrypt)
 
 
 ### CA and Certificate relationship

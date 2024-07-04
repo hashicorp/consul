@@ -266,7 +266,7 @@ type QueryOptions struct {
 	// returned. Clients that wish to allow for stale results on error can set
 	// StaleIfError to a longer duration to change this behavior. It is ignored
 	// if the endpoint supports background refresh caching. See
-	// https://www.consul.io/api/index.html#agent-caching for more details.
+	// https://developer.hashicorp.com/consul/api-docs/features/caching for more details.
 	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
 	MaxAge *duration.Duration `protobuf:"bytes,8,opt,name=MaxAge,proto3" json:"MaxAge,omitempty"`
 	// MustRevalidate forces the agent to fetch a fresh version of a cached
@@ -279,7 +279,7 @@ type QueryOptions struct {
 	// if the servers are unavailable to fetch a fresh one. Only makes sense when
 	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
 	// ignored if the endpoint supports background refresh caching. See
-	// https://www.consul.io/api/index.html#agent-caching for more details.
+	// https://developer.hashicorp.com/consul/api-docs/features/caching for more details.
 	StaleIfError *duration.Duration `protobuf:"bytes,10,opt,name=StaleIfError,proto3" json:"StaleIfError,omitempty"`
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
