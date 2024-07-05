@@ -1,0 +1,3 @@
+```release-note:bug
+txn: Fix a bug where mismatched Consul server versions could result in undetected data loss for when using newer Transaction verbs.
+```
