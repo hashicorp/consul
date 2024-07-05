@@ -57,8 +57,15 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 				})
 			}
 		case op.Node != nil:
-			// Skip the pre-apply checks if this is a GET.
-			if op.Node.Verb == api.NodeGet {
+			requiresPreApply, err := nodeVerbValidate(op.Node.Verb)
+			if err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+				break
+			}
+			if !requiresPreApply {
 				break
 			}
 
@@ -79,8 +86,15 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 				})
 			}
 		case op.Service != nil:
-			// Skip the pre-apply checks if this is a GET.
-			if op.Service.Verb == api.ServiceGet {
+			requiresPreApply, err := serviceVerbValidate(op.Service.Verb)
+			if err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+				break
+			}
+			if !requiresPreApply {
 				break
 			}
 
@@ -92,8 +106,15 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 				})
 			}
 		case op.Check != nil:
-			// Skip the pre-apply checks if this is a GET.
-			if op.Check.Verb == api.CheckGet {
+			requiresPreApply, err := checkVerbValidate(op.Check.Verb)
+			if err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+				break
+			}
+			if !requiresPreApply {
 				break
 			}
 
@@ -106,6 +127,25 @@ func (t *Txn) preCheck(authorizer resolver.Result, ops structs.TxnOps) structs.T
 					What:    err.Error(),
 				})
 			}
+		case op.Intention != nil:
+			if err := intentionVerbValidate(op.Intention.Op); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+			}
+		case op.Session != nil:
+			if err := sessionVerbValidate(op.Session.Verb); err != nil {
+				errors = append(errors, &structs.TxnError{
+					OpIndex: i,
+					What:    err.Error(),
+				})
+			}
+		default:
+			errors = append(errors, &structs.TxnError{
+				OpIndex: i,
+				What:    "unknown operation type",
+			})
 		}
 	}
 
@@ -223,4 +263,71 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	t.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
+}
+
+// nodeVerbValidate checks for a known operation type. For certain operations,
+// it also indicated if further "preApply" checks are required.
+func nodeVerbValidate(op api.NodeOp) (bool, error) {
+	// enumcover: api.NodeOp
+	switch op {
+	// Skip the pre-apply checks if this is a GET.
+	case api.NodeGet:
+		return false, nil
+	case api.NodeSet, api.NodeCAS, api.NodeDelete, api.NodeDeleteCAS:
+		return true, nil
+	default:
+		return false, fmt.Errorf("unknown node operation: %s", op)
+	}
+}
+
+// serviceVerbValidate checks for a known operation type. For certain operations,
+// it also indicated if further "preApply" checks are required.
+func serviceVerbValidate(op api.ServiceOp) (bool, error) {
+	// enumcover: api.ServiceOp
+	switch op {
+	// Skip the pre-apply checks if this is a GET.
+	case api.ServiceGet:
+		return false, nil
+	case api.ServiceSet, api.ServiceCAS, api.ServiceDelete, api.ServiceDeleteCAS:
+		return true, nil
+	default:
+		return false, fmt.Errorf("unknown service operation: %s", op)
+	}
+}
+
+// checkVerbValidate checks for a known operation type. For certain operations,
+// it also indicated if further "preApply" checks are required.
+func checkVerbValidate(op api.CheckOp) (bool, error) {
+	// enumcover: api.CheckOp
+	switch op {
+	// Skip the pre-apply checks if this is a GET.
+	case api.CheckGet:
+		return false, nil
+	case api.CheckSet, api.CheckCAS, api.CheckDelete, api.CheckDeleteCAS:
+		return true, nil
+	default:
+		return false, fmt.Errorf("unknown check operation: %s", op)
+	}
+}
+
+// intentionVerbValidate checks for a known operation type.
+func intentionVerbValidate(op structs.IntentionOp) error {
+	// enumcover: structs.IntentionOp
+	switch op {
+	case structs.IntentionOpCreate, structs.IntentionOpDelete, structs.IntentionOpUpdate, structs.IntentionOpDeleteAll, structs.IntentionOpUpsert:
+		return nil
+	default:
+		return fmt.Errorf("unknown intention operation: %s", op)
+	}
+}
+
+// sessionVerbValidate checks for a known operation type.
+func sessionVerbValidate(op api.SessionOp) error {
+	// enumcover: api.SessionOp
+	switch op {
+	case api.SessionDelete:
+		return nil
+	default:
+		return fmt.Errorf("unknown session operation: %s", op)
+	}
 }
