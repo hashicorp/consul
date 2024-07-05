@@ -42,6 +42,13 @@ jobs:
 
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
+    with:
+      ref: release/1.19.x
+
+  get-envoy-versions:
+    uses: ./.github/workflows/reusable-get-envoy-versions.yml
+    with:
+      ref: release/1.19.x
 
   dev-build:
     needs:
@@ -71,36 +78,34 @@ jobs:
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
-          # this is further going to multiplied in envoy-integration tests by the 
-          # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
-          # multiplied by 8 based on these values:
-          # envoy-version: ["1.24.12", "1.25.11", "1.26.8", "1.27.6"]
-          # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 4 
+          # TEST_SPLITS sets the number of test case splits to use in the matrix. This will be
+          # further multiplied in envoy-integration tests by the other dimensions in the matrix
+          # to determine the total number of runners used.
+          TEST_SPLITS: 4
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
-          NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(find ./test/integration/connect/envoy -mindepth 1 -maxdepth 1 -type d | wc -l)
 
-          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
-            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
-            NUM_RUNNERS=$((NUM_DIRS-1))
+          if [ "$NUM_DIRS" -lt "$TEST_SPLITS" ]; then
+            echo "TEST_SPLITS is larger than the number of tests/packages to split."
+            TEST_SPLITS=$((NUM_DIRS-1))
           fi
-          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$((NUM_RUNNERS-1))
+          # fix issue where test splitting calculation generates 1 more split than TEST_SPLITS.
+          TEST_SPLITS=$((TEST_SPLITS-1))
           {
             echo -n "envoy-matrix="
             find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
               | xargs -0 -n 1 basename \
-              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
+              | jq --raw-input --argjson runnercount "$TEST_SPLITS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-  
+
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - get-go-version
+      - get-envoy-versions
       - generate-envoy-job-matrices
       - dev-build
     permissions:
@@ -109,7 +114,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.26.8", "1.27.6", "1.28.4", "1.29.5"]
+        envoy-version: ${{ fromJSON(needs.get-envoy-versions.outputs.envoy-versions-json) }}
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -197,6 +202,7 @@ jobs:
     needs:
       - setup
       - get-go-version
+      - get-envoy-versions
       - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -204,10 +210,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: ["1.15", "1.17", "1.18"]
+        consul-version: ["1.15", "1.17", "1.18", "1.19"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
-      ENVOY_VERSION: "1.24.6"
+      # ENVOY_VERSION should be the latest version supported by _all_ Consul versions in the
+      # matrix.consul-version, since we are testing upgrade from an older Consul version.
+      # In practice, this should be the highest Envoy version supported by the lowest non-LTS
+      # Consul version in the matrix (LTS versions receive additional Envoy version support).
+      #
+      # This value should be kept current in new nightly test workflows, and updated any time
+      # a new major Envoy release is added to the set supported by Consul versions in
+      # matrix.consul-version (i.e. whenever the highest common Envoy version across active
+      # Consul versions changes). The minor Envoy version does not necessarily need to be
+      # kept current for the purpose of these tests, but the major (1.N) version should be.
+      ENVOY_VERSION: 1.27.6
     steps:
       - name: Checkout code
         uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4

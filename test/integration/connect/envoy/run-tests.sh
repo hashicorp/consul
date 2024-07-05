@@ -15,7 +15,10 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.29.5"}
+if [[ -z "${ENVOY_VERSION:-}" ]]; then
+    echo "please set Envoy version via ENVOY_VERSION"
+    exit 1
+fi
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
