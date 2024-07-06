@@ -33,16 +33,18 @@ module.exports = function (defaults, $ = process.env) {
   let excludeFiles = [];
 
   const apps = [
-    '@hashicorp/consul-ui',
-    '@hashicorp/consul-acls',
-    '@hashicorp/consul-lock-sessions',
-    '@hashicorp/consul-peerings',
-    '@hashicorp/consul-partitions',
-    '@hashicorp/consul-nspaces',
+    'consul-ui',
+    'consul-acls',
+    'consul-lock-sessions',
+    'consul-peerings',
+    'consul-partitions',
+    'consul-nspaces',
   ].map((item) => {
+    const namespacedName = `@hashicorp/${item}`;
+    const packagePath = path.dirname(require.resolve(`${namespacedName}/package.json`));
     return {
-      name: item,
-      path: path.dirname(require.resolve(`${item}/package.json`)),
+      name: namespacedName,
+      path: packagePath,
     };
   });
 
@@ -110,7 +112,9 @@ module.exports = function (defaults, $ = process.env) {
       [new Funnel('app', { exclude: excludeFiles })].concat(
         apps
           .filter((item) => exists(`${item.path}/app`))
-          .map((item) => new Funnel(`${item.path}/app`, { exclude: excludeFiles }))
+          .map((item) => {
+            return new Funnel(`${item.path}/app`, { exclude: excludeFiles });
+          })
       ),
       {
         overwrite: true,
@@ -127,26 +131,28 @@ module.exports = function (defaults, $ = process.env) {
       ].concat(
         apps
           .filter((item) => exists(`${item.path}/app`))
-          .map(
-            (item) =>
-              new Funnel(`${item.path}/app`, {
-                include: ['**/*.{scss,css}'],
-                destDir: 'consul-ui',
-              })
-          )
+          .map((item) => {
+            return new Funnel(`${item.path}/app`, {
+              include: ['**/*.{scss,css}'],
+              destDir: 'consul-ui',
+            });
+          })
       ),
       {
         overwrite: true,
       }
     );
     trees.vendor = mergeTrees(
-      [new Funnel('vendor')].concat(apps.map((item) => new Funnel(`${item.path}/vendor`)))
+      [new Funnel('vendor')].concat(
+        apps.map((item) => {
+          return new Funnel(`${item.path}/vendor`, { overwrite: true });
+        })
+      ),
+      { overwrite: true }
     );
-  })(
     // consul-ui will eventually be a separate app just like the others
     // at which point we can remove this filter/extra scope
-    apps.filter((item) => item.name !== 'consul-ui')
-  );
+  })(apps.filter((item) => item.name !== '@hashicorp/consul-ui'));
   //
 
   let app = new EmberApp(
