@@ -1,0 +1,3 @@
+```release-note:security
+ui: Pin and namespace sub-module dependencies related to the Consul UI
+```
