@@ -363,11 +363,12 @@ func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*R
 		if err == nil {
 			ttlSec := uint32(ttl / time.Second)
 			ttlOverride = &ttlSec
+		} else {
+			f.logger.Warn("Failed to parse TTL for prepared query , ignoring",
+				"ttl", out.DNS.TTL,
+				"prepared_query", req.Name,
+			)
 		}
-		f.logger.Warn("Failed to parse TTL for prepared query , ignoring",
-			"ttl", out.DNS.TTL,
-			"prepared_query", req.Name,
-		)
 	}
 
 	// If we have no nodes, return not found!
