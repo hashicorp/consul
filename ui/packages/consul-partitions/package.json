@@ -1,5 +1,5 @@
 {
-  "name": "@hashicorp/consul-partitions",
+  "name": "consul-partitions",
   "version": "0.1.0",
   "private": true
 }
