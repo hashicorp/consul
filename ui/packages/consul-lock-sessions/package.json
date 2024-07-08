@@ -1,5 +1,5 @@
 {
-  "name": "@hashicorp/consul-lock-sessions",
+  "name": "consul-lock-sessions",
   "version": "0.1.0",
   "private": true
 }

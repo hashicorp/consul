@@ -1,5 +1,5 @@
 {
-  "name": "@hashicorp/consul-peerings",
+  "name": "consul-peerings",
   "version": "0.1.0",
   "private": true
 }
