@@ -1,0 +1,86 @@
+# This workflow is responsible for validating backports and commenting on backport PRs tagging PR authors to merge in their backport PRs.
+# It is scheduled to run at 9:00 AM every day and will also run when manually triggered.
+
+name: Backport Commenter
+run-name: Validate backports and notify PRs owners
+on:
+  # TODO(jmurret): Re-enable before we merge this PR.
+  #   schedule:
+  #     - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: "A comma seperated string of the x.y versions representing the backport labels to check. Example: 1.13,1.14,1.15"
+        required: true
+        type: string
+      begin-date:
+        description: Begin Date to check for PRs being merged.  In the format of YYYY-MM-DD.
+        required: true
+        type: string
+  # TODO(jmurret): Remove this before we merge this PR.
+  push:
+    branches:
+      - jm/**
+
+env:
+  # This needs to be updated to the date of the last release.
+  BPA_COMMENTER_BEGIN_DATE: "2024-06-12"
+  # This needs to be updated to the versions that are currently being backported.
+  BPA_COMMENTER_VERSIONS: "1.15,1.16,1.17,1.18,1.19"
+
+jobs:
+
+  validate-backports-oss:
+    container: hashicorpdev/backport-assistant:0.4.4
+    runs-on: [ 'self-hosted, linux' ]
+    steps:
+      - name: Fetch Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ vars.CI_VAULT_URL }}
+          method: ${{ vars.CI_VAULT_METHOD }}
+          path: ${{ vars.CI_VAULT_PATH }}
+          jwtGithubAudience: ${{ vars.CI_VAULT_AUD }}
+          secrets:
+            kv/data/github/${{ github.repository }} github_token ;
+
+      - name: backport commenter
+        env:
+          OWNER: hashicorp
+          REPO: consul
+          SYNC_REPO: consul-enterprise
+          GITHUB_TOKEN: ${{ steps.secrets.outputs.github_token }}
+        run: |
+          backport-assistant validate \
+            --owner ${OWNER} --repo ${REPO} --sync-repo ${SYNC_REPO} --versions "${BPA_COMMENTER_VERSIONS}" \
+            --begin-date "${BPA_COMMENTER_BEGIN_DATE}" --add-comment
+
+  validate-backports-enterprise:
+    container: hashicorpdev/backport-assistant:0.4.4
+    runs-on: [ 'self-hosted, linux' ]
+    # needs to run serially because github search api limits to 30 req/minute.
+    # running in parallel will push it over the limit.
+    needs:
+      - validate-backports-oss
+    steps:
+      - name: Fetch Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ vars.CI_VAULT_URL }}
+          method: ${{ vars.CI_VAULT_METHOD }}
+          path: ${{ vars.CI_VAULT_PATH }}
+          jwtGithubAudience: ${{ vars.CI_VAULT_AUD }}
+          secrets:
+            kv/data/github/${{ github.repository }} github_token ;
+
+      - name: backport commenter
+        env:
+          OWNER: hashicorp
+          REPO: consul-enterprise
+          GITHUB_TOKEN: ${{ steps.secrets.outputs.github_token }}
+        run: |
+          backport-assistant validate \
+            --owner "${OWNER}" --repo ${REPO} --versions ${BPA_COMMENTER_VERSIONS} \
+            --begin-date ${BPA_COMMENTER_BEGIN_DATE} --add-comment
