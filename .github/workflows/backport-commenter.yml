@@ -1,12 +1,15 @@
 # This workflow is responsible for validating backports and commenting on backport PRs tagging PR authors to merge in their backport PRs.
 # It is scheduled to run at 9:00 AM every day and will also run when manually triggered.
 
+## IMPORTANT
+# This workflow only has jobs that are enabled to run on consul and are disabled on consul-enterprise.
+# Please do not modify this file in consul-enterprise.
+
 name: Backport Commenter
 run-name: Validate backports and notify PRs owners
 on:
-  # TODO(jmurret): Re-enable before we merge this PR.
-  #   schedule:
-  #     - cron: "0 9 * * *"
+  schedule:
+   - cron: "0 9 * * *"
   workflow_dispatch:
     inputs:
       versions:
@@ -29,10 +32,27 @@ env:
   BPA_COMMENTER_VERSIONS: "1.15,1.16,1.17,1.18,1.19"
 
 jobs:
+  setup:
+    name: Setup
+    if: ${{ !endsWith(github.repository, '-enterprise') }}
+    runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - id: setup-outputs
+        name: Setup outputs
+        run: ./.github/scripts/get_runner_classes.sh
 
   validate-backports-oss:
+    if: ${{ !endsWith(github.repository, '-enterprise') }}
     container: hashicorpdev/backport-assistant:0.4.4
-    runs-on: [ 'ubuntu-latest' ]
+    runs-on: ${{ needs.setup.outputs.compute-small }}
+    needs:
+      - setup
     steps:
       - name: Fetch Secrets
         id: secrets
@@ -57,11 +77,13 @@ jobs:
             --begin-date "${BPA_COMMENTER_BEGIN_DATE}" --add-comment
 
   validate-backports-enterprise:
+    if: ${{ !endsWith(github.repository, '-enterprise') }}
     container: hashicorpdev/backport-assistant:0.4.4
-    runs-on: [ 'ubuntu-latest' ]
+    runs-on: ${{ needs.setup.outputs.compute-small }}
     # needs to run serially because github search api limits to 30 req/minute.
     # running in parallel will push it over the limit.
     needs:
+      - setup
       - validate-backports-oss
     steps:
       - name: Fetch Secrets
