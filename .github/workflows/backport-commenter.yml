@@ -32,7 +32,7 @@ jobs:
 
   validate-backports-oss:
     container: hashicorpdev/backport-assistant:0.4.4
-    runs-on: [ 'self-hosted, linux' ]
+    runs-on: [ 'ubuntu-latest' ]
     steps:
       - name: Fetch Secrets
         id: secrets
@@ -58,7 +58,7 @@ jobs:
 
   validate-backports-enterprise:
     container: hashicorpdev/backport-assistant:0.4.4
-    runs-on: [ 'self-hosted, linux' ]
+    runs-on: [ 'ubuntu-latest' ]
     # needs to run serially because github search api limits to 30 req/minute.
     # running in parallel will push it over the limit.
     needs:
