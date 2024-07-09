@@ -70,11 +70,11 @@ function verify_rpm {
   case "${artifact_path}" in
     *.i386.rpm)
       docker_platform="linux/386"
-      docker_image="debian:12"
+      docker_image="i386/centos:7"
       ;;
     *.x86_64.rpm)
       docker_platform="linux/amd64"
-      docker_image="debian:12"
+      docker_image="amd64/centos:7"
       ;;
     *.armv7hl.rpm)
       docker_platform="linux/arm/v7"
@@ -102,7 +102,8 @@ function verify_rpm {
     ${docker_image} \
     /scripts/verify_rpm.sh \
     "/workdir/${artifact_path}" \
-    "${expect_version}"
+    "${expect_version}" \
+    "${docker_image}"
 }
 
 # Arguments:
