@@ -1,3 +1,41 @@
+## 1.19.1 (July 11, 2024)
+
+BREAKING CHANGES:
+
+* ui: Adds a "Link to HCP Consul Central" modal with integration to side-nav and link to HCP banner. There will be an option to disable the Link to HCP banner from the UI in a follow-up release. [[GH-20474](https://github.com/hashicorp/consul/issues/20474)]
+
+SECURITY:
+
+* Upgrade envoy module dependencies to version 1.27.7, 1.28.5 and 1.29.7 or higher to resolve [CVE-2024-39305](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-39305) [[GH-21524](https://github.com/hashicorp/consul/issues/21524)]
+* Upgrade go version to 1.22.5 to address [CVE-2024-24791](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-24791) [[GH-21507](https://github.com/hashicorp/consul/issues/21507)]
+* Upgrade go-retryablehttp to address [CVE-2024-6104](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-6104) [[GH-21384](https://github.com/hashicorp/consul/issues/21384)]
+* Upgrade to support Envoy `1.27.5 and 1.28.3`. This resolves CVE
+  [CVE-2024-32475](https://nvd.nist.gov/vuln/detail/CVE-2024-32475) (`auto_sni`). [[GH-21034](https://github.com/hashicorp/consul/issues/21034)]
+* Upgrade to support k8s.io/apimachinery `v0.18.7 or higher`. This resolves CVE
+  [CVE-2020-8559](https://nvd.nist.gov/vuln/detail/CVE-2020-8559). [[GH-21034](https://github.com/hashicorp/consul/issues/21034)]
+* agent: removed reflected cross-site scripting vulnerability [[GH-21342](https://github.com/hashicorp/consul/issues/21342)]
+* ui: Pin and namespace sub-module dependencies related to the Consul UI [[GH-21378](https://github.com/hashicorp/consul/issues/21378)]
+
+FEATURES:
+
+* ui: Added a banner to let users link their clusters to HCP [[GH-20275](https://github.com/hashicorp/consul/issues/20275)]
+
+IMPROVEMENTS:
+
+* mesh: update supported envoy version 1.29.5 in addition to 1.29.4, 1.28.4, 1.27.6. [[GH-21277](https://github.com/hashicorp/consul/issues/21277)]
+
+BUG FIXES:
+
+* core: Fix multiple incorrect type conversion for potential overflows [[GH-21251](https://github.com/hashicorp/consul/issues/21251)]
+* core: Fix panic runtime error on AliasCheck [[GH-21339](https://github.com/hashicorp/consul/issues/21339)]
+* dns: Fixes a spam log message "Failed to parse TTL for prepared query..."
+  that was always being logged on each prepared query evaluation. [[GH-21381](https://github.com/hashicorp/consul/issues/21381)]
+* terminating-gateway: **(Enterprise Only)** Fixed issue where enterprise metadata applied to linked services was the terminating-gateways enterprise metadata and not the linked services enterprise metadata. [[GH-21382](https://github.com/hashicorp/consul/issues/21382)]
+* txn: Fix a bug where mismatched Consul server versions could result in undetected data loss for when using newer Transaction verbs. [[GH-21519](https://github.com/hashicorp/consul/issues/21519)]
+* v2dns: Fix a regression where DNS SRV questions were returning duplicate hostnames instead of encoded IPs.
+  This affected Nomad integrations with Consul. [[GH-21361](https://github.com/hashicorp/consul/issues/21361)]
+* v2dns: Fix a regression where DNS tags using the standard lookup syntax, `tag.name.service.consul`, were being disregarded. [[GH-21361](https://github.com/hashicorp/consul/issues/21361)]
+
 ## 1.19.0 (June 12, 2024)
 
 BREAKING CHANGES:
