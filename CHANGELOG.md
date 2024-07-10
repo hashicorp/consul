@@ -22,8 +22,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* mesh: update supported envoy version 1.29.4
-* mesh: update supported envoy version 1.29.5 in addition to 1.28.4, 1.27.6. [[GH-21277](https://github.com/hashicorp/consul/issues/21277)]
+* mesh: update supported envoy version 1.29.5 in addition to 1.29.4, 1.28.4, 1.27.6. [[GH-21277](https://github.com/hashicorp/consul/issues/21277)]
 
 BUG FIXES:
 
