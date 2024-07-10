@@ -5,11 +5,13 @@ package state
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -1101,33 +1103,33 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway("tgate1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"})),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"})),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"})),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway("tgate1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evNode2),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evNode2),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evNode2),
 		},
 	})
@@ -1166,7 +1168,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway("tgate1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evNodeCheckFail,
 				evNodeUnchanged,
 				evNodeChecksMutated,
@@ -1175,7 +1177,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evNodeCheckFail,
 				evNodeUnchanged,
 				evNodeChecksMutated,
@@ -1184,7 +1186,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evNodeCheckFail,
 				evNodeUnchanged,
 				evNodeChecksMutated,
@@ -1219,21 +1221,21 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway(""),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evServiceIndex(setupIndex),
 				evServiceMutatedModifyIndex),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evServiceIndex(setupIndex),
 				evServiceMutatedModifyIndex),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evServiceIndex(setupIndex),
 				evServiceMutatedModifyIndex),
 		},
@@ -1281,21 +1283,21 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway(""),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evServiceIndex(setupIndex),
 				evServiceMutatedModifyIndex),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evServiceIndex(setupIndex),
 				evServiceMutatedModifyIndex),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"}),
 				evServiceIndex(setupIndex),
 				evServiceMutatedModifyIndex),
 		},
@@ -1481,7 +1483,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evTerminatingGatewayVirtualIPs("srv1"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default"}),
 			),
 			testServiceHealthEvent(t,
 				"tgate1",
@@ -1525,7 +1527,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evTerminatingGatewayVirtualIPs("srv1"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default"}),
 			),
 			testServiceHealthEvent(t,
 				"tgate1",
@@ -1585,7 +1587,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evServiceTermingGateway(""),
-				evTerminatingGatewayVirtualIPs("srv1")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default"})),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evServiceTermingGateway(""),
@@ -1593,7 +1595,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				evServiceMutated,
 				evServiceChecksMutated,
 				evTerminatingGatewayRenamed("tgate2"),
-				evTerminatingGatewayVirtualIPs("srv1")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default"})),
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evConnectTopic,
@@ -1640,17 +1642,17 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evServiceTermingGateway(""),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"})),
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv1"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"})),
 			testServiceHealthDeregistrationEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("srv2"),
-				evTerminatingGatewayVirtualIPs("srv1", "srv2")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"srv1": "default", "srv2": "default"})),
 		},
 	})
 	run(t, eventsTestCase{
@@ -1687,14 +1689,14 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				"tgate1",
 				evConnectTopic,
 				evServiceTermingGateway("destination1"),
-				evTerminatingGatewayVirtualIPs("destination1")),
+				evTerminatingGatewayVirtualIPs(map[string]string{"destination1": "default"})),
 			testServiceHealthEvent(t,
 				"tgate1",
 				evConnectTopic,
 				evNodeUnchanged,
 				evServiceUnchanged,
 				evServiceTermingGateway("destination1"),
-				evTerminatingGatewayVirtualIPs("destination1"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"destination1": "default"}),
 			),
 		},
 	})
@@ -1735,7 +1737,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				evNodeUnchanged,
 				evServiceUnchanged,
 				evServiceTermingGateway("destination1"),
-				evTerminatingGatewayVirtualIPs("*"),
+				evTerminatingGatewayVirtualIPs(map[string]string{"*": "default"}),
 			),
 		},
 	})
@@ -1835,15 +1837,19 @@ func evTerminatingGatewayVirtualIP(name, addr string) func(e *stream.Event) erro
 	}
 }
 
-func evTerminatingGatewayVirtualIPs(names ...string) func(e *stream.Event) error {
+func evTerminatingGatewayVirtualIPs(svcNameToNS map[string]string) func(e *stream.Event) error {
 	return func(e *stream.Event) error {
 		csn := getPayloadCheckServiceNode(e.Payload)
 
-		if len(names) > 0 {
-			csn.Service.TaggedAddresses = make(map[string]structs.ServiceAddress)
+		if len(svcNameToNS) > 0 {
+			csn.Service.TaggedAddresses = make(map[string]structs.ServiceAddress, len(svcNameToNS))
 		}
+
+		names := maps.Keys(svcNameToNS)
+		slices.Sort(names)
 		for i, name := range names {
-			sn := structs.NewServiceName(name, &csn.Service.EnterpriseMeta)
+			meta := structs.NewEnterpriseMetaInDefaultPartition(svcNameToNS[name])
+			sn := structs.NewServiceName(name, &meta)
 			key := structs.ServiceGatewayVirtualIPTag(sn)
 
 			csn.Service.TaggedAddresses[key] = structs.ServiceAddress{
@@ -2535,7 +2541,8 @@ func newPayloadCheckServiceNode(service, namespace string) EventPayloadCheckServ
 }
 
 func newPayloadCheckServiceNodeWithOverride(
-	service, namespace, overrideKey, overrideNamespace string) EventPayloadCheckServiceNode {
+	service, namespace, overrideKey, overrideNamespace string,
+) EventPayloadCheckServiceNode {
 	return EventPayloadCheckServiceNode{
 		Value: &structs.CheckServiceNode{
 			Service: &structs.NodeService{
