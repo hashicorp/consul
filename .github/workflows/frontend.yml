@@ -93,7 +93,7 @@ jobs:
         run: corepack enable
 
       - name: Install Chrome
-        uses: browser-actions/setup-chrome@82b9ce628cc5595478a9ebadc480958a36457dc2 # v1.6.0
+        uses: browser-actions/setup-chrome@facf10a55b9caf92e0cc749b4f82bf8220989148 # v1.7.2
 
       - name: Install dependencies
         working-directory: ui
@@ -133,7 +133,7 @@ jobs:
       run: corepack enable
 
     - name: Install Chrome
-      uses: browser-actions/setup-chrome@82b9ce628cc5595478a9ebadc480958a36457dc2 # v1.6.0
+      uses: browser-actions/setup-chrome@facf10a55b9caf92e0cc749b4f82bf8220989148 # v1.7.2
 
     - name: Install dependencies
       working-directory: ui
