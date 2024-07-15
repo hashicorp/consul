@@ -4,7 +4,7 @@
 package inmem
 
 import (
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )

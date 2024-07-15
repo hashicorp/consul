@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"

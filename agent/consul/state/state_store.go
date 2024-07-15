@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	memdb "github.com/hashicorp/go-memdb"
+	memdb "github.com/absolutelightning/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -178,7 +178,13 @@ func NewStateStoreWithEventPublisher(gc *TombstoneGC, publisher EventPublisher) 
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
 func (s *Store) Snapshot() *Snapshot {
-	tx := s.db.Txn(false)
+	newDb := s.db.db.Snapshot()
+	newStore := &Store{
+		db: &changeTrackerDB{
+			db: newDb,
+		},
+	}
+	tx := newStore.db.Txn(false)
 
 	var tables []string
 	for table := range s.schema.Tables {
@@ -186,7 +192,7 @@ func (s *Store) Snapshot() *Snapshot {
 	}
 	idx := maxIndexTxn(tx, tables...)
 
-	return &Snapshot{s, tx, idx}
+	return &Snapshot{newStore, tx, idx}
 }
 
 // WalkAllTables basically lets you dump memdb generically and exists primarily

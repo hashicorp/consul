@@ -6,8 +6,8 @@ package peerstream
 import (
 	"time"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"

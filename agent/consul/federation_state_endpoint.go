@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	memdb "github.com/absolutelightning/go-memdb"
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"

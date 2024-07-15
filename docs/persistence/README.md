@@ -49,7 +49,7 @@ implemented in [agent/consul/state] and uses [hashicorp/go-memdb] to maintain in
 data stored in a set of tables. The main entrypoint to the state store is [NewStateStore].
 
 [agent/consul/state]: https://github.com/hashicorp/consul/tree/main/agent/consul/state
-[hashicorp/go-memdb]: https://github.com/hashicorp/go-memdb
+[hashicorp/go-memdb]: https://github.com/absolutelightning/go-memdb
 [NewStateStore]: https://github.com/hashicorp/consul/blob/main/agent/consul/state/state_store.go
 
 ### Tables, Schemas, and Indexes

@@ -4,9 +4,9 @@
 package state
 
 import (
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
 )
 
 // GetSamenessGroup returns a SamenessGroupConfigEntry from the state

@@ -8,8 +8,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"

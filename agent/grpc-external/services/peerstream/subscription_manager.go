@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/ipaddr"

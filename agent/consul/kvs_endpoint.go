@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/absolutelightning/go-memdb"
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	memdb "github.com/hashicorp/go-memdb"
+	memdb "github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
