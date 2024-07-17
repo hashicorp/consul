@@ -129,9 +129,26 @@ Autopilot is a set of functionalities that include cleanup of dead servers, moni
 
 When you enable Autopilot's dead server cleanup, Autopilot marks failed servers as `Left` and removes them from the Raft peer set to prevent them from interfering with the quorum size. Autopilot does that as soon as a replacement Consul server comes online. This is beneficial when server nodes have failed and have been redeployed but Consul considers them as new nodes because their IP address and hostnames have changed. Autopilot keeps the cluster peer set size correct and the quorum requirement simple.
 
-Take into consideration the following situation with Autopilot enabled: there is a cluster of 5 Consul server nodes. Therefore, quorum is 3 and the cluster can afford to lose only two nodes before the cluster fails. Two of the server nodes fail. These two nodes are redeployed in a cloud environment, which assigns new hostnames and IP addresses to the replacement nodes. Once they rejoin the cluster, Consul treats them as two extra nodes, unrelated to the previously failed. The cluster has now 3 surviving nodes, 2 failed nodes and 2 newly joined nodes - 7 in total. However, because Autopilot is enabled and two new nodes have been introduced to the cluster, it cleans up the entries for the two `Failed` nodes. The final state of the cluster is 3 surviving nodes and 2 newly joined nodes - 5 nodes in total. Quorum is still 3, so the cluster can afford to lose two nodes, and level of redundancy is preserved instantaneously.
+To illustrate the Autopilot advantage, consider a scenario where Consul has a cluster of five server nodes. The quorum is three, which means the cluster can lose two server nodes before the cluster fails. The following events happen:
 
-Take into consideration the following situation without Autopilot disabledenabled: there is a cluster of 5 Consul server nodes. Therefore, quorum is 3 and the cluster can afford to lose only two nodes before the cluster fails. Two of the server nodes fail. These two nodes are redeployed in a cloud environment, which assigns new hostnames and IP addresses to the replacement nodes. Once they rejoin the cluster, Consul treats them as two extra nodes, unrelated to the previously failed. The cluster has now 3 surviving nodes, 2 failed nodes and 2 newly joined nodes - 7 in total. However, because Autopilot is not enabled, introducing two new nodes to the cluster does not trigger the clean-up for the two `Failed` nodes. The final state of the cluster is 3 surviving nodes, 2 failed, and 2 newly joined nodes - 7 nodes in total. Quorum is now 4, so the cluster can afford to lose only one node until the two failed nodes are reaped in 72 hours. Therefore, the level of redundancy has decreased compared to the initial state.
+1. Two server nodes fail.
+1. Two replacement nodes are deployed with new hostnames and IPs.
+1. The two replacement nodes rejoin the Consul cluster.
+1. Consul treats the replacement nodes as extra nodes, unrelated to the previously failed nodes.
+
+_With Autopilot not enabled_, the following happens:
+
+1. Consul does not immediately clean up the failed nodes when the replacement nodes join the cluster.
+1. The cluster now has the three surviving nodes, the two failed nodes, and the two replacement nodes, for a total of seven nodes.
+   - The quorum is increased to four, which means the cluster can only afford to lose one node until after the two failed nodes are deleted in seventy-two hours.
+   - The redundancy level has decreased from its initial state.
+
+_With Autopilot enabled_, the following happens:
+
+1. Consul immediately cleans up the failed nodes when the replacement nodes join the cluster.
+1. The cluster now has the three surviving nodes and the two replacement nodes, for a total of five nodes.
+   - The quorum stays at three, which means the cluster can afford to lose two nodes before it fails.
+   - The redundancy level remains the same.
 
 ### Cluster peering
 
