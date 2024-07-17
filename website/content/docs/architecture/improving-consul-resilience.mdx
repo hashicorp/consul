@@ -48,7 +48,7 @@ The following sections explore several options for increasing Consul's fault tol
 
 - [Spread servers across infrastructure availability zones](#availability-zones)
 - [Use a minimum quorum size to avoid performance impacts](#quorum-size).
-- <EnterpriseInline /> [Use redundancy zones to improve fault tolerance](#redundancy-zones).
+- <EnterpriseAlert inline /> [Use redundancy zones to improve fault tolerance](#redundancy-zones).
 - Use [Autopilot](#autopilot) to automatically prune failed servers and maintain quorum size.
 - Use [cluster peering](#cluster-peering) to provide service redundancy.
 
@@ -86,6 +86,8 @@ it requires Consul to involve more servers in every state change or consistent r
 Consul Enterprise provides a way to improve fault tolerance without this performance penalty. Refer to [Redundancy zones](#redundancy-zones) for details.
 
 ### <EnterpriseAlert inline /> Redundancy zones
+
+![Reference architecture diagram for Consul Redundancy zones](/img/architecture/consul-singleDC-redundancyzones.png)
 
 Use Consul Enterprise [redundancy zones](/consul/docs/enterprise/redundancy) to improve fault tolerance without the performance penalty of increasing the number of voting servers.
 
@@ -155,6 +157,8 @@ _With Autopilot enabled_, the following happens:
 Linking multiple Consul clusters together to provide service redundancy is the most effective method to prevent disruption from failure. This method is enhanced when you design individual Consul clusters with resilience in mind. Consul clusters interconnect in two ways - WAN federation and cluster peering. We recommend using cluster peering whenever possible.
 
 Cluster peering lets you connect two or more independent Consul clusters using mesh gateways, so that services can communicate between non-identical partitions in different datacenters.
+
+![Reference architecture diagram for Consul cluster peering](/img/architecture/cluster-peering-diagram.png)
 
 Cluster peering is the preferred way to interconnect clusters because it is operationally easier to configure and manage than WAN Federation. Cluster peering communication between two datacenters runs only on one port on the related Consul Mesh gateway, which makes it operationally easy to expose for routing purposes.
 
