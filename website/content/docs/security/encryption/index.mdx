@@ -51,7 +51,21 @@ You can configure mTLS in Consul using the following parameters:
     - [`ca_path`](/consul/docs/agent/config/config-files#tls_internal_rpc_ca_path)
     - [`cert_file`](/consul/docs/agent/config/config-files#tls_internal_rpc_cert_file) 
     - [`key_file`](/consul/docs/agent/config/config-files#tls_internal_rpc_key_file)
+- Traffic verification
+    - [`verify_incoming`](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_incoming)
+    - [`verify_outgoing`](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_outgoing)
+    - [`verify_server_hostname`](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_server_hostname)
 
+If [`verify_server_hostname`](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_server_hostname) is set, then
+outgoing connections perform hostname verification. All servers must have a certificate
+valid for `server.<datacenter>.<domain>` or the client will reject the handshake. This was
+introduced in Consul `0.5.1`, and it is used to prevent a compromised client from being
+able to restart in server mode and perform a MITM (Man-In-The-Middle) attack. New deployments should set this
+to true, and generate the proper certificates, but this is defaulted to false to avoid breaking
+existing deployments.
+
+
+Learn more on how to enable mTLS on your Consul datacenter in [mTLS encryption](/consul/docs/security/encryption/mTLS) documentation.
 
 ## RPC Encryption with TLS
 
@@ -89,8 +103,6 @@ authenticity of all incoming connections. All clients must have a valid key pair
 also disallow any non-TLS connections. To force clients to use TLS,
 [`verify_outgoing`](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_outgoing) must also be set.
 
-TLS is used to secure the RPC calls between agents, but gossip between nodes is done over UDP
-and is secured using a symmetric key. See above for enabling gossip encryption.
 
 ## Configuring TLS on an existing cluster
 
