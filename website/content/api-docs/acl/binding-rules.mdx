@@ -530,7 +530,7 @@ The table below shows this endpoint's support for
 
 The corresponding CLI command is [`consul acl binding-rule list`](/consul/commands/acl/binding-rule/list).
 
-## Query Parameters
+### Query Parameters
 
 - `authmethod` `(string: "")` - Filters the binding rule list to those binding
   rules that are linked with the specific named auth method.
@@ -541,7 +541,7 @@ The corresponding CLI command is [`consul acl binding-rule list`](/consul/comman
 
 @include 'http-api-query-parms-partition.mdx'
 
-## Sample Request
+### Sample Request
 
 ```shell-session
 $ curl --request GET http://127.0.0.1:8500/v1/acl/binding-rules
