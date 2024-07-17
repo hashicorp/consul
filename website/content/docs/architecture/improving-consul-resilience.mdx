@@ -5,7 +5,8 @@ description: >-
   Fault tolerance is a system's ability to operate without interruption despite component failure. Learn how a set of Consul servers provide fault tolerance through use of a quorum, and how to further improve control plane resilience through use of infrastructure zones and Enterprise redundancy zones.
 ---
 
-# Fault Tolerance
+# Fault tolerance
+
 
 You must give careful consideration to reliability in the architecture frameworks which you build. Building a resilient platform minimizes the future remediation actions for when a failure occurs, and minimizes the possible technical debt that results from uninformed design decisions. This document will provide useful information on how to design and operate a resilient Consul cluster, and what methods and functionalities are at your disposal for this goal.
 
@@ -14,7 +15,7 @@ Consul has a multitude of features that operate both locally, as well as remotel
 ## Introduction
 
 Fault tolerance is the ability of a system to continue operating without interruption
-despite the failure of one or more components. Consul's fault tolerance is determined by the configuration of its voting server agents.
+despite the failure of one or more components. Voting server agent configuration determines Consul's fault tolerance.
 
 Each Consul datacenter depends on a set of Consul voting server agents.
 The voting servers ensure Consul has a consistent, fault-tolerant state
@@ -46,15 +47,16 @@ What are the costs of the mitigation? Different mitigation options present diffe
 The following sections explore several options for increasing Consul's fault tolerance. For enhanced reliability, we recommend taking a holistic approach by layering these multiple functionalities together.
 
 - [Spread servers across infrastructure availability zones](#availability-zones)
-- <EnterpriseAlert inline /><a href="#quorum-size">Using backup voting servers to replace lost voters</a>
-- [Use Backup Voting Servers to Replace Lost Voters](#redundancy-zones)
-- [Autopilot](#autopilot)
-- [Cluster peering](#cluster-peering)
+- [Use a minimum quorum size to avoid performance impacts](#quorum-size).
+- <EnterpriseInline />[Use redundancy zones to improve fault tolerance](#redundancy-zones).
+- Use [Autopilot](#autopilot) to automatically prune failed servers and maintain quorum size.
+- Use [cluster peering](#cluster-peering) to provide service redundancy.
 
-### Availability Zones
+### Availability zones
 
-The cloud or on-premise infrastructure underlying your  [Consul datacenter](/consul/docs/install/glossary#datacenter)
-may be split into several "availability zones".
+
+The cloud or on-premise infrastructure underlying your [Consul datacenter](/consul/docs/install/glossary#datacenter) may be split into several availability zones.
+
 An availability zone is meant to share no points of failure with other zones by:
 - Having power, cooling, and networking systems independent from other zones
 - Being physically distant enough from other zones so that large-scale disruptions
@@ -70,25 +72,22 @@ To distribute your Consul servers across availability zones, modify your infrast
 
 Additionally, you should leverage resources that can automatically restore your compute instance,
 such as autoscaling groups, virtual machine scale sets, or compute engine autoscaler.
-The autoscaling resources can be customized to re-deploy servers into specific availability zones
-and ensure the desired numbers of servers are available at all time. 
+Customize autoscaling resources to re-deploy servers into specific availability zones and ensure the desired numbers of servers are available at all times. 
 
 ### Quorum size
 
-For most production use cases, we recommend using either 3 or 5 voting servers,
+For most production use cases, we recommend using a minimum quorum of either 3 or 5 voting servers,
 yielding a server-level fault tolerance of 1 or 2 respectively.
 
 Even though it would improve fault tolerance,
 adding voting servers beyond 5 is **not recommended** because it decreases Consul's performance—
 it requires Consul to involve more servers in every state change or consistent read.
 
-Consul Enterprise provides a way to improve fault tolerance without this performance penalty:
-[using backup voting servers to replace lost voters](#use-backup-voting-servers-to-replace-lost-voters).
+Consul Enterprise provides a way to improve fault tolerance without this performance penalty. Refer to [Redundancy zones](#redundancy-zones) for details.
 
 ### <EnterpriseAlert inline /> Redundancy zones
 
-Consul Enterprise [redundancy zones](/consul/docs/enterprise/redundancy)
-can be used to improve fault tolerance without the performance penalty of increasing the number of voting servers.
+Use Consul Enterprise [redundancy zones](/consul/docs/enterprise/redundancy) to improve fault tolerance without the performance penalty of increasing the number of voting servers.
 
 Each redundancy zone should be assigned 2 or more Consul servers.
 If all servers are healthy, only one server per redundancy zone will be an active voter;
@@ -126,9 +125,9 @@ For more information on redundancy zones, refer to:
 
 ### Autopilot
 
-Autopilot is a set of functionalities that include cleanup of dead servers, monitoring the state of the Raft protocol in the Consul cluster, and stable server introduction. Autopilot is enabled by default since Consul version `1.0`.
+Autopilot is a set of functionalities that include cleanup of dead servers, monitoring the state of the Raft protocol in the Consul cluster, and stable server introduction.
 
-With Autopilot's dead server cleanup enabled, failed servers will be marked as `Left` and removed from the Raft peer set to prevent them from interfering with the quorum size. Autopilot does that as soon as a replacement Consul server comes online. This is beneficial when server nodes have failed and have been redeployed, but their IP address and hostnames are no longer the same, and Consul considers them as new nodes. This functionality keeps the cluster peer set size correct and the quorum requirement simple.
+When you enable Autopilot's dead server cleanup, Autopilot marks failed servers as `Left` and removes them from the Raft peer set to prevent them from interfering with the quorum size. Autopilot does that as soon as a replacement Consul server comes online. This is beneficial when server nodes have failed and have been redeployed but Consul considers them as new nodes because their IP address and hostnames have changed. Autopilot keeps the cluster peer set size correct and the quorum requirement simple.
 
 Take into consideration the following situation with Autopilot enabled: there is a cluster of 5 Consul server nodes. Therefore, quorum is 3 and the cluster can afford to lose only two nodes before the cluster fails. Two of the server nodes fail. These two nodes are redeployed in a cloud environment, which assigns new hostnames and IP addresses to the replacement nodes. Once they rejoin the cluster, Consul treats them as two extra nodes, unrelated to the previously failed. The cluster has now 3 surviving nodes, 2 failed nodes and 2 newly joined nodes - 7 in total. However, because Autopilot is enabled and two new nodes have been introduced to the cluster, it cleans up the entries for the two `Failed` nodes. The final state of the cluster is 3 surviving nodes and 2 newly joined nodes - 5 nodes in total. Quorum is still 3, so the cluster can afford to lose two nodes, and level of redundancy is preserved instantaneously.
 
@@ -142,6 +141,7 @@ Cluster peering lets you connect two or more independent Consul clusters using m
 
 Cluster peering is the preferred way to interconnect clusters because it is operationally easier to configure and manage than WAN Federation. Cluster peering communication between two datacenters runs only on one port on the related Consul Mesh gateway, which makes it operationally easy to expose for routing purposes.
 
-When you use cluster peering to connect admin partitions between datacenters, you can use Consul’s dynamic traffic management functionalities `service-splitter`, `service-router` and `service-failover` to configure your service mesh to automatically forward or failover service traffic between peer clusters. This way Consul can manage the traffic intended for the service and do [failover](/consul/docs/connect/config-entries/service-resolver#spec-failover), [load-balancing](/consul/docs/connect/config-entries/service-resolver#spec-loadbalancer), or [redirection](/consul/docs/connect/config-entries/service-resolver#spec-redirect).
+When you use cluster peering to connect admin partitions between datacenters, use Consul’s dynamic traffic management functionalities `service-splitter`, `service-router` and `service-failover` to configure your service mesh to automatically forward or failover service traffic between peer clusters. Consul can then manage the traffic intended for the service and do [failover](/consul/docs/connect/config-entries/service-resolver#spec-failover), [load-balancing](/consul/docs/connect/config-entries/service-resolver#spec-loadbalancer), or [redirection](/consul/docs/connect/config-entries/service-resolver#spec-redirect).
+
 
 Cluster peering also extends service discovery across different datacenters independent of service mesh functions. After you've peered datacenters, you can refer to services between datacenters with `<service>.virtual.peer.consul` in Consul DNS. For Consul Enterprise, your query string may need to include the namespace, partition, or both. Refer to the [Consul DNS documentation](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups) for details on building virtual service lookups.
