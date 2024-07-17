@@ -48,7 +48,7 @@ The following sections explore several options for increasing Consul's fault tol
 
 - [Spread servers across infrastructure availability zones](#availability-zones)
 - [Use a minimum quorum size to avoid performance impacts](#quorum-size).
-- <EnterpriseAlert inline /> [Use redundancy zones to improve fault tolerance](#redundancy-zones).
+- [<EnterpriseAlert inline /> Use redundancy zones to improve fault tolerance](#redundancy-zones).
 - Use [Autopilot](#autopilot) to automatically prune failed servers and maintain quorum size.
 - Use [cluster peering](#cluster-peering) to provide service redundancy.
 
@@ -87,9 +87,9 @@ Consul Enterprise provides a way to improve fault tolerance without this perform
 
 ### <EnterpriseAlert inline /> Redundancy zones
 
-![Reference architecture diagram for Consul Redundancy zones](/img/architecture/consul-singleDC-redundancyzones.png)
-
 Use Consul Enterprise [redundancy zones](/consul/docs/enterprise/redundancy) to improve fault tolerance without the performance penalty of increasing the number of voting servers.
+
+![Reference architecture diagram for Consul Redundancy zones](/img/architecture/consul-singleDC-redundancyzones.png)
 
 Each redundancy zone should be assigned 2 or more Consul servers.
 If all servers are healthy, only one server per redundancy zone will be an active voter;
