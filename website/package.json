@@ -7,7 +7,7 @@
     "@hashicorp/platform-cli": "^2.7.3",
     "@hashicorp/platform-content-conformance": "^0.0.12",
     "dart-linkcheck": "^2.0.15",
-    "husky": "^9.0.7",
+    "husky": "^9.1.0",
     "next": "^12.3.1",
     "prettier": "^3.2.4"
   },
