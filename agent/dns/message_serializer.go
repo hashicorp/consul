@@ -475,11 +475,11 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question, 
 
 	if reqType != requestTypeAddress && result.Type != discovery.ResultTypeVirtual && addr.IsIP() {
 		if addr.IsIPV4() && !canReturnARecord {
-			logger.Debug("unable to return DNS A record for for ipv4 address", "question", question.Name, "query-type", question.Qtype, "answer", addr.addr)
+			logger.Debug("unable to return DNS AAAA record for for ipv4 address", "question", question.Name, "query-type", question.Qtype, "answer", addr.addr)
 			return
 		}
 		if !addr.IsIPV4() && !canReturnAAAARecord {
-			logger.Debug("unable to return DNS AAAA record for for ipv6 address", "question", question.Name, "query-type", question.Qtype, "answer", addr.addr)
+			logger.Debug("unable to return DNS A record for for ipv6 address", "question", question.Name, "query-type", question.Qtype, "answer", addr.addr)
 			return
 		}
 	}
