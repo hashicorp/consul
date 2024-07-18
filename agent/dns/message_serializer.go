@@ -15,11 +15,20 @@ import (
 	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/dnsutil"
+	"github.com/hashicorp/go-hclog"
 )
 
 // messageSerializer is the high level orchestrator for generating the Answer,
 // Extra, and Ns records for a DNS response.
-type messageSerializer struct{}
+type messageSerializer struct {
+	logger hclog.Logger
+}
+
+func newMessageSerializer(logger hclog.Logger) *messageSerializer {
+	return &messageSerializer{
+		logger: logger,
+	}
+}
 
 // serializeOptions are the options for serializing a discovery.Result into a DNS message.
 type serializeOptions struct {
@@ -287,14 +296,14 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 	switch {
 	case (reqType == requestTypeAddress || opts.result.Type == discovery.ResultTypeVirtual) &&
 		serviceAddress.IsEmptyString() && nodeAddress.IsIP():
-		a, e := getAnswerExtrasForIP(qName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
+		a, e := getAnswerExtrasForIP(qName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false, d.logger)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
 	case opts.result.Type == discovery.ResultTypeNode && nodeAddress.IsIP():
 		canonicalNodeName := canonicalNameForResult(opts.result.Type,
 			opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
-		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
+		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false, d.logger)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -314,7 +323,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 		}
 		canonicalNodeName := canonicalNameForResult(resultType, opts.result.Node.Name,
 			opts.responseDomain, opts.result.Tenancy, opts.port.Name)
-		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, nodeAddress.String() == opts.result.Node.Address) // We compare the node address to the result to detect changes from the WAN translation
+		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, nodeAddress.String() == opts.result.Node.Address, d.logger) // We compare the node address to the result to detect changes from the WAN translation
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -325,7 +334,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 		extra = append(extra, e...)
 
 	case serviceAddress.IsIP() && opts.req.Question[0].Qtype == dns.TypeSRV:
-		a, e := getAnswerExtrasForIP(qName, serviceAddress, opts.req.Question[0], requestTypeName, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
+		a, e := getAnswerExtrasForIP(qName, serviceAddress, opts.req.Question[0], requestTypeName, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false, d.logger)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -333,7 +342,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 	case serviceAddress.IsIP():
 		canonicalServiceName := canonicalNameForResult(discovery.ResultTypeService,
 			opts.result.Service.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
-		a, e := getAnswerExtrasForIP(canonicalServiceName, serviceAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
+		a, e := getAnswerExtrasForIP(canonicalServiceName, serviceAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false, d.logger)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -342,7 +351,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 	case serviceAddress.FQDN() == opts.req.Question[0].Name && nodeAddress.IsIP():
 		canonicalNodeName := canonicalNameForResult(discovery.ResultTypeNode,
 			opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
-		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, nodeAddress.String() == opts.result.Node.Address) // We compare the node address to the result to detect changes from the WAN translation
+		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, nodeAddress.String() == opts.result.Node.Address, d.logger) // We compare the node address to the result to detect changes from the WAN translation
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -459,16 +468,18 @@ func shouldAppendTXTRecord(query *discovery.Query, cfg *RouterDynamicConfig, req
 }
 
 // getAnswerExtrasForIP creates the dns answer and extra from IP dnsAddress pairs.
-func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question, reqType requestType, result *discovery.Result, ttl uint32, domain string, port *discovery.Port, maker dnsRecordMaker, addressOverridden bool) (answer []dns.RR, extra []dns.RR) {
+func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question, reqType requestType, result *discovery.Result, ttl uint32, domain string, port *discovery.Port, maker dnsRecordMaker, addressOverridden bool, logger hclog.Logger) (answer []dns.RR, extra []dns.RR) {
 	qType := question.Qtype
 	canReturnARecord := qType == dns.TypeSRV || qType == dns.TypeA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
 	canReturnAAAARecord := qType == dns.TypeSRV || qType == dns.TypeAAAA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
-	if reqType != requestTypeAddress && result.Type != discovery.ResultTypeVirtual {
-		switch {
-		// check IPV4
-		case addr.IsIP() && addr.IsIPV4() && !canReturnARecord,
-			// check IPV6
-			addr.IsIP() && !addr.IsIPV4() && !canReturnAAAARecord:
+
+	if reqType != requestTypeAddress && result.Type != discovery.ResultTypeVirtual && addr.IsIP() {
+		if addr.IsIPV4() && !canReturnARecord {
+			logger.Debug("unable to return DNS A record for for ipv4 address", "question", question.Name, "query-type", question.Qtype, "answer", addr.addr)
+			return
+		}
+		if !addr.IsIPV4() && !canReturnAAAARecord {
+			logger.Debug("unable to return DNS AAAA record for for ipv6 address", "question", question.Name, "query-type", question.Qtype, "answer", addr.addr)
 			return
 		}
 	}
