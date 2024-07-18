@@ -178,7 +178,7 @@ func NewStateStoreWithEventPublisher(gc *TombstoneGC, publisher EventPublisher) 
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
 func (s *Store) Snapshot() *Snapshot {
-	newDb := s.db.db.Snapshot()
+	newDb := s.db.db.Snapshot(true)
 	newStore := &Store{
 		db: &changeTrackerDB{
 			db: newDb,
