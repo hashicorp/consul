@@ -89,7 +89,8 @@ Consul Enterprise provides a way to improve fault tolerance without this perform
 
 Use Consul Enterprise [redundancy zones](/consul/docs/enterprise/redundancy) to improve fault tolerance without the performance penalty of increasing the number of voting servers.
 
-![Reference architecture diagram for Consul Redundancy zones](/img/architecture/consul-singleDC-redundancyzones.png)
+![Reference architecture diagram for Consul Redundancy zones](/img/architecture/consul-redundancy-zones-light.png#light-theme-only)
+![Reference architecture diagram for Consul Redundancy zones](/img/architecture/consul-redundancy-zones-dark.png#dark-theme-only)
 
 Each redundancy zone should be assigned 2 or more Consul servers.
 If all servers are healthy, only one server per redundancy zone will be an active voter;
@@ -158,7 +159,8 @@ Linking multiple Consul clusters together to provide service redundancy is the m
 
 Cluster peering lets you connect two or more independent Consul clusters using mesh gateways, so that services can communicate between non-identical partitions in different datacenters.
 
-![Reference architecture diagram for Consul cluster peering](/img/architecture/cluster-peering-diagram.png)
+![Reference architecture diagram for Consul cluster peering](/img/architecture/cluster-peering-diagram-light.png#light-theme-only)
+![Reference architecture diagram for Consul cluster peering](/img/architecture/cluster-peering-diagram-dark.png#dark-theme-only)
 
 Cluster peering is the preferred way to interconnect clusters because it is operationally easier to configure and manage than WAN Federation. Cluster peering communication between two datacenters runs only on one port on the related Consul Mesh gateway, which makes it operationally easy to expose for routing purposes.
 
