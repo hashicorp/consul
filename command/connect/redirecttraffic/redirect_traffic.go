@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 func New(ui cli.Ui) *cmd {

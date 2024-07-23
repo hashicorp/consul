@@ -17,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/acmpca"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/hcl"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 func GetTokenAccessorIDFromPartial(client *api.Client, partialAccessorID string) (string, error) {

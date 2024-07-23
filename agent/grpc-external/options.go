@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"google.golang.org/grpc/metadata"
 )
 

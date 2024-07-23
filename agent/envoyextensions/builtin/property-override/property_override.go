@@ -12,7 +12,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/api"

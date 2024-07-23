@@ -8,7 +8,7 @@ import (
 	"net"
 
 	"github.com/hashicorp/raft"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 

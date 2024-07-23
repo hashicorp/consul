@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
