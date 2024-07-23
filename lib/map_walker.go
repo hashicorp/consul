@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/mitchellh/copystructure"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/reflectwalk"
 )
 

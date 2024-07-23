@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/hcl"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/hcl"
 
 	"github.com/hashicorp/consul/lib/decode"
 )

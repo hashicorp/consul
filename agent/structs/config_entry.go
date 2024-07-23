@@ -13,9 +13,9 @@ import (
 
 	"github.com/miekg/dns"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
-	"github.com/go-viper/mapstructure/v2"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 

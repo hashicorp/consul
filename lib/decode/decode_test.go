@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/hcl"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/hcl"
 	"github.com/stretchr/testify/require"
 )
 

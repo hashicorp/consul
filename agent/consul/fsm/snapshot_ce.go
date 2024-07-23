@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/hashicorp/raft"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/raft"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 

@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/consul/agent/structs"
 	"google.golang.org/grpc/metadata"
 )
 
