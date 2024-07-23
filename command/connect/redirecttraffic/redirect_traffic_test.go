@@ -58,7 +58,6 @@ func TestRun_FlagValidation(t *testing.T) {
 			require.Contains(t, ui.ErrorWriter.String(), c.expError)
 		})
 	}
-
 }
 
 func TestGenerateConfigFromFlags(t *testing.T) {
@@ -215,7 +214,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			expError: "failed parsing Proxy.Config: 1 error(s) decoding:\n\n* cannot parse 'bind_port' as int:",
+			expError: "failed parsing Proxy.Config: decoding failed due to the following error(s):\n\ncannot parse 'bind_port' as int:",
 		},
 		{
 			name: "proxyID with proxy outbound port",
