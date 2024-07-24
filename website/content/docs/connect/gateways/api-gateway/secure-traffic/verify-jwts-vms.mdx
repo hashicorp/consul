@@ -116,7 +116,7 @@ Define filters to enable route-specific JWT verification settings in the [HTTP r
 The following example configures an HTTPRoute so that every request to `api-gateway-fqdn:3002/admin` must meet these conditions:
 - The request be signed by the `local` provider.
 - The request must have a `role` claim.
-- The value of the claim must be `admin` .
+- The value of the claim must be `admin`.
 
 Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user`, as defined in the Gateway listener.
 
