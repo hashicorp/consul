@@ -184,7 +184,7 @@ The following example configures an HTTPRoute so that every request to `api-gate
 
 - The request be signed by the `local` provider.
 - The request must have a `role` claim.
-- The value of the claim must be `admin` .
+- The value of the claim must be `admin`.
 
 Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user`, as defined in the GatewayPolicy.
 
