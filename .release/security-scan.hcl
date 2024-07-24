@@ -42,6 +42,13 @@ container {
 				"CVE-2023-46219", # curl@8.4.0-r0
 				"CVE-2023-5678",  # openssl@3.1.4-r0
 			]
+			paths = [
+				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+				"test/integration/connect/envoy/test-sds-server/*",
+				"test/integration/consul-container/*",
+				"testing/deployer/*",
+				"test-integ/*",
+			]
 		}
 	}
 }
@@ -49,6 +56,7 @@ container {
 binary {
 	go_modules   = true
 	osv          = true
+	go_stdlib    = true
 	# We can't enable npm for binary targets today because we don't yet embed the relevant file
 	# (yarn.lock) in the Consul binary. This is something we may investigate in the future.
 	
@@ -64,6 +72,23 @@ binary {
 				"github",
 				"azure",
 				"npm",
+			]
+		}
+	}
+
+	# Triage items that are _safe_ to ignore here. Note that this list should be
+	# periodically cleaned up to remove items that are no longer found by the scanner.
+	triage {
+		suppress {
+			# N.b. `vulnerabilites` is the correct spelling for this tool.
+			vulnerabilites = [
+			]
+			paths = [
+				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+				"test/integration/connect/envoy/test-sds-server/*",
+				"test/integration/consul-container/*",
+				"testing/deployer/*",
+				"test-integ/*",
 			]
 		}
 	}

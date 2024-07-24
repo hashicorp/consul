@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/metadata"
 
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/proto-public/pbdns"
@@ -50,6 +52,7 @@ func (s *DNSTestSuite) TestProxy_V2Success() {
 		question        string
 		configureRouter func(router *agentdns.MockDNSRouter)
 		clientQuery     func(qR *pbdns.QueryRequest)
+		metadata        map[string]string
 		expectedErr     error
 	}{
 
@@ -71,6 +74,28 @@ func (s *DNSTestSuite) TestProxy_V2Success() {
 			},
 			clientQuery: func(qR *pbdns.QueryRequest) {
 				qR.Protocol = pbdns.Protocol_PROTOCOL_TCP
+			},
+		},
+		"happy path with context variables set": {
+			question: "abc.com.",
+			configureRouter: func(router *agentdns.MockDNSRouter) {
+				router.On("HandleRequest", mock.Anything, mock.Anything, mock.Anything).
+					Run(func(args mock.Arguments) {
+						ctx, ok := args.Get(1).(agentdns.Context)
+						require.True(s.T(), ok, "error casting to agentdns.Context")
+						require.Equal(s.T(), "test-token", ctx.Token, "token not set in context")
+						require.Equal(s.T(), "test-namespace", ctx.DefaultNamespace, "namespace not set in context")
+						require.Equal(s.T(), "test-partition", ctx.DefaultPartition, "partition not set in context")
+					}).
+					Return(basicResponse(), nil)
+			},
+			clientQuery: func(qR *pbdns.QueryRequest) {
+				qR.Protocol = pbdns.Protocol_PROTOCOL_UDP
+			},
+			metadata: map[string]string{
+				"x-consul-token":     "test-token",
+				"x-consul-namespace": "test-namespace",
+				"x-consul-partition": "test-partition",
 			},
 		},
 		"No protocol set": {
@@ -108,9 +133,18 @@ func (s *DNSTestSuite) TestProxy_V2Success() {
 
 			bytes, _ := req.Pack()
 
+			ctx := context.Background()
+			if len(tc.metadata) > 0 {
+				md := metadata.MD{}
+				for k, v := range tc.metadata {
+					md.Set(k, v)
+				}
+				ctx = metadata.NewOutgoingContext(ctx, md)
+			}
+
 			clientReq := &pbdns.QueryRequest{Msg: bytes}
 			tc.clientQuery(clientReq)
-			clientResp, err := client.Query(context.Background(), clientReq)
+			clientResp, err := client.Query(ctx, clientReq)
 			if tc.expectedErr != nil {
 				s.Require().Error(err, "no errror calling gRPC endpoint")
 				s.Require().ErrorContains(err, tc.expectedErr.Error())

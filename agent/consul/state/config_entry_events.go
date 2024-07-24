@@ -15,20 +15,21 @@ import (
 
 // Adding events for a new config entry kind? Remember to update ConfigEntryFromStructs and ConfigEntryToStructs.
 var configEntryKindToTopic = map[string]stream.Topic{
-	structs.MeshConfig:        EventTopicMeshConfig,
-	structs.ServiceResolver:   EventTopicServiceResolver,
-	structs.IngressGateway:    EventTopicIngressGateway,
-	structs.ServiceIntentions: EventTopicServiceIntentions,
-	structs.ServiceDefaults:   EventTopicServiceDefaults,
-	structs.APIGateway:        EventTopicAPIGateway,
-	structs.TCPRoute:          EventTopicTCPRoute,
-	structs.HTTPRoute:         EventTopicHTTPRoute,
-	structs.InlineCertificate: EventTopicInlineCertificate,
-	structs.BoundAPIGateway:   EventTopicBoundAPIGateway,
-	structs.RateLimitIPConfig: EventTopicIPRateLimit,
-	structs.SamenessGroup:     EventTopicSamenessGroup,
-	structs.JWTProvider:       EventTopicJWTProvider,
-	structs.ExportedServices:  EventTopicExportedServices,
+	structs.MeshConfig:            EventTopicMeshConfig,
+	structs.ServiceResolver:       EventTopicServiceResolver,
+	structs.IngressGateway:        EventTopicIngressGateway,
+	structs.ServiceIntentions:     EventTopicServiceIntentions,
+	structs.ServiceDefaults:       EventTopicServiceDefaults,
+	structs.APIGateway:            EventTopicAPIGateway,
+	structs.TCPRoute:              EventTopicTCPRoute,
+	structs.HTTPRoute:             EventTopicHTTPRoute,
+	structs.FileSystemCertificate: EventTopicFileSystemCertificate,
+	structs.InlineCertificate:     EventTopicInlineCertificate,
+	structs.BoundAPIGateway:       EventTopicBoundAPIGateway,
+	structs.RateLimitIPConfig:     EventTopicIPRateLimit,
+	structs.SamenessGroup:         EventTopicSamenessGroup,
+	structs.JWTProvider:           EventTopicJWTProvider,
+	structs.ExportedServices:      EventTopicExportedServices,
 }
 
 // EventSubjectConfigEntry is a stream.Subject used to route and receive events
@@ -145,6 +146,12 @@ func (s *Store) TCPRouteSnapshot(req stream.SubscribeRequest, buf stream.Snapsho
 // http-route config entries.
 func (s *Store) HTTPRouteSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.HTTPRoute, req, buf)
+}
+
+// FileSystemCertificateSnapshot is a stream.SnapshotFunc that returns a snapshot of
+// inline-certificate config entries.
+func (s *Store) FileSystemCertificateSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.FileSystemCertificate, req, buf)
 }
 
 // InlineCertificateSnapshot is a stream.SnapshotFunc that returns a snapshot of

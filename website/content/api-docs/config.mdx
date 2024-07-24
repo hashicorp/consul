@@ -39,23 +39,24 @@ The corresponding CLI command is [`consul config write`](/consul/commands/config
 
 The ACL required depends on the config entry being written:
 
-| Config Entry Kind   | Required ACLs                    |
-| ------------------- | -------------------------------- |
-| api-gateway         | `mesh:write` or `operator:write` |
-| bound-api-gateway   | Not writable.                    |
-| exported-services   | `mesh:write` or `operator:write` |
-| http-route          | `mesh:write` or `operator:write` |
-| ingress-gateway     | `mesh:write` or `operator:write` |
-| inline-certificate  | `mesh:write` or `operator:write` |
-| mesh                | `mesh:write` or `operator:write` |
-| proxy-defaults      | `mesh:write` or `operator:write` |
-| service-defaults    | `service:write`                  |
-| service-intentions  | `intentions:write`               |
-| service-resolver    | `service:write`                  |
-| service-router      | `service:write`                  |
-| service-splitter    | `service:write`                  |
-| tcp-route           | `mesh:write` or `operator:write` |
-| terminating-gateway | `mesh:write` or `operator:write` |
+| Config Entry Kind       | Required ACLs                    |
+| ----------------------- | -------------------------------- |
+| api-gateway             | `mesh:write` or `operator:write` |
+| bound-api-gateway       | Not writable.                    |
+| exported-services       | `mesh:write` or `operator:write` |
+| file-system-certificate | `mesh:write` or `operator:write` |
+| http-route              | `mesh:write` or `operator:write` |
+| ingress-gateway         | `mesh:write` or `operator:write` |
+| inline-certificate      | `mesh:write` or `operator:write` |
+| mesh                    | `mesh:write` or `operator:write` |
+| proxy-defaults          | `mesh:write` or `operator:write` |
+| service-defaults        | `service:write`                  |
+| service-intentions      | `intentions:write`               |
+| service-resolver        | `service:write`                  |
+| service-router          | `service:write`                  |
+| service-splitter        | `service:write`                  |
+| tcp-route               | `mesh:write` or `operator:write` |
+| terminating-gateway     | `mesh:write` or `operator:write` |
 
 ### Query Parameters
 
@@ -69,6 +70,8 @@ The ACL required depends on the config entry being written:
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you apply.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Payload
 
@@ -114,23 +117,24 @@ The corresponding CLI command is [`consul config read`](/consul/commands/config/
 
 The ACL required depends on the config entry kind being read:
 
-| Config Entry Kind   | Required ACLs                    |
-| ------------------- | -------------------------------- |
-| api-gateway         | `service:read`                   |
-| bound-api-gateway   | `service:read`                   |
-| exported-services   | `mesh:read` or `operator:read`   |
-| http-route          | `mesh:read` or `operator:read`   |
-| ingress-gateway     | `service:read`                   |
-| inline-certificate  | `mesh:read` or `operator:read`   |
-| mesh                | No ACL required                  |
-| proxy-defaults      | No ACL required                  |
-| service-defaults    | `service:read`                   |
-| service-intentions  | `intentions:read`                |
-| service-resolver    | `service:read`                   |
-| service-router      | `service:read`                   |
-| service-splitter    | `service:read`                   |
-| tcp-route           | `mesh:read` or `operator:read`   |
-| terminating-gateway | `service:read`                   |
+| Config Entry Kind       | Required ACLs                    |
+| ----------------------- | -------------------------------- |
+| api-gateway             | `service:read`                   |
+| bound-api-gateway       | `service:read`                   |
+| exported-services       | `mesh:read` or `operator:read`   |
+| file-system-certificate | `mesh:read` or `operator:read` |
+| http-route              | `mesh:read` or `operator:read`   |
+| ingress-gateway         | `service:read`                   |
+| inline-certificate      | `mesh:read` or `operator:read`   |
+| mesh                    | No ACL required                  |
+| proxy-defaults          | No ACL required                  |
+| service-defaults        | `service:read`                   |
+| service-intentions      | `intentions:read`                |
+| service-resolver        | `service:read`                   |
+| service-router          | `service:read`                   |
+| service-splitter        | `service:read`                   |
+| tcp-route               | `mesh:read` or `operator:read`   |
+| terminating-gateway     | `service:read`                   |
 
 ### Path Parameters
 
@@ -147,6 +151,8 @@ The ACL required depends on the config entry kind being read:
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you lookup
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -192,23 +198,24 @@ The table below shows this endpoint's support for
 
 The ACL required depends on the config entry kind being read:
 
-| Config Entry Kind   | Required ACLs                    |
-| ------------------- | -------------------------------- |
-| api-gateway         | `service:read`                   |
-| bound-api-gateway   | `service:read`                   |
-| exported-services   | `mesh:read` or `operator:read`   |
-| http-route          | `mesh:read` or `operator:read`   |
-| ingress-gateway     | `service:read`                   |
-| inline-certificate  | `mesh:read` or `operator:read`   |
-| mesh                | No ACL required                  |
-| proxy-defaults      | No ACL required                  |
-| service-defaults    | `service:read`                   |
-| service-intentions  | `intentions:read`                |
-| service-resolver    | `service:read`                   |
-| service-router      | `service:read`                   |
-| service-splitter    | `service:read`                   |
-| tcp-route           | `mesh:read` or `operator:read`   |
-| terminating-gateway | `service:read`                   |
+| Config Entry Kind       | Required ACLs                    |
+| ----------------------- | -------------------------------- |
+| api-gateway             | `service:read`                   |
+| bound-api-gateway       | `service:read`                   |
+| exported-services       | `mesh:read` or `operator:read`   |
+| file-system-certificate | `mesh:read` or `operator:read` |
+| http-route              | `mesh:read` or `operator:read`   |
+| ingress-gateway         | `service:read`                   |
+| inline-certificate      | `mesh:read` or `operator:read`   |
+| mesh                    | No ACL required                  |
+| proxy-defaults          | No ACL required                  |
+| service-defaults        | `service:read`                   |
+| service-intentions      | `intentions:read`                |
+| service-resolver        | `service:read`                   |
+| service-router          | `service:read`                   |
+| service-splitter        | `service:read`                   |
+| tcp-route               | `mesh:read` or `operator:read`   |
+| terminating-gateway     | `service:read`                   |
 
 The corresponding CLI command is [`consul config list`](/consul/commands/config/list).
 
@@ -224,6 +231,8 @@ The corresponding CLI command is [`consul config list`](/consul/commands/config/
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entries you lookup.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -276,23 +285,24 @@ The table below shows this endpoint's support for
 
 The ACL required depends on the config entry kind being deleted:
 
-| Config Entry Kind   | Required ACLs                    |
-| ------------------- | -------------------------------- |
-| api-gateway         | `mesh:write` or `operator:write` |
-| bound-api-gateway   | Not writable.                    |
-| exported-services   | `mesh:write` or `operator:write` |
-| http-route          | `mesh:write` or `operator:write` |
-| ingress-gateway     | `mesh:write` or `operator:write` |
-| inline-certificate  | `mesh:write` or `operator:write` |
-| mesh                | `mesh:write` or `operator:write` |
-| proxy-defaults      | `mesh:write` or `operator:write` |
-| service-defaults    | `service:write`                  |
-| service-intentions  | `intentions:write`               |
-| service-resolver    | `service:write`                  |
-| service-router      | `service:write`                  |
-| service-splitter    | `service:write`                  |
-| tcp-route           | `mesh:write` or `operator:write` |
-| terminating-gateway | `mesh:write` or `operator:write` |
+| Config Entry Kind       | Required ACLs                    |
+| ----------------------- | -------------------------------- |
+| api-gateway             | `mesh:write` or `operator:write` |
+| bound-api-gateway       | Not writable.                    |
+| exported-services       | `mesh:write` or `operator:write` |
+| file-system-certificate | `mesh:write` or `operator:write` |
+| http-route              | `mesh:write` or `operator:write` |
+| ingress-gateway         | `mesh:write` or `operator:write` |
+| inline-certificate      | `mesh:write` or `operator:write` |
+| mesh                    | `mesh:write` or `operator:write` |
+| proxy-defaults          | `mesh:write` or `operator:write` |
+| service-defaults        | `service:write`                  |
+| service-intentions      | `intentions:write`               |
+| service-resolver        | `service:write`                  |
+| service-router          | `service:write`                  |
+| service-splitter        | `service:write`                  |
+| tcp-route               | `mesh:write` or `operator:write` |
+| terminating-gateway     | `mesh:write` or `operator:write` |
 
 The corresponding CLI command is [`consul config delete`](/consul/commands/config/delete).
 
@@ -316,6 +326,8 @@ The corresponding CLI command is [`consul config delete`](/consul/commands/confi
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you delete.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

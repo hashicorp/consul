@@ -52,22 +52,6 @@ type HandleTestCase struct {
 	response                     *dns.Msg
 }
 
-var testSOA = &dns.SOA{
-	Hdr: dns.RR_Header{
-		Name:   "consul.",
-		Rrtype: dns.TypeSOA,
-		Class:  dns.ClassINET,
-		Ttl:    4,
-	},
-	Ns:      "ns.consul.",
-	Mbox:    "hostmaster.consul.",
-	Serial:  uint32(time.Now().Unix()),
-	Refresh: 1,
-	Retry:   2,
-	Expire:  3,
-	Minttl:  4,
-}
-
 func Test_HandleRequest_Validation(t *testing.T) {
 	testCases := []HandleTestCase{
 		{
@@ -91,6 +75,157 @@ func Test_HandleRequest_Validation(t *testing.T) {
 				Answer:   nil,
 				Ns:       nil,
 				Extra:    nil,
+			},
+		},
+		// Context Tests
+		{
+			name: "When a request context is provided, use those field in the query",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			requestContext: &Context{
+				Token:            "test-token",
+				DefaultNamespace: "test-namespace",
+				DefaultPartition: "test-partition",
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				result := []*discovery.Result{
+					{
+						Type: discovery.ResultTypeNode,
+						Node: &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Tenancy: discovery.ResultTenancy{
+							Namespace: "test-namespace",
+							Partition: "test-partition",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return(result, nil).
+					Run(func(args mock.Arguments) {
+						ctx := args.Get(0).(discovery.Context)
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, "test-token", ctx.Token)
+
+						require.Equal(t, "foo", req.Name)
+						require.Equal(t, "test-namespace", req.Tenancy.Namespace)
+						require.Equal(t, "test-partition", req.Tenancy.Partition)
+
+						require.Equal(t, discovery.LookupTypeService, reqType)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+				},
+			},
+		},
+		{
+			name: "When a request context is provided, values do not override explicit tenancy",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.bar.ns.baz.ap.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			requestContext: &Context{
+				Token:            "test-token",
+				DefaultNamespace: "test-namespace",
+				DefaultPartition: "test-partition",
+			},
+			configureDataFetcher: func(fetcher discovery.CatalogDataFetcher) {
+				result := []*discovery.Result{
+					{
+						Type: discovery.ResultTypeNode,
+						Node: &discovery.Location{Name: "foo", Address: "1.2.3.4"},
+						Tenancy: discovery.ResultTenancy{
+							Namespace: "bar",
+							Partition: "baz",
+						},
+					},
+				}
+
+				fetcher.(*discovery.MockCatalogDataFetcher).
+					On("FetchEndpoints", mock.Anything, mock.Anything, mock.Anything).
+					Return(result, nil).
+					Run(func(args mock.Arguments) {
+						ctx := args.Get(0).(discovery.Context)
+						req := args.Get(1).(*discovery.QueryPayload)
+						reqType := args.Get(2).(discovery.LookupType)
+
+						require.Equal(t, "test-token", ctx.Token)
+
+						require.Equal(t, "foo", req.Name)
+						require.Equal(t, "bar", req.Tenancy.Namespace)
+						require.Equal(t, "baz", req.Tenancy.Partition)
+
+						require.Equal(t, discovery.LookupTypeService, reqType)
+					})
+			},
+			validateAndNormalizeExpected: true,
+			response: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Response:      true,
+					Authoritative: true,
+				},
+				Compress: true,
+				Question: []dns.Question{
+					{
+						Name:   "foo.service.bar.ns.baz.ap.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+				Answer: []dns.RR{
+					&dns.A{
+						Hdr: dns.RR_Header{
+							Name:   "foo.service.bar.ns.baz.ap.consul.",
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    123,
+						},
+						A: net.ParseIP("1.2.3.4"),
+					},
+				},
 			},
 		},
 	}

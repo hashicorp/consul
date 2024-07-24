@@ -19,6 +19,7 @@ type testCaseBuildQueryFromDNSMessage struct {
 	request        *dns.Msg
 	requestContext *Context
 	expectedQuery  *discovery.Query
+	expectedError  string
 }
 
 // Test_buildQueryFromDNSMessage tests the buildQueryFromDNSMessage function.
@@ -123,6 +124,114 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 				},
 			},
 		},
+		// V1 Service Queries
+		{
+			name: "test A 'service.' standard query with tag",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "primary.db.service.dc1.consul", // "intentionally missing the trailing dot"
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			expectedQuery: &discovery.Query{
+				QueryType: discovery.QueryTypeService,
+				QueryPayload: discovery.QueryPayload{
+					Name: "db",
+					Tag:  "primary",
+					Tenancy: discovery.QueryTenancy{
+						Datacenter: "dc1",
+					},
+				},
+			},
+		},
+		{
+			name: "test A 'service.' RFC 2782 query with tag",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "_db._primary.service.dc1.consul", // "intentionally missing the trailing dot"
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			expectedQuery: &discovery.Query{
+				QueryType: discovery.QueryTypeService,
+				QueryPayload: discovery.QueryPayload{
+					Name: "db",
+					Tag:  "primary",
+					Tenancy: discovery.QueryTenancy{
+						Datacenter: "dc1",
+					},
+				},
+			},
+		},
+		{
+			name: "test A 'service.' RFC 2782 query",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "_db._tcp.service.dc1.consul", // the `tcp` tag should be ignored
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			expectedQuery: &discovery.Query{
+				QueryType: discovery.QueryTypeService,
+				QueryPayload: discovery.QueryPayload{
+					Name: "db",
+					Tenancy: discovery.QueryTenancy{
+						Datacenter: "dc1",
+					},
+				},
+			},
+		},
+		{
+			name: "test A 'service.' with too many query parts (RFC 2782 style)",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "nope._db._tcp.service.dc1.consul", // the `tcp` tag should be ignored
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			expectedError: "invalid question",
+		},
+		{
+			name: "test A 'service.' with too many query parts (standard style)",
+			request: &dns.Msg{
+				MsgHdr: dns.MsgHdr{
+					Opcode: dns.OpcodeQuery,
+				},
+				Question: []dns.Question{
+					{
+						Name:   "too.many.parts.service.dc1.consul.",
+						Qtype:  dns.TypeA,
+						Qclass: dns.ClassINET,
+					},
+				},
+			},
+			expectedError: "invalid question",
+		},
+		// V2 Catalog Queries
 		{
 			name: "test A 'workload.'",
 			request: &dns.Msg{
@@ -160,8 +269,7 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 				},
 			},
 			requestContext: &Context{
-				DefaultDatacenter: "default-dc",
-				DefaultPartition:  "default-partition",
+				DefaultPartition: "default-partition",
 			},
 			expectedQuery: &discovery.Query{
 				QueryType: discovery.QueryTypeWorkload,
@@ -169,10 +277,9 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 					Name:     "foo",
 					PortName: "api",
 					Tenancy: discovery.QueryTenancy{
-						Namespace:  "banana",
-						Partition:  "orange",
-						Peer:       "apple",
-						Datacenter: "default-dc",
+						Namespace: "banana",
+						Partition: "orange",
+						Peer:      "apple",
 					},
 				},
 			},
@@ -192,8 +299,7 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 				},
 			},
 			requestContext: &Context{
-				DefaultDatacenter: "default-dc",
-				DefaultPartition:  "default-partition",
+				DefaultPartition: "default-partition",
 			},
 			expectedQuery: &discovery.Query{
 				QueryType: discovery.QueryTypeService,
@@ -203,7 +309,6 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 						Namespace:     "banana",
 						Partition:     "orange",
 						SamenessGroup: "apple",
-						Datacenter:    "default-dc",
 					},
 				},
 			},
@@ -217,6 +322,13 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 				context = &Context{}
 			}
 			query, err := buildQueryFromDNSMessage(tc.request, *context, "consul.", ".", nil)
+
+			if tc.expectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.expectedError)
+				return
+			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedQuery, query)
 		})

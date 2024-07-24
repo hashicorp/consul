@@ -1,0 +1,4 @@
+```release-note:bug
+dns: Fixes a spam log message "Failed to parse TTL for prepared query..."
+that was always being logged on each prepared query evaluation.
+```

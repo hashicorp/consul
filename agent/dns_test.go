@@ -16,7 +16,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/discovery"
 	"math"
 	"math/rand"
 	"net"
@@ -34,9 +33,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/discovery"
 	dnsConsul "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -121,11 +121,11 @@ func dnsTXT(src string, txt []string) *dns.TXT {
 
 func getVersionHCL(enableV2 bool) map[string]string {
 	versions := map[string]string{
-		"DNS: v1 / Catalog: v1": "",
+		"DNS: v1 / Catalog: v1": "experiments=[\"v1dns\"]",
 	}
 
 	if enableV2 {
-		versions["DNS: v2 / Catalog: v1"] = `experiments=["v2dns"]`
+		versions["DNS: v2 / Catalog: v1"] = ""
 	}
 	return versions
 }
@@ -1069,15 +1069,15 @@ func TestDNS_PreparedQueryNearIPEDNS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	ipCoord := librtt.GenerateCoordinate(1 * time.Millisecond)
 	serviceNodes := []struct {
 		name    string
 		address string
 		coord   *coordinate.Coordinate
 	}{
-		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
-		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
-		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
+		{"foo1", "198.18.0.1", librtt.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", librtt.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", librtt.GenerateCoordinate(30 * time.Millisecond)},
 	}
 
 	for name, experimentsHCL := range getVersionHCL(true) {
@@ -1203,15 +1203,15 @@ func TestDNS_PreparedQueryNearIP(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	ipCoord := lib.GenerateCoordinate(1 * time.Millisecond)
+	ipCoord := librtt.GenerateCoordinate(1 * time.Millisecond)
 	serviceNodes := []struct {
 		name    string
 		address string
 		coord   *coordinate.Coordinate
 	}{
-		{"foo1", "198.18.0.1", lib.GenerateCoordinate(1 * time.Millisecond)},
-		{"foo2", "198.18.0.2", lib.GenerateCoordinate(10 * time.Millisecond)},
-		{"foo3", "198.18.0.3", lib.GenerateCoordinate(30 * time.Millisecond)},
+		{"foo1", "198.18.0.1", librtt.GenerateCoordinate(1 * time.Millisecond)},
+		{"foo2", "198.18.0.2", librtt.GenerateCoordinate(10 * time.Millisecond)},
+		{"foo3", "198.18.0.3", librtt.GenerateCoordinate(30 * time.Millisecond)},
 	}
 
 	for name, experimentsHCL := range getVersionHCL(true) {
@@ -3338,6 +3338,7 @@ func TestDNS_V1ConfigReload(t *testing.T) {
 				min_ttl = 4
 			}
 		}
+		experiments = ["v1dns"]
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")

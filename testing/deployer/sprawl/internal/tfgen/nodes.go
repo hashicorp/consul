@@ -67,7 +67,7 @@ func (g *Generator) generateNodeContainers(
 			}{
 				terraformPod:      pod,
 				ImageResource:     DockerImageResourceName(node.Images.Consul),
-				HCL:               g.generateAgentHCL(node, cluster.EnableV2 && node.IsServer(), cluster.EnableV2Tenancy && node.IsServer()),
+				HCL:               g.generateAgentHCL(node),
 				EnterpriseLicense: g.license,
 			}))
 		}
@@ -125,11 +125,7 @@ func (g *Generator) generateNodeContainers(
 			var img string
 			if node.IsDataplane() {
 				tmpl = tfAppDataplaneT
-				if wrk.EnableTransparentProxy {
-					img = DockerImageResourceName(node.Images.LocalDataplaneTProxyImage())
-				} else {
-					img = DockerImageResourceName(node.Images.LocalDataplaneImage())
-				}
+				img = DockerImageResourceName(node.Images.LocalDataplaneImage())
 			} else {
 				img = DockerImageResourceName(node.Images.EnvoyConsulImage())
 			}

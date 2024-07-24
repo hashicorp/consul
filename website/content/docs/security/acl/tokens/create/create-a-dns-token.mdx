@@ -58,7 +58,7 @@ acl = {
 
 ### Apply the token with a command
 
-Set the `dns` token using the [`acl.token.dns`](/consul/docs/agent/config/config-files#acl_tokens_dns)  command. The following command configures a running Consul agent token with the specified token.
+Set the `dns` token using the [`set-agent-token`](/consul/commands/acl/set-agent-token) command. The following command configures a running Consul agent token with the specified token.
 
 ```shell-session
 $ consul set-agent-token dns <acl-token-secret-id>

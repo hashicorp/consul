@@ -69,6 +69,9 @@ func (d discoveryResultsFetcher) getQueryResults(opts *getQueryOptions) ([]*disc
 
 		if getErrorFromECSNotGlobalError(err) != nil {
 			opts.logger.Error("error processing discovery query", "error", err)
+			if structs.IsErrSamenessGroupMustBeDefaultForFailover(err) {
+				return nil, query, errNameNotFound
+			}
 			return nil, query, err
 		}
 		return results, query, err
@@ -103,7 +106,10 @@ func buildQueryFromDNSMessage(req *dns.Msg, reqCtx Context, domain, altDomain st
 		return nil, err
 	}
 
-	name, tag := getQueryNameAndTagFromParts(queryType, queryParts)
+	name, tag, err := getQueryNameAndTagFromParts(queryType, queryParts)
+	if err != nil {
+		return nil, err
+	}
 
 	portName := parsePort(queryParts)
 
@@ -154,14 +160,28 @@ func buildAddressResults(req *dns.Msg) ([]*discovery.Result, error) {
 }
 
 // getQueryNameAndTagFromParts returns the query name and tag from the query parts that are taken from the original dns question.
-func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []string) (string, string) {
+//
+// Valid Query Parts:
+// [<tag>.]<service>
+// [<port>.port.]<service>
+// _<service>._<tag> // RFC 2782 style
+func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []string) (string, string, error) {
 	n := len(queryParts)
 	if n == 0 {
-		return "", ""
+		return "", "", errInvalidQuestion
 	}
 
 	switch queryType {
 	case discovery.QueryTypeService:
+		if n > 3 {
+			// Having this many fields is never valid.
+			return "", "", errInvalidQuestion
+		}
+		if n == 3 && queryParts[n-2] != "port" {
+			// This probably means that someone was trying to use a tag name with a period.
+			// This was deprecated in Consul 0.3.
+			return "", "", errInvalidQuestion
+		}
 		// Support RFC 2782 style syntax
 		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
 			// Grab the tag since we make nuke it if it's tcp
@@ -174,9 +194,14 @@ func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []str
 
 			name := queryParts[0][1:]
 			// _name._tag.service.consul
-			return name, tag
+			return name, tag, nil
 		}
-		return queryParts[n-1], ""
+		// Standard-style lookup w/ tag
+		if n == 2 {
+			return queryParts[1], queryParts[0], nil
+		}
+		// This works for the v1 and v2 catalog queries, even if a port name was specified.
+		return queryParts[n-1], "", nil
 	case discovery.QueryTypePreparedQuery:
 		name := ""
 
@@ -194,9 +219,17 @@ func getQueryNameAndTagFromParts(queryType discovery.QueryType, queryParts []str
 			// Allow a "." in the query name, just join all the parts.
 			name = strings.Join(queryParts, ".")
 		}
-		return name, ""
+
+		if name == "" {
+			return "", "", errInvalidQuestion
+		}
+		return name, "", nil
 	}
-	return queryParts[n-1], ""
+	name := queryParts[n-1]
+	if name == "" {
+		return "", "", errInvalidQuestion
+	}
+	return queryParts[n-1], "", nil
 }
 
 // getQueryTenancy returns a discovery.QueryTenancy from a DNS message.
@@ -206,11 +239,15 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 		return discovery.QueryTenancy{}, errNameNotFound
 	}
 
-	// If we don't have an explicit partition in the request, try the first fallback
+	// If we don't have an explicit partition/ns in the request, try the first fallback
 	// which was supplied in the request context. The agent's partition will be used as the last fallback
 	// later in the query processor.
 	if labels.Partition == "" {
 		labels.Partition = reqCtx.DefaultPartition
+	}
+
+	if labels.Namespace == "" {
+		labels.Namespace = reqCtx.DefaultNamespace
 	}
 
 	// If we have a sameness group, we can return early without further data massage.
@@ -219,7 +256,7 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 			Namespace:     labels.Namespace,
 			Partition:     labels.Partition,
 			SamenessGroup: labels.SamenessGroup,
-			Datacenter:    reqCtx.DefaultDatacenter,
+			// Datacenter is not supported
 		}, nil
 	}
 
@@ -234,19 +271,19 @@ func getQueryTenancy(reqCtx Context, queryType discovery.QueryType, querySuffixe
 		Namespace:  labels.Namespace,
 		Partition:  labels.Partition,
 		Peer:       labels.Peer,
-		Datacenter: getEffectiveDatacenter(labels, reqCtx.DefaultDatacenter),
+		Datacenter: getEffectiveDatacenter(labels),
 	}, nil
 }
 
 // getEffectiveDatacenter returns the effective datacenter from the parsed labels.
-func getEffectiveDatacenter(labels *parsedLabels, defaultDC string) string {
+func getEffectiveDatacenter(labels *parsedLabels) string {
 	switch {
 	case labels.Datacenter != "":
 		return labels.Datacenter
 	case labels.PeerOrDatacenter != "" && labels.Peer != labels.PeerOrDatacenter:
 		return labels.PeerOrDatacenter
 	}
-	return defaultDC
+	return ""
 }
 
 // getQueryTypePartsAndSuffixesFromDNSMessage returns the query type, the parts, and suffixes of the query name.

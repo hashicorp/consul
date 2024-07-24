@@ -235,11 +235,7 @@ func (d messageSerializer) getAnswerExtraAndNs(opts *getAnswerExtraAndNsOptions)
 		ns = append(ns, opts.dnsRecordMaker.makeNS(opts.responseDomain, fqdn, opts.ttl))
 		extra = append(extra, extraRecord)
 	case qType == dns.TypeSRV:
-		// We put A/AAAA/CNAME records in the additional section for SRV requests
-		a, e := d.getAnswerExtrasForAddressAndTarget(nodeAddress, serviceAddress, opts)
-		answer = append(answer, a...)
-		extra = append(extra, e...)
-
+		fallthrough
 	default:
 		a, e := d.getAnswerExtrasForAddressAndTarget(nodeAddress, serviceAddress, opts)
 		answer = append(answer, a...)
@@ -291,16 +287,14 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 	switch {
 	case (reqType == requestTypeAddress || opts.result.Type == discovery.ResultTypeVirtual) &&
 		serviceAddress.IsEmptyString() && nodeAddress.IsIP():
-		a, e := getAnswerExtrasForIP(qName, nodeAddress, opts.req.Question[0],
-			reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker)
+		a, e := getAnswerExtrasForIP(qName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
 	case opts.result.Type == discovery.ResultTypeNode && nodeAddress.IsIP():
 		canonicalNodeName := canonicalNameForResult(opts.result.Type,
 			opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
-		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType,
-			opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker)
+		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -320,8 +314,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 		}
 		canonicalNodeName := canonicalNameForResult(resultType, opts.result.Node.Name,
 			opts.responseDomain, opts.result.Tenancy, opts.port.Name)
-		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0],
-			reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker)
+		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, nodeAddress.String() == opts.result.Node.Address) // We compare the node address to the result to detect changes from the WAN translation
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -331,12 +324,16 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
+	case serviceAddress.IsIP() && opts.req.Question[0].Qtype == dns.TypeSRV:
+		a, e := getAnswerExtrasForIP(qName, serviceAddress, opts.req.Question[0], requestTypeName, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
+		answer = append(answer, a...)
+		extra = append(extra, e...)
+
 	// The service address is an IP
 	case serviceAddress.IsIP():
 		canonicalServiceName := canonicalNameForResult(discovery.ResultTypeService,
 			opts.result.Service.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
-		a, e := getAnswerExtrasForIP(canonicalServiceName, serviceAddress,
-			opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker)
+		a, e := getAnswerExtrasForIP(canonicalServiceName, serviceAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -345,8 +342,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 	case serviceAddress.FQDN() == opts.req.Question[0].Name && nodeAddress.IsIP():
 		canonicalNodeName := canonicalNameForResult(discovery.ResultTypeNode,
 			opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
-		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0],
-			reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker)
+		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, nodeAddress.String() == opts.result.Node.Address) // We compare the node address to the result to detect changes from the WAN translation
 		answer = append(answer, a...)
 		extra = append(extra, e...)
 
@@ -463,9 +459,7 @@ func shouldAppendTXTRecord(query *discovery.Query, cfg *RouterDynamicConfig, req
 }
 
 // getAnswerExtrasForIP creates the dns answer and extra from IP dnsAddress pairs.
-func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
-	reqType requestType, result *discovery.Result, ttl uint32, domain string,
-	port *discovery.Port, maker dnsRecordMaker) (answer []dns.RR, extra []dns.RR) {
+func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question, reqType requestType, result *discovery.Result, ttl uint32, domain string, port *discovery.Port, maker dnsRecordMaker, addressOverridden bool) (answer []dns.RR, extra []dns.RR) {
 	qType := question.Qtype
 	canReturnARecord := qType == dns.TypeSRV || qType == dns.TypeA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
 	canReturnAAAARecord := qType == dns.TypeSRV || qType == dns.TypeAAAA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT
@@ -493,7 +487,8 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question,
 	}
 
 	if reqType != requestTypeAddress && qType == dns.TypeSRV {
-		if result.Type == discovery.ResultTypeService && addr.IsIP() && result.Node.Address != addr.String() {
+
+		if addr.IsIP() && question.Name == name && !addressOverridden {
 			// encode the ip to be used in the header of the A/AAAA record
 			// as well as the target of the SRV record.
 			recHdrName = encodeIPAsFqdn(result, addr.IP(), domain)
