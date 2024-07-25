@@ -1,3 +1,7 @@
 {
-    "recommendations": []
+    "recommendations": [
+        "wholroyd.jinja",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap"
+    ]
 }
