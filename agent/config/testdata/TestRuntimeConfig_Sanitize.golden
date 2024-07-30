@@ -510,6 +510,11 @@
             ],
             "BaseURL": "",
             "PathAllowlist": []
+        },
+        "Label": {
+            "Text": "Dev",
+            "BackgroundColor": "green",
+            "TextColor": "white"
         }
     },
     "UnixSocketGroup": "",
