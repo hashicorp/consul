@@ -25,7 +25,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
 1. Define the peer cluster as a failover target in the service resolver configuration.
 
-  The following examples update the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
+  The following examples update the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) in `dc1-default` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `dc2-default` when it detects multiple connection failures.
 
   <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 
@@ -36,7 +36,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
   Failover = {
     "*" = {
       Targets = [
-        {Peer = "cluster-02"}
+        {Peer = "dc2-default"}
       ]   
     }
   }
@@ -51,7 +51,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
           "*": {
               "Targets": [
                   {
-                      "Peer": "cluster-02"
+                      "Peer": "dc2-default"
                   }
               ]
           }
@@ -71,7 +71,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
     failover:
       '*':
         targets:
-          - peer: 'cluster-02'
+          - peer: 'dc2-default'
             service: 'frontend'
             namespace: 'default'
   ```
@@ -139,7 +139,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
   Name           = "frontend-peer"
   Redirect {
     Service = frontend
-    Peer = "cluster-02"
+    Peer = "dc2-default"
   }
   ```
 
@@ -149,7 +149,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
     "Name": "frontend-peer",
     "Redirect": {
       "Service": "frontend",
-      "Peer": "cluster-02"
+      "Peer": "dc2-default"
     }
   }
   ```
@@ -161,7 +161,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
     name: frontend-peer
   spec:
     redirect:
-      peer: 'cluster-02'
+      peer: 'dc2-default'
       service: 'frontend'
   ```
 
