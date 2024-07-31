@@ -113,6 +113,7 @@ type Router struct {
 	nodeName  string
 	logger    hclog.Logger
 
+	messageSerializer           *messageSerializer
 	tokenFunc                   func() string
 	translateAddressFunc        func(dc string, addr string, taggedAddresses map[string]string, accept dnsutil.TranslateAddressAccept) string
 	translateServiceAddressFunc func(dc string, address string, taggedAddresses map[string]structs.ServiceAddress, accept dnsutil.TranslateAddressAccept) string
@@ -132,12 +133,15 @@ func NewRouter(cfg Config) (*Router, error) {
 
 	logger := cfg.Logger.Named(logging.DNS)
 
+	messageSerializer := newMessageSerializer(logger)
+
 	router := &Router{
 		processor:                   cfg.Processor,
 		recursor:                    newRecursor(logger),
 		domain:                      domain,
 		altDomain:                   altDomain,
 		logger:                      logger,
+		messageSerializer:           messageSerializer,
 		nodeName:                    cfg.AgentConfig.NodeName,
 		tokenFunc:                   cfg.TokenFunc,
 		translateAddressFunc:        cfg.TranslateAddressFunc,
@@ -273,7 +277,7 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context, configCt
 		translateServiceAddressFunc: r.translateServiceAddressFunc,
 		resolveCnameFunc:            r.resolveCNAME,
 	}
-	resp, err := messageSerializer{}.serialize(serializedOpts)
+	resp, err := r.messageSerializer.serialize(serializedOpts)
 	if err != nil {
 		r.logger.Error("error serializing DNS results", "error", err)
 		return respGenerator.generateResponseFromError(&generateResponseFromErrorOpts{
