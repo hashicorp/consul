@@ -275,7 +275,6 @@ func (r *Router) handleRequestRecursively(req *dns.Msg, reqCtx Context, configCt
 	}
 	resp, err := messageSerializer{}.serialize(serializedOpts)
 	if err != nil {
-		r.logger.Error("error serializing DNS results", "error", err)
 		return respGenerator.generateResponseFromError(&generateResponseFromErrorOpts{
 			req:            req,
 			err:            err,
