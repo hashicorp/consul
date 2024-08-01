@@ -28,6 +28,66 @@ var ACLTemplatedPolicyAPIGateway string
 //go:embed acltemplatedpolicy/policies/ce/nomad-client.hcl
 var ACLTemplatedPolicyNomadClient string
 
+//go:embed acltemplatedpolicy/policies/ce/agent-read.hcl
+var ACLTemplatedPolicyAgentRead string
+
+//go:embed acltemplatedpolicy/policies/ce/agent_prefix-read.hcl
+var ACLTemplatedPolicyAgentPrefixRead string
+
+//go:embed acltemplatedpolicy/policies/ce/key-read.hcl
+var ACLTemplatedPolicyKeyRead string
+
+//go:embed acltemplatedpolicy/policies/ce/key_prefix-read.hcl
+var ACLTemplatedPolicyKeyPrefixRead string
+
+//go:embed acltemplatedpolicy/policies/ce/node-read.hcl
+var ACLTemplatedPolicyNodeRead string
+
+//go:embed acltemplatedpolicy/policies/ce/node_prefix-read.hcl
+var ACLTemplatedPolicyNodePrefixRead string
+
+//go:embed acltemplatedpolicy/policies/ce/session-read.hcl
+var ACLTemplatedPolicySessionRead string
+
+//go:embed acltemplatedpolicy/policies/ce/session_prefix-read.hcl
+var ACLTemplatedPolicySessionPrefixRead string
+
+//go:embed acltemplatedpolicy/policies/ce/service-read.hcl
+var ACLTemplatedPolicyServiceRead string
+
+//go:embed acltemplatedpolicy/policies/ce/service_prefix-read.hcl
+var ACLTemplatedPolicyServicePrefixRead string
+
+//go:embed acltemplatedpolicy/policies/ce/agent-write.hcl
+var ACLTemplatedPolicyAgentWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/agent_prefix-write.hcl
+var ACLTemplatedPolicyAgentPrefixWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/key-write.hcl
+var ACLTemplatedPolicyKeyWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/key_prefix-write.hcl
+var ACLTemplatedPolicyKeyPrefixWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/node-write.hcl
+var ACLTemplatedPolicyNodeWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/node_prefix-write.hcl
+var ACLTemplatedPolicyNodePrefixWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/session-write.hcl
+var ACLTemplatedPolicySessionWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/session_prefix-write.hcl
+var ACLTemplatedPolicySessionPrefixWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/service-write.hcl
+var ACLTemplatedPolicyServiceWrite string
+
+//go:embed acltemplatedpolicy/policies/ce/service_prefix-write.hcl
+var ACLTemplatedPolicyServicePrefixWrite string
+
 func (t *ACLToken) TemplatedPolicyList() []*ACLTemplatedPolicy {
 	if len(t.TemplatedPolicies) == 0 {
 		return nil

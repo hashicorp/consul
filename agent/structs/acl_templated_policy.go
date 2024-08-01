@@ -23,8 +23,14 @@ import (
 //go:embed acltemplatedpolicy/schemas/node.json
 var ACLTemplatedPolicyNodeSchema string
 
+//go:embed acltemplatedpolicy/schemas/node_prefix.json
+var ACLTemplatedPolicyNodePrefixSchema string
+
 //go:embed acltemplatedpolicy/schemas/service.json
 var ACLTemplatedPolicyServiceSchema string
+
+//go:embed acltemplatedpolicy/schemas/service_prefix.json
+var ACLTemplatedPolicyServicePrefixSchema string
 
 //go:embed acltemplatedpolicy/schemas/workload-identity.json
 var ACLTemplatedPolicyWorkloadIdentitySchema string
@@ -32,24 +38,82 @@ var ACLTemplatedPolicyWorkloadIdentitySchema string
 //go:embed acltemplatedpolicy/schemas/api-gateway.json
 var ACLTemplatedPolicyAPIGatewaySchema string
 
+//go:embed acltemplatedpolicy/schemas/agent.json
+var ACLTemplatedPolicyAgentSchema string
+
+//go:embed acltemplatedpolicy/schemas/agent_prefix.json
+var ACLTemplatedPolicyAgentPrefixSchema string
+
+//go:embed acltemplatedpolicy/schemas/session.json
+var ACLTemplatedPolicySessionSchema string
+
+//go:embed acltemplatedpolicy/schemas/session_prefix.json
+var ACLTemplatedPolicySessionPrefixSchema string
+
+//go:embed acltemplatedpolicy/schemas/key.json
+var ACLTemplatedPolicyKeySchema string
+
+//go:embed acltemplatedpolicy/schemas/key_prefix.json
+var ACLTemplatedPolicyKeyPrefixSchema string
+
 type ACLTemplatedPolicies []*ACLTemplatedPolicy
 
 const (
-	ACLTemplatedPolicyServiceID          = "00000000-0000-0000-0000-000000000003"
-	ACLTemplatedPolicyNodeID             = "00000000-0000-0000-0000-000000000004"
-	ACLTemplatedPolicyDNSID              = "00000000-0000-0000-0000-000000000005"
-	ACLTemplatedPolicyNomadServerID      = "00000000-0000-0000-0000-000000000006"
-	ACLTemplatedPolicyWorkloadIdentityID = "00000000-0000-0000-0000-000000000007"
-	ACLTemplatedPolicyAPIGatewayID       = "00000000-0000-0000-0000-000000000008"
-	ACLTemplatedPolicyNomadClientID      = "00000000-0000-0000-0000-000000000009"
+	ACLTemplatedPolicyServiceID            = "00000000-0000-0000-0000-000000000003"
+	ACLTemplatedPolicyNodeID               = "00000000-0000-0000-0000-000000000004"
+	ACLTemplatedPolicyDNSID                = "00000000-0000-0000-0000-000000000005"
+	ACLTemplatedPolicyNomadServerID        = "00000000-0000-0000-0000-000000000006"
+	ACLTemplatedPolicyWorkloadIdentityID   = "00000000-0000-0000-0000-000000000007"
+	ACLTemplatedPolicyAPIGatewayID         = "00000000-0000-0000-0000-000000000008"
+	ACLTemplatedPolicyNomadClientID        = "00000000-0000-0000-0000-000000000009"
+	ACLTemplatedPolicyAgentPrefixReadID    = "00000000-0000-0000-0000-000000000010"
+	ACLTemplatedPolicyAgentPrefixWriteID   = "00000000-0000-0000-0000-000000000011"
+	ACLTemplatedPolicyAgentReadID          = "00000000-0000-0000-0000-000000000012"
+	ACLTemplatedPolicyAgentWriteID         = "00000000-0000-0000-0000-000000000013"
+	ACLTemplatedPolicyKeyPrefixReadID      = "00000000-0000-0000-0000-000000000014"
+	ACLTemplatedPolicyKeyPrefixWriteID     = "00000000-0000-0000-0000-000000000015"
+	ACLTemplatedPolicyKeyReadID            = "00000000-0000-0000-0000-000000000016"
+	ACLTemplatedPolicyKeyWriteID           = "00000000-0000-0000-0000-000000000017"
+	ACLTemplatedPolicyNodePrefixReadID     = "00000000-0000-0000-0000-000000000018"
+	ACLTemplatedPolicyNodePrefixWriteID    = "00000000-0000-0000-0000-000000000019"
+	ACLTemplatedPolicyNodeReadID           = "00000000-0000-0000-0000-000000000020"
+	ACLTemplatedPolicyNodeWriteID          = "00000000-0000-0000-0000-000000000021"
+	ACLTemplatedPolicyServicePrefixReadID  = "00000000-0000-0000-0000-000000000022"
+	ACLTemplatedPolicyServicePrefixWriteID = "00000000-0000-0000-0000-000000000023"
+	ACLTemplatedPolicyServiceReadID        = "00000000-0000-0000-0000-000000000024"
+	ACLTemplatedPolicyServiceWriteID       = "00000000-0000-0000-0000-000000000025"
+	ACLTemplatedPolicySessionPrefixReadID  = "00000000-0000-0000-0000-000000000026"
+	ACLTemplatedPolicySessionPrefixWriteID = "00000000-0000-0000-0000-000000000027"
+	ACLTemplatedPolicySessionReadID        = "00000000-0000-0000-0000-000000000028"
+	ACLTemplatedPolicySessionWriteID       = "00000000-0000-0000-0000-000000000029"
 
-	ACLTemplatedPolicyServiceDescription          = "Gives the token or role permissions to register a service and discover services in the Consul catalog. It also gives the specified service's sidecar proxy the permission to discover and route traffic to other services."
-	ACLTemplatedPolicyNodeDescription             = "Gives the token or role permissions for a register an agent/node into the catalog. A node is typically a consul agent but can also be a physical server, cloud instance or a container."
-	ACLTemplatedPolicyDNSDescription              = "Gives the token or role permissions for the Consul DNS to query services in the network."
-	ACLTemplatedPolicyNomadServerDescription      = "Gives the token or role permissions required for integration with a nomad server."
-	ACLTemplatedPolicyWorkloadIdentityDescription = "Gives the token or role permissions for a specific workload identity."
-	ACLTemplatedPolicyAPIGatewayDescription       = "Gives the token or role permissions for a Consul api gateway"
-	ACLTemplatedPolicyNomadClientDescription      = "Gives the token or role permissions required for integration with a nomad client."
+	ACLTemplatedPolicyServiceDescription            = "Gives the token or role permissions to register a service and discover services in the Consul catalog. It also gives the specified service's sidecar proxy the permission to discover and route traffic to other services."
+	ACLTemplatedPolicyNodeDescription               = "Gives the token or role permissions for a register an agent/node into the catalog. A node is typically a consul agent but can also be a physical server, cloud instance or a container."
+	ACLTemplatedPolicyDNSDescription                = "Gives the token or role permissions for the Consul DNS to query services in the network."
+	ACLTemplatedPolicyNomadServerDescription        = "Gives the token or role permissions required for integration with a nomad server."
+	ACLTemplatedPolicyWorkloadIdentityDescription   = "Gives the token or role permissions for a specific workload identity."
+	ACLTemplatedPolicyAPIGatewayDescription         = "Gives the token or role permissions for a Consul api gateway"
+	ACLTemplatedPolicyNomadClientDescription        = "Gives the token or role permissions required for integration with a nomad client."
+	ACLTemplatedPolicyAgentPrefixReadDescription    = "Gives the token or role read permission to agent_prefix"
+	ACLTemplatedPolicyAgentPrefixWriteDescription   = "Gives the token or role write permission to agent_prefix"
+	ACLTemplatedPolicyAgentReadDescription          = "Gives the token or role read permission to agent"
+	ACLTemplatedPolicyAgentWriteDescription         = "Gives the token or role write permission to agent"
+	ACLTemplatedPolicyKeyPrefixReadDescription      = "Gives the token or role read permission to key_prefix"
+	ACLTemplatedPolicyKeyPrefixWriteDescription     = "Gives the token or role write permission to key_prefix"
+	ACLTemplatedPolicyKeyReadDescription            = "Gives the token or role read permission to key"
+	ACLTemplatedPolicyKeyWriteDescription           = "Gives the token or role write permission to key"
+	ACLTemplatedPolicyNodePrefixReadDescription     = "Gives the token or role read permission to node_prefix"
+	ACLTemplatedPolicyNodePrefixWriteDescription    = "Gives the token or role write permission to node_prefix"
+	ACLTemplatedPolicyNodeReadDescription           = "Gives the token or role read permission to node"
+	ACLTemplatedPolicyNodeWriteDescription          = "Gives the token or role write permission to node"
+	ACLTemplatedPolicyServicePrefixReadDescription  = "Gives the token or role read permission to service_prefix"
+	ACLTemplatedPolicyServicePrefixWriteDescription = "Gives the token or role write permission to service_prefix"
+	ACLTemplatedPolicyServiceReadDescription        = "Gives the token or role read permission to service"
+	ACLTemplatedPolicyServiceWriteDescription       = "Gives the token or role write permission to service"
+	ACLTemplatedPolicySessionPrefixReadDescription  = "Gives the token or role read permission to session_prefix"
+	ACLTemplatedPolicySessionPrefixWriteDescription = "Gives the token or role write permission to session_prefix"
+	ACLTemplatedPolicySessionReadDescription        = "Gives the token or role read permission to session"
+	ACLTemplatedPolicySessionWriteDescription       = "Gives the token or role write permission to session"
 
 	ACLTemplatedPolicyNoRequiredVariablesSchema = "" // catch-all schema for all templated policy that don't require a schema
 )
@@ -116,6 +180,146 @@ var (
 			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     ACLTemplatedPolicyNomadClient,
 			Description:  ACLTemplatedPolicyNomadClientDescription,
+		},
+		api.ACLTemplatedPolicyServiceReadName: {
+			TemplateID:   ACLTemplatedPolicyServiceReadID,
+			TemplateName: api.ACLTemplatedPolicyServiceReadName,
+			Schema:       ACLTemplatedPolicyServiceSchema,
+			Template:     ACLTemplatedPolicyServiceRead,
+			Description:  ACLTemplatedPolicyServiceReadDescription,
+		},
+		api.ACLTemplatedPolicyServicePrefixReadName: {
+			TemplateID:   ACLTemplatedPolicyServicePrefixReadID,
+			TemplateName: api.ACLTemplatedPolicyServicePrefixReadName,
+			Schema:       ACLTemplatedPolicyServicePrefixSchema,
+			Template:     ACLTemplatedPolicyServicePrefixRead,
+			Description:  ACLTemplatedPolicyServicePrefixReadDescription,
+		},
+		api.ACLTemplatedPolicyAgentReadName: {
+			TemplateID:   ACLTemplatedPolicyAgentReadID,
+			TemplateName: api.ACLTemplatedPolicyAgentReadName,
+			Schema:       ACLTemplatedPolicyAgentSchema,
+			Template:     ACLTemplatedPolicyAgentRead,
+			Description:  ACLTemplatedPolicyAgentReadDescription,
+		},
+		api.ACLTemplatedPolicyAgentPrefixReadName: {
+			TemplateID:   ACLTemplatedPolicyAgentPrefixReadID,
+			TemplateName: api.ACLTemplatedPolicyAgentPrefixReadName,
+			Schema:       ACLTemplatedPolicyAgentPrefixSchema,
+			Template:     ACLTemplatedPolicyAgentPrefixRead,
+			Description:  ACLTemplatedPolicyAgentPrefixReadDescription,
+		},
+		api.ACLTemplatedPolicyKeyReadName: {
+			TemplateID:   ACLTemplatedPolicyKeyReadID,
+			TemplateName: api.ACLTemplatedPolicyKeyReadName,
+			Schema:       ACLTemplatedPolicyKeySchema,
+			Template:     ACLTemplatedPolicyKeyRead,
+			Description:  ACLTemplatedPolicyKeyReadDescription,
+		},
+		api.ACLTemplatedPolicyKeyPrefixReadName: {
+			TemplateID:   ACLTemplatedPolicyKeyPrefixReadID,
+			TemplateName: api.ACLTemplatedPolicyKeyPrefixReadName,
+			Schema:       ACLTemplatedPolicyKeyPrefixSchema,
+			Template:     ACLTemplatedPolicyKeyPrefixRead,
+			Description:  ACLTemplatedPolicyKeyPrefixReadDescription,
+		},
+		api.ACLTemplatedPolicyNodeReadName: {
+			TemplateID:   ACLTemplatedPolicyNodeReadID,
+			TemplateName: api.ACLTemplatedPolicyNodeReadName,
+			Schema:       ACLTemplatedPolicyNodeSchema,
+			Template:     ACLTemplatedPolicyNodeRead,
+			Description:  ACLTemplatedPolicyNodeReadDescription,
+		},
+		api.ACLTemplatedPolicyNodePrefixReadName: {
+			TemplateID:   ACLTemplatedPolicyNodePrefixReadID,
+			TemplateName: api.ACLTemplatedPolicyNodePrefixReadName,
+			Schema:       ACLTemplatedPolicyNodePrefixSchema,
+			Template:     ACLTemplatedPolicyNodePrefixRead,
+			Description:  ACLTemplatedPolicyNodePrefixReadDescription,
+		},
+		api.ACLTemplatedPolicySessionReadName: {
+			TemplateID:   ACLTemplatedPolicySessionReadID,
+			TemplateName: api.ACLTemplatedPolicySessionReadName,
+			Schema:       ACLTemplatedPolicySessionSchema,
+			Template:     ACLTemplatedPolicySessionRead,
+			Description:  ACLTemplatedPolicySessionReadDescription,
+		},
+		api.ACLTemplatedPolicySessionPrefixReadName: {
+			TemplateID:   ACLTemplatedPolicySessionPrefixReadID,
+			TemplateName: api.ACLTemplatedPolicySessionPrefixReadName,
+			Schema:       ACLTemplatedPolicySessionPrefixSchema,
+			Template:     ACLTemplatedPolicySessionPrefixRead,
+			Description:  ACLTemplatedPolicySessionPrefixReadDescription,
+		},
+		api.ACLTemplatedPolicyServiceWriteName: {
+			TemplateID:   ACLTemplatedPolicyServiceWriteID,
+			TemplateName: api.ACLTemplatedPolicyServiceWriteName,
+			Schema:       ACLTemplatedPolicyServiceSchema,
+			Template:     ACLTemplatedPolicyServiceWrite,
+			Description:  ACLTemplatedPolicyServiceWriteDescription,
+		},
+		api.ACLTemplatedPolicyServicePrefixWriteName: {
+			TemplateID:   ACLTemplatedPolicyServicePrefixWriteID,
+			TemplateName: api.ACLTemplatedPolicyServicePrefixWriteName,
+			Schema:       ACLTemplatedPolicyServicePrefixSchema,
+			Template:     ACLTemplatedPolicyServicePrefixWrite,
+			Description:  ACLTemplatedPolicyServicePrefixWriteDescription,
+		},
+		api.ACLTemplatedPolicyAgentWriteName: {
+			TemplateID:   ACLTemplatedPolicyAgentWriteID,
+			TemplateName: api.ACLTemplatedPolicyAgentWriteName,
+			Schema:       ACLTemplatedPolicyAgentSchema,
+			Template:     ACLTemplatedPolicyAgentWrite,
+			Description:  ACLTemplatedPolicyAgentWriteDescription,
+		},
+		api.ACLTemplatedPolicyAgentPrefixWriteName: {
+			TemplateID:   ACLTemplatedPolicyAgentPrefixWriteID,
+			TemplateName: api.ACLTemplatedPolicyAgentPrefixWriteName,
+			Schema:       ACLTemplatedPolicyAgentPrefixSchema,
+			Template:     ACLTemplatedPolicyAgentPrefixWrite,
+			Description:  ACLTemplatedPolicyAgentPrefixWriteDescription,
+		},
+		api.ACLTemplatedPolicyKeyWriteName: {
+			TemplateID:   ACLTemplatedPolicyKeyWriteID,
+			TemplateName: api.ACLTemplatedPolicyKeyWriteName,
+			Schema:       ACLTemplatedPolicyKeySchema,
+			Template:     ACLTemplatedPolicyKeyWrite,
+			Description:  ACLTemplatedPolicyKeyWriteDescription,
+		},
+		api.ACLTemplatedPolicyKeyPrefixWriteName: {
+			TemplateID:   ACLTemplatedPolicyKeyPrefixWriteID,
+			TemplateName: api.ACLTemplatedPolicyKeyPrefixWriteName,
+			Schema:       ACLTemplatedPolicyKeyPrefixSchema,
+			Template:     ACLTemplatedPolicyKeyPrefixWrite,
+			Description:  ACLTemplatedPolicyKeyPrefixWriteDescription,
+		},
+		api.ACLTemplatedPolicyNodeWriteName: {
+			TemplateID:   ACLTemplatedPolicyNodeWriteID,
+			TemplateName: api.ACLTemplatedPolicyNodeWriteName,
+			Schema:       ACLTemplatedPolicyNodeSchema,
+			Template:     ACLTemplatedPolicyNodeWrite,
+			Description:  ACLTemplatedPolicyNodeWriteDescription,
+		},
+		api.ACLTemplatedPolicyNodePrefixWriteName: {
+			TemplateID:   ACLTemplatedPolicyNodePrefixWriteID,
+			TemplateName: api.ACLTemplatedPolicyNodePrefixWriteName,
+			Schema:       ACLTemplatedPolicyNodePrefixSchema,
+			Template:     ACLTemplatedPolicyNodePrefixWrite,
+			Description:  ACLTemplatedPolicyNodePrefixWriteDescription,
+		},
+		api.ACLTemplatedPolicySessionWriteName: {
+			TemplateID:   ACLTemplatedPolicySessionWriteID,
+			TemplateName: api.ACLTemplatedPolicySessionWriteName,
+			Schema:       ACLTemplatedPolicySessionSchema,
+			Template:     ACLTemplatedPolicySessionWrite,
+			Description:  ACLTemplatedPolicySessionWriteDescription,
+		},
+		api.ACLTemplatedPolicySessionPrefixWriteName: {
+			TemplateID:   ACLTemplatedPolicySessionPrefixWriteID,
+			TemplateName: api.ACLTemplatedPolicySessionPrefixWriteName,
+			Schema:       ACLTemplatedPolicySessionPrefixSchema,
+			Template:     ACLTemplatedPolicySessionPrefixWrite,
+			Description:  ACLTemplatedPolicySessionPrefixWriteDescription,
 		},
 	}
 )
