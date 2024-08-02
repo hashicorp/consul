@@ -207,9 +207,7 @@ module.exports = function (defaults, $ = process.env) {
       codemirror: {
         keyMaps: ['sublime'],
         addonFiles: [
-          'lint/lint.css',
-          'lint/yaml-lint.js',
-          'mode/loadmode.js',
+          'lint/lint.css', 'lint/yaml-lint.js', 'mode/loadmode.js',
         ],
       },
       sassOptions: {
