@@ -45,7 +45,11 @@ export default class Service extends Model {
   @attr('number') ChecksPassing;
   @attr('number') ChecksCritical;
   @attr('number') ChecksWarning;
-  @attr('number') InstanceCount;
+  @attr('number', { defaultValue: () => 0 }) InstancesPassing;
+  @attr('number', { defaultValue: () => 0 }) InstancesCritical;
+  @attr('number', { defaultValue: () => 0 }) InstancesWarning;
+  @attr('number', { defaultValue: () => 0 }) MarkServiceStatusThreshold;
+  @attr('number', { defaultValue: () => 0 }) InstanceCount;
   @attr('boolean') ConnectedWithGateway;
   @attr('boolean') ConnectedWithProxy;
   @attr({ defaultValue: () => [] }) Resources; // []
@@ -109,12 +113,14 @@ export default class Service extends Model {
         return 'unknown';
       case this.peerIsFailing:
         return 'unknown';
-      case this.MeshChecksCritical !== 0:
-        return 'critical';
-      case this.MeshChecksWarning !== 0:
-        return 'warning';
-      case this.MeshChecksPassing !== 0:
+      case this.MeshInstancesPassing > 0 &&
+        this.InstanceCount > 0 &&
+        this.MeshInstancesPassing / this.InstanceCount >= this.MarkServiceStatusThreshold:
         return 'passing';
+      case this.MeshInstancesCritical !== 0:
+        return 'critical';
+      case this.MeshInstancesWarning !== 0:
+        return 'warning';
       default:
         return 'empty';
     }
@@ -130,13 +136,31 @@ export default class Service extends Model {
       return 'This peer is out of sync, so the current health statuses of its services are unknown.';
     }
     if (MeshStatus === 'critical') {
-      return 'At least one health check on one instance is failing.';
+      if (this.MeshInstancesPassing === 0) {
+        return `No instance has all health checks passing. At least one health check on one instance is failing.`;
+      } else {
+        return `Less than ${
+          this.MarkServiceStatusThreshold * 100
+        }% of total instances have all health checks passing. At least one health check on one instance is failing.`;
+      }
     }
     if (MeshStatus === 'warning') {
-      return 'At least one health check on one instance has a warning.';
+      if (this.MeshInstancesPassing === 0) {
+        return `No instance has all health checks passing. At least one health check on one instance has a warning.`;
+      } else {
+        return `Less than ${
+          this.MarkServiceStatusThreshold * 100
+        }% of total instances have all health checks passing. At least one health check on one instance has a warning.`;
+      }
     }
     if (MeshStatus == 'passing') {
-      return 'All health checks are passing.';
+      if (this.MeshInstancesPassing === this.InstanceCount) {
+        return 'All health checks on all instances are passing.';
+      } else {
+        return `Atleaset ${
+          this.MarkServiceStatusThreshold * 100
+        }% of instances have all health checks passing.`;
+      }
     }
     return 'There are no health checks';
   }
@@ -167,5 +191,33 @@ export default class Service extends Model {
     }
     return this.ChecksCritical + proxyCount;
   }
+
+  @computed('InstancesPassing', 'Proxy.InstancesPassing')
+  get MeshInstancesPassing() {
+    let proxyCount = 0;
+    if (typeof this.Proxy !== 'undefined') {
+      proxyCount = this.Proxy.InstancesPassing;
+    }
+    return this.InstancesPassing + proxyCount;
+  }
+
+  @computed('InstancesWarning', 'Proxy.InstancesWarning')
+  get MeshInstancesWarning() {
+    let proxyCount = 0;
+    if (typeof this.Proxy !== 'undefined') {
+      proxyCount = this.Proxy.InstancesWarning;
+    }
+    return this.InstancesWarning + proxyCount;
+  }
+
+  @computed('InstancesCritical', 'Proxy.InstancesCritical')
+  get MeshInstancesCritical() {
+    let proxyCount = 0;
+    if (typeof this.Proxy !== 'undefined') {
+      proxyCount = this.Proxy.InstancesCritical;
+    }
+    return this.InstancesCritical + proxyCount;
+  }
+
   /**/
 }
