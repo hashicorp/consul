@@ -57,8 +57,8 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	if args.Session.ID == "" && args.Op == structs.SessionDestroy {
 		return fmt.Errorf("Must provide ID")
 	}
-	if args.Session.Node == "" && args.Op == structs.SessionCreate {
-		return fmt.Errorf("Must provide Node")
+	if args.Session.Node == "" && len(args.Session.NodeChecks) > 0 && args.Op == structs.SessionCreate {
+		return fmt.Errorf("Must provide Node when NodeChecks are specified")
 	}
 
 	//  The entMeta to populate is the one in the Session struct, not SessionRequest
