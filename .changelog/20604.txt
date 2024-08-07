@@ -1,0 +1,3 @@
+```release-note:feature
+cli: Adds new command `tls cert renew` to renew existing tls certificate using same private key.
+```
