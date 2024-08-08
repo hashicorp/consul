@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
