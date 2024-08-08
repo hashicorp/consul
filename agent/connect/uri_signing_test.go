@@ -99,30 +99,6 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 			want:  false,
 		},
 		{
-			name:  "workload - good",
-			id:    testSigning,
-			input: &SpiffeIDWorkloadIdentity{TrustDomain: TestClusterID + ".consul", Namespace: "default", WorkloadIdentity: "web"},
-			want:  true,
-		},
-		{
-			name:  "workload - good mixed case",
-			id:    testSigning,
-			input: &SpiffeIDWorkloadIdentity{TrustDomain: strings.ToUpper(TestClusterID) + ".CONsuL", Namespace: "defAUlt", WorkloadIdentity: "WEB"},
-			want:  true,
-		},
-		{
-			name:  "workload - different cluster",
-			id:    testSigning,
-			input: &SpiffeIDWorkloadIdentity{TrustDomain: "55555555-4444-3333-2222-111111111111.consul", Namespace: "default", WorkloadIdentity: "web"},
-			want:  false,
-		},
-		{
-			name:  "workload - different TLD",
-			id:    testSigning,
-			input: &SpiffeIDWorkloadIdentity{TrustDomain: TestClusterID + ".fake", Namespace: "default", WorkloadIdentity: "web"},
-			want:  false,
-		},
-		{
 			name:  "mesh gateway - good",
 			id:    testSigning,
 			input: &SpiffeIDMeshGateway{Host: TestClusterID + ".consul", Datacenter: "dc1"},

@@ -46,19 +46,18 @@ type Query struct {
 }
 
 // QueryType is used to filter service endpoints.
-// This is needed by the V1 catalog because of the
+// This is needed by the catalog because of the
 // overlapping lookups through the service endpoint.
 type QueryType string
 
 const (
-	QueryTypeConnect       QueryType = "CONNECT" // deprecated: use for V1 only
-	QueryTypeIngress       QueryType = "INGRESS" // deprecated: use for V1 only
+	QueryTypeConnect       QueryType = "CONNECT"
+	QueryTypeIngress       QueryType = "INGRESS"
 	QueryTypeInvalid       QueryType = "INVALID"
 	QueryTypeNode          QueryType = "NODE"
-	QueryTypePreparedQuery QueryType = "PREPARED_QUERY" // deprecated: use for V1 only
+	QueryTypePreparedQuery QueryType = "PREPARED_QUERY"
 	QueryTypeService       QueryType = "SERVICE"
 	QueryTypeVirtual       QueryType = "VIRTUAL"
-	QueryTypeWorkload      QueryType = "WORKLOAD" // V2-only
 )
 
 // Context is used to pass information about the request.
@@ -79,14 +78,11 @@ type QueryTenancy struct {
 // to decide which records to include.
 type QueryPayload struct {
 	Name     string
-	PortName string       // v1 - this could optionally be "connect" or "ingress"; v2 - this is the service port name
-	Tag      string       // deprecated: use for V1 only
-	SourceIP net.IP       // deprecated: used for prepared queries
+	PortName string // this could optionally be "connect" or "ingress"
+	Tag      string
+	SourceIP net.IP       // used for prepared queries
 	Tenancy  QueryTenancy // tenancy includes any additional labels specified before the domain
 	Limit    int          // The maximum number of records to return
-
-	// v2 fields only
-	EnableFailover bool
 }
 
 // ResultType indicates the Consul resource that a discovery record represents.
@@ -94,10 +90,9 @@ type QueryPayload struct {
 type ResultType string
 
 const (
-	ResultTypeService  ResultType = "SERVICE"
-	ResultTypeNode     ResultType = "NODE"
-	ResultTypeVirtual  ResultType = "VIRTUAL"
-	ResultTypeWorkload ResultType = "WORKLOAD"
+	ResultTypeService ResultType = "SERVICE"
+	ResultTypeNode    ResultType = "NODE"
+	ResultTypeVirtual ResultType = "VIRTUAL"
 )
 
 // Result is a generic format of targets that could be returned in a query.
@@ -110,8 +105,7 @@ type Result struct {
 	Type     ResultType        // Used to reconstruct the fqdn name of the resource
 	DNS      DNSConfig         // Used for DNS-specific configuration for this result
 
-	// Ports include anything the node/service/workload implements. These are filtered if requested by the client.
-	// They are used in to generate the FQDN and SRV port numbers in V2 Catalog responses.
+	// Ports include anything the node/service implements. These are filtered if requested by the client.
 	Ports []Port
 
 	Tenancy ResultTenancy
@@ -124,7 +118,7 @@ type TaggedAddress struct {
 	Port    Port
 }
 
-// Location is used to represent a service, node, or workload.
+// Location is used to represent a service or node.
 type Location struct {
 	Name            string
 	Address         string
@@ -132,7 +126,7 @@ type Location struct {
 }
 
 type DNSConfig struct {
-	TTL    *uint32 // deprecated: use for V1 prepared queries only
+	TTL    *uint32 // use for prepared queries only
 	Weight uint32  // SRV queries
 }
 
@@ -180,12 +174,7 @@ type CatalogDataFetcher interface {
 	// to look up a service/node from an IP.
 	FetchRecordsByIp(ctx Context, ip net.IP) ([]*Result, error)
 
-	// FetchWorkload fetches a single Result associated with
-	// V2 Workload. V2-only.
-	FetchWorkload(ctx Context, req *QueryPayload) (*Result, error)
-
 	// FetchPreparedQuery evaluates the results of a prepared query.
-	// deprecated in V2
 	FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error)
 
 	// NormalizeRequest mutates the original request based on data fetcher configuration, like
@@ -208,7 +197,7 @@ func NewQueryProcessor(dataFetcher CatalogDataFetcher) *QueryProcessor {
 	}
 }
 
-// QueryByName is used to look up a service, node, workload, or prepared query.
+// QueryByName is used to look up a service, node, or prepared query.
 func (p *QueryProcessor) QueryByName(query *Query, ctx Context) ([]*Result, error) {
 	if err := p.dataFetcher.ValidateRequest(ctx, &query.QueryPayload); err != nil {
 		return nil, err
@@ -227,12 +216,6 @@ func (p *QueryProcessor) QueryByName(query *Query, ctx Context) ([]*Result, erro
 		return p.dataFetcher.FetchEndpoints(ctx, &query.QueryPayload, LookupTypeIngress)
 	case QueryTypeVirtual:
 		result, err := p.dataFetcher.FetchVirtualIP(ctx, &query.QueryPayload)
-		if err != nil {
-			return nil, err
-		}
-		return []*Result{result}, nil
-	case QueryTypeWorkload:
-		result, err := p.dataFetcher.FetchWorkload(ctx, &query.QueryPayload)
 		if err != nil {
 			return nil, err
 		}

@@ -152,14 +152,6 @@ const (
 	retryFullSyncState fsmState = "retryFullSync"
 )
 
-// HardDisableSync is like PauseSync but is one-way. It causes other
-// Pause/Resume/Start operations to be completely ignored.
-func (s *StateSyncer) HardDisableSync() {
-	s.pauseLock.Lock()
-	s.hardDisabled = true
-	s.pauseLock.Unlock()
-}
-
 // Run is the long running method to perform state synchronization
 // between local and remote servers.
 func (s *StateSyncer) Run() {

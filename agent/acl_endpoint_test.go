@@ -15,8 +15,9 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v3/jwt"
-	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
@@ -1407,7 +1408,7 @@ func TestACL_HTTP(t *testing.T) {
 
 			var list map[string]api.ACLTemplatedPolicyResponse
 			require.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
-			require.Len(t, list, 7)
+			require.Len(t, list, 6)
 
 			require.Equal(t, api.ACLTemplatedPolicyResponse{
 				TemplateName: api.ACLTemplatedPolicyServiceName,
@@ -2225,7 +2226,7 @@ func TestACL_Authorize(t *testing.T) {
 	policyReq := structs.ACLPolicySetRequest{
 		Policy: structs.ACLPolicy{
 			Name:  "test",
-			Rules: `acl = "read" operator = "write" identity_prefix "" { policy = "read"} service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
+			Rules: `acl = "read" operator = "write" service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
 		},
 		Datacenter:   "dc1",
 		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
@@ -2308,16 +2309,6 @@ func TestACL_Authorize(t *testing.T) {
 			},
 			{
 				Resource: "event",
-				Segment:  "foo",
-				Access:   "write",
-			},
-			{
-				Resource: "identity",
-				Segment:  "foo",
-				Access:   "read",
-			},
-			{
-				Resource: "identity",
 				Segment:  "foo",
 				Access:   "write",
 			},
@@ -2472,16 +2463,6 @@ func TestACL_Authorize(t *testing.T) {
 			Access:   "write",
 		},
 		{
-			Resource: "identity",
-			Segment:  "foo",
-			Access:   "read",
-		},
-		{
-			Resource: "identity",
-			Segment:  "foo",
-			Access:   "write",
-		},
-		{
 			Resource: "intention",
 			Segment:  "foo",
 			Access:   "read",
@@ -2587,8 +2568,6 @@ func TestACL_Authorize(t *testing.T) {
 		false, // agent:write
 		false, // event:read
 		false, // event:write
-		true,  // identity:read
-		false, // identity:write
 		true,  // intentions:read
 		false, // intention:write
 		false, // key:read

@@ -6,14 +6,14 @@ package indexers
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/internal/controller/cache/indexers/indexersmock"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRefOrIDIndex(t *testing.T) {
@@ -64,7 +64,7 @@ func TestRefOrIDIndex(t *testing.T) {
 
 func TestBoundRefsIndex(t *testing.T) {
 	ref1 := &pbresource.Reference{
-		Type: pbcatalog.ServiceType,
+		Type: pbdemov2.FestivalType,
 		Tenancy: &pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
@@ -73,7 +73,7 @@ func TestBoundRefsIndex(t *testing.T) {
 	}
 
 	ref2 := &pbresource.Reference{
-		Type: pbcatalog.ServiceType,
+		Type: pbdemov2.FestivalType,
 		Tenancy: &pbresource.Tenancy{
 			Partition: "default",
 			Namespace: "default",
@@ -81,8 +81,8 @@ func TestBoundRefsIndex(t *testing.T) {
 		Name: "api-2",
 	}
 
-	r1 := resourcetest.Resource(pbmesh.ComputedRoutesType, "api").
-		WithData(t, &pbmesh.ComputedRoutes{
+	r1 := resourcetest.Resource(pbdemov2.FestivalType, "api").
+		WithData(t, &pbdemov2.Festival{
 			BoundReferences: []*pbresource.Reference{
 				ref1,
 				ref2,
@@ -90,7 +90,7 @@ func TestBoundRefsIndex(t *testing.T) {
 		}).
 		Build()
 
-	idx := BoundRefsIndex[*pbmesh.ComputedRoutes]("test").IndexedData()
+	idx := BoundRefsIndex[*pbdemov2.Festival]("test").IndexedData()
 
 	txn := idx.Txn()
 	require.NoError(t, txn.Insert(r1))

@@ -4,7 +4,6 @@
 package resource_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -34,18 +33,13 @@ func TestMutateAndValidate_InputValidation(t *testing.T) {
 		require.ErrorContains(t, err, tc.errContains)
 	}
 
-	for _, v2tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", v2tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithRegisterFns(demo.RegisterTypes).
-				WithV2Tenancy(v2tenancy).
-				Run(t)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			for desc, tc := range resourceValidTestCases(t) {
-				t.Run(desc, func(t *testing.T) {
-					run(t, client, tc)
-				})
-			}
+	for desc, tc := range resourceValidTestCases(t) {
+		t.Run(desc, func(t *testing.T) {
+			run(t, client, tc)
 		})
 	}
 }
@@ -66,39 +60,27 @@ func TestMutateAndValidate_OwnerValidation(t *testing.T) {
 		require.ErrorContains(t, err, tc.errorContains)
 	}
 
-	for _, v2tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", v2tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithRegisterFns(demo.RegisterTypes).
-				WithV2Tenancy(v2tenancy).
-				Run(t)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			for desc, tc := range ownerValidationTestCases(t) {
-				t.Run(desc, func(t *testing.T) {
-					run(t, client, tc)
-				})
-			}
+	for desc, tc := range ownerValidationTestCases(t) {
+		t.Run(desc, func(t *testing.T) {
+			run(t, client, tc)
 		})
 	}
 }
 
 func TestMutateAndValidate_TypeNotFound(t *testing.T) {
-	run := func(t *testing.T, client pbresource.ResourceServiceClient) {
-		res, err := demo.GenerateV2Artist()
-		require.NoError(t, err)
+	client := svctest.NewResourceServiceBuilder().Run(t)
 
-		_, err = client.MutateAndValidate(testContext(t), &pbresource.MutateAndValidateRequest{Resource: res})
-		require.Error(t, err)
-		require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-		require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
-	}
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
 
-	for _, v2tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", v2tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().WithV2Tenancy(v2tenancy).Run(t)
-			run(t, client)
-		})
-	}
+	_, err = client.MutateAndValidate(testContext(t), &pbresource.MutateAndValidateRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestMutateAndValidate_Success(t *testing.T) {
@@ -114,72 +96,40 @@ func TestMutateAndValidate_Success(t *testing.T) {
 		prototest.AssertDeepEqual(t, tc.expectedTenancy, rsp.Resource.Id.Tenancy)
 	}
 
-	for _, v2tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", v2tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithRegisterFns(demo.RegisterTypes).
-				WithV2Tenancy(v2tenancy).
-				Run(t)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			for desc, tc := range mavOrWriteSuccessTestCases(t) {
-				t.Run(desc, func(t *testing.T) {
-					run(t, client, tc)
-				})
-			}
+	for desc, tc := range mavOrWriteSuccessTestCases(t) {
+		t.Run(desc, func(t *testing.T) {
+			run(t, client, tc)
 		})
 	}
 }
 
 func TestMutateAndValidate_Mutate(t *testing.T) {
-	for _, v2tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", v2tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithRegisterFns(demo.RegisterTypes).
-				WithV2Tenancy(v2tenancy).
-				Run(t)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
 
-			artistData := &pbdemov2.Artist{}
-			artist.Data.UnmarshalTo(artistData)
-			require.NoError(t, err)
+	artistData := &pbdemov2.Artist{}
+	artist.Data.UnmarshalTo(artistData)
+	require.NoError(t, err)
 
-			// mutate hook sets genre to disco when unspecified
-			artistData.Genre = pbdemov2.Genre_GENRE_UNSPECIFIED
-			artist.Data.MarshalFrom(artistData)
-			require.NoError(t, err)
+	// mutate hook sets genre to disco when unspecified
+	artistData.Genre = pbdemov2.Genre_GENRE_UNSPECIFIED
+	artist.Data.MarshalFrom(artistData)
+	require.NoError(t, err)
 
-			rsp, err := client.MutateAndValidate(testContext(t), &pbresource.MutateAndValidateRequest{Resource: artist})
-			require.NoError(t, err)
+	rsp, err := client.MutateAndValidate(testContext(t), &pbresource.MutateAndValidateRequest{Resource: artist})
+	require.NoError(t, err)
 
-			// verify mutate hook set genre to disco
-			require.NoError(t, rsp.Resource.Data.UnmarshalTo(artistData))
-			require.Equal(t, pbdemov2.Genre_GENRE_DISCO, artistData.Genre)
-		})
-	}
-}
-
-func TestMutateAndValidate_Tenancy_NotFound(t *testing.T) {
-	for desc, tc := range mavOrWriteTenancyNotFoundTestCases(t) {
-		t.Run(desc, func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(true).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
-
-			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
-			require.NoError(t, err)
-
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
-
-			_, err = client.MutateAndValidate(testContext(t), &pbresource.MutateAndValidateRequest{Resource: tc.modFn(artist, recordLabel)})
-			require.Error(t, err)
-			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-			require.Contains(t, err.Error(), tc.errContains)
-		})
-	}
+	// verify mutate hook set genre to disco
+	require.NoError(t, rsp.Resource.Data.UnmarshalTo(artistData))
+	require.Equal(t, pbdemov2.Genre_GENRE_DISCO, artistData.Genre)
 }
 
 func TestMutateAndValidate_TenancyMarkedForDeletion_Fails(t *testing.T) {

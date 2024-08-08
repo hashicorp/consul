@@ -198,8 +198,6 @@ func (d messageSerializer) getAnswerExtraAndNs(opts *getAnswerExtraAndNsOptions)
 
 	qType := opts.req.Question[0].Qtype
 
-	// TODO (v2-dns): skip records that refer to a workload/node that don't have a valid DNS name.
-
 	// Special case responses
 	switch {
 	// PTR requests are first since they are a special case of domain overriding question type
@@ -213,7 +211,7 @@ func (d messageSerializer) getAnswerExtraAndNs(opts *getAnswerExtraAndNsOptions)
 
 		ptr := &dns.PTR{
 			Hdr: dns.RR_Header{Name: qName, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
-			Ptr: canonicalNameForResult(opts.result.Type, ptrTarget, opts.responseDomain, opts.result.Tenancy, opts.port.Name),
+			Ptr: canonicalNameForResult(opts.result.Type, ptrTarget, opts.responseDomain, opts.result.Tenancy),
 		}
 		answer = append(answer, ptr)
 	case qType == dns.TypeNS:
@@ -222,14 +220,14 @@ func (d messageSerializer) getAnswerExtraAndNs(opts *getAnswerExtraAndNsOptions)
 		if parseRequestType(opts.req) == requestTypeConsul && resultType == discovery.ResultTypeService {
 			resultType = discovery.ResultTypeNode
 		}
-		fqdn := canonicalNameForResult(resultType, target, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
+		fqdn := canonicalNameForResult(resultType, target, opts.responseDomain, opts.result.Tenancy)
 		extraRecord := opts.dnsRecordMaker.makeIPBasedRecord(fqdn, nodeAddress, opts.ttl)
 
 		answer = append(answer, opts.dnsRecordMaker.makeNS(opts.responseDomain, fqdn, opts.ttl))
 		extra = append(extra, extraRecord)
 	case qType == dns.TypeSOA:
 		// to be returned in the result.
-		fqdn := canonicalNameForResult(opts.result.Type, opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
+		fqdn := canonicalNameForResult(opts.result.Type, opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy)
 		extraRecord := opts.dnsRecordMaker.makeIPBasedRecord(fqdn, nodeAddress, opts.ttl)
 
 		ns = append(ns, opts.dnsRecordMaker.makeNS(opts.responseDomain, fqdn, opts.ttl))
@@ -243,7 +241,7 @@ func (d messageSerializer) getAnswerExtraAndNs(opts *getAnswerExtraAndNsOptions)
 	}
 
 	a, e := getAnswerAndExtraTXT(opts.req, opts.cfg, qName, opts.result, opts.ttl,
-		opts.responseDomain, opts.query, &opts.port, opts.dnsRecordMaker)
+		opts.responseDomain, opts.query, opts.dnsRecordMaker)
 	answer = append(answer, a...)
 	extra = append(extra, e...)
 	return
@@ -293,7 +291,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 
 	case opts.result.Type == discovery.ResultTypeNode && nodeAddress.IsIP():
 		canonicalNodeName := canonicalNameForResult(opts.result.Type,
-			opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
+			opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy)
 		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
@@ -309,11 +307,8 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 	// There is no service address and the node address is an IP
 	case serviceAddress.IsEmptyString() && nodeAddress.IsIP():
 		resultType := discovery.ResultTypeNode
-		if opts.result.Type == discovery.ResultTypeWorkload {
-			resultType = discovery.ResultTypeWorkload
-		}
 		canonicalNodeName := canonicalNameForResult(resultType, opts.result.Node.Name,
-			opts.responseDomain, opts.result.Tenancy, opts.port.Name)
+			opts.responseDomain, opts.result.Tenancy)
 		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, nodeAddress.String() == opts.result.Node.Address) // We compare the node address to the result to detect changes from the WAN translation
 		answer = append(answer, a...)
 		extra = append(extra, e...)
@@ -332,7 +327,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 	// The service address is an IP
 	case serviceAddress.IsIP():
 		canonicalServiceName := canonicalNameForResult(discovery.ResultTypeService,
-			opts.result.Service.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
+			opts.result.Service.Name, opts.responseDomain, opts.result.Tenancy)
 		a, e := getAnswerExtrasForIP(canonicalServiceName, serviceAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, false)
 		answer = append(answer, a...)
 		extra = append(extra, e...)
@@ -341,7 +336,7 @@ func (d messageSerializer) getAnswerExtrasForAddressAndTarget(nodeAddress *dnsAd
 	// for then use the node address.
 	case serviceAddress.FQDN() == opts.req.Question[0].Name && nodeAddress.IsIP():
 		canonicalNodeName := canonicalNameForResult(discovery.ResultTypeNode,
-			opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy, opts.port.Name)
+			opts.result.Node.Name, opts.responseDomain, opts.result.Tenancy)
 		a, e := getAnswerExtrasForIP(canonicalNodeName, nodeAddress, opts.req.Question[0], reqType, opts.result, opts.ttl, opts.responseDomain, &opts.port, opts.dnsRecordMaker, nodeAddress.String() == opts.result.Node.Address) // We compare the node address to the result to detect changes from the WAN translation
 		answer = append(answer, a...)
 		extra = append(extra, e...)
@@ -401,9 +396,11 @@ MORE_REC:
 
 // getAnswerAndExtraTXT determines whether a TXT needs to be create and then
 // returns the TXT record in the answer or extra depending on the question type.
-func getAnswerAndExtraTXT(req *dns.Msg, cfg *RouterDynamicConfig, qName string,
+func getAnswerAndExtraTXT(
+	req *dns.Msg, cfg *RouterDynamicConfig, qName string,
 	result *discovery.Result, ttl uint32, domain string, query *discovery.Query,
-	port *discovery.Port, maker dnsRecordMaker) (answer []dns.RR, extra []dns.RR) {
+	maker dnsRecordMaker,
+) (answer []dns.RR, extra []dns.RR) {
 	if !shouldAppendTXTRecord(query, cfg, req) {
 		return
 	}
@@ -417,7 +414,7 @@ func getAnswerAndExtraTXT(req *dns.Msg, cfg *RouterDynamicConfig, qName string,
 		!serviceAddress.IsInternalFQDN(domain) &&
 		!serviceAddress.IsExternalFQDN(domain) {
 		recordHeaderName = canonicalNameForResult(discovery.ResultTypeNode, result.Node.Name,
-			domain, result.Tenancy, port.Name)
+			domain, result.Tenancy)
 	}
 	qType := req.Question[0].Qtype
 	generateMeta := false
@@ -493,9 +490,6 @@ func getAnswerExtrasForIP(name string, addr *dnsAddress, question dns.Question, 
 			// as well as the target of the SRV record.
 			recHdrName = encodeIPAsFqdn(result, addr.IP(), domain)
 		}
-		if result.Type == discovery.ResultTypeWorkload {
-			recHdrName = canonicalNameForResult(result.Type, result.Node.Name, domain, result.Tenancy, port.Name)
-		}
 		srv := maker.makeSRV(name, recHdrName, uint16(result.DNS.Weight), ttl, port)
 		answer = append(answer, srv)
 	}
@@ -542,8 +536,7 @@ func encodeIPAsFqdn(result *discovery.Result, ip net.IP, responseDomain string) 
 }
 
 // canonicalNameForResult returns the canonical name for a discovery result.
-func canonicalNameForResult(resultType discovery.ResultType, target, domain string,
-	tenancy discovery.ResultTenancy, portName string) string {
+func canonicalNameForResult(resultType discovery.ResultType, target, domain string, tenancy discovery.ResultTenancy) string {
 	switch resultType {
 	case discovery.ResultTypeService:
 		if tenancy.Namespace != "" {
@@ -572,12 +565,6 @@ func canonicalNameForResult(resultType discovery.ResultType, target, domain stri
 		}
 		// Return a simpler format for non-peering nodes.
 		return fmt.Sprintf("%s.node.%s.%s", target, tenancy.Datacenter, domain)
-	case discovery.ResultTypeWorkload:
-		// TODO (v2-dns): it doesn't appear this is being used to return a result. Need to investigate and refactor
-		if portName != "" {
-			return fmt.Sprintf("%s.port.%s.workload.%s.ns.%s.ap.%s", portName, target, tenancy.Namespace, tenancy.Partition, domain)
-		}
-		return fmt.Sprintf("%s.workload.%s.ns.%s.ap.%s", target, tenancy.Namespace, tenancy.Partition, domain)
 	}
 	return ""
 }

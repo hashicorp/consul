@@ -41,9 +41,6 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "DefaultAgentWrite", prefix: "foo", check: checkDefaultAgentWrite},
 				{name: "DefaultEventRead", prefix: "foo", check: checkDefaultEventRead},
 				{name: "DefaultEventWrite", prefix: "foo", check: checkDefaultEventWrite},
-				{name: "DefaultIdentityRead", prefix: "foo", check: checkDefaultIdentityRead},
-				{name: "DefaultIdentityWrite", prefix: "foo", check: checkDefaultIdentityWrite},
-				{name: "DefaultIdentityWriteAny", prefix: "", check: checkDefaultIdentityWriteAny},
 				{name: "DefaultIntentionDefaultAllow", prefix: "foo", check: checkDefaultIntentionDefaultAllow},
 				{name: "DefaultIntentionRead", prefix: "foo", check: checkDefaultIntentionRead},
 				{name: "DefaultIntentionWrite", prefix: "foo", check: checkDefaultIntentionWrite},
@@ -188,29 +185,6 @@ func TestPolicyAuthorizer(t *testing.T) {
 					{
 						Node:   "fo",
 						Policy: PolicyRead,
-					},
-				},
-				Identities: []*IdentityRule{
-					{
-						Name:       "foo",
-						Policy:     PolicyWrite,
-						Intentions: PolicyWrite,
-					},
-					{
-						Name:   "football",
-						Policy: PolicyDeny,
-					},
-				},
-				IdentityPrefixes: []*IdentityRule{
-					{
-						Name:       "foot",
-						Policy:     PolicyRead,
-						Intentions: PolicyRead,
-					},
-					{
-						Name:       "fo",
-						Policy:     PolicyRead,
-						Intentions: PolicyRead,
 					},
 				},
 				Keys: []*KeyRule{
@@ -399,22 +373,6 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "ServiceWriteDenied", prefix: "football", check: checkDenyServiceWrite},
 				{name: "ServiceWriteAnyAllowed", prefix: "", check: checkAllowServiceWriteAny},
 				{name: "ServiceReadWithinPrefixDenied", prefix: "foot", check: checkDenyServiceReadPrefix},
-
-				{name: "IdentityReadPrefixAllowed", prefix: "fo", check: checkAllowIdentityRead},
-				{name: "IdentityWritePrefixDenied", prefix: "fo", check: checkDenyIdentityWrite},
-				{name: "IdentityReadPrefixAllowed", prefix: "for", check: checkAllowIdentityRead},
-				{name: "IdentityWritePrefixDenied", prefix: "for", check: checkDenyIdentityWrite},
-				{name: "IdentityReadAllowed", prefix: "foo", check: checkAllowIdentityRead},
-				{name: "IdentityWriteAllowed", prefix: "foo", check: checkAllowIdentityWrite},
-				{name: "IdentityReadPrefixAllowed", prefix: "foot", check: checkAllowIdentityRead},
-				{name: "IdentityWritePrefixDenied", prefix: "foot", check: checkDenyIdentityWrite},
-				{name: "IdentityReadPrefixAllowed", prefix: "foot2", check: checkAllowIdentityRead},
-				{name: "IdentityWritePrefixDenied", prefix: "foot2", check: checkDenyIdentityWrite},
-				{name: "IdentityReadPrefixAllowed", prefix: "food", check: checkAllowIdentityRead},
-				{name: "IdentityWritePrefixDenied", prefix: "food", check: checkDenyIdentityWrite},
-				{name: "IdentityReadDenied", prefix: "football", check: checkDenyIdentityRead},
-				{name: "IdentityWriteDenied", prefix: "football", check: checkDenyIdentityWrite},
-				{name: "IdentityWriteAnyAllowed", prefix: "", check: checkAllowIdentityWriteAny},
 
 				{name: "IntentionReadPrefixAllowed", prefix: "fo", check: checkAllowIntentionRead},
 				{name: "IntentionWritePrefixDenied", prefix: "fo", check: checkDenyIntentionWrite},
