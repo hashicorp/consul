@@ -19,9 +19,6 @@ var ACLTemplatedPolicyDNS string
 //go:embed acltemplatedpolicy/policies/ce/nomad-server.hcl
 var ACLTemplatedPolicyNomadServer string
 
-//go:embed acltemplatedpolicy/policies/ce/workload-identity.hcl
-var ACLTemplatedPolicyWorkloadIdentity string
-
 //go:embed acltemplatedpolicy/policies/ce/api-gateway.hcl
 var ACLTemplatedPolicyAPIGateway string
 

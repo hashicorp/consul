@@ -14,8 +14,6 @@ For every controller we want to enable 3 types of testing.
 	
 Between the lightweight and container based integration tests there is a lot of duplication in what is being tested. For this reason these integration test bodies should be defined as exported functions within the apigroups test package. The container based tests can then import those packages and invoke the same functionality with minimal overhead.
 
-See the [internal/catalog/catalogtest](internal/catalog/catalogtest) package for an example.
-
 For one-shot integration tests, functions to do the resource publishing should be split from functions to perform the verifications. This allows upgrade tests to publish the resources once pre-upgrade and then validate that their correctness post-upgrade without requiring rewriting them.
 
 Sometimes it may also be a good idea to export functions in the test packages for running a specific controllers integration tests. This is a good idea when the controller will use a different version of a dependency in Consul Enterprise to allow for the enterprise implementations package to invoke the integration tests after setting up the controller with its injected dependency.

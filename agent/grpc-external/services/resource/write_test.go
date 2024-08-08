@@ -4,16 +4,13 @@
 package resource_test
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl/resolver"
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
@@ -22,13 +19,10 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
-
-// TODO: Update all tests to use true/false table test for v2tenancy
 
 func TestWrite_InputValidation(t *testing.T) {
 	client := svctest.NewResourceServiceBuilder().
@@ -184,46 +178,6 @@ func TestWrite_Create_Success(t *testing.T) {
 			prototest.AssertDeepEqual(t, tc.expectedTenancy, rsp.Resource.Id.Tenancy)
 		})
 	}
-}
-
-func TestWrite_Create_Tenancy_NotFound(t *testing.T) {
-	for desc, tc := range mavOrWriteTenancyNotFoundTestCases(t) {
-		t.Run(desc, func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(true).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
-
-			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
-			require.NoError(t, err)
-
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
-
-			_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: tc.modFn(artist, recordLabel)})
-			require.Error(t, err)
-			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-			require.Contains(t, err.Error(), tc.errContains)
-		})
-	}
-}
-
-func TestWrite_Create_With_DeletionTimestamp_Fails(t *testing.T) {
-	client := svctest.NewResourceServiceBuilder().
-		WithV2Tenancy(true).
-		WithRegisterFns(demo.RegisterTypes).
-		Run(t)
-
-	res := rtest.Resource(demo.TypeV1Artist, "blur").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
-		WithData(t, &pbdemov1.Artist{Name: "Blur"}).
-		WithMeta(resource.DeletionTimestampKey, time.Now().Format(time.RFC3339)).
-		Build()
-
-	_, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
-	require.Error(t, err)
-	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), resource.DeletionTimestampKey)
 }
 
 func TestWrite_Create_With_TenancyMarkedForDeletion_Fails(t *testing.T) {
@@ -687,242 +641,6 @@ func TestEnsureFinalizerRemoved(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-		})
-	}
-}
-
-func TestWrite_ResourceFrozenAfterMarkedForDeletion(t *testing.T) {
-	type testCase struct {
-		modFn       func(res *pbresource.Resource)
-		errContains string
-	}
-	testCases := map[string]testCase{
-		"no-op write rejected": {
-			modFn:       func(res *pbresource.Resource) {},
-			errContains: "cannot no-op write resource marked for deletion",
-		},
-		"remove one finalizer": {
-			modFn: func(res *pbresource.Resource) {
-				resource.RemoveFinalizer(res, "finalizer1")
-			},
-		},
-		"remove all finalizers": {
-			modFn: func(res *pbresource.Resource) {
-				resource.RemoveFinalizer(res, "finalizer1")
-				resource.RemoveFinalizer(res, "finalizer2")
-			},
-		},
-		"adding finalizer fails": {
-			modFn: func(res *pbresource.Resource) {
-				resource.AddFinalizer(res, "finalizer3")
-			},
-			errContains: "expected at least one finalizer to be removed",
-		},
-		"remove deletionTimestamp fails": {
-			modFn: func(res *pbresource.Resource) {
-				delete(res.Metadata, resource.DeletionTimestampKey)
-			},
-			errContains: "cannot remove deletionTimestamp",
-		},
-		"modify deletionTimestamp fails": {
-			modFn: func(res *pbresource.Resource) {
-				res.Metadata[resource.DeletionTimestampKey] = "bad"
-			},
-			errContains: "cannot modify deletionTimestamp",
-		},
-		"modify data fails": {
-			modFn: func(res *pbresource.Resource) {
-				var err error
-				res.Data, err = anypb.New(&pbdemo.Artist{Name: "New Order"})
-				require.NoError(t, err)
-			},
-			errContains: "cannot modify data",
-		},
-	}
-
-	for desc, tc := range testCases {
-		t.Run(desc, func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(true).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
-
-			// Create a resource with finalizers
-			res := rtest.Resource(demo.TypeV1Artist, "joydivision").
-				WithTenancy(resource.DefaultNamespacedTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Joy Division"}).
-				WithMeta(resource.FinalizerKey, "finalizer1 finalizer2").
-				Write(t, client)
-
-			// Mark for deletion - resource should now be frozen
-			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: res.Id})
-			require.NoError(t, err)
-
-			// Verify marked for deletion
-			rsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
-			require.NoError(t, err)
-			require.True(t, resource.IsMarkedForDeletion(rsp.Resource))
-
-			// Apply test case mods
-			tc.modFn(rsp.Resource)
-
-			// Verify write results
-			_, err = client.Write(context.Background(), &pbresource.WriteRequest{Resource: rsp.Resource})
-			if tc.errContains == "" {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-				require.ErrorContains(t, err, tc.errContains)
-			}
-		})
-	}
-}
-
-func TestWrite_NonCASWritePreservesFinalizers(t *testing.T) {
-	type testCase struct {
-		existingMeta map[string]string
-		inputMeta    map[string]string
-		expectedMeta map[string]string
-	}
-	testCases := map[string]testCase{
-		"input nil metadata preserves existing finalizers": {
-			inputMeta:    nil,
-			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
-			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
-		},
-		"input metadata and no finalizer key preserves existing finalizers": {
-			inputMeta:    map[string]string{},
-			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
-			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
-		},
-		"input metadata and with empty finalizer key overwrites existing finalizers": {
-			inputMeta:    map[string]string{resource.FinalizerKey: ""},
-			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
-			expectedMeta: map[string]string{resource.FinalizerKey: ""},
-		},
-		"input metadata with one finalizer key overwrites multiple existing finalizers": {
-			inputMeta:    map[string]string{resource.FinalizerKey: "finalizer2"},
-			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
-			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer2"},
-		},
-	}
-
-	for desc, tc := range testCases {
-		t.Run(desc, func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(true).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
-
-			// Create the resource based on tc.existingMetadata
-			builder := rtest.Resource(demo.TypeV1Artist, "joydivision").
-				WithTenancy(resource.DefaultNamespacedTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Joy"})
-
-			if tc.existingMeta != nil {
-				for k, v := range tc.existingMeta {
-					builder.WithMeta(k, v)
-				}
-			}
-			res := builder.Write(t, client)
-
-			// Build resource for user write based on tc.inputMetadata
-			builder = rtest.Resource(demo.TypeV1Artist, res.Id.Name).
-				WithTenancy(resource.DefaultNamespacedTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
-
-			if tc.inputMeta != nil {
-				for k, v := range tc.inputMeta {
-					builder.WithMeta(k, v)
-				}
-			}
-			userRes := builder.Build()
-
-			// Perform the user write
-			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: userRes})
-			require.NoError(t, err)
-
-			// Verify write result preserved metadata based on testcase.expecteMetadata
-			for k := range tc.expectedMeta {
-				require.Equal(t, tc.expectedMeta[k], rsp.Resource.Metadata[k])
-			}
-			require.Equal(t, len(tc.expectedMeta), len(rsp.Resource.Metadata))
-		})
-	}
-}
-
-func TestWrite_NonCASWritePreservesDeletionTimestamp(t *testing.T) {
-	type testCase struct {
-		existingMeta map[string]string
-		inputMeta    map[string]string
-		expectedMeta map[string]string
-	}
-
-	// deletionTimestamp has to be generated via Delete() call and can't be embedded in testdata
-	// even though testcase desc refers to it.
-	testCases := map[string]testCase{
-		"input metadata no deletion timestamp preserves existing deletion timestamp and removes single finalizer": {
-			inputMeta:    map[string]string{resource.FinalizerKey: "finalizer1"},
-			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
-			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1"},
-		},
-		"input metadata no deletion timestamp preserves existing deletion timestamp and removes all finalizers": {
-			inputMeta:    map[string]string{resource.FinalizerKey: ""},
-			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
-			expectedMeta: map[string]string{resource.FinalizerKey: ""},
-		},
-	}
-
-	for desc, tc := range testCases {
-		t.Run(desc, func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(true).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
-
-			// Create the resource based on tc.existingMetadata
-			builder := rtest.Resource(demo.TypeV1Artist, "joydivision").
-				WithTenancy(resource.DefaultNamespacedTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
-
-			if tc.existingMeta != nil {
-				for k, v := range tc.existingMeta {
-					builder.WithMeta(k, v)
-				}
-			}
-			res := builder.Write(t, client)
-
-			// Mark for deletion
-			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: res.Id})
-			require.NoError(t, err)
-
-			// Re-read the deleted res for future comparison of deletionTimestamp
-			delRsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
-			require.NoError(t, err)
-
-			// Build resource for user write based on tc.inputMetadata
-			builder = rtest.Resource(demo.TypeV1Artist, res.Id.Name).
-				WithTenancy(resource.DefaultNamespacedTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
-
-			if tc.inputMeta != nil {
-				for k, v := range tc.inputMeta {
-					builder.WithMeta(k, v)
-				}
-			}
-			userRes := builder.Build()
-
-			// Perform the non-CAS user write
-			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: userRes})
-			require.NoError(t, err)
-
-			// Verify write result preserved metadata based on testcase.expectedMetadata
-			for k := range tc.expectedMeta {
-				require.Equal(t, tc.expectedMeta[k], rsp.Resource.Metadata[k])
-			}
-			// Verify deletion timestamp preserved even though it wasn't passed in to the write
-			require.Equal(t, delRsp.Resource.Metadata[resource.DeletionTimestampKey], rsp.Resource.Metadata[resource.DeletionTimestampKey])
 		})
 	}
 }

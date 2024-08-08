@@ -231,59 +231,6 @@ func Test_buildQueryFromDNSMessage(t *testing.T) {
 			},
 			expectedError: "invalid question",
 		},
-		// V2 Catalog Queries
-		{
-			name: "test A 'workload.'",
-			request: &dns.Msg{
-				MsgHdr: dns.MsgHdr{
-					Opcode: dns.OpcodeQuery,
-				},
-				Question: []dns.Question{
-					{
-						Name:   "foo.workload.consul", // "intentionally missing the trailing dot"
-						Qtype:  dns.TypeA,
-						Qclass: dns.ClassINET,
-					},
-				},
-			},
-			expectedQuery: &discovery.Query{
-				QueryType: discovery.QueryTypeWorkload,
-				QueryPayload: discovery.QueryPayload{
-					Name:    "foo",
-					Tenancy: discovery.QueryTenancy{},
-				},
-			},
-		},
-		{
-			name: "test A 'workload.' with all possible labels",
-			request: &dns.Msg{
-				MsgHdr: dns.MsgHdr{
-					Opcode: dns.OpcodeQuery,
-				},
-				Question: []dns.Question{
-					{
-						Name:   "api.port.foo.workload.banana.ns.orange.ap.apple.peer.consul", // "intentionally missing the trailing dot"
-						Qtype:  dns.TypeA,
-						Qclass: dns.ClassINET,
-					},
-				},
-			},
-			requestContext: &Context{
-				DefaultPartition: "default-partition",
-			},
-			expectedQuery: &discovery.Query{
-				QueryType: discovery.QueryTypeWorkload,
-				QueryPayload: discovery.QueryPayload{
-					Name:     "foo",
-					PortName: "api",
-					Tenancy: discovery.QueryTenancy{
-						Namespace: "banana",
-						Partition: "orange",
-						Peer:      "apple",
-					},
-				},
-			},
-		},
 		{
 			name: "test sameness group with all possible labels",
 			request: &dns.Msg{

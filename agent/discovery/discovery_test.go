@@ -122,17 +122,6 @@ func TestQueryByName(t *testing.T) {
 			expectedResults: []*Result{testResult},
 		},
 		{
-			name:    "query workload",
-			reqType: QueryTypeWorkload,
-			configureDataFetcher: func(t *testing.T, fetcher *MockCatalogDataFetcher) {
-
-				fetcher.On("ValidateRequest", mock.Anything, mock.Anything).Return(nil)
-				fetcher.On("NormalizeRequest", mock.Anything)
-				fetcher.On("FetchWorkload", mock.Anything, mock.Anything).Return(testResult, nil)
-			},
-			expectedResults: []*Result{testResult},
-		},
-		{
 			name:    "query prepared query",
 			reqType: QueryTypePreparedQuery,
 			configureDataFetcher: func(t *testing.T, fetcher *MockCatalogDataFetcher) {

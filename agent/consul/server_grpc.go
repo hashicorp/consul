@@ -29,8 +29,6 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/tenancy"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
@@ -316,7 +314,6 @@ func (s *Server) setupGRPCServices(config *Config, deps Deps) error {
 	// for anything internal in Consul to use the service. If that changes
 	// we could register it on the in-process interfaces as well.
 	err = s.registerDataplaneServer(
-		deps,
 		s.externalGRPCServer,
 	)
 	if err != nil {
@@ -344,20 +341,7 @@ func (s *Server) registerResourceServiceServer(typeRegistry resource.Registry, r
 		return fmt.Errorf("storage backend cannot be nil")
 	}
 
-	var tenancyBridge resourcegrpc.TenancyBridge
-	if s.useV2Tenancy {
-		tenancyBridge = tenancy.NewV2TenancyBridge().WithClient(
-			// This assumes that the resource service will be registered with
-			// the insecureUnsafeGRPCChan. We are using the insecure and unsafe
-			// channel here because the V2 Tenancy bridge only reads data
-			// from the client and does not modify it. Therefore sharing memory
-			// with the resource services canonical immutable data is advantageous
-			// to prevent wasting CPU time for every resource op to clone things.
-			pbresource.NewResourceServiceClient(s.insecureUnsafeGRPCChan),
-		)
-	} else {
-		tenancyBridge = NewV1TenancyBridge(s)
-	}
+	tenancyBridge := NewV1TenancyBridge(s)
 
 	// Create the Resource Service Server
 	srv := resourcegrpc.NewServer(s.newResourceServiceConfig(typeRegistry, resolver, tenancyBridge))
@@ -510,14 +494,12 @@ func (s *Server) registerConnectCAServer(registrars ...grpc.ServiceRegistrar) er
 	return nil
 }
 
-func (s *Server) registerDataplaneServer(deps Deps, registrars ...grpc.ServiceRegistrar) error {
+func (s *Server) registerDataplaneServer(registrars ...grpc.ServiceRegistrar) error {
 	srv := dataplane.NewServer(dataplane.Config{
-		GetStore:          func() dataplane.StateStore { return s.FSM().State() },
-		Logger:            s.loggers.Named(logging.GRPCAPI).Named(logging.Dataplane),
-		ACLResolver:       s.ACLResolver,
-		Datacenter:        s.config.Datacenter,
-		EnableV2:          stringslice.Contains(deps.Experiments, CatalogResourceExperimentName),
-		ResourceAPIClient: pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
+		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
+		Logger:      s.loggers.Named(logging.GRPCAPI).Named(logging.Dataplane),
+		ACLResolver: s.ACLResolver,
+		Datacenter:  s.config.Datacenter,
 	})
 
 	for _, reg := range registrars {

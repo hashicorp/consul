@@ -14,9 +14,10 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -1455,11 +1456,6 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
 				"we are %s", v.Datacenter, dc)
 		}
-	case *connect.SpiffeIDWorkloadIdentity:
-		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
-		if err := allow.IdentityWriteAllowed(v.WorkloadIdentity, &authzContext); err != nil {
-			return nil, err
-		}
 	case *connect.SpiffeIDAgent:
 		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
 		if err := allow.NodeWriteAllowed(v.Agent, &authzContext); err != nil {
@@ -1520,7 +1516,6 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	serverID, isServer := spiffeID.(*connect.SpiffeIDServer)
 	mgwID, isMeshGateway := spiffeID.(*connect.SpiffeIDMeshGateway)
-	wID, isWorkloadIdentity := spiffeID.(*connect.SpiffeIDWorkloadIdentity)
 
 	var entMeta acl.EnterpriseMeta
 	switch {
@@ -1530,12 +1525,6 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 				"we are %s", serviceID.Host, signingID.Host())
 		}
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
-	case isWorkloadIdentity:
-		if !signingID.CanSign(spiffeID) {
-			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
-				"we are %s", wID.TrustDomain, signingID.Host())
-		}
-		entMeta.Merge(wID.GetEnterpriseMeta())
 	case isMeshGateway:
 		if !signingID.CanSign(spiffeID) {
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
@@ -1658,9 +1647,6 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	case isService:
 		reply.Service = serviceID.Service
 		reply.ServiceURI = cert.URIs[0].String()
-	case isWorkloadIdentity:
-		reply.WorkloadIdentity = wID.WorkloadIdentity
-		reply.WorkloadIdentityURI = cert.URIs[0].String()
 	case isMeshGateway:
 		reply.Kind = structs.ServiceKindMeshGateway
 		reply.KindURI = cert.URIs[0].String()

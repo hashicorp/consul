@@ -6,8 +6,6 @@ package consul
 import (
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/lib/stringslice"
-
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
 
@@ -20,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -53,34 +52,7 @@ type Deps struct {
 // UseV1DNS returns true if "v1dns" is present in the Experiments
 // array of the agent config. It is ignored if the v2 resource APIs are enabled.
 func (d Deps) UseV1DNS() bool {
-	if stringslice.Contains(d.Experiments, V1DNSExperimentName) && !d.UseV2Resources() {
-		return true
-	}
-	return false
-}
-
-// UseV2Resources returns true if "resource-apis" is present in the Experiments
-// array of the agent config.
-func (d Deps) UseV2Resources() bool {
-	if stringslice.Contains(d.Experiments, CatalogResourceExperimentName) {
-		return true
-	}
-	return false
-}
-
-// UseV2Tenancy returns true if "v2tenancy" is present in the Experiments
-// array of the agent config.
-func (d Deps) UseV2Tenancy() bool {
-	if stringslice.Contains(d.Experiments, V2TenancyExperimentName) {
-		return true
-	}
-	return false
-}
-
-// HCPAllowV2Resources returns true if "hcp-v2-resource-apis" is present in the Experiments
-// array of the agent config.
-func (d Deps) HCPAllowV2Resources() bool {
-	if stringslice.Contains(d.Experiments, HCPAllowV2ResourceAPIs) {
+	if stringslice.Contains(d.Experiments, V1DNSExperimentName) {
 		return true
 	}
 	return false

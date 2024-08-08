@@ -23,8 +23,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// TODO: Update all tests to use true/false table test for v2tenancy
-
 func TestWriteStatus_ACL(t *testing.T) {
 	type testCase struct {
 		authz       resolver.Result
@@ -367,66 +365,6 @@ func TestWriteStatus_Tenancy_Defaults(t *testing.T) {
 			require.NoError(t, err)
 			res = rsp.Resource
 			require.NotNil(t, res.Status)
-		})
-	}
-}
-
-func TestWriteStatus_Tenancy_NotFound(t *testing.T) {
-	for desc, tc := range map[string]struct {
-		scope       resource.Scope
-		modFn       func(req *pbresource.WriteStatusRequest)
-		errCode     codes.Code
-		errContains string
-	}{
-		"namespaced resource provides nonexistant partition": {
-			scope:       resource.ScopeNamespace,
-			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "bad" },
-			errCode:     codes.InvalidArgument,
-			errContains: "partition",
-		},
-		"namespaced resource provides nonexistant namespace": {
-			scope:       resource.ScopeNamespace,
-			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Namespace = "bad" },
-			errCode:     codes.InvalidArgument,
-			errContains: "namespace",
-		},
-		"partitioned resource provides nonexistant partition": {
-			scope:       resource.ScopePartition,
-			modFn:       func(req *pbresource.WriteStatusRequest) { req.Id.Tenancy.Partition = "bad" },
-			errCode:     codes.InvalidArgument,
-			errContains: "partition",
-		},
-	} {
-		t.Run(desc, func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(true).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
-
-			// Pick resource based on scope of type in testcase.
-			var res *pbresource.Resource
-			var err error
-			switch tc.scope {
-			case resource.ScopeNamespace:
-				res, err = demo.GenerateV2Artist()
-			case resource.ScopePartition:
-				res, err = demo.GenerateV1RecordLabel("looney-tunes")
-			}
-			require.NoError(t, err)
-
-			// Fill in required fields so validation continues until tenancy is checked
-			req := validWriteStatusRequest(t, res)
-			req.Id.Uid = ulid.Make().String()
-			req.Status.ObservedGeneration = ulid.Make().String()
-
-			// Write status with tenancy modded by testcase.
-			tc.modFn(req)
-			_, err = client.WriteStatus(testContext(t), req)
-
-			// Verify non-existant tenancy field is the cause of the error.
-			require.Error(t, err)
-			require.Equal(t, tc.errCode.String(), status.Code(err).String())
-			require.Contains(t, err.Error(), tc.errContains)
 		})
 	}
 }

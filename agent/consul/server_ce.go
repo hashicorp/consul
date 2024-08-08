@@ -205,6 +205,5 @@ func (s *Server) newResourceServiceConfig(typeRegistry resource.Registry, resolv
 		ACLResolver:   resolver,
 		Logger:        s.loggers.Named(logging.GRPCAPI).Named(logging.Resource),
 		TenancyBridge: tenancyBridge,
-		UseV2Tenancy:  s.useV2Tenancy,
 	}
 }

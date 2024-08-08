@@ -4,17 +4,17 @@
 package proxycfg
 
 import (
+	"context"
 	"errors"
 	"runtime/debug"
 	"sync"
 
-	"github.com/hashicorp/consul/lib/channels"
-
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/structs"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/lib/channels"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -58,7 +58,7 @@ type Manager struct {
 
 	mu         sync.Mutex
 	proxies    map[ProxyID]*state
-	watchers   map[ProxyID]map[uint64]chan proxysnapshot.ProxySnapshot
+	watchers   map[ProxyID]map[uint64]chan *ConfigSnapshot
 	maxWatchID uint64
 }
 
@@ -109,7 +109,7 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 	m := &Manager{
 		ManagerConfig: cfg,
 		proxies:       make(map[ProxyID]*state),
-		watchers:      make(map[ProxyID]map[uint64]chan proxysnapshot.ProxySnapshot),
+		watchers:      make(map[ProxyID]map[uint64]chan *ConfigSnapshot),
 		rateLimiter:   rate.NewLimiter(cfg.UpdateRateLimit, 1),
 	}
 	return m, nil
@@ -265,12 +265,12 @@ func (m *Manager) notify(snap *ConfigSnapshot) {
 // it will drain the chan and then re-attempt delivery so that a slow consumer
 // gets the latest config earlier. This MUST be called from a method where m.mu
 // is held to be safe since it assumes we are the only goroutine sending on ch.
-func (m *Manager) deliverLatest(snap proxysnapshot.ProxySnapshot, ch chan proxysnapshot.ProxySnapshot) {
-	m.Logger.Trace("delivering latest proxy snapshot to proxy", "proxyID", snap.(*ConfigSnapshot).ProxyID)
+func (m *Manager) deliverLatest(snap *ConfigSnapshot, ch chan *ConfigSnapshot) {
+	m.Logger.Trace("delivering latest proxy snapshot to proxy", "proxyID", snap.ProxyID)
 	err := channels.DeliverLatest(snap, ch)
 	if err != nil {
 		m.Logger.Error("failed to deliver proxyState to proxy",
-			"proxy", snap.(*ConfigSnapshot).ProxyID,
+			"proxy", snap.ProxyID,
 		)
 	}
 
@@ -280,16 +280,16 @@ func (m *Manager) deliverLatest(snap proxysnapshot.ProxySnapshot, ch chan proxys
 // will not fail, but no updates will be delivered until the proxy is
 // registered. If there is already a valid snapshot in memory, it will be
 // delivered immediately.
-func (m *Manager) Watch(id ProxyID) (<-chan proxysnapshot.ProxySnapshot, proxysnapshot.CancelFunc) {
+func (m *Manager) Watch(id ProxyID) (<-chan *ConfigSnapshot, context.CancelFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	// This buffering is crucial otherwise we'd block immediately trying to
 	// deliver the current snapshot below if we already have one.
-	ch := make(chan proxysnapshot.ProxySnapshot, 1)
+	ch := make(chan *ConfigSnapshot, 1)
 	watchers, ok := m.watchers[id]
 	if !ok {
-		watchers = make(map[uint64]chan proxysnapshot.ProxySnapshot)
+		watchers = make(map[uint64]chan *ConfigSnapshot)
 	}
 	watchID := m.maxWatchID
 	m.maxWatchID++

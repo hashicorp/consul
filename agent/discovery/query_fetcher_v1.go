@@ -30,7 +30,6 @@ const (
 )
 
 // DNSCounters pre-registers the staleness metric.
-// This value is used by both the V1 and V2 DNS (V1 Catalog-only) servers.
 var DNSCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"dns", "stale_queries"},
@@ -293,14 +292,7 @@ func (f *V1DataFetcher) FetchRecordsByIp(reqCtx Context, ip net.IP) ([]*Result, 
 	return nil, fmt.Errorf("unhandled error in FetchRecordsByIp")
 }
 
-// FetchWorkload fetches a single Result associated with
-// V2 Workload. V2-only.
-func (f *V1DataFetcher) FetchWorkload(ctx Context, req *QueryPayload) (*Result, error) {
-	return nil, ErrNotSupported
-}
-
 // FetchPreparedQuery evaluates the results of a prepared query.
-// deprecated in V2
 func (f *V1DataFetcher) FetchPreparedQuery(ctx Context, req *QueryPayload) ([]*Result, error) {
 	cfg := f.dynamicConfig.Load().(*V1DataFetcherDynamicConfig)
 
@@ -425,9 +417,6 @@ RPC:
 }
 
 func (f *V1DataFetcher) ValidateRequest(_ Context, req *QueryPayload) error {
-	if req.EnableFailover {
-		return ErrNotSupported
-	}
 	if req.PortName != "" {
 		return ErrNotSupported
 	}

@@ -7,8 +7,6 @@ import (
 	"context"
 	"time"
 
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/local"
@@ -148,7 +146,7 @@ func sync(cfg SyncConfig) {
 
 //go:generate mockery --name ConfigManager --inpackage
 type ConfigManager interface {
-	Watch(id proxycfg.ProxyID) (<-chan proxysnapshot.ProxySnapshot, proxysnapshot.CancelFunc)
+	Watch(id proxycfg.ProxyID) (<-chan *proxycfg.ConfigSnapshot, context.CancelFunc)
 	Register(proxyID proxycfg.ProxyID, service *structs.NodeService, source proxycfg.ProxySource, token string, overwrite bool) error
 	Deregister(proxyID proxycfg.ProxyID, source proxycfg.ProxySource)
 	RegisteredProxies(source proxycfg.ProxySource) []proxycfg.ProxyID

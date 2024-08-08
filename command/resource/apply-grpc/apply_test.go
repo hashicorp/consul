@@ -44,7 +44,7 @@ func TestResourceApplyCommand(t *testing.T) {
 		{
 			name:   "nested data format",
 			args:   []string{"-f=../testdata/nested_data.hcl"},
-			output: "mesh.v2beta1.Destinations 'api' created.",
+			output: "demo.v2.Festival 'woodstock' created.",
 		},
 	}
 

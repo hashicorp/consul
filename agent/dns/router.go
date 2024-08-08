@@ -14,8 +14,9 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-radix"
-	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/discovery"
@@ -30,8 +31,6 @@ const (
 	arpaDomain = "arpa."
 	arpaLabel  = "arpa"
 
-	suffixFailover           = "failover."
-	suffixNoFailover         = "no-failover."
 	maxRecursionLevelDefault = 3 // This field comes from the V1 DNS server and affects V1 catalog lookups
 	maxRecurseRecords        = 5
 )
@@ -382,7 +381,6 @@ const (
 // that DS query types are not supported.
 func (r *Router) parseDomain(questionName string) (string, bool) {
 	target := dns.CanonicalName(questionName)
-	target, _ = stripAnyFailoverSuffix(target)
 
 	for offset, overflow := 0, false; !overflow; offset, overflow = dns.NextLabel(target, offset) {
 		subdomain := target[offset:]
@@ -458,25 +456,6 @@ func (r *Router) normalizeContext(ctx *Context) {
 	if ctx.Token == "" {
 		ctx.Token = r.tokenFunc()
 	}
-}
-
-// stripAnyFailoverSuffix strips off the suffixes that may have been added to the request name.
-func stripAnyFailoverSuffix(target string) (string, bool) {
-	enableFailover := false
-
-	// Strip off any suffixes that may have been added.
-	offset, underflow := dns.PrevLabel(target, 1)
-	if !underflow {
-		maybeSuffix := target[offset:]
-		switch maybeSuffix {
-		case suffixFailover:
-			target = target[:offset]
-			enableFailover = true
-		case suffixNoFailover:
-			target = target[:offset]
-		}
-	}
-	return target, enableFailover
 }
 
 // isAddrSubdomain returns true if the domain is a valid addr subdomain.

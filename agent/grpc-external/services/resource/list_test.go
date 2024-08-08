@@ -27,8 +27,6 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
-// TODO: Update all tests to use true/false table test for v2tenancy
-
 func TestList_InputValidation(t *testing.T) {
 	client := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(demo.RegisterTypes).

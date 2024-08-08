@@ -11,9 +11,6 @@ import (
 	"time"
 
 	"github.com/armon/go-radix"
-
-	"github.com/hashicorp/consul/internal/dnsutil"
-
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -24,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/dnsutil"
 )
 
 // HandleTestCase is a test case for the HandleRequest function.
@@ -37,8 +35,6 @@ import (
 // - router_service_test.go
 // - router_soa_test.go
 // - router_virtual_test.go
-// - router_v2_services_test.go
-// - router_workload_test.go
 type HandleTestCase struct {
 	name                         string
 	agentConfig                  *config.RuntimeConfig // This will override the default test Router Config
@@ -751,42 +747,6 @@ func Test_isAddrSubdomain(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := isAddrSubdomain(tc.domain)
 			require.Equal(t, tc.expected, actual)
-		})
-	}
-}
-
-func Test_stripAnyFailoverSuffix(t *testing.T) {
-	testCases := []struct {
-		name                   string
-		target                 string
-		expectedEnableFailover bool
-		expectedResult         string
-	}{
-		{
-			name:                   "my-addr.service.dc1.consul.failover. returns 'my-addr.service.dc1.consul' and true",
-			target:                 "my-addr.service.dc1.consul.failover.",
-			expectedEnableFailover: true,
-			expectedResult:         "my-addr.service.dc1.consul.",
-		},
-		{
-			name:                   "my-addr.service.dc1.consul.no-failover. returns 'my-addr.service.dc1.consul' and false",
-			target:                 "my-addr.service.dc1.consul.no-failover.",
-			expectedEnableFailover: false,
-			expectedResult:         "my-addr.service.dc1.consul.",
-		},
-		{
-			name:                   "my-addr.service.dc1.consul. returns 'my-addr.service.dc1.consul' and false",
-			target:                 "my-addr.service.dc1.consul.",
-			expectedEnableFailover: false,
-			expectedResult:         "my-addr.service.dc1.consul.",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual, actualEnableFailover := stripAnyFailoverSuffix(tc.target)
-			require.Equal(t, tc.expectedEnableFailover, actualEnableFailover)
-			require.Equal(t, tc.expectedResult, actual)
 		})
 	}
 }

@@ -40,18 +40,20 @@ func Test_HandleRequest_NS(t *testing.T) {
 					Return([]*discovery.Result{
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
-							Type: discovery.ResultTypeWorkload,
+							Type: discovery.ResultTypeService,
 							Tenancy: discovery.ResultTenancy{
-								Namespace: resource.DefaultNamespaceName,
-								Partition: resource.DefaultPartitionName,
+								Namespace:  resource.DefaultNamespaceName,
+								Partition:  resource.DefaultPartitionName,
+								Datacenter: "dc1",
 							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
-							Type: discovery.ResultTypeWorkload,
+							Type: discovery.ResultTypeService,
 							Tenancy: discovery.ResultTenancy{
-								Namespace: resource.DefaultNamespaceName,
-								Partition: resource.DefaultPartitionName,
+								Namespace:  resource.DefaultNamespaceName,
+								Partition:  resource.DefaultPartitionName,
+								Datacenter: "dc1",
 							},
 						},
 					}, nil).
@@ -87,7 +89,7 @@ func Test_HandleRequest_NS(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.default.ns.default.ap.consul.",
+						Ns: "server-one.node.dc1.consul.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -96,13 +98,13 @@ func Test_HandleRequest_NS(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.default.ns.default.ap.consul.",
+						Ns: "server-two.node.dc1.consul.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.default.ns.default.ap.consul.",
+							Name:   "server-one.node.dc1.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -111,7 +113,7 @@ func Test_HandleRequest_NS(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.default.ns.default.ap.consul.",
+							Name:   "server-two.node.dc1.consul.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -153,18 +155,20 @@ func Test_HandleRequest_NS(t *testing.T) {
 					Return([]*discovery.Result{
 						{
 							Node: &discovery.Location{Name: "server-one", Address: "1.2.3.4"},
-							Type: discovery.ResultTypeWorkload,
+							Type: discovery.ResultTypeService,
 							Tenancy: discovery.ResultTenancy{
-								Namespace: resource.DefaultNamespaceName,
-								Partition: resource.DefaultPartitionName,
+								Namespace:  resource.DefaultNamespaceName,
+								Partition:  resource.DefaultPartitionName,
+								Datacenter: "dc1",
 							},
 						},
 						{
 							Node: &discovery.Location{Name: "server-two", Address: "4.5.6.7"},
-							Type: discovery.ResultTypeWorkload,
+							Type: discovery.ResultTypeService,
 							Tenancy: discovery.ResultTenancy{
-								Namespace: resource.DefaultNamespaceName,
-								Partition: resource.DefaultPartitionName,
+								Namespace:  resource.DefaultNamespaceName,
+								Partition:  resource.DefaultPartitionName,
+								Datacenter: "dc1",
 							},
 						},
 					}, nil).
@@ -200,7 +204,7 @@ func Test_HandleRequest_NS(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-one.workload.default.ns.default.ap.testdomain.",
+						Ns: "server-one.node.dc1.testdomain.",
 					},
 					&dns.NS{
 						Hdr: dns.RR_Header{
@@ -209,13 +213,13 @@ func Test_HandleRequest_NS(t *testing.T) {
 							Class:  dns.ClassINET,
 							Ttl:    123,
 						},
-						Ns: "server-two.workload.default.ns.default.ap.testdomain.",
+						Ns: "server-two.node.dc1.testdomain.",
 					},
 				},
 				Extra: []dns.RR{
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-one.workload.default.ns.default.ap.testdomain.",
+							Name:   "server-one.node.dc1.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,
@@ -224,7 +228,7 @@ func Test_HandleRequest_NS(t *testing.T) {
 					},
 					&dns.A{
 						Hdr: dns.RR_Header{
-							Name:   "server-two.workload.default.ns.default.ap.testdomain.",
+							Name:   "server-two.node.dc1.testdomain.",
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
 							Ttl:    123,

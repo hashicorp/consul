@@ -72,6 +72,13 @@ var (
 		GroupVersion: "v2",
 		Kind:         "Album",
 	}
+
+	// TypeV2Festival represents a named collection of artists and genres.
+	TypeV2Festival = &pbresource.Type{
+		Group:        "demo",
+		GroupVersion: "v2",
+		Kind:         "Festival",
+	}
 )
 
 const (
@@ -228,6 +235,17 @@ func RegisterTypes(r resource.Registry) {
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV2Album),
+		},
+	})
+
+	r.Register(resource.Registration{
+		Type:  TypeV2Festival,
+		Proto: &pbdemov2.Festival{},
+		Scope: resource.ScopeNamespace,
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV2Festival),
 		},
 	})
 }

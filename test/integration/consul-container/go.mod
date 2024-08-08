@@ -14,7 +14,6 @@ require (
 	github.com/hashicorp/consul v1.16.1
 	github.com/hashicorp/consul/api v1.29.1
 	github.com/hashicorp/consul/envoyextensions v0.7.0
-	github.com/hashicorp/consul/proto-public v0.6.1
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/hashicorp/consul/testing/deployer v0.0.0-20230811171106-4a0afb5d1373
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -62,6 +61,7 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/consul-server-connection-manager v0.1.4 // indirect
+	github.com/hashicorp/consul/proto-public v0.6.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect

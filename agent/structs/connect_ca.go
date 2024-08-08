@@ -8,12 +8,11 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/consul/lib/stringslice"
-
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 )
 
 const (
@@ -216,11 +215,6 @@ type IssuedCert struct {
 	CertPEM string `json:",omitempty"`
 	// PrivateKeyPEM is the PEM encoded private key associated with CertPEM.
 	PrivateKeyPEM string `json:",omitempty"`
-
-	// WorkloadIdentity is the name of the workload identity for which the cert was issued.
-	WorkloadIdentity string `json:",omitempty"`
-	// WorkloadIdentityURI is the cert URI value.
-	WorkloadIdentityURI string `json:",omitempty"`
 
 	// Service is the name of the service for which the cert was issued.
 	Service string `json:",omitempty"`

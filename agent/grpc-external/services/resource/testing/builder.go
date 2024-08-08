@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -26,22 +25,11 @@ import (
 // making requests.
 func NewResourceServiceBuilder() *Builder {
 	b := &Builder{
-		useV2Tenancy: false,
-		registry:     resource.NewRegistry(),
-		// Regardless of whether using mock of v2tenancy, always make sure
-		// the builtin tenancy exists.
+		registry: resource.NewRegistry(),
+		// Always make sure the builtin tenancy exists.
 		tenancies: []*pbresource.Tenancy{resource.DefaultNamespacedTenancy()},
 		cloning:   true,
 	}
-	return b
-}
-
-// WithV2Tenancy configures which tenancy bridge is used.
-//
-// true  => real v2 default partition and namespace via v2 tenancy bridge
-// false => mock default partition and namespace since v1 tenancy bridge can't be used (not spinning up an entire server here)
-func (b *Builder) WithV2Tenancy(useV2Tenancy bool) *Builder {
-	b.useV2Tenancy = useV2Tenancy
 	return b
 }
 
@@ -106,32 +94,21 @@ func (b *Builder) Run(t testutil.TestingTB) pbresource.ResourceServiceClient {
 	t.Cleanup(cancel)
 	go backend.Run(ctx)
 
-	// Automatically add tenancy types if v2 tenancy enabled
-	if b.useV2Tenancy {
-		b.registerFns = append(b.registerFns, tenancy.RegisterTypes)
-	}
-
 	for _, registerFn := range b.registerFns {
 		registerFn(b.registry)
 	}
 
-	var tenancyBridge resource.TenancyBridge
-	if !b.useV2Tenancy {
-		// use mock tenancy bridge. default/default has already been added out of the box
-		mockTenancyBridge := &svc.MockTenancyBridge{}
+	// use mock tenancy bridge. default/default has already been added out of the box
+	mockTenancyBridge := &svc.MockTenancyBridge{}
 
-		for _, tenancy := range b.tenancies {
-			mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
-			mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
-			mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
-			mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
-		}
-
-		tenancyBridge = mockTenancyBridge
-	} else {
-		// use v2 tenancy bridge. population comes later after client injected.
-		tenancyBridge = tenancy.NewV2TenancyBridge()
+	for _, tenancy := range b.tenancies {
+		mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
+		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
+		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
+		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
 	}
+
+	tenancyBridge := mockTenancyBridge
 
 	if b.aclResolver == nil {
 		// When not provided (regardless of V1 tenancy or V2 tenancy), configure an ACL resolver
@@ -172,22 +149,5 @@ func (b *Builder) Run(t testutil.TestingTB) pbresource.ResourceServiceClient {
 		client = pbresource.NewCloningResourceServiceClient(client)
 	}
 
-	// HACK ALERT: The client needs to be injected into the V2TenancyBridge
-	// after it has been created due the circular dependency. This will
-	// go away when the tenancy bridge is removed and V1 is no more, however
-	// long that takes.
-	switch config.TenancyBridge.(type) {
-	case *tenancy.V2TenancyBridge:
-		config.TenancyBridge.(*tenancy.V2TenancyBridge).WithClient(client)
-		// Default partition and namespace can finally be created
-		require.NoError(t, initTenancy(ctx, backend))
-
-		for _, tenancy := range b.tenancies {
-			if tenancy.Partition == resource.DefaultPartitionName && tenancy.Namespace == resource.DefaultNamespaceName {
-				continue
-			}
-			t.Fatalf("TODO: implement creation of passed in v2 tenancy: %v", tenancy)
-		}
-	}
 	return client
 }

@@ -59,8 +59,6 @@ type PolicyRules struct {
 	ACL                   string               `hcl:"acl,expand"`
 	Agents                []*AgentRule         `hcl:"agent,expand"`
 	AgentPrefixes         []*AgentRule         `hcl:"agent_prefix,expand"`
-	Identities            []*IdentityRule      `hcl:"identity,expand"`
-	IdentityPrefixes      []*IdentityRule      `hcl:"identity_prefix,expand"`
 	Keys                  []*KeyRule           `hcl:"key,expand"`
 	KeyPrefixes           []*KeyRule           `hcl:"key_prefix,expand"`
 	Nodes                 []*NodeRule          `hcl:"node,expand"`
@@ -77,6 +75,11 @@ type PolicyRules struct {
 	Operator              string               `hcl:"operator"`
 	Mesh                  string               `hcl:"mesh"`
 	Peering               string               `hcl:"peering"`
+
+	// Deprecated: exists just to track the former field for decoding
+	Identities []*IdentityRule `hcl:"identity,expand"`
+	// Deprecated: exists just to track the former field for decoding
+	IdentityPrefixes []*IdentityRule `hcl:"identity_prefix,expand"`
 }
 
 // Policy is used to represent the policy specified by an ACL configuration.
@@ -93,6 +96,8 @@ type AgentRule struct {
 }
 
 // IdentityRule represents a policy for a workload identity
+//
+// Deprecated: exists just to track the former field for decoding
 type IdentityRule struct {
 	Name   string `hcl:",key"`
 	Policy string
@@ -183,29 +188,9 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		}
 	}
 
-	// Validate the identity policies
-	for _, id := range pr.Identities {
-		if !isPolicyValid(id.Policy, false) {
-			return fmt.Errorf("Invalid identity policy: %#v", id)
-		}
-		if id.Intentions != "" && !isPolicyValid(id.Intentions, false) {
-			return fmt.Errorf("Invalid identity intentions policy: %#v", id)
-		}
-		if err := id.EnterpriseRule.Validate(id.Policy, conf); err != nil {
-			return fmt.Errorf("Invalid identity enterprise policy: %#v, got error: %v", id, err)
-		}
-	}
-	for _, id := range pr.IdentityPrefixes {
-		if !isPolicyValid(id.Policy, false) {
-			return fmt.Errorf("Invalid identity_prefix policy: %#v", id)
-		}
-		if id.Intentions != "" && !isPolicyValid(id.Intentions, false) {
-			return fmt.Errorf("Invalid identity_prefix intentions policy: %#v", id)
-		}
-		if err := id.EnterpriseRule.Validate(id.Policy, conf); err != nil {
-			return fmt.Errorf("Invalid identity_prefix enterprise policy: %#v, got error: %v", id, err)
-		}
-	}
+	// Identity rules are deprecated, zero them out.
+	pr.Identities = nil
+	pr.IdentityPrefixes = nil
 
 	// Validate the key policy
 	for _, kp := range pr.Keys {
