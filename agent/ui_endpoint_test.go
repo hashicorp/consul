@@ -2736,3 +2736,70 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 		})
 	}
 }
+
+func TestUICertificatesExpiryDays(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	cfgDir := testutil.TempDir(t, "ui-nodes-cert")
+
+	// write some test TLS certificates out to the cfg dir
+	cert, key, cacert, err := testTLSCertificates("server.dc1.consul")
+	require.NoError(t, err)
+
+	certFile := filepath.Join(cfgDir, "cert.pem")
+	caFile := filepath.Join(cfgDir, "cacert.pem")
+	keyFile := filepath.Join(cfgDir, "key.pem")
+
+	require.NoError(t, os.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(cacert), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(key), 0600))
+
+	a := StartTestAgent(t, TestAgent{HCL: `
+		ui_config {
+			enabled = true
+		}
+		tls {
+			defaults {
+				verify_incoming = true
+				verify_outgoing = true
+				verify_server_hostname = true
+				ca_file = "` + caFile + `"
+				cert_file = "` + certFile + `"
+				key_file = "` + keyFile + `"
+			}
+		}
+		encrypt_verify_incoming = true
+		encrypt_verify_outgoing = true`})
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	req, _ := http.NewRequest("GET", "/v1/internal/ui//certificates-expiry-days/", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UICertificatesExpiryDays(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should have 2 certDetails (TLS and CA root)
+	certDetails := obj.([]CertificateDetails)
+	require.Len(t, certDetails, 2)
+
+	expect := []CertificateDetails{
+		{
+			Certificate:   "TLS Certificate",
+			ExpiresInDays: 364,
+		},
+		{
+			Certificate:   "Active Root CA Certificate",
+			ExpiresInDays: 3649,
+		},
+	}
+
+	require.ElementsMatch(t, expect, certDetails)
+
+}
