@@ -67,6 +67,8 @@ The corresponding CLI command is [`consul namespace create`](/consul/commands/na
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata
   to associate with the namespace.
 
+@include 'http-api-body-options-partition.mdx'
+
 ### Sample Payload
 
 ```json
@@ -168,6 +170,10 @@ The corresponding CLI command is [`consul namespace read`](/consul/commands/name
 ### Path Parameters
 
 - `name` `(string: <required>)` - Specifies the namespace to read.
+
+### Query Parameters
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -272,6 +278,8 @@ The corresponding CLI command is [`consul namespace update`](/consul/commands/na
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata
   to associate with the namespace.
 
+@include 'http-api-body-options-partition.mdx'
+
 ### Sample Payload
 
 ```json
@@ -348,18 +356,15 @@ $ curl --request PUT \
 
 ## Delete a Namespace
 
-This endpoint marks a Namespace for deletion. Once marked Consul will
-deleted all the associated Namespaced data in the background. Only once
-all associated data has been deleted will the Namespace actually disappear.
-Until then, further reads can be performed on the namespace and a `DeletedAt`
-field will now be populated with the timestamp of when the Namespace was
-marked for deletion.
+This endpoint marks a Namespace for deletion. Once marked, Consul deletes all the associated Namespaced data in the background. Only after all associated data has been deleted, Consul deletes the Namespace.
+Until then, you can perform further reads on the namespace, and a `DeletedAt`
+field is populated with the timestamp of when the Namespace was marked for deletion.
 
 | Method   | Path               | Produces |
 | -------- | ------------------ | -------- |
 | `DELETE` | `/namespace/:name` | N/A      |
 
-This endpoint will return no data. Success or failure is indicated by the status
+This endpoint returns no data. Success or failure is indicated by the status
 code returned.
 
 The table below shows this endpoint's support for
@@ -377,6 +382,10 @@ The corresponding CLI command is [`consul namespace delete`](/consul/commands/na
 ### Path Parameters
 
 - `name` `(string: <required>)` - Specifies the namespace to delete.
+
+### Query Parameters
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -448,6 +457,10 @@ The table below shows this endpoint's support for
 the request has been granted any access in the namespace (read, list or write).
 
 The corresponding CLI command is [`consul namespace list`](/consul/commands/namespace/list).
+
+### Query Parameters
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
