@@ -170,6 +170,27 @@ kind = "proxy-defaults"
 			`Config entry written: proxy-defaults/global`)
 		require.Equal(t, 0, code)
 	})
+
+	// Test that protocol field is first normalized and then validated
+	// before writing the config entry
+	t.Run("service defaults config entry mixed case in protocol field", func(t *testing.T) {
+		stdin := new(bytes.Buffer)
+		stdin.WriteString(`
+		Kind = "service-defaults"
+		Name = "web"
+		Protocol = "TcP"
+`)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		c.testStdin = stdin
+
+		code := c.Run([]string{"-http-addr=" + a.HTTPAddr(), "-"})
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(),
+			`Config entry written: service-defaults/web`)
+		require.Equal(t, 0, code)
+	})
 }
 
 func TestConfigWrite_Warning(t *testing.T) {
