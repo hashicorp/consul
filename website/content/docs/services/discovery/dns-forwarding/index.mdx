@@ -27,7 +27,8 @@ There are two configurations for a node's DNS forwarding behavior:
 
 We recommend the conditional DNS forwarding approach. This configuration lowers the Consul agent's resource consumption by limiting the number of DNS requests it handles. 
 
-![Consul DNS conditional forwarding - Only .consul requests are routed to Consul](/img/consul-dns-conditional-forwarding.png)
+![Consul DNS conditional forwarding - Only .consul requests are routed to Consul](/img/consul-dns-conditional-forwarding.png#light-theme-only)
+![Consul DNS conditional forwarding - Only .consul requests are routed to Consul](/img/consul-dns-conditional-forwarding-dark.png#dark-theme-only)
 
 In this configuration, Consul only serves queries relative to the `.consul` domain. There is no unnecessary load on Consul servers to serve queries from different domains.
 
@@ -37,7 +38,8 @@ This behavior is not enabled by default.
 
 This approach can be useful in scenarios where the Consul agent's node is allocated limited resources and you want to avoid the overhead of running a local DNS server. In this configuration, Consul serves all DNS queries for all domains and forwards the ones outside the `.consul` domain to one or more configured forwarder servers.
 
-![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding.png)
+![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding.png#light-theme-only)
+![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding-dark.png#dark-theme-only)
 
 This behavior is not enabled by default. Consul standard configuration only resolves DNS records inside the `.consul` zone. To enable DNS forwarding, you need to set the [recursors](/consul/docs/agent/config/config-files#recursors) option in your Consul configuration.
 
