@@ -7,7 +7,7 @@ description: >-
 
 # Application leader election
 
-This topic describes the process of building client-side leader elections for service instances by using Consul's [session mechanism for building distributed locks](https://developer.hashicorp.com/consul/docs/dynamic-app-config/sessions) and [Consul KV](/consul/docs/dynamic-app-config/kv), which is Consul's key/value datastore. 
+This topic describes the process for building client-side leader elections for service instances using Consul's [session mechanism for building distributed locks](/consul/docs/dynamic-app-config/sessions) and the [Consul key/value store](/consul/docs/dynamic-app-config/kv), which is Consul's key/value datastore. 
 
 <Tip>
 
@@ -17,9 +17,8 @@ This topic describes the process of building client-side leader elections for se
 
 <Note>
 
-This tutorial is not related to Consul's leader election. If you are interested 
-in the leader election used internally by Consul, please refer to the
-[consensus protocol](/consul/docs/architecture/consensus) documentation instead.
+This tutorial is not related to Consul's leader election. For more information about the Raft leader election used internally by Consul, refer to
+[consensus protocol](/consul/docs/architecture/consensus) documentation.
 
 </Note>
 
@@ -38,7 +37,7 @@ service/<service name>/leader
 ## Requirements
 
 - A running Consul server
-- A path in the Consul KV datastore to acquire locks and to store infromation about the leader.  For this guide, the key is `service/leader`.
+- A path in the Consul KV datastore to acquire locks and to store information about the leader.  The instructions on this page use the following key: `service/leader`.
 - If ACLs are enabled, a token with the following permissions:
   - `session:write` permissions over the service session name
   - `key:write` permissions over the agreed key for this topic.
@@ -50,23 +49,23 @@ service/<service name>/leader
 
 The workflow for building a client-side leader election process has the following steps:
 
-* For each client trying to acquire the lock:
+- For each client trying to acquire the lock:
     1. [Create a session](#create-a-new-session) associated with the client node.
-    1. Try to [acquire the lock](#acquire-the-lock) on the agreed key in the KV store using the `acquire` parameter.
-    1. [Watch the KV key](#watch-the-kv-key-for-locks) to verify if the lock was released and if no lock is present, try to acquire a lock.
+    1. [Acquire the lock](#acquire-the-lock) on the designated key in the KV store using the `acquire` parameter.
+    1. [Watch the KV key](#watch-the-kv-key-for-locks) to verify if the lock was released. If no lock is present, try to acquire a lock.
 
-* For the client that acquires the lock
+- For the client that acquires the lock:
     1. Periodically, [renew the session](#renew-a-session) to avoid expiration.
     1. Optionally, [release the lock](#release-a-lock).
 
-* For other services
+- For other services:
     1. [Watch the KV key](#watch-the-kv-key-for-locks) to verify there is at least one process holding the lock.
-    1. Use the values written under the KV path to identify the leader and update configuration accordingly.
+    1. Use the values written under the KV path to identify the leader and update configurations accordingly.
 
 ## Create a new session
 
 Create a configuration for the session. 
-The minimum viable configuration is shown in the following example and only requires that you specify the session name.
+The minimum viable configuration requires that you specify the session name.  The following example demonstrates this configuration.
 
 <CodeBlockConfig hideClipboard>
 
@@ -78,7 +77,7 @@ The minimum viable configuration is shown in the following example and only requ
 
 </CodeBlockConfig>
 
-Create a session using the [Session HTTP API](/consul/api-docs/session). In this example, the node's `hostname` is the session name.
+Create a session using the [`/session` Consul HTTP API] endpoint(/consul/api-docs/session). In the following example, the node's `hostname` is the session name.
 
 ```shell-session
 $ curl --silent \
@@ -97,7 +96,7 @@ The command returns a JSON object containing the ID of the newly created session
 }
 ```
 
-### Verify created session info
+### Verify session
 
 Use the `/v1/session/list` endpoint to retrieve existing sessions.
 
@@ -135,16 +134,16 @@ The command returns a JSON array containing all available sessions in the system
 
 You can verify from the output that the session is associated with the `hashicups-db-0` node, which is the client agent where the API request was made.
 
-With the exception of the `Name` parameter, all other settings are left to the default value. The session is created without a `TTL` value, which means that it never expires and requires an explicit deletion.
+With the exception of the `Name`, all parameters are set to their default values. The session is created without a `TTL` value, which means that it never expires and requires you to delete it explicitly.
 
 Depending on your needs you can create sessions specifying more parameters such as:
 
 - `TTL` - If provided, the session is invalidated and deleted if it is not renewed before the TTL expires.
-- `ServiceChecks` - Specifies a list of service checks to monitor. The session is invalidated if the checks get into a critical state.
+- `ServiceChecks` - Specifies a list of service checks to monitor. The session is invalidated if the checks return a critical state.
 
-By setting these extra parameters, you can create a client-side leader election workflow that automatically releases the lock after a certain period of time after the latest renew or that automatically releases locks when the service holding them fails.
+By setting these extra parameters, you can create a client-side leader election workflow that automatically releases the lock after a specified amount of time since the last renew, or that automatically releases locks when the service holding them fails.
 
-For a full list of parameters available refer to the [Create Session API documentation](/consul/api-docs/session#create-session).
+For a full list of parameters available refer to the [`/session/create` endpoint documentation](/consul/api-docs/session#create-session).
 
 ## Acquire the lock
 
@@ -163,8 +162,6 @@ The data of the request should be a JSON object representing the local instance.
 
 </CodeBlockConfig>
 
-
-
 <Tabs>
 <Tab heading="API" group="api">
 
@@ -179,15 +176,13 @@ $ curl --silent \
   http://localhost:8500/v1/kv/service/leader?acquire=d21d60ad-c2d2-b32a-7432-ca4048a4a7d6 | jq
 ```
 
-This either returns `true` or `false`. If `true`, the lock has been acquired and
-the local service instance is now the leader. If `false` is returned, some other node has acquired
+This request returns either `true` or `false`. If `true`, the lock was acquired and
+the local service instance is now the leader. If `false`, a different node acquired
 the lock.
 
 
 </Tab>
 <Tab heading="CLI" group="cli">
-
-
 
 ```shell-session
 $ consul kv put -acquire -session=d21d60ad-c2d2-b32a-7432-ca4048a4a7d6 /service/leader '{"Node": "'`hostname`'"}'
@@ -216,7 +211,7 @@ Error! Did not acquire lock
 </Tab>
 </Tabs>
 
-In the example, you used the node's `hostname` as the key data. This can be used by the other services to create the configuration files.
+This example used the node's `hostname` as the key data. This data can be used by the other services to create configuration files.
 
 <Note>
 
@@ -266,7 +261,7 @@ The command outputs the key data, including the `ModifyIndex` for the object.
 
 </CodeBlockConfig>
 
-Using the value of the `ModifyIndex`, run a blocking query against the lock.
+Using the value of the `ModifyIndex`, run a [blocking query](/consul/api-docs/features/blocking) against the lock.
 
 ```shell-session
 $ curl --silent \
@@ -337,7 +332,7 @@ From the output, notice that once the lock is acquired, the `Session` parameter 
 
 If a session is created with a `TTL` value set, you need to renew the session before the TTL expires.
 
-Use the `/v1/session/renew` endpoint to renew existing sessions.
+Use the [`/v1/session/renew`](/consul/api-docs/session#renew-session) endpoint to renew existing sessions.
 
 ```shell-session
 $ curl --silent \
