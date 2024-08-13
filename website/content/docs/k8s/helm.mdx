@@ -766,14 +766,11 @@ Use these links to navigate to a particular top-level stanza.
 
   - `experiments` ((#v-global-experiments)) (`array<string>: []`) - Consul feature flags that will be enabled across components.
     Supported feature flags:
-    - `v1dns`:
-      When this flag is set, Consul agents use the legacy DNS implementation.
-      This setting exists in the case a DNS bug is found after the refactoring introduced in v1.19.0.
 
     Example:
 
     ```yaml
-    experiments: [ "v1dns" ]
+    experiments: [ "<experiment name>" ]
     ```
 
 ### server ((#h-server))
@@ -1787,7 +1784,7 @@ Use these links to navigate to a particular top-level stanza.
     or may not be broadly accessible depending on your Kubernetes cluster.
     Set this to false to skip syncing ClusterIP services.
 
-  - `syncLoadBalancerEndpoints` ((#v-synccatalog-syncloadbalancerendpoints)) (`boolean: false`) - If true, LoadBalancer service endpoints instead of ingress addresses will be synced to Consul. 
+  - `syncLoadBalancerEndpoints` ((#v-synccatalog-syncloadbalancerendpoints)) (`boolean: false`) - If true, LoadBalancer service endpoints instead of ingress addresses will be synced to Consul.
     If false, LoadBalancer endpoints are not synced to Consul.
 
   - `ingress` ((#v-synccatalog-ingress))
