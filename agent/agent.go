@@ -48,8 +48,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
-	"github.com/hashicorp/consul/agent/discovery"
-	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
@@ -222,7 +220,7 @@ type notifier interface {
 	Notify(string) error
 }
 
-// dnsServer abstracts the V1 and V2 implementations of the DNS server.
+// dnsServer abstracts the implementations of the DNS server.
 type dnsServer interface {
 	GetAddr() string
 	ListenAndServe(string, string, func()) error
@@ -353,10 +351,6 @@ type Agent struct {
 
 	// dnsServer provides the DNS API
 	dnsServers []dnsServer
-
-	// catalogDataFetcher is used as an interface to the catalog for service discovery
-	// (aka DNS). Only applicable to the V2 DNS server (agent/dns).
-	catalogDataFetcher discovery.CatalogDataFetcher
 
 	// apiServers listening for connections. If any of these server goroutines
 	// fail, the agent will be shutdown.
@@ -879,14 +873,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// start DNS servers
-	if a.baseDeps.UseV1DNS() {
-		if err := a.listenAndServeV1DNS(); err != nil {
-			return err
-		}
-	} else {
-		if err := a.listenAndServeV2DNS(); err != nil {
-			return err
-		}
+	if err := a.listenAndServeDNS(); err != nil {
+		return err
 	}
 
 	// Configure the http connection limiter.
@@ -1065,7 +1053,7 @@ func (a *Agent) listenAndServeGRPC(proxyTracker *proxytracker.ProxyTracker, serv
 	return nil
 }
 
-func (a *Agent) listenAndServeV1DNS() error {
+func (a *Agent) listenAndServeDNS() error {
 	notif := make(chan net.Addr, len(a.config.DNSAddrs))
 	errCh := make(chan error, len(a.config.DNSAddrs))
 	for _, addr := range a.config.DNSAddrs {
@@ -1092,92 +1080,6 @@ func (a *Agent) listenAndServeV1DNS() error {
 		Logger:      a.logger.Named("grpc-api.dns"),
 		DNSServeMux: s.mux,
 		LocalAddr:   grpcDNS.LocalAddr{IP: net.IPv4(127, 0, 0, 1), Port: a.config.GRPCPort},
-	}).Register(a.externalGRPCServer)
-
-	a.dnsServers = append(a.dnsServers, s)
-
-	// wait for servers to be up
-	timeout := time.After(time.Second)
-	var merr *multierror.Error
-	for range a.config.DNSAddrs {
-		select {
-		case addr := <-notif:
-			a.logger.Info("Started DNS server",
-				"address", addr.String(),
-				"network", addr.Network(),
-			)
-
-		case err := <-errCh:
-			merr = multierror.Append(merr, err)
-		case <-timeout:
-			merr = multierror.Append(merr, fmt.Errorf("agent: timeout starting DNS servers"))
-			return merr.ErrorOrNil()
-		}
-	}
-	return merr.ErrorOrNil()
-}
-
-func (a *Agent) listenAndServeV2DNS() error {
-
-	// Check the catalog version and decide which implementation of the data fetcher to implement
-	if a.baseDeps.UseV2Resources() {
-		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config, a.delegate.ResourceServiceClient(), a.logger.Named("catalog-data-fetcher"))
-	} else {
-		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config,
-			a.AgentEnterpriseMeta(),
-			a.cache.Get,
-			a.RPC,
-			a.rpcClientHealth.ServiceNodes,
-			a.rpcClientConfigEntry.GetSamenessGroup,
-			a.TranslateServicePort,
-			a.logger.Named("catalog-data-fetcher"))
-	}
-
-	// Generate a Query Processor with the appropriate data fetcher
-	processor := discovery.NewQueryProcessor(a.catalogDataFetcher)
-
-	notif := make(chan net.Addr, len(a.config.DNSAddrs))
-	errCh := make(chan error, len(a.config.DNSAddrs))
-
-	// create server
-	cfg := dns.Config{
-		AgentConfig:                 a.config,
-		EntMeta:                     *a.AgentEnterpriseMeta(),
-		Logger:                      a.logger,
-		Processor:                   processor,
-		TokenFunc:                   a.getTokenFunc(),
-		TranslateAddressFunc:        a.TranslateAddress,
-		TranslateServiceAddressFunc: a.TranslateServiceAddress,
-	}
-
-	for _, addr := range a.config.DNSAddrs {
-		s, err := dns.NewServer(cfg)
-		if err != nil {
-			return err
-		}
-		a.dnsServers = append(a.dnsServers, s)
-
-		// start server
-		a.wgServers.Add(1)
-		go func(addr net.Addr) {
-			defer a.wgServers.Done()
-			err := s.ListenAndServe(addr.Network(), addr.String(), func() { notif <- addr })
-			if err != nil && !strings.Contains(err.Error(), "accept") {
-				errCh <- err
-			}
-		}(addr)
-	}
-
-	s, err := dns.NewServer(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create grpc dns server: %w", err)
-	}
-
-	// Create a v2 compatible grpc dns server
-	grpcDNS.NewServerV2(grpcDNS.ConfigV2{
-		Logger:    a.logger.Named("grpc-api.dns"),
-		DNSRouter: s.Router,
-		TokenFunc: a.getTokenFunc(),
 	}).Register(a.externalGRPCServer)
 
 	a.dnsServers = append(a.dnsServers, s)
@@ -4413,10 +4315,6 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		if err := s.ReloadConfig(newCfg); err != nil {
 			return fmt.Errorf("Failed reloading dns config : %v", err)
 		}
-	}
-	// This field is only populated for the V2 DNS server
-	if a.catalogDataFetcher != nil {
-		a.catalogDataFetcher.LoadConfig(newCfg)
 	}
 
 	err := a.reloadEnterprise(newCfg)

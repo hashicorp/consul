@@ -24,6 +24,7 @@ const (
 	errNotPrimaryDatacenter                  = "not the primary datacenter"
 	errStateReadOnly                         = "CA Provider State is read-only"
 	errUsingV2CatalogExperiment              = "V1 catalog is disabled when V2 is enabled"
+	errSamenessGroupNotFound                 = "Sameness Group not found"
 	errSamenessGroupMustBeDefaultForFailover = "Sameness Group must have DefaultForFailover set to true in order to use this endpoint"
 )
 
@@ -42,6 +43,7 @@ var (
 	ErrNotPrimaryDatacenter                  = errors.New(errNotPrimaryDatacenter)
 	ErrStateReadOnly                         = errors.New(errStateReadOnly)
 	ErrUsingV2CatalogExperiment              = errors.New(errUsingV2CatalogExperiment)
+	ErrSamenessGroupNotFound                 = errors.New(errSamenessGroupNotFound)
 	ErrSamenessGroupMustBeDefaultForFailover = errors.New(errSamenessGroupMustBeDefaultForFailover)
 )
 
@@ -63,6 +65,10 @@ func IsErrRPCRateExceeded(err error) bool {
 
 func IsErrUsingV2CatalogExperiment(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errUsingV2CatalogExperiment)
+}
+
+func IsErrSamenessGroupNotFound(err error) bool {
+	return err != nil && strings.Contains(err.Error(), errSamenessGroupNotFound)
 }
 
 func IsErrSamenessGroupMustBeDefaultForFailover(err error) bool {
