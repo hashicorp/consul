@@ -34,7 +34,7 @@ In this configuration, Consul only serves queries relative to the `.consul` doma
 
 This behavior is not enabled by default.
 
-### DNS forwarding
+### Full DNS forwarding
 
 This approach can be useful in scenarios where the Consul agent's node is allocated limited resources and you want to avoid the overhead of running a local DNS server. In this configuration, Consul serves all DNS queries for all domains and forwards the ones outside the `.consul` domain to one or more configured forwarder servers.
 
