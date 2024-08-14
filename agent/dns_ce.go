@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
+	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -26,9 +27,9 @@ func getEnterpriseDNSConfig(conf *config.RuntimeConfig) enterpriseDNSConfig {
 // parseLocality can parse peer name or datacenter from a DNS query's labels.
 // Peer name is parsed from the same query part that datacenter is, so given this ambiguity
 // we parse a "peerOrDatacenter". The caller or RPC handler are responsible for disambiguating.
-func (d *DNSServer) parseLocality(labels []string, cfg *dnsConfig) (queryLocality, bool) {
+func (d *DNSServer) parseLocality(labels []string, cfg *dnsRequestConfig) (queryLocality, bool) {
 	locality := queryLocality{
-		EnterpriseMeta: d.defaultEnterpriseMeta,
+		EnterpriseMeta: cfg.defaultEnterpriseMeta,
 	}
 
 	switch len(labels) {
@@ -52,7 +53,10 @@ func (d *DNSServer) parseLocality(labels []string, cfg *dnsConfig) (queryLocalit
 		}
 		return locality, true
 	case 1:
-		return queryLocality{peerOrDatacenter: labels[0]}, true
+		return queryLocality{
+			peerOrDatacenter: labels[0],
+			EnterpriseMeta:   cfg.defaultEnterpriseMeta,
+		}, true
 
 	case 0:
 		return queryLocality{}, true
@@ -64,10 +68,12 @@ func (d *DNSServer) parseLocality(labels []string, cfg *dnsConfig) (queryLocalit
 type querySameness struct{}
 
 // parseSamenessGroupLocality wraps parseLocality in CE
-func (d *DNSServer) parseSamenessGroupLocality(cfg *dnsConfig, labels []string, errfnc func() error) (queryLocality, error) {
+func (d *DNSServer) parseSamenessGroupLocality(cfg *dnsRequestConfig, labels []string, errfnc func() error) (queryLocality, error) {
 	locality, ok := d.parseLocality(labels, cfg)
 	if !ok {
-		return queryLocality{}, errfnc()
+		return queryLocality{
+			EnterpriseMeta: cfg.defaultEnterpriseMeta,
+		}, errfnc()
 	}
 	return locality, nil
 }
@@ -87,4 +93,10 @@ func nodeCanonicalDNSName(node *structs.Node, respDomain string) string {
 	}
 	// Return a simpler format for non-peering nodes.
 	return fmt.Sprintf("%s.node.%s.%s", node.Node, node.Datacenter, respDomain)
+}
+
+// setEnterpriseMetaFromRequestContext sets the DefaultNamespace and DefaultPartition on the requestDnsConfig
+// based on the requestContext's DefaultNamespace and DefaultPartition.
+func (d *DNSServer) setEnterpriseMetaFromRequestContext(requestContext agentdns.Context, requestDnsConfig *dnsRequestConfig) {
+	// do nothing
 }
