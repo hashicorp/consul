@@ -1006,6 +1006,8 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 
 		clusters = append(clusters, makeAPIGatewayJWKClusters(s.Logger, cfgSnap)...)
 	}
+
+	clusters = append(clusters, makeAPIGatewayJWKClusters(s.Logger, cfgSnap)...)
 	return clusters, nil
 }
 
