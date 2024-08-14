@@ -50,15 +50,6 @@ type Deps struct {
 	EnterpriseDeps
 }
 
-// UseV1DNS returns true if "v1dns" is present in the Experiments
-// array of the agent config. It is ignored if the v2 resource APIs are enabled.
-func (d Deps) UseV1DNS() bool {
-	if stringslice.Contains(d.Experiments, V1DNSExperimentName) && !d.UseV2Resources() {
-		return true
-	}
-	return false
-}
-
 // UseV2Resources returns true if "resource-apis" is present in the Experiments
 // array of the agent config.
 func (d Deps) UseV2Resources() bool {
