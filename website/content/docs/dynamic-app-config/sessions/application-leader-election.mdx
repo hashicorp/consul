@@ -9,7 +9,7 @@ description: >-
 
 This topic describes the process for building client-side leader elections for service instances using Consul's [session mechanism for building distributed locks](/consul/docs/dynamic-app-config/sessions) and the [Consul key/value store](/consul/docs/dynamic-app-config/kv), which is Consul's key/value datastore. 
 
-This tutorial is not related to Consul's leader election. For more information about the Raft leader election used internally by Consul, refer to
+This topic is not related to Consul's leader election. For more information about the Raft leader election used internally by Consul, refer to
 [consensus protocol](/consul/docs/architecture/consensus) documentation.
 
 ## Background
@@ -67,7 +67,7 @@ The minimum viable configuration requires that you specify the session name.  Th
 
 </CodeBlockConfig>
 
-Create a session using the [`/session` Consul HTTP API] endpoint(/consul/api-docs/session). In the following example, the node's `hostname` is the session name.
+Create a session using the [`/session` Consul HTTP API](/consul/api-docs/session) endpoint. In the following example, the node's `hostname` is the session name.
 
 ```shell-session
 $ curl --silent \
