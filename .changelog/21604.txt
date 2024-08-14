@@ -1,0 +1,3 @@
+```release-note:bug
+api-gateway: **(Enterprise only)** ensure clusters are properly created for JWT providers with a remote URI for the JWKS endpoint
+```
