@@ -2919,62 +2919,8 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 	}
 }
 
-func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uint16,
-	expectedService, expectedQuery, expectedQueryID int, additionalHCL string) (bool, error) {
-	a := NewTestAgent(t, `
-		node_name = "test-node"
-		dns_config {
-			udp_answer_limit = `+fmt.Sprintf("%d", answerLimit)+`
-		}
-	`+additionalHCL)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-
-	choices := perfectlyRandomChoices(generateNumNodes, pctNodesWithIPv6)
-	for i := 0; i < generateNumNodes; i++ {
-		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if choices[i] {
-			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
-		}
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       fmt.Sprintf("foo%d", i),
-			Address:    nodeAddress,
-			Service: &structs.NodeService{
-				Service: "api-tier",
-				Port:    8080,
-			},
-		}
-
-		var out struct{}
-		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-			return false, fmt.Errorf("err: %v", err)
-		}
-	}
-	var id string
-	{
-		args := &structs.PreparedQueryRequest{
-			Datacenter: "dc1",
-			Op:         structs.PreparedQueryCreate,
-			Query: &structs.PreparedQuery{
-				Name: "api-tier",
-				Service: structs.ServiceQuery{
-					Service: "api-tier",
-				},
-			},
-		}
-
-		if err := a.RPC(context.Background(), "PreparedQuery.Apply", args, &id); err != nil {
-			return false, fmt.Errorf("err: %v", err)
-		}
-	}
-
-	// Look up the service directly and via prepared query.
-	questions := []string{
-		"api-tier.service.consul.",
-		"api-tier.query.consul.",
-		id + ".query.consul.",
-	}
+func testDNSServiceLookupResponseLimits(questions []string, answerLimit int, qType uint16,
+	expectedService, expectedQuery, expectedQueryID int, a *TestAgent) (bool, error) {
 	for idx, question := range questions {
 		m := new(dns.Msg)
 		m.SetQuestion(question, qType)
@@ -3235,25 +3181,36 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 	}
 	for _, test := range tests {
 		test := test // capture loop var
-		t.Run(fmt.Sprintf("A lookup %v", test), func(t *testing.T) {
-			ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID, "")
-			if !ok {
-				t.Fatalf("Expected service A lookup %s to pass: %v", test.name, err)
-			}
-		})
+		t.Run(fmt.Sprintf("answer-limit-%s", test.name), func(t *testing.T) {
+			a := NewTestAgent(t, fmt.Sprintf(`
+		node_name = "test-node"
+		dns_config {
+			udp_answer_limit = %d
+		}`, test.udpAnswerLimit))
+			defer a.Shutdown()
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+			questions := registerServicesAndPreparedQuery(t, generateNumNodes, a, test.name)
 
-		t.Run(fmt.Sprintf("AAAA lookup %v", test), func(t *testing.T) {
-			ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID, "")
-			if !ok {
-				t.Fatalf("Expected service AAAA lookup %s to pass: %v", test.name, err)
-			}
-		})
+			t.Run(fmt.Sprintf("A lookup %v", test), func(t *testing.T) {
+				ok, err := testDNSServiceLookupResponseLimits(questions, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID, a)
+				if !ok {
+					t.Fatalf("Expected service A lookup %s to pass: %v", test.name, err)
+				}
+			})
 
-		t.Run(fmt.Sprintf("ANY lookup %v", test), func(t *testing.T) {
-			ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID, "")
-			if !ok {
-				t.Fatalf("Expected service ANY lookup %s to pass: %v", test.name, err)
-			}
+			t.Run(fmt.Sprintf("AAAA lookup %v", test), func(t *testing.T) {
+				ok, err := testDNSServiceLookupResponseLimits(questions, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID, a)
+				if !ok {
+					t.Fatalf("Expected service AAAA lookup %s to pass: %v", test.name, err)
+				}
+			})
+
+			t.Run(fmt.Sprintf("ANY lookup %v", test), func(t *testing.T) {
+				ok, err := testDNSServiceLookupResponseLimits(questions, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID, a)
+				if !ok {
+					t.Fatalf("Expected service ANY lookup %s to pass: %v", test.name, err)
+				}
+			})
 		})
 	}
 }
