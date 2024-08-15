@@ -1,0 +1,3 @@
+```release-note:improvement
+Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones.
+```
