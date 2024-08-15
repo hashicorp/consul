@@ -1054,7 +1054,16 @@
       },
       {
         "title": "Sessions",
-        "path": "dynamic-app-config/sessions"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "dynamic-app-config/sessions"
+          },
+          {
+            "title": "Application leader election",
+            "path": "dynamic-app-config/sessions/application-leader-election"
+          }
+        ]
       },
       {
         "title": "Watches",
