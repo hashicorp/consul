@@ -150,6 +150,10 @@
       {
         "title": "Consul at Scale",
         "path": "architecture/scale"
+      },
+      {
+        "title": "Consul Capacity Planning",
+        "path": "architecture/capacity-planning"
       }
     ]
   },
@@ -658,6 +662,10 @@
           {
             "title": "Access Logs",
             "path": "connect/observability/access-logs"
+          },
+          {
+            "title": "Monitor service-to-service communication",
+            "path": "connect/observability/service"
           },
           {
             "title": "UI Visualization",
@@ -1252,10 +1260,6 @@
           {
             "title": "Monitor components",
             "path": "agent/monitor/components"
-          },
-          {
-            "title": "Monitor service communication",
-            "path": "agent/monitor/service"
           },
           {
             "title": "Recommendations",

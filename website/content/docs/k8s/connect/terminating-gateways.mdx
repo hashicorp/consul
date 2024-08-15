@@ -317,6 +317,57 @@ $ kubectl apply --filename service-intentions.yaml
 As a final step, you may define and deploy the external services as upstreams for the internal mesh services that wish to talk to them.
 An example deployment is provided which will serve as a static client for the terminating gateway service.
 
+<Tabs>
+<Tab heading="Registered with ServiceDefaults destinations">
+
+<CodeBlockConfig filename="static-client.yaml">
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-client
+  template:
+    metadata:
+      name: static-client
+      labels:
+        app: static-client
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        - name: static-client
+          image: curlimages/curl:latest
+          command: ['/bin/sh', '-c', '--']
+          args: ['while true; do sleep 30; done;']
+      serviceAccountName: static-client
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="Registered with the Consul catalog">
+
 <CodeBlockConfig filename="static-client.yaml">
 
 ```yaml
@@ -362,6 +413,9 @@ spec:
 ```
 
 </CodeBlockConfig>
+
+</Tab>
+</Tabs>
 
 Deploy the service with `kubectl apply`.
 
