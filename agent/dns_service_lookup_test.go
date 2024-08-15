@@ -3012,66 +3012,14 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 func checkDNSService(
 	t *testing.T,
 	protocol string,
-	generateNumNodes int,
-	aRecordLimit int,
+	questions []string,
+	a *TestAgent,
 	qType uint16,
 	expectedResultsCount int,
 	udpSize uint16,
 	setEDNS0 bool,
 ) {
-	a := NewTestAgent(t, `
-		node_name = "test-node"
-		dns_config {
-			a_record_limit = `+fmt.Sprintf("%d", aRecordLimit)+`
-			udp_answer_limit = `+fmt.Sprintf("%d", aRecordLimit)+`
-		}
-	`)
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-
-	choices := perfectlyRandomChoices(generateNumNodes, pctNodesWithIPv6)
-	for i := 0; i < generateNumNodes; i++ {
-		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if choices[i] {
-			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
-		}
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       fmt.Sprintf("foo%d", i),
-			Address:    nodeAddress,
-			Service: &structs.NodeService{
-				Service: "api-tier",
-				Port:    8080,
-			},
-		}
-
-		var out struct{}
-		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
-	}
-	var id string
-	{
-		args := &structs.PreparedQueryRequest{
-			Datacenter: "dc1",
-			Op:         structs.PreparedQueryCreate,
-			Query: &structs.PreparedQuery{
-				Name: "api-tier",
-				Service: structs.ServiceQuery{
-					Service: "api-tier",
-				},
-			},
-		}
-
-		require.NoError(t, a.RPC(context.Background(), "PreparedQuery.Apply", args, &id))
-	}
-
-	// Look up the service directly and via prepared query.
-	questions := []string{
-		"api-tier.service.consul.",
-		"api-tier.query.consul.",
-		id + ".query.consul.",
-	}
 	for _, question := range questions {
-		question := question
 		t.Run("question: "+question, func(t *testing.T) {
 
 			m := new(dns.Msg)
@@ -3092,6 +3040,52 @@ func checkDNSService(
 	}
 }
 
+func registerServicesAndPreparedQuery(t *testing.T, generateNumNodes int, a *TestAgent, serviceUniquenessKey string) []string {
+	choices := perfectlyRandomChoices(generateNumNodes, pctNodesWithIPv6)
+	serviceName := fmt.Sprintf("api-tier-%s", serviceUniquenessKey)
+	for i := 0; i < generateNumNodes; i++ {
+		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
+		if choices[i] {
+			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
+		}
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("foo%d", i),
+			Address:    nodeAddress,
+			Service: &structs.NodeService{
+				Service: serviceName,
+				Port:    8080,
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+	var preparedQueryID string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: serviceName,
+				Service: structs.ServiceQuery{
+					Service: serviceName,
+				},
+			},
+		}
+
+		require.NoError(t, a.RPC(context.Background(), "PreparedQuery.Apply", args, &preparedQueryID))
+	}
+
+	// Look up the service directly and via prepared query.
+	questions := []string{
+		fmt.Sprintf("%s.service.consul.", serviceName),
+		fmt.Sprintf("%s.query.consul.", serviceName),
+		preparedQueryID + ".query.consul.",
+	}
+	return questions
+}
+
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -3101,8 +3095,7 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		TCP = "tcp"
 	)
 
-	tests := []struct {
-		name                string
+	type testCase struct {
 		protocol            string
 		aRecordLimit        int
 		expectedAResults    int
@@ -3112,57 +3105,89 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		numNodesTotal       int
 		udpSize             uint16
 		setEDNS0            bool
-	}{
+	}
+
+	type aRecordLimit struct {
+		name  string
+		limit int
+	}
+
+	tests := map[string]testCase{
 		// UDP + EDNS
-		{"udp-edns-1", UDP, 1, 1, 1, 1, 30, 30, 8192, true},
-		{"udp-edns-2", UDP, 2, 2, 2, 2, 30, 30, 8192, true},
-		{"udp-edns-3", UDP, 3, 3, 3, 3, 30, 30, 8192, true},
-		{"udp-edns-4", UDP, 4, 4, 4, 4, 30, 30, 8192, true},
-		{"udp-edns-5", UDP, 5, 5, 5, 5, 30, 30, 8192, true},
-		{"udp-edns-6", UDP, 6, 6, 6, 6, 30, 30, 8192, true},
-		{"udp-edns-max", UDP, 6, 2, 1, 3, 3, 3, 8192, true},
+		"udp-edns-1":   {UDP, 1, 1, 1, 1, 30, 30, 8192, true},
+		"udp-edns-2":   {UDP, 2, 2, 2, 2, 30, 30, 8192, true},
+		"udp-edns-3":   {UDP, 3, 3, 3, 3, 30, 30, 8192, true},
+		"udp-edns-4":   {UDP, 4, 4, 4, 4, 30, 30, 8192, true},
+		"udp-edns-5":   {UDP, 5, 5, 5, 5, 30, 30, 8192, true},
+		"udp-edns-6":   {UDP, 6, 6, 6, 6, 30, 30, 8192, true},
+		"udp-edns-max": {UDP, 6, 2, 1, 3, 3, 3, 8192, true},
 		// All UDP without EDNS and no udpAnswerLimit
 		// Size of records is limited by UDP payload
-		{"udp-1", UDP, 1, 1, 0, 1, 1, 1, 512, false},
-		{"udp-2", UDP, 2, 1, 1, 2, 2, 2, 512, false},
-		{"udp-3", UDP, 3, 1, 1, 2, 2, 2, 512, false},
-		{"udp-4", UDP, 4, 1, 1, 2, 2, 2, 512, false},
-		{"udp-5", UDP, 5, 1, 1, 2, 2, 2, 512, false},
-		{"udp-6", UDP, 6, 1, 1, 2, 2, 2, 512, false},
+		"udp-1": {UDP, 1, 1, 0, 1, 1, 1, 512, false},
+		"udp-2": {UDP, 2, 1, 1, 2, 2, 2, 512, false},
+		"udp-3": {UDP, 3, 1, 1, 2, 2, 2, 512, false},
+		"udp-4": {UDP, 4, 1, 1, 2, 2, 2, 512, false},
+		"udp-5": {UDP, 5, 1, 1, 2, 2, 2, 512, false},
+		"udp-6": {UDP, 6, 1, 1, 2, 2, 2, 512, false},
 		// Only 3 A and 3 SRV records on 512 bytes
-		{"udp-max", UDP, 6, 1, 1, 2, 2, 2, 512, false},
+		"udp-max": {UDP, 6, 1, 1, 2, 2, 2, 512, false},
 
-		{"tcp-1", TCP, 1, 1, 1, 1, 30, 30, 0, false},
-		{"tcp-2", TCP, 2, 2, 2, 2, 30, 30, 0, false},
-		{"tcp-3", TCP, 3, 3, 3, 3, 30, 30, 0, false},
-		{"tcp-4", TCP, 4, 4, 4, 4, 30, 30, 0, false},
-		{"tcp-5", TCP, 5, 5, 5, 5, 30, 30, 0, false},
-		{"tcp-6", TCP, 6, 6, 6, 6, 30, 30, 0, false},
-		{"tcp-max", TCP, 6, 1, 1, 2, 2, 2, 0, false},
+		"tcp-1":   {TCP, 1, 1, 1, 1, 30, 30, 0, false},
+		"tcp-2":   {TCP, 2, 2, 2, 2, 30, 30, 0, false},
+		"tcp-3":   {TCP, 3, 3, 3, 3, 30, 30, 0, false},
+		"tcp-4":   {TCP, 4, 4, 4, 4, 30, 30, 0, false},
+		"tcp-5":   {TCP, 5, 5, 5, 5, 30, 30, 0, false},
+		"tcp-6":   {TCP, 6, 6, 6, 6, 30, 30, 0, false},
+		"tcp-max": {TCP, 6, 1, 1, 2, 2, 2, 0, false},
 	}
-	for _, test := range tests {
-		test := test // capture loop var
+	for _, recordLimit := range []aRecordLimit{
+		{"1", 1},
+		{"2", 2},
+		{"3", 3},
+		{"4", 4},
+		{"5", 5},
+		{"6", 6},
+		{"max", 6},
+	} {
+		t.Run("record-limit-"+recordLimit.name, func(t *testing.T) {
+			a := NewTestAgent(t, `
+			node_name = "test-node"
+			dns_config {
+				a_record_limit = `+fmt.Sprintf("%d", recordLimit.limit)+`
+				udp_answer_limit = `+fmt.Sprintf("%d", recordLimit.limit)+`
+			}
+		`)
 
-		t.Run(test.name, func(t *testing.T) {
+			defer a.Shutdown()
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-			// All those queries should have at max queriesLimited elements
+			for _, testName := range []string{
+				fmt.Sprintf("udp-edns-%s", recordLimit.name),
+				fmt.Sprintf("udp-%s", recordLimit.name),
+				fmt.Sprintf("tcp-%s", recordLimit.name),
+			} {
+				t.Run(testName, func(t *testing.T) {
+					test := tests[testName]
+					questions := registerServicesAndPreparedQuery(t, test.numNodesTotal, a, testName)
 
-			t.Run("A", func(t *testing.T) {
-				checkDNSService(t, test.protocol, test.numNodesTotal, test.aRecordLimit, dns.TypeA, test.expectedAResults, test.udpSize, test.setEDNS0)
-			})
+					t.Run("A", func(t *testing.T) {
+						checkDNSService(t, test.protocol, questions, a, dns.TypeA, test.expectedAResults, test.udpSize, test.setEDNS0)
+					})
 
-			t.Run("AAAA", func(t *testing.T) {
-				checkDNSService(t, test.protocol, test.numNodesTotal, test.aRecordLimit, dns.TypeAAAA, test.expectedAAAAResults, test.udpSize, test.setEDNS0)
-			})
+					t.Run("AAAA", func(t *testing.T) {
+						checkDNSService(t, test.protocol, questions, a, dns.TypeAAAA, test.expectedAAAAResults, test.udpSize, test.setEDNS0)
+					})
 
-			t.Run("ANY", func(t *testing.T) {
-				checkDNSService(t, test.protocol, test.numNodesTotal, test.aRecordLimit, dns.TypeANY, test.expectedANYResults, test.udpSize, test.setEDNS0)
-			})
+					t.Run("ANY", func(t *testing.T) {
+						checkDNSService(t, test.protocol, questions, a, dns.TypeANY, test.expectedANYResults, test.udpSize, test.setEDNS0)
+					})
 
-			// No limits but the size of records for SRV records, since not subject to randomization issues
-			t.Run("SRV", func(t *testing.T) {
-				checkDNSService(t, test.protocol, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize, test.setEDNS0)
-			})
+					// No limits but the size of records for SRV records, since not subject to randomization issues
+					t.Run("SRV", func(t *testing.T) {
+						checkDNSService(t, test.protocol, questions, a, dns.TypeSRV, test.numNodesTotal, test.udpSize, test.setEDNS0)
+					})
+				})
+			}
 		})
 	}
 }
