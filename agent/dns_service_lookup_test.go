@@ -3100,52 +3100,51 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                   string
-		aRecordLimit           int
-		expectedAResults       int
-		expectedAAAAResults    int
-		expectedANYResults     int
-		expectedSRVResults     int
-		numNodesTotal          int
-		udpSize                uint16
-		_unused_udpAnswerLimit int // NOTE: this field is not used
+		name                string
+		aRecordLimit        int
+		expectedAResults    int
+		expectedAAAAResults int
+		expectedANYResults  int
+		expectedSRVResults  int
+		numNodesTotal       int
+		udpSize             uint16
 	}{
 		// UDP + EDNS
-		{"udp-edns-1", 1, 1, 1, 1, 30, 30, 8192, 3},
-		{"udp-edns-2", 2, 2, 2, 2, 30, 30, 8192, 3},
-		{"udp-edns-3", 3, 3, 3, 3, 30, 30, 8192, 3},
-		{"udp-edns-4", 4, 4, 4, 4, 30, 30, 8192, 3},
-		{"udp-edns-5", 5, 5, 5, 5, 30, 30, 8192, 3},
-		{"udp-edns-6", 6, 6, 6, 6, 30, 30, 8192, 3},
-		{"udp-edns-max", 6, 2, 1, 3, 3, 3, 8192, 3},
+		{"udp-edns-1", 1, 1, 1, 1, 30, 30, 8192},
+		{"udp-edns-2", 2, 2, 2, 2, 30, 30, 8192},
+		{"udp-edns-3", 3, 3, 3, 3, 30, 30, 8192},
+		{"udp-edns-4", 4, 4, 4, 4, 30, 30, 8192},
+		{"udp-edns-5", 5, 5, 5, 5, 30, 30, 8192},
+		{"udp-edns-6", 6, 6, 6, 6, 30, 30, 8192},
+		{"udp-edns-max", 6, 2, 1, 3, 3, 3, 8192},
 		// All UDP without EDNS have a limit of 2 answers due to udpAnswerLimit
 		// Even SRV records are limit to 2 records
-		{"udp-limit-1", 1, 1, 0, 1, 1, 1, 512, 2},
-		{"udp-limit-2", 2, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-1", 1, 1, 0, 1, 1, 1, 512},
+		{"udp-limit-2", 2, 1, 1, 2, 2, 2, 512},
 		// AAAA results limited by size of payload
-		{"udp-limit-3", 3, 1, 1, 2, 2, 2, 512, 2},
-		{"udp-limit-4", 4, 1, 1, 2, 2, 2, 512, 2},
-		{"udp-limit-5", 5, 1, 1, 2, 2, 2, 512, 2},
-		{"udp-limit-6", 6, 1, 1, 2, 2, 2, 512, 2},
-		{"udp-limit-max", 6, 1, 1, 2, 2, 2, 512, 2},
+		{"udp-limit-3", 3, 1, 1, 2, 2, 2, 512},
+		{"udp-limit-4", 4, 1, 1, 2, 2, 2, 512},
+		{"udp-limit-5", 5, 1, 1, 2, 2, 2, 512},
+		{"udp-limit-6", 6, 1, 1, 2, 2, 2, 512},
+		{"udp-limit-max", 6, 1, 1, 2, 2, 2, 512},
 		// All UDP without EDNS and no udpAnswerLimit
 		// Size of records is limited by UDP payload
-		{"udp-1", 1, 1, 0, 1, 1, 1, 512, 0},
-		{"udp-2", 2, 1, 1, 2, 2, 2, 512, 0},
-		{"udp-3", 3, 1, 1, 2, 2, 2, 512, 0},
-		{"udp-4", 4, 1, 1, 2, 2, 2, 512, 0},
-		{"udp-5", 5, 1, 1, 2, 2, 2, 512, 0},
-		{"udp-6", 6, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-1", 1, 1, 0, 1, 1, 1, 512},
+		{"udp-2", 2, 1, 1, 2, 2, 2, 512},
+		{"udp-3", 3, 1, 1, 2, 2, 2, 512},
+		{"udp-4", 4, 1, 1, 2, 2, 2, 512},
+		{"udp-5", 5, 1, 1, 2, 2, 2, 512},
+		{"udp-6", 6, 1, 1, 2, 2, 2, 512},
 		// Only 3 A and 3 SRV records on 512 bytes
-		{"udp-max", 6, 1, 1, 2, 2, 2, 512, 0},
+		{"udp-max", 6, 1, 1, 2, 2, 2, 512},
 
-		{"tcp-1", 1, 1, 1, 1, 30, 30, 0, 0},
-		{"tcp-2", 2, 2, 2, 2, 30, 30, 0, 0},
-		{"tcp-3", 3, 3, 3, 3, 30, 30, 0, 0},
-		{"tcp-4", 4, 4, 4, 4, 30, 30, 0, 0},
-		{"tcp-5", 5, 5, 5, 5, 30, 30, 0, 0},
-		{"tcp-6", 6, 6, 6, 6, 30, 30, 0, 0},
-		{"tcp-max", 6, 1, 1, 2, 2, 2, 0, 0},
+		{"tcp-1", 1, 1, 1, 1, 30, 30, 0},
+		{"tcp-2", 2, 2, 2, 2, 30, 30, 0},
+		{"tcp-3", 3, 3, 3, 3, 30, 30, 0},
+		{"tcp-4", 4, 4, 4, 4, 30, 30, 0},
+		{"tcp-5", 5, 5, 5, 5, 30, 30, 0},
+		{"tcp-6", 6, 6, 6, 6, 30, 30, 0},
+		{"tcp-max", 6, 1, 1, 2, 2, 2, 0},
 	}
 	for _, test := range tests {
 		test := test // capture loop var
