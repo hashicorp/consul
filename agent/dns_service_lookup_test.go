@@ -3011,6 +3011,7 @@ func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uin
 
 func checkDNSService(
 	t *testing.T,
+	protocol string,
 	generateNumNodes int,
 	aRecordLimit int,
 	qType uint16,
@@ -3075,14 +3076,10 @@ func checkDNSService(
 			m := new(dns.Msg)
 
 			m.SetQuestion(question, qType)
-			protocol := "tcp"
-			if udpSize > 0 {
-				protocol = "udp"
-			}
 			if udpSize > 512 {
 				m.SetEdns0(udpSize, true)
 			}
-			c := &dns.Client{Net: protocol, UDPSize: 8192}
+			c := &dns.Client{Net: protocol, UDPSize: udpSize}
 			in, _, err := c.Exchange(m, a.DNSAddr())
 			require.NoError(t, err)
 
@@ -3098,9 +3095,14 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+	const (
+		UDP = "udp"
+		TCP = "tcp"
+	)
 
 	tests := []struct {
 		name                string
+		protocol            string
 		aRecordLimit        int
 		expectedAResults    int
 		expectedAAAAResults int
@@ -3110,31 +3112,31 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		udpSize             uint16
 	}{
 		// UDP + EDNS
-		{"udp-edns-1", 1, 1, 1, 1, 30, 30, 8192},
-		{"udp-edns-2", 2, 2, 2, 2, 30, 30, 8192},
-		{"udp-edns-3", 3, 3, 3, 3, 30, 30, 8192},
-		{"udp-edns-4", 4, 4, 4, 4, 30, 30, 8192},
-		{"udp-edns-5", 5, 5, 5, 5, 30, 30, 8192},
-		{"udp-edns-6", 6, 6, 6, 6, 30, 30, 8192},
-		{"udp-edns-max", 6, 2, 1, 3, 3, 3, 8192},
+		{"udp-edns-1", UDP, 1, 1, 1, 1, 30, 30, 8192},
+		{"udp-edns-2", UDP, 2, 2, 2, 2, 30, 30, 8192},
+		{"udp-edns-3", UDP, 3, 3, 3, 3, 30, 30, 8192},
+		{"udp-edns-4", UDP, 4, 4, 4, 4, 30, 30, 8192},
+		{"udp-edns-5", UDP, 5, 5, 5, 5, 30, 30, 8192},
+		{"udp-edns-6", UDP, 6, 6, 6, 6, 30, 30, 8192},
+		{"udp-edns-max", UDP, 6, 2, 1, 3, 3, 3, 8192},
 		// All UDP without EDNS and no udpAnswerLimit
 		// Size of records is limited by UDP payload
-		{"udp-1", 1, 1, 0, 1, 1, 1, 512},
-		{"udp-2", 2, 1, 1, 2, 2, 2, 512},
-		{"udp-3", 3, 1, 1, 2, 2, 2, 512},
-		{"udp-4", 4, 1, 1, 2, 2, 2, 512},
-		{"udp-5", 5, 1, 1, 2, 2, 2, 512},
-		{"udp-6", 6, 1, 1, 2, 2, 2, 512},
+		{"udp-1", UDP, 1, 1, 0, 1, 1, 1, 512},
+		{"udp-2", UDP, 2, 1, 1, 2, 2, 2, 512},
+		{"udp-3", UDP, 3, 1, 1, 2, 2, 2, 512},
+		{"udp-4", UDP, 4, 1, 1, 2, 2, 2, 512},
+		{"udp-5", UDP, 5, 1, 1, 2, 2, 2, 512},
+		{"udp-6", UDP, 6, 1, 1, 2, 2, 2, 512},
 		// Only 3 A and 3 SRV records on 512 bytes
-		{"udp-max", 6, 1, 1, 2, 2, 2, 512},
+		{"udp-max", UDP, 6, 1, 1, 2, 2, 2, 512},
 
-		{"tcp-1", 1, 1, 1, 1, 30, 30, 0},
-		{"tcp-2", 2, 2, 2, 2, 30, 30, 0},
-		{"tcp-3", 3, 3, 3, 3, 30, 30, 0},
-		{"tcp-4", 4, 4, 4, 4, 30, 30, 0},
-		{"tcp-5", 5, 5, 5, 5, 30, 30, 0},
-		{"tcp-6", 6, 6, 6, 6, 30, 30, 0},
-		{"tcp-max", 6, 1, 1, 2, 2, 2, 0},
+		{"tcp-1", TCP, 1, 1, 1, 1, 30, 30, 0},
+		{"tcp-2", TCP, 2, 2, 2, 2, 30, 30, 0},
+		{"tcp-3", TCP, 3, 3, 3, 3, 30, 30, 0},
+		{"tcp-4", TCP, 4, 4, 4, 4, 30, 30, 0},
+		{"tcp-5", TCP, 5, 5, 5, 5, 30, 30, 0},
+		{"tcp-6", TCP, 6, 6, 6, 6, 30, 30, 0},
+		{"tcp-max", TCP, 6, 1, 1, 2, 2, 2, 0},
 	}
 	for _, test := range tests {
 		test := test // capture loop var
@@ -3144,20 +3146,20 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 			// All those queries should have at max queriesLimited elements
 
 			t.Run("A", func(t *testing.T) {
-				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeA, test.expectedAResults, test.udpSize)
+				checkDNSService(t, test.protocol, test.numNodesTotal, test.aRecordLimit, dns.TypeA, test.expectedAResults, test.udpSize)
 			})
 
 			t.Run("AAAA", func(t *testing.T) {
-				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeAAAA, test.expectedAAAAResults, test.udpSize)
+				checkDNSService(t, test.protocol, test.numNodesTotal, test.aRecordLimit, dns.TypeAAAA, test.expectedAAAAResults, test.udpSize)
 			})
 
 			t.Run("ANY", func(t *testing.T) {
-				checkDNSService(t, test.numNodesTotal, test.aRecordLimit, dns.TypeANY, test.expectedANYResults, test.udpSize)
+				checkDNSService(t, test.protocol, test.numNodesTotal, test.aRecordLimit, dns.TypeANY, test.expectedANYResults, test.udpSize)
 			})
 
 			// No limits but the size of records for SRV records, since not subject to randomization issues
 			t.Run("SRV", func(t *testing.T) {
-				checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize)
+				checkDNSService(t, test.protocol, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize)
 			})
 		})
 	}
