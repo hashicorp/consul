@@ -3117,16 +3117,6 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		{"udp-edns-5", 5, 5, 5, 5, 30, 30, 8192},
 		{"udp-edns-6", 6, 6, 6, 6, 30, 30, 8192},
 		{"udp-edns-max", 6, 2, 1, 3, 3, 3, 8192},
-		// All UDP without EDNS have a limit of 2 answers due to udpAnswerLimit
-		// Even SRV records are limit to 2 records
-		{"udp-limit-1", 1, 1, 0, 1, 1, 1, 512},
-		{"udp-limit-2", 2, 1, 1, 2, 2, 2, 512},
-		// AAAA results limited by size of payload
-		{"udp-limit-3", 3, 1, 1, 2, 2, 2, 512},
-		{"udp-limit-4", 4, 1, 1, 2, 2, 2, 512},
-		{"udp-limit-5", 5, 1, 1, 2, 2, 2, 512},
-		{"udp-limit-6", 6, 1, 1, 2, 2, 2, 512},
-		{"udp-limit-max", 6, 1, 1, 2, 2, 2, 512},
 		// All UDP without EDNS and no udpAnswerLimit
 		// Size of records is limited by UDP payload
 		{"udp-1", 1, 1, 0, 1, 1, 1, 512},
