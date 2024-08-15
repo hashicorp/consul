@@ -148,7 +148,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 
 	// add clusters for jwt-providers
 	for _, prov := range cfgSnap.JWTProviders {
-		//skip cluster creation for local providers
+		// skip cluster creation for local providers
 		if prov.JSONWebKeySet == nil || prov.JSONWebKeySet.Remote == nil {
 			continue
 		}
@@ -923,7 +923,6 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 			}
 			c.TransportSocket = transportSocket
 		}
-
 	}
 	return nil
 }
@@ -1004,7 +1003,11 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 
 			createdClusters[uid] = true
 		}
+
+		clusters = append(clusters, makeAPIGatewayJWKClusters(s.Logger, cfgSnap)...)
 	}
+
+	clusters = append(clusters, makeAPIGatewayJWKClusters(s.Logger, cfgSnap)...)
 	return clusters, nil
 }
 
@@ -1145,7 +1148,6 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 	}
 
 	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
-
 	if err != nil {
 		return c, err
 	}
