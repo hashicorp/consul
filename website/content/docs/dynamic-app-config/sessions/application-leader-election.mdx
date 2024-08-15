@@ -31,9 +31,9 @@ service/<service name>/leader
 - If ACLs are enabled, a token with the following permissions:
   - `session:write` permissions over the service session name
   - `key:write` permissions over the key
+  - The `curl` command
   
-  You expose the token using the `CONSUL_HTTP_TOKEN` environment variable.
-- The `curl` command
+Expose the token using the `CONSUL_HTTP_TOKEN` environment variable.
 
 ## Client-side leader election procedure
 
@@ -78,7 +78,7 @@ $ curl --silent \
 ```
 
 
-The command returns a JSON object containing the ID of the newly created session:
+The command returns a JSON object containing the ID of the newly created session.
 
 ```json
 {
@@ -178,7 +178,7 @@ the lock.
 $ consul kv put -acquire -session=d21d60ad-c2d2-b32a-7432-ca4048a4a7d6 /service/leader '{"Node": "'`hostname`'"}'
 ```
 
-In case of success, the command exits with exit code `0` and outputs the following:
+In case of success, the command exits with exit code `0` and outputs the following message.
 
 <CodeBlockConfig hideClipboard>
 
@@ -188,7 +188,7 @@ Success! Lock acquired on: service/leader
 
 </CodeBlockConfig>
 
-If the lock was already acquired by another node, the command exits with exit code `1` and outputs the following:
+If the lock was already acquired by another node, the command exits with exit code `1` and outputs the following message.
 
 <CodeBlockConfig hideClipboard>
 
@@ -203,11 +203,7 @@ Error! Did not acquire lock
 
 This example used the node's `hostname` as the key data. This data can be used by the other services to create configuration files.
 
-<Note>
-
-This locking system is purely advisory. There is no enforcement that clients must acquire a lock to perform any operation. Any client can read, write, and delete a key without owning the corresponding lock. It is not the goal of Consul to protect against misbehaving clients.
-
-</Note>
+Be aware that this locking system has no enforcement mechanism that requires clients to acquire a lock before they perform an operation. Any client can read, write, and delete a key without owning the corresponding lock. 
 
 ## Watch the KV key for locks
 
