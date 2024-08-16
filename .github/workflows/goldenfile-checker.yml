@@ -1,0 +1,30 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# This workflow checks that are no changes necessary to golden files for xds 
+# tests ensuring they are up to date
+
+name: Golden File Checker
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+    # Runs on PRs to main and all release branches
+    branches:
+      - main
+      - release/*
+
+jobs:
+  # checks that there is no diff between the existing golden files
+  goldenfile-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
+      - name: Check for golden file xds tests in diff
+        run: ./.github/scripts/goldenfile_checker.sh
+        env:
+          GITHUB_BASE_REF: ${{ github.event.pull_request.base.ref }}
