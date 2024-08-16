@@ -8,8 +8,8 @@ set -euo pipefail
 make envoy-regen
 
 echo "$GITHUB_BASE_REF"
-echo git merge-base HEAD "$GITHUB_BASE_REF"
-changed_xds_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "$GITHUB_BASE_REF")" | egrep "agent/xds/testdata/.*")
+echo $(git merge-base HEAD "origin/$GITHUB_BASE_REF")
+changed_xds_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/$GITHUB_BASE_REF")" | egrep "agent/xds/testdata/.*")
 
 # If we do not find a file in .changelog/, we fail the check
 if [ -z "$changed_xds_files" ]; then
