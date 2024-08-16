@@ -27,4 +27,4 @@ jobs:
       - name: Check for golden file xds tests in diff
         run: ./.github/scripts/goldenfile_checker.sh
         env:
-          GITHUB_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GITHUB_BRANCH_REF: ${{ github.event.pull_request.head }}
