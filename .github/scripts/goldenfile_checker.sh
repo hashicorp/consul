@@ -4,7 +4,6 @@
 
 set -euo pipefail
 
-echo "origin/$GITHUB_BRANCH_REF"
 # check if there is a diff in the xds testdata directory after running `make envoy-regen`
 echo "regenerating xds files"
 make envoy-regen &>/dev/null
