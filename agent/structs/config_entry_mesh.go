@@ -20,6 +20,11 @@ type MeshConfigEntry struct {
 	// MutualTLSMode=permissive in either service-defaults or proxy-defaults.
 	AllowEnablingPermissiveMutualTLS bool `json:",omitempty" alias:"allow_enabling_permissive_mutual_tls"`
 
+	// ValidateClusters is false by default and configures whether Envoy proxies will validate clusters in a route. If
+	// set to true and any clusters in the route do not exist, the route table will not load. If set to false, the route
+	// table will load and routing to a non-existent cluster will result in a 404.
+	ValidateClusters bool `json:",omitempty" alias:"validate_clusters"`
+
 	TLS *MeshTLSConfig `json:",omitempty"`
 
 	HTTP *MeshHTTPConfig `json:",omitempty"`
