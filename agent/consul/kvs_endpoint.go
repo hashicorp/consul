@@ -42,7 +42,8 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz resolver.Result, op api
 		return false, fmt.Errorf("Must provide key")
 	}
 
-	// Apply the ACL policy if any.
+	// Apply the ACL policy if any, and validate operation.
+	// enumcover:api.KVOp
 	switch op {
 	case api.KVDeleteTree:
 		var authzContext acl.AuthorizerContext
@@ -66,13 +67,15 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz resolver.Result, op api
 			return false, err
 		}
 
-	default:
+	case api.KVCheckNotExists, api.KVUnlock, api.KVLock, api.KVCAS, api.KVDeleteCAS, api.KVDelete, api.KVSet:
 		var authzContext acl.AuthorizerContext
 		dirEnt.FillAuthzContext(&authzContext)
 
 		if err := authz.ToAllowAuthorizer().KeyWriteAllowed(dirEnt.Key, &authzContext); err != nil {
 			return false, err
 		}
+	default:
+		return false, fmt.Errorf("unknown KV operation: %s", op)
 	}
 
 	// If this is a lock, we must check for a lock-delay. Since lock-delay

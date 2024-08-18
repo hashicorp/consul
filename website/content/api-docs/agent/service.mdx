@@ -684,6 +684,8 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
   `false`. See [anti-entropy syncs](/consul/docs/architecture/anti-entropy) for
   additional information.
 
+@include 'http-api-body-options-partition.mdx'
+
 #### Connect Structure
 
 For the `Connect` field, the parameters are:
@@ -768,6 +770,8 @@ The corresponding CLI command is [`consul services deregister`](/consul/commands
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you deregister.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

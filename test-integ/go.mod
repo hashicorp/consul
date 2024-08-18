@@ -1,8 +1,8 @@
 module github.com/hashicorp/consul/test-integ
 
-go 1.21
+go 1.22
 
-toolchain go1.21.5
+toolchain go1.22.5
 
 require (
 	github.com/google/go-cmp v0.6.0
@@ -54,7 +54,7 @@ require (
 	github.com/hashicorp/consul v1.16.1 // indirect
 	github.com/hashicorp/consul-server-connection-manager v0.1.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-hclog v1.6.2 // indirect
+	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
