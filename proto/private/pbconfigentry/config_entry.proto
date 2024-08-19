@@ -617,6 +617,9 @@ message ExposePath {
   int32 LocalPathPort = 3;
   string Protocol = 4;
   bool ParsedFromCheck = 5;
+  string CAFile = 6;
+  string CertFile = 7;
+  string KeyFile = 8;
 }
 
 // mog annotation:

@@ -1,0 +1,3 @@
+```release-note:bug
+Envoy: Expose external HTTPS/TLS path for proxy service.  
+```

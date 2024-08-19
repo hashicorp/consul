@@ -18,7 +18,7 @@ const (
 	defaultExposeProtocol = "http"
 )
 
-var allowedExposeProtocols = map[string]bool{"http": true, "http2": true}
+var allowedExposeProtocols = map[string]bool{"http": true, "http2": true, "tcp": true}
 
 type MeshGatewayMode string
 
@@ -775,6 +775,15 @@ type ExposePath struct {
 
 	// ParsedFromCheck is set if this path was parsed from a registered check
 	ParsedFromCheck bool `json:",omitempty" alias:"parsed_from_check"`
+
+	// CAFile is the path to the CA file for the exposed external HTTPS path
+	CAFile string `json:",omitempty" alias:"cafile"`
+
+	// CertFile is the path to the Certificate file for the exposed external HTTPS path
+	CertFile string `json:",omitempty" alias:"certfile"`
+
+	// KeyFile is the path to the Private key file for the exposed external HTTPS path
+	KeyFile string `json:",omitempty" alias:"keyfile"`
 }
 
 func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
