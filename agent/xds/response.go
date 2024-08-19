@@ -53,16 +53,19 @@ func makePipeAddress(path string, mode uint32) *envoy_core_v3.Address {
 }
 
 func makeAddress(ip string, port int) *envoy_core_v3.Address {
-	return &envoy_core_v3.Address{
-		Address: &envoy_core_v3.Address_SocketAddress{
-			SocketAddress: &envoy_core_v3.SocketAddress{
-				Address: ip,
-				PortSpecifier: &envoy_core_v3.SocketAddress_PortValue{
-					PortValue: uint32(port),
+	if port >= 0 && port <= 65535 {
+		return &envoy_core_v3.Address{
+			Address: &envoy_core_v3.Address_SocketAddress{
+				SocketAddress: &envoy_core_v3.SocketAddress{
+					Address: ip,
+					PortSpecifier: &envoy_core_v3.SocketAddress_PortValue{
+						PortValue: uint32(port),
+					},
 				},
 			},
-		},
+		}
 	}
+	return nil
 }
 
 func makeUint32Value(n int) *wrapperspb.UInt32Value {
