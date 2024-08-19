@@ -286,10 +286,8 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			Name:         uid.EnvoyID(),
 			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
 		}
-		if mesh := cfgSnap.MeshConfig(); mesh != nil {
-			if mesh.ValidateClusters {
-				route.ValidateClusters = response.MakeBoolValue(true)
-			}
+		if meshValidateClusters(cfgSnap) {
+			route.ValidateClusters = response.MakeBoolValue(true)
 		}
 		resources = append(resources, route)
 	}
