@@ -53,7 +53,7 @@ spec:
   targetRef:
     name: gateway
     kind: Gateway
-    group: gateway.networking.kubernetes.io
+    group: gateway.networking.k8s.io/v1beta1
     sectionName: <name of a specific listener the policy applies>
   override:
     jwt:
@@ -153,7 +153,7 @@ The following table describes the members of the `targetRef` map:
 | `namespace` | Specifies the namespace that the target reference is a member of. | String | `default` |
 | `name` | Specifies the name of the API gateway that the policy attaches to. | String | None |
 | `kind` | Specifies the type of resource that the policy attaches to. Must be set to `Gateway`. | String | None |
-| `group` | Specifies the resource group. Must be set to `gateway.networking.kubernetes.io`. | String | None |
+| `group` | Specifies the resource group. Must be set to `gateway.networking.k8s.io/v1beta1`. | String | None |
 | `sectionName` | Specifies a part of the gateway that the policy applies to. | String | None |
 
 ### `spec.override`
@@ -237,7 +237,7 @@ spec:
   targetRef:
     name: gateway
     kind: Gateway
-    group: gateway.networking.kubernetes.io
+    group: gateway.networking.k8s.io/v1beta1
     sectionName: to-server
   override:
     jwt:
