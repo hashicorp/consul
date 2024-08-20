@@ -67,7 +67,7 @@ Create a `GatewayPolicy` CRD that defines default and override settings for JWT 
 - `metadata.name`: Specifies a name for the policy.
 - `spec.targetRef.name`: Specifies the name of the API gateway to attach the policy to.
 - `spec.targetRef.kind`: Specifies the kind of resource to attach to the policy to. Must be set to `Gateway`.
-- `spec.targetRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kubernetes.io`.
+- `spec.targetRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.k8s.io/v1beta1`.
 - `spec.targetRef.sectionName`: Specifies a part of the gateway that the policy applies to.
 - `spec.targetRef.override.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
 - `spec.targetRef.default.jwt.providers`: Specifies a list of default providers and claims used to verify requests to the gateway.
@@ -176,7 +176,7 @@ For more information about the fields you can configure, refer to [`RouteAuthFil
 In the `filters` field of your HTTPRoute configuration, define the filter behavior that results from JWT verification.
 
 - `type: extensionRef`: Declare list of extension references.
-- `extensionRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kubernetes.io`.
+- `extensionRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.k8s.io/v1beta1`.
 - `extensionRef.kind`: Specifies the type of extension reference to attach to the route. Must be `RouteAuthFilter`
 - `extensionRef.name`: Specifies the name of the auth filter.
 
