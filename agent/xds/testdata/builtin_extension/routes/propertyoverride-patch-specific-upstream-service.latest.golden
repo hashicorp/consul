@@ -22,8 +22,7 @@
             }
           ]
         }
-      ],
-      "validateClusters":  true
+      ]
     }
   ],
   "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
