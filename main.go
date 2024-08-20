@@ -5,13 +5,10 @@ package main
 
 import (
 	"fmt"
+	mcli "github.com/mitchellh/cli"
 	"io"
 	"log"
 	"os"
-	"runtime"
-	"time"
-
-	mcli "github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/cli"
@@ -19,21 +16,7 @@ import (
 	_ "github.com/hashicorp/consul/service_os"
 )
 
-func printMemStats() {
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-	fmt.Printf("Alloc = %v MiB", memStats.Alloc/1024/1024)
-	fmt.Printf("\tTotalAlloc = %v MiB", memStats.TotalAlloc/1024/1024)
-	fmt.Printf("\tSys = %v MiB", memStats.Sys/1024/1024)
-	fmt.Printf("\tNumGC = %v\n", memStats.NumGC)
-	time.Sleep(2 * time.Second)
-	printMemStats()
-}
-
 func main() {
-	go func() {
-		printMemStats()
-	}()
 	os.Exit(realMain())
 }
 
