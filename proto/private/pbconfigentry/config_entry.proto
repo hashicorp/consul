@@ -96,6 +96,7 @@ message MeshConfig {
   PeeringMeshConfig Peering = 5;
   bool AllowEnablingPermissiveMutualTLS = 6;
   uint64 Hash = 7;
+  bool ValidateClusters = 8;
 }
 
 // mog annotation:

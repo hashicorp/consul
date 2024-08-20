@@ -798,8 +798,7 @@ func makeTestRoute(t *testing.T, fixtureName string) *envoy_route_v3.RouteConfig
 	switch fixtureName {
 	case "http2:db", "http:db":
 		return &envoy_route_v3.RouteConfiguration{
-			Name:             "db",
-			ValidateClusters: response.MakeBoolValue(true),
+			Name: "db",
 			VirtualHosts: []*envoy_route_v3.VirtualHost{
 				{
 					Name:    "db",
