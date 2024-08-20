@@ -624,6 +624,16 @@ func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 			alsoRunTestForV2: true,
 		},
 		{
+			name: "connect-proxy-with-chain-and-splitter-and-mesh-validate-clusters",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				cfgSnap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-splitter", enterprise, nil, nil)
+				cfgSnap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
+					ValidateClusters: true,
+				}
+				return cfgSnap
+			},
+		},
+		{
 			name: "connect-proxy-with-grpc-router",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "grpc-router", enterprise, nil, nil)

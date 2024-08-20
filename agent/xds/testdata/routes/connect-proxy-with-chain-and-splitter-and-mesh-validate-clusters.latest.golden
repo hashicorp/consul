@@ -3,12 +3,12 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "8080",
+      "name": "db",
+      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
-            "db.ingress.*",
-            "db.ingress.*:8080"
+            "*"
           ],
           "name": "db",
           "routes": [
