@@ -43,7 +43,7 @@ func TestConfigWrite(t *testing.T) {
 		_, err := f.WriteString(`
       Kind = "service-defaults"
       Name = "web"
-      Protocol = "udp"
+      Protocol = "tcp"
       `)
 
 		require.NoError(t, err)
@@ -65,7 +65,7 @@ func TestConfigWrite(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, api.ServiceDefaults, svc.Kind)
 		require.Equal(t, "web", svc.Name)
-		require.Equal(t, "udp", svc.Protocol)
+		require.Equal(t, "tcp", svc.Protocol)
 	})
 
 	t.Run("Stdin", func(t *testing.T) {
