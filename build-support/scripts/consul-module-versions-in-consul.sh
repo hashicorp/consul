@@ -16,17 +16,9 @@ Usage: ${SCRIPT_NAME}  [<options ...>]
 
 Description:
 
-   This script is just a convenience around discover what the Consul
-   version would be if you were to build it. 
+   This script reports the consul module versions in each of the go.mod files in the Consul repository.
 
 Options:                       
-   -s | --source     DIR         Path to source to build.
-                                 Defaults to "${SOURCE_DIR}"
-                                 
-   -r | --release                Include the release in the version
-   
-   -g | --git                    Take git variables into account
-   
    -h | --help                   Print this help text.
 EOF
 }

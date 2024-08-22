@@ -678,7 +678,8 @@ function get_consul_module_versions {
     -e github.com/hashicorp/consul/envoyextensions \
     -e github.com/hashicorp/consul/proto-public \
     -e github.com/hashicorp/consul/sdk \
-    -e github.com/hashicorp/consul/troubleshoot)
+    -e github.com/hashicorp/consul/troubleshoot \
+    | if [ "$module_dir" != "." ]; then grep -v "consul/$module_dir"; else cat; fi)
     echo "--------------"
     echo ""
   done
