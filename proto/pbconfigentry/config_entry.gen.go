@@ -1047,6 +1047,7 @@ func MeshConfigToStructs(s *MeshConfig, t *structs.MeshConfigEntry) {
 	if s.TransparentProxy != nil {
 		TransparentProxyMeshConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
 	}
+	t.ValidateClusters = s.ValidateClusters
 	if s.TLS != nil {
 		var x structs.MeshTLSConfig
 		MeshTLSConfigToStructs(s.TLS, &x)
@@ -1074,6 +1075,7 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 		TransparentProxyMeshConfigFromStructs(&t.TransparentProxy, &x)
 		s.TransparentProxy = &x
 	}
+	s.ValidateClusters = t.ValidateClusters
 	if t.TLS != nil {
 		var x MeshTLSConfig
 		MeshTLSConfigFromStructs(t.TLS, &x)
