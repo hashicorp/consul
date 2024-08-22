@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/proto/private/pbpeering"

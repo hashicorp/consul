@@ -4,7 +4,7 @@
 package state
 
 import (
-	memdb "github.com/hashicorp/go-memdb"
+	memdb "github.com/absolutelightning/go-memdb"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"

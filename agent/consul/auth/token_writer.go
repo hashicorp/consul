@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"

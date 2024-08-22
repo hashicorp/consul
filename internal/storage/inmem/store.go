@@ -5,10 +5,9 @@ package inmem
 
 import (
 	"context"
+	"github.com/absolutelightning/go-memdb"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/internal/storage"

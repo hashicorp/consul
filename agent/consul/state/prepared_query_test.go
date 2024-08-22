@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-memdb"
+	"github.com/absolutelightning/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
 )

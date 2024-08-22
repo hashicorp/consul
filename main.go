@@ -5,11 +5,10 @@ package main
 
 import (
 	"fmt"
+	mcli "github.com/mitchellh/cli"
 	"io"
 	"log"
 	"os"
-
-	mcli "github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/cli"
