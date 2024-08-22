@@ -57,6 +57,7 @@ message MeshConfig {
   map<string, string> Meta = 4;
   PeeringMeshConfig Peering = 5;
   uint64 Hash = 7;
+  bool ValidateClusters = 8;
 }
 
 // mog annotation:
