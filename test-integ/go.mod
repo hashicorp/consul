@@ -4,9 +4,9 @@ go 1.20
 
 require (
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/consul/api v1.26.1
-	github.com/hashicorp/consul/proto-public v0.5.1
-	github.com/hashicorp/consul/sdk v0.15.0
+	github.com/hashicorp/consul/api v1.29.1
+	github.com/hashicorp/consul/proto-public v0.6.1
+	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230628201853-bdf4fad7c5a5
 	github.com/hashicorp/consul/testing/deployer v0.0.0-20230811171106-4a0afb5d1373
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -15,7 +15,7 @@ require (
 	github.com/rboyer/blankspace v0.2.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.24.0
-	google.golang.org/grpc v1.57.2
+	google.golang.org/grpc v1.58.3
 )
 
 require (
@@ -88,7 +88,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
-	github.com/prometheus/client_model v0.4.0 // indirect
+	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rboyer/safeio v0.2.3 // indirect
