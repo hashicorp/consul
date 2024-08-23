@@ -256,7 +256,6 @@ func stubResolver(t *testing.T, servers ...*server) (string, string, *manual.Res
 	r.InitialState(resolver.State{Addresses: addresses})
 
 	resolver.Register(r)
-	t.Cleanup(func() { resolver.UnregisterForTesting(scheme) })
 
 	authority, err := uuid.GenerateUUID()
 	require.NoError(t, err)

@@ -31,7 +31,7 @@ issues:
     # Allow usage of deprecated values.
     - linters: [ staticcheck ]
       text: 'SA1019:'
-      path: "(agent/grpc-external)"
+      path: "(agent/grpc-external|agent/grpc-internal)"
 
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]
