@@ -1048,7 +1048,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, cfg *dnsRe
 				A: ip,
 			}
 			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
-				resp.Extra = append(resp.Answer, aRecord)
+				resp.Extra = append(resp.Extra, aRecord)
 			} else {
 				resp.Answer = append(resp.Answer, aRecord)
 			}
