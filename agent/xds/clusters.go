@@ -1873,7 +1873,7 @@ func configureClusterWithHostnames(
 		endpoints = append(endpoints, fallback)
 	}
 	if len(uniqueHostnames) > 1 && envoyMaxEndpoints == 1 {
-		logger.Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q be resolved by Envoy", hostname),
+		logger.Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q will be resolved by Envoy", hostname),
 			"dc", dc, "service", service.String())
 	}
 
