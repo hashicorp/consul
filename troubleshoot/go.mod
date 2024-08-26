@@ -13,11 +13,6 @@ exclude (
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
 )
 
-retract (
-	v0.6.2 // tag has incorrect line of deps
-	v0.6.1 // tag has incorrect line of deps
-)
-
 require (
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
