@@ -6,7 +6,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/docker/go-connections v0.4.0
-	github.com/hashicorp/consul/api v1.21.0
+	github.com/hashicorp/consul/api v1.21.3
 	github.com/hashicorp/consul/envoyextensions v0.2.1
 	github.com/hashicorp/consul/sdk v0.13.1
 	github.com/hashicorp/go-cleanhttp v0.5.2
