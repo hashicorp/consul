@@ -2,12 +2,11 @@ module github.com/hashicorp/consul/api
 
 go 1.19
 
-replace (
-	github.com/hashicorp/consul/proto-public => ../proto-public
-	github.com/hashicorp/consul/sdk => ../sdk
+retract (
+	v1.28.0 // tag was mutated
+	v1.27.1 // tag was mutated
+	v1.21.2 // tag was mutated
 )
-
-retract v1.28.0 // tag was mutated
 
 require (
 	github.com/google/go-cmp v0.5.9
