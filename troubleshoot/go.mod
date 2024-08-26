@@ -15,6 +15,7 @@ exclude (
 )
 
 retract (
+	v0.6.4 // tag was mutated
 	v0.6.2 // tag has incorrect line of deps
 	v0.6.1 // tag has incorrect line of deps
 )
@@ -22,7 +23,7 @@ retract (
 require (
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
-	github.com/hashicorp/consul/api v1.29.3
+	github.com/hashicorp/consul/api v1.29.4
 	github.com/hashicorp/consul/envoyextensions v0.7.2
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/stretchr/testify v1.8.4
