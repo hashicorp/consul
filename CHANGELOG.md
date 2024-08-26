@@ -1,7 +1,4 @@
-## 1.19.2 Enterprise (August 26, 2024)
-
-Enterprise LTS: Consul Enterprise 1.19 is a Long-Term Support (LTS) release.
-
+## 1.19.2 (August 26, 2024)
 
 SECURITY:
 
