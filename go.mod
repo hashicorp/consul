@@ -1,8 +1,8 @@
 module github.com/hashicorp/consul
 
-go 1.20
+go 1.22
 
-toolchain go1.22.3
+toolchain go1.22.5
 
 replace (
 	github.com/hashicorp/consul/api => ./api
@@ -43,23 +43,23 @@ require (
 	github.com/hashi-derek/grpc-proxy v0.0.0-20231207191910-191266484d75
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.26.1
-	github.com/hashicorp/consul/envoyextensions v0.5.1
-	github.com/hashicorp/consul/proto-public v0.5.1
-	github.com/hashicorp/consul/sdk v0.15.0
-	github.com/hashicorp/consul/troubleshoot v0.4.1
+	github.com/hashicorp/consul/api v1.29.1
+	github.com/hashicorp/consul/envoyextensions v0.7.0
+	github.com/hashicorp/consul/proto-public v0.6.1
+	github.com/hashicorp/consul/sdk v0.16.1
+	github.com/hashicorp/consul/troubleshoot v0.6.1
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-connlimit v0.3.0
 	github.com/hashicorp/go-discover v0.0.0-20230724184603-e89ebd1b2f65
-	github.com/hashicorp/go-hclog v1.5.0
+	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-immutable-radix/v2 v2.1.0
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-raftchunking v0.7.0
-	github.com/hashicorp/go-retryablehttp v0.6.7
+	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6
 	github.com/hashicorp/go-sockaddr v1.0.2
@@ -120,7 +120,7 @@ require (
 	golang.org/x/net v0.24.0
 	golang.org/x/oauth2 v0.15.0
 	golang.org/x/sync v0.3.0
-	golang.org/x/sys v0.19.0
+	golang.org/x/sys v0.20.0
 	golang.org/x/time v0.3.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98
 	google.golang.org/grpc v1.58.3

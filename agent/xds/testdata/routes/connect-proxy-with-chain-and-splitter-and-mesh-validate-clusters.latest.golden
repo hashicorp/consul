@@ -1,0 +1,139 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "db",
+      "validateClusters": true,
+      "virtualHosts": [
+        {
+          "domains": [
+            "*"
+          ],
+          "name": "db",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/big-side"
+              },
+              "route": {
+                "cluster": "big-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "idleTimeout": "0s",
+                "timeout": "10s"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/lil-bit-side"
+              },
+              "route": {
+                "cluster": "lil-bit-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "weightedClusters": {
+                  "clusters": [
+                    {
+                      "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "requestHeadersToAdd": [
+                        {
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "db"
+                          }
+                        }
+                      ],
+                      "responseHeadersToAdd": [
+                        {
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "db"
+                          }
+                        }
+                      ],
+                      "weight": 100
+                    },
+                    {
+                      "name": "big-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "requestHeadersToAdd": [
+                        {
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "big"
+                          }
+                        }
+                      ],
+                      "responseHeadersToAdd": [
+                        {
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "big"
+                          }
+                        }
+                      ],
+                      "weight": 9550
+                    },
+                    {
+                      "name": "goldilocks-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "requestHeadersToAdd": [
+                        {
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "goldilocks"
+                          }
+                        }
+                      ],
+                      "responseHeadersToAdd": [
+                        {
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "goldilocks"
+                          }
+                        }
+                      ],
+                      "weight": 300
+                    },
+                    {
+                      "name": "lil-bit-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "requestHeadersToAdd": [
+                        {
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "small"
+                          }
+                        }
+                      ],
+                      "responseHeadersToAdd": [
+                        {
+                          "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "small"
+                          }
+                        }
+                      ],
+                      "weight": 50
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "versionInfo": "00000001"
+}

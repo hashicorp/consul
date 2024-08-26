@@ -1,13 +1,15 @@
 ---
 layout: docs
-page_title: File System Certificate Configuration Reference
+page_title: File system certificate configuration reference
 description: Learn how to configure a file system certificate bound to an API Gateway on VMs.
 ---
 
 # File system certificate configuration reference
 
-This topic provides reference information for the gateway file system certificate
-configuration entry. For information about certificate configuration for Kubernetes environments, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
+This topic provides reference information for the file system certificate
+configuration entry. The file system certificate is a more secure alternative to the [inline certificate configuration entry](/consul/docs/connect/config-entries/inline-certificate) when using Consul API Gateway on VMs because it references a local filepath instead of including sensitive information in the configuration entry itself. File system certificates also include a file system watch that implements certificate and key changes without restarting the gateway.
+
+Consul on Kubernetes deployments that use `consul-k8s` Helm chart v1.5.0 or later use file system certificates without additional configuration. To learn about configuring certificates for Kubernetes environments, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
 
 ## Configuration model
 
@@ -15,7 +17,7 @@ The following list outlines field hierarchy, language-specific data types, and
 requirements in a `file-system-certificate` configuration entry. Click on a property name
 to view additional details, including default values.
 
-- [`Kind`](#kind): string | must be `"file-system-certificate"`
+- [`Kind`](#kind): string | must be set to `"file-system-certificate"`
 - [`Name`](#name): string | no default
 - [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
 - [`Partition`](#partition): string | no default <EnterpriseAlert inline />
@@ -27,33 +29,43 @@ to view additional details, including default values.
 
 When every field is defined, a `file-system-certificate` configuration entry has the following form:
 
-<CodeTabs>
+<Tabs>
 
-```HCL
+<Tab heading="HCL" group="hcl">
+
+```hcl
 Kind = "file-system-certificate"
 Name = "<name of certificate>"
-
+Namespace = "ns"
+Partition = "default"
 Meta = {
-	"<any key>" = "<any value>"
+	"<key>" = "<value>"
 }
 
-Certificate = "<filepath to public certificate>"
-PrivateKey = "<filepath to private key>"
+Certificate = "<filepath/to/public/certificate>"
+PrivateKey = "<filepath/to/private/key>"
 ```
 
-```JSON
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
 {
 	"Kind": "file-system-certificate",
 	"Name": "<name of certificate>",
+	"Namespace": "ns",
+	"Partition": "default",
 	"Meta": {
-		"any key": "any value"
-	}
-	"Certificate": "<filepath to public certificate>",
-	"PrivateKey": "<filepath to private key>"
+		"key": "value"
+	},
+	"Certificate": "<filepath/to/public/certificate>",
+	"PrivateKey": "<filepath/to/private/key>"
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
 ## Specification
 
@@ -63,7 +75,7 @@ Specifies the type of configuration entry to implement.
 
 #### Values
 
-- Default: none
+- Default: None
 - This field is required.
 - Data type: string that must equal `"file-system-certificate"`
 
@@ -75,7 +87,7 @@ as applying a configuration entry to a specific cluster.
 
 #### Values
 
-- Default: none
+- Default: None
 - This field is required.
 - Data type: string
 
@@ -103,12 +115,12 @@ Specifies an arbitrary set of key-value pairs to associate with the gateway.
 
 #### Values
 
-- Default: none
+- Default: None
 - Data type: map containing one or more keys and string values.
 
 ### `Certificate`
 
-Specifies the filepath to a public certificate to use for TLS. This filepath must be accessible to the API gateway proxy at runtime.
+Specifies the path to a file that contains a public certificate to use for TLS. This filepath must be accessible to the API gateway proxy at runtime.
 
 #### Values
 
@@ -118,10 +130,41 @@ Specifies the filepath to a public certificate to use for TLS. This filepath mus
 
 ### `PrivateKey`
 
-Specifies the filepath to a private key to use for TLS. This filepath must be accessible to the API gateway proxy at runtime.
+Specifies the path to a file that contains a private key to use for TLS. This filepath must be accessible to the API gateway proxy at runtime.
 
 #### Values
 
 - Default: none
 - This field is required.
 - Data type: string value of the filepath to a private key
+
+## Examples
+
+The following example demonstrates a file system certificate configuration.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind                     = "file-system-certificate"
+Name                     = "tls-certificate"
+Certificate              = "/opt/consul/tls/api-gateway.crt"
+PrivateKey               = "/opt/consul/tls/api-gateway.key"
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind": "file-system-certificate",
+  "Name": "tls-certificate",
+	"Certificate": "opt/consul/tls/api-gateway.crt",
+	"PrivateKey": "/opt/consul/tls/api-gateway.key"
+}
+```
+
+</Tab>
+</Tabs>

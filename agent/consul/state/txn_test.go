@@ -1058,14 +1058,6 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 				},
 			},
 		},
-		&structs.TxnOp{
-			KV: &structs.TxnKVOp{
-				Verb: "nope",
-				DirEnt: structs.DirEntry{
-					Key: "foo/delete",
-				},
-			},
-		},
 	}
 	results, errors := s.TxnRW(7, ops)
 	if len(errors) != len(ops) {
@@ -1086,7 +1078,6 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 		`key "nope" doesn't exist`,
 		"current modify index",
 		`key "nope" doesn't exist`,
-		"unknown KV verb",
 	}
 	if len(errors) != len(expected) {
 		t.Fatalf("bad len: %d != %d", len(errors), len(expected))
@@ -1413,5 +1404,66 @@ func TestStateStore_Txn_KVS_ModifyIndexes(t *testing.T) {
 		if e.ModifyIndex != actual[i].ModifyIndex {
 			t.Fatalf("expected modify index %d, got %d", e.ModifyIndex, actual[i].ModifyIndex)
 		}
+	}
+}
+
+// TestStateStore_UnknownTxnOperationsPanic validates that unknown txn operations panic.
+// If we error in this case this is from an FSM Apply, the state store of this agent could potentially be out of
+// sync with other agents that applied the operation. In the case of responding to a local endpoint, we require
+// that the operation type be validated prior to being sent to the state store.
+// See NET-9016 for historical context.
+func TestStateStore_UnknownTxnOperationsPanic(t *testing.T) {
+	s := testStateStore(t)
+
+	testCases := []structs.TxnOps{
+		{
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
+					Verb: "sand-the-floor",
+					DirEnt: structs.DirEntry{
+						Key: "foo/a",
+					},
+				},
+			},
+		},
+		{
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: "wax-the-car",
+				},
+			},
+		},
+		{
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb: "paint-the-house",
+				},
+			},
+		},
+		{
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb: "paint-the-fence",
+				},
+			},
+		},
+		{
+			&structs.TxnOp{
+				Session: &structs.TxnSessionOp{
+					Verb: "sweep-the-knee",
+				},
+			},
+		},
+		{
+			&structs.TxnOp{
+				Intention: &structs.TxnIntentionOp{ // nolint:staticcheck // SA1019 intentional use of deprecated field
+					Op: "flying-crane-kick",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		require.Panics(t, func() { s.TxnRW(3, tc) })
 	}
 }

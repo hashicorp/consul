@@ -1,0 +1,3 @@
+```release-note:bug
+core: Fix panic runtime error on AliasCheck
+```

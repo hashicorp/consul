@@ -445,25 +445,25 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 }
 
 func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
-	return []goldenTestCase{
+	cases := []goldenTestCase{
 		{
 			name: "connect-proxy-with-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", false, nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
 			},
 			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-external-sni",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", false, nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
 			},
 			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-and-failover",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", false, nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, nil, nil)
 			},
 			alsoRunTestForV2: true,
 		},
@@ -487,10 +487,9 @@ func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 			name: "custom-upstream-default-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "myservice",
-						})
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] = customAppClusterJSON(t, customClusterJSONOptions{
+						Name: "myservice",
+					})
 				}, nil)
 			},
 			// TODO(proxystate): requires custom cluster work
@@ -602,10 +601,9 @@ func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 			name: "connect-proxy-with-default-chain-and-custom-cluster",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "myservice",
-						})
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] = customAppClusterJSON(t, customClusterJSONOptions{
+						Name: "myservice",
+					})
 				}, nil)
 			},
 			// TODO(proxystate): requires custom cluster work
@@ -624,6 +622,16 @@ func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-splitter", enterprise, nil, nil)
 			},
 			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-splitter-and-mesh-validate-clusters",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				cfgSnap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-splitter", enterprise, nil, nil)
+				cfgSnap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
+					ValidateClusters: true,
+				}
+				return cfgSnap
+			},
 		},
 		{
 			name: "connect-proxy-with-grpc-router",
@@ -667,10 +675,9 @@ func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 
 						uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
 
-						ns.Proxy.Upstreams[i].Config["envoy_listener_json"] =
-							customListenerJSON(t, customListenerJSONOptions{
-								Name: uid.EnvoyID() + ":custom-upstream",
-							})
+						ns.Proxy.Upstreams[i].Config["envoy_listener_json"] = customListenerJSON(t, customListenerJSONOptions{
+							Name: uid.EnvoyID() + ":custom-upstream",
+						})
 					}
 				}, nil)
 			},
@@ -731,6 +738,14 @@ func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 			alsoRunTestForV2: true,
 		},
 	}
+
+	if enterprise {
+		for i := range cases {
+			cases[i].name = "enterprise-" + cases[i].name
+		}
+	}
+
+	return cases
 }
 
 func getMeshGatewayGoldenTestCases() []goldenTestCase {
@@ -896,6 +911,7 @@ func getMeshGatewayGoldenTestCases() []goldenTestCase {
 		},
 	}
 }
+
 func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 	return []goldenTestCase{
 		{
@@ -1426,7 +1442,6 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 							},
 						},
 					}
-
 				}, []structs.BoundRoute{
 					&structs.TCPRouteConfigEntry{
 						Name: "tcp-route",
@@ -1596,7 +1611,8 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 								{Kind: structs.HTTPRoute, Name: "backend-route"},
 								{Kind: structs.HTTPRoute, Name: "frontend-route"},
 								{Kind: structs.HTTPRoute, Name: "generic-route"},
-							}},
+							},
+						},
 					}
 				},
 					[]structs.BoundRoute{
@@ -1735,10 +1751,9 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			name: "custom-upstream-default-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "myservice",
-						})
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] = customAppClusterJSON(t, customClusterJSONOptions{
+						Name: "myservice",
+					})
 				}, nil)
 			},
 			// TODO(proxystate): requires custom cluster work
@@ -1748,10 +1763,9 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			name: "custom-local-app",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["envoy_local_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "mylocal",
-						})
+					ns.Proxy.Config["envoy_local_cluster_json"] = customAppClusterJSON(t, customClusterJSONOptions{
+						Name: "mylocal",
+					})
 				}, nil)
 			},
 			// TODO(proxystate): requires custom cluster work
@@ -1761,10 +1775,9 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			name: "custom-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "myservice",
-						})
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] = customAppClusterJSON(t, customClusterJSONOptions{
+						Name: "myservice",
+					})
 				}, nil)
 			},
 			// TODO(proxystate): requires custom cluster work
@@ -1775,12 +1788,11 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			overrideGoldenName: "custom-upstream", // should be the same
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "myservice",
-							// Attempt to override the TLS context should be ignored
-							TLSContext: `"allowRenegotiation": false`,
-						})
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] = customAppClusterJSON(t, customClusterJSONOptions{
+						Name: "myservice",
+						// Attempt to override the TLS context should be ignored
+						TLSContext: `"allowRenegotiation": false`,
+					})
 				}, nil)
 			},
 			// TODO(proxystate): requires custom cluster work
@@ -1791,7 +1803,6 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					for i := range ns.Proxy.Upstreams {
-
 						switch ns.Proxy.Upstreams[i].DestinationName {
 						case "db":
 							if ns.Proxy.Upstreams[i].Config == nil {
@@ -1803,10 +1814,9 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 							// Triggers an override with the presence of the escape hatch listener
 							ns.Proxy.Upstreams[i].DestinationType = structs.UpstreamDestTypePreparedQuery
 
-							ns.Proxy.Upstreams[i].Config["envoy_cluster_json"] =
-								customClusterJSON(t, customClusterJSONOptions{
-									Name: uid.EnvoyID() + ":custom-upstream",
-								})
+							ns.Proxy.Upstreams[i].Config["envoy_cluster_json"] = customClusterJSON(t, customClusterJSONOptions{
+								Name: uid.EnvoyID() + ":custom-upstream",
+							})
 
 						// Also test that http2 options are triggered.
 						// A separate upstream without an override is required to test
@@ -1936,10 +1946,9 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			name: "connect-proxy-with-default-chain-and-custom-cluster",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
-					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-						customAppClusterJSON(t, customClusterJSONOptions{
-							Name: "myservice",
-						})
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] = customAppClusterJSON(t, customClusterJSONOptions{
+						Name: "myservice",
+					})
 				}, nil)
 			},
 			// TODO(proxystate): requires custom cluster work
@@ -1949,10 +1958,9 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			name: "custom-public-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customListenerJSON(t, customListenerJSONOptions{
-							Name: "custom-public-listen",
-						})
+					ns.Proxy.Config["envoy_public_listener_json"] = customListenerJSON(t, customListenerJSONOptions{
+						Name: "custom-public-listen",
+					})
 				}, nil)
 			},
 		},
@@ -1961,10 +1969,9 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
-							Name: "custom-public-listen",
-						})
+					ns.Proxy.Config["envoy_public_listener_json"] = customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+						Name: "custom-public-listen",
+					})
 				}, nil)
 			},
 		},
@@ -1973,11 +1980,10 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
-							Name:                      "custom-public-listen",
-							HTTPConnectionManagerName: httpConnectionManagerNewName,
-						})
+					ns.Proxy.Config["envoy_public_listener_json"] = customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+						Name:                      "custom-public-listen",
+						HTTPConnectionManagerName: httpConnectionManagerNewName,
+					})
 				}, nil)
 			},
 		},
@@ -1986,10 +1992,9 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customListenerJSON(t, customListenerJSONOptions{
-							Name: "custom-public-listen",
-						})
+					ns.Proxy.Config["envoy_public_listener_json"] = customListenerJSON(t, customListenerJSONOptions{
+						Name: "custom-public-listen",
+					})
 				}, nil)
 			},
 		},
@@ -1998,12 +2003,11 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 			overrideGoldenName: "custom-public-listener", // should be the same
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customListenerJSON(t, customListenerJSONOptions{
-							Name: "custom-public-listen",
-							// Attempt to override the TLS context should be ignored
-							TLSContext: `"allowRenegotiation": false`,
-						})
+					ns.Proxy.Config["envoy_public_listener_json"] = customListenerJSON(t, customListenerJSONOptions{
+						Name: "custom-public-listen",
+						// Attempt to override the TLS context should be ignored
+						TLSContext: `"allowRenegotiation": false`,
+					})
 				}, nil)
 			},
 		},

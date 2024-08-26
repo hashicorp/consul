@@ -35,10 +35,6 @@ func (pr *ProxyResources) makeEnvoyRoute(name string) (*envoy_route_v3.RouteConf
 func (pr *ProxyResources) makeEnvoyRouteConfigFromProxystateRoute(name string, psRoute *pbproxystate.Route) *envoy_route_v3.RouteConfiguration {
 	envoyRouteConfig := &envoy_route_v3.RouteConfiguration{
 		Name: name,
-		// ValidateClusters defaults to true when defined statically and false
-		// when done via RDS. Re-set the reasonable value of true to prevent
-		// null-routing traffic.
-		ValidateClusters: response.MakeBoolValue(true),
 	}
 
 	for _, vh := range psRoute.GetVirtualHosts() {

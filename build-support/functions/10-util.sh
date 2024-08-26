@@ -667,3 +667,21 @@ function go_mod_assert {
    fi
    return 0
 }
+
+function get_consul_module_versions {
+  local module_directories
+  module_directories=( "." "api" "envoyextensions" "proto-public" "sdk" "troubleshoot")
+  for module_dir in "${module_directories[@]}"; do
+    echo "Module versions for directory: '$module_dir':"
+    echo "--------------"
+    (cd "$module_dir" && go list -m all | grep -e github.com/hashicorp/consul/api \
+    -e github.com/hashicorp/consul/envoyextensions \
+    -e github.com/hashicorp/consul/proto-public \
+    -e github.com/hashicorp/consul/sdk \
+    -e github.com/hashicorp/consul/troubleshoot \
+    | if [ "$module_dir" != "." ]; then grep -v "consul/$module_dir"; else cat; fi)
+    echo "--------------"
+    echo ""
+  done
+  return 0
+}

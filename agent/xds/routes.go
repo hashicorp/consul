@@ -51,10 +51,19 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	}
 }
 
+func meshValidateClusters(cfgSnap *proxycfg.ConfigSnapshot) bool {
+	validate := false
+	if mesh := cfgSnap.MeshConfig(); mesh != nil {
+		validate = mesh.ValidateClusters
+	}
+	return validate
+}
+
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
 func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
+	validateClusters := meshValidateClusters(cfgSnap)
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		if chain.Default {
 			continue
@@ -76,10 +85,9 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		route := &envoy_route_v3.RouteConfiguration{
 			Name:         uid.EnvoyID(),
 			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
-			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the reasonable value of true to prevent
-			// null-routing traffic.
-			ValidateClusters: response.MakeBoolValue(true),
+		}
+		if validateClusters {
+			route.ValidateClusters = response.MakeBoolValue(true)
 		}
 		resources = append(resources, route)
 	}
@@ -112,7 +120,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	}
 
 	for routeName, clusters := range addressesMap {
-		routes, err := s.makeRoutesForAddresses(routeName, clusters)
+		routes, err := s.makeRoutesForAddresses(routeName, clusters, validateClusters)
 		if err != nil {
 			return nil, err
 		}
@@ -125,10 +133,10 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	return resources, nil
 }
 
-func (s *ResourceGenerator) makeRoutesForAddresses(routeName string, addresses map[string]string) ([]proto.Message, error) {
+func (s *ResourceGenerator) makeRoutesForAddresses(routeName string, addresses map[string]string, validateClusters bool) ([]proto.Message, error) {
 	var resources []proto.Message
 
-	route, err := makeNamedAddressesRoute(routeName, addresses)
+	route, err := makeNamedAddressesRoute(routeName, addresses, validateClusters)
 	if err != nil {
 		s.Logger.Error("failed to make route", "cluster", "error", err)
 		return nil, err
@@ -223,7 +231,8 @@ func (s *ResourceGenerator) makeRoutes(
 	if resolver.LoadBalancer != nil {
 		lb = resolver.LoadBalancer
 	}
-	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite)
+	validateClusters := meshValidateClusters(cfgSnap)
+	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite, validateClusters)
 	if err != nil {
 		s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 		return nil, err
@@ -233,7 +242,7 @@ func (s *ResourceGenerator) makeRoutes(
 	// If there is a service-resolver for this service then also setup routes for each subset
 	for name := range resolver.Subsets {
 		clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite)
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite, validateClusters)
 		if err != nil {
 			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			return nil, err
@@ -276,10 +285,9 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 		route := &envoy_route_v3.RouteConfiguration{
 			Name:         uid.EnvoyID(),
 			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
-			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the reasonable value of true to prevent
-			// null-routing traffic.
-			ValidateClusters: response.MakeBoolValue(true),
+		}
+		if meshValidateClusters(cfgSnap) {
+			route.ValidateClusters = response.MakeBoolValue(true)
 		}
 		resources = append(resources, route)
 	}
@@ -287,7 +295,7 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	return resources, nil
 }
 
-func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, timeout time.Duration, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
+func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, timeout time.Duration, autoHostRewrite bool, validateClusters bool) (*envoy_route_v3.RouteConfiguration, error) {
 	action := makeRouteActionFromName(clusterName)
 
 	if err := injectLBToRouteAction(lb, action.Route); err != nil {
@@ -305,7 +313,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, t
 		action.Route.Timeout = durationpb.New(timeout)
 	}
 
-	return &envoy_route_v3.RouteConfiguration{
+	route := &envoy_route_v3.RouteConfiguration{
 		Name: clusterName,
 		VirtualHosts: []*envoy_route_v3.VirtualHost{
 			{
@@ -319,20 +327,19 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, t
 				},
 			},
 		},
-		// ValidateClusters defaults to true when defined statically and false
-		// when done via RDS. Re-set the reasonable value of true to prevent
-		// null-routing traffic.
-		ValidateClusters: response.MakeBoolValue(true),
-	}, nil
+	}
+	if validateClusters {
+		route.ValidateClusters = response.MakeBoolValue(true)
+	}
+	return route, nil
 }
 
-func makeNamedAddressesRoute(routeName string, addresses map[string]string) (*envoy_route_v3.RouteConfiguration, error) {
+func makeNamedAddressesRoute(routeName string, addresses map[string]string, validateClusters bool) (*envoy_route_v3.RouteConfiguration, error) {
 	route := &envoy_route_v3.RouteConfiguration{
 		Name: routeName,
-		// ValidateClusters defaults to true when defined statically and false
-		// when done via RDS. Re-set the reasonable value of true to prevent
-		// null-routing traffic.
-		ValidateClusters: response.MakeBoolValue(true),
+	}
+	if validateClusters {
+		route.ValidateClusters = response.MakeBoolValue(true)
 	}
 	for clusterName, address := range addresses {
 		action := makeRouteActionFromName(clusterName)
@@ -371,10 +378,10 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 		// don't have custom filter chains and routes to this.
 		defaultRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
-			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the reasonable value of true to prevent
-			// null-routing traffic.
-			ValidateClusters: response.MakeBoolValue(true),
+		}
+		validateClusters := meshValidateClusters(cfgSnap)
+		if validateClusters {
+			defaultRoute.ValidateClusters = response.MakeBoolValue(true)
 		}
 
 		for _, u := range upstreams {
@@ -422,9 +429,11 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 				defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 			} else {
 				svcRoute := &envoy_route_v3.RouteConfiguration{
-					Name:             svcRouteName,
-					ValidateClusters: response.MakeBoolValue(true),
-					VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
+					Name:         svcRouteName,
+					VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
+				}
+				if validateClusters {
+					svcRoute.ValidateClusters = response.MakeBoolValue(true)
 				}
 				result = append(result, svcRoute)
 			}
@@ -460,10 +469,10 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 
 		listenerRoute := &envoy_route_v3.RouteConfiguration{
 			Name: readyListener.listenerKey.RouteName(),
-			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the reasonable value of true to prevent
-			// null-routing traffic.
-			ValidateClusters: response.MakeBoolValue(true),
+		}
+		validateClusters := meshValidateClusters(cfgSnap)
+		if validateClusters {
+			listenerRoute.ValidateClusters = response.MakeBoolValue(true)
 		}
 
 		// Consolidate all routes for this listener into the minimum possible set based on hostname matching.
