@@ -3,7 +3,7 @@ module github.com/hashicorp/consul/test-integ
 go 1.20
 
 require (
-	github.com/hashicorp/consul/api v1.28.4
+	github.com/hashicorp/consul/api v1.27.2
 	github.com/hashicorp/consul/proto-public v0.5.3
 	github.com/hashicorp/consul/sdk v0.16.0
 	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230628201853-bdf4fad7c5a5
