@@ -13,7 +13,11 @@ on:
       - 'backport/docs/**'
       - 'backport/ui/**'
       - 'backport/mktg-**'
-
+  push:
+    branches:
+      # Push events on the main branch
+      - main
+      - release/**
 env:
   TEST_RESULTS_DIR: /tmp/test-results
   TEST_RESULTS_ARTIFACT_NAME: test-results
