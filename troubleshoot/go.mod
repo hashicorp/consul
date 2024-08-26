@@ -2,10 +2,6 @@ module github.com/hashicorp/consul/troubleshoot
 
 go 1.19
 
-replace github.com/hashicorp/consul/api => ../api
-
-replace github.com/hashicorp/consul/envoyextensions => ../envoyextensions
-
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
