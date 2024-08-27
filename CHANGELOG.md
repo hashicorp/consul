@@ -1,3 +1,9 @@
+## 1.17.7 Enterprise (August 27, 2024)
+
+IMPROVEMENTS:
+
+* Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
+
 ## 1.17.5 Enterprise (May 14, 2024)
 
 SECURITY:
