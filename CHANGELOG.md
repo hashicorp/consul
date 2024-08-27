@@ -1,3 +1,43 @@
+## 1.19.2 (August 26, 2024)
+
+SECURITY:
+
+* ui: Upgrade modules with d3-color as a dependency to address denial of service issue in d3-color < 3.1.0 [[GH-21588](https://github.com/hashicorp/consul/issues/21588)]
+
+IMPROVEMENTS:
+
+* Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
+
+BUG FIXES:
+
+* api-gateway: **(Enterprise only)** ensure clusters are properly created for JWT providers with a remote URI for the JWKS endpoint [[GH-21604](https://github.com/hashicorp/consul/issues/21604)]
+
+## 1.19.1 (July 11, 2024)
+
+SECURITY:
+
+* Upgrade envoy module dependencies to version 1.27.7, 1.28.5 and 1.29.7 or higher to resolve [CVE-2024-39305](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-39305) [[GH-21524](https://github.com/hashicorp/consul/issues/21524)]
+* Upgrade go version to 1.22.5 to address [CVE-2024-24791](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-24791) [[GH-21507](https://github.com/hashicorp/consul/issues/21507)]
+* Upgrade go-retryablehttp to address [CVE-2024-6104](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-6104) [[GH-21384](https://github.com/hashicorp/consul/issues/21384)]
+* agent: removed reflected cross-site scripting vulnerability [[GH-21342](https://github.com/hashicorp/consul/issues/21342)]
+* ui: Pin and namespace sub-module dependencies related to the Consul UI [[GH-21378](https://github.com/hashicorp/consul/issues/21378)]
+
+IMPROVEMENTS:
+
+* mesh: update supported envoy version 1.29.5 in addition to 1.28.4, 1.27.6. [[GH-21277](https://github.com/hashicorp/consul/issues/21277)]
+
+BUG FIXES:
+
+* core: Fix multiple incorrect type conversion for potential overflows [[GH-21251](https://github.com/hashicorp/consul/issues/21251)]
+* core: Fix panic runtime error on AliasCheck [[GH-21339](https://github.com/hashicorp/consul/issues/21339)]
+* dns: Fix a regression where DNS SRV questions were returning duplicate hostnames instead of encoded IPs.
+  This affected Nomad integrations with Consul. [[GH-21361](https://github.com/hashicorp/consul/issues/21361)]
+* dns: Fix a regression where DNS tags using the standard lookup syntax, `tag.name.service.consul`, were being disregarded. [[GH-21361](https://github.com/hashicorp/consul/issues/21361)]
+* dns: Fixes a spam log message "Failed to parse TTL for prepared query..."
+  that was always being logged on each prepared query evaluation. [[GH-21381](https://github.com/hashicorp/consul/issues/21381)]
+* terminating-gateway: **(Enterprise Only)** Fixed issue where enterprise metadata applied to linked services was the terminating-gateways enterprise metadata and not the linked services enterprise metadata. [[GH-21382](https://github.com/hashicorp/consul/issues/21382)]
+* txn: Fix a bug where mismatched Consul server versions could result in undetected data loss for when using newer Transaction verbs. [[GH-21519](https://github.com/hashicorp/consul/issues/21519)]
+
 ## 1.19.0 (June 12, 2024)
 
 BREAKING CHANGES:
