@@ -51,8 +51,6 @@ IMPROVEMENTS:
 
 ## 1.17.7 Enterprise (August 26, 2024)
 
-Enterprise LTS: Consul Enterprise 1.17 is a Long-Term Support (LTS) release.
-
 SECURITY:
 * ui: Upgrade modules with d3-color as a dependency to address denial of service issue in d3-color < 3.1.0
 
