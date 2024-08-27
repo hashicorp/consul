@@ -1,3 +1,28 @@
+## 1.17.7 Enterprise (August 26, 2024)
+
+SECURITY:
+* ui: Upgrade modules with d3-color as a dependency to address denial of service issue in d3-color < 3.1.0
+
+IMPROVEMENTS:
+
+* Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
+
+
+## 1.17.6 Enterprise (July 11, 2024)
+SECURITY:
+* Upgrade envoy module dependencies to version 1.27.7, 1.28.5 and 1.29.7 or higher to resolve [CVE-2024-39305](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-39305) [[GH-21524](https://github.com/hashicorp/consul/issues/21524)]
+* Upgrade go version to 1.22.5 to address [CVE-2024-24791](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-24791) [[GH-21507](https://github.com/hashicorp/consul/issues/21507)]
+* Upgrade go-retryablehttp to address [CVE-2024-6104](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-6104) [[GH-21384](https://github.com/hashicorp/consul/issues/21384)]
+* agent: removed reflected cross-site scripting vulnerability [[GH-21342](https://github.com/hashicorp/consul/issues/21342)]
+* ui: Pin and namespace sub-module dependencies related to the Consul UI [[GH-21378](https://github.com/hashicorp/consul/issues/21378)]
+  IMPROVEMENTS:
+* upgrade go version to v1.22.3. [[GH-21113](https://github.com/hashicorp/consul/issues/21113)]
+* upgrade go version to v1.22.4. [[GH-21265](https://github.com/hashicorp/consul/issues/21265)]
+  BUG FIXES:
+* core: Fix panic runtime error on AliasCheck [[GH-21339](https://github.com/hashicorp/consul/issues/21339)]
+* terminating-gateway: **(Enterprise Only)** Fixed issue where enterprise metadata applied to linked services was the terminating-gateways enterprise metadata and not the linked services enterprise metadata. [[GH-21382](https://github.com/hashicorp/consul/issues/21382)]
+* txn: Fix a bug where mismatched Consul server versions could result in undetected data loss for when using newer Transaction verbs. [[GH-21519](https://github.com/hashicorp/consul/issues/21519)]
+
 ## 1.17.5 Enterprise (May 14, 2024)
 
 SECURITY:
