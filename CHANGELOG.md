@@ -3,6 +3,7 @@
 Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
 
 SECURITY:
+
 * ui: Upgrade modules with d3-color as a dependency to address denial of service issue in d3-color < 3.1.0
 
 IMPROVEMENTS:
@@ -10,19 +11,26 @@ IMPROVEMENTS:
 * Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
 
 ## 1.18.3 Enterprise (July 11, 2024)
+
 **Enterprise LTS**: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
 SECURITY:
+
 * Upgrade envoy module dependencies to version 1.27.7, 1.28.5 and 1.29.7 or higher to resolve [CVE-2024-39305](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-39305) [[GH-21524](https://github.com/hashicorp/consul/issues/21524)]
 * Upgrade go version to 1.22.5 to address [CVE-2024-24791](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-24791) [[GH-21507](https://github.com/hashicorp/consul/issues/21507)]
 * Upgrade go-retryablehttp to address [CVE-2024-6104](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-6104) [[GH-21384](https://github.com/hashicorp/consul/issues/21384)]
 * agent: removed reflected cross-site scripting vulnerability [[GH-21342](https://github.com/hashicorp/consul/issues/21342)]
 * ui: Pin and namespace sub-module dependencies related to the Consul UI [[GH-21378](https://github.com/hashicorp/consul/issues/21378)]
-  IMPROVEMENTS:
+
+IMPROVEMENTS:
+
 * mesh: update supported envoy version 1.29.4
 * mesh: update supported envoy version 1.29.5 in addition to 1.28.4, 1.27.6. [[GH-21277](https://github.com/hashicorp/consul/issues/21277)]
 * upgrade go version to v1.22.3. [[GH-21113](https://github.com/hashicorp/consul/issues/21113)]
 * upgrade go version to v1.22.4. [[GH-21265](https://github.com/hashicorp/consul/issues/21265)]
-  BUG FIXES:
+
+BUG FIXES:
+
 * core: Fix multiple incorrect type conversion for potential overflows [[GH-21251](https://github.com/hashicorp/consul/issues/21251)]
 * core: Fix panic runtime error on AliasCheck [[GH-21339](https://github.com/hashicorp/consul/issues/21339)]
 * dns: Fixes a spam log message "Failed to parse TTL for prepared query..."
