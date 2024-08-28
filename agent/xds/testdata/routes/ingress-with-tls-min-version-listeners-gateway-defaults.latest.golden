@@ -4,7 +4,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "8080",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -28,7 +27,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "8081",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -52,7 +50,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "8082",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -76,7 +73,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "8083",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -100,7 +96,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "8084",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [

@@ -6,6 +6,7 @@ package dns
 import (
 	"context"
 	"fmt"
+	agentdns "github.com/hashicorp/consul/agent/dns"
 	"net"
 
 	"github.com/hashicorp/go-hclog"
@@ -41,61 +42,6 @@ func (s *Server) Register(registrar grpc.ServiceRegistrar) {
 	pbdns.RegisterDNSServiceServer(registrar, s)
 }
 
-// BufferResponseWriter writes a DNS response to a byte buffer.
-type BufferResponseWriter struct {
-	responseBuffer []byte
-	LocalAddress   net.Addr
-	RemoteAddress  net.Addr
-	Logger         hclog.Logger
-}
-
-// LocalAddr returns the net.Addr of the server
-func (b *BufferResponseWriter) LocalAddr() net.Addr {
-	return b.LocalAddress
-}
-
-// RemoteAddr returns the net.Addr of the client that sent the current request.
-func (b *BufferResponseWriter) RemoteAddr() net.Addr {
-	return b.RemoteAddress
-}
-
-// WriteMsg writes a reply back to the client.
-func (b *BufferResponseWriter) WriteMsg(m *dns.Msg) error {
-	// Pack message to bytes first.
-	msgBytes, err := m.Pack()
-	if err != nil {
-		b.Logger.Error("error packing message", "err", err)
-		return err
-	}
-	b.responseBuffer = msgBytes
-	return nil
-}
-
-// Write writes a raw buffer back to the client.
-func (b *BufferResponseWriter) Write(m []byte) (int, error) {
-	b.Logger.Debug("Write was called")
-	return copy(b.responseBuffer, m), nil
-}
-
-// Close closes the connection.
-func (b *BufferResponseWriter) Close() error {
-	// There's nothing for us to do here as we don't handle the connection.
-	return nil
-}
-
-// TsigStatus returns the status of the Tsig.
-func (b *BufferResponseWriter) TsigStatus() error {
-	// TSIG doesn't apply to this response writer.
-	return nil
-}
-
-// TsigTimersOnly sets the tsig timers only boolean.
-func (b *BufferResponseWriter) TsigTimersOnly(bool) {}
-
-// Hijack lets the caller take over the connection.
-// After a call to Hijack(), the DNS package will not do anything with the connection. {
-func (b *BufferResponseWriter) Hijack() {}
-
 // Query is a gRPC endpoint that will serve dns requests. It will be consumed primarily by the
 // consul dataplane to proxy dns requests to consul.
 func (s *Server) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.QueryResponse, error) {
@@ -121,21 +67,29 @@ func (s *Server) Query(ctx context.Context, req *pbdns.QueryRequest) (*pbdns.Que
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("error protocol type not set: %v", req.GetProtocol()))
 	}
 
-	respWriter := &BufferResponseWriter{
-		LocalAddress:  local,
-		RemoteAddress: remote,
-		Logger:        s.Logger,
+	reqCtx, err := agentdns.NewContextFromGRPCContext(ctx)
+	if err != nil {
+		s.Logger.Error("error parsing DNS context from grpc metadata", "err", err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("error parsing DNS context from grpc metadata: %s", err.Error()))
+	}
+
+	respWriter := &agentdns.BufferResponseWriter{
+		LocalAddress:   local,
+		RemoteAddress:  remote,
+		Logger:         s.Logger,
+		RequestContext: reqCtx,
 	}
 
 	msg := &dns.Msg{}
-	err := msg.Unpack(req.Msg)
+	err = msg.Unpack(req.Msg)
 	if err != nil {
 		s.Logger.Error("error unpacking message", "err", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failure decoding dns request: %s", err.Error()))
 	}
+
 	s.DNSServeMux.ServeDNS(respWriter, msg)
 
-	queryResponse := &pbdns.QueryResponse{Msg: respWriter.responseBuffer}
+	queryResponse := &pbdns.QueryResponse{Msg: respWriter.ResponseBuffer()}
 
 	return queryResponse, nil
 }

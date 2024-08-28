@@ -54,6 +54,7 @@ jobs:
       ref: release/1.18.x
 
   get-envoy-versions:
+    needs: [check-ent]
     uses: ./.github/workflows/reusable-get-envoy-versions.yml
     with:
       ref: release/1.18.x

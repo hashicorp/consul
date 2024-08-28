@@ -8,6 +8,8 @@ replace (
 	github.com/hashicorp/consul/sdk => ../sdk
 )
 
+retract v0.7.2 // tag was mutated
+
 require (
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/google/go-cmp v0.5.9

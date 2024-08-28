@@ -612,7 +612,7 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	{
 		"Kind": "service-defaults",
 		"Name": "foo",
-		"Protocol": "udp"
+		"Protocol": "http"
 	}
 	`))
 	req, _ = http.NewRequest("PUT", "/v1/config?cas=0", body)
@@ -628,7 +628,7 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	{
 		"Kind": "service-defaults",
 		"Name": "foo",
-		"Protocol": "udp"
+		"Protocol": "http"
 	}
 	`))
 	req, _ = http.NewRequest("PUT", fmt.Sprintf("/v1/config?cas=%d", entry.GetRaftIndex().ModifyIndex), body)

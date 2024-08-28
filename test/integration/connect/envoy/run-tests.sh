@@ -553,8 +553,7 @@ function suite_setup {
     docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        k8s.gcr.io/pause &>/dev/null
-    # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
+        registry.k8s.io/pause &>/dev/null
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
