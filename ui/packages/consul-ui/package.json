@@ -194,7 +194,7 @@
     "tracked-built-ins": "^3.1.0",
     "unist-util-visit": "^2.0.3",
     "wayfarer": "^7.0.1",
-    "webpack": "^5.74.0"
+    "webpack": "^5.94.0"
   },
   "engines": {
     "node": "18"
