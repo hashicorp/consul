@@ -1,3 +1,49 @@
+## 1.19.2 (August 26, 2024)
+
+SECURITY:
+
+* ui: Upgrade modules with d3-color as a dependency to address denial of service issue in d3-color < 3.1.0 [[GH-21588](https://github.com/hashicorp/consul/issues/21588)]
+
+IMPROVEMENTS:
+
+* Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
+
+BUG FIXES:
+
+* api-gateway: **(Enterprise only)** ensure clusters are properly created for JWT providers with a remote URI for the JWKS endpoint [[GH-21604](https://github.com/hashicorp/consul/issues/21604)]
+
+## 1.18.4 Enterprise (August 26, 2024)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+
+SECURITY:
+* ui: Upgrade modules with d3-color as a dependency to address denial of service issue in d3-color < 3.1.0
+
+IMPROVEMENTS:
+
+* Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
+
+## 1.17.7 Enterprise (August 26, 2024)
+
+SECURITY:
+* ui: Upgrade modules with d3-color as a dependency to address denial of service issue in d3-color < 3.1.0
+
+IMPROVEMENTS:
+
+* Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
+
+## 1.15.14 Enterprise (August 26, 2024)
+
+Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+
+SECURITY:
+
+* ui: Upgrade modules with d3-color as a dependency to address denial of service issue in d3-color < 3.1.0 [[GH-21588](https://github.com/hashicorp/consul/issues/21588)]
+
+IMPROVEMENTS:
+
+* Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
+
 ## 1.19.1 (July 11, 2024)
 
 SECURITY:
