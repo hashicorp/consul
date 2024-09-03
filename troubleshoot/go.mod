@@ -14,11 +14,17 @@ exclude (
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
 )
 
+retract (
+	v0.6.4 // tag was mutated
+	v0.6.2 // tag has incorrect line of deps
+	v0.6.1 // tag has incorrect line of deps
+)
+
 require (
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
-	github.com/hashicorp/consul/api v1.29.1
-	github.com/hashicorp/consul/envoyextensions v0.7.0
+	github.com/hashicorp/consul/api v1.29.4
+	github.com/hashicorp/consul/envoyextensions v0.7.3
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/protobuf v1.33.0

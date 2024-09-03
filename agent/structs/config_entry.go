@@ -12,12 +12,11 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
-
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -267,6 +266,12 @@ func (e *ServiceConfigEntry) Validate() error {
 
 	if !isValidConnectionBalance(e.BalanceInboundConnections) {
 		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for balance_inbound_connections: %v", e.BalanceInboundConnections))
+	}
+
+	switch e.Protocol {
+	case "", "http", "http2", "grpc", "tcp":
+	default:
+		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for protocol: %v", e.Protocol))
 	}
 
 	// External endpoints are invalid with an existing service's upstream configuration
