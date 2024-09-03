@@ -9,6 +9,10 @@ description: >-
 
 This topic describes the two different encryption systems available in Consul to secure network traffic, Gossip encryption and mTLS.
 
+[Consul security model](/consul/docs/security/security-models/core) defines the guidelines for operating a secure Consul deployment. Its recommendations are applicable only if all parts of the system are running with a secure configuration. 
+
+[Gossip Encryption](/consul/docs/security/encryption#gossip-encryption) and [Mutual TLS Encryption](/consul/docs/security/encryption#mutual-tls-mtls-encryption) are the foundations for a secure Consul datacenter.
+
 ## Gossip Encryption
 
 Consul uses a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol) to manage membership and broadcast messages to the cluster.
