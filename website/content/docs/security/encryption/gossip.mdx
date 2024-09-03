@@ -40,37 +40,30 @@ starting the Consul agent. The key can be set via the `encrypt` parameter.
 
 Enabling gossip encryption on a new datacenter is a straightforward process and should be the default approach for all new datacenters you are deploying.
 
-- **Step 1**: Generate an encryption key using `consul keygen`.
+**Step 1**: Generate an encryption key using `consul keygen`.
     
-    ```shell-session
-    $ consul keygen
-    pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
-    ```
-- **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
-    
-    <CodeTabs>
-    
-    <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
-    
-    ```hcl
-    encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
-    ```
-    
-    </CodeBlockConfig>
-    
-    <CodeBlockConfig filename="/etc/consul.d/encryption.json">
-    
-    ```json
-{
-  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
-}
-    ```
-    
-    </CodeBlockConfig>
-    
-    </CodeTabs>
+```shell-session
+$ consul keygen
+pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
+```
 
-- **Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and start the Consul agent on all the nodes.
+**Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
+    
+<CodeTabs heading="Consul agent gossip encryption configuration">
+    
+```hcl
+encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
+```
+    
+```json
+{
+	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
+}
+```
+    
+</CodeTabs>
+
+**Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and start the Consul agent on all the nodes.
 
 If gossip encryption is properly configured `Gossip Encryption: true` will be shown in the logs at startup.
 
@@ -103,95 +96,72 @@ If gossip encryption is properly configured `Gossip Encryption: true` will be sh
 
 Gossip encryption can also be enabled on existing datacenters, but requires several extra steps.
 
-- **Step 1**: Generate an encryption key using `consul keygen`.
+**Step 1**: Generate an encryption key using `consul keygen`.
     
-    ```shell-session
-    $ consul keygen
-    pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
-    ```
-- **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key. Set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false`. 
-    
-    <CodeTabs>
-    
-    <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
-    
-    ```hcl
-    encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
-		encrypt_verify_incoming = false
-		encrypt_verify_outgoing = false
-    ```
-    
-    </CodeBlockConfig>
-    
-    <CodeBlockConfig filename="/etc/consul.d/encryption.json">
-    
-    ```json
-{
-  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
-  "encrypt_verify_incoming": false,
-  "encrypt_verify_outgoing": false
-}
-    ```
-    
-    </CodeBlockConfig>
-    
-    </CodeTabs>
+```shell-session
+$ consul keygen
+pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
+```
 
-- **Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and initiate a rolling update of all the 
+**Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key. Set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false`. 
+    
+<CodeTabs heading="Consul agent gossip encryption configuration">
+    
+```hcl
+encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
+encrypt_verify_incoming = false
+encrypt_verify_outgoing = false
+```
+    
+```json
+{
+	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
+	"encrypt_verify_incoming": false,
+	"encrypt_verify_outgoing": false
+}
+```
+    
+</CodeTabs>
+
+**Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and initiate a rolling update of all the 
 agents with these new values. After this step, the agents will be able to decrypt gossip but will not yet be able to send encrypted traffic. A rolling update can be made by restarting the Consul agents (clients and servers) in turn. `consul reload` or `kill -HUP <process_id>` is _not_ sufficient to change the gossip configuration.
 
-- **Step 4**: Update the `encrypt_verify_outgoing` setting to `true` and perform another rolling update of all the agents by restarting Consul on each agent. The agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic. Complete the process on all the nodes before moving to the next step.
+**Step 4**: Update the `encrypt_verify_outgoing` setting to `true` and perform another rolling update of all the agents by restarting Consul on each agent. The agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic. Complete the process on all the nodes before moving to the next step.
 
-    <CodeTabs>
+<CodeTabs heading="Consul agent gossip encryption configuration">
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
-    
-    ```hcl
-    encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
-		encrypt_verify_incoming = false
-		encrypt_verify_outgoing = true
-    ```
-    
-    </CodeBlockConfig>
-    
-    <CodeBlockConfig filename="/etc/consul.d/encryption.json">
-    
-    ```json
+```hcl
+encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
+encrypt_verify_incoming = false
+encrypt_verify_outgoing = true
+```
+        
+```json
 {
-  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
-  "encrypt_verify_incoming": false,
-  "encrypt_verify_outgoing": true
+	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
+	"encrypt_verify_incoming": false,
+	"encrypt_verify_outgoing": true
 }
-    ```
+```
     
-    </CodeBlockConfig>
-    
-    </CodeTabs>
+</CodeTabs>
 
-- **Step 4**: Update the `encrypt_verify_incoming` setting to `true` and perform a final rolling update on all the agents.
+**Step 4**: Update the `encrypt_verify_incoming` setting to `true` and perform a final rolling update on all the agents.
 
-    <CodeTabs>
+<CodeTabs heading="Consul agent gossip encryption configuration">
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
-    
-    ```hcl
-    encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
-		encrypt_verify_incoming = true
-		encrypt_verify_outgoing = true
-    ```
-    
-    </CodeBlockConfig>
-    
-    <CodeBlockConfig filename="/etc/consul.d/encryption.json">
-    
-    ```json
+```hcl
+encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
+encrypt_verify_incoming = true
+encrypt_verify_outgoing = true
+```
+	
+```json
 {
-  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
-  "encrypt_verify_incoming": true,
-  "encrypt_verify_outgoing": true
+	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
+	"encrypt_verify_incoming": true,
+	"encrypt_verify_outgoing": true
 }
-    ```
-    
-    </CodeBlockConfig>
-    
-    </CodeTabs>
+```
+	
+</CodeTabs>
