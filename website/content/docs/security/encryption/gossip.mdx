@@ -61,10 +61,10 @@ Enabling gossip encryption on a new datacenter is a straightforward process and 
   <CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
   ```json
-	{
-  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
-	}
-  ```
+{
+"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
+}
+```
     
   </CodeBlockConfig>
     
@@ -127,12 +127,12 @@ Gossip encryption can also be enabled on existing datacenters, but requires seve
   <CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
   ```json
-	{
-  	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
-  	"encrypt_verify_incoming": false,
-  	"encrypt_verify_outgoing": false
-	}
-  ```
+{
+	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
+	"encrypt_verify_incoming": false,
+	"encrypt_verify_outgoing": false
+}
+```
     
   </CodeBlockConfig>
     
@@ -158,12 +158,12 @@ agents with these new values. After this step, the agents will be able to decryp
   <CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
   ```json
-	{
-  	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
-  	"encrypt_verify_incoming": false,
-  	"encrypt_verify_outgoing": true
-	}
-  ```
+{
+	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
+	"encrypt_verify_incoming": false,
+	"encrypt_verify_outgoing": true
+}
+```
     
   </CodeBlockConfig>
     
@@ -186,12 +186,12 @@ agents with these new values. After this step, the agents will be able to decryp
 	<CodeBlockConfig filename="/etc/consul.d/encryption.json">
 	
 	```json
-	{
-  	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
-  	"encrypt_verify_incoming": true,
-  	"encrypt_verify_outgoing": true
-	}
-  ```
+{
+	"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
+	"encrypt_verify_incoming": true,
+	"encrypt_verify_outgoing": true
+}
+```
     
 	</CodeBlockConfig>
 	
