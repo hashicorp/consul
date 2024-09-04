@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	"github.com/hashicorp/hcl"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -3224,6 +3224,14 @@ func TestServiceConfigEntry(t *testing.T) {
 				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
 			},
 			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
+		},
+		"validate: invalid Protocol in service-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "web",
+				Protocol: "blah",
+			},
+			validateErr: `invalid value for protocol: blah`,
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)

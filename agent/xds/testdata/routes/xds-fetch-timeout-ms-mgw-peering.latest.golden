@@ -4,7 +4,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "bar",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -27,7 +26,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "foo",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -50,7 +48,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "gir",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [

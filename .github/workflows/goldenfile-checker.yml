@@ -1,0 +1,43 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# This workflow checks that are no changes necessary to golden files for xds 
+# tests ensuring they are up to date
+
+name: Golden File Checker
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+    # Runs on PRs to main and all release branches
+    branches:
+      - main
+      - release/*
+
+jobs:
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+  # checks that there is no diff between the existing golden files
+  goldenfile-check:
+    runs-on: ubuntu-latest
+    needs: 
+      - get-go-version
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+      - name: Download Modules
+        run: go mod download
+      - name: Check for golden file xds tests in diff
+        run: ./.github/scripts/goldenfile_checker.sh
+        env:
+          GITHUB_BRANCH_REF: ${{ github.event.pull_request.head.ref }}
+          CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}

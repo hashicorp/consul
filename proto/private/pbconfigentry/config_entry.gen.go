@@ -1710,6 +1710,7 @@ func MeshConfigToStructs(s *MeshConfig, t *structs.MeshConfigEntry) {
 		TransparentProxyMeshConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
 	}
 	t.AllowEnablingPermissiveMutualTLS = s.AllowEnablingPermissiveMutualTLS
+	t.ValidateClusters = s.ValidateClusters
 	if s.TLS != nil {
 		var x structs.MeshTLSConfig
 		MeshTLSConfigToStructs(s.TLS, &x)
@@ -1738,6 +1739,7 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 		s.TransparentProxy = &x
 	}
 	s.AllowEnablingPermissiveMutualTLS = t.AllowEnablingPermissiveMutualTLS
+	s.ValidateClusters = t.ValidateClusters
 	if t.TLS != nil {
 		var x MeshTLSConfig
 		MeshTLSConfigFromStructs(t.TLS, &x)

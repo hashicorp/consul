@@ -23,7 +23,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
-	github.com/aws/aws-sdk-go v1.44.289
+	github.com/aws/aws-sdk-go v1.55.5
 	github.com/coreos/go-oidc/v3 v3.9.0
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/docker/go-connections v0.4.0
@@ -43,11 +43,11 @@ require (
 	github.com/hashi-derek/grpc-proxy v0.0.0-20231207191910-191266484d75
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.29.1
-	github.com/hashicorp/consul/envoyextensions v0.7.0
-	github.com/hashicorp/consul/proto-public v0.6.1
+	github.com/hashicorp/consul/api v1.29.4
+	github.com/hashicorp/consul/envoyextensions v0.7.3
+	github.com/hashicorp/consul/proto-public v0.6.2
 	github.com/hashicorp/consul/sdk v0.16.1
-	github.com/hashicorp/consul/troubleshoot v0.6.1
+	github.com/hashicorp/consul/troubleshoot v0.7.1
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2

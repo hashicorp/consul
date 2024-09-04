@@ -615,14 +615,8 @@ func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
 		"primary server no experiments": {
 			hcl: primary + `experiments = []`,
 		},
-		"primary server v1dns": {
-			hcl: primary + `experiments = ["v1dns"]`,
-		},
 		"secondary server no experiments": {
 			hcl: secondary + `experiments = []`,
-		},
-		"secondary server v1dns": {
-			hcl: secondary + `experiments = ["v1dns"]`,
 		},
 	}
 

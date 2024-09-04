@@ -49,15 +49,6 @@ type Deps struct {
 	EnterpriseDeps
 }
 
-// UseV1DNS returns true if "v1dns" is present in the Experiments
-// array of the agent config. It is ignored if the v2 resource APIs are enabled.
-func (d Deps) UseV1DNS() bool {
-	if stringslice.Contains(d.Experiments, V1DNSExperimentName) {
-		return true
-	}
-	return false
-}
-
 type GRPCClientConner interface {
 	ClientConn(datacenter string) (*grpc.ClientConn, error)
 	ClientConnLeader() (*grpc.ClientConn, error)

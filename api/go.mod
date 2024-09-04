@@ -7,11 +7,15 @@ replace (
 	github.com/hashicorp/consul/sdk => ../sdk
 )
 
-retract v1.28.0 // tag was mutated
+retract (
+	v1.28.0 // tag was mutated
+	v1.27.1 // tag was mutated
+	v1.21.2 // tag was mutated
+)
 
 require (
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/consul/proto-public v0.6.1
+	github.com/hashicorp/consul/proto-public v0.6.2
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
