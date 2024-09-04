@@ -41,7 +41,7 @@ $ consul tls ca create -domain=consul
 ==> Saved consul-agent-ca-key.pem
 ```
 
-The command generates two files, `<domain>-agent-ca.pem` and `<domain>-agent-ca-key.pem`. In this ecample the doamin used to generate the certificates is the default one, `consul`.
+The command generates two files, `<domain>-agent-ca.pem` and `<domain>-agent-ca-key.pem`. In this example the domain used to generate the certificates is the default one, `consul`.
 
 The CA certificate, `consul-agent-ca.pem`, contains the public key necessary to validate Consul certificates and therefore must be distributed to **every** node
 that runs a consul agent.
@@ -50,25 +50,25 @@ The CA key, `consul-agent-ca-key.pem`, will be used to sign certificates for Con
 
 ## Create server certificates
 
-Create a server certificate for datacenter `dc1` and domain `consul`, if your
-datacenter or domain is different, remember to use the appropriate flags.
+In order to authenticate Consul servers, servers are provided with a special certificate that contains `server.<domain>.<datacenter>` in the `Common Name` and in the `Subject Alternative Name`. If you enable [`verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname), only agents that provide such certificate are allowed to boot as a server.
 
-Repeat this process on the same node where you created the CA, until there is an _individual_ certificate for each
-server. The command can be called over and over again, it will automatically increase
-the certificate and key numbers. You will need to distribute the certificates to the servers.
+Without `verify_server_hostname = true` an attacker could compromise a Consul client agent and restart the agent as a server in order to get access to all the
+data in your datacenter! This is why server certificates are special, and only servers should have them provisioned.
+
+<Note>
+
+Server keys, like the CA key, must be kept private - they effectively allow access to all Consul data.
+
+</Note>
+
+
+Create a server certificate for datacenter `dc1` and domain `consul`, if your datacenter or domain is different, remember to use the appropriate flags.
 
 <Tabs>
 <Tab heading="Single Consul Datacenter">
 
-
 ```shell-session
-$ consul tls cert create -server -dc <dc_name>
-```
-
-Below is an example for datacenter "dc1".
-
-```shell-session
-$ consul tls cert create -server -dc dc1
+$ consul tls cert create -server -dc=dc1 -domain=consul
 ==> WARNING: Server Certificates grants authority to become a
     server and access all state in the cluster including root keys
     and all ACL tokens. Do not distribute them to production hosts
@@ -81,21 +81,14 @@ $ consul tls cert create -server -dc dc1
 </Tab>
 <Tab heading="Federated Consul Datacenter">
 
-A federated Consul environment requires the server certificate to include the names
-of all Consul datacenters that are within the federated environment.
+A federated Consul environment requires the server certificate to include the names of all Consul datacenters that are within the federated environment.
   
-The `-additional-dnsname` flag allows you to provide an additional DNS name for
-Subject Alternative Names. _localhost_ is always included. This flag may be provided
-multiple times.
+The `-additional-dnsname` flag allows you to provide an additional DNS name for Subject Alternative Names. _localhost_ is always included. This flag may be provided multiple times.
+
+Below is an example for a federated environment that contains two consul datacenters, `dc1` and `dc2`.
 
 ```shell-session
-$ consul tls cert create -server -dc <dc_name> -additional-dnsname=<secondary_consul_server_name>
-```
-
-Below is an example for a federated environment that contains two consul datacenters.
-
-```shell-session
-$ consul tls cert create -server -dc dc1 -additional-dnsname="*.dc2.consul"
+$ consul tls cert create -server -dc dc1 -domain=consul -additional-dnsname="server.dc2.consul"
 ==> WARNING: Server Certificates grants authority to become a
     server and access all state in the cluster including root keys
     and all ACL tokens. Do not distribute them to production hosts
@@ -105,33 +98,97 @@ $ consul tls cert create -server -dc dc1 -additional-dnsname="*.dc2.consul"
 ==> Saved dc1-server-consul-0-key.pem
 ```
 
-~> **NOTE** See the [consul TLS cert documentation](/consul/commands/tls/cert) to learn more about TLS cert creation options.
-
 </Tab>
 </Tabs>
 
+Repeat this process on the same node where you created the CA, until there is an _individual_ certificate for each server. The command can be called over and over again, it will automatically increase the certificate and key numbers. You will need to distribute the certificates to the servers.
 
-In order to authenticate Consul servers, servers are provided with a special
-certificate - one that contains `server.dc1.consul` in the `Common Name` and in the `Subject Alternative Name`. If you enable
-[`verify_server_hostname`](/consul/docs/agent/config/config-files#verify_server_hostname),
-only agents that provide such certificate are allowed to boot as a server.
-Without `verify_server_hostname = true` an attacker could compromise a Consul
-client agent and restart the agent as a server in order to get access to all the
-data in your datacenter! This is why server certificates are special, and only
-servers should have them provisioned.
+### Distribute the server certificates
 
-~> **NOTE** Server keys, like the CA key, must be kept private - they effectively allow
-access to all Consul data.
+After generating the server certificates, you will need to distribute them to the Consul servers and put their on-disk location in the agent configuration file.
 
+The following files need to be copied to your Consul server:
 
+- `consul-agent-ca.pem`: CA public certificate.
+- `dc1-server-consul-0.pem`: Consul server node public certificate for first server node in the `dc1` datacenter in the `consul` domain.
+- `dc1-server-consul-0-key.pem`: Consul server node private key for first server node in the `dc1` datacenter in the `consul` domain.
 
 ## Configure server agents
 
-## Generate client certificates
+There are two methods for configuring Consul server agents depending on the way you want to distribute certificates to the client agents: 
+- auto encryption method, that uses the Consul Connect CA to generate client certificates, which are automatically distributed to all Consul clients.
+- operator method, that requires you to manually generate client certificates and distribute them to the single client agents.
+
+We recommend the auto-encryption method to alleviate the client certificate generation and distribution step for operators. Using auto-encryption the client certificates will also be automatically rotated without the need for an operator intervention.
+
+Use the operator method if you need to use a third-party CA or need more fine-grained control over certificate management. 
+
+<Tabs>
+<Tab heading="Auto-encryption method">
+
+Test Auto
+
+</Tab>
+<Tab heading="Operator method">
+
+Test Operator
+
+</Tab>
+
+</Tabs>
+
+## Start Consul servers
+
+Now that you have configured your servers, you can start the Consul process.
+
+```shell-session
+$ systemctl start consul
+```
+
+Your servers will only be communicating with TLS encryption for RPC and consensus.
 
 ## Configure client agents
 
+There are two methods for distributing client certificates: auto encryption and operator. We recommend the auto-encryption method to alleviate the client certificate generation and distribution step for operators. This method uses the Connect CA to generate client certificates, which are automatically distributed to all Consul clients.
 
+Use the operator method if you need to use a third-party CA or need more fine-grained control over certificate management. 
+
+<Tabs>
+<Tab heading="Auto-encryption method">
+
+Test Auto
+
+</Tab>
+<Tab heading="Operator method">
+
+### Generate client certificates
+
+Test Operator
+
+</Tab>
+
+</Tabs>
+
+
+## Start Consul servers
+
+Now that you have configured your servers and clients, you can start the Consul
+process.
+
+```shell-session
+$ systemctl start consul
+```
+
+Your agents will only be communicating with TLS encryption for RPC and consensus.
+
+
+## Rotate TLS certificates for Consul agents
+
+
+## Examples
+
+
+## Next steps
 
 
 
