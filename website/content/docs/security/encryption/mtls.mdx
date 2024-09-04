@@ -126,12 +126,102 @@ Use the operator method if you need to use a third-party CA or need more fine-gr
 <Tabs>
 <Tab heading="Auto-encryption method">
 
-Test Auto
+<CodeTabs heading="Consul server agent auto encrypt TLS configuration">
+
+```hcl
+addresses = {
+  https = "0.0.0.0"
+}
+ports {
+  https = 8501
+}
+tls {
+  defaults {
+    ca_file = "consul-agent-ca.pem"
+    cert_file = "dc1-server-consul-0.pem"
+    key_file = "dc1-server-consul-0-key.pem"
+    verify_incoming = true
+    verify_outgoing = true
+    verify_server_hostname = true
+  }
+}
+auto_encrypt {
+  allow_tls = true
+}
+```
+
+```json
+{
+  "addresses": {
+    "https": "0.0.0.0"
+  },
+  "ports": {
+    "https": 8501
+  },
+  "tls": {
+    "defaults": {
+      "ca_file": "consul-agent-ca.pem",
+      "cert_file": "dc1-server-consul-0.pem",
+      "key_file": "dc1-server-consul-0-key.pem",
+      "verify_incoming": true,
+      "verify_outgoing": true,
+      "verify_server_hostname": true
+    }
+  },
+  "auto_encrypt" : {
+    "allow_tls" : true
+  }
+}
+```
+
+</CodeTabs>
 
 </Tab>
 <Tab heading="Operator method">
 
-Test Operator
+<CodeTabs heading="Consul server agent manual TLS configuration">
+
+```hcl
+addresses = {
+  https = "0.0.0.0"
+}
+ports {
+  https = 8501
+}
+tls {
+  defaults {
+    ca_file = "consul-agent-ca.pem"
+    cert_file = "dc1-server-consul-0.pem"
+    key_file = "dc1-server-consul-0-key.pem"
+    verify_incoming = true
+    verify_outgoing = true
+    verify_server_hostname = true
+  }
+}
+```
+
+```json
+{
+  "addresses": {
+    "https": "0.0.0.0"
+  },
+  "ports": {
+    "https": 8501
+  },
+  "tls": {
+    "defaults": {
+      "ca_file": "consul-agent-ca.pem",
+      "cert_file": "dc1-server-consul-0.pem",
+      "key_file": "dc1-server-consul-0-key.pem",
+      "verify_incoming": true,
+      "verify_outgoing": true,
+      "verify_server_hostname": true
+    }
+  }
+}
+```
+
+</CodeTabs>
 
 </Tab>
 
