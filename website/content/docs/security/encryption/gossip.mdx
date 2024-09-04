@@ -44,6 +44,17 @@ $ consul keygen
 YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 ```
 
+<Tip>
+  
+You can generate a new gossip key using any method that can creates 32 random bytes encoded in base64. 
+	
+For example on Linux you can use `openssl` or `dd` to create one.
+
+-  `openssl rand -base64 32`
+-  `dd if=/dev/urandom bs=32 count=1 status=none | base64`
+
+</Tip>
+
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
     
 <CodeTabs>
@@ -210,17 +221,6 @@ Generate a new key using `consul keygen`:
 $ consul keygen
 FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw=
 ```
-
-<Tip>
-  
-You can generate a new gossip key using any method that can creates 32 random bytes encoded in base64. 
-	
-For example on Linux you can use `openssl` or `dd` to create one.
-
-- `openssl rand -base64 32`
-- `dd if=/dev/urandom bs=32 count=1 status=none | base64`
-
-</Tip>
 
 ### Add new key to the keyring
 
