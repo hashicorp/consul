@@ -113,9 +113,9 @@ YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key. Set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false`. 
     
-    <CodeTabs>
+  <CodeTabs>
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+  <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
     
     ```hcl
     encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
@@ -123,9 +123,9 @@ YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 		encrypt_verify_outgoing = false
     ```
     
-    </CodeBlockConfig>
+  </CodeBlockConfig>
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.json">
+  <CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
     ```json
 {
@@ -135,18 +135,18 @@ YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 }
     ```
     
-    </CodeBlockConfig>
+  </CodeBlockConfig>
     
-    </CodeTabs>
+  </CodeTabs>
 
 **Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and initiate a rolling update of all the 
 agents with these new values. After this step, the agents will be able to decrypt gossip but will not yet be able to send encrypted traffic. A rolling update can be made by restarting the Consul agents (clients and servers) in turn. `consul reload` or `kill -HUP <process_id>` is _not_ sufficient to change the gossip configuration.
 
 **Step 4**: Update the `encrypt_verify_outgoing` setting to `true` and perform another rolling update of all the agents by restarting Consul on each agent. The agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic. Complete the process on all the nodes before moving to the next step.
 
-    <CodeTabs>
+  <CodeTabs>
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+  <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
     
     ```hcl
     encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
@@ -154,27 +154,27 @@ agents with these new values. After this step, the agents will be able to decryp
 		encrypt_verify_outgoing = true
     ```
     
-    </CodeBlockConfig>
+  </CodeBlockConfig>
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.json">
+  <CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
     ```json
-{
-  "encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
-  "encrypt_verify_incoming" : false,
-  "encrypt_verify_outgoing" : true
-}
+    {
+    "encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+    "encrypt_verify_incoming" : false,
+    "encrypt_verify_outgoing" : true
+    }
     ```
     
-    </CodeBlockConfig>
+  </CodeBlockConfig>
     
-    </CodeTabs>
+  </CodeTabs>
 
 **Step 4**: Update the `encrypt_verify_incoming` setting to `true` and perform a final rolling update on all the agents.
 
-    <CodeTabs>
+  <CodeTabs>
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+  <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
     
     ```hcl
     encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
@@ -182,21 +182,21 @@ agents with these new values. After this step, the agents will be able to decryp
 		encrypt_verify_outgoing = true
     ```
     
-    </CodeBlockConfig>
+  </CodeBlockConfig>
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.json">
+  <CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
     ```json
-{
-  "encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
-  "encrypt_verify_incoming": true,
-  "encrypt_verify_outgoing": true
-}
+    {
+    "encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+    "encrypt_verify_incoming": true,
+    "encrypt_verify_outgoing": true
+    }
     ```
     
-    </CodeBlockConfig>
+  </CodeBlockConfig>
     
-    </CodeTabs>
+  </CodeTabs>
 
 ## Rotate the gossip encryption key
 
@@ -211,7 +211,6 @@ The steps to rotate a gossip encryption key are listed below:
 1. Instruct Consul to use the new key with the `consul keyring -install` command.
 1. Verify the new key is installed in your Consul datacenter with the `consul keyring -list` command.
 1. Remove the old key using the `consul keyring -remove` command.
-
 
 ### Generate a new encryption key
 
@@ -283,7 +282,7 @@ dc1 (LAN):
   FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw= [7/7]
 ```
 
-# Next steps
+## Next steps
 
 Documentation for the commands used in this topic is available at [Consul agent configuration - Encryption Parameters](/consul/docs/agent/config/config-files#encryption-parameters). You can find more information over the gossip protocol used by Consul at [Gossip Protocol](/consul/docs/architecture/gossip).
 

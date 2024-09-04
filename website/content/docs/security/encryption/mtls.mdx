@@ -22,10 +22,6 @@ Client and server authenticity is verified using the following parameters:
 - [`verify_outgoing`](/consul/docs/agent/config/config-files#tls_defaults_verify_outgoing) 
 - [`verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname)
 
-
-
-
-
 ## Initialize the built-in CA
 
 The first step for configuring TLS for Consul is generating certificates. To prevent unauthorized datacenter access, Consul requires all certificates
@@ -79,6 +75,7 @@ $ consul tls cert create -server -dc=dc1 -domain=consul
 ```
 
 </Tab>
+
 <Tab heading="Federated Consul Datacenter">
 
 A federated Consul environment requires the server certificate to include the names of all Consul datacenters that are within the federated environment.
@@ -177,6 +174,7 @@ auto_encrypt {
 </CodeTabs>
 
 </Tab>
+
 <Tab heading="Operator method" group="manual">
 
 <CodeTabs>
@@ -301,6 +299,7 @@ auto_encrypt = {
 </Tabs>
 
 </Tab>
+
 <Tab heading="Operator method" group="manual">
 
 ### Generate client certificates
@@ -366,7 +365,6 @@ tls {
 
 </Tabs>
 
-
 ## Start Consul clients
 
 Now that you have configured your clients nodes, you can start the Consul process.
@@ -391,5 +389,3 @@ client certificates are managed by the server. With the operator method, you dis
 Documentation for the commands used in this topic is available at [Consul agent configuration - TLS configuration reference](/consul/docs/agent/config/config-files#tls-configuration-reference) documentation and at the [`consul tls` CLI command reference](/consul/commands/tls). 
 
 The other prerequisites for a secure Consul deployment are [gossip encryption](/consul/docs/security/encryption/gossip) and [Access Control Lists (ACLs)](/consul/docs/security/acl) with default deny policy.
-
-
