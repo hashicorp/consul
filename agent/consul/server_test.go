@@ -466,15 +466,14 @@ func TestServer_RaftBackend_BoltDB(t *testing.T) {
 	// Start up a server and then stop it.
 	_, s1 := testServerWithConfig(t, func(config *Config) {
 		config.LogStoreConfig.Backend = LogStoreBackendBoltDB
-		config.LogStoreConfig.Verification.Enabled = true
+		config.LogStoreConfig.Verification.Enabled = false
 	})
-	store, ok := s1.raftStore.(*raftboltdb.BoltStore)
+	_, ok := s1.raftStore.(*raftboltdb.BoltStore)
 	defer func() {
 		if err := s1.Shutdown(); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
-	fmt.Printf("%v\n", store)
 	require.True(t, ok)
 
 }

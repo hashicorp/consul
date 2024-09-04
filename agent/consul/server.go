@@ -1189,13 +1189,13 @@ func (s *Server) setupRaft() error {
 			return nil
 		}
 		// Only use WAL if there is no existing raft.db, even if it's enabled.
-		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists {
+		if (s.config.LogStoreConfig.Backend == LogStoreBackendDefault || s.config.LogStoreConfig.Backend == LogStoreBackendWAL) && !boltFileExists {
 			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
 			if err = initWAL(); err != nil {
 				return err
 			}
 		} else {
-			if s.config.LogStoreConfig.Backend == LogStoreBackendWAL {
+			if s.config.LogStoreConfig.Backend == LogStoreBackendWAL || s.config.LogStoreConfig.Backend == LogStoreBackendDefault {
 				// User configured the new storage, but still has old raft.db. Warn
 				// them!
 				s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend which is set to 'wal'")
