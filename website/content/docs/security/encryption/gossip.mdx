@@ -35,9 +35,7 @@ Below are listed the steps required for both scenarios:
 
 ## Enable gossip encryption on a new datacenter
 
-Enabling gossip encryption only requires that you set an encryption key when starting the Consul agent. The key can be set via the `encrypt` parameter.
-
-Enabling gossip encryption on a new datacenter is a straightforward process and should be the default approach for all new datacenters you are deploying.
+Enable gossip encryption on a new datacenter is a straightforward process and should be the default approach for all new datacenters you are deploying. To enable gossip encryption you set an encryption key when starting the Consul agent. The key can be set via the `encrypt` parameter.
 
 **Step 1**: Generate an encryption key using `consul keygen`.
     
@@ -48,27 +46,19 @@ YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
     
-    <CodeTabs>
+<CodeTabs>
     
-    <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+```hcl
+encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+```
     
-    ```hcl
-    encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
-    ```
-    
-    </CodeBlockConfig>
-    
-    <CodeBlockConfig filename="/etc/consul.d/encryption.json">
-    
-    ```json
+```json
 {
   "encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 }
-    ```
-    
-    </CodeBlockConfig>
-    
-    </CodeTabs>
+```
+
+</CodeTabs>
 
 **Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and start the Consul agent on all the nodes.
 
