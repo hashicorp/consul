@@ -58,16 +58,23 @@ For example on Linux you can use `openssl` or `dd` to create one.
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
     
 <CodeTabs>
-    
+
+<CodeBlockConfig>
 ```hcl
 encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 ```
-    
+
+</CodeBlockConfig>
+
+<CodeBlockConfig>
+
 ```json
 {
   "encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -128,11 +135,11 @@ YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
   <CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
     ```json
-{
-  "encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
-  "encrypt_verify_incoming" : false,
-  "encrypt_verify_outgoing" : false
-}
+    {
+    "encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+    "encrypt_verify_incoming" : false,
+    "encrypt_verify_outgoing" : false
+    }
     ```
     
   </CodeBlockConfig>
