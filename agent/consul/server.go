@@ -1056,7 +1056,7 @@ func (s *Server) setupRaft() error {
 			return nil
 		}
 		// Only use WAL if there is no existing raft.db, even if it's enabled.
-		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists && isCatalogResourceExperiment {
+		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists {
 			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
 			if !s.config.LogStoreConfig.Verification.Enabled {
 				s.config.LogStoreConfig.Verification.Enabled = true

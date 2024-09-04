@@ -2323,6 +2323,10 @@ func TestServer_ControllerDependencies(t *testing.T) {
 	// gotest.tools/v3 defines CLI flags which are incompatible wit the golden package
 	// Once we eliminate gotest.tools/v3 from usage within Consul we could uncomment this
 	// actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
-	// expected := golden.Get(t, actual, "v2-resource-dependencies")
+	// markdownFileName := "v2-resource-dependencies"
+	// if versiontest.IsEnterprise() {
+	//   markdownFileName += "-enterprise"
+	// }
+	// expected := golden.Get(t, actual, markdownFileName)
 	// require.Equal(t, expected, actual)
 }
