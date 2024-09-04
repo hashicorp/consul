@@ -95,10 +95,10 @@ Gossip encryption can also be enabled on existing datacenters, but requires seve
 
 **Step 1**: Generate an encryption key using `consul keygen`.
     
-    ```shell-session
-    $ consul keygen
-    YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
-    ```
+```shell-session
+$ consul keygen
+YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
+```
 
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key. Set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false`. 
     
@@ -284,6 +284,8 @@ dc1 (LAN):
 ```
 
 # Next steps
+
+Documentation for the commands used in this topic is available at [Consul agent configuration - Encryption Parameters](/consul/docs/agent/config/config-files#encryption-parameters). You can find more information over the gossip protocol used by Consul at [Gossip Protocol](/consul/docs/architecture/gossip).
 
 After enabling gossip encryption, to continue securing your Consul datacenter, enable mutual TLS encryption. Read more on [Mutual TLS (mTLS) Encryption](/consul/docs/security/encryption/mtls).
 
