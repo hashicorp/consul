@@ -9,18 +9,11 @@ description: >-
 
 This topics describes how to enable gossip encryption on a Consul datacenter.
 
-<Note>
-
-**WAN federated datacenters:** 
-
-</Note>
-
 ## Enable gossip encryption
 
-We recommend enabling gossip encryption to all new deployed Consul datacenters. 
-If you have an existing datacenter running Consul `0.8.4` and above, it is possible to modify its configuration to support gossip encryption.
+We recommend enabling gossip encryption to all new deployed Consul datacenters.
 
-If you have multiple datacenters joined in WAN federation, be sure to use _the same encryption key_ in all datacenters.
+If you have an existing datacenter running Consul `0.8.4` and above, it is possible to modify its configuration to support gossip encryption.
 
 Below are listed the steps required for both scenarios:
 
@@ -35,6 +28,8 @@ Below are listed the steps required for both scenarios:
 1. Update the `encrypt_verify_outgoing` setting to `true` and perform a rolling restart of all the agents.
 1. Update the `encrypt_verify_incoming` setting to `true` and perform a rolling restart of all the agents.
 
+If you have multiple datacenters joined in WAN federation, be sure to use _the same encryption key_ in all datacenters.
+
 ## Enable gossip encryption on a new datacenter
 
 Enable gossip encryption on a new datacenter is a straightforward process and should be the default approach for all new datacenters you are deploying. To enable gossip encryption you set an encryption key when starting the Consul agent. The key can be set via the `encrypt` parameter.
@@ -45,34 +40,27 @@ Enable gossip encryption on a new datacenter is a straightforward process and sh
 $ consul keygen
 YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 ```
-  
+
 You can generate a new gossip key using any method that can creates 32 random bytes encoded in base64. 
-	
+
 For example on Linux you can use `openssl` or `dd` to create one.
 
--  `openssl rand -base64 32`
--  `dd if=/dev/urandom bs=32 count=1 status=none | base64`
+- `openssl rand -base64 32`
+- `dd if=/dev/urandom bs=32 count=1 status=none | base64`
 
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
 
 <CodeTabs>
 
-<CodeBlockConfig>
 ```hcl
 encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 ```
-
-</CodeBlockConfig>
-
-<CodeBlockConfig>
 
 ```json
 {
   "encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 }
 ```
-
-</CodeBlockConfig>
 
 </CodeTabs>
 
