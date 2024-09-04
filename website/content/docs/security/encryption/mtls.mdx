@@ -57,7 +57,6 @@ Server keys, like the CA key, must be kept private - they effectively allow acce
 
 </Note>
 
-
 Create a server certificate for datacenter `dc1` and domain `consul`, if your datacenter or domain is different, remember to use the appropriate flags.
 
 <Tabs>
@@ -112,7 +111,8 @@ The following files need to be copied to your Consul server:
 
 ## Configure server agents
 
-There are two methods for configuring Consul server agents depending on the way you want to distribute certificates to the client agents: 
+There are two methods for configuring Consul server agents depending on the way you want to distribute certificates to the client agents:
+
 - auto encryption method, that uses the Consul Connect CA to generate client certificates, which are automatically distributed to all Consul clients.
 - operator method, that requires you to manually generate client certificates and distribute them to the single client agents.
 
@@ -123,7 +123,7 @@ Use the operator method if you need to use a third-party CA or need more fine-gr
 <Tabs>
 <Tab heading="Auto-encryption method" group="auto">
 
-<CodeTabs>
+<CodeBlockConfig heading="HCL">
 
 ```hcl
 addresses = {
@@ -146,6 +146,10 @@ auto_encrypt {
   allow_tls = true
 }
 ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -171,13 +175,13 @@ auto_encrypt {
 }
 ```
 
-</CodeTabs>
+</CodeBlockConfig>
 
 </Tab>
 
 <Tab heading="Operator method" group="manual">
 
-<CodeTabs>
+<CodeBlockConfig heading="HCL">
 
 ```hcl
 addresses = {
@@ -197,6 +201,10 @@ tls {
   }
 }
 ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -219,7 +227,7 @@ tls {
 }
 ```
 
-</CodeTabs>
+</CodeBlockConfig>
 
 </Tab>
 
@@ -248,7 +256,7 @@ Use the operator method if you need to use a third-party CA or need more fine-gr
 
 To configure the Consul client agents when using auto-encryption you only need to distribute the CA certificate that will be used to validate the certificates exposed by other Consul agents.
 
-<CodeTabs>
+<CodeBlockConfig heading="HCL">
 
 ```hcl
 addresses = {
@@ -269,6 +277,10 @@ auto_encrypt = {
   tls = true
 }
 ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -292,11 +304,7 @@ auto_encrypt = {
 }
 ```
 
-</CodeTabs>
-
-</Tab>
-
-</Tabs>
+</CodeBlockConfig>
 
 </Tab>
 
@@ -317,7 +325,7 @@ The client certificate is also signed by the same CA used for the server certifi
 
 Now that you have created the client certificates, distribute them to every Consul client in the Consul datacenter. To complete the configuration you also need the CA certificate that will be used to validate the certificates exposed by other Consul agents.
 
-<CodeTabs>
+<CodeBlockConfig heading="HCL">
 
 ```hcl
 addresses = {
@@ -337,6 +345,10 @@ tls {
   }
 }
 ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -359,7 +371,7 @@ tls {
 }
 ```
 
-</CodeTabs>
+</CodeBlockConfig>
 
 </Tab>
 
