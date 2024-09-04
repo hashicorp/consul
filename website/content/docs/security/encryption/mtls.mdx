@@ -24,16 +24,106 @@ Client and server authenticity is verified using the following parameters:
 
 
 
-TLS can be used to verify the authenticity of the servers or verify the authenticity of clients.
-These modes are controlled by the [`verify_outgoing`](/consul/docs/agent/config/config-files#tls_defaults_verify_outgoing),
-[`verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname),
-and [`verify_incoming`](/consul/docs/agent/config/config-files#tls_defaults_verify_incoming) options, respectively.
-
 
 
 ## Initialize the built-in CA
 
+The first step for configuring TLS for Consul is generating certificates. To prevent unauthorized datacenter access, Consul requires all certificates
+be signed by the same Certification Authority (CA). This should be a _private_ CA and not a public one as any certificate signed by this CA will be allowed to communicate with the datacenter.
+
+There are a variety of tools for creating and managing your own CA, like the [PKI secrets engine in Vault](/vault/docs/secrets/pki) or the [Terraform TLS provider](https://registry.terraform.io/providers/hashicorp/tls/latest/docs), but Consul ships with built-in TLS tools to create and manage certificates.
+
+You can create the CA and certificates before starting Consul, as long as you have the Consul binary installed in your path.
+
+```shell-session
+$ consul tls ca create -domain=consul
+==> Saved consul-agent-ca.pem
+==> Saved consul-agent-ca-key.pem
+```
+
+The command generates two files, `<domain>-agent-ca.pem` and `<domain>-agent-ca-key.pem`. In this ecample the doamin used to generate the certificates is the default one, `consul`.
+
+The CA certificate, `consul-agent-ca.pem`, contains the public key necessary to validate Consul certificates and therefore must be distributed to **every** node
+that runs a consul agent.
+
+The CA key, `consul-agent-ca-key.pem`, will be used to sign certificates for Consul nodes and must be kept private. Possession of this key allows anyone to run Consul as a trusted server or generate new valid certificates for the datacenter and obtain access to all Consul data, including ACL tokens.
+
 ## Create server certificates
+
+Create a server certificate for datacenter `dc1` and domain `consul`, if your
+datacenter or domain is different, remember to use the appropriate flags.
+
+Repeat this process on the same node where you created the CA, until there is an _individual_ certificate for each
+server. The command can be called over and over again, it will automatically increase
+the certificate and key numbers. You will need to distribute the certificates to the servers.
+
+<Tabs>
+<Tab heading="Single Consul Datacenter">
+
+
+```shell-session
+$ consul tls cert create -server -dc <dc_name>
+```
+
+Below is an example for datacenter "dc1".
+
+```shell-session
+$ consul tls cert create -server -dc dc1
+==> WARNING: Server Certificates grants authority to become a
+    server and access all state in the cluster including root keys
+    and all ACL tokens. Do not distribute them to production hosts
+    that are not server nodes. Store them as securely as CA keys.
+==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+==> Saved dc1-server-consul-0.pem
+==> Saved dc1-server-consul-0-key.pem
+```
+
+</Tab>
+<Tab heading="Federated Consul Datacenter">
+
+A federated Consul environment requires the server certificate to include the names
+of all Consul datacenters that are within the federated environment.
+  
+The `-additional-dnsname` flag allows you to provide an additional DNS name for
+Subject Alternative Names. _localhost_ is always included. This flag may be provided
+multiple times.
+
+```shell-session
+$ consul tls cert create -server -dc <dc_name> -additional-dnsname=<secondary_consul_server_name>
+```
+
+Below is an example for a federated environment that contains two consul datacenters.
+
+```shell-session
+$ consul tls cert create -server -dc dc1 -additional-dnsname="*.dc2.consul"
+==> WARNING: Server Certificates grants authority to become a
+    server and access all state in the cluster including root keys
+    and all ACL tokens. Do not distribute them to production hosts
+    that are not server nodes. Store them as securely as CA keys.
+==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+==> Saved dc1-server-consul-0.pem
+==> Saved dc1-server-consul-0-key.pem
+```
+
+~> **NOTE** See the [consul TLS cert documentation](/consul/commands/tls/cert) to learn more about TLS cert creation options.
+
+</Tab>
+</Tabs>
+
+
+In order to authenticate Consul servers, servers are provided with a special
+certificate - one that contains `server.dc1.consul` in the `Common Name` and in the `Subject Alternative Name`. If you enable
+[`verify_server_hostname`](/consul/docs/agent/config/config-files#verify_server_hostname),
+only agents that provide such certificate are allowed to boot as a server.
+Without `verify_server_hostname = true` an attacker could compromise a Consul
+client agent and restart the agent as a server in order to get access to all the
+data in your datacenter! This is why server certificates are special, and only
+servers should have them provisioned.
+
+~> **NOTE** Server keys, like the CA key, must be kept private - they effectively allow
+access to all Consul data.
+
+
 
 ## Configure server agents
 
@@ -45,7 +135,11 @@ and [`verify_incoming`](/consul/docs/agent/config/config-files#tls_defaults_veri
 
 
 
-
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 
 The 
