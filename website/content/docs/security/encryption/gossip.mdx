@@ -2,7 +2,7 @@
 layout: docs
 page_title: Gossip Encryption
 description: >-
-  Consul supports encrypting all of its network traffic. Gossip communication between all agents can be encrypted unsic a simmetric key.
+  Consul supports encrypting all of its network traffic. Gossip communication between all agents can be encrypted unsing a symmetric key.
 ---
 
 # Gossip Encryption
@@ -11,7 +11,7 @@ This topics describes how to enable gossip encryption on a Consul datacenter.
 
 <Note>
 
-**WAN federated datacenters:** If using multiple WAN joined datacenters, be sure to use _the same encryption key_ in all datacenters.
+**WAN federated datacenters:** 
 
 </Note>
 
@@ -19,6 +19,8 @@ This topics describes how to enable gossip encryption on a Consul datacenter.
 
 We recommend enabling gossip encryption to all new deployed Consul datacenters. 
 If you have an existing datacenter running Consul `0.8.4` and above, it is possible to modify its configuration to support gossip encryption.
+
+If you have multiple datacenters joined in WAN federation, be sure to use _the same encryption key_ in all datacenters.
 
 Below are listed the steps required for both scenarios:
 
@@ -43,8 +45,6 @@ Enable gossip encryption on a new datacenter is a straightforward process and sh
 $ consul keygen
 YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 ```
-
-<Tip>
   
 You can generate a new gossip key using any method that can creates 32 random bytes encoded in base64. 
 	
@@ -52,8 +52,6 @@ For example on Linux you can use `openssl` or `dd` to create one.
 
 -  `openssl rand -base64 32`
 -  `dd if=/dev/urandom bs=32 count=1 status=none | base64`
-
-</Tip>
 
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
     
@@ -120,90 +118,90 @@ YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key. Set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false`. 
     
-  <CodeTabs>
+<CodeTabs>
     
-  <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+<CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
     
-    ```hcl
-    encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
-		encrypt_verify_incoming = false
-		encrypt_verify_outgoing = false
-    ```
+```hcl
+encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+encrypt_verify_incoming = false
+encrypt_verify_outgoing = false
+```
     
-  </CodeBlockConfig>
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
-  <CodeBlockConfig filename="/etc/consul.d/encryption.json">
+```json
+{
+"encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+"encrypt_verify_incoming" : false,
+"encrypt_verify_outgoing" : false
+}
+```
     
-    ```json
-    {
-    "encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
-    "encrypt_verify_incoming" : false,
-    "encrypt_verify_outgoing" : false
-    }
-    ```
+</CodeBlockConfig>
     
-  </CodeBlockConfig>
-    
-  </CodeTabs>
+</CodeTabs>
 
 **Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and initiate a rolling update of all the 
 agents with these new values. After this step, the agents will be able to decrypt gossip but will not yet be able to send encrypted traffic. A rolling update can be made by restarting the Consul agents (clients and servers) in turn. `consul reload` or `kill -HUP <process_id>` is _not_ sufficient to change the gossip configuration.
 
 **Step 4**: Update the `encrypt_verify_outgoing` setting to `true` and perform another rolling update of all the agents by restarting Consul on each agent. The agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic. Complete the process on all the nodes before moving to the next step.
 
-  <CodeTabs>
+<CodeTabs>
     
-  <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+<CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
     
-    ```hcl
-    encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
-		encrypt_verify_incoming = false
-		encrypt_verify_outgoing = true
-    ```
+```hcl
+encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+encrypt_verify_incoming = false
+encrypt_verify_outgoing = true
+ ```
     
-  </CodeBlockConfig>
+</CodeBlockConfig>
     
-  <CodeBlockConfig filename="/etc/consul.d/encryption.json">
+<CodeBlockConfig filename="/etc/consul.d/encryption.json">
     
-    ```json
-    {
-    "encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
-    "encrypt_verify_incoming" : false,
-    "encrypt_verify_outgoing" : true
-    }
-    ```
+```json
+{
+"encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+ "encrypt_verify_incoming" : false,
+"encrypt_verify_outgoing" : true
+}
+```
     
-  </CodeBlockConfig>
+</CodeBlockConfig>
     
-  </CodeTabs>
+</CodeTabs>
 
 **Step 4**: Update the `encrypt_verify_incoming` setting to `true` and perform a final rolling update on all the agents.
 
-  <CodeTabs>
-    
-  <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
-    
-    ```hcl
-    encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
-		encrypt_verify_incoming = true
-		encrypt_verify_outgoing = true
-    ```
-    
-  </CodeBlockConfig>
-    
-  <CodeBlockConfig filename="/etc/consul.d/encryption.json">
-    
-    ```json
-    {
-    "encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
-    "encrypt_verify_incoming": true,
-    "encrypt_verify_outgoing": true
-    }
-    ```
-    
-  </CodeBlockConfig>
-    
-  </CodeTabs>
+<CodeTabs>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
+
+```hcl
+encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+encrypt_verify_incoming = true
+encrypt_verify_outgoing = true
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="/etc/consul.d/encryption.json">
+
+```json
+{
+"encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+"encrypt_verify_incoming": true,
+"encrypt_verify_outgoing": true
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
 
 ## Rotate the gossip encryption key
 
