@@ -40,13 +40,13 @@ starting the Consul agent. The key can be set via the `encrypt` parameter.
 
 Enabling gossip encryption on a new datacenter is a straightforward process and should be the default approach for all new datacenters you are deploying.
 
-- **Step 1**: Generate an encryption key using `consul keygen`.
+**Step 1**: Generate an encryption key using `consul keygen`.
     
     ```shell-session
     $ consul keygen
     YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
     ```
-- **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
+**Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
     
     <CodeTabs>
     
@@ -70,7 +70,7 @@ Enabling gossip encryption on a new datacenter is a straightforward process and 
     
     </CodeTabs>
 
-- **Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and start the Consul agent on all the nodes.
+**Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and start the Consul agent on all the nodes.
 
 If gossip encryption is properly configured `Gossip Encryption: true` will be shown in the logs at startup.
 
@@ -222,12 +222,12 @@ FfRV9j6NXU9LlCI4zLZjjpZdj4Nrqsdm7R8YgzSHzHw=
 
 <Tip>
   
-	You can generate a new gossip key using any method that can creates 32 random bytes encoded in base64. 
+You can generate a new gossip key using any method that can creates 32 random bytes encoded in base64. 
 	
-	For example on Linux you can use `openssl` or `dd` to create one.
+For example on Linux you can use `openssl` or `dd` to create one.
 
-	- `openssl rand -base64 32`
-	- `dd if=/dev/urandom bs=32 count=1 status=none | base64`
+- `openssl rand -base64 32`
+- `dd if=/dev/urandom bs=32 count=1 status=none | base64`
 
 </Tip>
 
