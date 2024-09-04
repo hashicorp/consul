@@ -79,7 +79,6 @@ import (
 	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -747,7 +746,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	}
 
 	// Initialize the Raft server.
-	if err := s.setupRaft(stringslice.Contains(flat.Experiments, CatalogResourceExperimentName)); err != nil {
+	if err := s.setupRaft(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
@@ -1109,7 +1108,7 @@ func (s *Server) connectCARootsMonitor(ctx context.Context) {
 }
 
 // setupRaft is used to setup and initialize Raft
-func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
+func (s *Server) setupRaft() error {
 	// If we have an unclean exit then attempt to close the Raft store.
 	defer func() {
 		if s.raft == nil && s.raftStore != nil {
@@ -1190,16 +1189,8 @@ func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
 			return nil
 		}
 		// Only use WAL if there is no existing raft.db, even if it's enabled.
-		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists && isCatalogResourceExperiment {
+		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists {
 			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
-			if !s.config.LogStoreConfig.Verification.Enabled {
-				s.config.LogStoreConfig.Verification.Enabled = true
-				s.config.LogStoreConfig.Verification.Interval = 1 * time.Minute
-			}
-			if err = initWAL(); err != nil {
-				return err
-			}
-		} else if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
 			if err = initWAL(); err != nil {
 				return err
 			}
@@ -1230,11 +1221,14 @@ func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
 
 		// See if log verification is enabled
 		if s.config.LogStoreConfig.Verification.Enabled {
+			if s.config.LogStoreConfig.Verification.Interval == 0 {
+				s.config.LogStoreConfig.Verification.Interval = 1 * time.Minute
+			}
 			mc := walmetrics.NewGoMetricsCollector([]string{"raft", "logstore", "verifier"}, nil, nil)
 			reportFn := makeLogVerifyReportFn(s.logger.Named("raft.logstore.verifier"))
-			verifier := verifier.NewLogStore(log, isLogVerifyCheckpoint, reportFn, mc)
-			s.raftStore = verifier
-			log = verifier
+			v := verifier.NewLogStore(log, isLogVerifyCheckpoint, reportFn, mc)
+			s.raftStore = v
+			log = v
 		}
 
 		// Wrap the store in a LogCache to improve performance.
