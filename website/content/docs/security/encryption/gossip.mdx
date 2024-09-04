@@ -25,22 +25,22 @@ If you have multiple datacenters joined in WAN federation, be sure to use _the s
 Below are listed the steps required for both scenarios:
 
 - [Enable gossip encryption on a new datacenter](#enable-gossip-encryption-on-a-new-datacenter)
-    1. Use `consul keygen` to generate a new gossip encryption key.
-    1. Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
-    1. Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and start the Consul agent on all the nodes.
+1. Use `consul keygen` to generate a new gossip encryption key.
+1. Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
+1. Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and start the Consul agent on all the nodes.
 - [Enable gossip encryption on an existing datacenter](#enable-gossip-encryption-on-an-existing-datacenter)
-    1. Use `consul keygen` to generate a new gossip encryption key.
-    1. Create a configuration file that includes the `encrypt` parameter set to the newly generated key and `encrypt_verify_incoming` and `encrypt_verify_outgoing` set to `false`. 
-    1. Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and perform a rolling restart of all the agents.
-    1. Update the `encrypt_verify_outgoing` setting to `true` and perform a rolling restart of all the agents.
-    1. Update the `encrypt_verify_incoming` setting to `true` and perform a rolling restart of all the agents.
+1. Use `consul keygen` to generate a new gossip encryption key.
+1. Create a configuration file that includes the `encrypt` parameter set to the newly generated key and `encrypt_verify_incoming` and `encrypt_verify_outgoing` set to `false`. 
+1. Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and perform a rolling restart of all the agents.
+1. Update the `encrypt_verify_outgoing` setting to `true` and perform a rolling restart of all the agents.
+1. Update the `encrypt_verify_incoming` setting to `true` and perform a rolling restart of all the agents.
 
 ## Enable gossip encryption on a new datacenter
 
 Enable gossip encryption on a new datacenter is a straightforward process and should be the default approach for all new datacenters you are deploying. To enable gossip encryption you set an encryption key when starting the Consul agent. The key can be set via the `encrypt` parameter.
 
 **Step 1**: Generate an encryption key using `consul keygen`.
-    
+
 ```shell-session
 $ consul keygen
 YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
@@ -54,7 +54,7 @@ For example on Linux you can use `openssl` or `dd` to create one.
 -  `dd if=/dev/urandom bs=32 count=1 status=none | base64`
 
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key.
-    
+
 <CodeTabs>
 
 <CodeBlockConfig>
@@ -68,7 +68,7 @@ encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 
 ```json
 {
-  "encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
+  "encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 }
 ```
 
@@ -84,22 +84,22 @@ If gossip encryption is properly configured `Gossip Encryption: true` will be sh
 
 ```log
 ==> Starting Consul agent...
-               Version: '1.19.0'
-            Build Date: '2024-06-12 13:59:10 +0000 UTC'
-               Node ID: 'e74b1ade-e932-1707-cdf1-6579b8b2536c'
-             Node name: 'consul-server-0'
-            Datacenter: 'dc1' (Segment: '<all>')
-                Server: true (Bootstrap: false)
-           Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: 8443, gRPC: -1, gRPC-TLS: 8503, DNS: 53)
-          Cluster Addr: 172.19.0.7 (LAN: 8301, WAN: 8302)
-     Gossip Encryption: true
-      Auto-Encrypt-TLS: true
-           ACL Enabled: true
-     Reporting Enabled: false
-    ACL Default Policy: deny
-             HTTPS TLS: Verify Incoming: false, Verify Outgoing: true, Min Version: TLSv1_2
-              gRPC TLS: Verify Incoming: false, Min Version: TLSv1_2
-      Internal RPC TLS: Verify Incoming: true, Verify Outgoing: true (Verify Hostname: true), Min Version: TLSv1_2
+   Version: '1.19.0'
+Build Date: '2024-06-12 13:59:10 +0000 UTC'
+   Node ID: 'e74b1ade-e932-1707-cdf1-6579b8b2536c'
+ Node name: 'consul-server-0'
+Datacenter: 'dc1' (Segment: '<all>')
+Server: true (Bootstrap: false)
+   Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: 8443, gRPC: -1, gRPC-TLS: 8503, DNS: 53)
+  Cluster Addr: 172.19.0.7 (LAN: 8301, WAN: 8302)
+ Gossip Encryption: true
+  Auto-Encrypt-TLS: true
+   ACL Enabled: true
+ Reporting Enabled: false
+ACL Default Policy: deny
+ HTTPS TLS: Verify Incoming: false, Verify Outgoing: true, Min Version: TLSv1_2
+  gRPC TLS: Verify Incoming: false, Min Version: TLSv1_2
+  Internal RPC TLS: Verify Incoming: true, Verify Outgoing: true (Verify Hostname: true), Min Version: TLSv1_2
 ## ...
 ```
 
@@ -110,38 +110,38 @@ If gossip encryption is properly configured `Gossip Encryption: true` will be sh
 Gossip encryption can also be enabled on existing datacenters, but requires several extra steps.
 
 **Step 1**: Generate an encryption key using `consul keygen`.
-    
+
 ```shell-session
 $ consul keygen
 YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=
 ```
 
 **Step 2**: Create a configuration file that includes the `encrypt` parameter set to the newly generated key. Set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false`. 
-    
+
 <CodeTabs>
-    
+
 <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
-    
+
 ```hcl
 encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 encrypt_verify_incoming = false
 encrypt_verify_outgoing = false
 ```
-    
+
 </CodeBlockConfig>
 
 <CodeBlockConfig filename="/etc/consul.d/encryption.json">
-    
+
 ```json
 {
-"encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+"encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
 "encrypt_verify_incoming" : false,
 "encrypt_verify_outgoing" : false
 }
 ```
-    
+
 </CodeBlockConfig>
-    
+
 </CodeTabs>
 
 **Step 3**: Distribute the configuration file to all the agent nodes that need to be pert of the datacenter and initiate a rolling update of all the 
@@ -150,29 +150,29 @@ agents with these new values. After this step, the agents will be able to decryp
 **Step 4**: Update the `encrypt_verify_outgoing` setting to `true` and perform another rolling update of all the agents by restarting Consul on each agent. The agents will now be sending encrypted gossip but will still allow incoming unencrypted traffic. Complete the process on all the nodes before moving to the next step.
 
 <CodeTabs>
-    
+
 <CodeBlockConfig filename="/etc/consul.d/encryption.hcl">
-    
+
 ```hcl
 encrypt = "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA="
 encrypt_verify_incoming = false
 encrypt_verify_outgoing = true
  ```
-    
+
 </CodeBlockConfig>
-    
+
 <CodeBlockConfig filename="/etc/consul.d/encryption.json">
-    
+
 ```json
 {
-"encrypt" : "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
- "encrypt_verify_incoming" : false,
-"encrypt_verify_outgoing" : true
+"encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
+ "encrypt_verify_incoming": false,
+"encrypt_verify_outgoing": true
 }
 ```
-    
+
 </CodeBlockConfig>
-    
+
 </CodeTabs>
 
 **Step 4**: Update the `encrypt_verify_incoming` setting to `true` and perform a final rolling update on all the agents.
