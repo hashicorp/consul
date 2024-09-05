@@ -11,12 +11,12 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
+	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 )
 
 func TestFinalizer(t *testing.T) {
 	t.Run("no finalizers", func(t *testing.T) {
-		res := rtest.Resource(pbtenancy.NamespaceType, "ns1").Build()
+		res := rtest.Resource(pbdemo.ArtistType, "art1").Build()
 		require.False(t, resource.HasFinalizers(res))
 		require.False(t, resource.HasFinalizer(res, "finalizer1"))
 		require.Equal(t, mapset.NewSet[string](), resource.GetFinalizers(res))
@@ -24,7 +24,7 @@ func TestFinalizer(t *testing.T) {
 	})
 
 	t.Run("add finalizer", func(t *testing.T) {
-		res := rtest.Resource(pbtenancy.NamespaceType, "ns1").Build()
+		res := rtest.Resource(pbdemo.ArtistType, "art1").Build()
 		resource.AddFinalizer(res, "finalizer1")
 		require.True(t, resource.HasFinalizers(res))
 		require.True(t, resource.HasFinalizer(res, "finalizer1"))
@@ -37,7 +37,7 @@ func TestFinalizer(t *testing.T) {
 	})
 
 	t.Run("remove finalizer", func(t *testing.T) {
-		res := rtest.Resource(pbtenancy.NamespaceType, "ns1").Build()
+		res := rtest.Resource(pbdemo.ArtistType, "art1").Build()
 		resource.AddFinalizer(res, "finalizer1")
 		resource.AddFinalizer(res, "finalizer2")
 		resource.RemoveFinalizer(res, "finalizer1")

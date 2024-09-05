@@ -23,7 +23,6 @@ const (
 	errRateLimited                           = "Rate limit reached, try again later" // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
 	errNotPrimaryDatacenter                  = "not the primary datacenter"
 	errStateReadOnly                         = "CA Provider State is read-only"
-	errUsingV2CatalogExperiment              = "V1 catalog is disabled when V2 is enabled"
 	errSamenessGroupNotFound                 = "Sameness Group not found"
 	errSamenessGroupMustBeDefaultForFailover = "Sameness Group must have DefaultForFailover set to true in order to use this endpoint"
 )
@@ -42,7 +41,6 @@ var (
 	ErrRateLimited                           = errors.New(errRateLimited) // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
 	ErrNotPrimaryDatacenter                  = errors.New(errNotPrimaryDatacenter)
 	ErrStateReadOnly                         = errors.New(errStateReadOnly)
-	ErrUsingV2CatalogExperiment              = errors.New(errUsingV2CatalogExperiment)
 	ErrSamenessGroupNotFound                 = errors.New(errSamenessGroupNotFound)
 	ErrSamenessGroupMustBeDefaultForFailover = errors.New(errSamenessGroupMustBeDefaultForFailover)
 )
@@ -61,10 +59,6 @@ func IsErrNoLeader(err error) bool {
 
 func IsErrRPCRateExceeded(err error) bool {
 	return err != nil && strings.Contains(err.Error(), errRPCRateExceeded)
-}
-
-func IsErrUsingV2CatalogExperiment(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errUsingV2CatalogExperiment)
 }
 
 func IsErrSamenessGroupNotFound(err error) bool {

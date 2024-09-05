@@ -15,9 +15,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/serf/coordinate"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -26,25 +27,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
-
-func TestHealthEndpointsFailInV2(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
-
-	checkRequest := func(method, url string) {
-		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
-		})
-	}
-
-	checkRequest("GET", "/v1/health/node/web")
-	checkRequest("GET", "/v1/health/checks/web")
-	checkRequest("GET", "/v1/health/state/web")
-	checkRequest("GET", "/v1/health/service/web")
-	checkRequest("GET", "/v1/health/connect/web")
-	checkRequest("GET", "/v1/health/ingress/web")
-}
 
 func TestHealthChecksInState(t *testing.T) {
 	if testing.Short() {

@@ -230,15 +230,6 @@ func (m *Manager) generateNewLeaf(
 	var ipAddresses []net.IP
 
 	switch {
-	case req.WorkloadIdentity != "":
-		id = &connect.SpiffeIDWorkloadIdentity{
-			TrustDomain:      roots.TrustDomain,
-			Partition:        req.TargetPartition(),
-			Namespace:        req.TargetNamespace(),
-			WorkloadIdentity: req.WorkloadIdentity,
-		}
-		dnsNames = append(dnsNames, req.DNSSAN...)
-
 	case req.Service != "":
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
@@ -281,7 +272,7 @@ func (m *Manager) generateNewLeaf(
 		dnsNames = append(dnsNames, connect.PeeringServerSAN(req.Datacenter, roots.TrustDomain))
 
 	default:
-		return nil, newState, errors.New("URI must be either workload identity, service, agent, server, or kind")
+		return nil, newState, errors.New("URI must be either service, agent, server, or kind")
 	}
 
 	// Create a new private key

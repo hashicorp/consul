@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -47,7 +46,7 @@ func TestValidateLink_Ok(t *testing.T) {
 func TestValidateLink_ParseError(t *testing.T) {
 	// Any type other than the Link type would work
 	// to cause the error we are expecting
-	data := &pbcatalog.IP{Address: "198.18.0.1"}
+	data := &pbresource.Type{Group: "a", GroupVersion: "b", Kind: "c"}
 
 	res := createCloudLinkResource(t, data)
 
