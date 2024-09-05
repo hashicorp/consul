@@ -1144,23 +1144,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
 	}
 
-	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
-	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
-		// Allow override of this check for development/testing purposes. Should not be used in production
-		if !stringslice.Contains(rt.Experiments, consul.HCPAllowV2ResourceAPIs) {
-			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
-		}
-	}
-
-	// For now, disallow usage of several v2 experiments in secondary datacenters.
-	if rt.ServerMode && rt.PrimaryDatacenter != rt.Datacenter {
-		for _, name := range rt.Experiments {
-			if !consul.IsExperimentAllowedOnSecondaries(name) {
-				return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include `%s` for servers in secondary datacenters", name)
-			}
-		}
-	}
-
 	if rt.UIConfig.MetricsProvider == "prometheus" {
 		// Handle defaulting for the built-in version of prometheus.
 		if len(rt.UIConfig.MetricsProxy.PathAllowlist) == 0 {

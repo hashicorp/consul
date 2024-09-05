@@ -127,10 +127,6 @@ func (s *Server) ensureResourceValid(res *pbresource.Resource, enforceLicenseChe
 		return nil, err
 	}
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, res.Id.Type); err != nil {
-		return nil, err
-	}
-
 	// Check scope
 	if reg.Scope == resource.ScopePartition && res.Id.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
