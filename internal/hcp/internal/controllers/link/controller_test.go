@@ -82,8 +82,6 @@ func (suite *controllerSuite) TestController_Ok() {
 	}, nil)
 
 	mgr.Register(LinkController(
-		false,
-		false,
 		mockClientFn,
 		config.CloudConfig{},
 	))
@@ -128,8 +126,6 @@ func (suite *controllerSuite) TestController_Initialize() {
 	}
 
 	mgr.Register(LinkController(
-		false,
-		false,
 		mockClientFn,
 		cloudCfg,
 	))
@@ -156,67 +152,6 @@ func (suite *controllerSuite) TestController_Initialize() {
 
 	// Wait for link to be connected successfully
 	suite.client.WaitForStatusCondition(suite.T(), id, StatusKey, ConditionLinked(link.ResourceId))
-}
-
-func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
-	// Run the controller manager
-	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	_, mockClientFunc := mockHcpClientFn(suite.T())
-
-	mgr.Register(LinkController(
-		true,
-		false,
-		mockClientFunc,
-		config.CloudConfig{},
-	))
-	mgr.SetRaftLeader(true)
-	go mgr.Run(suite.ctx)
-
-	linkData := &pbhcp.Link{
-		ClientId:     "abc",
-		ClientSecret: "abc",
-		ResourceId:   types.GenerateTestResourceID(suite.T()),
-	}
-	link := rtest.Resource(pbhcp.LinkType, "global").
-		WithData(suite.T(), linkData).
-		Write(suite.T(), suite.client)
-
-	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
-
-	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionValidatedFailed)
-}
-
-func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_LinkNotDisabled() {
-	// Run the controller manager
-	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mockClient, mockClientFunc := mockHcpClientFn(suite.T())
-	mockClient.EXPECT().GetCluster(mock.Anything).Return(&hcpclient.Cluster{
-		HCPPortalURL: "http://test.com",
-	}, nil)
-
-	mgr.Register(LinkController(
-		true,
-		true,
-		mockClientFunc,
-		config.CloudConfig{},
-	))
-
-	mgr.SetRaftLeader(true)
-	go mgr.Run(suite.ctx)
-
-	linkData := &pbhcp.Link{
-		ClientId:     "abc",
-		ClientSecret: "abc",
-		ResourceId:   types.GenerateTestResourceID(suite.T()),
-	}
-	link := rtest.Resource(pbhcp.LinkType, "global").
-		WithData(suite.T(), linkData).
-		Write(suite.T(), suite.client)
-
-	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
-
-	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionLinked(linkData.ResourceId))
-	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionValidatedSuccess)
 }
 
 func (suite *controllerSuite) TestController_GetClusterError() {
@@ -247,8 +182,6 @@ func (suite *controllerSuite) TestController_GetClusterError() {
 			mockClient.EXPECT().GetCluster(mock.Anything).Return(nil, tc.expectErr)
 
 			mgr.Register(LinkController(
-				true,
-				true,
 				mockClientFunc,
 				config.CloudConfig{},
 			))

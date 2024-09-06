@@ -172,10 +172,8 @@ message IssuedCert {
   // The same URI is shared by all servers in a Consul datacenter.
   string ServerURI = 14;
 
-  // WorkloadIdentity is the name of the workload identity for which the cert was issued.
-  string WorkloadIdentity = 15;
-  // WorkloadIdentityURI is the cert URI value.
-  string WorkloadIdentityURI = 16;
+  // 15 & 16 were formerly used for workload identity certs
+  reserved 15, 16;
 
   // ValidAfter and ValidBefore are the validity periods for the
   // certificate.

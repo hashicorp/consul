@@ -100,10 +100,6 @@ func (s *Server) ensureListByOwnerRequestValid(req *pbresource.ListByOwnerReques
 		return nil, err
 	}
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Owner.Type); err != nil {
-		return nil, err
-	}
-
 	if err = validateScopedTenancy(reg.Scope, reg.Type, req.Owner.Tenancy, true); err != nil {
 		return nil, err
 	}

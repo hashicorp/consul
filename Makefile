@@ -294,7 +294,6 @@ lint-container-test-deps: ## Check that the test-container module only imports a
 	@cd test/integration/consul-container && \
 		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
 			github.com/hashicorp/consul \
-			"internal/catalog/catalogtest" \
 			"internal/resource/resourcetest"
 
 ##@ Testing

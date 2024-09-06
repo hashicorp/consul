@@ -5,8 +5,8 @@ package local
 import (
 	proxycfg "github.com/hashicorp/consul/agent/proxycfg"
 	mock "github.com/stretchr/testify/mock"
+	"context"
 
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 
 	structs "github.com/hashicorp/consul/agent/structs"
 )
@@ -52,27 +52,27 @@ func (_m *MockConfigManager) RegisteredProxies(source proxycfg.ProxySource) []pr
 }
 
 // Watch provides a mock function with given fields: id
-func (_m *MockConfigManager) Watch(id proxycfg.ProxyID) (<-chan proxysnapshot.ProxySnapshot, proxysnapshot.CancelFunc) {
+func (_m *MockConfigManager) Watch(id proxycfg.ProxyID) (<-chan *proxycfg.ConfigSnapshot, context.CancelFunc) {
 	ret := _m.Called(id)
 
-	var r0 <-chan proxysnapshot.ProxySnapshot
-	var r1 proxysnapshot.CancelFunc
-	if rf, ok := ret.Get(0).(func(proxycfg.ProxyID) (<-chan proxysnapshot.ProxySnapshot, proxysnapshot.CancelFunc)); ok {
+	var r0 <-chan *proxycfg.ConfigSnapshot
+	var r1 context.CancelFunc
+	if rf, ok := ret.Get(0).(func(proxycfg.ProxyID) (<-chan *proxycfg.ConfigSnapshot, context.CancelFunc)); ok {
 		return rf(id)
 	}
-	if rf, ok := ret.Get(0).(func(proxycfg.ProxyID) <-chan proxysnapshot.ProxySnapshot); ok {
+	if rf, ok := ret.Get(0).(func(proxycfg.ProxyID) <-chan *proxycfg.ConfigSnapshot); ok {
 		r0 = rf(id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan proxysnapshot.ProxySnapshot)
+			r0 = ret.Get(0).(<-chan *proxycfg.ConfigSnapshot)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(proxycfg.ProxyID) proxysnapshot.CancelFunc); ok {
+	if rf, ok := ret.Get(1).(func(proxycfg.ProxyID) context.CancelFunc); ok {
 		r1 = rf(id)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(proxysnapshot.CancelFunc)
+			r1 = ret.Get(1).(context.CancelFunc)
 		}
 	}
 

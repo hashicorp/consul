@@ -80,35 +80,6 @@ func (c *ChainedAuthorizer) EventWrite(name string, entCtx *AuthorizerContext) E
 	})
 }
 
-// IdentityRead checks for permission to read a given workload identity.
-func (c *ChainedAuthorizer) IdentityRead(name string, entCtx *AuthorizerContext) EnforcementDecision {
-	return c.executeChain(func(authz Authorizer) EnforcementDecision {
-		return authz.IdentityRead(name, entCtx)
-	})
-}
-
-// IdentityReadAll checks for permission to read all workload identities.
-func (c *ChainedAuthorizer) IdentityReadAll(entCtx *AuthorizerContext) EnforcementDecision {
-	return c.executeChain(func(authz Authorizer) EnforcementDecision {
-		return authz.IdentityReadAll(entCtx)
-	})
-}
-
-// IdentityWrite checks for permission to create or update a given
-// workload identity.
-func (c *ChainedAuthorizer) IdentityWrite(name string, entCtx *AuthorizerContext) EnforcementDecision {
-	return c.executeChain(func(authz Authorizer) EnforcementDecision {
-		return authz.IdentityWrite(name, entCtx)
-	})
-}
-
-// IdentityWriteAny checks for write permission on any workload identity.
-func (c *ChainedAuthorizer) IdentityWriteAny(entCtx *AuthorizerContext) EnforcementDecision {
-	return c.executeChain(func(authz Authorizer) EnforcementDecision {
-		return authz.IdentityWriteAny(entCtx)
-	})
-}
-
 // IntentionDefaultAllow determines the default authorized behavior
 // when no intentions match a Connect request.
 func (c *ChainedAuthorizer) IntentionDefaultAllow(entCtx *AuthorizerContext) EnforcementDecision {

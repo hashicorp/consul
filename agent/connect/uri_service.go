@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // SpiffeIDService is the structure to represent the SPIFFE ID for a service.
@@ -52,15 +51,4 @@ func (id SpiffeIDService) uriPath() string {
 		return "/ap/" + ap + path
 	}
 	return path
-}
-
-// SpiffeIDFromIdentityRef creates the SPIFFE ID from a workload identity.
-// TODO (ishustava): make sure ref type is workload identity.
-func SpiffeIDFromIdentityRef(trustDomain string, ref *pbresource.Reference) string {
-	return SpiffeIDWorkloadIdentity{
-		TrustDomain:      trustDomain,
-		Partition:        ref.Tenancy.Partition,
-		Namespace:        ref.Tenancy.Namespace,
-		WorkloadIdentity: ref.Name,
-	}.URI().String()
 }

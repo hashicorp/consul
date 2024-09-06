@@ -46,7 +46,6 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -355,8 +354,7 @@ func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, err
 		}
 	}
 	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{}, nil)
-	proxyUpdater := proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{})
-	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, proxyUpdater)
+	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -1348,7 +1346,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1386,7 +1384,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1420,7 +1418,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1439,7 +1437,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
@@ -2403,7 +2401,7 @@ func TestServer_ControllerDependencies(t *testing.T) {
 
 	_, conf := testServerConfig(t)
 	deps := newDefaultDeps(t, conf)
-	deps.Experiments = []string{"resource-apis", "v2tenancy"}
+	deps.Experiments = []string{"resource-apis"}
 	deps.LeafCertManager = &leafcert.Manager{}
 
 	s1, err := newServerWithDeps(t, conf, deps)
@@ -2413,6 +2411,10 @@ func TestServer_ControllerDependencies(t *testing.T) {
 	// gotest.tools/v3 defines CLI flags which are incompatible wit the golden package
 	// Once we eliminate gotest.tools/v3 from usage within Consul we could uncomment this
 	// actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
-	// expected := golden.Get(t, actual, "v2-resource-dependencies")
+	// markdownFileName := "v2-resource-dependencies"
+	// if versiontest.IsEnterprise() {
+	//   markdownFileName += "-enterprise"
+	// }
+	// expected := golden.Get(t, actual, markdownFileName)
 	// require.Equal(t, expected, actual)
 }
