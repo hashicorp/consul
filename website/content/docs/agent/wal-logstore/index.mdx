@@ -5,16 +5,12 @@ description: >-
   The experimental WAL (write-ahead log) LogStore backend shipped in Consul 1.15 is intended to replace the BoltDB backend, improving performance and log storage issues.
 ---
 
-# Experimental WAL LogStore backend overview
+# WAL LogStore backend overview
 
 This topic provides an overview of the WAL (write-ahead log) LogStore backend.
-The WAL backend is an experimental feature. Refer to
+The WAL backend is now the default Consul LogStore when a boltdb database is not already in place. Refer to
 [Requirements](/consul/docs/agent/wal-logstore/enable#requirements) for
 supported environments and known issues.
-
-We do not recommend enabling the WAL backend in production without following
-[our guide for safe
-testing](/consul/docs/agent/wal-logstore/enable).
 
 ## WAL versus BoltDB
 

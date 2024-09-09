@@ -1652,10 +1652,9 @@ subsystem that provides Consul's service mesh capabilities.
   v1.15.0.
 
   - `backend` ((#raft_logstore_backend)) Specifies which storage
-    engine to use to persist logs. Valid options are `boltdb` or `wal`. Default
-    is `boltdb`. The `wal` option specifies an experimental backend that
-    should be used with caution. Refer to
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
+    engine to use to persist logs. Valid options are `wal` or `boltdb`. Default
+    is `wal`. Refer to
+    [WAL LogStore backend](/consul/docs/agent/wal-logstore)
     for more information.
 
   - `disable_log_cache` ((#raft_logstore_disable_log_cache)) Disables the in-memory cache for recent logs. We recommend using it for performance testing purposes, as no significant improvement has been measured when the cache is disabled. While the in-memory log cache theoretically prevents disk reads for recent logs, recent logs are also stored in the OS page cache, which does not slow either the `boltdb` or `wal` backend's ability to read them.
