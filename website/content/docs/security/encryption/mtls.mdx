@@ -437,10 +437,6 @@ When using the auto-encryption method, the client certificates will be automatic
 
 </Tabs>
 
-### Manage Consul TLS certificates using Vault and consul-template
-
-
-
 ## Examples
 
 The configuration snippets provided in this page are valid to configure complete mTLS for your Consul datacenter. This means that all interfaces require the client to provide a valid certificate in order to communicate with the Consul agent. This is valid for all requests, API, CLI, and UI.
@@ -585,5 +581,7 @@ After completing the steps in this topic, your agents will be configured with TL
 client certificates are managed by the server. With the operator method, you distributed all the certificates, but have a more flexible configuration.
 
 Documentation for the commands used in this topic is available at [Consul agent configuration - TLS configuration reference](/consul/docs/agent/config/config-files#tls-configuration-reference) documentation and at the [`consul tls` CLI command reference](/consul/commands/tls). 
+
+To learn how to automate TLS certificate generation and rotation, refer to the [Generate mTLS Certificates for Consul with Vault](/consul/tutorials/operate-consul/vault-pki-consul-secure-tls) tutorial.
 
 The other prerequisites for a secure Consul deployment are [gossip encryption](/consul/docs/security/encryption/gossip) and [Access Control Lists (ACLs)](/consul/docs/security/acl) with default deny policy.
