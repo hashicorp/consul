@@ -46,7 +46,7 @@ import (
 
 const (
 	contentTypeHeader = "Content-Type"
-	plainContentType  = "text/plain"
+	plainContentType  = "text/plain; charset=utf-8"
 	htmlContentType   = "text/html"
 	jsonContentType   = "application/json"
 )
@@ -228,7 +228,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 			// If enableDebug register wrapped pprof handlers
 			if !s.agent.enableDebug.Load() && s.checkACLDisabled() {
 				resp.WriteHeader(http.StatusNotFound)
-				req.Header.Set(contentTypeHeader, plainContentType)
+				resp.Header().Set(contentTypeHeader, plainContentType)
 				return
 			}
 
@@ -237,7 +237,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 
 			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
-				req.Header.Set(contentTypeHeader, plainContentType)
+				resp.Header().Set(contentTypeHeader, plainContentType)
 				resp.WriteHeader(http.StatusForbidden)
 				return
 			}
@@ -247,8 +247,8 @@ func (s *HTTPHandlers) handler() http.Handler {
 			// TODO(partitions): should this be possible in a partition?
 			// TODO(acl-error-enhancements): We should return error details somehow here.
 			if authz.OperatorRead(nil) != acl.Allow {
+				resp.Header().Set(contentTypeHeader, plainContentType)
 				resp.WriteHeader(http.StatusForbidden)
-				req.Header.Set(contentTypeHeader, plainContentType)
 				return
 			}
 
@@ -328,7 +328,6 @@ func (s *HTTPHandlers) handler() http.Handler {
 	}
 
 	h = withRemoteAddrHandler(h)
-
 	h = ensureContentTypeHeader(h, s.agent.logger)
 
 	s.h = &wrappedMux{
@@ -351,15 +350,14 @@ func withRemoteAddrHandler(next http.Handler) http.Handler {
 	})
 }
 
-// Injects content type explicitly if not already set into request to prevent XSS
+// Injects content type explicitly if not already set into response to prevent XSS
 func ensureContentTypeHeader(next http.Handler, logger hclog.Logger) http.Handler {
 
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		val := req.Header.Get(contentTypeHeader)
+		val := resp.Header().Get(contentTypeHeader)
 		if val == "" {
-			req.Header.Set(contentTypeHeader, plainContentType)
+			resp.Header().Set(contentTypeHeader, plainContentType)
 			logger.Debug("warning: content-type header not explicitly set.", "request-path", req.URL)
-
 		}
 		next.ServeHTTP(resp, req)
 	})
