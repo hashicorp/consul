@@ -6,15 +6,11 @@
 package resource
 
 import (
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 func v2TenancyToV1EntMeta(tenancy *pbresource.Tenancy) *acl.EnterpriseMeta {
@@ -31,15 +27,6 @@ func v1EntMetaToV2Tenancy(reg *resource.Registration, entMeta *acl.EnterpriseMet
 	}
 }
 
-// checkV2Tenancy returns FailedPrecondition error for namespace resource type
-// when the "v2tenancy" feature flag is not enabled.
-func checkV2Tenancy(useV2Tenancy bool, rtype *pbresource.Type) error {
-	if resource.EqualType(rtype, pbtenancy.NamespaceType) && !useV2Tenancy {
-		return status.Errorf(codes.FailedPrecondition, "use of the v2 namespace resource requires the \"v2tenancy\" feature flag")
-	}
-	return nil
-}
-
 type Config struct {
 	Logger   hclog.Logger
 	Registry Registry
@@ -50,11 +37,6 @@ type Config struct {
 	// TenancyBridge temporarily allows us to use V1 implementations of
 	// partitions and namespaces until V2 implementations are available.
 	TenancyBridge TenancyBridge
-
-	// UseV2Tenancy is true if the "v2tenancy" experiment is active, false otherwise.
-	// Attempts to create v2 tenancy resources (partition or namespace) will fail when the
-	// flag is false.
-	UseV2Tenancy bool
 }
 
 // FeatureCheck does not apply to the community edition.

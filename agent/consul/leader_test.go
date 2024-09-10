@@ -14,83 +14,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
-
-func enableV2(t *testing.T) func(deps *Deps) {
-	return func(deps *Deps) {
-		deps.Experiments = []string{"resource-apis"}
-		m, _ := leafcert.NewTestManager(t, nil)
-		deps.LeafCertManager = m
-	}
-}
-
-// Test that Consul service is created in V2.
-// In V1, the service is implicitly created - this is covered in leader_registrator_v1_test.go
-func Test_InitConsulService(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	dir, s := testServerWithDepsAndConfig(t, enableV2(t),
-		func(c *Config) {
-			c.PrimaryDatacenter = "dc1"
-			c.ACLsEnabled = true
-			c.ACLInitialManagementToken = "root"
-			c.ACLResolverSettings.ACLDefaultPolicy = "deny"
-		})
-	defer os.RemoveAll(dir)
-	defer s.Shutdown()
-
-	testrpc.WaitForRaftLeader(t, s.RPC, "dc1", testrpc.WithToken("root"))
-
-	client := pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan)
-
-	consulServiceID := &pbresource.ID{
-		Name:    structs.ConsulServiceName,
-		Type:    pbcatalog.ServiceType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
-	}
-
-	retry.Run(t, func(r *retry.R) {
-		res, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: consulServiceID})
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		data := res.GetResource().GetData()
-		require.NotNil(r, data)
-
-		var service pbcatalog.Service
-		err = data.UnmarshalTo(&service)
-		require.NoError(r, err)
-
-		// Spot check the Service
-		require.Equal(r, service.GetWorkloads().GetPrefixes(), []string{consulWorkloadPrefix})
-		require.GreaterOrEqual(r, len(service.GetPorts()), 1)
-
-		//Since we're not running a full agent w/ serf, we can't check for valid endpoints
-	})
-}
 
 func TestLeader_TombstoneGC_Reset(t *testing.T) {
 	if testing.Short() {
@@ -834,7 +773,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			deps := newDefaultDeps(t, config)
 			deps.Logger = logger
 
-			srv, err := NewServer(config, deps, grpc.NewServer(), nil, logger, nil)
+			srv, err := NewServer(config, deps, grpc.NewServer(), nil, logger)
 			require.NoError(t, err)
 			defer srv.Shutdown()
 

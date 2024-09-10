@@ -69,7 +69,6 @@ import (
 	"github.com/hashicorp/consul/api/watch"
 	libdns "github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/internal/gossip/librtt"
-	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
@@ -639,9 +638,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
-	if a.baseDeps.UseV2Resources() {
-		a.sync.HardDisableSync()
-	}
 
 	err = validateFIPSConfig(a.config)
 	if err != nil {
@@ -672,10 +668,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
-
-	// proxyTracker will be used in the creation of the XDS server and also
-	// in the registration of the v2 xds controller
-	var proxyTracker *proxytracker.ProxyTracker
 
 	// Setup either the client or the server.
 	var consulServer *consul.Server
@@ -716,13 +708,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			nil,
 		)
 
-		if a.baseDeps.UseV2Resources() {
-			proxyTracker = proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{
-				Logger:         a.logger.Named("proxy-tracker"),
-				SessionLimiter: a.baseDeps.XDSStreamLimiter,
-			})
-		}
-		consulServer, err = consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger, proxyTracker)
+		consulServer, err = consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -746,10 +732,6 @@ func (a *Agent) Start(ctx context.Context) error {
 			}
 		}
 	} else {
-		if a.baseDeps.UseV2Resources() {
-			return fmt.Errorf("can't start agent: client agents are not supported with v2 resources")
-		}
-
 		// the conn is used to connect to the consul server agent
 		conn, err := a.baseDeps.GRPCConnPool.ClientConn(a.baseDeps.RuntimeConfig.Datacenter)
 		if err != nil {
@@ -895,7 +877,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// Start grpc and grpc_tls servers.
-	if err := a.listenAndServeGRPC(proxyTracker, consulServer); err != nil {
+	if err := a.listenAndServeGRPC(consulServer); err != nil {
 		return err
 	}
 
@@ -956,28 +938,20 @@ func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher, server *consul
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	if server != nil {
-		switch proxyWatcher.(type) {
-		case *proxytracker.ProxyTracker:
-			go func() {
-				<-a.shutdownCh
-				proxyWatcher.(*proxytracker.ProxyTracker).Shutdown()
-			}()
-		default:
-			catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
-				NodeName:          a.config.NodeName,
-				LocalState:        a.State,
-				LocalConfigSource: proxyWatcher,
-				Manager:           a.proxyConfig,
-				GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
-				Logger:            a.proxyConfig.Logger.Named("server-catalog"),
-				SessionLimiter:    a.baseDeps.XDSStreamLimiter,
-			})
-			go func() {
-				<-a.shutdownCh
-				catalogCfg.Shutdown()
-			}()
-			proxyWatcher = catalogCfg
-		}
+		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
+			NodeName:          a.config.NodeName,
+			LocalState:        a.State,
+			LocalConfigSource: proxyWatcher,
+			Manager:           a.proxyConfig,
+			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
+			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
+		})
+		go func() {
+			<-a.shutdownCh
+			catalogCfg.Shutdown()
+		}()
+		proxyWatcher = catalogCfg
 	}
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
@@ -991,16 +965,11 @@ func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher, server *consul
 	a.xdsServer.Register(a.externalGRPCServer)
 }
 
-func (a *Agent) listenAndServeGRPC(proxyTracker *proxytracker.ProxyTracker, server *consul.Server) error {
+func (a *Agent) listenAndServeGRPC(server *consul.Server) error {
 	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
 		return nil
 	}
-	var proxyWatcher xds.ProxyWatcher
-	if a.baseDeps.UseV2Resources() {
-		proxyWatcher = proxyTracker
-	} else {
-		proxyWatcher = localproxycfg.NewConfigSource(a.proxyConfig)
-	}
+	var proxyWatcher xds.ProxyWatcher = localproxycfg.NewConfigSource(a.proxyConfig)
 
 	a.configureXDSServer(proxyWatcher, server)
 

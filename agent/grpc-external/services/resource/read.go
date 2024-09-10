@@ -106,10 +106,6 @@ func (s *Server) ensureReadRequestValid(req *pbresource.ReadRequest) (*resource.
 	// not enabled in the license.
 	_ = s.FeatureCheck(reg)
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
-		return nil, err
-	}
-
 	// Check scope
 	if err = validateScopedTenancy(reg.Scope, req.Id.Type, req.Id.Tenancy, false); err != nil {
 		return nil, err

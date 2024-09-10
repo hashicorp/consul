@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
 const (
@@ -179,39 +178,6 @@ type AccessLogsConfig struct {
 	// Defining Both is invalid.
 	JSONFormat string `json:",omitempty" alias:"json_format"`
 	TextFormat string `json:",omitempty" alias:"text_format"`
-}
-
-func (c *AccessLogsConfig) GetEnabled() bool {
-	return c.Enabled
-}
-
-func (c *AccessLogsConfig) GetDisableListenerLogs() bool {
-	return c.DisableListenerLogs
-}
-
-func (c *AccessLogsConfig) GetType() pbmesh.LogSinkType {
-	switch c.Type {
-	case FileLogSinkType:
-		return pbmesh.LogSinkType_LOG_SINK_TYPE_FILE
-	case StdErrLogSinkType:
-		return pbmesh.LogSinkType_LOG_SINK_TYPE_STDERR
-	case StdOutLogSinkType:
-		return pbmesh.LogSinkType_LOG_SINK_TYPE_STDOUT
-	}
-
-	return pbmesh.LogSinkType_LOG_SINK_TYPE_DEFAULT
-}
-
-func (c *AccessLogsConfig) GetPath() string {
-	return c.Path
-}
-
-func (c *AccessLogsConfig) GetJsonFormat() string {
-	return c.JSONFormat
-}
-
-func (c *AccessLogsConfig) GetTextFormat() string {
-	return c.TextFormat
 }
 
 func (c *AccessLogsConfig) IsZero() bool {
@@ -838,13 +804,4 @@ func (e *ExposeConfig) Finalize() {
 			path.Protocol = defaultExposeProtocol
 		}
 	}
-}
-
-type AccessLogs interface {
-	GetEnabled() bool
-	GetDisableListenerLogs() bool
-	GetType() pbmesh.LogSinkType
-	GetPath() string
-	GetJsonFormat() string
-	GetTextFormat() string
 }
