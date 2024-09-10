@@ -46,8 +46,6 @@ import (
 const (
 	contentTypeHeader = "Content-Type"
 	plainContentType  = "text/plain; charset=utf-8"
-	htmlContentType   = "text/html"
-	jsonContentType   = "application/json"
 )
 
 var HTTPSummaries = []prometheus.SummaryDefinition{
