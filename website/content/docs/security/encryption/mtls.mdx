@@ -510,6 +510,9 @@ tls {
 }
 ```
 
+</CodeTabs>
+
+
 ### Use HTTP for local client interaction
 
 If you want to avoid the need to present a valid client certificate or to use the CA certificate every time you need to interact with your local Consul agent, it is possible to configure Consul to keep the HTTP listener only active on the `localhost` interface. External requests to the API or the UI will still be TLS protected but setting `tls.https.verify_incoming` to `false` removes the need to present a client certificate. RCP communications are still mTLS encrypted.
