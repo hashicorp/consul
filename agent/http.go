@@ -351,12 +351,13 @@ func withRemoteAddrHandler(next http.Handler) http.Handler {
 func ensureContentTypeHeader(next http.Handler, logger hclog.Logger) http.Handler {
 
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		next.ServeHTTP(resp, req)
+
 		val := resp.Header().Get(contentTypeHeader)
 		if val == "" {
 			resp.Header().Set(contentTypeHeader, plainContentType)
 			logger.Debug("warning: content-type header not explicitly set.", "request-path", req.URL)
 		}
-		next.ServeHTTP(resp, req)
 	})
 }
 
