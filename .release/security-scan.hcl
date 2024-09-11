@@ -42,6 +42,7 @@ container {
 				"CVE-2023-46219", # curl@8.4.0-r0
 				"CVE-2023-5678",  # openssl@3.1.4-r0
 				"CVE-2024-7264", # curl@8.9.0
+				"CVE-2024-8096", # curl@8.9.1-r0
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
