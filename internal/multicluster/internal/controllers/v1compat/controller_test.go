@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -39,7 +38,7 @@ func (suite *controllerSuite) SetupTest() {
 	suite.isEnterprise = versiontest.IsEnterprise()
 	suite.ctx = testutil.TestContext(suite.T())
 	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithRegisterFns(types.Register).
 		WithTenancies(suite.tenancies...).
 		Run(suite.T())
 

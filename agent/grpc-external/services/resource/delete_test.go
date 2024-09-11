@@ -5,7 +5,6 @@ package resource_test
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -22,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 )
 
@@ -137,37 +135,28 @@ func TestDelete_InputValidation(t *testing.T) {
 		},
 	}
 
-	for _, useV2Tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", useV2Tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(useV2Tenancy).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			for desc, tc := range testCases {
-				t.Run(desc, func(t *testing.T) {
-					run(t, client, tc)
-				})
-			}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			run(t, client, tc)
 		})
 	}
 }
 
 func TestDelete_TypeNotRegistered(t *testing.T) {
-	for _, useV2Tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", useV2Tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().WithV2Tenancy(useV2Tenancy).Run(t)
+	client := svctest.NewResourceServiceBuilder().Run(t)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
 
-			// delete artist with unregistered type
-			_, err = client.Delete(context.Background(), &pbresource.DeleteRequest{Id: artist.Id, Version: ""})
-			require.Error(t, err)
-			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-			require.ErrorContains(t, err, "not registered")
-		})
-	}
+	// delete artist with unregistered type
+	_, err = client.Delete(context.Background(), &pbresource.DeleteRequest{Id: artist.Id, Version: ""})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "not registered")
 }
 
 func TestDelete_ACLs(t *testing.T) {
@@ -274,15 +263,10 @@ func TestDelete_Success(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			for tenancyDesc, modFn := range tenancyCases() {
 				t.Run(tenancyDesc, func(t *testing.T) {
-					for _, useV2Tenancy := range []bool{false, true} {
-						t.Run(fmt.Sprintf("v2tenancy %v", useV2Tenancy), func(t *testing.T) {
-							client := svctest.NewResourceServiceBuilder().
-								WithV2Tenancy(useV2Tenancy).
-								WithRegisterFns(demo.RegisterTypes).
-								Run(t)
-							run(t, client, tc, modFn)
-						})
-					}
+					client := svctest.NewResourceServiceBuilder().
+						WithRegisterFns(demo.RegisterTypes).
+						Run(t)
+					run(t, client, tc, modFn)
 				})
 			}
 		})
@@ -338,46 +322,41 @@ func TestDelete_NonCAS_Retry(t *testing.T) {
 func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 	t.Parallel()
 
-	for _, useV2Tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", useV2Tenancy), func(t *testing.T) {
-			ctx := context.Background()
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(useV2Tenancy).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
+	ctx := context.Background()
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
 
-			rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
-			require.NoError(t, err)
-			artist = rsp.Resource
+	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+	artist = rsp.Resource
 
-			// delete artist
-			_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: ""})
-			require.NoError(t, err)
+	// delete artist
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: ""})
+	require.NoError(t, err)
 
-			// verify artist's tombstone created
-			rsp2, err := client.Read(ctx, &pbresource.ReadRequest{
-				Id: &pbresource.ID{
-					Name:    svc.TombstoneNameFor(artist.Id),
-					Type:    resource.TypeV1Tombstone,
-					Tenancy: artist.Id.Tenancy,
-				},
-			})
-			require.NoError(t, err)
-			tombstone := rsp2.Resource
+	// verify artist's tombstone created
+	rsp2, err := client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Name:    svc.TombstoneNameFor(artist.Id),
+			Type:    resource.TypeV1Tombstone,
+			Tenancy: artist.Id.Tenancy,
+		},
+	})
+	require.NoError(t, err)
+	tombstone := rsp2.Resource
 
-			// delete artist's tombstone
-			_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: tombstone.Id, Version: tombstone.Version})
-			require.NoError(t, err)
+	// delete artist's tombstone
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: tombstone.Id, Version: tombstone.Version})
+	require.NoError(t, err)
 
-			// verify no new tombstones created and artist's existing tombstone deleted
-			rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy})
-			require.NoError(t, err)
-			require.Empty(t, rsp3.Resources)
-		})
-	}
+	// verify no new tombstones created and artist's existing tombstone deleted
+	rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy})
+	require.NoError(t, err)
+	require.Empty(t, rsp3.Resources)
 }
 
 func TestDelete_NotFound(t *testing.T) {
@@ -392,18 +371,13 @@ func TestDelete_NotFound(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	for _, useV2Tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", useV2Tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(useV2Tenancy).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			for desc, tc := range deleteTestCases() {
-				t.Run(desc, func(t *testing.T) {
-					run(t, client, tc)
-				})
-			}
+	for desc, tc := range deleteTestCases() {
+		t.Run(desc, func(t *testing.T) {
+			run(t, client, tc)
 		})
 	}
 }
@@ -411,115 +385,86 @@ func TestDelete_NotFound(t *testing.T) {
 func TestDelete_VersionMismatch(t *testing.T) {
 	t.Parallel()
 
-	for _, useV2Tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", useV2Tenancy), func(t *testing.T) {
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(useV2Tenancy).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
-			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: artist})
-			require.NoError(t, err)
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
 
-			// delete with a version that is different from the stored version
-			_, err = client.Delete(context.Background(), &pbresource.DeleteRequest{Id: rsp.Resource.Id, Version: "non-existent-version"})
-			require.Error(t, err)
-			require.Equal(t, codes.Aborted.String(), status.Code(err).String())
-			require.ErrorContains(t, err, "CAS operation failed")
-		})
-	}
+	// delete with a version that is different from the stored version
+	_, err = client.Delete(context.Background(), &pbresource.DeleteRequest{Id: rsp.Resource.Id, Version: "non-existent-version"})
+	require.Error(t, err)
+	require.Equal(t, codes.Aborted.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "CAS operation failed")
 }
 
 func TestDelete_MarkedForDeletionWhenFinalizersPresent(t *testing.T) {
-	for _, useV2Tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", useV2Tenancy), func(t *testing.T) {
-			ctx := context.Background()
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(useV2Tenancy).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
+	ctx := context.Background()
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			// Create a resource with a finalizer
-			res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
-				WithTenancy(resource.DefaultClusteredTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
-				WithMeta(resource.FinalizerKey, "finalizer1").
-				Write(t, client)
+	// Create a resource with a finalizer
+	res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
+		WithTenancy(resource.DefaultClusteredTenancy()).
+		WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
+		WithMeta(resource.FinalizerKey, "finalizer1").
+		Write(t, client)
 
-			// Delete it
-			_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
-			require.NoError(t, err)
+	// Delete it
+	_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
+	require.NoError(t, err)
 
-			// Verify resource has been marked for deletion
-			rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
-			require.NoError(t, err)
-			require.True(t, resource.IsMarkedForDeletion(rsp.Resource))
+	// Verify resource has been marked for deletion
+	rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
+	require.NoError(t, err)
+	require.True(t, resource.IsMarkedForDeletion(rsp.Resource))
 
-			// Delete again - should be no-op
-			_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
-			require.NoError(t, err)
+	// Delete again - should be no-op
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
+	require.NoError(t, err)
 
-			// Verify no-op by checking version still the same
-			rsp2, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
-			require.NoError(t, err)
-			rtest.RequireVersionUnchanged(t, rsp2.Resource, rsp.Resource.Version)
-		})
-	}
+	// Verify no-op by checking version still the same
+	rsp2, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
+	require.NoError(t, err)
+	rtest.RequireVersionUnchanged(t, rsp2.Resource, rsp.Resource.Version)
 }
 
 func TestDelete_ImmediatelyDeletedAfterFinalizersRemoved(t *testing.T) {
-	for _, useV2Tenancy := range []bool{false, true} {
-		t.Run(fmt.Sprintf("v2tenancy %v", useV2Tenancy), func(t *testing.T) {
-			ctx := context.Background()
-			client := svctest.NewResourceServiceBuilder().
-				WithV2Tenancy(useV2Tenancy).
-				WithRegisterFns(demo.RegisterTypes).
-				Run(t)
+	ctx := context.Background()
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
-			// Create a resource with a finalizer
-			res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
-				WithTenancy(resource.DefaultClusteredTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
-				WithMeta(resource.FinalizerKey, "finalizer1").
-				Write(t, client)
+	// Create a resource with a finalizer
+	res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
+		WithTenancy(resource.DefaultClusteredTenancy()).
+		WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
+		WithMeta(resource.FinalizerKey, "finalizer1").
+		Write(t, client)
 
-			// Delete should mark it for deletion
-			_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
-			require.NoError(t, err)
+	// Delete should mark it for deletion
+	_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
+	require.NoError(t, err)
 
-			// Remove the finalizer
-			rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
-			require.NoError(t, err)
-			resource.RemoveFinalizer(rsp.Resource, "finalizer1")
-			_, err = client.Write(ctx, &pbresource.WriteRequest{Resource: rsp.Resource})
-			require.NoError(t, err)
+	// Remove the finalizer
+	rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
+	require.NoError(t, err)
+	resource.RemoveFinalizer(rsp.Resource, "finalizer1")
+	_, err = client.Write(ctx, &pbresource.WriteRequest{Resource: rsp.Resource})
+	require.NoError(t, err)
 
-			// Delete should be immediate
-			_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: rsp.Resource.Id})
-			require.NoError(t, err)
+	// Delete should be immediate
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: rsp.Resource.Id})
+	require.NoError(t, err)
 
-			// Verify deleted
-			_, err = client.Read(ctx, &pbresource.ReadRequest{Id: rsp.Resource.Id})
-			require.Error(t, err)
-			require.Equal(t, codes.NotFound.String(), status.Code(err).String())
-		})
-	}
-}
-
-func TestDelete_BlockDeleteDefaultNamespace(t *testing.T) {
-	client := svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t)
-
-	id := &pbresource.ID{
-		Name:    resource.DefaultNamespaceName,
-		Type:    pbtenancy.NamespaceType,
-		Tenancy: &pbresource.Tenancy{Partition: resource.DefaultPartitionName},
-	}
-	_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: id})
+	// Verify deleted
+	_, err = client.Read(ctx, &pbresource.ReadRequest{Id: rsp.Resource.Id})
 	require.Error(t, err)
-	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.ErrorContains(t, err, "cannot delete default namespace")
+	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 }
 
 type deleteTestCase struct {

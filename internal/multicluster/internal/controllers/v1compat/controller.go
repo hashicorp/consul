@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/internal/controller/cache/index"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -183,7 +182,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	for _, serviceExport := range serviceExports {
 		for _, svc := range serviceExport.Data.Services {
 			svcId := &pbresource.ID{
-				Type:    pbcatalog.ServiceType,
+				Type:    fakeServiceType,
 				Tenancy: serviceExport.Id.Tenancy,
 				Name:    svc,
 			}
@@ -411,4 +410,10 @@ func keys[K comparable, V any](m map[K]V) []K {
 	}
 
 	return keys
+}
+
+var fakeServiceType = &pbresource.Type{
+	Group:        "catalog",
+	GroupVersion: "v2beta1",
+	Kind:         "Service",
 }

@@ -51,12 +51,6 @@ func (id SpiffeIDSigning) CanSign(cu CertURI) bool {
 		// worry about Unicode domains if we start allowing customisation beyond the
 		// built-in cluster ids.
 		return strings.ToLower(other.Host) == id.Host()
-	case *SpiffeIDWorkloadIdentity:
-		// The trust domain component of the workload identity SPIFFE ID must be an exact match for now under
-		// ascii case folding (since hostnames are case-insensitive). Later we might
-		// worry about Unicode domains if we start allowing customisation beyond the
-		// built-in cluster ids.
-		return strings.ToLower(other.TrustDomain) == id.Host()
 	case *SpiffeIDMeshGateway:
 		// The host component of the mesh gateway SPIFFE ID must be an exact match for now under
 		// ascii case folding (since hostnames are case-insensitive). Later we might

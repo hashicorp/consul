@@ -8,6 +8,7 @@ syntax = "proto3";
 package hashicorp.consul.internal.demo.v2;
 
 import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
 
 message Artist {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
@@ -31,6 +32,7 @@ enum Genre {
   GENRE_SKA = 10;
   GENRE_HIP_HOP = 11;
   GENRE_INDIE = 12;
+  GENRE_ROCK = 13;
 }
 
 message Album {
@@ -40,4 +42,14 @@ message Album {
   int32 year_of_release = 2;
   bool critically_aclaimed = 3;
   repeated string tracks = 4;
+}
+
+message Festival {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
+  string name = 1;
+  repeated Genre genres = 2;
+  repeated Artist artists = 3;
+
+  repeated hashicorp.consul.resource.Reference bound_references = 4;
 }

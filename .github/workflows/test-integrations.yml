@@ -340,6 +340,7 @@ jobs:
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
 
       - name: Envoy Integration Tests
+        id: envoy-integration-tests
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -359,6 +360,23 @@ jobs:
               --jsonfile /tmp/jsonfile/go-test.log \
               --packages=./test/integration/connect/envoy \
               -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
+
+      # See https://github.com/orgs/community/discussions/8945#discussioncomment-9897011
+      # and overall topic discussion for why this is necessary.
+      - name: Generate artifact ID
+        id: generate-artifact-id
+        if: ${{ failure() && steps.envoy-integration-tests.conclusion == 'failure' }}
+        run: |
+          ARTIFACT_ID=$(uuidgen)
+          echo "Artifact ID: $ARTIFACT_ID (search this in job summary for download link)"
+          echo "artifact_id=$ARTIFACT_ID" >> "$GITHUB_ENV"
+
+      - name: Upload failure logs
+        if: ${{ failure() && steps.envoy-integration-tests.conclusion == 'failure' }}
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: envoy-${{ matrix.envoy-version }}-logs-${{ env.artifact_id }}
+          path: test/integration/connect/envoy/workdir/logs/
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault

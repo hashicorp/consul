@@ -13,13 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/stringslice"
-
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 )
 
 type ACLMode string
@@ -62,10 +61,6 @@ agent_prefix "" {
 }
 event_prefix "" {
 	policy = "%[1]s"
-}
-identity_prefix "" {
-	policy = "%[1]s"
-	intentions = "%[1]s"
 }
 key_prefix "" {
 	policy = "%[1]s"

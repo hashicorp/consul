@@ -1,1 +1,0 @@
-{"id":{"name":"api","type":{"group":"mesh","groupVersion":"v2beta1","kind":"Destinations"}},"data":{"@type":"hashicorp.consul.mesh.v2beta1.Destinations","workloads":{"prefixes":["api"]},"destinations":[{"destinationRef":{"name":"db","type":{"group":"catalog","groupVersion":"v2beta1","kind":"Service"}},"destinationPort":"tcp","ipPort":{"port":1234}}]}}
