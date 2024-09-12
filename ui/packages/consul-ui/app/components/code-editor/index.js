@@ -11,13 +11,10 @@ const DEFAULTS = {
   lineNumbers: true,
   theme: 'hashi',
   showCursorWhenSelecting: true,
-  gutters: ['CodeMirror-lint-markers'],
-  lint: true,
 };
 export default Component.extend({
   settings: service('settings'),
   dom: service('dom'),
-  helper: service('code-mirror/linter'),
   classNames: ['code-editor'],
   readonly: false,
   syntax: '',
@@ -26,7 +23,6 @@ export default Component.extend({
   oninput: function () {},
   init: function () {
     this._super(...arguments);
-    set(this, 'modes', this.helper.modes());
   },
   didReceiveAttrs: function () {
     this._super(...arguments);
@@ -51,7 +47,6 @@ export default Component.extend({
 
       const editor = this.editor;
       editor.setOption('mode', mode.mime);
-      this.helper.lint(editor, mode.mode);
       set(this, 'mode', mode);
     }
   },
@@ -76,7 +71,8 @@ export default Component.extend({
       });
       set(this, 'value', $code.firstChild.wholeText);
     }
-    set(this, 'editor', this.helper.getEditor(this.element));
+    // set(this, 'editor', this.helper.getEditor(this.element));
+    set(this, 'editor', this.dom.element('textarea + div', this.element).CodeMirror);
     this.settings.findBySlug('code-editor').then((mode) => {
       const modes = this.modes;
       const syntax = this.syntax;
