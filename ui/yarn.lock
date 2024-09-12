@@ -5262,10 +5262,10 @@ code-point-at@^1.0.0:
   resolved "https://registry.npmjs.org/code-point-at/-/code-point-at-1.1.0.tgz#0d070b4d043a5bea33a2f1a40e2edb3d9a4ccf77"
   integrity sha512-RpAVKQA5T63xEj6/giIbUEtZwJ4UFIc3ZtvEkiaUERylqe8xb5IvqcgOurZLahv93CLKfxcw5YI+DZcUBRyLXA==
 
-codemirror@~5.15.0:
-  version "5.15.2"
-  resolved "https://registry.npmjs.org/codemirror/-/codemirror-5.15.2.tgz#58b3dc732c6d10d7aae806f4c7cdd56a9b87fe8f"
-  integrity sha512-QHZClCGimKVK86/+K1YcKwa2/9pzy5OfAsv0nsXlPxxoWOhGc+HxPWQISnIrYMHwA5QCtiObxo5O/tmV4fzOSQ==
+codemirror@5.58.2, codemirror@~5.15.0:
+  version "5.58.2"
+  resolved "https://registry.npmjs.org/codemirror/-/codemirror-5.58.2.tgz#ed54a1796de1498688bea1cdd4e9eeb187565d1b"
+  integrity sha512-K/hOh24cCwRutd1Mk3uLtjWzNISOkm4fvXiMO7LucCrqbh6aJDdtqUziim3MZUI6wOY0rvY1SlL1Ork01uMy6w==
 
 collection-visit@^1.0.0:
   version "1.0.0"
