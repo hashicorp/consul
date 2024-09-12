@@ -155,7 +155,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	)
 	asserter.FortioFetch2HeaderEcho(t, staticClient, &topology.Upstream{
 		ID:        staticServerSID,
-		LocalPort: 5000,
+		LocalPort: 8080,
 	})
 	staticServer := sp.Topology().Clusters["dc1"].WorkloadByID(
 		topology.NewNodeID("dc1-client1", "default"),
@@ -184,6 +184,6 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	// Ensure the static-client connected to the new static-server
 	asserter.FortioFetch2HeaderEcho(t, staticClient, &topology.Upstream{
 		ID:        staticServerSID,
-		LocalPort: 5000,
+		LocalPort: 8080,
 	})
 }
