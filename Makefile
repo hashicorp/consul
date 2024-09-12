@@ -619,6 +619,13 @@ envoy-regen: ## Regenerating envoy golden files
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
+
+##@ Changelog
+
+.PHONY: gen-changelog
+gen-changelog: ## Generate changelog entry for the current branch based on the currently open PR for that branch
+	@$(SHELL) $(CURDIR)/build-support/scripts/gen-changelog.sh
+
 ##@ Help
 
 # The help target prints out all targets with their descriptions organized
