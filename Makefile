@@ -626,6 +626,7 @@ envoy-regen: ## Regenerating envoy golden files
 gen-changelog: ## Generate changelog entry for the current branch based on the currently open PR for that branch
 	@$(SHELL) $(CURDIR)/build-support/scripts/gen-changelog.sh
 
+	
 ##@ Help
 
 # The help target prints out all targets with their descriptions organized
