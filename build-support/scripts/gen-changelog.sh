@@ -2,10 +2,25 @@
 
 set -eo pipefail
 
-pr_number=$(gh pr list -H "$(git rev-parse --abbrev-ref HEAD)" --json "number" | jq ".[].number")
+pr_number=$(gh pr list -H "$(git rev-parse --abbrev-ref HEAD)" -q ".[0].number" --json "number")
+
+# check if this changelog is referencing an enterprise change
+curdir=$(pwd)
+
+filename = ".changelog/$pr_number.txt"
+if [[ ! $curdir == *"enterprise"* ]]; then
+  is_enterprise = "n"
+  read -p "Is this an enterprise PR? (y/n): " is_enterprise
+
+  if [[ $is_enterprise == "y" ]]; then
+    filename = ".changelog/_$pr_number.txt"
+  fi
+else
+  filename = ".changelog/_$pr_number.txt"
+fi
 
 # create a new changelog file
-touch ".changelog/$pr_number.txt"
+touch $filename
 
 echo "Created a new changelog file for PR $pr_number."
 
@@ -51,6 +66,6 @@ msg=""
 
 read -ep $'Please enter the changelog message:\n' msg
 
-echo -e "\`\`\`release-note:$type\n$msg\n\`\`\`" >>".changelog/$pr_number.txt"
+echo -e "\`\`\`release-note:$type\n$msg\n\`\`\`" >>"$filename"
 
 cat .changelog/$pr_number.txt
