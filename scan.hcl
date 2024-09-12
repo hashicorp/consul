@@ -37,6 +37,7 @@ repository {
         "test/integration/consul-container/*",
         "testing/deployer/*",
         "test-integ/*",
+        "agent/uiserver/dist/assets/vendor-892a8787e7c054f43bebe02b1e5bc878.js",
       ]
     }
   }
