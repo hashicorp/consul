@@ -31,25 +31,6 @@ export default Component.extend({
       editor.setOption('readOnly', this.readonly);
     }
   },
-  setMode: function (mode) {
-    if (!this.isDestroying && !this.isDestroyed) {
-      let options = {
-        ...DEFAULTS,
-        mode: mode.mime,
-        readOnly: this.readonly,
-      };
-      if (mode.name === 'XML') {
-        options.htmlMode = mode.htmlMode;
-        options.matchClosing = mode.matchClosing;
-        options.alignCDATA = mode.alignCDATA;
-      }
-      set(this, 'options', options);
-
-      const editor = this.editor;
-      editor.setOption('mode', mode.mime);
-      set(this, 'mode', mode);
-    }
-  },
   willDestroyElement: function () {
     this._super(...arguments);
     if (this.observer) {
@@ -71,19 +52,7 @@ export default Component.extend({
       });
       set(this, 'value', $code.firstChild.wholeText);
     }
-    // set(this, 'editor', this.helper.getEditor(this.element));
     set(this, 'editor', this.dom.element('textarea + div', this.element).CodeMirror);
-    this.settings.findBySlug('code-editor').then((mode) => {
-      const modes = this.modes;
-      const syntax = this.syntax;
-      if (syntax) {
-        mode = modes.find(function (item) {
-          return item.name.toLowerCase() == syntax.toLowerCase();
-        });
-      }
-      mode = !mode ? modes[0] : mode;
-      this.setMode(mode);
-    });
   },
   didAppear: function () {
     this.editor.refresh();
@@ -93,7 +62,6 @@ export default Component.extend({
       this.settings.persist({
         'code-editor': value,
       });
-      this.setMode(value);
     },
   },
 });
