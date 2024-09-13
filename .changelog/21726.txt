@@ -1,0 +1,3 @@
+```release-note:security
+UI: Remove codemirror linting due to package dependency
+```
