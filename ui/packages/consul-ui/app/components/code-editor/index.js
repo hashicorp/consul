@@ -49,7 +49,6 @@ export default Component.extend({
 
       const editor = this.editor;
       editor.setOption('mode', mode.mime);
-      this.helper.lint(editor, mode.mode);
       set(this, 'mode', mode);
     }
   },
