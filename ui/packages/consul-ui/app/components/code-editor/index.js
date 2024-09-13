@@ -62,6 +62,7 @@ export default Component.extend({
       this.settings.persist({
         'code-editor': value,
       });
+      this.setMode(value);
     },
   },
 });
