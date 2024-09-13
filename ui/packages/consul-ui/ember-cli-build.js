@@ -264,10 +264,7 @@ module.exports = function (defaults, $ = process.env) {
   // CSS.escape polyfill
   app.import('node_modules/css.escape/css.escape.js', { outputFile: 'assets/css.escape.js' });
 
-  // JSON linting support. Possibly dynamically loaded via CodeMirror linting. See components/code-editor.js
-  app.import('node_modules/jsonlint/lib/jsonlint.js', {
-    outputFile: 'assets/codemirror/mode/javascript/javascript.js',
-  });
+  // Possibly dynamically loaded via CodeMirror linting. See components/code-editor.js
   app.import('node_modules/codemirror/mode/javascript/javascript.js', {
     outputFile: 'assets/codemirror/mode/javascript/javascript.js',
   });

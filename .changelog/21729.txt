@@ -1,0 +1,4 @@
+```release-notes:security
+Bump Dockerfile base image to `alpine:3.20`.
+This resolves CVE-2024-7264 and CVE-2024-8096 (curl).
+```

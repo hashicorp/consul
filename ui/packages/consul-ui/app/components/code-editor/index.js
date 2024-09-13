@@ -11,8 +11,6 @@ const DEFAULTS = {
   lineNumbers: true,
   theme: 'hashi',
   showCursorWhenSelecting: true,
-  gutters: ['CodeMirror-lint-markers'],
-  lint: true,
 };
 export default Component.extend({
   settings: service('settings'),
