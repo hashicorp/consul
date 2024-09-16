@@ -1,4 +1,4 @@
 ```release-note:enhancement
-  use raft-wal as a default raft log store.
+raft: use raft-wal as the default raft log store.
 ```
 
