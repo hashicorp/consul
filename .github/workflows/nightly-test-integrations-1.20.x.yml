@@ -228,7 +228,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: ["1.15", "1.17", "1.18", "1.19"]
+        consul-version: ["1.15", "1.18", "1.19", "1.20"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       # ENVOY_VERSION should be the latest version supported by _all_ Consul versions in the
