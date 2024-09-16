@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly test-integrations 1.19.x
+name: Nightly test-integrations 1.20.x
 
 on:
   schedule:
