@@ -79,7 +79,8 @@ binary {
 		suppress {
 			# N.b. `vulnerabilites` is the correct spelling for this tool.
 			vulnerabilites = [
-				"CVE-2024-8096", # curl@8.9.1-r0
+				"CVE-2024-8096", # curl@8.9.1-r0,
+				"CVE-2024-8096", # curl@8.9.1-r2,
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
