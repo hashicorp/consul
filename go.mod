@@ -1,8 +1,8 @@
 module github.com/hashicorp/consul
 
-go 1.22
+go 1.23
 
-toolchain go1.22.5
+toolchain go1.23.1
 
 replace (
 	github.com/hashicorp/consul/api => ./api
