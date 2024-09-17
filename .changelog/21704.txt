@@ -1,0 +1,3 @@
+```release-note:security
+Explicitly set 'Content-Type' header to mitigate XSS vulnerability.
+```

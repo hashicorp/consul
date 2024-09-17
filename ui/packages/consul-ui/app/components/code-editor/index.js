@@ -11,8 +11,6 @@ const DEFAULTS = {
   lineNumbers: true,
   theme: 'hashi',
   showCursorWhenSelecting: true,
-  gutters: ['CodeMirror-lint-markers'],
-  lint: true,
 };
 export default Component.extend({
   settings: service('settings'),
@@ -51,7 +49,6 @@ export default Component.extend({
 
       const editor = this.editor;
       editor.setOption('mode', mode.mime);
-      this.helper.lint(editor, mode.mode);
       set(this, 'mode', mode);
     }
   },

@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly test-integrations 1.17.x
+name: Nightly test-integrations 1.20.x
 
 on:
   schedule:
@@ -19,19 +19,12 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
-  BRANCH: "release/1.17.x"
-  BRANCH_NAME: "release-1.17.x"   # Used for naming artifacts
+  BRANCH: "release/1.20.x"
+  BRANCH_NAME: "release-1.20.x"   # Used for naming artifacts
 
 jobs:
-  check-ent:
-    runs-on: ubuntu-latest
-    if: ${{ endsWith(github.repository, '-enterprise') }}
-    steps:
-      - run: echo "Building Enterprise"
-
   setup:
     runs-on: ubuntu-latest
-    needs: [check-ent]
     name: Setup
     outputs:
       compute-small: ${{ steps.runners.outputs.compute-small }}
@@ -48,16 +41,14 @@ jobs:
         run: .github/scripts/get_runner_classes.sh
 
   get-go-version:
-    needs: [check-ent]
     uses: ./.github/workflows/reusable-get-go-version.yml
     with:
-      ref: release/1.17.x
+      ref: release/1.20.x
 
   get-envoy-versions:
-    needs: [check-ent]
     uses: ./.github/workflows/reusable-get-envoy-versions.yml
     with:
-      ref: release/1.17.x
+      ref: release/1.20.x
 
   dev-build:
     needs:
@@ -68,7 +59,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
-      branch-name: "release/1.17.x"
+      branch-name: "release/1.20.x"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -223,12 +214,13 @@ jobs:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-
+  
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - get-go-version
+      - get-envoy-versions
       - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -236,7 +228,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: ["1.15", "1.16", "1.17"]
+        consul-version: ["1.15", "1.18", "1.19"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       # ENVOY_VERSION should be the latest version supported by _all_ Consul versions in the
@@ -372,7 +364,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.15", "1.16", "1.17"]
+        consul-version: ["1.15", "1.18", "1.19"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
     steps:
@@ -460,7 +452,7 @@ jobs:
     - upgrade-integration-test
     - upgrade-integration-test-deployer
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: ${{ always() && endsWith(github.repository, '-enterprise') }}
+    if: ${{ always() }}
     steps:
       - name: evaluate upstream job results
         run: |

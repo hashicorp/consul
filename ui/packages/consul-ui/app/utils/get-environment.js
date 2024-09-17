@@ -4,6 +4,19 @@
  */
 
 import { runInDebug } from '@ember/debug';
+import { htmlSafe } from '@ember/template';
+
+function sanitizeString(str) {
+  return htmlSafe(
+    String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  );
+}
+
 // 'environment' getter
 // there are currently 3 levels of environment variables:
 // 1. Those that can be set by the user by setting localStorage values
@@ -58,9 +71,16 @@ export default function (config = {}, win = window, doc = document) {
       } else {
         str = cookies(doc.cookie).join(';');
         const tab = win.open('', '_blank');
-        tab.document.write(
-          `<body><pre>${location.href}#${str}</pre><br /><a href="javascript:Scenario('${str}')">Scenario</a></body>`
-        );
+        if (tab) {
+          const safeLocationHref = sanitizeString(location.href);
+          const safeStr = sanitizeString(str);
+          tab.document.write(`
+            <body>
+              <pre>${safeLocationHref}#${safeStr}</pre><br />
+              <a href="#" onclick="window.opener.Scenario('${safeStr}');window.close();return false;">Scenario</a>
+            </body>
+          `);
+        }
       }
     };
 

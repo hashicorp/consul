@@ -22,10 +22,11 @@ func TestSprawl(t *testing.T) {
 
 	cfg := &topology.Config{
 		Images: topology.Images{
+			// TODO NOT HARDCODE
 			// ConsulEnterprise: "consul-dev:latest",
-			ConsulCE:         "hashicorppreview/consul:1.17-dev",
-			ConsulEnterprise: "hashicorppreview/consul-enterprise:1.17-dev",
-			Dataplane:        "hashicorppreview/consul-dataplane:1.3-dev",
+			ConsulCE:         "hashicorppreview/consul:1.20-dev",
+			ConsulEnterprise: "hashicorppreview/consul-enterprise:1.20-dev",
+			Dataplane:        "hashicorppreview/consul-dataplane:1.6-dev",
 		},
 		Networks: []*topology.Network{
 			{Name: "dc1"},
