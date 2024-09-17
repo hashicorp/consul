@@ -22,5 +22,9 @@ to data and APIs.
 
 ## Encryption
 
-The Consul agent supports encryption for all of its network traffic. There are two separate encryption systems, one for gossip
-traffic and one for HTTP + RPC. The [Encryption](/consul/docs/security/encryption) section describes the logic behind these two different encryption systems and provides configuration guidance for them. 
+The Consul agent supports encryption for all of its network traffic. There are two separate encryption systems:
+
+- A gossip encryption system
+- An mTLS encryption system for HTTP and RPC
+
+For more information about these two different encryption systems, as well as configuration guidance, refer to [Consul encryption](/consul/docs/security/encryption).
