@@ -1,0 +1,7 @@
+```release-note:enhancement
+security: upgrade go version to 1.23.1
+```
+
+```release-note:enhancement
+security: upgrade ubi base image to 9.4
+```
