@@ -2840,7 +2840,7 @@ func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStor
 		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendDefault)
 		cfg.DisableLogCache = boolVal(raw.DisableLogCache)
 
-		cfg.Verification.Enabled = boolVal(raw.Verification.Enabled)
+		cfg.Verification.Enabled = boolValWithDefault(raw.Verification.Enabled, true)
 		cfg.Verification.Interval = b.durationVal("raft_logstore.verification.interval", raw.Verification.Interval)
 
 		cfg.BoltDB.NoFreelistSync = boolVal(raw.BoltDBConfig.NoFreelistSync)

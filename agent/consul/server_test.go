@@ -30,6 +30,9 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
+	raftwal "github.com/hashicorp/raft-wal"
+	"github.com/hashicorp/raft-wal/verifier"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
@@ -2329,4 +2332,89 @@ func TestServer_ControllerDependencies(t *testing.T) {
 	// }
 	// expected := golden.Get(t, actual, markdownFileName)
 	// require.Equal(t, expected, actual)
+}
+
+func TestServer_RaftBackend_Default(t *testing.T) {
+	t.Parallel()
+	// Start up a server and then stop it.
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.LogStoreConfig.Backend = LogStoreBackendDefault
+		config.LogStoreConfig.Verification.Enabled = false
+	})
+	_, ok := s1.raftStore.(*raftwal.WAL)
+	defer func() {
+		if err := s1.Shutdown(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	require.True(t, ok)
+
+}
+
+func TestServer_RaftBackend_Verifier_WAL(t *testing.T) {
+	t.Parallel()
+	// Start up a server and then stop it.
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.LogStoreConfig.Backend = LogStoreBackendDefault
+		config.LogStoreConfig.Verification.Enabled = true
+	})
+	_, ok := s1.raftStore.(*verifier.LogStore)
+	defer func() {
+		if err := s1.Shutdown(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	require.True(t, ok)
+
+}
+
+func TestServer_RaftBackend_WAL(t *testing.T) {
+	t.Parallel()
+	// Start up a server and then stop it.
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.LogStoreConfig.Backend = LogStoreBackendWAL
+		config.LogStoreConfig.Verification.Enabled = false
+	})
+	_, ok := s1.raftStore.(*raftwal.WAL)
+	defer func() {
+		if err := s1.Shutdown(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	require.True(t, ok)
+
+}
+
+func TestServer_RaftBackend_Verifier_BoltDB(t *testing.T) {
+	t.Parallel()
+	// Start up a server and then stop it.
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.LogStoreConfig.Backend = LogStoreBackendBoltDB
+		config.LogStoreConfig.Verification.Enabled = true
+	})
+	_, ok := s1.raftStore.(*verifier.LogStore)
+	defer func() {
+		if err := s1.Shutdown(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	require.True(t, ok)
+
+}
+
+func TestServer_RaftBackend_BoltDB(t *testing.T) {
+	t.Parallel()
+	// Start up a server and then stop it.
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.LogStoreConfig.Backend = LogStoreBackendBoltDB
+		config.LogStoreConfig.Verification.Enabled = false
+	})
+	_, ok := s1.raftStore.(*raftboltdb.BoltStore)
+	defer func() {
+		if err := s1.Shutdown(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	require.True(t, ok)
+
 }
