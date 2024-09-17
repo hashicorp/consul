@@ -6,12 +6,17 @@ set -eo pipefail
 
 pr_number=$(gh pr list -H "$(git rev-parse --abbrev-ref HEAD)" -q ".[0].number" --json "number")
 
+if [ -z "$pr_number" ]; then
+  echo "Error: Could not find PR number."
+  exit 1
+fi
+
 # check if this changelog is referencing an enterprise change
 curdir=$(pwd)
 
-filename = ".changelog/$pr_number.txt"
+filename=".changelog/$pr_number.txt"
 if [[ ! $curdir == *"enterprise"* ]]; then
-  is_enterprise = "n"
+  is_enterprise="n"
   read -p "Is this an enterprise PR? (y/n): " is_enterprise
 
   if [[ $is_enterprise == "y" ]]; then
