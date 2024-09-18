@@ -77,4 +77,4 @@ echo -e "\`\`\`release-note:$type\n$msg\n\`\`\`" >>"$filename"
 
 echo -e "\nChangelog added to $filename. Contents:\n"
 
-cat ".changelog/$pr_number.txt"
+cat "$filename"
