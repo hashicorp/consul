@@ -257,7 +257,7 @@ Next, configure your client agents with the same method you used to [configure t
 
 The only file you need on the local disk to configure the Consul client agents using auto-encryption is the CA certificate `consul-agent-ca-.pem`.
 
-<CodeBlockConfig heading="HCL">
+<CodeTabs tabs={[ "HCL", "JSON" ]}>
 
 ```hcl
 addresses = {
@@ -278,10 +278,6 @@ auto_encrypt = {
   tls = true
 }
 ```
-
-</CodeBlockConfig>
-
-<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -305,7 +301,7 @@ auto_encrypt = {
 }
 ```
 
-</CodeBlockConfig>
+</CodeTabs>
 
 </Tab>
 
@@ -324,7 +320,7 @@ The client certificate is also signed by the same CA used for the server certifi
 
 Distribute the client certificates and the CA certificate `consul-agent-ca.pem` to every Consul client in the datacenter. Then add them to the client agent configuration.
 
-<CodeBlockConfig heading="HCL">
+<CodeTabs tabs={[ "HCL", "JSON" ]}>
 
 ```hcl
 addresses = {
@@ -344,10 +340,6 @@ tls {
   }
 }
 ```
-
-</CodeBlockConfig>
-
-<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -370,7 +362,7 @@ tls {
 }
 ```
 
-</CodeBlockConfig>
+</CodeTabs>
 
 </Tab>
 
