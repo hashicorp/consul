@@ -29,9 +29,9 @@ Mutual TLS (mTLS) requires that all clients and servers have key pairs that are 
 
 The following parameters in agent configuration files define the agent verification behavior:
 
-- [`verify_incoming`](/consul/docs/agent/config/config-files#tls_defaults_verify_incoming)
-- [`verify_outgoing`](/consul/docs/agent/config/config-files#tls_defaults_verify_outgoing) 
-- [`verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname)
+- [`tls.defaults.verify_incoming`](/consul/docs/agent/config/config-files#tls_defaults_verify_incoming)
+- [`tls.defaults.verify_outgoing`](/consul/docs/agent/config/config-files#tls_defaults_verify_outgoing) 
+- [`tls.defaults.verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname)
 
 ## Workflow
 
@@ -66,9 +66,9 @@ The CA key, `consul-agent-ca-key.pem`, signs certificates for Consul nodes. You 
 
 ## Create server certificates
 
-To authenticate Consul servers, servers are provided with a special certificate that lists `server.<domain>.<datacenter>` in the `Common Name` and `Subject Alternative Name` fields. When you enable [`verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname), only agents that provide this certificate are allowed to boot as a server.
+To authenticate Consul servers, servers are provided with a special certificate that lists `server.<domain>.<datacenter>` in the `Common Name` and `Subject Alternative Name` fields. When you enable [`tls.defaults.verify_server_hostname`](/consul/docs/agent/config/config-files#tls_default_verify_server_hostname), only agents that provide this certificate are allowed to boot as a server.
 
-Without `verify_server_hostname = true`, an attacker who compromises a Consul client agent can restart the agent as a server to get access to all the data in your datacenter. You must keep the server key private to protect your Consul data.
+Without `tls.defaults.verify_server_hostname = true`, an attacker who compromises a Consul client agent can restart the agent as a server to get access to all the data in your datacenter. You must keep the server key private to protect your Consul data.
 
 The following example creates a server certificate for datacenter `dc1` in the `consul` domain. If your datacenter or domain is different, modify the command to use the appropriate flag values.
 
@@ -83,7 +83,7 @@ $ consul tls cert create -server -dc=dc1 -domain=consul
 ==> Saved dc1-server-consul-0-key.pem
 ```
 
-Repeat this process on the same node where you created the CA until there is an the number of certificates is equal to the number of servers in the datacenter. You can run the command multiple times in a row, and it automatically increases the certificate and key numbers each time.
+Repeat this process on the same node where you created the CA until the number of certificates is equal to the number of servers in the datacenter. You can run the command multiple times in a row, and it automatically increases the certificate and key numbers each time.
 
 ### Federated Consul datacenter
 
@@ -400,11 +400,14 @@ When using the auto-encryption method, Consul automatically rotates the client c
 
 </Tabs>
 
-## mTLS encryption for API, CLI, and UI interactions
+## API, CLI, and UI interactions
 
 The configuration snippets provided in this page are valid to configure complete mTLS for your Consul datacenter. This means that all interfaces require the client to provide a valid certificate in order to communicate with the Consul agent. This is valid for all requests, API, CLI, and UI.
 
-Since Consul `1.12` it is possible to have different settings for the HTTP protocol, used for the Consul's REST API, the CLI integration, and the UI, and the RPC protocol, used for internal communications between the Consul agents.
+Since Consul v1.12 it is possible to have different settings for:
+
+ - the HTTP protocol, used for the Consul's REST API, the CLI integration, and the UI
+ - the RPC protocol, used for internal communications between the Consul agents.
 
 ### Interact with Consul without a client certificate
 
@@ -474,7 +477,7 @@ tls {
 
 ### Use HTTP for local client interaction
 
-If you want to avoid the need to present a valid client certificate or to use the CA certificate every time you interact with the local Consul agent, configure Consul to keep the HTTP listener active on the `localhost` interface only and set `tls.https.verify_incoming` to `false`. External requests to the API or UI are still protected by TLS encryption, requests that originate locally do not need to present a client certificate. RPC communications are still mTLS encrypted.
+If you want to avoid the need to present a valid client certificate or to use the CA certificate every time you interact with the local Consul agent, configure Consul to keep the HTTP listener active on the `localhost` interface only and set `tls.https.verify_incoming` to `false`. External requests to the API or UI are still protected by TLS encryption, but requests that originate locally do not need to present a client certificate. RPC communications are still mTLS encrypted.
 
 <CodeTabs>
 

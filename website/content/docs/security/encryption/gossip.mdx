@@ -13,7 +13,6 @@ This topic describes the steps to enable gossip encryption on a Consul datacente
 
 We recommend enabling gossip encryption to all new deployed Consul datacenters. You can also update the agents in an existing datacenter to use gossip encryption.
 
-
 The workflow to enable gossip encryption changes depending on whether your datacenter has client agents running.
 
 To [enable gossip encryption on a new datacenter](#enable-gossip-encryption-on-a-new-datacenter):
@@ -144,13 +143,15 @@ encrypt_verify_outgoing = false
 
 ### Add the configuration to all agents
 
-Distribute the configuration to all the agent nodes that need to be part of the datacenter, and then initiate a rolling update that restarts each agent. You must restart each agent. The `consul reload` and `kill -HUP <process_id>` commands are not sufficient when changing the gossip configuration.
+Distribute the configuration to all the agent nodes that need to be part of the datacenter, and then initiate a rolling update that restarts each agent. 
+
+You must restart all of the agents. The `consul reload` and `kill -HUP <process_id>` commands are not sufficient when changing the gossip configuration.
 
 ### Update outgoing encryption
 
 The agents can decrypt gossip communication with the `encrypt` parameter set, but they are not able to send encrypted traffic. 
 
-Update the `encrypt_verify_outgoing` setting to `true` and then perform another rolling update of all Consul agents. Complete the process on all the nodes before moving to the next step.
+Update the `encrypt_verify_outgoing` setting to `true` and then perform another rolling update of all Consul agents. Complete the process on all the nodes before you begin [updates to incoming encryption](#update-the-incoming-encryption).
 
 <CodeTabs>
 
@@ -169,7 +170,7 @@ encrypt_verify_outgoing = true
 ```json
 {
 "encrypt": "YwgWlBvicJN17UOYcutXLpJSZsw5aWpLEEWqgK635zA=",
- "encrypt_verify_incoming": false,
+"encrypt_verify_incoming": false,
 "encrypt_verify_outgoing": true
 }
 ```
