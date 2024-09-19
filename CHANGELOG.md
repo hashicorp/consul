@@ -28,35 +28,6 @@ BUG FIXES:
 
 * jwt-provider: change dns lookup family from the default of AUTO which would prefer ipv6 to ALL if LOGICAL_DNS is used or PREFER_IPV4 if STRICT_DNS is used to gracefully handle transitions to ipv6. [[GH-21703](https://github.com/hashicorp/consul/issues/21703)]
 
-## 1.20.0-rc1 (September 19, 2024)
-
-SECURITY:
-
-* Explicitly set 'Content-Type' header to mitigate XSS vulnerability. [[GH-21704](https://github.com/hashicorp/consul/issues/21704)]
-* Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI. [[GH-21711](https://github.com/hashicorp/consul/issues/21711)]
-* UI: Remove codemirror linting due to package dependency [[GH-21726](https://github.com/hashicorp/consul/issues/21726)]
-* Upgrade Go to use 1.22.7. This addresses CVE 
-[CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
-* Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
-[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
-[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
-* ui: Pin a newer resolution of Braces [[GH-21710](https://github.com/hashicorp/consul/issues/21710)]
-* ui: Pin a newer resolution of Codemirror [[GH-21715](https://github.com/hashicorp/consul/issues/21715)]
-* ui: Pin a newer resolution of Markdown-it [[GH-21717](https://github.com/hashicorp/consul/issues/21717)]
-* ui: Pin a newer resolution of ansi-html [[GH-21735](https://github.com/hashicorp/consul/issues/21735)]
-
-FEATURES:
-
-* server: remove v2 tenancy, catalog, and mesh experiments [[GH-21592](https://github.com/hashicorp/consul/issues/21592)]
-
-IMPROVEMENTS:
-
-* security: upgrade ubi base image to 9.4 [[GH-21750](https://github.com/hashicorp/consul/issues/21750)]
-* connect: Add Envoy 1.31 and 1.30 to support matrix [[GH-21616](https://github.com/hashicorp/consul/issues/21616)]
-
-BUG FIXES:
-
-* jwt-provider: change dns lookup family from the default of AUTO which would prefer ipv6 to ALL if LOGICAL_DNS is used or PREFER_IPV4 if STRICT_DNS is used to gracefully handle transitions to ipv6. [[GH-21703](https://github.com/hashicorp/consul/issues/21703)]
 
 ## 1.19.2 (August 26, 2024)
 
