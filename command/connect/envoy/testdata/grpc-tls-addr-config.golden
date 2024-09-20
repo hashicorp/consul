@@ -49,6 +49,9 @@
               "validation_context": {
                 "trusted_ca": {
                   "inline_string": ""
+                },
+                "tls_params": {
+                  "tls_maximum_protocol_version": "TLSv1_3"
                 }
               }
             }

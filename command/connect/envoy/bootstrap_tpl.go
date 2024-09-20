@@ -223,6 +223,9 @@ const bootstrapTemplate = `{
                 "trusted_ca": {
                   "inline_string": "{{ .AgentCAPEM }}"
                 }
+              },
+              "tls_params": {
+                "tls_maximum_protocol_version": "TLSv1_3"
               }
             }
           }
