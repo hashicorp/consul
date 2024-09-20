@@ -1,0 +1,7 @@
+```release-note:enhancement
+raft: update raft library to 1.7.0 which include pre-vote extension
+```
+
+```release-note:enhancement
+raft: add a configuration `raft_prevote_disabled` to allow disabling raft prevote
+```

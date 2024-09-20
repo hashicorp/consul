@@ -6594,6 +6594,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftSnapshotThreshold:   16384,
 		RaftSnapshotInterval:    30 * time.Second,
 		RaftTrailingLogs:        83749,
+		RaftPreVoteDisabled:     false,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
 		RequestLimitsMode:       consulrate.ModePermissive,
