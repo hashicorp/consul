@@ -1,0 +1,3 @@
+```release-note:improvement
+Update Envoy local_agent static clusters `tls_maximum_protocol_version` to TLSv1_3 to support Consul agents running with tls_min_version set to `TLSv1_3`
+```
