@@ -6,23 +6,28 @@ set -eo pipefail
 
 pr_number=$(gh pr list -H "$(git rev-parse --abbrev-ref HEAD)" -q ".[0].number" --json "number")
 
+if [ -z "$pr_number" ]; then
+  echo "Error: Could not find PR number."
+  exit 1
+fi
+
 # check if this changelog is referencing an enterprise change
 curdir=$(pwd)
 
-filename = ".changelog/$pr_number.txt"
+filename=".changelog/$pr_number.txt"
 if [[ ! $curdir == *"enterprise"* ]]; then
-  is_enterprise = "n"
-  read -p "Is this an enterprise PR? (y/n): " is_enterprise
+  is_enterprise="n"
+  read -rp "Is this an enterprise PR? (y/n): " is_enterprise
 
   if [[ $is_enterprise == "y" ]]; then
-    filename = ".changelog/_$pr_number.txt"
+    filename=".changelog/_$pr_number.txt"
   fi
 else
-  filename = ".changelog/_$pr_number.txt"
+  filename=".changelog/_$pr_number.txt"
 fi
 
 # create a new changelog file
-touch $filename
+touch "$filename"
 
 echo "Created a new changelog file for PR $pr_number."
 
@@ -35,7 +40,7 @@ echo "4. deprecation"
 echo "5. bug"
 
 if [ -z "$1" ]; then
-  read -p "Enter your choice: " choice
+  read -rp "Enter your choice: " choice
 else
   choice=$1
 fi
@@ -66,8 +71,10 @@ esac
 
 msg=""
 
-read -ep $'Please enter the changelog message:\n' msg
+read -erp $'Please enter the changelog message:\n' msg
 
 echo -e "\`\`\`release-note:$type\n$msg\n\`\`\`" >>"$filename"
 
-cat .changelog/$pr_number.txt
+echo -e "\nChangelog added to $filename. Contents:\n"
+
+cat "$filename"
