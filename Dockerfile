@@ -16,7 +16,7 @@
 # Official docker image that includes binaries from releases.hashicorp.com. This
 # downloads the release from releases.hashicorp.com and therefore requires that
 # the release is published before building the Docker image.
-FROM docker.mirror.hashicorp.services/alpine:3.20 as official
+FROM docker.mirror.hashicorp.services/alpine:3.19 as official
 
 # This is the release of Consul to pull in.
 ARG VERSION

@@ -1,0 +1,24 @@
+name: conditional-skip
+
+on:
+  workflow_call:
+    outputs:
+      skip-ci:
+        description: "Whether we should skip build and test jobs"
+        value: ${{ jobs.check-skip.outputs.skip-ci }}
+
+jobs:
+  check-skip:
+    runs-on: ubuntu-latest
+    name: Check whether to skip build and tests
+    outputs:
+      skip-ci: ${{ steps.check-changed-files.outputs.skip-ci }}
+    env:
+      SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          fetch-depth: 0
+      - name: Check changed files
+        id: check-changed-files
+        run: ./.github/scripts/check_skip_ci.sh
