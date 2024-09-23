@@ -4,34 +4,24 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/encoding/protojson"
-
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 type V2WriteRequest struct {
-	Metadata map[string]string `json:"metadata"`
-	Data     map[string]any    `json:"data"`
-	Owner    *pbresource.ID    `json:"owner"`
+	Data map[string]any `json:"data"`
 }
 
 type V2WriteResponse struct {
-	Metadata   map[string]string `json:"metadata"`
-	Data       map[string]any    `json:"data"`
-	Owner      *pbresource.ID    `json:"owner,omitempty"`
-	ID         *pbresource.ID    `json:"id"`
-	Version    string            `json:"version"`
-	Generation string            `json:"generation"`
-	Status     map[string]any    `json:"status"`
+	ID struct {
+		Name string `json:"name"`
+	} `json:"id"`
+	Data map[string]any `json:"data"`
 }
 
 // We are testing a v2 endpoint here in the v1 api module as a temporary measure to
@@ -47,43 +37,34 @@ func TestAPI_RawV2ExportedServices(t *testing.T) {
 	endpoint := strings.ToLower(fmt.Sprintf("/api/multicluster/v2/exportedservices/e1"))
 	wResp := &V2WriteResponse{}
 
-	var consumers []map[string]any
-	consumers = append(consumers, map[string]any{"peer": "p1"})
-	data := map[string]any{"consumers": consumers}
-	data["services"] = []string{"s1"}
 	wReq := &V2WriteRequest{
-		Metadata: nil,
-		Data:     data,
-		Owner:    nil,
+		Data: map[string]any{
+			"consumers": []map[string]any{
+				{"peer": "p1"},
+			},
+			"services": []string{"s1"},
+		},
 	}
 
 	_, err := c.Raw().Write(endpoint, wReq, wResp, &WriteOptions{Datacenter: "dc1"})
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if wResp.ID.Name == "" {
-		t.Fatalf("no write response")
-	}
+	require.NoError(t, err)
+	require.NotEmpty(t, wResp.ID.Name)
 
 	qOpts := &QueryOptions{Datacenter: "dc1"}
+
 	var out map[string]interface{}
 	_, err = c.Raw().Query(endpoint, &out, qOpts)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	respData, _ := json.Marshal(out["data"])
-	readData := &pbmulticluster.ExportedServices{}
-	if err = protojson.Unmarshal(respData, readData); err != nil {
-		t.Fatalf("invalid read response")
-	}
-	if len(readData.Services) != 1 {
-		t.Fatalf("incorrect resource data")
-	}
+	require.NoError(t, err)
+
+	require.Equal(t, map[string]any{
+		"consumers": []any{
+			map[string]any{"peer": "p1"},
+		},
+		"services": []any{"s1"},
+	}, out["data"])
 
 	_, err = c.Raw().Delete(endpoint, qOpts)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, err)
 
 	out = make(map[string]interface{})
 	_, err = c.Raw().Query(endpoint, &out, qOpts)
