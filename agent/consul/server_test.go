@@ -425,6 +425,32 @@ func TestServer_RaftBackend_Verifier_WAL(t *testing.T) {
 
 }
 
+func TestServer_RaftBackend_WAL_WithExistingBoltDB(t *testing.T) {
+	t.Parallel()
+
+	dir := testutil.TempDir(t, "consul")
+	require.NoError(t, os.MkdirAll(dir+"/"+raftState, os.ModePerm))
+	dbFile, err := os.Create(dir + "/" + raftState + "raft.db")
+	require.NoError(t, err)
+
+	require.NoError(t, dbFile.Close())
+
+	// Start up a server and then stop it.
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.LogStoreConfig.Backend = LogStoreBackendWAL
+		config.LogStoreConfig.Verification.Enabled = false
+		config.DataDir = dir
+	})
+	_, ok := s1.raftStore.(*raftboltdb.BoltStore)
+	defer func() {
+		if err := s1.Shutdown(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	require.True(t, ok)
+
+}
+
 func TestServer_RaftBackend_WAL(t *testing.T) {
 	t.Parallel()
 	// Start up a server and then stop it.
