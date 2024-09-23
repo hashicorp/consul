@@ -1056,7 +1056,7 @@ func (s *Server) setupRaft() error {
 			return nil
 		}
 
-		// Default to WAL if there is no existing raft.db, even if it's enabled. Log a warning otherwise
+		// Default to WAL. Only use WAL if there is no existing raft.db, even if it's enabled. Log a warning otherwise
 		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists {
 			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
 		} else if s.config.LogStoreConfig.Backend == LogStoreBackendWAL || s.config.LogStoreConfig.Backend == LogStoreBackendDefault {
