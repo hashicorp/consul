@@ -29,7 +29,6 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
-  SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.head_ref || github.ref }}"
@@ -37,17 +36,7 @@ concurrency:
 
 jobs:
   conditional-skip:
-    runs-on: ubuntu-latest
-    name: Get files changed and conditionally skip CI
-    outputs:
-      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-        with:
-          fetch-depth: 0
-      - name: Get changed files
-        id: read-files
-        run: ./.github/scripts/check_skip_ci.sh
+    uses: ./.github/workflows/reusable-conditional-skip.yml
 
   setup:
     needs: [conditional-skip]
