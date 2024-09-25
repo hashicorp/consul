@@ -1,3 +1,5 @@
+# This job runs a non-blocking informational security scan on the repository.
+# For release-blocking security scans, see .release/security-scan.hcl.
 name: Security Scan
 
 on:
@@ -9,6 +11,8 @@ on:
     branches:
       - main
       - release/**
+    # paths-ignore only works for non-required checks.
+    # Jobs that are required for merge must use reusable-conditional-skip.yml.
     paths-ignore:
       - 'docs/**'
       - 'grafana/**'
