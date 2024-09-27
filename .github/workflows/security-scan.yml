@@ -7,6 +7,10 @@ on:
     branches:
       - main
       - release/**
+    paths-ignore:
+      - 'docs/**'
+      - 'grafana/**'
+      - '.changelog/**'
   pull_request:
     branches:
       - main
@@ -38,13 +42,9 @@ jobs:
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
 
-  get-go-version:
-    uses: ./.github/workflows/reusable-get-go-version.yml
-
   scan:
     needs:
     - setup
-    - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     # The first check ensures this doesn't run on community-contributed PRs, who
     # won't have the permissions to run this job.
@@ -57,7 +57,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
-          go-version: ${{ needs.get-go-version.outputs.go-version }}
+          go-version-file: .go-version
 
       - name: Clone Security Scanner repo
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -77,7 +77,7 @@ jobs:
       - name: SARIF Output
         shell: bash
         run: |
-          cat results.sarif | jq
+          jq . < results.sarif
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@8fd294e26a0e458834582b0fe4988d79966c7c0a # codeql-bundle-v2.18.4
