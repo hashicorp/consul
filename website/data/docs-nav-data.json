@@ -410,7 +410,7 @@
             "title": "Cache DNS lookups",
             "path": "services/discovery/dns-cache"
           },
-          {           
+          {
             "title": "Enable dynamic DNS lookups",
             "path": "services/discovery/dns-dynamic-lookups"
           }
@@ -682,6 +682,10 @@
           {
             "title": "UI Visualization",
             "path": "connect/observability/ui-visualization"
+          },
+          {
+            "title": "Grafana Dashboards",
+            "path": "connect/observability/grafana-dashboards"
           }
         ]
       },
