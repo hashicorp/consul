@@ -1,0 +1,447 @@
+---
+layout: docs
+page_title: Service Mesh Observability - Dashboards
+description: >-
+  This documentation provides an overview of several dashboards designed for monitoring and managing services within a Consul-managed Envoy service mesh. Learn how to enable access logs and configure key performance and operational metrics to ensure the reliability and performance of services in the service mesh.
+---
+
+# Service Mesh Dashboards
+
+This topic describes the configuration and usage of dashboards for monitoring and managing services within a Consul-managed Envoy service mesh. These dashboards provide critical insights into the health, performance, and resource utilization of services. The dashboards described here are essential tools for ensuring the stability, efficiency, and reliability of your service mesh environment.
+
+## Dashboards Overview
+
+The repository includes the following dashboards:
+
+  - **Consul Service-to-Service Dashboard**: Provides a detailed view of service-to-service communications, monitoring key metrics like access logs, HTTP requests, error counts, response code distributions, and request success rates. The dashboard includes customizable filters for focusing on specific services and namespaces.
+  
+  - **Consul Service Dashboard**: Tracks key metrics for Envoy proxies at the cluster and service levels, ensuring the performance and reliability of individual services within the mesh.
+
+  - **Consul DataPlane Dashboard**: Offers a comprehensive overview of service health and performance, including request success rates, resource utilization (CPU and memory), active connections, and cluster health. It helps operators maintain service reliability and optimize resource usage.
+    
+  - **Consul K8s Dashboard**: Focuses on monitoring the health and resource usage of the Consul control plane within a Kubernetes environment, ensuring the stability of the control plane.
+
+  - **Consul Server Dashboard**: Provides detailed monitoring of Consul servers, tracking key metrics like server health, CPU and memory usage, disk I/O, and network performance. This dashboard is critical for ensuring the stability and performance of Consul servers within the service mesh.
+
+## Enable Access Logs
+
+Access logs configurations are defined globally in the [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#accesslogs) configuration entry. 
+
+The following example is a minimal configuration for enabling access logs:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+AccessLogs {
+  Enabled = true
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  accessLogs:
+    enabled: true
+```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "AccessLogs": {
+    "Enabled": true
+  }
+}
+```
+
+</CodeTabs>
+
+# Service-to-Service Dashboard
+
+The **Service-to-Service Dashboard** provides deep visibility into the traffic and interactions between services within the Consul service mesh. It focuses on critical metrics such as logs, error rates, traffic patterns, and success rates, all of which help operators maintain smooth and reliable service-to-service communication.
+
+## Metrics Overview:
+
+### Access Logs and Errors Monitoring:
+- **Description:** This section provides visibility into logs and errors related to service-to-service communications. It tracks and displays the number of logs generated, errors encountered, and the percentage of logs matching specific patterns.
+
+### Total Logs
+- **Metric:** `sum(count_over_time(({container="consul-dataplane",namespace=~"$namespace"})[$__interval]))`
+- **Description:** This metric counts the total number of log lines produced by Consul DataPlane containers. It provides an overview of the volume of logs being generated for a specific namespace.
+
+### Total Logs Containing "$searchable_pattern"
+- **Metric:** `sum(count_over_time({container="consul-dataplane", namespace=~"$namespace"} |~ (?i)(?i)$searchable_pattern [$__interval]))`
+- **Description:** This metric tracks the number of logs containing the specified pattern. It is useful for filtering and monitoring specific log events across the service mesh.
+
+### Percentage of Logs Containing "$searchable_pattern"
+- **Metric:** `(sum(count_over_time({container="consul-dataplane", namespace=~"$namespace"} |~ (?i)(?i)$searchable_pattern [$__interval])) * 100) / sum(count_over_time({container="consul-dataplane", namespace=~"$namespace"} [$__interval]))`
+- **Description:** This metric calculates the percentage of logs containing the specified search pattern within the total log volume. It helps gauge the proportion of specific log events.
+
+### Total Response Code Distribution
+- **Metric:** `sum by(response_code) (count_over_time({container="consul-dataplane", namespace="$namespace"} | json | response_code != "0" | __error__=`` [$__range]))`
+- **Description:** This pie chart visualizes the distribution of HTTP response codes, helping identify any error codes (e.g., 4xx, 5xx) generated by the services.
+
+### Rate of Logs Containing "$searchable_pattern" per Service
+- **Metric:** `sum by(app) (rate({container="consul-dataplane", namespace=~"$namespace"} |~ (?i)(?i)$searchable_pattern [$__range]))`
+- **Description:** This metric monitors the rate at which specific patterns appear in logs per service, helping to detect trends and anomalies in log data.
+
+### TCP Metrics - Service Level:
+
+### TCP Inbound and Outbound Bytes: 
+- **Metric:** `sum(rate(envoy_tcp_downstream_cx_rx_bytes_total{}[10m])) by (service, destination_service)`
+- **Description:** This metric tracks the inbound and outbound TCP bytes transferred between services. It is essential for understanding the network traffic flow between source and destination services.
+
+### TCP Inbound and Outbound Bytes Buffered: 
+- **Metric:** `sum(rate(envoy_tcp_downstream_cx_rx_bytes_buffered{}[10m])) by (service, destination_service)`
+- **Description:** This metric monitors the amount of TCP bytes buffered for inbound and outbound traffic between services. It helps identify potential network performance bottlenecks.
+
+### TCP Downstream Connections: 
+- **Metric:** `sum(envoy_tcp_downstream_cx_total) by (service, destination_service)`
+- **Description:** This metric counts the number of active TCP downstream connections from the source service to the destination service, providing visibility into the volume of connections between services.
+
+### Outbound Traffic Monitoring:
+
+### Upstream Traffic: 
+- **Metric:** `sum(irate(envoy_cluster_upstream_rq_total{local_cluster=~"$source_service",
+consul_destination_service=~"$destination_service"}[10m]))`
+- **Description:** This metric monitors the upstream traffic from the source service to the destination service. It shows how much traffic is being sent between services.
+
+### Upstream Request Response Timeliness: 
+- **Metric:** `histogram_quantile(0.95, sum(rate(envoy_cluster_upstream_rq_time_bucket
+{local_cluster=~"$source_service",consul_destination_target!=""}[10m])) by (le, consul_destination_target))`
+- **Description:** This metric calculates the 95th percentile of upstream request response times between the source and destination services. It helps ensure that service communications are handled promptly.
+
+### Upstream Request Success Rate:
+- **Metric:** `sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!="5",
+local_cluster=~"$source_service",consul_destination_service=~"$destination_service"}[10m]))`
+- **Description:** This metric tracks the success rate of requests from the source service to the destination service, excluding 4xx and 5xx errors. It helps assess the reliability of service communications.
+
+### Inbound Traffic Monitoring:
+
+### Requests Sent: 
+- **Metric:** `sum(irate(envoy_cluster_upstream_rq_total{consul_destination_datacenter="dc1",
+ local_cluster=~"$source_service",consul_destination_service=~"$destination_service"}[10m])) by (consul_destination_service, local_cluster)`
+- **Description:** This metric tracks the number of requests sent between the source service and destination service within the service mesh.
+
+### Request Success Rate: 
+- **Metric:** `sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!="5",
+ local_cluster=~"$source_service", consul_destination_service=~"$destination_service"}[10m])) by (local_cluster, consul_destination_service) / sum(irate(envoy_cluster_upstream_rq_xx{consul_destination_service=~"$destination_service"}[10m])) by (local_cluster, consul_destination_service)`
+- **Description:** This metric tracks the success rate of requests from the source service to the destination service, helping identify failures or bottlenecks in communication.
+
+### Response Success by Status Code: 
+- **Metric:** `sum(increase(envoy_http_downstream_rq_xx{local_cluster=~"$source_service",
+ envoy_http_conn_manager_prefix="public_listener"}[10m])) by (local_cluster, envoy_response_code_class)`
+- **Description:** This metric tracks response success by status code for requests sent by the source service to the destination service.
+
+### Request Duration: 
+- **Metric:** `histogram_quantile(0.95, sum(rate(envoy_cluster_upstream_rq_time_bucket
+{consul_destination_datacenter="dc1", consul_destination_service=~"$destination_service",local_cluster=~"$source_service"}[10m])) by (le, cluster, local_cluster, consul_destination_service))`
+- **Description:** This metric tracks the request duration between the source and destination services, helping monitor performance and response times.
+
+### Response Success: 
+- **Metric:** `sum(increase(envoy_http_downstream_rq_total{local_cluster=~"$source_service",
+ envoy_http_conn_manager_prefix="public_listener"}[10m])) by (local_cluster)`
+- **Description:** This metric tracks the success of responses for the source service's requests across the service mesh.
+
+### Request Response Rate: 
+- **Metric:** `sum(irate(envoy_http_downstream_rq_total{local_cluster=~"$source_service",
+envoy_http_conn_manager_prefix="public_listener"}[10m])) by (local_cluster)`
+- **Description:** This metric tracks the rate at which responses are being generated by the source service, providing insight into service activity and performance.
+
+## Customization Options:
+
+The **Service-to-Service Dashboard** offers a variety of customization options to allow operators to focus on specific aspects of service-to-service communications, tailor the dashboard for more targeted monitoring, and enhance visibility into the service mesh.
+
+- **Filter by Source Service:** Operators can filter the dashboard to focus on traffic originating from a specific source service, allowing them to analyze interactions from the source service to all destination services.
+  
+- **Filter by Destination Service:** Similarly, operators can filter the dashboard by destination service to track and analyze the traffic received by specific services. This helps pinpoint communication issues or performance bottlenecks related to specific services.
+
+- **Filter by Namespace:** The dashboard can be customized to focus on service interactions within a particular namespace. This is especially useful for isolating issues in multi-tenant environments or clusters that operate with strict namespace isolation.
+
+- **Log Pattern Search:** Users can apply custom search patterns to logs to filter out specific log events of interest, such as error messages or specific HTTP status codes. This enables operators to narrow down on specific log entries and identify patterns that may indicate issues.
+
+- **Time Range Selection:** The dashboard supports dynamic time range selection, allowing operators to focus on service interactions over specific time intervals. This helps in analyzing traffic trends, troubleshooting incidents, and understanding the timing of service communications.
+
+By using these customization options, operators can tailor the dashboard to their specific needs and ensure they are always monitoring the most relevant data for maintaining a healthy and performant service mesh.
+
+# Service Dashboard
+
+The **Service Dashboard** offers an overview of the performance and health of individual services within the Consul service mesh. It provides insights into service availability, request success rates, latency, and connection metrics. This dashboard is essential for maintaining optimal service performance and quickly identifying any issues with service communications.
+
+## Metrics Overview:
+
+### Total Running Services
+- **Metric:** `sum(envoy_server_live{app!="traffic-generator"})`
+- **Description:** This gauge tracks the total number of running services within the mesh that are not labeled as `traffic-generator`. It provides an overall view of active services, helping operators maintain visibility into service availability.
+
+### Total Request Success Rate
+- **Metric:** `sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!="5", envoy_response_code_class!="4", consul_destination_service=~"$service"}[10m])) / sum(irate(envoy_cluster_upstream_rq_xx{consul_destination_service=~"$service"}[10m]))`
+- **Description:** This stat visualizes the success rate of upstream requests to the selected service. It filters out 4xx and 5xx response codes, providing a clearer picture of how well the service is performing in terms of handling requests successfully.
+
+### Total Failed Request Rate
+- **Metric:** `sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=~"4|5", consul_destination_service=~"$service"}[10m])) / sum(irate(envoy_cluster_upstream_rq_xx{consul_destination_service=~"$service"}[10m]))`
+- **Description:** This stat tracks the rate of failed requests (4xx and 5xx errors) for the selected service. It helps operators quickly identify if there are issues with client requests or server errors for a specific service.
+
+### Average Request Response Time in Milliseconds
+- **Metric:** `sum(rate(envoy_cluster_upstream_rq_time_sum{consul_destination_service=~"$service"}[10m])) / sum(rate(envoy_cluster_upstream_rq_total{consul_destination_service=~"$service"}[10m]))`
+- **Description:** This gauge displays the average response time for requests to the selected service, providing an overview of the service's performance and responsiveness.
+
+### Total Failed Requests
+- **Metric:** `sum(increase(envoy_cluster_upstream_rq_xx{envoy_response_code_class=~"4|5", consul_destination_service=~"$service"}[10m])) by(local_cluster)`
+- **Description:** This gauge tracks the total number of failed requests over a 10-minute window, categorized by service. It allows for easy identification of services that are experiencing high failure rates.
+
+### Dataplane Latency: 
+- **Metrics:**
+  - `p50`: `histogram_quantile(0.50, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))`
+  - `p75`: `histogram_quantile(0.75, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))`
+  - `p90`: `histogram_quantile(0.90, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))`
+  - `p99.9`: `histogram_quantile(0.999, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))`
+- **Description:** This stat tracks the dataplane latency percentiles (p50, p75, p90, p99.9) for the selected service. It gives detailed insights into the distribution of latency within the service's request handling, helping identify performance bottlenecks.
+
+### Total TCP Inbound and Outbound Bytes
+- **Metric:** `sum(rate(envoy_tcp_downstream_cx_rx_bytes_total{}[10m])) by (local_cluster)`
+- **Description:** This time series shows the total number of inbound and outbound TCP bytes for services within the mesh. It provides visibility into the data transfer patterns and volume between services.
+
+### Total TCP Inbound and Outbound Bytes Buffered
+- **Metric:** `sum(rate(envoy_tcp_downstream_cx_rx_bytes_buffered{}[10m])) by (local_cluster)`
+- **Description:** This metric tracks the amount of TCP traffic buffered during inbound and outbound communications. It helps in identifying whether there is any potential latency caused by buffer overflow or congestion.
+
+### Total TCP Downstream Active Connections
+- **Metric:** `sum(rate(envoy_tcp_downstream_cx_total{}[10m])) by(local_cluster)`
+- **Description:** This metric counts the total number of active TCP downstream connections, providing an overview of the current connection load on the services within the mesh.
+
+### Total Active HTTP Upstream Connections
+- **Metric:** `sum(envoy_cluster_upstream_cx_active{app=~"$service"}) by (app)`
+- **Description:** This time series tracks the total number of active HTTP upstream connections for the selected service. It helps monitor connection patterns and assess load.
+
+### Total Active HTTP Downstream Connections
+- **Metric:** `sum(envoy_http_downstream_cx_active{app=~"$service"}) by (app)`
+- **Description:** This time series monitors the number of active HTTP downstream connections for the selected service, providing visibility into the current active user or client load on the service.
+
+### Upstream Requests by Status Code
+- **Metric:** `sum by(namespace,app,envoy_response_code_class) (rate(envoy_cluster_upstream_rq_xx[5m]))`
+- **Description:** This metric tracks the number of upstream requests, grouped by HTTP status codes (e.g., 2xx, 4xx, 5xx), giving insight into the health of the requests being made to upstream services from the selected service.
+
+### Downstream Requests by Status Code
+- **Metric:** `sum(rate(envoy_http_downstream_rq_xx{envoy_http_conn_manager_prefix="public_listener"}[5m])) by (namespace, app, envoy_response_code_class)`
+- **Description:** This time series tracks downstream HTTP requests by status code, showing how well the selected service is responding to downstream requests from clients.
+
+### Connections Rejected
+- **Metrics:**
+  - **Overload Rejections:** `rate(envoy_listener_downstream_cx_overload_reject{}[$__interval])`
+  - **Overflow Rejections:** `rate(envoy_listener_downstream_global_cx_overflow{}[$__interval])`
+- **Description:** This metric tracks the number of connections rejected due to overload or overflow conditions on listeners. Monitoring these values helps identify if the service is under too much load or has insufficient capacity to handle the incoming connections.
+
+## Customization Options:
+
+The **Service Dashboard** offers various customization options to help operators focus on specific services and metrics. By using these options, operators can tailor the dashboard to their needs and improve their ability to monitor and troubleshoot service health.
+
+- **Filter by Service:** You can filter the dashboard by the service you want to monitor. This helps narrow down the metrics to the service of interest and provides a more targeted view of its performance.
+  
+- **Filter by Namespace:** The namespace filter allows operators to focus on a particular namespace in a multi-tenant or multi-namespace environment, isolating the service metrics within that specific context.
+
+- **Time Range Selection:** The dashboard supports flexible time range selection, allowing operators to analyze service behavior over different time periods. This is helpful for pinpointing issues that may occur at specific times or during high-traffic periods.
+
+- **Percentile Latency Tracking:** The dashboard allows operators to track multiple latency percentiles (p50, p75, p90, p99.9) to get a more detailed view of how the service performs across different levels of traffic load.
+
+
+# Consul DataPlane Dashboard
+
+The **Consul DataPlane Dashboard** provides a comprehensive view of the service health, performance, and resource utilization within the Consul service mesh. It enables operators to monitor key metrics at both the cluster and service levels, helping ensure service reliability and performance.
+
+## Metrics Overview:
+
+### Live Servers
+- **Metric:** `sum(envoy_server_live{app=~"$service"})`
+- **Description:** This metric displays the number of live Envoy proxies currently running within the service mesh. It helps operators track the availability of services and identify any outages or issues with the service mesh components.
+
+### Total Request Success Rate
+- **Metric:** `sum(irate(envoy_cluster_upstream_rq_xx{...}[10m]))`
+- **Description:** This metric tracks the percentage of successful requests across the service mesh. It excludes 4xx and 5xx response codes to focus on operational success, helping operators monitor overall service reliability.
+
+### Total Failed Requests
+- **Metric:** `sum(increase(envoy_cluster_upstream_rq_xx{...}[10m]))`
+- **Description:** This pie chart shows the total number of failed requests within the service mesh, categorized by service. It provides a visual breakdown of where failures are occurring, allowing operators to focus on problematic services.
+
+### Requests Per Second
+- **Metric:** `sum(rate(envoy_http_downstream_rq_total{...}[5m]))`
+- **Description:** This metric shows the rate of incoming HTTP requests per second to the selected services. It helps operators understand the current load on services and how much traffic they are processing.
+
+### Unhealthy Clusters
+- **Metric:** `(sum(envoy_cluster_membership_healthy{...}) - sum(envoy_cluster_membership_total{...}))`
+- **Description:** This metric tracks the number of unhealthy clusters in the mesh, helping operators identify services that are experiencing issues and need attention to ensure operational health.
+
+### Heap Size
+- **Metric:** `SUM(envoy_server_memory_heap_size{app=~"$service"})`
+- **Description:** This metric displays the total memory heap size of the Envoy proxies. Monitoring heap size is essential to detect memory issues and ensure that services are operating efficiently.
+
+### Allocated Memory
+- **Metric:** `SUM(envoy_server_memory_allocated{app=~"$service"})`
+- **Description:** This metric shows the amount of memory allocated by the Envoy proxies. It helps operators monitor the resource usage of services to prevent memory overuse and optimize performance.
+
+### Avg Uptime Per Node
+- **Metric:** `avg(envoy_server_uptime{app=~"$service"})`
+- **Description:** This metric calculates the average uptime of Envoy proxies across all nodes. It helps operators monitor the stability of services and detect potential issues with service restarts or crashes.
+
+### Cluster State
+- **Metric:** `(sum(envoy_cluster_membership_total{...}) - sum(envoy_cluster_membership_healthy{...})) == bool 0`
+- **Description:** This metric indicates whether all clusters are healthy. It provides a quick overview of the cluster state to ensure that there are no issues affecting service performance.
+
+### CPU Throttled Seconds by Namespace
+- **Metric:** `rate(container_cpu_cfs_throttled_seconds_total{namespace=~"$namespace"}[5m])`
+- **Description:** This metric tracks the number of seconds during which CPU usage was throttled. Monitoring CPU throttling helps operators identify when services are exceeding their allocated CPU limits and may need optimization.
+
+### Memory Usage by Pod Limits
+- **Metric:** `100 * max(container_memory_working_set_bytes{namespace=~"$namespace"}
+ / kube_pod_container_resource_limits{resource="memory"})`
+- **Description:** This metric shows memory usage as a percentage of the memory limit set for each pod. It helps operators ensure that services are staying within their allocated memory limits to avoid performance degradation.
+
+### CPU Usage by Pod Limits
+- **Metric:** `100 * max(container_cpu_usage{namespace=~"$namespace"} / kube_pod_container_resource_limits{resource="cpu"})`
+- **Description:** This metric displays CPU usage as a percentage of the CPU limit set for each pod. Monitoring CPU usage helps operators optimize service performance and prevent CPU exhaustion.
+
+### Total Active Upstream Connections
+- **Metric:** `sum(envoy_cluster_upstream_cx_active{app=~"$service"})`
+- **Description:** This metric tracks the total number of active upstream connections to other services in the mesh. It provides insight into service dependencies and network load.
+
+### Total Active Downstream Connections
+- **Metric:** `sum(envoy_http_downstream_cx_active{app=~"$service"})`
+- **Description:** This metric tracks the total number of active downstream connections from services to clients. It helps operators monitor service load and ensure that services are able to handle the traffic effectively.
+
+# Consul K8s Monitoring (Control Plane)
+
+### Number of Consul Servers
+- **Metric:** `consul_consul_server_0_consul_members_servers{pod="consul-server-0"}`
+- **Description:** Displays the number of Consul servers currently active. This metric provides insight into the cluster's health and the number of Consul nodes running in the environment.
+
+### Number of Connected Consul-dataplanes
+- **Metric:** `count(consul_dataplane_envoy_connected)`
+- **Description:** Tracks the number of connected Consul dataplanes. This metric helps operators understand how many Envoy sidecars are actively connected to the mesh.
+
+### CPU Usage in Seconds (Consul servers)
+- **Metric:** `rate(container_cpu_usage_seconds_total{container="consul", pod=~"consul-server-.*"}[5m])`
+- **Description:** This metric shows the CPU usage of the Consul servers over time, helping operators monitor resource consumption.
+
+### Memory Usage (Consul servers)
+- **Metric:** `container_memory_working_set_bytes{container="consul", pod=~"consul-server-.*"}`
+- **Description:** Displays the memory usage of the Consul servers. This metric helps ensure that the servers have sufficient memory resources for proper operation.
+
+### Disk Read/Write total per 5 minutes (Consul servers)
+- **Metric:** `sum(rate(container_fs_writes_bytes_total{pod=~"consul-server-.*",
+ container="consul"}[5m])) by (pod, device)`
+- **Metric:** `sum(rate(container_fs_reads_bytes_total{pod=~"consul-server-.*", container="consul"}[5m])) by (pod, device)`
+- **Description:** Monitors disk read and write operations over 5-minute intervals for Consul servers. This helps identify potential disk bottlenecks or issues.
+
+### Received bytes total per 5 minutes (Consul servers)
+- **Metric:** `sum(rate(container_network_receive_bytes_total{pod=~"consul-server-.*"}[5m])) by (pod)`
+- **Description:** Tracks the total network bytes received by Consul servers within a 5-minute window. This metric helps assess the network load on Consul nodes.
+
+### Memory Limit (Consul Servers)
+- **Metric:** `kube_pod_container_resource_limits{resource="memory", pod="consul-server-0"}`
+- **Description:** Displays the memory limit for Consul servers. This metric ensures that memory usage stays within the defined limits for each Consul server.
+
+### CPU Limit in Seconds (Consul Servers)
+- **Metric:** `kube_pod_container_resource_limits{resource="cpu", pod="consul-server-0"}`
+- **Description:** Displays the CPU limit for Consul servers. Monitoring CPU limits helps operators ensure that the services are not constrained by resource limitations.
+
+### Disk Usage (Consul servers)
+- **Metric:** `sum(container_fs_usage_bytes{}) by (pod)`
+- **Metric:** `sum(container_fs_usage_bytes{pod="consul-server-0"})`
+- **Description:** Shows the amount of filesystem storage used by Consul servers. This metric helps operators track disk usage and plan for capacity.
+
+### CPU Usage in Seconds (Connect Injector)
+- **Metric:** `rate(container_cpu_usage_seconds_total{pod=~".*-connect-injector-.*",
+container="sidecar-injector"}[5m])`
+- **Description:** Tracks the CPU usage of the Connect Injector, which is responsible for injecting Envoy sidecars. Monitoring this helps ensure that Connect Injector has adequate CPU resources.
+
+### CPU Limit in Seconds (Connect Injector)
+- **Metric:** `max(kube_pod_container_resource_limits{resource="cpu", container="sidecar-injector"})`
+- **Description:** Displays the CPU limit for the Connect Injector. Monitoring the CPU limits ensures that Connect Injector is not constrained by resource limitations.
+
+### Memory Usage (Connect Injector)
+- **Metric:** `container_memory_working_set_bytes{pod=~".*-connect-injector-.*",
+container="sidecar-injector"}`
+- **Description:** Tracks the memory usage of the Connect Injector. Monitoring this helps ensure the Connect Injector has sufficient memory resources.
+
+### Memory Limit (Connect Injector)
+- **Metric:** `max(kube_pod_container_resource_limits{resource="memory", container="sidecar-injector"})`
+- **Description:** Displays the memory limit for the Connect Injector, helping to monitor if the service is nearing its resource limits.
+
+# Consul Server Monitoring Dashboard
+
+### Raft Commit Time
+- **Metric:** `consul_raft_commitTime`
+- **Description:** This metric measures the time it takes to commit Raft log entries. Stable values are expected for a healthy cluster. High values can indicate issues with resources such as memory, CPU, or disk space.
+
+### Raft Commits per 5 Minutes
+- **Metric:** `rate(consul_raft_apply[5m])`
+- **Description:** This metric tracks the rate of Raft log commits emitted by the leader, showing how quickly changes are being applied across the cluster.
+
+### Last Contacted Leader
+- **Metric:** `consul_raft_leader_lastContact != 0`
+- **Description:** Measures the duration since the last contact with the Raft leader. Spikes in this metric can indicate network issues or an unavailable leader, which may affect cluster stability.
+
+### Election Events
+- **Metric:** `rate(consul_raft_state_candidate[1m])`, `rate(consul_raft_state_leader[1m])`
+- **Description:** Tracks Raft state transitions, indicating leadership elections. Frequent transitions might suggest cluster instability and require investigation.
+
+### Autopilot Health
+- **Metric:** `consul_autopilot_healthy`
+- **Description:** A boolean metric that shows a value of 1 when Autopilot is healthy and 0 when issues are detected. Ensures that the cluster has sufficient resources and an operational leader.
+
+### DNS Queries per 5 Minutes
+- **Metric:** `rate(consul_dns_domain_query_count[5m])`
+- **Description:** This metric tracks the rate of DNS queries per node, bucketed into 5-minute intervals. It helps monitor the query load on Consul’s DNS service.
+
+### DNS Domain Query Time
+- **Metric:** `consul_dns_domain_query`
+- **Description:** Measures the time spent handling DNS domain queries. Spikes in this metric may indicate high contention in the catalog or too many concurrent queries.
+
+### DNS Reverse Query Time
+- **Metric:** `consul_dns_ptr_query`
+- **Description:** Tracks the time spent processing reverse DNS queries. Spikes in query time may indicate performance bottlenecks or increased workload.
+
+### KV Applies per 5 Minutes
+- **Metric:** `rate(consul_kvs_apply_count[5m])`
+- **Description:** This metric tracks the rate of Key-Value store applies over 5-minute intervals, indicating the operational load on Consul’s KV store.
+
+### KV Apply Time
+- **Metric:** `consul_kvs_apply`
+- **Description:** Measures the time taken to apply updates to the Key-Value store. Spikes in this metric might suggest resource contention or client overload.
+
+### Transaction Apply Time
+- **Metric:** `consul_txn_apply`
+- **Description:** Tracks the time spent applying transaction operations in Consul, providing insights into potential bottlenecks in transactional workloads.
+
+### ACL Resolves per 5 Minutes
+- **Metric:** `rate(consul_acl_ResolveToken_count[5m])`
+- **Description:** This metric tracks the rate of ACL token resolutions per 5-minute intervals. It provides insights into the activity related to ACL tokens within the cluster.
+
+### ACL ResolveToken Time
+- **Metric:** `consul_acl_ResolveToken`
+- **Description:** Measures the time taken to resolve ACL tokens into their associated policies. Spikes in this metric might indicate resource issues or configuration problems.
+
+### ACL Updates per 5 Minutes
+- **Metric:** `rate(consul_acl_apply_count[5m])`
+- **Description:** Tracks the rate of ACL updates per 5-minute intervals. This metric helps monitor changes in ACL configurations over time.
+
+### ACL Apply Time
+- **Metric:** `consul_acl_apply`
+- **Description:** Measures the time spent applying ACL changes. Spikes in apply time might suggest resource constraints or high operational load.
+
+### Catalog Operations per 5 Minutes
+- **Metric:** `rate(consul_catalog_register_count[5m])`, `rate(consul_catalog_deregister_count[5m])`
+- **Description:** Tracks the rate of register and deregister operations in the Consul catalog, providing insights into the churn of services within the cluster.
+
+### Catalog Operation Time
+- **Metric:** `consul_catalog_register`, `consul_catalog_deregister`
+- **Description:** Measures the time taken to complete catalog register or deregister operations. Spikes in this metric can indicate performance issues within the catalog.
+
+## Conclusion
+
+This document provides an extensive overview of dashboards designed to monitor and manage services within a Consul-managed Envoy service mesh. It covers the configuration and use of key dashboards, which provide detailed insights into service health, performance, and resource utilization. The dashboards track essential metrics like access logs, traffic patterns, response codes, and success rates, enabling operators to optimize service reliability and efficiency. Customization options such as service and namespace filtering, log pattern searches, and time range selection enhance usability, allowing for focused monitoring. By leveraging these tools, operators can maintain stability and performance across the service mesh infrastructure, ensuring seamless communication and optimal resource management within their environments.
