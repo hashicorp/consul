@@ -1,0 +1,74 @@
+---
+layout: docs
+page_title: Consul DNS views for Kubernetes
+description: ->
+    Learn how to schedule a Consul DNS proxy for Kubernetes Pods so that your applications can return Consul DNS results for service discovery.
+---
+
+# Consul DNS views for Kubernetes
+
+This topic describes the process to configure and deploy a Consul DNS proxy in a Kubernetes Pod so that Kubernetes Services can use Consul DNS addresses. To bypass Consul DNS entirely, use [transparent proxy mode](https://developer.hashicorp.com/consul/docs/k8s/connect/transparent-proxy).
+Introduction
+Kubernetes operators typically use networking tools such as [kube-dns](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) and [CoreDNS](https://kubernetes.io/docs/tasks/administer-cluster/coredns/) to perform service discovery functions. 
+
+You can use Consul on Kubernetes to discover services that were registered by a Consul datacenter on non-Kubernetes deployments. For example, when you [create a cluster peering connection]() between a Consul datacenter running on Kubernetes and a Consul datacenter running on virtual machines, Kubernetes services can resolve services running on the VM using Consul DNS.
+
+To use Consul DNS for service discovery on Kubernetes, deploy a `consul-proxy` service in each pod that needs to resolve Consul DNS. The `consul-proxy` does not require the presence of Consul client agents or Consul dataplanes.
+
+All DNS requests in the Kubernetes Pod are sent to the Kubernetes controller. It forwards requests for the `.consul` domain to the `consul-proxy` service, which then queries the Consul catalog and returns service discovery results.
+
+## Workflows
+
+The process to use Consul DNS for service discovery in Kubernetes deployments consists of the following steps:
+
+Update the Helm chart for your Consul on Kubernetes deployment so that `dns.proxy.enabled=true`. When you apply the update, Kubernetes deploys the Consul DNS proxy.
+Look up the IP address for the Consul DNS proxy in the Kubernetes Pod.
+Update the DNS configuration in the Kubernetes cluster so that it forwards requests for the `.consul` domain to the IP address of the Consul DNS proxy.
+
+For more information about the underlying DNS configuration process, refer to [DNS forwarding overview](/consul/docs/services/discovery/dns-forwarding).
+
+## Benefits
+
+Consul service discovery with fewer cloud resources. When you use the Consul DNS proxy for service discovery, you do not need to schedule Consul client agents or dataplanes. One Kubernetes Service that uses the same resources as a single Consul Dataplane provides the entire Pod access to the Consul catalog.
+Consul DNS without gossip communication. The Consul DNS service runs on both Consul server and Consul client agents, which use [gossip communication]() to ensure that service discovery results are up-to-date. The Consul DNS proxy provides access to Consul DNS without the security overhead of agent-to-agent gossip.
+Use KubeDNS and Consul DNS together in a single deployment. Consul on Kubernetes currently uses [Consul dataplanes](/consul/docs/connect/dataplane) to provide service mesh functions. These lightweight processes provide Consul access to the sidecar proxies in the service mesh, but leave Kubernetes in charge of most other service discovery and service mesh operations. You can [configure Kubernetes to recognize Consul DNS](/consul/docs/k8s/dns), but this configuration method requires the presence of Consul dataplanes for every service. The Consul DNS proxy enables any service in a Pod to resolve a service address through Consul DNS without limiting the existing DNS.
+
+## Scaling techniques
+
+By default, Consul forwards all DNS requests to the current leader in the Consul server cluster. When operating at scale, this configuration may result in longer response times because a single server must respond to every DNS query. There are several strategies for distributing this burden in your datacenter:
+
+Allow Stale Reads. Allows other servers besides the leader to answer the query rather than forwarding it to the leader.
+Configure DNS TTLs. Configure a TTL to nodes or services that the DNS subsystem on the service container’s OS uses. Services then resolve DNS queries locally without any external requests.  
+Add Read Replicas. Enterprise users can use read replicas, which are additional Consul servers that replicate cluster data without participating in the Raft quorum.
+Use Cache to prevent server request. Configure the Consul client to use its agent cache to subscribe to events about a service or node. After you establish the watch, the local Consul client agent can resolve DNS queries about the service or node without querying Consul servers.
+
+The following table describes the availability of each scaling technique depending on whether you configure Consul to offload DNS requests from the cluster leader to a client agent, dataplane, or DNS proxy.
+
+Scaling technique
+Supported by Consul DNS Proxy
+Configuring DNS TTLs
+✅
+Allowing Stale Reads
+✅
+Adding Read Replicas
+✅
+Use Cache to prevent server request
+❌
+
+	
+
+
+
+
+
+
+
+
+
+
+For more information about considerations for Consul deployments that operate at scale, refer to [Operating Consul at Scale](/consul/docs/architecture/scale).
+## Constraints and limitations
+If you experience issues using the Consul DNS proxy for Kubernetes, refer to the following list of technical constraints and limitations.
+
+The Consul DNS proxy is only supported by Kubernetes deployments at this time. 
+
