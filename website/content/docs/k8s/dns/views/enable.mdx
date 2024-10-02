@@ -1,0 +1,76 @@
+---
+layout: docs
+page_title: Consul DNS views for Kubernetes
+description: ->
+    Learn how to schedule a Consul DNS proxy for a Kubernetes Pod so that your services can return Consul DNS results for service discovery.
+---
+
+# Enable Consul DNS proxy for Kubernetes
+
+This page describes the process to deploy a Consul DNS proxy in a Kubernetes Pod so that services in that pod can resolve Consul DNS requests. For more information, refer to [Consul DNS views for Kubernetes](/consul/docs/k8s/dns/views).
+
+## Prerequisites
+
+You must meet the following minimum application versions to enable the Consul DNS proxy for Kubernetes:
+
+- Consul v1.20.0 or higher
+- Either Consul on Kubernetes or the Consul Helm chart, v1.6.0 or higher
+
+## Update Consul values
+
+Update the [Helm values for your Consul on Kubernetes deployment](/consul/docs/k8s/helm) with the `dns.proxy.enabled` parameter set to `true`.
+
+## Retrieve Consul DNS proxy address
+
+To look up the IP address for the Consul DNS proxy in the Kubernetes Pod, run the following command:
+
+```shell-session
+$ kubectl get services –namespace consul
+```
+
+Note the `ClusterIP`. Use this address when you update the ConfigMap object.
+
+## Update Kubernetes ConfigMap
+
+Create or update a [ConfigMap object in the Kubernetes cluster](https://kubernetes.io/docs/concepts/configuration/configmap/) so that Kubernetes forwards DNS requests with the `.consul` domain to the IP address of the Consul DNS proxy.
+
+The following example configures Kubernetes to forward Consul DNS requests in the cluster to the Consul DNS Proxy running on `10.150.0.1`.
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+  namespace: kube-system
+data:
+  Corefile: |
+    .:53 {
+        errors
+        health
+        kubernetes cluster.local in-addr.arpa ip6.arpa {
+           pods insecure
+           fallthrough in-addr.arpa ip6.arpa
+        }
+        prometheus :9153
+        forward . 172.16.0.1
+        cache 30
+        loop
+        reload
+        loadbalance
+    }
+    consul.local:53 {
+        errors
+        cache 30
+        forward . 10.150.0.1
+    }  
+```
+
+For information about the other fields in this ConfigMap object, refer to [the Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns).
+
+## Next steps
+
+After you enable the Consul DNS proxy, services in the Kubernetes cluster can resolve Consul DNS addresses.
+
+- To learn more about Consul DNS for service discovery, refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview).
+- If your datacenter has ACLs enabled, create a [Consul ACL token](/consul/docs/security/acl/tokens) for the Consul DNS proxy.
+- To use Consul DNS for service discovery with other runtimes, across cloud regions, or between cloud providers, [establish a cluster peering connection](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering). Refer to [cluster peering](/consul/docs/connect/cluster-peering) for more information.
