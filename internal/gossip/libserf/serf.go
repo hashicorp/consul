@@ -29,7 +29,7 @@ func DefaultConfig() *serf.Config {
 	// This gives leaves some time to propagate through the cluster before
 	// we shut down. The value was chosen to be reasonably short, but to
 	// allow a leave to get to over 99.99% of the cluster with 100k nodes
-	// (using https://https://github.com/hashicorp/serf/docs/internals/simulator.html.markdown).
+	// (using https://https://github.com/hashicorp/serf/blob/master/docs/internals/simulator.html.markdown).
 	base.LeavePropagateDelay = 3 * time.Second
 
 	return base
