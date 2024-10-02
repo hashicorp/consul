@@ -1662,7 +1662,25 @@
       },
       {
         "title": "Consul DNS",
-        "path": "k8s/dns"
+        "routes": [
+          {
+            "title": "DNS proxy for service discovery",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "k8s/dns/views"
+              },
+              {
+                "title": "Enable Consul DNS proxy",
+                "path": "k8s/dns/views"
+              }
+            ]
+          },
+          {
+          "title": "Enable on dataplanes",
+          "path": "k8s/dns/enable"
+          }
+        ]
       },
       {
         "title": "Upgrade",
