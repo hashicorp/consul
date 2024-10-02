@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/hcl"
 
 	"github.com/hashicorp/consul/lib/decode"
 )
@@ -214,6 +215,7 @@ type Config struct {
 	RaftSnapshotThreshold            *int                `mapstructure:"raft_snapshot_threshold" json:"raft_snapshot_threshold,omitempty"`
 	RaftSnapshotInterval             *string             `mapstructure:"raft_snapshot_interval" json:"raft_snapshot_interval,omitempty"`
 	RaftTrailingLogs                 *int                `mapstructure:"raft_trailing_logs" json:"raft_trailing_logs,omitempty"`
+	RaftPreVoteDisabled              *bool               `mapstructure:"raft_prevote_disabled" json:"raft_prevote_disabled,omitempty"`
 	ReconnectTimeoutLAN              *string             `mapstructure:"reconnect_timeout" json:"reconnect_timeout,omitempty"`
 	ReconnectTimeoutWAN              *string             `mapstructure:"reconnect_timeout_wan" json:"reconnect_timeout_wan,omitempty"`
 	RejoinAfterLeave                 *bool               `mapstructure:"rejoin_after_leave" json:"rejoin_after_leave,omitempty"`

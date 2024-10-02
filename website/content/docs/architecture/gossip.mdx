@@ -9,15 +9,15 @@ description: >-
 
 Consul uses a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol)
 to manage membership and broadcast messages to the cluster. The protocol, membership management, and message broadcasting is provided
-through the [Serf library](https://www.serf.io/). The gossip protocol
+through the [Serf library](https://github.com/hashicorp/serf/). The gossip protocol
 used by Serf is based on a modified version of the
 [SWIM (Scalable Weakly-consistent Infection-style Process Group Membership)](https://www.cs.cornell.edu/projects/Quicksilver/public_pdfs/SWIM.pdf) protocol.
-Refer to the [Serf documentation](https://www.serf.io/docs/internals/gossip.html) for additional information about the gossip protocol.
+Refer to the [Serf documentation](https://github.com/hashicorp/serf/blob/master/docs/internals/gossip.html.markdown) for additional information about the gossip protocol.
 
 ## Gossip in Consul
 
 Consul uses a LAN gossip pool and a WAN gossip pool to perform different functions. The pools
-are able to perform their functions by leveraging an embedded [Serf](https://www.serf.io/)
+are able to perform their functions by leveraging an embedded [Serf](https://github.com/hashicorp/serf/)
 library. The library is abstracted and masked by Consul to simplify the user experience,
 but developers may find it useful to understand how the library is leveraged.
 
@@ -52,5 +52,5 @@ For more details about Lifeguard, please see the
 [Making Gossip More Robust with Lifeguard](https://www.hashicorp.com/blog/making-gossip-more-robust-with-lifeguard/)
 blog post, which provides a high level overview of the HashiCorp Research paper
 [Lifeguard : SWIM-ing with Situational Awareness](https://arxiv.org/abs/1707.00788). The
-[Serf gossip protocol guide](https://www.serf.io/docs/internals/gossip.html#lifeguard)
+[Serf gossip protocol guide](https://github.com/hashicorp/serf/blob/master/docs/internals/gossip.html.markdown#lifeguard-enhancements)
 also provides some lower-level details about the gossip protocol and Lifeguard.

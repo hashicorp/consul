@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
@@ -1003,6 +1004,9 @@ type RuntimeConfig struct {
 	//
 	// hcl: raft_trailing_logs = int
 	RaftTrailingLogs int
+
+	// hcl: raft_prevote_disabled = bool
+	RaftPreVoteDisabled bool
 
 	RaftLogStoreConfig consul.RaftLogStoreConfig
 

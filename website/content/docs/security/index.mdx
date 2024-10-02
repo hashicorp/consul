@@ -5,11 +5,15 @@ description: >-
   Security requirements and recommendations for Consul vary depending on workloads and environments. Learn how ACLs and encryption can protect access to and communication within your datacenter.
 ---
 
+# Consul security
+
+This topic describes the security requirements and recommendations for a Consul deployment.
+
 ## Security Models
 
 Requirements and recommendations for operating a secure Consul deployment may vary drastically depending on your
 intended workloads, operating system, and environment. You can find detailed information about the various personas,
-recommendations, requirements, and threats [here](/consul/docs/security/security-models).
+recommendations, requirements, and threats in the [Security Models](/consul/docs/security/security-models) section.
 
 ## ACLs
 
@@ -18,6 +22,9 @@ to data and APIs.
 
 ## Encryption
 
-The Consul agent supports encrypting all of its network traffic. The exact method of encryption is described on the
-[encryption security page](/consul/docs/security/encryption). There are two separate encryption systems, one for gossip
-traffic and one for HTTP + RPC.
+The Consul agent supports encryption for all of its network traffic. There are two separate encryption systems:
+
+- A gossip encryption system
+- An mTLS encryption system for HTTP and RPC
+
+For more information about these two different encryption systems, as well as configuration guidance, refer to [Consul encryption](/consul/docs/security/encryption).
