@@ -771,6 +771,12 @@ func (s *Server) runACLReplicator(
 
 		index, exit, err := replicateFunc(ctx, logger, lastRemoteIndex)
 		if exit {
+			metrics.SetGauge([]string{"leader", "replication", metricName, "status"},
+				0,
+			)
+			metrics.SetGauge([]string{"leader", "replication", metricName, "index"},
+				0,
+			)
 			return nil
 		}
 

@@ -1,0 +1,69 @@
+name: conditional-skip
+
+on:
+  workflow_call:
+    outputs:
+      skip-ci:
+        description: "Whether we should skip build and test jobs"
+        value: ${{ jobs.check-skip.outputs.skip-ci }}
+
+jobs:
+  check-skip:
+    runs-on: ubuntu-latest
+    name: Check whether to skip build and tests
+    outputs:
+      skip-ci: ${{ steps.maybe-skip-ci.outputs.skip-ci }}
+    steps:
+      # We only allow use of conditional skip in two scenarios:
+      #   1. PRs
+      #   2. Pushes (merges) to protected branches (`main`, `release/**`)
+      #
+      # The second scenario is the only place we can be sure that checking just the
+      # latest change on the branch is sufficient. In PRs, we need to check _all_ commits.
+      # The ability to do this is ultimately determined by the triggers of the calling
+      # workflow, since `base_ref` (the target branch of a PR) is only available in
+      # `pull_request` events, not `push`.
+      - name: Error if conditional check is not allowed
+        if: ${{ !github.base_ref && !github.ref_protected }}
+        run: |
+          echo "Conditional skip requires a PR event with 'base_ref' or 'push' to a protected branch."
+          echo "github.base_ref: ${{ github.base_ref }}"
+          echo "github.ref_protected: ${{ github.ref_protected }}"
+          echo "github.ref_name: ${{ github.ref_name }}"
+          echo "Check the triggers of the calling workflow to ensure that these requirements are met."
+          exit 1
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          fetch-depth: 0
+      - name: Check for skippable file changes
+        id: changed-files
+        uses: tj-actions/changed-files@e9772d140489982e0e3704fea5ee93d536f1e275 # v45.0.1
+        with:
+          # This is a multi-line YAML string with one match pattern per line.
+          # Do not use quotes around values, as it's not supported.
+          # See https://github.com/tj-actions/changed-files/blob/main/README.md#inputs-%EF%B8%8F
+          # for usage, options, and more details on match syntax.
+          files: |
+            .github/workflows/reusable-conditional-skip.yml
+            **.md
+            docs/**
+            ui/**
+            website/**
+            grafana/**
+            .changelog/**
+      - name: Print changed files
+        env:
+          SKIPPABLE_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          NON_SKIPPABLE_FILES: ${{ steps.changed-files.outputs.other_changed_files }}
+        run: |
+          echo "Skippable changed files:"
+          for file in ${SKIPPABLE_CHANGED_FILES}; do echo "  $file"; done
+          echo
+          echo "Non-skippable files:"
+          for file in ${NON_SKIPPABLE_FILES}; do echo "  $file"; done
+      - name: Skip tests and build if only skippable files changed
+        id: maybe-skip-ci
+        if: ${{ steps.changed-files.outputs.only_changed == 'true' }}
+        run: |
+          echo "Skipping tests and build because only skippable files changed"
+          echo "skip-ci=true" >> $GITHUB_OUTPUT

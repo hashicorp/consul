@@ -4,7 +4,6 @@
  */
 
 import Service, { inject as service } from '@ember/service';
-import lint from 'consul-ui/utils/editor/lint';
 const MODES = [
   {
     name: 'JSON',
@@ -39,10 +38,6 @@ export default class LinterService extends Service {
 
   modes() {
     return MODES;
-  }
-
-  lint() {
-    return lint(...arguments);
   }
 
   getEditor(element) {

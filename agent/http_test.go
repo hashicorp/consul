@@ -639,14 +639,14 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	requireHasHeadersSet(t, a, "/v1/agent/self")
+	requireHasHeadersSet(t, a, "/v1/agent/self", "application/json")
 
 	// Check the Index page that just renders a simple message with UI disabled
 	// also gets the right headers.
-	requireHasHeadersSet(t, a, "/")
+	requireHasHeadersSet(t, a, "/", "text/plain; charset=utf-8")
 }
 
-func requireHasHeadersSet(t *testing.T, a *TestAgent, path string) {
+func requireHasHeadersSet(t *testing.T, a *TestAgent, path string, contentType string) {
 	t.Helper()
 
 	resp := httptest.NewRecorder()
@@ -661,6 +661,9 @@ func requireHasHeadersSet(t *testing.T, a *TestAgent, path string) {
 
 	require.Equal(t, "1; mode=block", hdrs.Get("X-XSS-Protection"),
 		"X-XSS-Protection header value incorrect")
+
+	require.Equal(t, contentType, hdrs.Get("Content-Type"),
+		"")
 }
 
 func TestUIResponseHeaders(t *testing.T) {
@@ -680,7 +683,28 @@ func TestUIResponseHeaders(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	requireHasHeadersSet(t, a, "/ui")
+	//response header for the UI appears to be being handled by the UI itself.
+	requireHasHeadersSet(t, a, "/ui", "text/plain; charset=utf-8")
+}
+
+func TestErrorContentTypeHeaderSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		http_config {
+			response_headers = {
+				"Access-Control-Allow-Origin" = "*"
+				"X-XSS-Protection" = "1; mode=block"
+				"X-Frame-Options" = "SAMEORIGIN"
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	requireHasHeadersSet(t, a, "/fake-path-doesn't-exist", "text/plain; charset=utf-8")
 }
 
 func TestAcceptEncodingGzip(t *testing.T) {

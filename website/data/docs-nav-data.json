@@ -390,6 +390,19 @@
             "path": "services/discovery/dns-configuration"
           },
           {
+            "title": "DNS forwarding",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "services/discovery/dns-forwarding"
+              },
+              {
+                "title": "Enable DNS forwarding",
+                "path": "services/discovery/dns-forwarding/enable"
+              }
+            ]
+          },
+          {
             "title": "Perform static DNS lookups",
             "path": "services/discovery/dns-static-lookups"
           },
@@ -1041,7 +1054,16 @@
       },
       {
         "title": "Sessions",
-        "path": "dynamic-app-config/sessions"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "dynamic-app-config/sessions"
+          },
+          {
+            "title": "Application leader election",
+            "path": "dynamic-app-config/sessions/application-leader-election"
+          }
+        ]
       },
       {
         "title": "Watches",

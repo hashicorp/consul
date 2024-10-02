@@ -380,6 +380,56 @@ func TestMakeJWKSDiscoveryClusterType(t *testing.T) {
 	}
 }
 
+func TestMakeJWKSClusterDNSLookupFamilyType(t *testing.T) {
+	tests := map[string]struct {
+		clusterType             *envoy_cluster_v3.Cluster_Type
+		expectedDNSLookupFamily envoy_cluster_v3.Cluster_DnsLookupFamily
+	}{
+		// strict dns and logical dns are the only ones that are different
+		"jwks with strict dns": {
+			clusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_STRICT_DNS,
+			},
+			expectedDNSLookupFamily: envoy_cluster_v3.Cluster_V4_PREFERRED,
+		},
+		"jwks with logical dns": {
+			clusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_LOGICAL_DNS,
+			},
+			expectedDNSLookupFamily: envoy_cluster_v3.Cluster_ALL,
+		},
+		// all should be auto from here down
+		"jwks with cluster EDS": {
+			clusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_EDS,
+			},
+			expectedDNSLookupFamily: envoy_cluster_v3.Cluster_AUTO,
+		},
+		"jwks with static dns": {
+			clusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_STATIC,
+			},
+			expectedDNSLookupFamily: envoy_cluster_v3.Cluster_AUTO,
+		},
+
+		"jwks with original dst": {
+			clusterType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
+			},
+			expectedDNSLookupFamily: envoy_cluster_v3.Cluster_AUTO,
+		},
+	}
+
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			actualDNSLookupFamily := makeJWKSClusterDNSLookupFamilyType(tt.clusterType)
+
+			require.Equal(t, tt.expectedDNSLookupFamily, actualDNSLookupFamily)
+		})
+	}
+}
+
 func TestParseJWTRemoteURL(t *testing.T) {
 	tests := map[string]struct {
 		uri            string

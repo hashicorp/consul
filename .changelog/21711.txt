@@ -1,0 +1,3 @@
+```release-note:security
+Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI.
+```

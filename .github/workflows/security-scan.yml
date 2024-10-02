@@ -1,3 +1,5 @@
+# This job runs a non-blocking informational security scan on the repository.
+# For release-blocking security scans, see .release/security-scan.hcl.
 name: Security Scan
 
 on:
@@ -9,6 +11,12 @@ on:
     branches:
       - main
       - release/**
+    # paths-ignore only works for non-required checks.
+    # Jobs that are required for merge must use reusable-conditional-skip.yml.
+    paths-ignore:
+      - 'docs/**'
+      - 'grafana/**'
+      - '.changelog/**'
 
 # cancel existing runs of the same workflow on the same ref
 concurrency:
@@ -16,23 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  conditional-skip:
-    runs-on: ubuntu-latest
-    name: Get files changed and conditionally skip CI
-    outputs:
-      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
-    steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-        with:
-          fetch-depth: 0
-      - name: Get changed files
-        id: read-files
-        run: ./.github/scripts/check_skip_ci.sh
-
   setup:
-    needs: [conditional-skip]
     name: Setup
-    if: needs.conditional-skip.outputs.skip-ci != 'true'
     runs-on: ubuntu-latest
     outputs:
       compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
@@ -40,7 +33,7 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - id: setup-outputs
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
@@ -59,18 +52,18 @@ jobs:
       && (github.actor != 'dependabot[bot]') && (github.actor != 'hc-github-team-consul-core') }}
 
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Set up Go
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Clone Security Scanner repo
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           repository: hashicorp/security-scanner
-          token: ${{ secrets.HASHIBOT_PRODSEC_GITHUB_TOKEN }}
+          token: ${{ secrets.PRODSEC_SCANNER_READ_ONLY }}
           path: security-scanner
           ref: main
 
@@ -87,6 +80,6 @@ jobs:
           cat results.sarif | jq
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@c4fb451437765abf5018c6fbf22cce1a7da1e5cc # codeql-bundle-v2.17.1
+        uses: github/codeql-action/upload-sarif@8fd294e26a0e458834582b0fe4988d79966c7c0a # codeql-bundle-v2.18.4
         with:
           sarif_file: results.sarif

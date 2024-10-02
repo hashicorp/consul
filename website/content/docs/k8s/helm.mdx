@@ -766,11 +766,14 @@ Use these links to navigate to a particular top-level stanza.
 
   - `experiments` ((#v-global-experiments)) (`array<string>: []`) - Consul feature flags that will be enabled across components.
     Supported feature flags:
+    - `v1dns`:
+      When this flag is set, Consul agents use the legacy DNS implementation.
+      This setting exists in the case a DNS bug is found after the refactoring introduced in v1.19.0.
 
     Example:
 
     ```yaml
-    experiments: [ "<experiment name>" ]
+    experiments: [ "v1dns" ]
     ```
 
 ### server ((#h-server))
@@ -1984,6 +1987,25 @@ Use these links to navigate to a particular top-level stanza.
         Example: The gateway listener is defined on port 80, but the underlying value of the port on the container
         will be the 80 + the number defined below.
 
+      - `resourceJob` ((#v-connectinject-apigateway-managedgatewayclass-resourcejob)) - This value contains settings related to the gateway_resources_job that runs on helm install
+
+        - `resources` ((#v-connectinject-apigateway-managedgatewayclass-resourcejob-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods.
+          This should be a YAML map corresponding to a Kubernetes
+          [`ResourceRequirements``](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
+          object.
+
+          Example:
+
+          ```yaml
+          resources:
+            requests:
+              memory: '200Mi'
+              cpu: '100m'
+            limits:
+              memory: '200Mi'
+              cpu: '100m'
+          ```
+
     - `serviceAccount` ((#v-connectinject-apigateway-serviceaccount)) - Configuration for the ServiceAccount created for the api-gateway component
 
       - `annotations` ((#v-connectinject-apigateway-serviceaccount-annotations)) (`string: null`) - This value defines additional annotations for the client service account. This should be formatted as a multi-line
@@ -2781,6 +2803,23 @@ Use these links to navigate to a particular top-level stanza.
     ```yaml
     nodeSelector: |
       beta.kubernetes.io/arch: amd64
+    ```
+
+  - `resources` ((#v-webhookcertmanager-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods.
+    This should be a YAML map corresponding to a Kubernetes
+    [`ResourceRequirements``](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
+    object.
+
+    Example:
+
+    ```yaml
+    resources:
+      requests:
+        memory: '200Mi'
+        cpu: '100m'
+      limits:
+        memory: '200Mi'
+        cpu: '100m'
     ```
 
 ### prometheus ((#h-prometheus))
