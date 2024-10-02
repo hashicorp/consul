@@ -1672,7 +1672,7 @@
               },
               {
                 "title": "Enable Consul DNS proxy",
-                "path": "k8s/dns/views"
+                "path": "k8s/dns/views/enable"
               }
             ]
           },
