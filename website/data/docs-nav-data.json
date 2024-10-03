@@ -692,23 +692,23 @@
               },
               {
                 "title": "Service to Service Dashboard",
-                "path": "connect/observability/grafana-dashboards/service-to-servicedashboard"
+                "path": "connect/observability/grafanadashboards/service-to-servicedashboard"
               },
               {
                 "title": "Service Dashboard",
-                "path": "connect/observability/grafana-dashboards/servicedashboard"
+                "path": "connect/observability/grafanadashboards/servicedashboard"
               },
               {
                 "title": "Consul Dataplane Dashboard",
-                "path": "connect/observability/grafana-dashboards/consuldataplanedashboard"
+                "path": "connect/observability/grafanadashboards/consuldataplanedashboard"
               },
               {
                 "title": "Consul K8s Dashboard",
-                "path": "connect/observability/grafana-dashboards/consulk8sdashboard"
+                "path": "connect/observability/grafanadashboards/consulk8sdashboard"
               },
               {
                 "title": "Consul Server Dashboard",
-                "path": "connect/observability/grafana-dashboards/consulserverdashboard"
+                "path": "connect/observability/grafanadashboards/consulserverdashboard"
               }
             ]
           }
