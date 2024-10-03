@@ -685,7 +685,32 @@
           },
           {
             "title": "Grafana Dashboards",
-            "path": "connect/observability/grafana-dashboards"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/observability/grafanadashboards"
+              },
+              {
+                "title": "Service to Service Dashboard",
+                "path": "connect/observability/grafana-dashboards/service-to-servicedashboard"
+              },
+              {
+                "title": "Service Dashboard",
+                "path": "connect/observability/grafana-dashboards/servicedashboard"
+              },
+              {
+                "title": "Consul Dataplane Dashboard",
+                "path": "connect/observability/grafana-dashboards/consuldataplanedashboard"
+              },
+              {
+                "title": "Consul K8s Dashboard",
+                "path": "connect/observability/grafana-dashboards/consulk8sdashboard"
+              },
+              {
+                "title": "Consul Server Dashboard",
+                "path": "connect/observability/grafana-dashboards/consulserverdashboard"
+              }
+            ]
           }
         ]
       },
