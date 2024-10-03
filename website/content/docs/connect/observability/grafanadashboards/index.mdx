@@ -23,6 +23,60 @@ The repository includes the following dashboards:
 
   - **Consul Server Dashboard**: Provides detailed monitoring of Consul servers, tracking key metrics like server health, CPU and memory usage, disk I/O, and network performance. This dashboard is critical for ensuring the stability and performance of Consul servers within the service mesh.
 
+## Enabling Observability
+
+The following script is the configuration needed to enable the observability tools.
+
+<CodeTabs tabs={[ "Kubernetes YAML"]}>
+
+```yaml
+global:
+  logLevel: trace
+  name: consul
+  datacenter: dc1
+  tls:
+    enabled: true
+    enableAutoEncrypt: true
+    httpsOnly: false
+  acls:
+    manageSystemACLs: true
+  metrics:
+    enabled: true
+    provider: "prometheus"
+    enableAgentMetrics: true
+    agentMetricsRetentionTime: "10m"
+
+prometheus:
+  enabled: true
+
+server:
+  logLevel: trace
+  replicas: 1
+  annotations: |
+    "prometheus.io/scheme": "https"
+    "prometheus.io/port": "8501"
+
+
+ui:
+  enabled: true
+  service:
+    type: NodePort
+  metrics:
+    enabled: true
+    provider: "prometheus"
+    baseURL: http://prometheus-server.consul
+
+connectInject:
+  enabled: true
+  metrics:
+    defaultEnabled: true
+  apiGateway:
+    managedGatewayClass:
+      serviceType: LoadBalancer
+```
+
+</CodeTabs>
+
 ## Enable Access Logs
 
 Access logs configurations are defined globally in the [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#accesslogs) configuration entry. 
