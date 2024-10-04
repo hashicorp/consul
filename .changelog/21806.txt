@@ -1,0 +1,3 @@
+```release-note:feature
+grafana: added the dashboards service-to-service dashboard, service dashboard, and consul dataplane dashboard
+```
