@@ -15,7 +15,8 @@ You can monitor key metrics at both the cluster and service levels with this das
 
 The Consul dataplane dashboard provides the following information about service mesh operations.
 
-### Live Servers
+### Live service count
+
 - **Metric:** `sum(envoy_server_live{app=~"$service"})`
 - **Description:** This metric displays the number of live Envoy proxies currently running within the service mesh. It helps operators track the availability of services and identify any outages or issues with the service mesh components.
 
