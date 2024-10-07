@@ -66,7 +66,7 @@ When using the Consul Docker image, add the following to the environment to allo
 To avoid running Consul as a privileged user, the following `iptables` commands are sufficient to map port `53` to `8600` and redirect DNS queries to Consul.
 
 ```shell-session
-# iptables --table nat --append OUTPUT --destination localhost --protocol udp --match udp --dport 53 --jump REDIRECT --to-ports 8600 \
+# iptables --table nat --append OUTPUT --destination localhost --protocol udp --match udp --dport 53 --jump REDIRECT --to-ports 8600 && \
   iptables --table nat --append OUTPUT --destination localhost --protocol tcp --match tcp --dport 53 --jump REDIRECT --to-ports 8600
 ```
 
