@@ -17,7 +17,7 @@ The Consul dataplane dashboard provides the following information about service 
 
 ### Live service count
 
-- **Metric:** `sum(envoy_server_live{app=~"$service"})`
+- **Grafana query:** `sum(envoy_server_live{app=~"$service"})`
 - **Description:** This metric displays the number of live Envoy proxies currently running within the service mesh. It helps operators track the availability of services and identify any outages or issues with the service mesh components.
 
 ### Total Request Success Rate
