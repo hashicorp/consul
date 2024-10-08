@@ -13,7 +13,7 @@ This topic describes how to schedule a dedicated Consul DNS proxy in a Kubernete
 
 Kubernetes operators typically choose networking tools such as [kube-dns](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) or [CoreDNS](https://kubernetes.io/docs/tasks/administer-cluster/coredns/) for their service discovery operations, and choose to bypass Consul DNS entirely. These DNS options are often sufficient for service networking operations within a single Kubernetes cluster.
 
-Consul on Kubernetes supports [configuring Kubernetes to resolve Consul DNS](/consul/docs/k8s/dns). However, two common challenges result when you rely on stub domain configurations:
+Consul on Kubernetes supports [configuring Kubernetes to resolve Consul DNS](/consul/docs/k8s/dns). However, two common challenges result when you rely on these configurations:
 
 - Kubernetes requires Consul to use gossip communication with agents or dataplanes in order to enable Consul DNS.
 - Consul requires that admin partitions be included in the DNS address. Otherwise, DNS queries assume the `default` partition by default.
