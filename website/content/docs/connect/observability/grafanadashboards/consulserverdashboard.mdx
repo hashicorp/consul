@@ -1,77 +1,96 @@
 ---
 layout: docs
-page_title: Service Mesh Observability - Consul Server Dashboard
+page_title: Dashboard for Consul server metrics
 description: >-
   This documentation provides an overview of the Consul Server Dashboard
 ---
-# Consul Server Monitoring Dashboard
 
-### Raft Commit Time
-- **Metric:** `consul_raft_commitTime`
+# Consul server monitoring dashboard
+
+### Raft commit time
+
+- **Grafana query:** `consul_raft_commitTime`
 - **Description:** This metric measures the time it takes to commit Raft log entries. Stable values are expected for a healthy cluster. High values can indicate issues with resources such as memory, CPU, or disk space.
 
-### Raft Commits per 5 Minutes
-- **Metric:** `rate(consul_raft_apply[5m])`
+### Raft commits per 5 minutes
+
+- **Grafana query:** `rate(consul_raft_apply[5m])`
 - **Description:** This metric tracks the rate of Raft log commits emitted by the leader, showing how quickly changes are being applied across the cluster.
 
-### Last Contacted Leader
-- **Metric:** `consul_raft_leader_lastContact != 0`
+### Last contacted leader
+
+- **Grafana query:** `consul_raft_leader_lastContact != 0`
 - **Description:** Measures the duration since the last contact with the Raft leader. Spikes in this metric can indicate network issues or an unavailable leader, which may affect cluster stability.
 
-### Election Events
-- **Metric:** `rate(consul_raft_state_candidate[1m])`, `rate(consul_raft_state_leader[1m])`
+### Election events
+
+- **Grafana query:** `rate(consul_raft_state_candidate[1m])`, `rate(consul_raft_state_leader[1m])`
 - **Description:** Tracks Raft state transitions, indicating leadership elections. Frequent transitions might suggest cluster instability and require investigation.
 
-### Autopilot Health
-- **Metric:** `consul_autopilot_healthy`
+### Autopilot health
+
+- **Grafana query:** `consul_autopilot_healthy`
 - **Description:** A boolean metric that shows a value of 1 when Autopilot is healthy and 0 when issues are detected. Ensures that the cluster has sufficient resources and an operational leader.
 
-### DNS Queries per 5 Minutes
-- **Metric:** `rate(consul_dns_domain_query_count[5m])`
+### DNS queries per 5 minutes
+
+- **Grafana query:** `rate(consul_dns_domain_query_count[5m])`
 - **Description:** This metric tracks the rate of DNS queries per node, bucketed into 5-minute intervals. It helps monitor the query load on Consul’s DNS service.
 
-### DNS Domain Query Time
-- **Metric:** `consul_dns_domain_query`
+### DNS domain query time
+
+- **Grafana query:** `consul_dns_domain_query`
 - **Description:** Measures the time spent handling DNS domain queries. Spikes in this metric may indicate high contention in the catalog or too many concurrent queries.
 
-### DNS Reverse Query Time
-- **Metric:** `consul_dns_ptr_query`
+### DNS reverse query time
+
+- **Grafana query:** `consul_dns_ptr_query`
 - **Description:** Tracks the time spent processing reverse DNS queries. Spikes in query time may indicate performance bottlenecks or increased workload.
 
-### KV Applies per 5 Minutes
-- **Metric:** `rate(consul_kvs_apply_count[5m])`
+### KV applies per 5 minutes
+
+- **Grafana query:** `rate(consul_kvs_apply_count[5m])`
 - **Description:** This metric tracks the rate of Key-Value store applies over 5-minute intervals, indicating the operational load on Consul’s KV store.
 
-### KV Apply Time
-- **Metric:** `consul_kvs_apply`
+### KV apply time
+
+- **Grafana query:** `consul_kvs_apply`
 - **Description:** Measures the time taken to apply updates to the Key-Value store. Spikes in this metric might suggest resource contention or client overload.
 
-### Transaction Apply Time
-- **Metric:** `consul_txn_apply`
+### Transaction apply time
+
+- **Grafana query:** `consul_txn_apply`
 - **Description:** Tracks the time spent applying transaction operations in Consul, providing insights into potential bottlenecks in transactional workloads.
 
-### ACL Resolves per 5 Minutes
-- **Metric:** `rate(consul_acl_ResolveToken_count[5m])`
+### ACL resolves per 5 minutes
+
+- **Grafana query:** `rate(consul_acl_ResolveToken_count[5m])`
 - **Description:** This metric tracks the rate of ACL token resolutions per 5-minute intervals. It provides insights into the activity related to ACL tokens within the cluster.
 
-### ACL ResolveToken Time
-- **Metric:** `consul_acl_ResolveToken`
+### ACL resolve token time
+
+- **Grafana query:** `consul_acl_ResolveToken`
 - **Description:** Measures the time taken to resolve ACL tokens into their associated policies. Spikes in this metric might indicate resource issues or configuration problems.
 
-### ACL Updates per 5 Minutes
-- **Metric:** `rate(consul_acl_apply_count[5m])`
+### ACL updates per 5 minutes
+
+- **Grafana query:** `rate(consul_acl_apply_count[5m])`
 - **Description:** Tracks the rate of ACL updates per 5-minute intervals. This metric helps monitor changes in ACL configurations over time.
 
-### ACL Apply Time
-- **Metric:** `consul_acl_apply`
+### ACL apply time
+
+- **Grafana query:** `consul_acl_apply`
 - **Description:** Measures the time spent applying ACL changes. Spikes in apply time might suggest resource constraints or high operational load.
 
-### Catalog Operations per 5 Minutes
-- **Metric:** `rate(consul_catalog_register_count[5m])`, `rate(consul_catalog_deregister_count[5m])`
+### Catalog operations per 5 minutes
+
+- **Grafana query:** `rate(consul_catalog_register_count[5m])`, `rate(consul_catalog_deregister_count[5m])`
 - **Description:** Tracks the rate of register and deregister operations in the Consul catalog, providing insights into the churn of services within the cluster.
 
-### Catalog Operation Time
-- **Metric:** `consul_catalog_register`, `consul_catalog_deregister`
+### Catalog operation time
+
+- **Grafana query:** `consul_catalog_register`, `consul_catalog_deregister`
 - **Description:** Measures the time taken to complete catalog register or deregister operations. Spikes in this metric can indicate performance issues within the catalog.
+
 
 
