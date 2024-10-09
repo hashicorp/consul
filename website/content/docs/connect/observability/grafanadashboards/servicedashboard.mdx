@@ -7,7 +7,7 @@ description: >-
 
 # Service dashboard
 
-The **Service Dashboard** offers an overview of the performance and health of individual services within the Consul service mesh. It provides insights into service availability, request success rates, latency, and connection metrics. This dashboard is essential for maintaining optimal service performance and quickly identifying any issues with service communications.
+The **Service dashboard** offers an overview of the performance and health of individual services within the Consul service mesh. It provides insights into service availability, request success rates, latency, and connection metrics. This dashboard is essential for maintaining optimal service performance and quickly identifying any issues with service communications.
 
 ## Grafana queries overview
 
@@ -83,8 +83,8 @@ The **Service Dashboard** offers an overview of the performance and health of in
 ### Connections rejected
 
 - **Grafana queries:**
-  - **Overload Rejections:** `rate(envoy_listener_downstream_cx_overload_reject{}[$__interval])`
-  - **Overflow Rejections:** `rate(envoy_listener_downstream_global_cx_overflow{}[$__interval])`
+  - **Overload rejections:** `rate(envoy_listener_downstream_cx_overload_reject{}[$__interval])`
+  - **Overflow rejections:** `rate(envoy_listener_downstream_global_cx_overflow{}[$__interval])`
 - **Description:** This metric tracks the number of connections rejected due to overload or overflow conditions on listeners. Monitoring these values helps identify if the service is under too much load or has insufficient capacity to handle the incoming connections.
 
 ## Customization options
@@ -95,7 +95,7 @@ The **Service dashboard** offers various customization options to help operators
   
 - **Filter by namespace:** The namespace filter allows operators to focus on a particular namespace in a multi-tenant or multi-namespace environment, isolating the service metrics within that specific context.
 
-- **Time Range selection:** The dashboard supports flexible time range selection, allowing operators to analyze service behavior over different time periods. This is helpful for pinpointing issues that may occur at specific times or during high-traffic periods.
+- **Time range selection:** The dashboard supports flexible time range selection, allowing operators to analyze service behavior over different time periods. This is helpful for pinpointing issues that may occur at specific times or during high-traffic periods.
 
 - **Percentile latency tracking:** The dashboard allows operators to track multiple latency percentiles (p50, p75, p90, p99.9) to get a more detailed view of how the service performs across different levels of traffic load.
 
