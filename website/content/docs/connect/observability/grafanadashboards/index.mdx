@@ -9,7 +9,7 @@ description: >-
 
 This topic describes the configuration and usage of dashboards for monitoring and managing services within a Consul-managed Envoy service mesh. These dashboards provide critical insights into the health, performance, and resource utilization of services. The dashboards described here are essential tools for ensuring the stability, efficiency, and reliability of your service mesh environment.
 
-## Dashboards Overview
+## Dashboards overview
 
 The repository includes the following dashboards:
 
@@ -23,7 +23,7 @@ The repository includes the following dashboards:
 
   - **Consul Server Dashboard**: Provides detailed monitoring of Consul servers, tracking key metrics like server health, CPU and memory usage, disk I/O, and network performance. This dashboard is critical for ensuring the stability and performance of Consul servers within the service mesh.
 
-## Enabling Observability
+## Enabling observability
 
 Add the following configurations to your Consul Helm chart to enable the observability tools in [the sample repo](https://github.com/YasminLorinKaygalak/GrafanaDemo/tree/main).
 
@@ -76,7 +76,7 @@ connectInject:
 
 </CodeTabs>
 
-## Enable Access Logs
+## Enable access logs
 
 Access logs configurations are defined globally in the [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#accesslogs) configuration entry. 
 
