@@ -1,96 +1,89 @@
 ---
 layout: docs
-page_title: Dashboard for Consul server metrics
+page_title: Dashboard for Consul dataplane metrics
 description: >-
-  This documentation provides an overview of the Consul Server Dashboard
+  This Grafana dashboard that provides Consul dataplane metrics on Kubernetes deployments. Learn about the Grafana queries that produce the metrics and visualizations in this dashboard.
 ---
 
-# Consul server monitoring dashboard
+# Consul dataplane monitoring dashboard
 
-### Raft commit time
+This page provides reference information about the Grafana dashboard configuration included in [this GitHub repository](https://github.com/YasminLorinKaygalak/GrafanaDemo/tree/main). The Consul dataplane dashboard provides a comprehensive view of the service health, performance, and resource utilization within the Consul service mesh. 
 
-- **Grafana query:** `consul_raft_commitTime`
-- **Description:** This metric measures the time it takes to commit Raft log entries. Stable values are expected for a healthy cluster. High values can indicate issues with resources such as memory, CPU, or disk space.
+You can monitor key metrics at both the cluster and service levels with this dashboard. It can help you ensure service reliability and performance.
 
-### Raft commits per 5 minutes
+## Consul dataplane metrics
 
-- **Grafana query:** `rate(consul_raft_apply[5m])`
-- **Description:** This metric tracks the rate of Raft log commits emitted by the leader, showing how quickly changes are being applied across the cluster.
+The Consul dataplane dashboard provides the following information about service mesh operations.
 
-### Last contacted leader
+### Live service count
 
-- **Grafana query:** `consul_raft_leader_lastContact != 0`
-- **Description:** Measures the duration since the last contact with the Raft leader. Spikes in this metric can indicate network issues or an unavailable leader, which may affect cluster stability.
+- **Grafana query:** `sum(envoy_server_live{app=~"$service"})`
+- **Description:** Displays the total number of live Envoy proxies currently running in the service mesh. It helps track the overall availability of services and identify any outages or other widespread issues in the service mesh.
 
-### Election events
+### Total request success rate
 
-- **Grafana query:** `rate(consul_raft_state_candidate[1m])`, `rate(consul_raft_state_leader[1m])`
-- **Description:** Tracks Raft state transitions, indicating leadership elections. Frequent transitions might suggest cluster instability and require investigation.
+- **Grafana query:** `sum(irate(envoy_cluster_upstream_rq_xx{...}[10m]))`
+- **Description:** Tracks the percentage of successful requests across the service mesh. It excludes 4xx and 5xx response codes to focus on operational success. Use it to monitor the overall reliability of your services.
 
-### Autopilot health
+### Total failed requests
 
-- **Grafana query:** `consul_autopilot_healthy`
-- **Description:** A boolean metric that shows a value of 1 when Autopilot is healthy and 0 when issues are detected. Ensures that the cluster has sufficient resources and an operational leader.
+- **Grafana query:** `sum(increase(envoy_cluster_upstream_rq_xx{...}[10m]))`
+- **Description:** This pie chart shows the total number of failed requests within the service mesh, categorized by service. It provides a visual breakdown of where failures are occurring, allowing operators to focus on problematic services.
 
-### DNS queries per 5 minutes
+### Requests per second
 
-- **Grafana query:** `rate(consul_dns_domain_query_count[5m])`
-- **Description:** This metric tracks the rate of DNS queries per node, bucketed into 5-minute intervals. It helps monitor the query load on Consul’s DNS service.
+- **Grafana query:** `sum(rate(envoy_http_downstream_rq_total{...}[5m]))`
+- **Description:** This metric shows the rate of incoming HTTP requests per second to the selected services. It helps operators understand the current load on services and how much traffic they are processing.
 
-### DNS domain query time
+### Unhealthy clusters
 
-- **Grafana query:** `consul_dns_domain_query`
-- **Description:** Measures the time spent handling DNS domain queries. Spikes in this metric may indicate high contention in the catalog or too many concurrent queries.
+- **Grafana query:** `(sum(envoy_cluster_membership_healthy{...}) - sum(envoy_cluster_membership_total{...}))`
+- **Description:** This metric tracks the number of unhealthy clusters in the mesh, helping operators identify services that are experiencing issues and need attention to ensure operational health.
 
-### DNS reverse query time
+### Heap size
 
-- **Grafana query:** `consul_dns_ptr_query`
-- **Description:** Tracks the time spent processing reverse DNS queries. Spikes in query time may indicate performance bottlenecks or increased workload.
+- **Grafana query:** `SUM(envoy_server_memory_heap_size{app=~"$service"})`
+- **Description:** This metric displays the total memory heap size of the Envoy proxies. Monitoring heap size is essential to detect memory issues and ensure that services are operating efficiently.
 
-### KV applies per 5 minutes
+### Allocated memory
 
-- **Grafana query:** `rate(consul_kvs_apply_count[5m])`
-- **Description:** This metric tracks the rate of Key-Value store applies over 5-minute intervals, indicating the operational load on Consul’s KV store.
+- **Grafana query:** `SUM(envoy_server_memory_allocated{app=~"$service"})`
+- **Description:** This metric shows the amount of memory allocated by the Envoy proxies. It helps operators monitor the resource usage of services to prevent memory overuse and optimize performance.
 
-### KV apply time
+### Avg uptime per node
 
-- **Grafana query:** `consul_kvs_apply`
-- **Description:** Measures the time taken to apply updates to the Key-Value store. Spikes in this metric might suggest resource contention or client overload.
+- **Grafana query:** `avg(envoy_server_uptime{app=~"$service"})`
+- **Description:** This metric calculates the average uptime of Envoy proxies across all nodes. It helps operators monitor the stability of services and detect potential issues with service restarts or crashes.
 
-### Transaction apply time
+### Cluster state
 
-- **Grafana query:** `consul_txn_apply`
-- **Description:** Tracks the time spent applying transaction operations in Consul, providing insights into potential bottlenecks in transactional workloads.
+- **Grafana query:** `(sum(envoy_cluster_membership_total{...}) - sum(envoy_cluster_membership_healthy{...})) == bool 0`
+- **Description:** This metric indicates whether all clusters are healthy. It provides a quick overview of the cluster state to ensure that there are no issues affecting service performance.
 
-### ACL resolves per 5 minutes
+### CPU throttled seconds by namespace
 
-- **Grafana query:** `rate(consul_acl_ResolveToken_count[5m])`
-- **Description:** This metric tracks the rate of ACL token resolutions per 5-minute intervals. It provides insights into the activity related to ACL tokens within the cluster.
+- **Grafana query:** `rate(container_cpu_cfs_throttled_seconds_total{namespace=~"$namespace"}[5m])`
+- **Description:** This metric tracks the number of seconds during which CPU usage was throttled. Monitoring CPU throttling helps operators identify when services are exceeding their allocated CPU limits and may need optimization.
 
-### ACL resolve token time
+### Memory usage by pod limits
 
-- **Grafana query:** `consul_acl_ResolveToken`
-- **Description:** Measures the time taken to resolve ACL tokens into their associated policies. Spikes in this metric might indicate resource issues or configuration problems.
+- **Grafana query:** `100 * max(container_memory_working_set_bytes{namespace=~"$namespace"}
+ / kube_pod_container_resource_limits{resource="memory"})`
+- **Description:** This metric shows memory usage as a percentage of the memory limit set for each pod. It helps operators ensure that services are staying within their allocated memory limits to avoid performance degradation.
 
-### ACL updates per 5 minutes
+### CPU usage by pod limits
 
-- **Grafana query:** `rate(consul_acl_apply_count[5m])`
-- **Description:** Tracks the rate of ACL updates per 5-minute intervals. This metric helps monitor changes in ACL configurations over time.
+- **Grafana query:** `100 * max(container_cpu_usage{namespace=~"$namespace"} / kube_pod_container_resource_limits{resource="cpu"})`
+- **Description:** This metric displays CPU usage as a percentage of the CPU limit set for each pod. Monitoring CPU usage helps operators optimize service performance and prevent CPU exhaustion.
 
-### ACL apply time
+### Total active upstream connections
 
-- **Grafana query:** `consul_acl_apply`
-- **Description:** Measures the time spent applying ACL changes. Spikes in apply time might suggest resource constraints or high operational load.
+- **Grafana query:** `sum(envoy_cluster_upstream_cx_active{app=~"$service"})`
+- **Description:** This metric tracks the total number of active upstream connections to other services in the mesh. It provides insight into service dependencies and network load.
 
-### Catalog operations per 5 minutes
+### Total active downstream connections
 
-- **Grafana query:** `rate(consul_catalog_register_count[5m])`, `rate(consul_catalog_deregister_count[5m])`
-- **Description:** Tracks the rate of register and deregister operations in the Consul catalog, providing insights into the churn of services within the cluster.
-
-### Catalog operation time
-
-- **Grafana query:** `consul_catalog_register`, `consul_catalog_deregister`
-- **Description:** Measures the time taken to complete catalog register or deregister operations. Spikes in this metric can indicate performance issues within the catalog.
-
+- **Grafana query:** `sum(envoy_http_downstream_cx_active{app=~"$service"})`
+- **Description:** This metric tracks the total number of active downstream connections from services to clients. It helps operators monitor service load and ensure that services are able to handle the traffic effectively.
 
 
