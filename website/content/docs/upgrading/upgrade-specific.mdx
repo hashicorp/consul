@@ -43,6 +43,15 @@ The Kubernetes-only legacy API gateway is superseded by the modern, multi-runtim
 [API gateway](/consul/docs/connect/config-entries/api-gateway).
 On Kubernetes, the modern API gateway is associated with the `connectInject.apiGateway` stanza.
 
+### Mesh traffic request path normalization enabled by default
+
+As of Consul v1.19.3, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
+
+## Consul 1.18.x
+
+### Mesh traffic request path normalization enabled by default
+
+As of Consul v1.18.5, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
 
 ## Consul 1.17.x
 
@@ -64,6 +73,10 @@ service-defaults are configured in each partition and namespace before upgrading
 
 #### ACL tokens with templated policies
 [ACL templated policies](/consul/docs/security/acl#templated-policies) were added to 1.17.0 to simplify obtaining the right permissions for ACL tokens. When performing a [rolling upgrade](/consul/tutorials/datacenter-operations/upgrade-federated-environment#server-rolling-upgrade) and a version of Consul prior to 1.17.x is presented with a token created Consul v1.17.x or newer that contains templated policies, the templated policies field is not recognized. As a result, the token might not have the expected permissions on the older version of Consul.
+
+### Mesh traffic request path normalization enabled by default
+
+As of Consul v1.17.8, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
 
 ## Consul 1.16.x
 
@@ -240,6 +253,10 @@ In Consul v1.15 and higher:
    ```
 
    </CodeBlockConfig>
+
+### Mesh traffic request path normalization enabled by default
+
+As of Consul v1.15.15, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
 
 ## Consul 1.14.x
 

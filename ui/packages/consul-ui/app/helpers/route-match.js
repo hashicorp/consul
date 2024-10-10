@@ -6,21 +6,26 @@
 import { helper } from '@ember/component/helper';
 
 export default helper(function routeMatch([item], hash) {
-  const prop = ['Present', 'Exact', 'Prefix', 'Suffix', 'Regex'].find(
+  const prop = ['Present', 'Exact', 'Prefix', 'Suffix', 'Contains', 'Regex'].find(
     (prop) => typeof item[prop] !== 'undefined'
   );
 
+  let invertPrefix = item.Invert ? 'NOT ' : '';
+  let ignoreCaseSuffix = item.IgnoreCase ? ' (case-insensitive)' : '';
+
   switch (prop) {
     case 'Present':
-      return `${item.Invert ? `NOT ` : ``}present`;
+      return `${invertPrefix}present`;
     case 'Exact':
-      return `${item.Invert ? `NOT ` : ``}exactly matching "${item.Exact}"`;
+      return `${invertPrefix}exactly matching "${item.Exact}"${ignoreCaseSuffix}`;
     case 'Prefix':
-      return `${item.Invert ? `NOT ` : ``}prefixed by "${item.Prefix}"`;
+      return `${invertPrefix}prefixed by "${item.Prefix}"${ignoreCaseSuffix}`;
     case 'Suffix':
-      return `${item.Invert ? `NOT ` : ``}suffixed by "${item.Suffix}"`;
+      return `${invertPrefix}suffixed by "${item.Suffix}"${ignoreCaseSuffix}`;
+    case 'Contains':
+      return `${invertPrefix}containing "${item.Contains}"${ignoreCaseSuffix}`;
     case 'Regex':
-      return `${item.Invert ? `NOT ` : ``}matching the regex "${item.Regex}"`;
+      return `${invertPrefix}matching the regex "${item.Regex}"`;
   }
   return '';
 });
