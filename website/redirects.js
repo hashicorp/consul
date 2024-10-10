@@ -247,4 +247,14 @@ module.exports = [
     destination: '/consul/docs/architecture/catalog#v2-catalog',
     permanent: true,
   },
+  {
+    source: '/consul/docs/k8s/dns',
+    destination: '/consul/docs/k8s/dns/enable',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/:version(v1\.(?:11|12|13|14|15|16|17|18)\.x)/k8s/dns/enable',
+    destination: '/consul/docs/:version/k8s/dns',
+    permanent: true,
+  }
 ]

@@ -20,12 +20,13 @@ When configured with default values, Consul exposes the DNS interface on port `8
 Instead of running Consul with an administrative or root account, you can forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or using port redirect.
 
 There are two configurations for a node's DNS forwarding behavior:
+
  - **Conditional DNS forwarding**: the local DNS servers are configured to forward to Consul only queries relative to the `.consul` zone. All other queries are still served via the default DNS server in the node.
  - **Full DNS forwarding**: Consul serves all DNS queries and forwards to a remote DNS server the ones outside `.consul` domain.
 
 ### Conditional DNS forwarding
 
-We recommend the conditional DNS forwarding approach. This configuration lowers the Consul agent's resource consumption by limiting the number of DNS requests it handles. 
+We recommend the conditional DNS forwarding approach. This configuration lowers the Consul agent's resource consumption by limiting the number of DNS requests it handles.
 
 ![Consul DNS conditional forwarding - Only .consul requests are routed to Consul](/img/consul-dns-conditional-forwarding.png#light-theme-only)
 ![Consul DNS conditional forwarding - Only .consul requests are routed to Consul](/img/consul-dns-conditional-forwarding-dark.png#dark-theme-only)
@@ -43,7 +44,7 @@ This approach can be useful in scenarios where the Consul agent's node is alloca
 
 This behavior is not enabled by default. Consul standard configuration only resolves DNS records inside the `.consul` zone. To enable DNS forwarding, you need to set the [recursors](/consul/docs/agent/config/config-files#recursors) option in your Consul configuration.
 
-In this scenario, if a Consul DNS reply includes a `CNAME` record pointing outside the `.consul` top level domain, then the DNS reply only includes `CNAME` records by default. 
+In this scenario, if a Consul DNS reply includes a `CNAME` record pointing outside the `.consul` top level domain, then the DNS reply only includes `CNAME` records by default.
 
 When `recursors` is set and the upstream resolver is functioning correctly, Consul tries to resolve CNAMEs and include any records (for example, A, AAAA, PTR) for them in its DNS reply. In these scenarios, Consul is used for full DNS forwarding and is able to serve queries for all domains.
 
