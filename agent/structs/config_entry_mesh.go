@@ -6,9 +6,9 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/types"
+	"strings"
 )
 
 type MeshConfigEntry struct {
@@ -72,6 +72,17 @@ type MeshDirectionalTLSConfig struct {
 
 type MeshHTTPConfig struct {
 	SanitizeXForwardedClientCert bool `alias:"sanitize_x_forwarded_client_cert"`
+	// Incoming configures settings for incoming HTTP traffic to mesh proxies.
+	Incoming *MeshDirectionalHTTPConfig `json:",omitempty"`
+	// There is not currently an outgoing MeshDirectionalHTTPConfig, as
+	// the only required config for either direction at present is inbound
+	// request normalization.
+}
+
+// MeshDirectionalHTTPConfig holds mesh configuration specific to HTTP
+// requests for a given traffic direction.
+type MeshDirectionalHTTPConfig struct {
+	RequestNormalization *RequestNormalizationMeshConfig `json:",omitempty" alias:"request_normalization"`
 }
 
 // PeeringMeshConfig contains cluster-wide options pertaining to peering.
@@ -83,6 +94,105 @@ type PeeringMeshConfig struct {
 	// the local servers using a peering-specific SNI.
 	PeerThroughMeshGateways bool `alias:"peer_through_mesh_gateways"`
 }
+
+// RequestNormalizationMeshConfig contains options pertaining to the
+// normalization of HTTP requests processed by mesh proxies.
+type RequestNormalizationMeshConfig struct {
+	// InsecureDisablePathNormalization sets the value of the `normalize_path` option in the Envoy listener's
+	// HttpConnectionManager. If InsecureDisablePathNormalization is set to `true`, `normalize_path` will be set to
+	// `false` instead of Consul's default value of `true`. This disables the normalization of request URL paths
+	// according to RFC 3986, as well as converting `\` to `/` and decoding non-reserved %-encoded characters.
+	// If using L7 intentions with path match rules, it is strongly recommended to enable path normalization in order to
+	// avoid match rule circumvention via non-normalized path values.
+	// The default value of this option is `false` (recommended).
+	InsecureDisablePathNormalization bool `alias:"insecure_disable_path_normalization"`
+	// MergeSlashes sets the value of the `merge_slashes` option in the Envoy listener's `HttpConnectionManager`.
+	// It controls the normalization of request URL paths by merging consecutive `/` characters (not part of RFC 3986).
+	// If using L7 intentions with path match rules, it is recommended that this setting be enabled to avoid match rule
+	// circumvention via non-normalized path values, unless legitimate service traffic depends on allowing for repeat
+	// `/` characters or upstream services are configured to differentiate between single and multiple slashes.
+	// The default value of this option is `false`.
+	MergeSlashes bool `alias:"merge_slashes"`
+	// PathWithEscapedSlashesAction sets the value of the `path_with_escaped_slashes_action` option in the Envoy
+	// listener's `HttpConnectionManager`.
+	// It controls the action taken in response to request URL paths with escaped slashes in the path.
+	// If using L7 intentions with path match rules, it is recommended that this be configured to avoid match rule
+	// circumvention via non-normalized path values, unless legitimate service traffic depends on allowing for escaped
+	// `/` or `\` characters or upstream services are configured to differentiate between escaped and unescaped slashes.
+	// The default value of this option is empty, which is equivalent to `IMPLEMENTATION_SPECIFIC_DEFAULT`. See Envoy
+	// docs for more information on available options.
+	PathWithEscapedSlashesAction PathWithEscapedSlashesAction `alias:"path_with_escaped_slashes_action"`
+	// HeadersWithUnderscoresAction sets the value of the `headers_with_underscores_action` option in the Envoy
+	// listener's HttpConnectionManager under "common_http_protocol_options".
+	// The default value of this option is empty, which is equivalent to `ALLOW`. See Envoy docs for more information on
+	// available options.
+	HeadersWithUnderscoresAction HeadersWithUnderscoresAction `alias:"headers_with_underscores_action"`
+}
+
+// PathWithEscapedSlashesAction is an enum that defines the action to take when
+// a request path contains escaped slashes. It mirrors exactly the set of options
+// in Envoy's UriPathNormalizationOptions.PathWithEscapedSlashesAction enum.
+type PathWithEscapedSlashesAction string
+
+// See github.com/envoyproxy/go-control-plane envoy_http_v3.HttpConnectionManager_PathWithEscapedSlashesAction.
+const (
+	PathWithEscapedSlashesActionDefault             PathWithEscapedSlashesAction = "IMPLEMENTATION_SPECIFIC_DEFAULT"
+	PathWithEscapedSlashesActionKeep                PathWithEscapedSlashesAction = "KEEP_UNCHANGED"
+	PathWithEscapedSlashesActionReject              PathWithEscapedSlashesAction = "REJECT_REQUEST"
+	PathWithEscapedSlashesActionUnescapeAndRedirect PathWithEscapedSlashesAction = "UNESCAPE_AND_REDIRECT"
+	PathWithEscapedSlashesActionUnescapeAndForward  PathWithEscapedSlashesAction = "UNESCAPE_AND_FORWARD"
+)
+
+// PathWithEscapedSlashesActionStrings returns an ordered slice of all PathWithEscapedSlashesAction values as strings.
+func PathWithEscapedSlashesActionStrings() []string {
+	return []string{
+		string(PathWithEscapedSlashesActionDefault),
+		string(PathWithEscapedSlashesActionKeep),
+		string(PathWithEscapedSlashesActionReject),
+		string(PathWithEscapedSlashesActionUnescapeAndRedirect),
+		string(PathWithEscapedSlashesActionUnescapeAndForward),
+	}
+}
+
+// pathWithEscapedSlashesActions contains the canonical set of PathWithEscapedSlashesActionValues values.
+var pathWithEscapedSlashesActions = (func() map[PathWithEscapedSlashesAction]struct{} {
+	m := make(map[PathWithEscapedSlashesAction]struct{})
+	for _, v := range PathWithEscapedSlashesActionStrings() {
+		m[PathWithEscapedSlashesAction(v)] = struct{}{}
+	}
+	return m
+})()
+
+// HeadersWithUnderscoresAction is an enum that defines the action to take when
+// a request contains headers with underscores. It mirrors exactly the set of
+// options in Envoy's HttpProtocolOptions.HeadersWithUnderscoresAction enum.
+type HeadersWithUnderscoresAction string
+
+// See github.com/envoyproxy/go-control-plane envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction.
+const (
+	HeadersWithUnderscoresActionAllow         HeadersWithUnderscoresAction = "ALLOW"
+	HeadersWithUnderscoresActionRejectRequest HeadersWithUnderscoresAction = "REJECT_REQUEST"
+	HeadersWithUnderscoresActionDropHeader    HeadersWithUnderscoresAction = "DROP_HEADER"
+)
+
+// HeadersWithUnderscoresActionStrings returns an ordered slice of all HeadersWithUnderscoresAction values as strings
+// for use in returning validation errors.
+func HeadersWithUnderscoresActionStrings() []string {
+	return []string{
+		string(HeadersWithUnderscoresActionAllow),
+		string(HeadersWithUnderscoresActionRejectRequest),
+		string(HeadersWithUnderscoresActionDropHeader),
+	}
+}
+
+// headersWithUnderscoresActions contains the canonical set of HeadersWithUnderscoresAction values.
+var headersWithUnderscoresActions = (func() map[HeadersWithUnderscoresAction]struct{} {
+	m := make(map[HeadersWithUnderscoresAction]struct{})
+	for _, v := range HeadersWithUnderscoresActionStrings() {
+		m[HeadersWithUnderscoresAction(v)] = struct{}{}
+	}
+	return m
+})()
 
 func (e *MeshConfigEntry) GetKind() string {
 	return MeshConfig
@@ -141,6 +251,10 @@ func (e *MeshConfigEntry) Validate() error {
 		}
 	}
 
+	if err := validateRequestNormalizationMeshConfig(e.GetHTTPIncomingRequestNormalization()); err != nil {
+		return fmt.Errorf("error in HTTP incoming request normalization configuration: %v", err)
+	}
+
 	return e.validateEnterpriseMeta()
 }
 
@@ -193,6 +307,61 @@ func (e *MeshConfigEntry) PeerThroughMeshGateways() bool {
 	return e.Peering.PeerThroughMeshGateways
 }
 
+func (e *MeshConfigEntry) GetHTTP() *MeshHTTPConfig {
+	if e == nil {
+		return nil
+	}
+	return e.HTTP
+}
+
+func (e *MeshHTTPConfig) GetIncoming() *MeshDirectionalHTTPConfig {
+	if e == nil {
+		return nil
+	}
+	return e.Incoming
+}
+
+func (e *MeshDirectionalHTTPConfig) GetRequestNormalization() *RequestNormalizationMeshConfig {
+	if e == nil {
+		return nil
+	}
+	return e.RequestNormalization
+}
+
+// GetHTTPIncomingRequestNormalization is a convenience accessor for mesh.http.incoming.request_normalization
+// since no other fields currently exist under mesh.http.incoming.
+func (e *MeshConfigEntry) GetHTTPIncomingRequestNormalization() *RequestNormalizationMeshConfig {
+	return e.GetHTTP().GetIncoming().GetRequestNormalization()
+}
+
+func (r *RequestNormalizationMeshConfig) GetInsecureDisablePathNormalization() bool {
+	if r == nil {
+		return false
+	}
+	return r.InsecureDisablePathNormalization
+}
+
+func (r *RequestNormalizationMeshConfig) GetMergeSlashes() bool {
+	if r == nil {
+		return false
+	}
+	return r.MergeSlashes
+}
+
+func (r *RequestNormalizationMeshConfig) GetPathWithEscapedSlashesAction() PathWithEscapedSlashesAction {
+	if r == nil || r.PathWithEscapedSlashesAction == "" {
+		return PathWithEscapedSlashesActionDefault
+	}
+	return r.PathWithEscapedSlashesAction
+}
+
+func (r *RequestNormalizationMeshConfig) GetHeadersWithUnderscoresAction() HeadersWithUnderscoresAction {
+	if r == nil || r.HeadersWithUnderscoresAction == "" {
+		return HeadersWithUnderscoresActionAllow
+	}
+	return r.HeadersWithUnderscoresAction
+}
+
 func validateMeshDirectionalTLSConfig(cfg *MeshDirectionalTLSConfig) error {
 	if cfg == nil {
 		return nil
@@ -235,5 +404,38 @@ func validateTLSConfig(
 		}
 	}
 
+	return nil
+}
+
+func validateRequestNormalizationMeshConfig(cfg *RequestNormalizationMeshConfig) error {
+	if cfg == nil {
+		return nil
+	}
+	if err := validatePathWithEscapedSlashesAction(cfg.PathWithEscapedSlashesAction); err != nil {
+		return err
+	}
+	if err := validateHeadersWithUnderscoresAction(cfg.HeadersWithUnderscoresAction); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validatePathWithEscapedSlashesAction(v PathWithEscapedSlashesAction) error {
+	if v == "" {
+		return nil
+	}
+	if _, ok := pathWithEscapedSlashesActions[v]; !ok {
+		return fmt.Errorf("no matching PathWithEscapedSlashesAction value found for %s, please specify one of [%s]", string(v), strings.Join(PathWithEscapedSlashesActionStrings(), ", "))
+	}
+	return nil
+}
+
+func validateHeadersWithUnderscoresAction(v HeadersWithUnderscoresAction) error {
+	if v == "" {
+		return nil
+	}
+	if _, ok := headersWithUnderscoresActions[v]; !ok {
+		return fmt.Errorf("no matching HeadersWithUnderscoresAction value found for %s, please specify one of [%s]", string(v), strings.Join(HeadersWithUnderscoresActionStrings(), ", "))
+	}
 	return nil
 }

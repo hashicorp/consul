@@ -97,6 +97,7 @@ message MeshConfig {
   bool AllowEnablingPermissiveMutualTLS = 6;
   uint64 Hash = 7;
   bool ValidateClusters = 8;
+  RequestNormalizationMeshConfig RequestNormalization = 9;
 }
 
 // mog annotation:
@@ -139,6 +140,16 @@ message MeshDirectionalTLSConfig {
 // name=Structs
 message MeshHTTPConfig {
   bool SanitizeXForwardedClientCert = 1;
+  MeshDirectionalHTTPConfig Incoming = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.MeshDirectionalHTTPConfig
+// output=config_entry.gen.go
+// name=Structs
+message MeshDirectionalHTTPConfig {
+  RequestNormalizationMeshConfig RequestNormalization = 2;
 }
 
 // mog annotation:
@@ -148,6 +159,34 @@ message MeshHTTPConfig {
 // name=Structs
 message PeeringMeshConfig {
   bool PeerThroughMeshGateways = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.RequestNormalizationMeshConfig
+// output=config_entry.gen.go
+// name=Structs
+message RequestNormalizationMeshConfig {
+  bool InsecureDisablePathNormalization = 1;
+  bool MergeSlashes = 2;
+  // mog: func-to=pathWithEscapedSlashesActionToStructs func-from=pathWithEscapedSlashesActionFromStructs
+  PathWithEscapedSlashesAction PathWithEscapedSlashesAction = 3;
+  // mog: func-to=headersWithUnderscoresActionToStructs func-from=headersWithUnderscoresActionFromStructs
+  HeadersWithUnderscoresAction HeadersWithUnderscoresAction = 4;
+}
+
+enum PathWithEscapedSlashesAction {
+  PathWithEscapedSlashesActionDefault = 0;
+  PathWithEscapedSlashesActionKeep = 1;
+  PathWithEscapedSlashesActionReject = 2;
+  PathWithEscapedSlashesActionUnescapeAndRedirect = 3;
+  PathWithEscapedSlashesActionUnescapeAndForward = 4;
+}
+
+enum HeadersWithUnderscoresAction {
+  HeadersWithUnderscoresActionAllow = 0;
+  HeadersWithUnderscoresActionRejectRequest = 1;
+  HeadersWithUnderscoresActionDropHeader = 2;
 }
 
 // mog annotation:

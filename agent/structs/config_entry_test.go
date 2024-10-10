@@ -2134,7 +2134,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "mesh",
+			name: "mesh: kitchen sink",
 			snake: `
 				kind = "mesh"
 				meta {
@@ -2145,6 +2145,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					mesh_destinations_only = true
 				}
 				allow_enabling_permissive_mutual_tls = true
+                validate_clusters = true
 				tls {
 					incoming {
 						tls_min_version = "TLSv1_1"
@@ -2163,9 +2164,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
-				http {
-					sanitize_x_forwarded_client_cert = true
-				}
+                http {
+                    sanitize_x_forwarded_client_cert = true
+                    incoming {
+                        request_normalization {
+                        	insecure_disable_path_normalization = true
+                            merge_slashes = true
+                            path_with_escaped_slashes_action = "UNESCAPE_AND_FORWARD"
+							headers_with_underscores_action = "DROP_HEADER"
+                        }
+                    }
+                }
 				peering {
 					peer_through_mesh_gateways = true
 				}
@@ -2180,6 +2189,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					MeshDestinationsOnly = true
 				}
 				AllowEnablingPermissiveMutualTLS = true
+                ValidateClusters = true
 				TLS {
 					Incoming {
 						TLSMinVersion = "TLSv1_1"
@@ -2198,9 +2208,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 						]
 					}
 				}
-				HTTP {
-					SanitizeXForwardedClientCert = true
-				}
+                HTTP {
+                    SanitizeXForwardedClientCert = true
+                    Incoming {
+                        RequestNormalization {
+                        	InsecureDisablePathNormalization = true
+                            MergeSlashes = true
+                            PathWithEscapedSlashesAction = "UNESCAPE_AND_FORWARD"
+							HeadersWithUnderscoresAction = "DROP_HEADER"
+                        }
+                    }
+                }
 				Peering {
 					PeerThroughMeshGateways = true
 				}
@@ -2214,6 +2232,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					MeshDestinationsOnly: true,
 				},
 				AllowEnablingPermissiveMutualTLS: true,
+				ValidateClusters:                 true,
 				TLS: &MeshTLSConfig{
 					Incoming: &MeshDirectionalTLSConfig{
 						TLSMinVersion: types.TLSv1_1,
@@ -2234,6 +2253,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				HTTP: &MeshHTTPConfig{
 					SanitizeXForwardedClientCert: true,
+					Incoming: &MeshDirectionalHTTPConfig{
+						RequestNormalization: &RequestNormalizationMeshConfig{
+							InsecureDisablePathNormalization: true, // note: this is the opposite of the recommended default
+							MergeSlashes:                     true,
+							PathWithEscapedSlashesAction:     "UNESCAPE_AND_FORWARD",
+							HeadersWithUnderscoresAction:     "DROP_HEADER",
+						},
+					},
 				},
 				Peering: &PeeringMeshConfig{
 					PeerThroughMeshGateways: true,
