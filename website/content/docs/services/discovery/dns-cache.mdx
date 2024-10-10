@@ -1,6 +1,6 @@
 ---
 layout: docs
-page_title: cale Consul DNS
+page_title: Scale Consul DNS
 description: ->
     You tune Consul DNS query handling to balance between current information and reducing request response time. Learn how to enable caching by modifying TTL values, how to return stale results from the DNS cache, and how to configure Consul for negative response caching.
 ---
@@ -14,7 +14,7 @@ This page describes the process to return cached results in response to DNS look
 By default, Consul serves all DNS results with a `0` TTL value so that it returns the most recent information. When operating at scale, this configuration may result in additional latency because servers must respond to every DNS query. There are several strategies for distributing this burden in your datacenter:
 
 - [Allow Stale Reads](#stale-reads). Allows other servers besides the leader to answer the query rather than forwarding it to the leader.
-- [Configure DNS TTLs](#ttl-values). Configure a TTL to nodes or services that the DNS subsystem on the service container’s OS uses. Services then resolve DNS queries locally without any external requests.  
+- [Configure DNS TTLs](#ttl-values). Configure DNS time-to-live (TTL) values for nodes or services so that the DNS subsystem on the container’s operating system can cache responses. Services then resolve DNS queries locally without any external requests.  
 - [Add Read Replicas](/consul/docs/enterprise/read-scale). Enterprise users can use read replicas, which are additional Consul servers that replicate cluster data without participating in the Raft quorum.
 - [Use Cache to prevent server requests](/consul/docs/agent/config/config-files#dns_use_cache). Configure the Consul client to use its agent cache to subscribe to events about a service or node. After you establish the watch, the local Consul client agent can resolve DNS queries about the service or node without querying Consul servers.
 

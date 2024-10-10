@@ -18,7 +18,7 @@ You must meet the following minimum application versions to enable the Consul DN
 
 ## Update Helm values
 
-To enable the Consul DNS proxy, add the required [Helm values](/consul/docs/k8s/helm) to your Consul on Kubernetes deployment:
+To enable the Consul DNS proxy, add the required [Helm values](/consul/docs/k8s/helm) to your Consul on Kubernetes deployment.
 
 ```yaml
 connectInject:
@@ -30,7 +30,7 @@ dns:
 
 ### ACLs
 
-We recommend you create a dedicated [ACL token with DNS permissions](/consul/docs/security/acl/tokens/create/create-a-dns-token) for the Consul DNS proxy. The Consul DNS proxy requires the following ACL permissions:
+We recommend you create a dedicated [ACL token with DNS permissions](/consul/docs/security/acl/tokens/create/create-a-dns-token) for the Consul DNS proxy. The Consul DNS proxy requires these ACL permissions.
 
 ```hcl
 node_prefix "" {
@@ -42,7 +42,7 @@ service_prefix "" {
 }
 ```
 
-You can manage ACL tokens with Consul on Kubernetes, or you can configure the DNS proxy to access a token stored in Kubernetes secret. To use a Kubernetes secret, add the following configuration to your Helm chart:
+You can manage ACL tokens with Consul on Kubernetes, or you can configure the DNS proxy to access a token stored in Kubernetes secret. To use a Kubernetes secret, add the following configuration to your Helm chart.
 
 ```yaml
 dns:
@@ -54,7 +54,7 @@ dns:
 
 ## Retrieve Consul DNS proxy's address
 
-To look up the IP address for the Consul DNS proxy in the Kubernetes Pod, run the following command:
+To look up the IP address for the Consul DNS proxy in the Kubernetes Pod, fetch all services.
 
 ```shell-session
 $ kubectl get services –-all-namespaces
@@ -72,7 +72,7 @@ Note the `CLUSTER-IP` for the `consul-dns` service. Use this address when you up
 
 Create or update a [ConfigMap object in the Kubernetes cluster](https://kubernetes.io/docs/concepts/configuration/configmap/) so that Kubernetes forwards DNS requests with the `.consul` domain to the IP address of the Consul DNS proxy.
 
-The following example of a ConfigMap resource configures Kubernetes to forward Consul DNS requests in the cluster to the Consul DNS Proxy running on `10.150.0.1`.
+The following example of a ConfigMap resource configures Kubernetes to forward Consul DNS requests in the cluster to the Consul DNS Proxy running on `10.96.148.46`.
 
 ```yaml
 apiVersion: v1
@@ -96,10 +96,10 @@ data:
         reload
         loadbalance
     }
-    consul.local:53 {
+    consul:53 {
         errors
         cache 30
-        forward . 10.150.0.1
+        forward . 10.96.148.46
     }  
 ```
 
