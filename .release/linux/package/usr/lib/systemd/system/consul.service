@@ -3,7 +3,7 @@ Description="HashiCorp Consul - A service mesh solution"
 Documentation=https://www.consul.io/
 Requires=network-online.target
 After=network-online.target
-ConditionFileNotEmpty=/etc/consul.d/consul.hcl
+ConditionDirectoryNotEmpty=/etc/consul.d
 
 [Service]
 Type=notify
@@ -19,4 +19,3 @@ LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
-
