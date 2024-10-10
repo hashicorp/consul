@@ -84,13 +84,13 @@ data:
     }  
 ```
 
-After updating the DNS configuration, perform a rolling restart of the CoreDNS wiht the following command.
+After updating the DNS configuration, perform a rolling restart of the CoreDNS.
 
 ```shell-session
 kubectl -n kube-system rollout restart deployment coredns
 ```
 
-For more information about using a `coredns-custom` resource, refer to the [Rewrite DNS guide in the Azure documentation](https://learn.microsoft.com/en-us/azure/aks/coredns-custom#rewrite-dns). For information about modifying a ConfigMap in general, refer to [the Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns).
+For more information about using a `coredns-custom` resource, refer to the [Rewrite DNS guide in the Azure documentation](https://learn.microsoft.com/en-us/azure/aks/coredns-custom#rewrite-dns). For general information about modifying a ConfigMap, refer to [the Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns).
 
 ## Next steps
 
