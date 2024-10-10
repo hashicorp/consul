@@ -291,6 +291,66 @@ func cipherSuitesFromStructs(cs []types.TLSCipherSuite) []string {
 	return cipherSuites
 }
 
+func pathWithEscapedSlashesActionFromStructs(a structs.PathWithEscapedSlashesAction) PathWithEscapedSlashesAction {
+	switch a {
+	case structs.PathWithEscapedSlashesActionDefault:
+		return PathWithEscapedSlashesAction_PathWithEscapedSlashesActionDefault
+	case structs.PathWithEscapedSlashesActionKeep:
+		return PathWithEscapedSlashesAction_PathWithEscapedSlashesActionKeep
+	case structs.PathWithEscapedSlashesActionReject:
+		return PathWithEscapedSlashesAction_PathWithEscapedSlashesActionReject
+	case structs.PathWithEscapedSlashesActionUnescapeAndRedirect:
+		return PathWithEscapedSlashesAction_PathWithEscapedSlashesActionUnescapeAndRedirect
+	case structs.PathWithEscapedSlashesActionUnescapeAndForward:
+		return PathWithEscapedSlashesAction_PathWithEscapedSlashesActionUnescapeAndForward
+	default:
+		return PathWithEscapedSlashesAction_PathWithEscapedSlashesActionDefault
+	}
+}
+
+func pathWithEscapedSlashesActionToStructs(a PathWithEscapedSlashesAction) structs.PathWithEscapedSlashesAction {
+	switch a {
+	case PathWithEscapedSlashesAction_PathWithEscapedSlashesActionDefault:
+		return structs.PathWithEscapedSlashesActionDefault
+	case PathWithEscapedSlashesAction_PathWithEscapedSlashesActionKeep:
+		return structs.PathWithEscapedSlashesActionKeep
+	case PathWithEscapedSlashesAction_PathWithEscapedSlashesActionReject:
+		return structs.PathWithEscapedSlashesActionReject
+	case PathWithEscapedSlashesAction_PathWithEscapedSlashesActionUnescapeAndRedirect:
+		return structs.PathWithEscapedSlashesActionUnescapeAndRedirect
+	case PathWithEscapedSlashesAction_PathWithEscapedSlashesActionUnescapeAndForward:
+		return structs.PathWithEscapedSlashesActionUnescapeAndForward
+	default:
+		return structs.PathWithEscapedSlashesActionDefault
+	}
+}
+
+func headersWithUnderscoresActionFromStructs(a structs.HeadersWithUnderscoresAction) HeadersWithUnderscoresAction {
+	switch a {
+	case structs.HeadersWithUnderscoresActionAllow:
+		return HeadersWithUnderscoresAction_HeadersWithUnderscoresActionAllow
+	case structs.HeadersWithUnderscoresActionRejectRequest:
+		return HeadersWithUnderscoresAction_HeadersWithUnderscoresActionRejectRequest
+	case structs.HeadersWithUnderscoresActionDropHeader:
+		return HeadersWithUnderscoresAction_HeadersWithUnderscoresActionDropHeader
+	default:
+		return HeadersWithUnderscoresAction_HeadersWithUnderscoresActionAllow
+	}
+}
+
+func headersWithUnderscoresActionToStructs(a HeadersWithUnderscoresAction) structs.HeadersWithUnderscoresAction {
+	switch a {
+	case HeadersWithUnderscoresAction_HeadersWithUnderscoresActionAllow:
+		return structs.HeadersWithUnderscoresActionAllow
+	case HeadersWithUnderscoresAction_HeadersWithUnderscoresActionRejectRequest:
+		return structs.HeadersWithUnderscoresActionRejectRequest
+	case HeadersWithUnderscoresAction_HeadersWithUnderscoresActionDropHeader:
+		return structs.HeadersWithUnderscoresActionDropHeader
+	default:
+		return structs.HeadersWithUnderscoresActionAllow
+	}
+}
+
 func enterpriseMetaToStructs(m *pbcommon.EnterpriseMeta) acl.EnterpriseMeta {
 	var entMeta acl.EnterpriseMeta
 	pbcommon.EnterpriseMetaToStructs(m, &entMeta)
