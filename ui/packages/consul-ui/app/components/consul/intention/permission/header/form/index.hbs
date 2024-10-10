@@ -69,6 +69,19 @@
         </group.Element>
   {{/if}}
 
+  {{#if shouldShowIgnoreCaseField}}
+        <group.Element
+          @name="IgnoreCase"
+          @error={{changeset-get changeset 'error.IgnoreCase'}}
+        as |el|>
+          <el.Label>Ignore Case</el.Label>
+          <el.Checkbox
+            checked={{if IgnoreCase 'checked'}}
+            onchange={{action 'change' 'IgnoreCase' changeset}}
+          />
+        </group.Element>
+  {{/if}}
+
       </div>
     </fieldset>
   </FormGroup>
