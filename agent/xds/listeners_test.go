@@ -382,7 +382,7 @@ func Test_setNormalizationOptions(t *testing.T) {
 			rn:   nil,
 			opts: &listenerFilterOpts{},
 			want: &listenerFilterOpts{
-				normalizePath: false, //TODO(NET-11122): remove default guard to enable unless explicitly disabled
+				normalizePath: true,
 			},
 		},
 		"empty entry": {

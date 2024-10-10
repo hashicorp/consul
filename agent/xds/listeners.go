@@ -1468,20 +1468,22 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 // setNormalizationOptions sets the normalization options for the listener filter.
 // This is only used for inbound listeners today (see MeshHTTPConfig).
 func setNormalizationOptions(rn *structs.RequestNormalizationMeshConfig, opts *listenerFilterOpts) {
-	//TODO(NET-11122): remove default guard to enable unless explicitly disabled
-	if rn != nil {
-		opts.normalizePath = !rn.GetInsecureDisablePathNormalization() // invert to enable path normalization by default
-		opts.mergeSlashes = rn.GetMergeSlashes()
-		if rn.GetPathWithEscapedSlashesAction() != "" {
-			v := string(rn.GetPathWithEscapedSlashesAction())
-			a := envoy_http_v3.HttpConnectionManager_PathWithEscapedSlashesAction_value[v]
-			opts.pathWithEscapedSlashesAction = envoy_http_v3.HttpConnectionManager_PathWithEscapedSlashesAction(a)
-		}
-		if rn.GetHeadersWithUnderscoresAction() != "" {
-			v := string(rn.GetHeadersWithUnderscoresAction())
-			a := envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction_value[v]
-			opts.headersWithUnderscoresAction = envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction(a)
-		}
+	// Note that these options are _always_ set, not just when rn is non-nil. This enables us to set
+	// Consul defaults (e.g. InsecureDisablePathNormalization = false) that override Envoy defaults
+	// (e.g. normalize_path = false). We override defaults here rather than in xDS code s.t. Consul
+	// defaults are only applied where Consul configuration dictates it should be.
+
+	opts.normalizePath = !rn.GetInsecureDisablePathNormalization() // invert to enable path normalization by default
+	opts.mergeSlashes = rn.GetMergeSlashes()
+	if rn.GetPathWithEscapedSlashesAction() != "" {
+		v := string(rn.GetPathWithEscapedSlashesAction())
+		a := envoy_http_v3.HttpConnectionManager_PathWithEscapedSlashesAction_value[v]
+		opts.pathWithEscapedSlashesAction = envoy_http_v3.HttpConnectionManager_PathWithEscapedSlashesAction(a)
+	}
+	if rn.GetHeadersWithUnderscoresAction() != "" {
+		v := string(rn.GetHeadersWithUnderscoresAction())
+		a := envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction_value[v]
+		opts.headersWithUnderscoresAction = envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction(a)
 	}
 }
 
