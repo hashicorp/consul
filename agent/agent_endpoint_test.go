@@ -8177,7 +8177,7 @@ func TestAgent_Version(t *testing.T) {
 	assert.NotNil(t, obj.HumanVersion)
 }
 
-// Thie tests that a proxy with an ExposeConfig is returned as expected.
+// This tests that a proxy with an ExposeConfig is returned as expected.
 func TestAgent_Services_ExposeConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
