@@ -6,9 +6,10 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/types"
-	"strings"
 )
 
 type MeshConfigEntry struct {
