@@ -560,6 +560,8 @@ message IntentionHTTPHeaderPermission {
   string Suffix = 5;
   string Regex = 6;
   bool Invert = 7;
+  string Contains = 8;
+  bool IgnoreCase = 9;
 }
 
 // mog annotation:

@@ -1153,8 +1153,10 @@ func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t 
 	t.Exact = s.Exact
 	t.Prefix = s.Prefix
 	t.Suffix = s.Suffix
+	t.Contains = s.Contains
 	t.Regex = s.Regex
 	t.Invert = s.Invert
+	t.IgnoreCase = s.IgnoreCase
 }
 func IntentionHTTPHeaderPermissionFromStructs(t *structs.IntentionHTTPHeaderPermission, s *IntentionHTTPHeaderPermission) {
 	if s == nil {
@@ -1165,8 +1167,10 @@ func IntentionHTTPHeaderPermissionFromStructs(t *structs.IntentionHTTPHeaderPerm
 	s.Exact = t.Exact
 	s.Prefix = t.Prefix
 	s.Suffix = t.Suffix
+	s.Contains = t.Contains
 	s.Regex = t.Regex
 	s.Invert = t.Invert
+	s.IgnoreCase = t.IgnoreCase
 }
 func IntentionHTTPPermissionToStructs(s *IntentionHTTPPermission, t *structs.IntentionHTTPPermission) {
 	if s == nil {

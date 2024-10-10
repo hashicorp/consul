@@ -2306,6 +2306,10 @@ func TestParseConfigEntry(t *testing.T) {
 							  suffix = "suffix"
 							},
 							{
+							  name   = "hdr-contains"
+							  contains = "contains"
+							},
+							{
 							  name  = "hdr-regex"
 							  regex = "regex"
 							},
@@ -2313,7 +2317,12 @@ func TestParseConfigEntry(t *testing.T) {
 							  name    = "hdr-absent"
 							  present = true
 							  invert  = true
-							}
+							},
+							{
+							  name  = "hdr-ignore-case"
+							  exact = "exact"
+							  ignore_case = true
+							},
 						  ]
 						}
 					  },
@@ -2383,6 +2392,10 @@ func TestParseConfigEntry(t *testing.T) {
 							  Suffix = "suffix"
 							},
 							{
+							  Name   = "hdr-contains"
+							  Contains = "contains"
+							},
+							{
 							  Name  = "hdr-regex"
 							  Regex = "regex"
 							},
@@ -2390,6 +2403,11 @@ func TestParseConfigEntry(t *testing.T) {
 							  Name    = "hdr-absent"
 							  Present = true
 							  Invert  = true
+							},
+							{
+							  Name  = "hdr-ignore-case"
+							  Exact = "exact"
+							  IgnoreCase = true
 							}
 						  ]
 						}
@@ -2461,6 +2479,10 @@ func TestParseConfigEntry(t *testing.T) {
 											"suffix": "suffix"
 										},
 										{
+										    "name": "hdr-contains",
+										    "contains": "contains"
+										},
+										{
 											"name": "hdr-regex",
 											"regex": "regex"
 										},
@@ -2468,6 +2490,11 @@ func TestParseConfigEntry(t *testing.T) {
 											"name": "hdr-absent",
 											"present": true,
 											"invert": true
+										},
+										{
+											"name": "hdr-ignore-case",
+											"exact": "exact",
+											"ignore_case": true
 										}
 									]
 								}
@@ -2543,6 +2570,10 @@ func TestParseConfigEntry(t *testing.T) {
 											"Suffix": "suffix"
 										},
 										{
+										    "Name": "hdr-contains",
+										    "Contains": "contains"
+										},
+										{
 											"Name": "hdr-regex",
 											"Regex": "regex"
 										},
@@ -2550,6 +2581,11 @@ func TestParseConfigEntry(t *testing.T) {
 											"Name": "hdr-absent",
 											"Present": true,
 											"Invert": true
+										},
+										{
+											"Name": "hdr-ignore-case",
+											"Exact": "exact",
+											"IgnoreCase": true
 										}
 									]
 								}
@@ -2624,6 +2660,10 @@ func TestParseConfigEntry(t *testing.T) {
 											Suffix: "suffix",
 										},
 										{
+											Name:     "hdr-contains",
+											Contains: "contains",
+										},
+										{
 											Name:  "hdr-regex",
 											Regex: "regex",
 										},
@@ -2631,6 +2671,11 @@ func TestParseConfigEntry(t *testing.T) {
 											Name:    "hdr-absent",
 											Present: true,
 											Invert:  true,
+										},
+										{
+											Name:       "hdr-ignore-case",
+											Exact:      "exact",
+											IgnoreCase: true,
 										},
 									},
 								},

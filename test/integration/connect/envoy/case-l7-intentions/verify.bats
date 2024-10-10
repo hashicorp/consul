@@ -67,9 +67,44 @@ load helpers
   retry_default must_fail_http_request GET localhost:5000/hdr-suffix suffix-nope
 }
 
+@test "test contains header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains contains
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains ccontainss
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains still-contains-value
+  retry_default must_fail_http_request GET localhost:5000/hdr-contains conntains
+}
+
 @test "test regex header" {
   retry_default must_pass_http_request GET localhost:5000/hdr-regex regex
   retry_default must_fail_http_request GET localhost:5000/hdr-regex reggex
+}
+
+@test "test exact ignore case header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-exact-ignore-case foo.bar.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-exact-ignore-case foo.BAR.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-exact-ignore-case fOo.bAr.coM
+  retry_default must_fail_http_request GET localhost:5000/hdr-exact-ignore-case fOo.bAr.coM.nope
+}
+
+@test "test prefix ignore case header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-prefix-ignore-case foo.bar.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-prefix-ignore-case foo.BAR.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-prefix-ignore-case fOo.bAr.coM
+  retry_default must_fail_http_request GET localhost:5000/hdr-prefix-ignore-case nope.fOo.bAr.coM
+}
+
+@test "test suffix ignore case header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-suffix-ignore-case foo.bar.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-suffix-ignore-case foo.BAR.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-suffix-ignore-case fOo.bAr.coM
+  retry_default must_fail_http_request GET localhost:5000/hdr-suffix-ignore-case fOo.bAr.coM.nope
+}
+
+@test "test contains ignore case header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains-ignore-case cOntAins
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains-ignore-case CconTainsS
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains-ignore-case still-cOntAins-value
+  retry_default must_fail_http_request GET localhost:5000/hdr-contains-ignore-case cOnntAins
 }
 
 @test "test method match" {
