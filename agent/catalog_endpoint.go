@@ -201,6 +201,7 @@ func (s *HTTPHandlers) CatalogDatacenters(resp http.ResponseWriter, req *http.Re
 	parseCacheControl(resp, req, &args.QueryOptions)
 	var out []string
 
+	defer s.SetCustomLabel(resp)
 	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogDatacentersName, &args)
 		if err != nil {
