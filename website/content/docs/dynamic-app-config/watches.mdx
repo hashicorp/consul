@@ -158,6 +158,8 @@ are a few global parameters that all watches support:
 - `token` - Can be provided to override the agent's default ACL token.
 - `args` - The handler subprocess and arguments to invoke when the data view updates.
 - `handler` - The handler shell command to invoke when the data view updates.
+- `alldatacenters` - Can be set to true, to make query on all datacenters. Default value is false.
+                     Value provided for `datacenter` is ignored if `allDatacenters` is set to true.
 
 ## Watch Types
 
