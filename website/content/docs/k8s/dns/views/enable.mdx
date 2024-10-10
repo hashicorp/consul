@@ -54,56 +54,43 @@ dns:
 
 ## Retrieve Consul DNS proxy's address
 
-To look up the IP address for the Consul DNS proxy in the Kubernetes Pod, fetch all services.
+To look up the IP address for the Consul DNS proxy in the Kubernetes Pod, run the following command.
 
 ```shell-session
-$ kubectl get services –-all-namespaces
-
-NAMESPACE     NAME                      TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                  AGE
-consul        consul-connect-injector   ClusterIP   10.96.41.171   <none>        443/TCP                  12m
-consul        consul-dns                ClusterIP   10.96.148.46   <none>        53/TCP,53/UDP            12m
-default       kubernetes                ClusterIP   10.96.0.1      <none>        443/TCP                  21m
-kube-system   kube-dns                  ClusterIP   10.96.0.10     <none>        53/UDP,53/TCP,9153/TCP   21m
+$ kubectl get services –-all-namespaces --selector="app=consul,component=dns-proxy" --output jsonpath='{.spec.clusterIP}'  
+10.96.148.46  
 ```
 
-Note the `CLUSTER-IP` for the `consul-dns` service. Use this address when you update the ConfigMap resource.
+Use this address when you update the ConfigMap resource.
 
 ## Update Kubernetes ConfigMap
 
 Create or update a [ConfigMap object in the Kubernetes cluster](https://kubernetes.io/docs/concepts/configuration/configmap/) so that Kubernetes forwards DNS requests with the `.consul` domain to the IP address of the Consul DNS proxy.
 
-The following example of a ConfigMap resource configures Kubernetes to forward Consul DNS requests in the cluster to the Consul DNS Proxy running on `10.96.148.46`.
+The following example of a `coredns-custom` ConfigMap configures Kubernetes to forward Consul DNS requests in the cluster to the Consul DNS Proxy running on `10.96.148.46`. This resource modifies the CoreDNS without modifications to the original `Corefile`.
 
 ```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: coredns
-  namespace: kube-system
-data:
-  Corefile: |
-    .:53 {
-        errors
-        health
-        kubernetes cluster.local in-addr.arpa ip6.arpa {
-           pods insecure
-           fallthrough in-addr.arpa ip6.arpa
-        }
-        prometheus :9153
-        forward . 172.16.0.1
-        cache 30
-        loop
-        reload
-        loadbalance
-    }
-    consul:53 {
-        errors
-        cache 30
-        forward . 10.96.148.46
+kind: ConfigMap  
+metadata:  
+  name: coredns-custom  
+  namespace: kube-system  
+data:  
+  consul.server: |  
+    consul:53 {  
+      errors  
+      cache 30  
+      forward . 10.96.148.46
+      reload  
     }  
 ```
 
-For information about the other fields in this ConfigMap, refer to [the Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns).
+After updating the DNS configuration, perform a rolling restart of the CoreDNS wiht the following command.
+
+```shell-session
+kubectl -n kube-system rollout restart deployment coredns
+```
+
+For more information about using a `coredns-custom` resource, refer to the [Rewrite DNS guide in the Azure documentation](https://learn.microsoft.com/en-us/azure/aks/coredns-custom#rewrite-dns). For information about modifying a ConfigMap in general, refer to [the Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns).
 
 ## Next steps
 
