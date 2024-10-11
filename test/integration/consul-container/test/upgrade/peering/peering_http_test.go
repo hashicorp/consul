@@ -95,7 +95,7 @@ func TestPeering_HTTPRouter(t *testing.T) {
 }
 
 // Verify resolver and failover can direct traffic to server in peered cluster
-// In addtional to the basic topology, this case provisions the following
+// In addition to the basic topology, this case provisions the following
 // services in the dialing cluster:
 //
 //   - a new static-client at server_0 that has two upstreams: static-server (5000)
@@ -313,6 +313,8 @@ func TestPeering_HTTPResolverAndSplitter(t *testing.T) {
 	// TODO: restart static-server-2's sidecar
 }
 
+// peeringUpgrade upgrades the accepting cluster, verifies that peering is still active,
+// and then upgrades the dialing cluster and verifies that peering is still active.
 func peeringUpgrade(t *testing.T, accepting, dialing *libtopology.BuiltCluster, targetVersion string) {
 	t.Helper()
 
