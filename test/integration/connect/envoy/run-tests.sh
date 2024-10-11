@@ -662,7 +662,6 @@ function common_run_container-echo {
     -e "HTTPS_PORT=0" \
     $(network_snippet $cluster) \
     ${HASHICORP_DOCKER_PROXY}/mendhak/http-https-echo:34 >/dev/null
-  #TODO add '${HASHICORP_DOCKER_PROXY}/' once https://github.com/hashicorp/docker-registry-mirror/pull/68 is merged.
 }
 
 
