@@ -97,7 +97,6 @@ message MeshConfig {
   bool AllowEnablingPermissiveMutualTLS = 6;
   uint64 Hash = 7;
   bool ValidateClusters = 8;
-  RequestNormalizationMeshConfig RequestNormalization = 9;
 }
 
 // mog annotation:
@@ -149,7 +148,7 @@ message MeshHTTPConfig {
 // output=config_entry.gen.go
 // name=Structs
 message MeshDirectionalHTTPConfig {
-  RequestNormalizationMeshConfig RequestNormalization = 2;
+  RequestNormalizationMeshConfig RequestNormalization = 1;
 }
 
 // mog annotation:
