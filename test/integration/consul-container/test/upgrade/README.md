@@ -12,9 +12,11 @@
 
 ## Introduction
 
-The goal of upgrade tests is to ensure problem-free upgrades on supported upgrade paths. At any given time, Consul supports the latest minor release, and two older minor releases, e.g. 1.15, 1.14, and 1.13. Upgrades to any higher version are permitted, including skipping a minor version e.g. from 1.13 to 1.15.  
+The goal of upgrade tests is to ensure problem-free upgrades on supported upgrade paths.
+At any given time, Consul supports the latest minor release, and two older minor releases, e.g. 1.15, 1.14, and 1.13.
+Upgrades to any higher version are permitted, including skipping a minor version e.g. from 1.13 to 1.15.
 
-The upgrade tests also aims to highlight errors that may occur as users attempt to upgrade their current version to a newer version. 
+The upgrade tests also aim to highlight errors that may occur as users attempt to upgrade their current version to a newer version.
 
 ### How it works
 
@@ -49,7 +51,13 @@ To run the upgrade test, the following tools are required:
 
 ### Running Upgrade integration tests
 - run `make dev-docker`
-- build a consul-envoy container image `cd test/integration/consul-container docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/consul:1.15  --build-arg ENVOY_VERSION=1.24.6  -f ./assets/Dockerfile-consul-envoy ./assets`
+- build a consul-envoy container image
+  ```shell
+  cd test/integration/consul-container
+  docker build -t consul-envoy:latest-version \
+    --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/consul:1.20.0-rc1  \
+    --build-arg ENVOY_VERSION=1.31.2  -f ./assets/Dockerfile-consul-envoy ./assets
+  ```
 - run the single test `go test -v -timeout 30m -run ^TestACL_Upgrade_Node_Token$ ./.../upgrade/`
 - run all upgrade tests `go test -v -timeout 30m -run ./.../upgrade`
 
@@ -66,13 +74,13 @@ this makes it hard to debug, when the test case creates many containers. To
 disable following container logs, run the test with `-follow-log false`.
 
 Below are the supported CLI options
-| Flags      | Default value | Description |
+| Flags               | Default value | Description |
 | -----------         | ----------- | ----------- |
-| --latest-image      | `consul` in CE, `hashicorp/consulenterprise` in ENT    | Name of the Docker image to deploy initially.
-| --latest-version    | latest      | Tag of the Docker image to deploy initially.
-| --target-image      | `consul` in Ce, `hashicorp/consulenterprise` in ENT    | Name of the Docker image to upgrade to.
-| --target-version    | local     | Tag of the Docker image to upgrade to. `local` is the tag built by `make dev-docker` above.
-| -follow-log         |  true    | Emit all container logs. These can be noisy, so we recommend `--follow-log=false` for local development.
+| --latest-image      | `consul` in CE, `hashicorp/consulenterprise` in ENT   | Name of the Docker image to deploy initially.
+| --latest-version    | latest                                                | Tag of the Docker image to deploy initially.
+| --target-image      | `consul` in Ce, `hashicorp/consulenterprise` in ENT   | Name of the Docker image to upgrade to.
+| --target-version    | local                                                 | Tag of the Docker image to upgrade to. `local` is the tag built by `make dev-docker` above.
+| -follow-log         |  true                                                 | Emit all container logs. These can be noisy, so we recommend `--follow-log=false` for local development.
 
 
 ## Adding a new upgrade integration test
