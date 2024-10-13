@@ -13,3 +13,4 @@ export const HEADERS_TOKEN = 'X-Consul-Token';
 export const HEADERS_DIGEST = 'X-Consul-ContentHash';
 //
 export const HEADERS_SYMBOL = '__consul_ui_http_headers__';
+export const HEADERS_LABEL = 'X-Consul-Label';

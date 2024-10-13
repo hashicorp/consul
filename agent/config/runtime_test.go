@@ -7025,6 +7025,11 @@ func TestLoad_FullConfig(t *testing.T) {
 				PathAllowlist: []string{"/aSh3cu", "/eiK/2Th"},
 			},
 			DashboardURLTemplates: map[string]string{"u2eziu2n_lower_case": "http://lkjasd.otr"},
+			Label: UILabel{
+				Text:            "Dev",
+				BackgroundColor: "green",
+				TextColor:       "white",
+			},
 		},
 		UnixSocketUser:  "E0nB1DwA",
 		UnixSocketGroup: "8pFodrV8",
@@ -7369,6 +7374,11 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				AddHeaders: []UIMetricsProxyAddHeader{
 					{Name: "foo", Value: "secret"},
 				},
+			},
+			Label: UILabel{
+				Text:            "Dev",
+				BackgroundColor: "green",
+				TextColor:       "white",
 			},
 		},
 		Locality:           &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
