@@ -1,0 +1,3 @@
+```release-note:feature
+watch: Ability to watch for events across all data centers.
+```
