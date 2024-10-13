@@ -167,7 +167,7 @@ func (s *MockHCPServer) handleStatus(r *http.Request, cluster resource.Resource)
 }
 
 func (s *MockHCPServer) handleDiscover(r *http.Request, cluster resource.Resource) (interface{}, error) {
-	servers := make([]*gnmmod.HashicorpCloudGlobalNetworkManager20220215Server, len(s.servers))
+	servers := make([]*gnmmod.HashicorpCloudGlobalNetworkManager20220215Server, 0, len(s.servers))
 	for _, server := range s.servers {
 		servers = append(servers, server)
 	}
