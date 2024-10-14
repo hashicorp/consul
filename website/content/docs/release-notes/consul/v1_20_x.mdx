@@ -11,7 +11,7 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-- **Consul DNS views for Kubernetes**: 
+- **Consul DNS views for Kubernetes**: Consul on Kubernetes now supports scheduling a dedicated Consul DNS proxy in a Kubernetes Pod instead of using client agents or dataplanes. The proxy is designed for deployment in a Kubernetes cluster with [external servers enabled](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes) to provide applications in Kubernetes the ability to resolve Consul DNS addresses. You can use the Consul DNS proxy to enable service discovery across admin partitions in Kubernetes deployments. For more information, refer to [Consul DNS views for Kubernetes](/consul/docs/k8s/dns/views).
 
 - **Service catalog improvements**: 
 
