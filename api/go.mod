@@ -2,8 +2,10 @@ module github.com/hashicorp/consul/api
 
 go 1.19
 
-//github.com/hashicorp/consul/proto-public => ../proto-public
-replace github.com/hashicorp/consul/sdk => ../sdk
+replace (
+	github.com/hashicorp/consul/proto-public => ../proto-public
+	github.com/hashicorp/consul/sdk => ../sdk
+)
 
 retract (
 	v1.28.0 // tag was mutated

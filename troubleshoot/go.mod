@@ -2,12 +2,12 @@ module github.com/hashicorp/consul/troubleshoot
 
 go 1.19
 
-//replace (
-//	github.com/hashicorp/consul/api => ../api
-//	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
-//	github.com/hashicorp/consul/proto-public => ../proto-public
-//	github.com/hashicorp/consul/sdk => ../sdk
-//)
+replace (
+	github.com/hashicorp/consul/api => ../api
+	github.com/hashicorp/consul/envoyextensions => ../envoyextensions
+	github.com/hashicorp/consul/proto-public => ../proto-public
+	github.com/hashicorp/consul/sdk => ../sdk
+)
 
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided

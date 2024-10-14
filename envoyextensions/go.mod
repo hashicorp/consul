@@ -2,11 +2,11 @@ module github.com/hashicorp/consul/envoyextensions
 
 go 1.20
 
-//replace (
-//	github.com/hashicorp/consul/api => ../api
-//	github.com/hashicorp/consul/proto-public => ../proto-public
-//	github.com/hashicorp/consul/sdk => ../sdk
-//)
+replace (
+	github.com/hashicorp/consul/api => ../api
+	github.com/hashicorp/consul/proto-public => ../proto-public
+	github.com/hashicorp/consul/sdk => ../sdk
+)
 
 retract v0.7.2 // tag was mutated
 
