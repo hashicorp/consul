@@ -13,7 +13,7 @@ retract (
 
 require (
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/consul/proto-public v0.5.4-rc1
+	github.com/hashicorp/consul/proto-public v0.6.3
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
