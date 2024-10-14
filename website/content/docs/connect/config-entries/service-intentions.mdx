@@ -96,7 +96,9 @@ The following outline shows how to format the service intentions configuration e
             - [`exact`](#spec-sources-permissions-http-header): string | no default
             - [`prefix`](#spec-sources-permissions-http-header): string | no default
             - [`suffix`](#spec-sources-permissions-http-header): string | no default
+            - [`contains`](#spec-sources-permissions-http-header): string | no default
             - [`regex`](#spec-sources-permissions-http-header): string | no default
+            - [`ignoreCase`](#spec-sources-permissions-http-header): boolean | `false`
             - [`invert`](#spec-sources-permissions-http-header): boolean | `false`
     - [`description`](#spec-sources-description): string
 
@@ -156,18 +158,31 @@ Sources = [
             {
               Name = "<http header name>"              # string
               Present = <true or false>                # boolean
+              Invert = <true or false>                 # boolean
             },
             {
               Name = "<http header name>"              # string
               Exact = "<header-value>"                 # boolean
+              IgnoreCase = <true or false>             # boolean
+              Invert = <true or false>                 # boolean
             },
             {
               Name = "<http header name>"              # string
               Prefix = "<source header value prefix>"  # string
+              IgnoreCase = <true or false>             # boolean
+              Invert = <true or false>                 # boolean
             },
             {
               Name = "<http header name>"              # string
               Suffix = "<source header value suffix>"  # string
+              IgnoreCase = <true or false>             # boolean
+              Invert = <true or false>                 # boolean
+            },
+            {
+              Name = "<http header name>"              # string
+              Contains = "<value to search for>"       # string
+              IgnoreCase = <true or false>             # boolean
+              Invert = <true or false>                 # boolean
             },
             {
               Name = "<http header name>"              # string
@@ -227,12 +242,23 @@ spec:
       header:
       - name: <http header name>
         present: true
+        invert: false
       - name: <http header name>
-        exact: false
+        exact: <header-value>
+        ignoreCase: false
+        invert: false
       - name: <http header name>
         prefix: <source header value prefix>
+        ignoreCase: false
+        invert: false
       - name: <http header name>
         suffix: <source header value suffix>
+        ignoreCase: false
+        invert: false
+      - name: <http header name>
+        contains: <value to search for>
+        ignoreCase: false
+        invert: false
       - name: <http header name>
         regex: <regex pattern to match>
         invert: false
@@ -287,19 +313,32 @@ spec:
                   "Header":[
                      {
                         "Name":"<http header name>",
-                        "Present":true
+                        "Present":true,
+                        "Invert":false
                      },
                      {
                         "Name":"<http header name>",
-                        "Exact":false
+                        "Exact":"<header-value>",
+                        "IgnoreCase":false,,
+                        "Invert":false
                      },
                      {
                         "Name":"<http header name>",
-                        "Prefix":"<source header value prefix>"
+                        "Prefix":"<source header value prefix>",
+                        "IgnoreCase":false,
+                        "Invert":false
                      },
                      {
                         "Name":"<http header name>",
-                        "Suffix":"<source header value suffix>"
+                        "Suffix":"<source header value suffix>",
+                        "IgnoreCase":false,
+                        "Invert":false
+                     },
+                     {
+                        "Name":"<http header name>",
+                        "Contains":"<value to search for>",
+                        "IgnoreCase":false,
+                        "Invert":false
                      },
                      {
                         "Name":"<http header name>",
@@ -923,16 +962,22 @@ Specifies a set of criteria for matching HTTP request headers. The request heade
 - Default: None
 - Data type: List of maps
 
-Each member of the `header` list is a map that contains a `name` field and at least one match criterion. The following table describes the parameters that each member of the `header` list may contain:
+Each member of the `header` list is a map that contains a `name` field and at least one match criterion.
+
+~> **Warning**: If it is possible for a header to contain multiple values, we recommend using `contains` or `regex` rather than `exact`, `prefix`, or `suffix`. Envoy internally concatenates multiple header values into a single CSV value prior to applying match rules, which may result in match rules that depend on the beginning or end of a string vulnerable to circumvention. A more robust alternative is using `contains` or, if a stricter value match is required, configuring a regex pattern that is tolerant of comma-separated values.
+
+The following table describes the parameters that each member of the `header` list may contain:
 
 | Parameter | Description | Data type | Required |
 | --- | --- | --- | --- |
 | `name` | Specifies the name of the header to match. | string | required |
-| `present` | Enables a match if the header configured in the `name` field appears in the request. Consul matches on any value as long as the header key appears in the request. Do not specify `present` if `exact`, `prefix`, `suffix`, or `regex` are configured in the same `header` configuration. | boolean | optional |
-| `Exact` | Specifies a value for the header key set in the `Name` field. If the request header value matches the `exact` value, Consul applies the permission.  Do not specify `exact` if `present`, `prefix`, `suffix`, or `regex` are configured in the same `header` configuration. | string | optional |
-| `prefix` | Specifies a prefix value for the header key set in the `name` field. If the request header value starts with the `prefix` value, Consul applies the permission.  Do not specify `prefix` if `present`, `exact`, `suffix`, or `regex` are configured in the same `header` configuration. | string | optional |
-| `suffix` | Specifies a suffix value for the header key set in the `name` field. If the request header value ends with the `suffix` value, Consul applies the permission.  Do not specify `suffix` if `present`, `exact`, `prefix`, or `regex` are configured in the same `header` configuration. | string | optional |
-| `regex` | Specifies a regular expression pattern as the value for the header key set in the `name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `regex` if `present`, `exact`, `prefix`, or `suffix` are configured in the same `header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `present` | Enables a match if the header configured in the `name` field appears in the request. Consul matches on any value as long as the header key appears in the request. Do not specify `present` if `exact`, `prefix`, `suffix`, `contains`, or `regex` are configured in the same `header` configuration. | boolean | optional |
+| `Exact` | Specifies a value for the header key set in the `Name` field. If the request header value matches the `exact` value, Consul applies the permission.  Do not specify `exact` if `present`, `prefix`, `suffix`, `contains`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `prefix` | Specifies a prefix value for the header key set in the `name` field. If the request header value starts with the `prefix` value, Consul applies the permission.  Do not specify `prefix` if `present`, `exact`, `suffix`, `contains`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `suffix` | Specifies a suffix value for the header key set in the `name` field. If the request header value ends with the `suffix` value, Consul applies the permission.  Do not specify `suffix` if `present`, `exact`, `prefix`, `contains`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `contains` | Specifies a contains value for the header key set in the `name` field. If the request header value includes the `contains` value, Consul applies the permission.  Do not specify `contains` if `present`, `exact`, `prefix`, `suffix`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `regex` | Specifies a regular expression pattern as the value for the header key set in the `name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `regex` if `present`, `exact`, `prefix`, `suffix`, or `contains` are configured in the same `header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `ignoreCase` | Ignores the case of the provided header value when matching with exact, prefix, suffix, or contains. Default is `false`. | boolean | optional |
 | `invert` | Inverts the matching logic configured in the `header`. Default is `false`. | boolean | optional |
 
 ### `spec.sources[].type`
