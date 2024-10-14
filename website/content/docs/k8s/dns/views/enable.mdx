@@ -1,0 +1,102 @@
+---
+layout: docs
+page_title: Enable Consul DNS proxy for Kubernetes
+description: ->
+    Learn how to schedule a Consul DNS proxy for a Kubernetes Pod so that your services can return Consul DNS results for service discovery.
+---
+
+# Enable Consul DNS proxy for Kubernetes
+
+This page describes the process to deploy a Consul DNS proxy in a Kubernetes Pod so that Services can resolve Consul DNS requests. For more information, refer to [Consul DNS views for Kubernetes](/consul/docs/k8s/dns/views).
+
+## Prerequisites
+
+You must meet the following minimum application versions to enable the Consul DNS proxy for Kubernetes:
+
+- Consul v1.20.0 or higher
+- Either Consul on Kubernetes or the Consul Helm chart, v1.6.0 or higher
+
+## Update Helm values
+
+To enable the Consul DNS proxy, add the required [Helm values](/consul/docs/k8s/helm) to your Consul on Kubernetes deployment.
+
+```yaml
+connectInject:
+  enabled: true
+dns:
+  enabled: true
+  proxy: true
+```
+
+### ACLs
+
+We recommend you create a dedicated [ACL token with DNS permissions](/consul/docs/security/acl/tokens/create/create-a-dns-token) for the Consul DNS proxy. The Consul DNS proxy requires these ACL permissions.
+
+```hcl
+node_prefix "" {
+  policy = "read"
+}
+
+service_prefix "" {
+  policy = "read"
+}
+```
+
+You can manage ACL tokens with Consul on Kubernetes, or you can configure the DNS proxy to access a token stored in Kubernetes secret. To use a Kubernetes secret, add the following configuration to your Helm chart.
+
+```yaml
+dns:
+  proxy:
+    aclToken:
+      secretName: <Consul-DNS-Token>
+      secretKey: <Token-Value>
+```
+
+## Retrieve Consul DNS proxy's address
+
+To look up the IP address for the Consul DNS proxy in the Kubernetes Pod, run the following command.
+
+```shell-session
+$ kubectl get services –-all-namespaces --selector="app=consul,component=dns-proxy" --output jsonpath='{.spec.clusterIP}'  
+10.96.148.46  
+```
+
+Use this address when you update the ConfigMap resource.
+
+## Update Kubernetes ConfigMap
+
+Create or update a [ConfigMap object in the Kubernetes cluster](https://kubernetes.io/docs/concepts/configuration/configmap/) so that Kubernetes forwards DNS requests with the `.consul` domain to the IP address of the Consul DNS proxy.
+
+The following example of a `coredns-custom` ConfigMap configures Kubernetes to forward Consul DNS requests in the cluster to the Consul DNS Proxy running on `10.96.148.46`. This resource modifies the CoreDNS without modifications to the original `Corefile`.
+
+```yaml
+kind: ConfigMap  
+metadata:  
+  name: coredns-custom  
+  namespace: kube-system  
+data:  
+  consul.server: |  
+    consul:53 {  
+      errors  
+      cache 30  
+      forward . 10.96.148.46
+      reload  
+    }  
+```
+
+After updating the DNS configuration, perform a rolling restart of the CoreDNS.
+
+```shell-session
+kubectl -n kube-system rollout restart deployment coredns
+```
+
+For more information about using a `coredns-custom` resource, refer to the [Rewrite DNS guide in the Azure documentation](https://learn.microsoft.com/en-us/azure/aks/coredns-custom#rewrite-dns). For general information about modifying a ConfigMap, refer to [the Kubernetes documentation](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns).
+
+## Next steps
+
+After you enable the Consul DNS proxy, services in the Kubernetes cluster can resolve Consul DNS addresses.
+
+- To learn more about Consul DNS for service discovery, refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview).
+- If your datacenter has ACLs enabled, create a [Consul ACL token](/consul/docs/security/acl/tokens) for the Consul DNS proxy and then restart the DNS proxy.
+- To enable service discovery across admin partitions, [export services between partitions](/consul/docs/connect/config-entries/exported-services).
+- To use Consul DNS for service discovery with other runtimes, across cloud regions, or between cloud providers, [establish a cluster peering connection](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering).
