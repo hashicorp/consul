@@ -2,8 +2,10 @@ module github.com/hashicorp/consul/api
 
 go 1.19
 
-//github.com/hashicorp/consul/proto-public => ../proto-public
-replace github.com/hashicorp/consul/sdk => ../sdk
+replace (
+	github.com/hashicorp/consul/proto-public => ../proto-public
+	github.com/hashicorp/consul/sdk => ../sdk
+)
 
 retract (
 	v1.28.0 // tag was mutated
@@ -13,7 +15,7 @@ retract (
 
 require (
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/consul/proto-public v0.5.4-rc1
+	github.com/hashicorp/consul/proto-public v0.6.3
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
