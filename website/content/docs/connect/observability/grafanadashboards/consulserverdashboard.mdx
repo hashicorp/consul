@@ -9,88 +9,188 @@ description: >-
 
 ### Raft commit time
 
-- **Grafana query:** `consul_raft_commitTime`
-- **Description:** This metric measures the time it takes to commit Raft log entries. Stable values are expected for a healthy cluster. High values can indicate issues with resources such as memory, CPU, or disk space.
+**Description:** This metric measures the time it takes to commit Raft log entries. Stable values are expected for a healthy cluster. High values can indicate issues with resources such as memory, CPU, or disk space.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_raft_commitTime
+```
+</CodeBlockConfig>
 
 ### Raft commits per 5 minutes
 
-- **Grafana query:** `rate(consul_raft_apply[5m])`
-- **Description:** This metric tracks the rate of Raft log commits emitted by the leader, showing how quickly changes are being applied across the cluster.
+**Description:** This metric tracks the rate of Raft log commits emitted by the leader, showing how quickly changes are being applied across the cluster.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_raft_apply[5m])
+```
+</CodeBlockConfig>
 
 ### Last contacted leader
 
-- **Grafana query:** `consul_raft_leader_lastContact != 0`
-- **Description:** Measures the duration since the last contact with the Raft leader. Spikes in this metric can indicate network issues or an unavailable leader, which may affect cluster stability.
+**Description:** Measures the duration since the last contact with the Raft leader. Spikes in this metric can indicate network issues or an unavailable leader, which may affect cluster stability.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_raft_leader_lastContact != 0
+```
+</CodeBlockConfig>
 
 ### Election events
 
-- **Grafana query:** `rate(consul_raft_state_candidate[1m])`, `rate(consul_raft_state_leader[1m])`
-- **Description:** Tracks Raft state transitions, indicating leadership elections. Frequent transitions might suggest cluster instability and require investigation.
+**Description:** Tracks Raft state transitions, indicating leadership elections. Frequent transitions might suggest cluster instability and require investigation.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_raft_state_candidate[1m])
+```
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_raft_state_leader[1m])
+```
+</CodeBlockConfig>
 
 ### Autopilot health
 
-- **Grafana query:** `consul_autopilot_healthy`
-- **Description:** A boolean metric that shows a value of 1 when Autopilot is healthy and 0 when issues are detected. Ensures that the cluster has sufficient resources and an operational leader.
+**Description:** A boolean metric that shows a value of 1 when Autopilot is healthy and 0 when issues are detected. Ensures that the cluster has sufficient resources and an operational leader.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_autopilot_healthy
+```
+</CodeBlockConfig>
 
 ### DNS queries per 5 minutes
 
-- **Grafana query:** `rate(consul_dns_domain_query_count[5m])`
-- **Description:** This metric tracks the rate of DNS queries per node, bucketed into 5-minute intervals. It helps monitor the query load on Consul’s DNS service.
+**Description:** This metric tracks the rate of DNS queries per node, bucketed into 5-minute intervals. It helps monitor the query load on Consul’s DNS service.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_dns_domain_query_count[5m])
+```
+</CodeBlockConfig>
 
 ### DNS domain query time
 
-- **Grafana query:** `consul_dns_domain_query`
-- **Description:** Measures the time spent handling DNS domain queries. Spikes in this metric may indicate high contention in the catalog or too many concurrent queries.
+**Description:** Measures the time spent handling DNS domain queries. Spikes in this metric may indicate high contention in the catalog or too many concurrent queries.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_dns_domain_query
+```
+</CodeBlockConfig>
 
 ### DNS reverse query time
 
-- **Grafana query:** `consul_dns_ptr_query`
-- **Description:** Tracks the time spent processing reverse DNS queries. Spikes in query time may indicate performance bottlenecks or increased workload.
+**Description:** Tracks the time spent processing reverse DNS queries. Spikes in query time may indicate performance bottlenecks or increased workload.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_dns_ptr_query
+```
+</CodeBlockConfig>
 
 ### KV applies per 5 minutes
 
-- **Grafana query:** `rate(consul_kvs_apply_count[5m])`
-- **Description:** This metric tracks the rate of Key-Value store applies over 5-minute intervals, indicating the operational load on Consul’s KV store.
+**Description:** This metric tracks the rate of Key-Value store applies over 5-minute intervals, indicating the operational load on Consul’s KV store.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_kvs_apply_count[5m])
+```
+</CodeBlockConfig>
 
 ### KV apply time
 
-- **Grafana query:** `consul_kvs_apply`
-- **Description:** Measures the time taken to apply updates to the Key-Value store. Spikes in this metric might suggest resource contention or client overload.
+**Description:** Measures the time taken to apply updates to the Key-Value store. Spikes in this metric might suggest resource contention or client overload.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_kvs_apply
+```
+</CodeBlockConfig>
 
 ### Transaction apply time
 
-- **Grafana query:** `consul_txn_apply`
-- **Description:** Tracks the time spent applying transaction operations in Consul, providing insights into potential bottlenecks in transactional workloads.
+**Description:** Tracks the time spent applying transaction operations in Consul, providing insights into potential bottlenecks in transactional workloads.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_txn_apply
+```
+</CodeBlockConfig>
 
 ### ACL resolves per 5 minutes
 
-- **Grafana query:** `rate(consul_acl_ResolveToken_count[5m])`
-- **Description:** This metric tracks the rate of ACL token resolutions per 5-minute intervals. It provides insights into the activity related to ACL tokens within the cluster.
+**Description:** This metric tracks the rate of ACL token resolutions per 5-minute intervals. It provides insights into the activity related to ACL tokens within the cluster.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_acl_ResolveToken_count[5m])
+```
+</CodeBlockConfig>
 
 ### ACL resolve token time
 
-- **Grafana query:** `consul_acl_ResolveToken`
-- **Description:** Measures the time taken to resolve ACL tokens into their associated policies. Spikes in this metric might indicate resource issues or configuration problems.
+**Description:** Measures the time taken to resolve ACL tokens into their associated policies. Spikes in this metric might indicate resource issues or configuration problems.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_acl_ResolveToken
+```
+</CodeBlockConfig>
 
 ### ACL updates per 5 minutes
 
-- **Grafana query:** `rate(consul_acl_apply_count[5m])`
-- **Description:** Tracks the rate of ACL updates per 5-minute intervals. This metric helps monitor changes in ACL configurations over time.
+**Description:** Tracks the rate of ACL updates per 5-minute intervals. This metric helps monitor changes in ACL configurations over time.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_acl_apply_count[5m])
+```
+</CodeBlockConfig>
 
 ### ACL apply time
 
-- **Grafana query:** `consul_acl_apply`
-- **Description:** Measures the time spent applying ACL changes. Spikes in apply time might suggest resource constraints or high operational load.
+**Description:** Measures the time spent applying ACL changes. Spikes in apply time might suggest resource constraints or high operational load.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_acl_apply
+```
+</CodeBlockConfig>
 
 ### Catalog operations per 5 minutes
 
-- **Grafana query:** `rate(consul_catalog_register_count[5m])`, `rate(consul_catalog_deregister_count[5m])`
-- **Description:** Tracks the rate of register and deregister operations in the Consul catalog, providing insights into the churn of services within the cluster.
+**Description:** Tracks the rate of register and deregister operations in the Consul catalog, providing insights into the churn of services within the cluster.
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_catalog_register_count[5m])
+```
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+rate(consul_catalog_deregister_count[5m])
+```
+</CodeBlockConfig>
 
 ### Catalog operation time
 
-- **Grafana query:** `consul_catalog_register`, `consul_catalog_deregister`
-- **Description:** Measures the time taken to complete catalog register or deregister operations. Spikes in this metric can indicate performance issues within the catalog.
+**Description:** Measures the time taken to complete catalog register or deregister operations. Spikes in this metric can indicate performance issues within the catalog.
 
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_catalog_register
+```
+</CodeBlockConfig>
 
-
+<CodeBlockConfig heading="Grafana query" language="promql">
+```
+consul_catalog_deregister
+```
+</CodeBlockConfig>
