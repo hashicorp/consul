@@ -1,15 +1,16 @@
 ---
 layout: docs
-page_title: 1.20.x
+page_title: 1.6.x
 description: >-
-  Consul release notes for version 1.20.x
+  Consul on Kubernetes release notes for version 1.6.x
 ---
 
-# Consul 1.20.0
+# Consul on Kubernetes 1.6.0
 
 We are pleased to announce the following Consul updates.
 
 ## Release highlights
+
 
 - **Consul DNS views for Kubernetes**: Consul on Kubernetes now supports scheduling a dedicated Consul DNS proxy in a Kubernetes Pod instead of using client agents or dataplanes. The proxy is designed for deployment in a Kubernetes cluster with [external servers enabled](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes) to provide applications in Kubernetes the ability to resolve Consul DNS addresses. You can use the Consul DNS proxy to enable service discovery across admin partitions in Kubernetes deployments. For more information, refer to [Consul DNS views for Kubernetes](/consul/docs/k8s/dns/views).
 
@@ -19,9 +20,17 @@ We are pleased to announce the following Consul updates.
 
 - **Service dashboards for Grafana**: Consul v1.20 includes JSON templates for Grafana dashboards to help you monitor Consul services, service-to-service communication, and Consuld dataplane operations. You can [find these dashboards in the GitHub repo](https://github.com/hashicorp/consul/tree/main/grafana). For more information about configuring Consul to use Grafana, refer to [Configure Metrics for Consul on Kubernetes](/consul/docs/k8s/connect/observability/metrics).
 
-## What's deprecated
+## Supported software
 
-- 
+This version of Consul on Kubernetes supports the following software versions:
+
+- Consul v1.20.x
+- Consul Dataplane v1.6.x. Refer to [Envoy and Consul Dataplane](/consul/docs/v1.19.x/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version.
+- Kubernetes 1.28.x - 1.31.x
+- kubectl 1.28.x - 1.31.x
+- Helm 3.11.3+
+
+Refer to [Supported Consul and Kubernetes versions](/consul/docs/v1.19.x/k8s/compatibility#supported-consul-and-kubernetes-versions) for more information.
 
 ## Upgrading
 
@@ -29,9 +38,7 @@ For more detailed information, please refer to the [upgrade details page](/consu
 
 ## Known issues
 
-The following issues are known to exist in the v1.20.x releases:
-
-- 
+The following issues are known to exist in the v1.6.x releases:
 
 ## Changelogs
 
@@ -39,4 +46,4 @@ The changelogs for this major release version and any maintenance versions are l
 
 <Note> These links take you to the changelogs on the GitHub website. </Note>
 
-- [1.20.0](https://github.com/hashicorp/consul/releases/tag/v1.20.0)
+- [1.6.0](https://github.com/hashicorp/consul-k8s/releases/tag/v1.6.0)
