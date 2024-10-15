@@ -141,7 +141,7 @@ sum(envoy_http_downstream_cx_active{app=~"$service"}) by (app)
 
 ### Upstream requests by status code
 
-**Description:** This metric tracks the number of upstream requests, grouped by HTTP status codes (e.g., 2xx, 4xx, 5xx), giving insight into the health of the requests being made to upstream services from the selected service.
+**Description:** This metric tracks the number of upstream requests, grouped by HTTP status codes, giving insight into the health of the requests being made to upstream services from the selected service.
 
 <CodeBlockConfig heading="Grafana query" language="promql">
 ```
