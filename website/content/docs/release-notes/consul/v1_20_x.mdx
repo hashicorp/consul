@@ -1,0 +1,38 @@
+---
+layout: docs
+page_title: 1.20.x
+description: >-
+  Consul release notes for version 1.20.x
+---
+
+# Consul 1.20.0
+
+We are pleased to announce the following Consul updates.
+
+## Release highlights
+
+- **Consul DNS views for Kubernetes**: Consul on Kubernetes now supports scheduling a dedicated Consul DNS proxy in a Kubernetes Pod instead of using client agents or dataplanes. The proxy is designed for deployment in a Kubernetes cluster with [external servers enabled](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes) to provide applications in Kubernetes the ability to resolve Consul DNS addresses. You can use the Consul DNS proxy to enable service discovery across admin partitions in Kubernetes deployments. For more information, refer to [Consul DNS views for Kubernetes](/consul/docs/k8s/dns/views).
+
+- **Catalog sync improvements**: Consul v1.20 includes improved metrics for Consul catalog sync. Consul catalog sync is a feature that automatically registers Kubernetes services with Consul’s catalog. Prior to this enhancement, operators had limited visibility into the status of Kubernetes services being synced to Consul and the performance of the sync catalog process. At scale, it was difficult to discern if the sync process was healthy and progressing normally. Catalog sync enhancements now provide more insights that include status and performance metrics of the sync process. New performance metrics include the rate of registered or deregistered services, the status and health of the sync process, and additional metadata related to registered services.
+
+- **OpenShift improvements**: Prior to this release, deploying Consul service mesh on Kubernetes required the transparent proxy to have elevated permissions through `anyuid` security context constraint (SCC) privileges. This requirement prevented users from deploying the transparent proxy in OpenShift environments where elevated pod permissions were prohibited. Consul v1.20 no longer requires elevated permissions for the transparent proxy in OpenShift deployments.
+
+- **Service dashboards for Grafana**: Consul v1.20 includes JSON templates for Grafana dashboards to help you monitor Consul services, service-to-service communication, and Consuld dataplane operations. You can [find these dashboards in the GitHub repo](https://github.com/hashicorp/consul/tree/main/grafana). For more information about configuring Consul to use Grafana, refer to [Configure Metrics for Consul on Kubernetes](/consul/docs/k8s/connect/observability/metrics).
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
+
+## Known issues
+
+There are no known issues at this time. These release notes are updated as issues are discovered.
+
+[Report issues on Github](https://github.com/hashicorp/consul/issues).
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+<Note> These links take you to the changelogs on the GitHub website. </Note>
+
+- [1.20.0](https://github.com/hashicorp/consul/releases/tag/v1.20.0)
