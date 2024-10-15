@@ -9,7 +9,6 @@ description: >-
 
 This topic describes the configuration and usage of dashboards for monitoring and managing services within a Consul-managed Envoy service mesh. These dashboards provide critical insights into the health, performance, and resource utilization of services. The dashboards described here are essential tools for ensuring the stability, efficiency, and reliability of your service mesh environment. This page provides reference information about the Grafana dashboard configurations included in [this GitHub repository](https://github.com/hashicorp/consul/tree/main/grafana).
 
-
 ## Dashboards overview
 
 The repository includes the following dashboards:
@@ -26,7 +25,7 @@ The repository includes the following dashboards:
 
 ## Enabling observability
 
-Add the following configurations to your Consul Helm chart to enable the observability tools in [the sample repo](https://github.com/YasminLorinKaygalak/GrafanaDemo/tree/main).
+Add the following configurations to your Consul Helm chart to enable the observability tools.
 
 ```yaml
 global:
@@ -72,8 +71,6 @@ connectInject:
     managedGatewayClass:
       serviceType: LoadBalancer
 ```
-
-</CodeTabs>
 
 ## Enable access logs
 
