@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly Frontend Test 1.17.x
+name: Nightly Frontend Test 1.20.x
 on:
   schedule:
     - cron: '0 4 * * *'
@@ -9,8 +9,8 @@ on:
 
 env:
   EMBER_PARTITION_TOTAL: 4        # Has to be changed in tandem with the matrix.partition
-  BRANCH: "release/1.17.x"
-  BRANCH_NAME: "release-1.17.x"   # Used for naming artifacts
+  BRANCH: "release/1.20.x"
+  BRANCH_NAME: "release-1.20.x"   # Used for naming artifacts
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
 
   frontend-test-workspace-node:
     runs-on: ubuntu-latest
-    needs: [check-ent]
+    needs: [ check-ent ]
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
@@ -52,7 +52,7 @@ jobs:
 
   frontend-build-ce:
     runs-on: ubuntu-latest
-    needs: [check-ent]
+    needs: [ check-ent ]
     env:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 0
@@ -125,7 +125,7 @@ jobs:
 
   frontend-build-ent:
     runs-on: ubuntu-latest
-    needs: [check-ent]
+    needs: [ check-ent ]
     env:
       JOBS: 2
       CONSUL_NSPACES_ENABLED: 1
