@@ -154,6 +154,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.20.x",
+            "path": "release-notes/consul/v1_20_x"
+          },
+          {
             "title": "v1.19.x",
             "path": "release-notes/consul/v1_19_x"
           },
@@ -202,6 +206,10 @@
       {
         "title": "Consul K8s",
         "routes": [
+          {
+            "title": "v1.6.x",
+            "path": "release-notes/consul-k8s/v1_6_x"
+          },
           {
             "title": "v1.5.x",
             "path": "release-notes/consul-k8s/v1_5_x"
