@@ -1527,6 +1527,27 @@ type RuntimeConfig struct {
 	Experiments []string
 
 	EnterpriseRuntimeConfig
+
+	// hcl: use_vault
+	UseVault bool
+
+	// hcl: vault_address
+	VaultAddress string
+
+	// hcl: vault_role_id
+	VaultRoleID string
+
+	// hcl: vault_secret_id
+	VaultSecretID string
+
+	// hcl: vault_secret_path
+	VaultSecretPath string
+
+	// hcl: vault_secret_mount_path
+	VaultSecretMountPath string
+
+	// hcl: credential_name_in_vault_secret
+	CredentialNameInVaultSecret string
 }
 
 type LicenseConfig struct {
