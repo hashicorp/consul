@@ -7,6 +7,8 @@ description: >-
 
 # Consul on Kubernetes control plane monitoring dashboard
 
+This page provides reference information about the Grafana dashboard configuration included in [this GitHub repository](https://github.com/hashicorp/consul/tree/main/grafana/consulk8sdashboard.json).
+
 ### Number of Consul servers
 
 **Description:** Displays the number of Consul servers currently active. This metric provides insight into the cluster's health and the number of Consul nodes running in the environment.
@@ -49,7 +51,7 @@ container_memory_working_set_bytes{container="consul", pod=~"consul-server-.*"}
 
 ### Disk read/write total per 5 minutes (Consul servers)
 
-**Description:** Monitors disk read and write operations over 5-minute intervals for Consul servers. This helps identify potential disk bottlenecks or issues.
+**Description:** Tracks the total network bytes received by Consul servers within a 5 minute window. This metric helps assess the network load on Consul nodes.
 
 <CodeBlockConfig heading="Grafana query" language="promql">
 ```

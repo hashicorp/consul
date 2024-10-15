@@ -7,6 +7,8 @@ description: >-
 
 # Consul server monitoring dashboard
 
+This page provides reference information about the Grafana dashboard configuration included in [this GitHub repository](https://github.com/hashicorp/consul/tree/main/grafana/consulserverdashboard.json).
+
 ### Raft commit time
 
 **Description:** This metric measures the time it takes to commit Raft log entries. Stable values are expected for a healthy cluster. High values can indicate issues with resources such as memory, CPU, or disk space.
@@ -39,7 +41,7 @@ consul_raft_leader_lastContact != 0
 
 ### Election events
 
-**Description:** Tracks Raft state transitions, indicating leadership elections. Frequent transitions might suggest cluster instability and require investigation.
+**Description:** Tracks Raft state transitions, which indicate leadership elections. Frequent transitions might suggest cluster instability and require investigation.
 
 <CodeBlockConfig heading="Grafana query" language="promql">
 ```
@@ -115,7 +117,7 @@ consul_kvs_apply
 
 ### Transaction apply time
 
-**Description:** Tracks the time spent applying transaction operations in Consul, providing insights into potential bottlenecks in transactional workloads.
+**Description:** Tracks the time spent applying transaction operations in Consul, providing insights into potential bottlenecks in transaction operations.
 
 <CodeBlockConfig heading="Grafana query" language="promql">
 ```
@@ -135,7 +137,7 @@ rate(consul_acl_ResolveToken_count[5m])
 
 ### ACL resolve token time
 
-**Description:** Measures the time taken to resolve ACL tokens into their associated policies. Spikes in this metric might indicate resource issues or configuration problems.
+**Description:** Measures the time taken to resolve ACL tokens into their associated policies.
 
 <CodeBlockConfig heading="Grafana query" language="promql">
 ```
@@ -181,7 +183,7 @@ rate(consul_catalog_deregister_count[5m])
 
 ### Catalog operation time
 
-**Description:** Measures the time taken to complete catalog register or deregister operations. Spikes in this metric can indicate performance issues within the catalog.
+**Description:** Measures the time taken to complete catalog register or deregister operations. Spikes in this metric may indicate performance issues within the catalog.
 
 <CodeBlockConfig heading="Grafana query" language="promql">
 ```
