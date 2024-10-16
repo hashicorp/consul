@@ -1,0 +1,212 @@
+---
+layout: docs
+page_title:  Monitoring service-to-service communication with Envoy
+description: >-
+  Learn to monitor the appropriate metrics when using Envoy proxy.
+---
+
+# Monitoring service-to-service communication with Envoy
+
+When running a service mesh with Envoy as the proxy, there are a wide array of possible metrics produced from traffic flowing through the data plane. This document covers a set of scenarios and key baseline metrics and potential alerts that will help you maintain the overall health and resilience of the mesh for HTTP services. In addition, it provides examples of using these metrics in specific ways to generate a Grafana dashboard using a Prometheus backend to better understand  how the metrics behave.
+
+When collecting metrics, it is important to establish a baseline. This baseline ensures your Consul deployment is healthy, and serves as a reference point when troubleshooting abnormal Cluster behavior. Once you have established a baseline for your metrics, use them and the following recommendations to configure reasonable alerts for your Consul agent. 
+
+<Note>
+
+ The following examples assume that the operator adds the cluster name (i.e. datacenter) using the label “cluster” and the node name (i.e. machine or pod) using the label “node” to all scrape targets.
+
+</Note>
+
+## General scenarios
+
+### Is Envoy's configuration growing stale?
+
+When Envoy connects to the Consul control plane over xDS, it will rapidly converge to the current configuration that the control plane expects it to have. If the xDS stream terminates and does not reconnect for an extended period, then the xDS configuration currently in the Envoy instances will “fail static” and slowly grow out of date.
+
+##### Metric
+
+`envoy_control_plane_connected_state`
+
+#### Alerting 
+
+If the value for a given node/pod/machine was 0 for an extended period of time.
+
+#### Example dashboard (table)
+
+```
+group(last_over_time(envoy_control_plane_connected_state{cluster="$cluster"}[1m] ) == 0) by (node)
+``` 
+
+## Inbound traffic scenarios
+
+### Is this service being sent requests?
+
+Within a mesh, a request travels from one service to another. You may choose to measure many relevant metrics from the calling-side, the serving-side, or both.
+
+It is useful to track the perceived request rate of requests from the calling-side as that would include all requests, even those that fail to arrive at the serving-side due to any failures.
+
+Any measurement of the request rate is also generally useful for capacity planning purposes as increased traffic typically correlates with a need for a scale-up event in the near future.
+
+##### Metric
+
+`envoy_cluster_upstream_rq_total`
+
+#### Alerting 
+
+If the value has a significant change, check if services are properly interacting with each other and if you need to increase your Consul agent resource requirements.
+
+#### Example dashboard (plot; rate)
+
+```
+sum(irate(envoy_cluster_upstream_rq_total{consul_destination_datacenter="$cluster",
+consul_destination_service="$service"}[1m])) by (cluster, local_cluster)
+``` 
+
+### Are requests sent to this service mostly successful?
+
+A service mesh is about communication between services, so it is important to track the perceived success rate of requests witnessed by the calling services.
+
+##### Metric
+
+`envoy_cluster_upstream_rq_xx`
+
+#### Alerting 
+
+If the value crosses a user defined baseline.
+
+#### Example dashboard (plot; %)
+
+```
+sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!="5",consul_destination_datacenter="$cluster",consul_destination_service="$service"}[1m])) by (cluster, local_cluster) / sum(irate(envoy_cluster_upstream_rq_xx{consul_destination_datacenter="$cluster",consul_destination_service="$service"}[1m])) by (cluster, local_cluster)
+``` 
+
+### Are requests sent to this service handled in a timely manner?
+
+If you undersize your infrastructure from a resource perspective, then you may expect a decline in response speed over time. You can track this by plotting the 95th percentile of the latency as experienced by the clients.
+
+##### Metric
+
+`envoy_cluster_upstream_rq_time_bucket`
+
+#### Alerting 
+
+If the value crosses a user defined baseline.
+
+#### Example dashboard (plot; value)
+
+```
+histogram_quantile(0.95, sum(rate(envoy_cluster_upstream_rq_time_bucket{consul_destination_datacenter="$cluster",consul_destination_service="$service",local_cluster!=""}[1m])) by (le, cluster, local_cluster))
+``` 
+
+### Is this service responding to requests that it receives?
+
+Unlike the perceived request rate, which is measured from the calling side, this is the real request rate measured on the serving-side. This is a serving-side parallel metric that can help clarify underlying causes of problems in the calling-side equivalent metric. Ideally this metric should roughly track the calling side values in a 1-1 manner.
+
+##### Metric
+
+`envoy_http_downstream_rq_total`
+
+#### Alerting 
+
+If the value crosses a user defined baseline.
+
+#### Example dashboard (plot; rate)
+
+```
+sum(irate(envoy_http_downstream_rq_total{cluster="$cluster",local_cluster="$service",envoy_http_conn_manager_prefix="public_listener"}[1m]))
+``` 
+
+### Are responses from this service mostly successful?
+
+Unlike the perceived success rate of requests, which is measured from the calling side, this is the real success rate of requests measured on the serving-side. This is a serving-side parallel metric that can help clarify underlying causes of problems in the calling-side equivalent metric. Ideally this metric should roughly track the calling side values in a 1-1 manner.
+
+##### Metrics
+
+`envoy_http_downstream_rq_total`
+
+`envoy_http_downstream_rq_xx`
+
+#### Alerting 
+
+If the value crosses a user defined baseline.
+
+#### Example dashboard (plot; %)
+
+##### Total
+
+```
+sum(increase(envoy_http_downstream_rq_total{cluster="$cluster",local_cluster="$service",envoy_http_conn_manager_prefix="public_listener"}[1m]))
+``` 
+
+##### BY STATUS CODE:
+
+```
+sum(increase(envoy_http_downstream_rq_xx{cluster="$cluster",local_cluster="$service",envoy_http_conn_manager_prefix="public_listener"}[1m])) by (envoy_response_code_class)
+``` 
+
+## Outbound traffic scenarios
+
+### Is this service sending traffic to its upstreams?
+
+Similar to the real request rate for requests arriving at a service, it may be helpful to view the perceived request rate departing from a service through its upstreams.
+
+##### Metric
+
+`envoy_cluster_upstream_rq_total`
+
+#### Alerting 
+
+If the value crosses a user defined success threshold.
+
+#### Example dashboard (plot; rate)
+
+```
+sum(irate(envoy_cluster_upstream_rq_total{cluster="$cluster",
+local_cluster="$service",
+consul_destination_target!=""}[1m])) by (consul_destination_target)
+``` 
+
+### Are requests from this service to its upstreams mostly successful?
+
+Similar to the real success rate of requests arriving at a service, it is also important to track the perceived success rate of requests departing from a service through its upstreams.
+
+##### Metric
+
+`envoy_cluster_upstream_rq_xx`
+
+#### Alerting 
+
+If the value crosses a user defined success threshold.
+
+#### Example dashboard (plot; value)
+
+```
+sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!="5",
+cluster="$cluster",local_cluster="$service",
+consul_destination_target!=""}[1m])) by (consul_destination_target) / sum(irate(envoy_cluster_upstream_rq_xx{cluster="$cluster",local_cluster="$service",consul_destination_target!=""}[1m])) by (consul_destination_target)
+``` 
+
+### Are requests from this service to its upstreams handled in a timely manner?
+
+Similar to the latency of requests departing for a service, it is useful to track the 95th percentile of the latency of requests departing from a service through its upstreams.
+
+##### Metric
+
+`envoy_cluster_upstream_rq_time_bucket`
+
+#### Alerting 
+
+If the value crosses a user defined success threshold.
+
+#### Example dashboard (plot; value)
+
+```
+histogram_quantile(0.95, sum(rate(envoy_cluster_upstream_rq_time_bucket{cluster="$cluster",
+local_cluster="$service",consul_target!=""}[1m])) by (le, consul_destination_target))
+``` 
+
+## Next steps
+
+In this guide, you learned recommendations for monitoring your Envoy metrics, and why monitoring these metrics is important for your Consul deployment.
+
+To learn about monitoring Consul components, visit our [Monitoring Consul components](/well-architected-framework/reliability/reliability-consul-monitoring-consul-components) documentation.

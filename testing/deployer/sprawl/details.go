@@ -13,6 +13,7 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
+
 	"github.com/hashicorp/consul/api"
 )
 
@@ -86,15 +87,10 @@ func (s *Sprawl) PrintDetails() error {
 						Service:               wrk.ID.String(),
 					})
 				} else {
-					ports := make(map[string]int)
-					for name, port := range wrk.Ports {
-						ports[name] = node.ExposedPort(port.Number)
-					}
 					cd.Apps = append(cd.Apps, appDetail{
 						Type:                  "app",
 						Container:             node.DockerName(),
 						ExposedPort:           node.ExposedPort(wrk.Port),
-						ExposedPorts:          ports,
 						ExposedEnvoyAdminPort: node.ExposedPort(wrk.EnvoyAdminPort),
 						Addresses:             addrs,
 						Service:               wrk.ID.String(),
@@ -142,17 +138,7 @@ func (s *Sprawl) PrintDetails() error {
 			if d.Type == "server" && d.Container == cluster.Leader {
 				d.Type = "leader"
 			}
-			var portStr string
-			if len(d.ExposedPorts) > 0 {
-				var out []string
-				for name, exposed := range d.ExposedPorts {
-					out = append(out, fmt.Sprintf("app:%s=%d", name, exposed))
-				}
-				sort.Strings(out)
-				portStr = strings.Join(out, " ")
-			} else {
-				portStr = "app=" + strconv.Itoa(d.ExposedPort)
-			}
+			portStr := "app=" + strconv.Itoa(d.ExposedPort)
 			if d.ExposedEnvoyAdminPort > 0 {
 				portStr += " envoy=" + strconv.Itoa(d.ExposedEnvoyAdminPort)
 			}
@@ -191,9 +177,8 @@ type appDetail struct {
 	Type                  string // server|mesh-gateway|app
 	Container             string
 	Addresses             []string
-	ExposedPort           int            `json:",omitempty"`
-	ExposedPorts          map[string]int `json:",omitempty"`
-	ExposedEnvoyAdminPort int            `json:",omitempty"`
+	ExposedPort           int `json:",omitempty"`
+	ExposedEnvoyAdminPort int `json:",omitempty"`
 	// just services
 	Service string `json:",omitempty"`
 }

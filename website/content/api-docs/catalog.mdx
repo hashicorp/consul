@@ -212,12 +212,22 @@ The behavior of the endpoint depends on what keys are provided.
   You can also specify the namespace in the `Service` or `Check` fields;
   if namespaces are specified in multiple places, they must all be the same.
 
+- `Partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the admin partition of the service and checks you deregister.
+
 ### Sample Payloads
 
 ```json
 {
   "Datacenter": "dc1",
   "Node": "t2.320"
+}
+```
+
+```json
+{
+  "Datacenter": "dc1",
+  "Node": "t2.320",
+  "Partition": "part-1"
 }
 ```
 
@@ -327,6 +337,8 @@ The corresponding CLI command is [`consul catalog nodes`](/consul/commands/catal
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
+@include 'http-api-query-parms-partition.mdx'
+
 ### Sample Request
 
 ```shell-session
@@ -421,6 +433,8 @@ The corresponding CLI command is [`consul catalog services`](/consul/commands/ca
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Filtering
 

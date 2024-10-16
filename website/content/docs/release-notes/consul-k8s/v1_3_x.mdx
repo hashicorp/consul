@@ -16,7 +16,7 @@ Catalog v2 supports multi-port application deployments with a single Envoy proxy
 
   The v1 and v2 catalogs are not cross compatible, and not all Consul features are available within this v2 feature preview.
   - The Consul UI must be disabled. It does not support multi-port services or the v2 catalog API in this release.
-  - HCP Consul does not support multi-port services or the v2 catalog API in this release.
+  - HCP Consul Dedicated does not support multi-port services or the v2 catalog API in this release.
   - The v2 API only supports transparent proxy mode where services that have permissions to connect to each other can use Kube DNS to connect.
 
   <Note> The v2 Catalog and Resources API is currently in feature preview for Consul on Kubernetes 1.3.0 and should not be used in production environments. </Note>
@@ -45,6 +45,8 @@ For more detailed information, please refer to the [upgrade details page](/consu
 The following issues are known to exist in the v1.3.x releases. Refer to the changelog for more information.
 
 - When using the v2 API with transparent proxy, Kubernetes pods cannot use L7 liveness, readiness, or startup probes.
+- v1.3.5 - Service-to-service networking is broken when deployed on OpenShift. OpenShift users are advised to avoid deploying this version of consul-k8s.
+    A fix is present in the v1.3.6 release [[GH-4037](https://github.com/hashicorp/consul-k8s/pull/4037)].
 
 ## Changelogs
 

@@ -12,15 +12,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-
-	"github.com/stretchr/testify/require"
 )
 
 type mockCluster struct {
@@ -109,12 +109,12 @@ func (m *mockCluster) AddLANMember(dc, name, role string, coord *coordinate.Coor
 // mysterious dcX with no nodes with known coordinates.
 func testCluster(self string) *mockCluster {
 	c := newMockCluster(self)
-	c.AddMember("dc0", "node0", lib.GenerateCoordinate(10*time.Millisecond))
-	c.AddMember("dc1", "node1", lib.GenerateCoordinate(3*time.Millisecond))
-	c.AddMember("dc1", "node2", lib.GenerateCoordinate(2*time.Millisecond))
-	c.AddMember("dc1", "node3", lib.GenerateCoordinate(5*time.Millisecond))
+	c.AddMember("dc0", "node0", librtt.GenerateCoordinate(10*time.Millisecond))
+	c.AddMember("dc1", "node1", librtt.GenerateCoordinate(3*time.Millisecond))
+	c.AddMember("dc1", "node2", librtt.GenerateCoordinate(2*time.Millisecond))
+	c.AddMember("dc1", "node3", librtt.GenerateCoordinate(5*time.Millisecond))
 	c.AddMember("dc1", "node4", nil)
-	c.AddMember("dc2", "node1", lib.GenerateCoordinate(8*time.Millisecond))
+	c.AddMember("dc2", "node1", librtt.GenerateCoordinate(8*time.Millisecond))
 	c.AddMember("dcX", "node1", nil)
 	return c
 }
@@ -427,8 +427,8 @@ func TestRouter_GetDatacentersByDistance(t *testing.T) {
 	// Now add another area with a closer route for dc1.
 	otherID := types.AreaID("other")
 	other := newMockCluster(self)
-	other.AddMember("dc0", "node0", lib.GenerateCoordinate(20*time.Millisecond))
-	other.AddMember("dc1", "node1", lib.GenerateCoordinate(21*time.Millisecond))
+	other.AddMember("dc0", "node0", librtt.GenerateCoordinate(20*time.Millisecond))
+	other.AddMember("dc1", "node1", librtt.GenerateCoordinate(21*time.Millisecond))
 	if err := r.AddArea(otherID, other, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -468,7 +468,7 @@ func TestRouter_GetDatacenterMaps(t *testing.T) {
 				Coordinates: structs.Coordinates{
 					&structs.Coordinate{
 						Node:  "node0.dc0",
-						Coord: lib.GenerateCoordinate(10 * time.Millisecond),
+						Coord: librtt.GenerateCoordinate(10 * time.Millisecond),
 					},
 				},
 			}) {
@@ -481,15 +481,15 @@ func TestRouter_GetDatacenterMaps(t *testing.T) {
 				Coordinates: structs.Coordinates{
 					&structs.Coordinate{
 						Node:  "node1.dc1",
-						Coord: lib.GenerateCoordinate(3 * time.Millisecond),
+						Coord: librtt.GenerateCoordinate(3 * time.Millisecond),
 					},
 					&structs.Coordinate{
 						Node:  "node2.dc1",
-						Coord: lib.GenerateCoordinate(2 * time.Millisecond),
+						Coord: librtt.GenerateCoordinate(2 * time.Millisecond),
 					},
 					&structs.Coordinate{
 						Node:  "node3.dc1",
-						Coord: lib.GenerateCoordinate(5 * time.Millisecond),
+						Coord: librtt.GenerateCoordinate(5 * time.Millisecond),
 					},
 				},
 			}) {
@@ -502,7 +502,7 @@ func TestRouter_GetDatacenterMaps(t *testing.T) {
 				Coordinates: structs.Coordinates{
 					&structs.Coordinate{
 						Node:  "node1.dc2",
-						Coord: lib.GenerateCoordinate(8 * time.Millisecond),
+						Coord: librtt.GenerateCoordinate(8 * time.Millisecond),
 					},
 				},
 			}) {
@@ -518,9 +518,9 @@ func TestRouter_FindLANServer(t *testing.T) {
 	r := testRouter(t, "dc0")
 
 	lan := newMockCluster("node4.dc0")
-	lan.AddLANMember("dc0", "node0", "consul", lib.GenerateCoordinate(10*time.Millisecond))
-	lan.AddLANMember("dc0", "node1", "", lib.GenerateCoordinate(20*time.Millisecond))
-	lan.AddLANMember("dc0", "node2", "", lib.GenerateCoordinate(21*time.Millisecond))
+	lan.AddLANMember("dc0", "node0", "consul", librtt.GenerateCoordinate(10*time.Millisecond))
+	lan.AddLANMember("dc0", "node1", "", librtt.GenerateCoordinate(20*time.Millisecond))
+	lan.AddLANMember("dc0", "node2", "", librtt.GenerateCoordinate(21*time.Millisecond))
 
 	require.NoError(t, r.AddArea(types.AreaLAN, lan, &fauxConnPool{}))
 

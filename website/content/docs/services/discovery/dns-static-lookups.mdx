@@ -109,7 +109,9 @@ The `datacenter` subdomain is optional. By default, Consul interrogates the quer
 
 The `cluster-peer` name is optional, and specifies the [cluster peer](/consul/docs/connect/cluster-peering) whose [exported services](/consul/docs/connect/config-entries/exported-services) should be the target of the query.
 
-The `sameness-group` name is optional, and specifies the [sameness group](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) that should be the target of the query. When Consul receives a DNS request for a service that is tied to a sameness group, it returns service instances from the first healthy member of the sameness group. If the local partition is a member of a sameness group, its service instances take precedence over the members of its sameness group. Optionally, you can include a namespace or admin partition when performing a lookup on a sameness group. Refer to [Service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) for more information.
+The `sameness-group` name is optional, and specifies the [sameness group](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) that should be the target of the query. When Consul receives a DNS request for a service that is a member of a sameness group and the sameness groups is configured with `DefaultForFailover` set to `true`, it returns service instances from the first healthy member of the sameness group. If the local partition is a member of a sameness group, local service instances take precedence over the members of its sameness group. Optionally, you can include a namespace or admin partition when performing a lookup on a sameness group. 
+
+Only sameness groups with `DefaultForFailover` set `true` can be queried through DNS.  If `DefaultForFailover` is not true, then Consul DNS returns an error response.  Refer to [Service lookups for Consul Enterprise](#service-lookups-for-consul-enterprise) for more information.
 
 By default, the lookups query in the `consul` domain. Refer to [Configure DNS Behaviors](/consul/docs/services/discovery/dns-configuration) for information about using alternate domains.
 

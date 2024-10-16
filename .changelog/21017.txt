@@ -1,0 +1,9 @@
+```release-note:security
+Upgrade to support Envoy `1.27.5 and 1.28.3`. This resolves CVE
+[CVE-2024-32475](https://nvd.nist.gov/vuln/detail/CVE-2024-32475) (`auto_sni`).
+```
+
+```release-note:security
+Upgrade to support k8s.io/apimachinery `v0.18.7 or higher`. This resolves CVE
+[CVE-2020-8559](https://nvd.nist.gov/vuln/detail/CVE-2020-8559).
+```

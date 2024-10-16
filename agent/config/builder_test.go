@@ -615,28 +615,8 @@ func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
 		"primary server no experiments": {
 			hcl: primary + `experiments = []`,
 		},
-		"primary server v2catalog": {
-			hcl: primary + `experiments = ["resource-apis"]`,
-		},
-		"primary server v1dns": {
-			hcl: primary + `experiments = ["v1dns"]`,
-		},
-		"primary server v2tenancy": {
-			hcl: primary + `experiments = ["v2tenancy"]`,
-		},
 		"secondary server no experiments": {
 			hcl: secondary + `experiments = []`,
-		},
-		"secondary server v2catalog": {
-			hcl:       secondary + `experiments = ["resource-apis"]`,
-			expectErr: true,
-		},
-		"secondary server v1dns": {
-			hcl: secondary + `experiments = ["v1dns"]`,
-		},
-		"secondary server v2tenancy": {
-			hcl:       secondary + `experiments = ["v2tenancy"]`,
-			expectErr: true,
 		},
 	}
 
@@ -644,67 +624,6 @@ func TestBuilder_CheckExperimentsInSecondaryDatacenters(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			run(t, tc)
 		})
-	}
-}
-
-func TestBuilder_WarnCloudConfigWithResourceApis(t *testing.T) {
-	tests := []struct {
-		name      string
-		hcl       string
-		expectErr bool
-	}{
-		{
-			name: "base_case",
-			hcl:  ``,
-		},
-		{
-			name: "resource-apis_no_cloud",
-			hcl:  `experiments = ["resource-apis"]`,
-		},
-		{
-			name: "cloud-config_no_experiments",
-			hcl:  `cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
-		},
-		{
-			name: "cloud-config_resource-apis_experiment",
-			hcl: `
-			experiments = ["resource-apis"]
-			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
-			expectErr: true,
-		},
-		{
-			name: "cloud-config_other_experiment",
-			hcl: `
-			experiments = ["test"]
-			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
-		},
-		{
-			name: "cloud-config_resource-apis_experiment_override",
-			hcl: `
-			experiments = ["resource-apis", "hcp-v2-resource-apis"]
-			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
-		},
-	}
-	for _, tc := range tests {
-		// using dev mode skips the need for a data dir
-		devMode := true
-		builderOpts := LoadOpts{
-			DevMode: &devMode,
-			Overrides: []Source{
-				FileSource{
-					Name:   "overrides",
-					Format: "hcl",
-					Data:   tc.hcl,
-				},
-			},
-		}
-		_, err := Load(builderOpts)
-		if tc.expectErr {
-			require.Error(t, err)
-			require.Contains(t, err.Error(), "cannot include 'resource-apis' when HCP")
-		} else {
-			require.NoError(t, err)
-		}
 	}
 }
 

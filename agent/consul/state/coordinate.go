@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 )
 
 const tableCoordinates = "coordinates"
@@ -117,7 +117,7 @@ func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 
 // Coordinate returns a map of coordinates for the given node, indexed by
 // network segment.
-func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *acl.EnterpriseMeta) (uint64, lib.CoordinateSet, error) {
+func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *acl.EnterpriseMeta) (uint64, librtt.CoordinateSet, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -137,7 +137,7 @@ func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *acl.Enterpri
 	}
 	ws.Add(iter.WatchCh())
 
-	results := make(lib.CoordinateSet)
+	results := make(librtt.CoordinateSet)
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		coord := raw.(*structs.Coordinate)
 		results[coord.Segment] = coord.Coord

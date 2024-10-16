@@ -9,6 +9,11 @@ on:
     branches:
       - main
       - release/**
+      - '!release/1.18**'
+      - '!release/1.17**'
+      - '!release/1.16**'
+      - '!release/1.15**'
+
 
 jobs:
   trigger-ce-merge:

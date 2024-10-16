@@ -43,7 +43,7 @@ func TestConfigWrite(t *testing.T) {
 		_, err := f.WriteString(`
       Kind = "service-defaults"
       Name = "web"
-      Protocol = "udp"
+      Protocol = "tcp"
       `)
 
 		require.NoError(t, err)
@@ -65,7 +65,7 @@ func TestConfigWrite(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, api.ServiceDefaults, svc.Kind)
 		require.Equal(t, "web", svc.Name)
-		require.Equal(t, "udp", svc.Protocol)
+		require.Equal(t, "tcp", svc.Protocol)
 	})
 
 	t.Run("Stdin", func(t *testing.T) {
@@ -168,6 +168,27 @@ kind = "proxy-defaults"
 		require.Empty(t, ui.ErrorWriter.String())
 		require.Contains(t, ui.OutputWriter.String(),
 			`Config entry written: proxy-defaults/global`)
+		require.Equal(t, 0, code)
+	})
+
+	// Test that protocol field is first normalized and then validated
+	// before writing the config entry
+	t.Run("service defaults config entry mixed case in protocol field", func(t *testing.T) {
+		stdin := new(bytes.Buffer)
+		stdin.WriteString(`
+		Kind = "service-defaults"
+		Name = "web"
+		Protocol = "TcP"
+`)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		c.testStdin = stdin
+
+		code := c.Run([]string{"-http-addr=" + a.HTTPAddr(), "-"})
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(),
+			`Config entry written: service-defaults/web`)
 		require.Equal(t, 0, code)
 	})
 }

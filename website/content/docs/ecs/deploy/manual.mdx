@@ -18,24 +18,24 @@ You should have some familiarity with AWS ECS. Refer to [What is Amazon Elastic 
 You must meet the following requirements and prerequisites to enable security features in Consul service mesh:
 
 - Enable [TLS encryption](https://developer.hashicorp.com/consul/docs/security/encryption#rpc-encryption-with-tls) on your Consul servers so that they can communicate security with Consul dataplane containers over gRPC.
-- Enable [access control lists (ACLs)](/consul/docs/security/acl) on your Consul servers. ALCs provide authentication and authorization for access to Consul servers on the mesh.
+- Enable [access control lists (ACLs)](/consul/docs/security/acl) on your Consul servers. ACLs provide authentication and authorization for access to Consul servers on the mesh.
 - You should be familiar with specifying sensitive data on ECS. Refer to [Passing sensitive data to a container](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/specifying-sensitive-data.html) in the AWS documentation for additional information.
 
 You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the following resources:
 - [Create a service token](/consul/docs/security/acl/tokens/create/create-a-service-token)
 - [Day 1: Security tutorial](https://developer.hashicorp.com/consul/tutorials/security) for additional information.
 
-Consul requires a unique IAM role for each ECS task family. Task IAM roles cannot be shared by different task families because the task family is unique to each Consul service. 
+Consul requires a unique IAM role for each ECS task family. Task IAM roles cannot be shared by different task families because the task family is unique to each Consul service.
 
 ## Configure ECS task definition file
 
-Create a JSON file for the task definition. The task definition is the ECS blueprint for your software services on AWS. Refer to the [ECS task definitions in the AWS documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html) for additional information. 
+Create a JSON file for the task definition. The task definition is the ECS blueprint for your software services on AWS. Refer to the [ECS task definitions in the AWS documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html) for additional information.
 
 In addition to your application container, add configurations to your task definition that creates the following Consul containers:
 
 - Dataplane container
 - Control-plane container
-- ECS controller container 
+- ECS controller container
 
 ## Top-level fields
 
@@ -46,7 +46,7 @@ The following table describes the top-level fields you must include in the task 
 | `family` |  The task family name. This is used as the Consul service name by default. | string |
 | `networkMode` | Must be `awsvpc`, which is the only network mode supported by Consul on ECS. | string |
 | `volumes` | Volumes on the host for sharing configuration between containers for initial task setup. You must define a `consul_data` and `consul_binary` bind mount. Bind mounts can be mounted into one or more containers in order to share files among containers. For Consul on ECS, certain binaries and configuration are shared among containers during task startup. | list  |
-| `containerDefinitions` | Defines the application container that runs in the task. Refer to [Define your application container](#define-your-application-container). | list | 
+| `containerDefinitions` | Defines the application container that runs in the task. Refer to [Define your application container](#define-your-application-container). | list |
 
 The following example shows the top-level fields:
 
@@ -81,7 +81,7 @@ The following example shows the top-level fields:
 The `tags` list must include the following tags if you are using the ECS controller in a [secure configuration](/consul/docs/ecs/deploy/manual#secure-configuration-requirements).
 Without these tags, the ACL controller is unable to provision a service token for the task.
 
-| Tag | Description | Type | Default | 
+| Tag | Description | Type | Default |
 | --- | --- | --- | --- |
 | `consul.hashicorp.com/mesh` |  Enables the ECS controller. Set to `false` to disable the ECS controller. | String | `true` |
 | `consul.hashicorp.com/service-name` | Specifies the name of the Consul service associated with this task. Required if the service name is different than the task `family`. | String | None |
@@ -96,7 +96,7 @@ Specify your application container configurations in the `containerDefinitions` 
 | --- | --- | ---  |
 | `name`   | The name of your application container. | string |
 | `image` |  The container image used to run your application. | string |
-| `essential` | Must be `true` to ensure the health of your application container affects the health status of the task. | boolean | 
+| `essential` | Must be `true` to ensure the health of your application container affects the health status of the task. | boolean |
 | `dependsOn` | Specifies container dependencies that ensure your application container starts after service mesh setup is complete. Refer to [Application container dependency configuration](#application-container-dependency-configuration) for details. | list |
 
 Refer to the [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html) documentation for a complete reference.
@@ -120,7 +120,7 @@ The `dependsOn` list must include the following maps:
 }
 ```
 
-## Configure the dataplane container 
+## Configure the dataplane container
 
 The dataplane container runs Envoy proxy for Consul service mesh. Specify the fields described in the following table to declare a dataplane container:
 
@@ -174,7 +174,7 @@ Specify the fields described in the following table to declare the control-plane
 | --- | --- | --- |
 | `name` | Specifies the name of the container. This must be `control-plane`. | string  |
 | `image` | Specifies the `consul-ecs` image. Specify the following public AWS registry to avoid rate limits: `public.ecr.aws/hashicorp/consul-ecs` | string |
-| `mountPoints` | Specifies a shared volume to store the Envoy bootstrap configuration file that the dataplane container can access and consume. The keys and values in this configuration must be defined as described in [Control-plane shared volume configuration](#control-plane-shared-volume-configuration). | list | 
+| `mountPoints` | Specifies a shared volume to store the Envoy bootstrap configuration file that the dataplane container can access and consume. The keys and values in this configuration must be defined as described in [Control-plane shared volume configuration](#control-plane-shared-volume-configuration). | list |
 | `command` | Set to `["control-plane"]` so that the container runs the `control-plane` command. | list |
 | `environment` | Specifies the `CONSUL_ECS_CONFIG_JSON` environment variable, which configures the container to connect to the Consul servers. Refer to [Control-plane to Consul servers configuration](#control-plane-to-Consul-servers-configuration) for details. | list |
 
@@ -199,7 +199,7 @@ The `mountPoints` configuration defines a volume and path where the control-plan
 
 ### Control-plane to Consul servers configuration
 
-Provide Consul server connection settings to the mesh task module so that the module can configure the control-plane and ECS controller containers to connect to the servers. 
+Provide Consul server connection settings to the mesh task module so that the module can configure the control-plane and ECS controller containers to connect to the servers.
 
 1. In your `variables.tf` file, define variables for the host URL and TLS settings for gRPC and HTTP traffic. Refer to the [mesh task module reference](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task?tab=inputs) for information about the variables you can define. In the following example, the Consul server address is defined in the `consul_server_hosts` variable:
 
@@ -210,7 +210,7 @@ Provide Consul server connection settings to the mesh task module so that the mo
   }
 
   ```
-1. Add an `environment` block to the control-plane and ECS controller containers definition 
+1. Add an `environment` block to the control-plane and ECS controller containers definition.
 1. Set the `environment.name` field to the `CONSUL_ECS_CONFIG_JSON` environment variable and the value to `local.encoded_config`.
 
   ```hcl
@@ -223,7 +223,7 @@ Provide Consul server connection settings to the mesh task module so that the mo
   ```
   When you apply the configuration, the mesh task module interpolates the server configuration variables, builds a `config.tf` file, and injects the settings into the appropriate containers.
 
-For additional information about the `config.tf` file, refer to the [JSON schema reference documentation](/consul/docs/ecs/reference/config-json-schema). 
+For additional information about the `config.tf` file, refer to the [JSON schema reference documentation](/consul/docs/ecs/reference/config-json-schema).
 
 ## Register the task definition configuration
 
@@ -245,8 +245,8 @@ Verify that you have completed the prerequisites described in [Secure configurat
 
 On the Consul server, create a policy that grants the following access for the controller:
 
-- `acl:write` 
-- `operator:write` 
+- `acl:write`
+- `operator:write`
 - `node:write`
 - `service:write`
 
@@ -260,7 +260,7 @@ The policy allows Consul to generate a token linked to the policy. Refer to [Cre
 
 ### Configure the auth method for service tokens
 
-Run the `consul acl auth-method create` command on a Consul server to create an instance of the auth method for service tokens. 
+Run the `consul acl auth-method create` command on a Consul server to create an instance of the auth method for service tokens.
 
 The following example command configures the auth method to associate a service identity
 to each token created during login to this auth method instance.
@@ -303,9 +303,9 @@ You must specify the following configuration in the `-config` flag:
 
 Refer to the [auth method configuration parameters documentation](/consul/docs/security/acl/auth-methods/aws-iam#config-parameters) for additional information.
 
-### Create the binding rule 
+### Create the binding rule
 
-Run the `consul acl binding-rule create` command on a Consul server to create a binding rule. The rule associates a service identity with each token created on successful login to this instance of the auth method. 
+Run the `consul acl binding-rule create` command on a Consul server to create a binding rule. The rule associates a service identity with each token created on successful login to this instance of the auth method.
 
 In the following example, Consul takes the service identity name from the `consul.hashicorp.com.service-name` tag specified for authenticating IAM role identity.
 
@@ -336,7 +336,7 @@ You can reference stored secrets using their ARN. The examples show ARNs for sec
 You can configure Consul servers connected to your ECS workloads to capture a log of authenticated events. Refer to [Audit Logging](/consul/docs/enterprise/audit-logging) for details.
 
 ## Next steps
- 
+
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
 
 - [Configure routes between ECS tasks](/consul/docs/ecs/deploy/configure-routes)

@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resourcehcl"
@@ -52,7 +51,6 @@ func FuzzUnmarshall(f *testing.F) {
 	}
 	registry := resource.NewRegistry()
 	demo.RegisterTypes(registry)
-	mesh.RegisterTypes(registry)
 
 	f.Fuzz(func(t *testing.T, input []byte) {
 		got, err := resourcehcl.Unmarshal(input, registry)
@@ -104,7 +102,6 @@ func TestUnmarshal(t *testing.T) {
 
 			registry := resource.NewRegistry()
 			demo.RegisterTypes(registry)
-			mesh.RegisterTypes(registry)
 
 			output, err := resourcehcl.UnmarshalOptions{SourceFileName: name}.
 				Unmarshal(input, registry)

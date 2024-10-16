@@ -21,13 +21,14 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/hashstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -77,46 +78,6 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 	err := dec.Decode(svcToken)
 	require.NoError(t, err)
 	return svcToken.SecretID
-}
-
-func TestAgentEndpointsFailInV2(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
-
-	checkRequest := func(method, url string) {
-		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{}`)
-		})
-	}
-
-	t.Run("agent-self-with-params", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "/v1/agent/self?dc=dc1", nil)
-		require.NoError(t, err)
-
-		resp := httptest.NewRecorder()
-		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(t, http.StatusOK, resp.Code)
-
-		_, err = io.ReadAll(resp.Body)
-		require.NoError(t, err)
-	})
-
-	checkRequest("PUT", "/v1/agent/maintenance")
-	checkRequest("GET", "/v1/agent/services")
-	checkRequest("GET", "/v1/agent/service/web")
-	checkRequest("GET", "/v1/agent/checks")
-	checkRequest("GET", "/v1/agent/health/service/id/web")
-	checkRequest("GET", "/v1/agent/health/service/name/web")
-	checkRequest("PUT", "/v1/agent/check/register")
-	checkRequest("PUT", "/v1/agent/check/deregister/web")
-	checkRequest("PUT", "/v1/agent/check/pass/web")
-	checkRequest("PUT", "/v1/agent/check/warn/web")
-	checkRequest("PUT", "/v1/agent/check/fail/web")
-	checkRequest("PUT", "/v1/agent/check/update/web")
-	checkRequest("PUT", "/v1/agent/service/register")
-	checkRequest("PUT", "/v1/agent/service/deregister/web")
-	checkRequest("PUT", "/v1/agent/service/maintenance/web")
 }
 
 func TestAgent_Services(t *testing.T) {
@@ -1660,6 +1621,7 @@ func newDefaultBaseDeps(t *testing.T) BaseDeps {
 }
 
 func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
+	t.Skip("this test panics without a license manager in enterprise")
 	bd := newDefaultBaseDeps(t)
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
@@ -1691,6 +1653,7 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 }
 
 func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
+	t.Skip("this test panics without a license manager in enterprise")
 	bd := newDefaultBaseDeps(t)
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)

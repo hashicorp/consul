@@ -10,10 +10,11 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
-	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -85,6 +86,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	}
 
 	// Normalize and validate the incoming config entry as if it came from a user.
+	// Ensure Normalize is called before Validate for accurate validation
 	if err := args.Entry.Normalize(); err != nil {
 		return err
 	}

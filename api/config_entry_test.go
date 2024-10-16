@@ -104,7 +104,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		service := &ServiceConfigEntry{
 			Kind:          ServiceDefaults,
 			Name:          "foo",
-			Protocol:      "udp",
+			Protocol:      "http",
 			MutualTLSMode: MutualTLSModeStrict,
 			Meta: map[string]string{
 				"foo": "bar",
@@ -124,7 +124,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		service2 := &ServiceConfigEntry{
 			Kind:        ServiceDefaults,
 			Name:        "bar",
-			Protocol:    "tcp",
+			Protocol:    "http",
 			Destination: dest,
 		}
 
@@ -176,7 +176,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.True(t, written)
 
 		// update no cas
-		service.Protocol = "http"
+		service.Protocol = "tcp"
 
 		_, wm, err = config_entries.Set(service, nil)
 		require.NoError(t, err)

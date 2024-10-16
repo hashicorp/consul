@@ -8,12 +8,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/test-integ/topoutil"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-
-	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 type commonTopo struct {
@@ -51,11 +50,11 @@ func NewCommonTopo(t *testing.T) *commonTopo {
 //
 // dataplane
 //   - workload(fortio) static-server on node dc1-client1
-//   - workload(fortio) static-client on node dc1-client2 with destination to static-server
+//   - workload(fortio) static-client on node dc1-client2 with upstream to static-server
 //   - static-client, static-server are registered at 2 agentless nodes.
 //
 // Intentions
-//   - static-client has destination to static-server
+//   - static-client has upstream to static-server
 func newCommonTopo(t *testing.T) *commonTopo {
 	t.Helper()
 
@@ -107,7 +106,7 @@ func newCommonTopo(t *testing.T) *commonTopo {
 							},
 						},
 					},
-					// static-client on dc1-client2 with destination to static-server
+					// static-client on dc1-client2 with upstream to static-server
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc1-client2",
@@ -123,7 +122,7 @@ func newCommonTopo(t *testing.T) *commonTopo {
 									"-http-port", "8080",
 									"-redirect-port", "-disabled",
 								},
-								Destinations: []*topology.Destination{
+								Upstreams: []*topology.Upstream{
 									{
 										ID:        staticServerSID, // static-server
 										LocalPort: 5000,
@@ -208,7 +207,7 @@ func (ct *commonTopo) ValidateWorkloads(t *testing.T) {
 	// check the service exists in catalog
 	svcs := cluster.WorkloadsByID(ct.StaticClientSID)
 	client := svcs[0]
-	upstream := client.Destinations[0]
+	upstream := client.Upstreams[0]
 	ct.Assert.CatalogServiceExists(t, cluster.Name, upstream.ID.Name, utils.CompatQueryOpts(&api.QueryOptions{
 		Partition: upstream.ID.Partition,
 		Namespace: upstream.ID.Namespace,

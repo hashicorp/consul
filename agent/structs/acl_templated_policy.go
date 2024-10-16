@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"hash"
 	"hash/fnv"
-	"html/template"
+	"text/template"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/exp/slices"
+
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
@@ -26,30 +27,26 @@ var ACLTemplatedPolicyNodeSchema string
 //go:embed acltemplatedpolicy/schemas/service.json
 var ACLTemplatedPolicyServiceSchema string
 
-//go:embed acltemplatedpolicy/schemas/workload-identity.json
-var ACLTemplatedPolicyWorkloadIdentitySchema string
-
 //go:embed acltemplatedpolicy/schemas/api-gateway.json
 var ACLTemplatedPolicyAPIGatewaySchema string
 
 type ACLTemplatedPolicies []*ACLTemplatedPolicy
 
 const (
-	ACLTemplatedPolicyServiceID          = "00000000-0000-0000-0000-000000000003"
-	ACLTemplatedPolicyNodeID             = "00000000-0000-0000-0000-000000000004"
-	ACLTemplatedPolicyDNSID              = "00000000-0000-0000-0000-000000000005"
-	ACLTemplatedPolicyNomadServerID      = "00000000-0000-0000-0000-000000000006"
-	ACLTemplatedPolicyWorkloadIdentityID = "00000000-0000-0000-0000-000000000007"
-	ACLTemplatedPolicyAPIGatewayID       = "00000000-0000-0000-0000-000000000008"
-	ACLTemplatedPolicyNomadClientID      = "00000000-0000-0000-0000-000000000009"
+	ACLTemplatedPolicyServiceID     = "00000000-0000-0000-0000-000000000003"
+	ACLTemplatedPolicyNodeID        = "00000000-0000-0000-0000-000000000004"
+	ACLTemplatedPolicyDNSID         = "00000000-0000-0000-0000-000000000005"
+	ACLTemplatedPolicyNomadServerID = "00000000-0000-0000-0000-000000000006"
+	_                               = "00000000-0000-0000-0000-000000000007" // formerly workload identity
+	ACLTemplatedPolicyAPIGatewayID  = "00000000-0000-0000-0000-000000000008"
+	ACLTemplatedPolicyNomadClientID = "00000000-0000-0000-0000-000000000009"
 
-	ACLTemplatedPolicyServiceDescription          = "Gives the token or role permissions to register a service and discover services in the Consul catalog. It also gives the specified service's sidecar proxy the permission to discover and route traffic to other services."
-	ACLTemplatedPolicyNodeDescription             = "Gives the token or role permissions for a register an agent/node into the catalog. A node is typically a consul agent but can also be a physical server, cloud instance or a container."
-	ACLTemplatedPolicyDNSDescription              = "Gives the token or role permissions for the Consul DNS to query services in the network."
-	ACLTemplatedPolicyNomadServerDescription      = "Gives the token or role permissions required for integration with a nomad server."
-	ACLTemplatedPolicyWorkloadIdentityDescription = "Gives the token or role permissions for a specific workload identity."
-	ACLTemplatedPolicyAPIGatewayDescription       = "Gives the token or role permissions for a Consul api gateway"
-	ACLTemplatedPolicyNomadClientDescription      = "Gives the token or role permissions required for integration with a nomad client."
+	ACLTemplatedPolicyServiceDescription     = "Gives the token or role permissions to register a service and discover services in the Consul catalog. It also gives the specified service's sidecar proxy the permission to discover and route traffic to other services."
+	ACLTemplatedPolicyNodeDescription        = "Gives the token or role permissions for a register an agent/node into the catalog. A node is typically a consul agent but can also be a physical server, cloud instance or a container."
+	ACLTemplatedPolicyDNSDescription         = "Gives the token or role permissions for the Consul DNS to query services in the network."
+	ACLTemplatedPolicyNomadServerDescription = "Gives the token or role permissions required for integration with a nomad server."
+	ACLTemplatedPolicyAPIGatewayDescription  = "Gives the token or role permissions for a Consul api gateway"
+	ACLTemplatedPolicyNomadClientDescription = "Gives the token or role permissions required for integration with a nomad client."
 
 	ACLTemplatedPolicyNoRequiredVariablesSchema = "" // catch-all schema for all templated policy that don't require a schema
 )
@@ -95,13 +92,6 @@ var (
 			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     ACLTemplatedPolicyNomadServer,
 			Description:  ACLTemplatedPolicyNomadServerDescription,
-		},
-		api.ACLTemplatedPolicyWorkloadIdentityName: {
-			TemplateID:   ACLTemplatedPolicyWorkloadIdentityID,
-			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
-			Schema:       ACLTemplatedPolicyWorkloadIdentitySchema,
-			Template:     ACLTemplatedPolicyWorkloadIdentity,
-			Description:  ACLTemplatedPolicyWorkloadIdentityDescription,
 		},
 		api.ACLTemplatedPolicyAPIGatewayName: {
 			TemplateID:   ACLTemplatedPolicyAPIGatewayID,

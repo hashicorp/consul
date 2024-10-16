@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
 )
@@ -578,7 +578,7 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 				// It's OK to get a nil coordinate back, ComputeDistance
 				// will put the RTT at positive infinity.
 				other, _ := info.cluster.GetCachedCoordinate(parts.Name)
-				rtt := lib.ComputeDistance(coord, other)
+				rtt := librtt.ComputeDistance(coord, other)
 				index[parts.Datacenter] = append(existing, rtt)
 			}
 		}

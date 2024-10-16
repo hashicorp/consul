@@ -30,8 +30,8 @@ type ac1BasicSuite struct {
 	sidClientHTTP  topology.ID
 	nodeClientHTTP topology.NodeID
 
-	upstreamHTTP *topology.Destination
-	upstreamTCP  *topology.Destination
+	upstreamHTTP *topology.Upstream
+	upstreamTCP  *topology.Upstream
 }
 
 var ac1BasicSuites []sharedTopoSuite = []sharedTopoSuite{
@@ -65,7 +65,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 		Name:      prefix + "server-http",
 		Partition: partition,
 	}
-	upstreamHTTP := &topology.Destination{
+	upstreamHTTP := &topology.Upstream{
 		ID: topology.ID{
 			Name:      httpServerSID.Name,
 			Partition: partition,
@@ -73,7 +73,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 		LocalPort: 5001,
 		Peer:      peer,
 	}
-	upstreamTCP := &topology.Destination{
+	upstreamTCP := &topology.Upstream{
 		ID: topology.ID{
 			Name:      tcpServerSID.Name,
 			Partition: partition,
@@ -93,7 +93,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 				clu.Datacenter,
 				sid,
 				func(s *topology.Workload) {
-					s.Destinations = []*topology.Destination{
+					s.Upstreams = []*topology.Upstream{
 						upstreamTCP,
 						upstreamHTTP,
 					}

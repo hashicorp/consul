@@ -13,6 +13,11 @@ on:
       - 'backport/docs/**'
       - 'backport/ui/**'
       - 'backport/mktg-**'
+  push:
+    branches:
+      # Push events on the main branch
+      - main
+      - release/**
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
@@ -24,25 +29,14 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
-  SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: "${{ github.workflow }}-${{ github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
   conditional-skip:
-    runs-on: ubuntu-latest
-    name: Get files changed and conditionally skip CI
-    outputs:
-      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          fetch-depth: 0
-      - name: Get changed files
-        id: read-files
-        run: ./.github/scripts/filter_changed_files_go_test.sh
+    uses: ./.github/workflows/reusable-conditional-skip.yml
 
   setup:
     needs: [conditional-skip]
@@ -56,12 +50,15 @@ jobs:
       compute-xl: ${{ steps.runners.outputs.compute-xl }}
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
+
+  get-envoy-versions:
+    uses: ./.github/workflows/reusable-get-envoy-versions.yml
 
   dev-build:
     needs:
@@ -86,22 +83,22 @@ jobs:
       contents: read
     strategy:
       matrix:
-        nomad-version: ['v1.7.3', 'v1.6.6', 'v1.5.13']
+        nomad-version: ['v1.8.3', 'v1.7.7', 'v1.6.10']
     steps:
       - name: Checkout Nomad
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           repository: hashicorp/nomad
           ref: ${{ matrix.nomad-version }}
 
       - name: Install Go
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           # Do not explicitly set Go version here, as it should depend on what Nomad declares.
           go-version-file: 'go.mod'
 
       - name: Fetch Consul binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -111,7 +108,9 @@ jobs:
           echo "$(pwd)/bin" >> $GITHUB_PATH
 
       - name: Make Nomad dev build
-        run: make pkg/linux_amd64/nomad
+        run: |
+          make pkg/linux_amd64/nomad
+          echo "$(pwd)/pkg/linux_amd64" >> $GITHUB_PATH
 
       - name: Run integration tests
         run: |
@@ -134,7 +133,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -167,18 +166,18 @@ jobs:
       contents: read
     strategy:
       matrix:
-        vault-version: ["1.15.4", "1.14.8", "1.13.12"]
+        vault-version: ["1.17.5", "1.16.3", "1.15.6"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           # We use the current Consul Go version here since Vault is installed as a binary
           # and tests are run from the Consul repo.
@@ -218,7 +217,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -263,32 +262,29 @@ jobs:
     outputs:
       envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
-          # this is further going to multiplied in envoy-integration tests by the
-          # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
-          # multiplied by 2 based on these values:
-          # envoy-version: ["1.28.2"]
-          # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 2
+          # TEST_SPLITS sets the number of test case splits to use in the matrix. This will be
+          # further multiplied in envoy-integration tests by the other dimensions in the matrix
+          # to determine the total number of runners used.
+          TEST_SPLITS: 4
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
-          NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(find ./test/integration/connect/envoy -mindepth 1 -maxdepth 1 -type d | wc -l)
 
-          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
-            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
-            NUM_RUNNERS=$((NUM_DIRS-1))
+          if [ "$NUM_DIRS" -lt "$TEST_SPLITS" ]; then
+            echo "TEST_SPLITS is larger than the number of tests/packages to split."
+            TEST_SPLITS=$((NUM_DIRS-1))
           fi
-          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$((NUM_RUNNERS-1))
+          # fix issue where test splitting calculation generates 1 more split than TEST_SPLITS.
+          TEST_SPLITS=$((TEST_SPLITS-1))
           {
             echo -n "envoy-matrix="
             find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
               | xargs -0 -n 1 basename \
-              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
+              | jq --raw-input --argjson runnercount "$TEST_SPLITS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
 
@@ -297,6 +293,7 @@ jobs:
     needs:
       - setup
       - get-go-version
+      - get-envoy-versions
       - generate-envoy-job-matrices
       - dev-build
     permissions:
@@ -305,21 +302,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.28.2"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
-      ENVOY_VERSION: ${{ matrix.envoy-version }}
+      ENVOY_VERSION: ${{ needs.get-envoy-versions.outputs.max-envoy-version }}
       XDS_TARGET: ${{ matrix.xds-target }}
       AWS_LAMBDA_REGION: us-west-2
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
@@ -327,12 +323,13 @@ jobs:
         run: chmod +x ./bin/consul
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
 
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
 
       - name: Envoy Integration Tests
+        id: envoy-integration-tests
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -353,6 +350,23 @@ jobs:
               --packages=./test/integration/connect/envoy \
               -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
 
+      # See https://github.com/orgs/community/discussions/8945#discussioncomment-9897011
+      # and overall topic discussion for why this is necessary.
+      - name: Generate artifact ID
+        id: generate-artifact-id
+        if: ${{ failure() && steps.envoy-integration-tests.conclusion == 'failure' }}
+        run: |
+          ARTIFACT_ID=$(uuidgen)
+          echo "Artifact ID: $ARTIFACT_ID (search this in job summary for download link)"
+          echo "artifact_id=$ARTIFACT_ID" >> "$GITHUB_ENV"
+
+      - name: Upload failure logs
+        if: ${{ failure() && steps.envoy-integration-tests.conclusion == 'failure' }}
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: envoy-${{ matrix.envoy-version }}-logs-${{ env.artifact_id }}
+          path: test/integration/connect/envoy/workdir/logs/
+
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
@@ -363,7 +377,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -390,20 +404,22 @@ jobs:
     needs:
       - setup
       - get-go-version
+      - get-envoy-versions
       - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
     env:
-      ENVOY_VERSION: "1.28.2"
-      CONSUL_DATAPLANE_IMAGE: "docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi"
+      ENVOY_VERSION: ${{ needs.get-envoy-versions.outputs.max-envoy-version }}
+      #TODO don't harcode this image name
+      CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev-ubi"
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
@@ -412,7 +428,7 @@ jobs:
           docker version
           docker info
       - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: .
@@ -476,7 +492,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -509,15 +525,16 @@ jobs:
     strategy:
       fail-fast: false
     env:
-      DEPLOYER_CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
+      # TODO @sarah.alsmiller Don't hardcode this version value
+      DEPLOYER_CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.6-dev"
     steps:
       - name: Checkout code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
@@ -560,7 +577,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}

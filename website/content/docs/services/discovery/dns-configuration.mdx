@@ -33,6 +33,8 @@ You can specify a list of addresses in the agent's [`recursors`](/consul/docs/ag
 
 Nodes that query records outside the `consul.` domain resolve to an upstream DNS. You can specify IP addresses or use `go-sockaddr` templates. Consul resolves IP addresses in the specified order and ignores duplicates.
 
+We recommend that you configure DNS resolvers to point the `consul.` domain towards your Consul DNS servers. Misconfigurations may cause other DNS infrastructure to route queries for the `consul.` domain outside of your network instead, leaking DNS queries to root DNS servers. Refer to [Forward DNS for Consul Service Discovery](/consul/tutorials/networking/dns-forwarding) for instructions.
+
 ### Enable non-Consul queries
 You enable non-Consul queries to be resolved by setting Consul as the DNS server for a node and providing a [`recursors`](/consul/docs/agent/config/config-files#recursors) configuration.
 

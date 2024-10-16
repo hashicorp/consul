@@ -10,15 +10,9 @@ import (
 	"net/netip"
 	"reflect"
 	"sort"
-	"strings"
 
 	"github.com/hashicorp/consul/api"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	V1DefaultPortName = "legacy"
 )
 
 type Topology struct {
@@ -252,14 +246,6 @@ type Cluster struct {
 	// components.
 	Enterprise bool `json:",omitempty"`
 
-	// Services is a forward declaration of V2 services. This goes in hand with
-	// the V2Services field on the Service (instance) struct.
-	//
-	// Use of this is optional. If you elect not to use it, then v2 Services
-	// definitions are inferred from the list of service instances defined on
-	// the nodes in this cluster.
-	Services map[ID]*pbcatalog.Service `json:"omitempty"`
-
 	// Nodes is the definition of the nodes (agent-less and agent-ful).
 	Nodes []*Node
 
@@ -294,14 +280,6 @@ type Cluster struct {
 	//
 	// Denormalized during compile.
 	Peerings map[string]*PeerCluster `json:",omitempty"`
-
-	// EnableV2 activates V2 on the servers. If any node in the cluster needs
-	// V2 this will be turned on automatically.
-	EnableV2 bool `json:",omitempty"`
-
-	// EnableV2Tenancy activates V2 tenancy on the servers. If not enabled,
-	// V2 resources are bridged to V1 tenancy counterparts.
-	EnableV2Tenancy bool `json:",omitempty"`
 
 	// Segments is a map of network segment name and the ports
 	Segments map[string]int
@@ -505,14 +483,6 @@ const (
 	NodeKindDataplane NodeKind = "dataplane"
 )
 
-type NodeVersion string
-
-const (
-	NodeVersionUnknown NodeVersion = ""
-	NodeVersionV1      NodeVersion = "v1"
-	NodeVersionV2      NodeVersion = "v2"
-)
-
 type NetworkSegment struct {
 	Name string
 	Port int
@@ -521,7 +491,6 @@ type NetworkSegment struct {
 // TODO: rename pod
 type Node struct {
 	Kind      NodeKind
-	Version   NodeVersion
 	Partition string // will be not empty
 	Name      string // logical name
 
@@ -534,8 +503,6 @@ type Node struct {
 
 	Addresses []*Address
 	Workloads []*Workload
-	// Deprecated: use Workloads
-	Services []*Workload
 
 	// denormalized at topology compile
 	Cluster    string
@@ -685,14 +652,6 @@ func (n *Node) PublicProxyPort() int {
 	panic("node has no public network")
 }
 
-func (n *Node) IsV2() bool {
-	return n.Version == NodeVersionV2
-}
-
-func (n *Node) IsV1() bool {
-	return !n.IsV2()
-}
-
 func (n *Node) IsServer() bool {
 	return n.Kind == NodeKindServer
 }
@@ -723,15 +682,6 @@ func (n *Node) SortedWorkloads() []*Workload {
 		return out[i].ID.Less(out[j].ID)
 	})
 	return out
-}
-
-func (n *Node) NeedsTransparentProxy() bool {
-	for _, svc := range n.Workloads {
-		if svc.EnableTransparentProxy {
-			return true
-		}
-	}
-	return false
 }
 
 // DigestExposedPorts returns true if it was changed.
@@ -768,62 +718,11 @@ func (n *Node) WorkloadByID(id ID) *Workload {
 	panic("workload not found: " + id.String())
 }
 
-// Protocol is a convenience function to use when authoring topology configs.
-func Protocol(s string) (pbcatalog.Protocol, bool) {
-	switch strings.ToLower(s) {
-	case "tcp":
-		return pbcatalog.Protocol_PROTOCOL_TCP, true
-	case "http":
-		return pbcatalog.Protocol_PROTOCOL_HTTP, true
-	case "http2":
-		return pbcatalog.Protocol_PROTOCOL_HTTP2, true
-	case "grpc":
-		return pbcatalog.Protocol_PROTOCOL_GRPC, true
-	case "mesh":
-		return pbcatalog.Protocol_PROTOCOL_MESH, true
-	default:
-		return pbcatalog.Protocol_PROTOCOL_UNSPECIFIED, false
-	}
-}
-
-type Port struct {
-	Number   int
-	Protocol string `json:",omitempty"`
-
-	// denormalized at topology compile
-	ActualProtocol pbcatalog.Protocol `json:",omitempty"`
-}
-
 type Workload struct {
 	ID    ID
 	Image string
 
-	// Port is the v1 single-port of this service.
 	Port int `json:",omitempty"`
-
-	// Ports is the v2 multi-port list for this service.
-	//
-	// This only applies for multi-port (v2).
-	Ports map[string]*Port `json:",omitempty"`
-
-	// V2Services contains service names (which are merged with the tenancy
-	// info from ID) to resolve services in the Services slice in the Cluster
-	// definition.
-	//
-	// If omitted it is inferred that the ID.Name field is the singular service
-	// for this workload.
-	//
-	// This only applies for multi-port (v2).
-	V2Services []string `json:",omitempty"`
-
-	// WorkloadIdentity contains named WorkloadIdentity to assign to this
-	// workload.
-	//
-	// If omitted it is inferred that the ID.Name field is the singular
-	// identity for this workload.
-	//
-	// This only applies for multi-port (v2).
-	WorkloadIdentity string `json:",omitempty"`
 
 	Disabled bool `json:",omitempty"` // TODO
 
@@ -842,55 +741,19 @@ type Workload struct {
 	Command []string `json:",omitempty"` // optional
 	Env     []string `json:",omitempty"` // optional
 
-	EnableTransparentProxy bool           `json:",omitempty"`
-	DisableServiceMesh     bool           `json:",omitempty"`
-	IsMeshGateway          bool           `json:",omitempty"`
-	Destinations           []*Destination `json:",omitempty"`
-	ImpliedDestinations    []*Destination `json:",omitempty"`
-
-	// Deprecated: Destinations
-	Upstreams []*Destination `json:",omitempty"`
-	// Deprecated: ImpliedDestinations
-	ImpliedUpstreams []*Destination `json:",omitempty"`
+	DisableServiceMesh bool        `json:",omitempty"`
+	IsMeshGateway      bool        `json:",omitempty"`
+	Upstreams          []*Upstream `json:",omitempty"`
 
 	// denormalized at topology compile
-	Node        *Node       `json:"-"`
-	NodeVersion NodeVersion `json:"-"`
-	Workload    string      `json:"-"`
+	Node *Node `json:"-"`
 }
 
-func (w *Workload) ExposedPort(name string) int {
+func (w *Workload) ExposedPort() int {
 	if w.Node == nil {
 		panic("ExposedPort cannot be called until after Compile")
 	}
-
-	var internalPort int
-	if name == "" {
-		internalPort = w.Port
-	} else {
-		port, ok := w.Ports[name]
-		if !ok {
-			panic("port with name " + name + " not present on service")
-		}
-		internalPort = port.Number
-	}
-
-	return w.Node.ExposedPort(internalPort)
-}
-
-func (w *Workload) PortOrDefault(name string) int {
-	if len(w.Ports) > 0 {
-		return w.Ports[name].Number
-	}
-	return w.Port
-}
-
-func (w *Workload) IsV2() bool {
-	return w.NodeVersion == NodeVersionV2
-}
-
-func (w *Workload) IsV1() bool {
-	return !w.IsV2()
+	return w.Node.ExposedPort(w.Port)
 }
 
 func (w *Workload) inheritFromExisting(existing *Workload) {
@@ -899,19 +762,7 @@ func (w *Workload) inheritFromExisting(existing *Workload) {
 
 func (w *Workload) ports() []int {
 	var out []int
-	if len(w.Ports) > 0 {
-		seen := make(map[int]struct{})
-		for _, port := range w.Ports {
-			if port == nil {
-				continue
-			}
-			if _, ok := seen[port.Number]; !ok {
-				// It's totally fine to expose the same port twice in a workload.
-				seen[port.Number] = struct{}{}
-				out = append(out, port.Number)
-			}
-		}
-	} else if w.Port > 0 {
+	if w.Port > 0 {
 		out = append(out, w.Port)
 	}
 	if w.EnvoyAdminPort > 0 {
@@ -920,9 +771,9 @@ func (w *Workload) ports() []int {
 	if w.EnvoyPublicListenerPort > 0 {
 		out = append(out, w.EnvoyPublicListenerPort)
 	}
-	for _, dest := range w.Destinations {
-		if dest.LocalPort > 0 {
-			out = append(out, dest.LocalPort)
+	for _, us := range w.Upstreams {
+		if us.LocalPort > 0 {
+			out = append(out, us.LocalPort)
 		}
 	}
 	return out
@@ -950,78 +801,14 @@ func (w *Workload) Validate() error {
 		return fmt.Errorf("service image is required")
 	}
 
-	if len(w.Upstreams) > 0 {
-		w.Destinations = append(w.Destinations, w.Upstreams...)
-		w.Upstreams = nil
-	}
-	if len(w.ImpliedUpstreams) > 0 {
-		w.ImpliedDestinations = append(w.ImpliedDestinations, w.ImpliedUpstreams...)
-		w.ImpliedUpstreams = nil
-	}
-
-	if w.IsV2() {
-		if len(w.Ports) > 0 && w.Port > 0 {
-			return fmt.Errorf("cannot specify both singleport and multiport on service in v2")
-		}
-		if w.Port > 0 {
-			w.Ports = map[string]*Port{
-				V1DefaultPortName: {
-					Number:   w.Port,
-					Protocol: "tcp",
-				},
-			}
-			w.Port = 0
-		}
-		if w.Ports == nil {
-			w.Ports = make(map[string]*Port)
-		}
-
-		if !w.DisableServiceMesh && w.EnvoyPublicListenerPort > 0 {
-			w.Ports["mesh"] = &Port{
-				Number:   w.EnvoyPublicListenerPort,
-				Protocol: "mesh",
-			}
-		}
-
-		for name, port := range w.Ports {
-			if port == nil {
-				return fmt.Errorf("cannot be nil")
-			}
-			if port.Number <= 0 {
-				return fmt.Errorf("service has invalid port number %q", name)
-			}
-			if port.ActualProtocol != pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
-				return fmt.Errorf("user cannot specify ActualProtocol field")
-			}
-
-			proto, valid := Protocol(port.Protocol)
-			if !valid {
-				return fmt.Errorf("service has invalid port protocol %q", port.Protocol)
-			}
-			port.ActualProtocol = proto
-		}
-	} else {
-		if len(w.Ports) > 0 {
-			return fmt.Errorf("cannot specify multiport on service in v1")
-		}
-		if w.Port <= 0 {
-			return fmt.Errorf("service has invalid port")
-		}
-		if w.EnableTransparentProxy {
-			return fmt.Errorf("tproxy does not work with v1 yet")
-		}
+	if w.Port <= 0 {
+		return fmt.Errorf("service has invalid port")
 	}
 	if w.DisableServiceMesh && w.IsMeshGateway {
 		return fmt.Errorf("cannot disable service mesh and still run a mesh gateway")
 	}
-	if w.DisableServiceMesh && len(w.Destinations) > 0 {
-		return fmt.Errorf("cannot disable service mesh and configure destinations")
-	}
-	if w.DisableServiceMesh && len(w.ImpliedDestinations) > 0 {
-		return fmt.Errorf("cannot disable service mesh and configure implied destinations")
-	}
-	if w.DisableServiceMesh && w.EnableTransparentProxy {
-		return fmt.Errorf("cannot disable service mesh and activate tproxy")
+	if w.DisableServiceMesh && len(w.Upstreams) > 0 {
+		return fmt.Errorf("cannot disable service mesh and configure upstreams")
 	}
 
 	if w.DisableServiceMesh {
@@ -1034,59 +821,36 @@ func (w *Workload) Validate() error {
 		}
 	}
 
-	for _, dest := range w.Destinations {
-		if dest.ID.Name == "" {
-			return fmt.Errorf("destination service name is required")
+	for _, us := range w.Upstreams {
+		if us.ID.Name == "" {
+			return fmt.Errorf("upstream service name is required")
 		}
-		if dest.LocalPort <= 0 {
-			return fmt.Errorf("destination local port is required")
+		if us.LocalPort <= 0 {
+			return fmt.Errorf("upstream local port is required")
 		}
 
-		if dest.LocalAddress != "" {
-			ip := net.ParseIP(dest.LocalAddress)
+		if us.LocalAddress != "" {
+			ip := net.ParseIP(us.LocalAddress)
 			if ip == nil {
-				return fmt.Errorf("destination local address is invalid: %s", dest.LocalAddress)
+				return fmt.Errorf("upstream local address is invalid: %s", us.LocalAddress)
 			}
-		}
-		if dest.Implied {
-			return fmt.Errorf("implied field cannot be set")
-		}
-	}
-	for _, dest := range w.ImpliedDestinations {
-		if dest.ID.Name == "" {
-			return fmt.Errorf("implied destination service name is required")
-		}
-		if dest.LocalPort > 0 {
-			return fmt.Errorf("implied destination local port cannot be set")
-		}
-		if dest.LocalAddress != "" {
-			return fmt.Errorf("implied destination local address cannot be set")
 		}
 	}
 
 	return nil
 }
 
-type Destination struct {
+type Upstream struct {
 	ID           ID
 	LocalAddress string `json:",omitempty"` // defaults to 127.0.0.1
 	LocalPort    int
 	Peer         string `json:",omitempty"`
 
-	// PortName is the port of this Destination to route traffic to.
-	//
-	// For more details on potential values of this field, see documentation
-	// for Service.ServicePort.
-	//
-	// This only applies for multi-port (v2).
-	PortName string `json:",omitempty"`
 	// TODO: what about mesh gateway mode overrides?
 
 	// computed at topology compile
-	Cluster     string       `json:",omitempty"`
-	Peering     *PeerCluster `json:",omitempty"` // this will have Link!=nil
-	Implied     bool         `json:",omitempty"`
-	VirtualPort uint32       `json:",omitempty"`
+	Cluster string       `json:",omitempty"`
+	Peering *PeerCluster `json:",omitempty"` // this will have Link!=nil
 }
 
 type Peering struct {

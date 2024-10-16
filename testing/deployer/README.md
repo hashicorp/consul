@@ -12,7 +12,7 @@ provider to manage a fleet of local docker containers and networks.
 
 The complete topology of Consul clusters is defined using a topology.Config
 which allows you to define a set of networks and reference those networks when
-assigning nodes and services to clusters. Both Consul clients and
+assigning nodes and workloads to clusters. Both Consul clients and
 `consul-dataplane` instances are supported.
 
 Here is an example configuration with two peered clusters:
@@ -39,9 +39,9 @@ cfg := &topology.Config{
                 {
                     Kind: topology.NodeKindClient,
                     Name: "dc1-client1",
-                    Services: []*topology.Service{
+                    Workloads: []*topology.Workload{
                         {
-                            ID:             topology.ServiceID{Name: "mesh-gateway"},
+                            ID:             topology.ID{Name: "mesh-gateway"},
                             Port:           8443,
                             EnvoyAdminPort: 19000,
                             IsMeshGateway:  true,
@@ -51,9 +51,9 @@ cfg := &topology.Config{
                 {
                     Kind: topology.NodeKindClient,
                     Name: "dc1-client2",
-                    Services: []*topology.Service{
+                    Workloads: []*topology.Workload{
                         {
-                            ID:             topology.ServiceID{Name: "ping"},
+                            ID:             topology.ID{Name: "ping"},
                             Image:          "rboyer/pingpong:latest",
                             Port:           8080,
                             EnvoyAdminPort: 19000,
@@ -65,7 +65,7 @@ cfg := &topology.Config{
                                 "-name", "ping",
                             },
                             Upstreams: []*topology.Upstream{{
-                                ID:        topology.ServiceID{Name: "pong"},
+                                ID:        topology.ID{Name: "pong"},
                                 LocalPort: 9090,
                                 Peer:      "peer-dc2-default",
                             }},
@@ -99,9 +99,9 @@ cfg := &topology.Config{
                 {
                     Kind: topology.NodeKindClient,
                     Name: "dc2-client1",
-                    Services: []*topology.Service{
+                    Workloads: []*topology.Workload{
                         {
-                            ID:             topology.ServiceID{Name: "mesh-gateway"},
+                            ID:             topology.ID{Name: "mesh-gateway"},
                             Port:           8443,
                             EnvoyAdminPort: 19000,
                             IsMeshGateway:  true,
@@ -111,9 +111,9 @@ cfg := &topology.Config{
                 {
                     Kind: topology.NodeKindDataplane,
                     Name: "dc2-client2",
-                    Services: []*topology.Service{
+                    Workloads: []*topology.Workload{
                         {
-                            ID:             topology.ServiceID{Name: "pong"},
+                            ID:             topology.ID{Name: "pong"},
                             Image:          "rboyer/pingpong:latest",
                             Port:           8080,
                             EnvoyAdminPort: 19000,
@@ -125,7 +125,7 @@ cfg := &topology.Config{
                                 "-name", "pong",
                             },
                             Upstreams: []*topology.Upstream{{
-                                ID:        topology.ServiceID{Name: "ping"},
+                                ID:        topology.ID{Name: "ping"},
                                 LocalPort: 9090,
                                 Peer:      "peer-dc1-default",
                             }},

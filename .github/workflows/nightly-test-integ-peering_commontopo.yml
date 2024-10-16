@@ -6,7 +6,7 @@ name: Nightly test integrations - peering_common_topo
 on:
   schedule:
     # Run nightly at 12AM UTC/8PM EST/5PM PST
-    - cron: '* 0 * * *'
+    - cron: '0 0 * * *'
   workflow_dispatch: {}
 
 env:
@@ -31,7 +31,7 @@ jobs:
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           ref: ${{ inputs.branch }}
       - id: runners
@@ -39,12 +39,20 @@ jobs:
 
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
+    with:
+      ref: ${{ inputs.branch }}
+
+  get-envoy-versions:
+    uses: ./.github/workflows/reusable-get-envoy-versions.yml
+    with:
+      ref: ${{ inputs.branch }}
 
   tests:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl ) }}
     needs:
       - setup
       - get-go-version
+      - get-envoy-versions
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -62,14 +70,14 @@ jobs:
     name: '${{matrix.test-case}}'
 
     env:
-      ENVOY_VERSION: "1.24.6"
+      ENVOY_VERSION: ${{ needs.get-envoy-versions.outputs.max-envoy-version }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
@@ -117,7 +125,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -157,7 +165,7 @@ jobs:
       - name: Notify Slack
         if: ${{ failure() }}
         id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
         with:
           payload: |
             {

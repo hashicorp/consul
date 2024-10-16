@@ -2,28 +2,30 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 ID {
-  Type = gvk("mesh.v2beta1.Destinations")
-  Name = "api"
+  Type = gvk("demo.v2.Festival")
+  Name = "woodstock"
 }
 
 Data {
-  Workloads {
-    Prefixes = ["api"]
-  }
+  Genres = [
+    "GENRE_JAZZ",
+    "GENRE_FOLK",
+    "GENRE_BLUES",
+    "GENRE_ROCK",
+  ]
 
-  Destinations = [
+  Artists = [
     {
-      DestinationRef = {
-        Type = gvk("catalog.v2beta1.Service")
-        Name = "db"
-      }
-
-      DestinationPort = "tcp"
-
-      IpPort = {
-        Ip   = "127.0.0.1"
-        Port = 1234
-      }
+      Name  = "Arlo Guthrie"
+      Genre = "GENRE_FOLK"
+    },
+    {
+      Name  = "Santana"
+      Genre = "GENRE_BLUES"
+    },
+    {
+      Name  = "Grateful Dead"
+      Genre = "GENRE_ROCK"
     }
   ]
 }

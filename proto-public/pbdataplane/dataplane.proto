@@ -9,7 +9,6 @@ package hashicorp.consul.dataplane;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/struct.proto";
-import "pbmesh/v2beta1/proxy_configuration.proto";
 
 message GetSupportedDataplaneFeaturesRequest {}
 
@@ -92,13 +91,12 @@ message GetEnvoyBootstrapParamsResponse {
   // If the service is a connect proxy it will be the name of
   // the proxy's destination service, for gateways it will be the gateway
   // service's name.
-  // For v2, this should be the workload identity name.
   string identity = 10;
   string namespace = 3;
   string partition = 4;
   string datacenter = 5;
   google.protobuf.Struct config = 6;
-  hashicorp.consul.mesh.v2beta1.BootstrapConfig bootstrap_config = 11;
+  reserved 11; // formerly v2 bootstrap_config
 
   reserved 7;
 

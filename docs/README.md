@@ -86,3 +86,4 @@ in the editor) to maintain a consistent Consul style for the diagrams.
 [mermaid-js live editor]: https://mermaid-js.github.io/mermaid-live-editor/edit/
 [mermaid-js docs]: https://mermaid-js.github.io/mermaid/
 [consul-mermaid-theme.json]: ./consul-mermaid-theme.json
+

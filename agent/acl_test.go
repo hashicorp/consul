@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 
@@ -21,12 +23,11 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-
-	"github.com/stretchr/testify/require"
 )
 
 type authzResolver func(string) (structs.ACLIdentity, acl.Authorizer, error)
@@ -128,7 +129,7 @@ func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *acl.
 }
 
 // All of these are stubs to satisfy the interface
-func (a *TestACLAgent) GetLANCoordinate() (lib.CoordinateSet, error) {
+func (a *TestACLAgent) GetLANCoordinate() (librtt.CoordinateSet, error) {
 	return nil, fmt.Errorf("Unimplemented")
 }
 func (a *TestACLAgent) Leave() error {

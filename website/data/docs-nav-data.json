@@ -49,7 +49,7 @@
         "path": "install"
       },
       {
-        "title": "Learn HCP Consul",
+        "title": "Learn HCP Consul Dedicated",
         "href": "https://developer.hashicorp.com/consul/tutorials/get-started-hcp"
       },
       {
@@ -107,23 +107,6 @@
         "path": "architecture/catalog"
       },
       {
-        "title": "v2 architecture",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "architecture/v2"
-          },
-          {
-            "title": "Catalog",
-            "path": "architecture/v2/catalog"
-          },
-          {
-            "title": "Resource groups",
-            "path": "architecture/v2/groups"
-          }
-        ]
-      },
-      {
         "title": "Improving Consul Resilience",
         "path": "architecture/improving-consul-resilience"
       },
@@ -150,6 +133,10 @@
       {
         "title": "Consul at Scale",
         "path": "architecture/scale"
+      },
+      {
+        "title": "Consul Capacity Planning",
+        "path": "architecture/capacity-planning"
       }
     ]
   },
@@ -166,6 +153,10 @@
       {
         "title": "Consul",
         "routes": [
+          {
+            "title": "v1.20.x",
+            "path": "release-notes/consul/v1_20_x"
+          },
           {
             "title": "v1.19.x",
             "path": "release-notes/consul/v1_19_x"
@@ -215,6 +206,14 @@
       {
         "title": "Consul K8s",
         "routes": [
+          {
+            "title": "v1.6.x",
+            "path": "release-notes/consul-k8s/v1_6_x"
+          },
+          {
+            "title": "v1.5.x",
+            "path": "release-notes/consul-k8s/v1_5_x"
+          },
           {
             "title": "v1.4.x",
             "path": "release-notes/consul-k8s/v1_4_x"
@@ -399,6 +398,19 @@
             "path": "services/discovery/dns-configuration"
           },
           {
+            "title": "DNS forwarding",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "services/discovery/dns-forwarding"
+              },
+              {
+                "title": "Enable DNS forwarding",
+                "path": "services/discovery/dns-forwarding/enable"
+              }
+            ]
+          },
+          {
             "title": "Perform static DNS lookups",
             "path": "services/discovery/dns-static-lookups"
           },
@@ -496,6 +508,10 @@
           {
             "title": "Proxy defaults",
             "path": "connect/config-entries/proxy-defaults"
+          },
+          {
+            "title": "Registration",
+            "path": "connect/config-entries/registration"
           },
           {
             "title": "Sameness Group",
@@ -666,6 +682,10 @@
           {
             "title": "Access Logs",
             "path": "connect/observability/access-logs"
+          },
+          {
+            "title": "Monitor service-to-service communication",
+            "path": "connect/observability/service"
           },
           {
             "title": "UI Visualization",
@@ -1042,7 +1062,16 @@
       },
       {
         "title": "Sessions",
-        "path": "dynamic-app-config/sessions"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "dynamic-app-config/sessions"
+          },
+          {
+            "title": "Application leader election",
+            "path": "dynamic-app-config/sessions/application-leader-election"
+          }
+        ]
       },
       {
         "title": "Watches",
@@ -1056,6 +1085,23 @@
       {
         "title": "Overview",
         "path": "security"
+      },
+      {
+        "title": "Security Models",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "security/security-models"
+          },
+          {
+            "title": "Core",
+            "path": "security/security-models/core"
+          },
+          {
+            "title": "Network Infrastructure Automation",
+            "path": "security/security-models/nia"
+          }
+        ]
       },
       {
         "title": "Access Control (ACLs)",
@@ -1167,22 +1213,18 @@
       },
       {
         "title": "Encryption",
-        "path": "security/encryption"
-      },
-      {
-        "title": "Security Models",
         "routes": [
           {
             "title": "Overview",
-            "path": "security/security-models"
+            "path": "security/encryption"
           },
           {
-            "title": "Core",
-            "path": "security/security-models/core"
+            "title": "Gossip encryption",
+            "path": "security/encryption/gossip"
           },
           {
-            "title": "Network Infrastructure Automation",
-            "path": "security/security-models/nia"
+            "title": "mTLS",
+            "path": "security/encryption/mtls"
           }
         ]
       }
@@ -1251,8 +1293,21 @@
         "path": "agent/config-entries"
       },
       {
-        "title": "Telemetry",
-        "path": "agent/telemetry"
+        "title": "Monitor Consul",
+        "routes": [
+          {
+            "title": "Agent telemetry",
+            "path": "agent/monitor/telemetry"
+          },
+          {
+            "title": "Monitor components",
+            "path": "agent/monitor/components"
+          },
+          {
+            "title": "Recommendations",
+            "path": "agent/monitor/alerts"
+          }
+        ]
       },
       {
         "title": "Sentinel",
@@ -1370,6 +1425,10 @@
             "path": "k8s/deployment-configurations/consul-enterprise"
           },
           {
+            "title": "Argo Rollouts Progressive Delivery",
+            "path": "k8s/deployment-configurations/argo-rollouts-configuration"
+          },
+          {
             "title": "Multi-Cluster Federation",
             "routes": [
               {
@@ -1451,6 +1510,10 @@
           {
             "title": "Datadog metrics",
             "path": "k8s/deployment-configurations/datadog"
+          },
+          {
+            "title": "Register external services",
+            "path": "k8s/deployment-configurations/external-service"
           }
         ]
       },
@@ -1581,48 +1644,6 @@
         ]
       },
       {
-        "title": "V2 Catalog API",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "k8s/multiport"
-          },
-          {
-            "title": "Configure multi-port services",
-            "path": "k8s/multiport/configure"
-          },
-          {
-            "title": "Split TCP traffic between multiple ports",
-            "path": "k8s/multiport/traffic-split"
-          },
-          {
-            "title": "Reference",
-            "routes": [
-              {
-                "title": "GRPCRoute resource",
-                "path": "k8s/multiport/reference/grpcroute"
-              },
-              {
-                "title": "HTTPRoute resource",
-                "path": "k8s/multiport/reference/httproute"
-              },
-              {
-                "title": "ProxyConfiguration resource",
-                "path": "k8s/multiport/reference/proxyconfiguration"
-              },
-              {
-                "title": "TCPRoute resource",
-                "path": "k8s/multiport/reference/tcproute"
-              },
-              {
-                "title": "TrafficPermissions resource",
-                "path": "k8s/multiport/reference/trafficpermissions"
-              }
-            ]
-          }
-        ]
-      },
-      {
         "title": "L7 traffic management",
         "routes": [
           {
@@ -1662,7 +1683,25 @@
       },
       {
         "title": "Consul DNS",
-        "path": "k8s/dns"
+        "routes": [
+          {
+            "title": "DNS proxy for service discovery",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "k8s/dns/views"
+              },
+              {
+                "title": "Enable Consul DNS proxy",
+                "path": "k8s/dns/views/enable"
+              }
+            ]
+          },
+          {
+          "title": "Enable on dataplanes",
+          "path": "k8s/dns/enable"
+          }
+        ]
       },
       {
         "title": "Upgrade",
@@ -1852,7 +1891,7 @@
     "divider": true
   },
   {
-    "title": "HCP Consul",
+    "title": "HCP Consul Dedicated",
     "href": "https://cloud.hashicorp.com/docs/consul"
   },
   {

@@ -63,8 +63,8 @@ jobs:
     outputs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ inputs.go-version }}
       - id: set-matrix
@@ -86,12 +86,20 @@ jobs:
           ulimit -Sa
           echo "Hard limits"
           ulimit -Ha   
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # upload-artifact requires a unique ID per run. These steps will be repeated with the matrix run, and other unit tests
+      # will also overlap with the names here. We use a random string rather than trying to do trickery 
+      # with the package matrix.
+      - id: generate-matrix-id
+        run: |
+          MATRIX_RUN_ID=$(head /dev/urandom | tr -dc A-Z | head -c8)
+          echo "The matrix run ID is $MATRIX_RUN_ID"
+          echo "matrix-run-id=$MATRIX_RUN_ID" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ inputs.go-version }}
       - run: mkdir -p ${{env.TEST_RESULTS}}
@@ -99,7 +107,7 @@ jobs:
         working-directory: ${{inputs.directory}}
         run: go mod download
       - name: Download consul
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: ${{inputs.uploaded-binary-name}}
           path: ${{inputs.directory}} 
@@ -143,7 +151,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -164,15 +172,15 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: ${{ !cancelled() }}
         with:
-          name: test-results
+          name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-test-results
           path: ${{env.TEST_RESULTS}}
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: ${{ !cancelled() }}
         with:
-          name: jsonfile
+          name: ${{ steps.generate-matrix-id.outputs.matrix-run-id }}-jsonfile
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         if: ${{ !cancelled() }}

@@ -5,7 +5,7 @@ description: >-
   The NIA security model details requirements and recommendations for securing your Consul-Terraform-Sync (CTS) deployment. Learn about potential threats and how to protect CTS from malicious actors.
 ---
 
-## Overview
+# Network Infrastructure Automation (NIA) overview
 
 Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes using the [Consul Terraform Sync](https://github.com/hashicorp/consul-terraform-sync) (`consul-terraform-sync`) daemon. This daemon uses Consul's catalog to monitor networking information about services along with [Terraform](https://www.terraform.io/)'s provider ecosystem to apply relevant changes to network infrastructure.
 
@@ -13,7 +13,7 @@ The [Secure Consul-Terraform-Sync for Production](/consul/tutorials/network-infr
 tutorial contains a checklist of best practices to secure your 
 Consul-Terraform-Sync installation for a production environment.
 
-### Personas
+## Personas
 
 When considering Consul NIA's security model, it helps to think of the following personas.
 
@@ -32,7 +32,7 @@ When considering Consul NIA's security model, it helps to think of the following
   have no knowledge or access to the daemon's API endpoints, ACL tokens, certificates, or any other
   piece of the system.
 
-### Secure Configuration
+## Secure Configuration
 
 Consul NIA's security model is applicable only if all parts of the system are running with a secure
 configuration; `consul-terraform-sync` is not secure-by-default. Without the following mechanisms enabled in the
@@ -40,7 +40,7 @@ daemon's configuration, it may be possible to abuse access to the daemon. Like a
 considerations, one must determine what concerns are appropriate for their environment, and adapt these
 security concerns accordingly.
 
-#### Requirements
+## Requirements
 
 - **Protect Configuration Files and Directories** - A dedicated NIA user and group with limited
   permissions should be created for production, along with directory, and file permissions appropriately
@@ -68,7 +68,7 @@ security concerns accordingly.
   - **Read** permission for Consul Catalog for all of the selected services to be monitored, and their namespaces.
   - **Read + Write** permission to update health checks, when using NIA health monitoring.
 
-#### Recommendations
+## Recommendations
 
 - **Use Dedicated Host** - The NIA daemon will potentially have access to critical secrets for your environment's
   network infrastructure. Using a hardened, dedicated host, for supporting these sensitive operations is highly recommended.
@@ -85,7 +85,7 @@ security concerns accordingly.
   are configured with the NIA daemon should be audited to ensure you're only using providers from sources that
   you trust.
 
-### Threat Model
+## Threat Model
 
 The following are the parts of the NIA threat model:
 
@@ -131,7 +131,7 @@ a production deployment:
 - **Access to the Consul-Terraform-Sync Binary** - Direct access to the system binary used to start the NIA daemon can allow
   an attacker to extract sensitive information.
 
-#### Internal Threats
+## Internal Threats
 
 - **NIA Operator** - Someone with access to the NIA Host, and it's related binaries or configuration files may be a
   threat to your deployment, especially considering multi-team deployments. They may accidentally or intentionally use a
@@ -150,7 +150,7 @@ a production deployment:
   means. Extra steps to configuring OS, cluster, service, user, directory, and file permissions are essential steps for
   implementing defense-in-depth within a production environment.
 
-#### External Threats
+## External Threats
 
 - **Terraform Providers and Modules** - Potentially malicious providers or modules, or any malicious dependencies part
   of the Terraform ecosystem could cause harm to the network, and may have access to secrets in order to make necessary

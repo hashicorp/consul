@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Consul ports reference
-description: Find information about the ports that Consul requires for its networking functions, including required ports for HCP Consul. Required ports differ for Consul servers and clients.
+description: Find information about the ports that Consul requires for its networking functions, including required ports for HCP Consul Dedicated. Required ports differ for Consul servers and clients.
 ---
 
 # Consul ports reference
@@ -16,13 +16,13 @@ The exact ports that Consul requires depend on your network's specific configura
 
 There are slight differences between the port requirements for Consul servers and clients. When a Consul server has services, proxies, or gateways registered to it, then it acts as both a server and client.
 
-HashiCorp-managed servers deployed using [HCP Consul](/hcp/docs/consul) have distinct port assignments. For more information, refer to [cluster management in the HCP documentation](https://developer.hashicorp.com/hcp/docs/consul/concepts/cluster-management#hashicorp-managed-clusters).
+[HCP Consul Dedicated servers](/hcp/docs/consul) have distinct port assignments. For more information, refer to [cluster management in the HCP documentation](https://developer.hashicorp.com/hcp/docs/consul/concepts/cluster-management#hashicorp-managed-clusters).
 
 ## Consul servers
 
-The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, port assignments for HashiCorp-managed server clusters, and the direction of traffic from the Consul server's perspective.
+The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, port assignments for HCP Consul Dedicated server clusters, and the direction of traffic from the Consul server's perspective.
 
-| Port name                 | Use                                        | Protocol    | Default port | Default status | HCP-managed port | Direction             |
+| Port name                 | Use                                        | Protocol    | Default port | Default status | HCP Consul Dedicated port | Direction             |
 | :------------------------ | :----------------------------------------- | :---------- | :----------- | :------------- | :--------------- | :-------------------- |
 | [DNS](#dns)               | The DNS server                             | TCP and UDP | `8600`       | Enabled        | Unsupported      | Incoming              |
 | [HTTP](#http)             | The HTTP API                               | TCP         | `8500`       | Enabled        | Unsupported      | Incoming              |
@@ -47,7 +47,7 @@ The server's DNS port does not need to be open when DNS queries are sent to Cons
 
 If you configure recursors in Consul to upstream DNS servers, then you need outbound access to those servers on port `53`.
 
-To resolve Consul DNS requests when using HashiCorp-managed servers on HCP Consul, we recommend running Consul clients and resolving DNS against the clients. If your use case cannot accomodate this recommendation, open a support ticket.
+To resolve Consul DNS requests when using HCP Consul Dedicated, we recommend running Consul clients and resolving DNS against the clients. If your use case cannot accommodate this recommendation, open a support ticket.
 
 ### HTTP
 
@@ -63,13 +63,13 @@ The server's HTTP port does not need to be open when Consul clients service all 
 
 The Consul CLI uses the HTTP port to interact with Consul by default.
 
-HCP Consul does not support the HTTP port.
+HCP Consul Dedicated does not support the HTTP port.
 
 ### HTTPS
 
 The following table lists information about the Consul server API's HTTPS port defaults:
 
-| Default port | Protocol | Default status      | Hashicorp-managed server port |
+| Default port | Protocol | Default status      | HCP Consul Dedicated server port |
 | :----------- | :------- | :------------------ | :---------------------------- |
 | `8501`       | TCP      | Disabled by default | `443`                         |
 
@@ -79,7 +79,7 @@ The server HTTPS port does not need to be open when Consul clients service all H
 
 This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
 
-HCP Consul assigns port `443` to HashiCorp-managed clusters, instead of the default `8501`.
+HCP Consul Dedicated assigns port `443` to HCP Consul Dedicated clusters, instead of the default `8501`.
 
 ### gRPC
 
@@ -93,13 +93,13 @@ When using [Consul Dataplane](/consul/docs/connect/dataplane), this port receive
 
 We recommend using gRPC TLS instead, so this port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
 
-HCP Consul does not support the gRPC port.
+HCP Consul Dedicated does not support the gRPC port.
 
 ### gRPC TLS
 
 The following table lists information about the Consul API's gRPC with TLS port defaults:
 
-| Default port | Protocol | Default status      | Hashicorp-managed server port |
+| Default port | Protocol | Default status      | HCP Consul Dedicated server port |
 | :----------- | :------- | :------------------ | :---------------------------- |
 | `8503`       | TCP      | Enabled by default  | `8502`                        |
 
@@ -113,15 +113,13 @@ In deployments with [cluster peering connections](/consul/docs/connect/cluster-p
 
 In both local and remote cases, incoming traffic comes from the mesh gateways.
 
-HCP Consul assigns port `8502` to HashiCorp-managed clusters, instead of the default `8503`.
-
-When the [v2 catalog](/consul/docs/architecture/v2/catalog) is enabled, all API calls from external systems, such as the Consul CLI and Terraform provider, use this port.
+HCP Consul Dedicated assigns port `8502` to clusters, instead of the default `8503`.
 
 ### Server RPC
 
 The following table lists information about the Server RPC port defaults:
 
-| Default port | Protocol | Default status     | Hashicorp-managed server port |
+| Default port | Protocol | Default status     | HCP Consul Dedicated server port |
 | :----------- | :------- | :----------------- | :---------------------------- |
 | `8300`       | TCP      | Enabled by default | `8300`                        |
 
@@ -135,7 +133,7 @@ When using WAN federation with mesh gateways, Consul servers must accept server 
 
 The following table lists information about the LAN serf port defaults:
 
-| Default port | Protocol    | Default status     | Hashicorp-managed server port |
+| Default port | Protocol    | Default status     | HCP Consul Dedicated server port |
 | :----------- | :-----------| :----------------- | :---------------------------- |
 | `8301`       | TCP and UDP | Enabled by default | `8301`                        |
 
@@ -147,7 +145,7 @@ When running Enterprise deployments that use multiple admin partitions, all Cons
 
 The following table lists information about the WAN serf port defaults:
 
-| Default port | Protocol    | Default status     | Hashicorp-managed server port |
+| Default port | Protocol    | Default status     | HCP Consul Dedicated server port |
 | :----------- | :---------- | :----------------- | :---------------------------- |
 | `8302`       | TCP and UDP | Enabled by default | `8302`                        |
 

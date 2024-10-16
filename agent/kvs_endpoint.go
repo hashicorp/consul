@@ -293,7 +293,7 @@ func conflictingFlags(resp http.ResponseWriter, req *http.Request, flags ...stri
 		if _, ok := params[conflict]; ok {
 			if found {
 				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, "Conflicting flags: "+params.Encode())
+				fmt.Fprintf(resp, "Conflicting flags: %v\n", params.Encode())
 				return true
 			}
 			found = true

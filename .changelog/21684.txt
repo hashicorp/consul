@@ -1,0 +1,6 @@
+```release-note:security
+Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
+[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
+[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912).
+```
+

@@ -1,0 +1,5 @@
+```release-note:security
+Upgrade Go to use 1.21.10. This addresses CVEs 
+[CVE-2024-24787](https://nvd.nist.gov/vuln/detail/CVE-2024-24787) and
+[CVE-2024-24788](https://nvd.nist.gov/vuln/detail/CVE-2024-24788)
+```

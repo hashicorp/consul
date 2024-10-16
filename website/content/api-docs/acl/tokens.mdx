@@ -118,6 +118,8 @@ The corresponding CLI command is [`consul acl token create`](/consul/commands/ac
   This field takes precedence over the `ns` query parameter,
   one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
+@include 'http-api-body-options-partition.mdx'
+
 ### Sample Payload
 
 ```json
@@ -216,6 +218,8 @@ The corresponding CLI command is [`consul acl token read`](/consul/commands/acl/
 
 - `expanded` `(bool: false)` - If this field is set, the contents of all policies and
   roles affecting the token will also be returned.
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -497,6 +501,8 @@ The corresponding CLI command is [`consul acl token update`](/consul/commands/ac
   This field takes precedence over the `ns` query parameter,
   one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
+@include 'http-api-body-options-partition.mdx'
+
 ### Sample Payload
 
 ```json
@@ -591,6 +597,8 @@ The corresponding CLI command is [`consul acl token clone`](/consul/commands/acl
   This field takes precedence over the `ns` query parameter,
   one of several [other methods to specify the namespace](#methods-to-specify-namespace).
 
+@include 'http-api-body-options-partition.mdx'
+
 ### Sample Payload
 
 ```json
@@ -668,6 +676,8 @@ The corresponding CLI command is [`consul acl token delete`](/consul/commands/ac
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the token you delete.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
+@include 'http-api-query-parms-partition.mdx'
+
 ### Sample Request
 
 ```shell-session
@@ -722,6 +732,8 @@ The corresponding CLI command is [`consul acl token list`](/consul/commands/acl/
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Return only the tokens in the specified namespace.
   The namespace may be specified as '\*' to return results for all namespaces.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

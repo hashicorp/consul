@@ -30,8 +30,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-// TODO: Update all tests to use true/false table test for v2tenancy
-
 func TestRead_InputValidation(t *testing.T) {
 	client := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(demo.RegisterTypes).
@@ -160,74 +158,6 @@ func TestRead_TypeNotFound(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
 	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
-}
-
-func TestRead_ResourceNotFound(t *testing.T) {
-	for desc, tc := range readTestCases() {
-		t.Run(desc, func(t *testing.T) {
-			type tenancyCase struct {
-				modFn       func(artistId, recordlabelId *pbresource.ID) *pbresource.ID
-				errContains string
-			}
-			tenancyCases := map[string]tenancyCase{
-				"resource not found by name": {
-					modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-						artistId.Name = "bogusname"
-						return artistId
-					},
-					errContains: "resource not found",
-				},
-				"partition not found when namespace scoped": {
-					modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-						id := clone(artistId)
-						id.Tenancy.Partition = "boguspartition"
-						return id
-					},
-					errContains: "partition not found",
-				},
-				"namespace not found when namespace scoped": {
-					modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-						id := clone(artistId)
-						id.Tenancy.Namespace = "bogusnamespace"
-						return id
-					},
-					errContains: "namespace not found",
-				},
-				"partition not found when partition scoped": {
-					modFn: func(_, recordLabelId *pbresource.ID) *pbresource.ID {
-						id := clone(recordLabelId)
-						id.Tenancy.Partition = "boguspartition"
-						return id
-					},
-					errContains: "partition not found",
-				},
-			}
-			for tenancyDesc, tenancyCase := range tenancyCases {
-				t.Run(tenancyDesc, func(t *testing.T) {
-					client := svctest.NewResourceServiceBuilder().
-						WithV2Tenancy(true).
-						WithRegisterFns(demo.RegisterTypes).
-						Run(t)
-
-					recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
-					require.NoError(t, err)
-					_, err = client.Write(context.Background(), &pbresource.WriteRequest{Resource: recordLabel})
-					require.NoError(t, err)
-
-					artist, err := demo.GenerateV2Artist()
-					require.NoError(t, err)
-					_, err = client.Write(context.Background(), &pbresource.WriteRequest{Resource: artist})
-					require.NoError(t, err)
-
-					// Each tenancy test case picks which resource to use based on the resource type's scope.
-					_, err = client.Read(tc.ctx, &pbresource.ReadRequest{Id: tenancyCase.modFn(artist.Id, recordLabel.Id)})
-					require.Error(t, err)
-					require.Equal(t, codes.NotFound.String(), status.Code(err).String())
-					require.ErrorContains(t, err, tenancyCase.errContains)
-				})
-			}
-		})
-	}
 }
 
 func TestRead_GroupVersionMismatch(t *testing.T) {

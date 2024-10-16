@@ -6,16 +6,6 @@ package topoutil
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/url"
@@ -24,6 +14,18 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
 // Asserter is a utility to help in reducing boilerplate in invoking test
@@ -33,7 +35,7 @@ import (
 // ip/ports if there is only one port that makes sense for the assertion (such
 // as use of the envoy admin port 19000).
 //
-// If it's up to the test (like picking a destination) leave port as an argument
+// If it's up to the test (like picking an upstream) leave port as an argument
 // but still take the service and use that to grab the local ip from the
 // topology.Node.
 type Asserter struct {
@@ -82,12 +84,12 @@ func (a *Asserter) httpClientFor(cluster string) (*http.Client, error) {
 	return client, nil
 }
 
-// DestinationEndpointStatus validates that proxy was configured with provided clusterName in the healthStatus
+// UpstreamEndpointStatus validates that proxy was configured with provided clusterName in the healthStatus
 //
 // Exposes libassert.UpstreamEndpointStatus for use against a Sprawl.
 //
 // NOTE: this doesn't take a port b/c you always want to use the envoy admin port.
-func (a *Asserter) DestinationEndpointStatus(
+func (a *Asserter) UpstreamEndpointStatus(
 	t *testing.T,
 	workload *topology.Workload,
 	clusterName string,
@@ -169,7 +171,7 @@ func (a *Asserter) AssertEnvoyHTTPrbacFiltersContainIntentions(t *testing.T, wor
 //
 // Exposes libassert.HTTPServiceEchoes for use against a Sprawl.
 //
-// NOTE: this takes a port b/c you may want to reach this via your choice of destination.
+// NOTE: this takes a port b/c you may want to reach this via your choice of upstream.
 func (a *Asserter) HTTPServiceEchoes(
 	t *testing.T,
 	workload *topology.Workload,
@@ -193,7 +195,7 @@ func (a *Asserter) HTTPServiceEchoes(
 //
 // Exposes libassert.HTTPServiceEchoes for use against a Sprawl.
 //
-// NOTE: this takes a port b/c you may want to reach this via your choice of destination.
+// NOTE: this takes a port b/c you may want to reach this via your choice of upstream.
 func (a *Asserter) HTTPServiceEchoesResHeader(
 	t *testing.T,
 	workload *topology.Workload,
@@ -266,27 +268,27 @@ type testingT interface {
 	Helper()
 }
 
-// does a fortio /fetch2 to the given fortio service, targetting the given destination. Returns
+// does a fortio /fetch2 to the given fortio service, targetting the given upstream. Returns
 // the body, and response with response.Body already Closed.
 //
 // We treat 400, 503, and 504s as retryable errors
-func (a *Asserter) fortioFetch2Destination(
+func (a *Asserter) fortioFetch2Upstream(
 	t testutil.TestingTB,
 	client *http.Client,
 	addr string,
-	dest *topology.Destination,
+	us *topology.Upstream,
 	path string,
 ) (body []byte, res *http.Response) {
 	t.Helper()
 
-	err, res := getFortioFetch2DestinationResponse(t, client, addr, dest, path, nil)
+	err, res := getFortioFetch2UpstreamResponse(t, client, addr, us, path, nil)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
 	// not sure when these happen, suspect it's when the mesh gateway in the peer is not yet ready
 	require.NotEqual(t, http.StatusServiceUnavailable, res.StatusCode)
 	require.NotEqual(t, http.StatusGatewayTimeout, res.StatusCode)
-	// not sure when this happens, suspect it's when envoy hasn't configured the local destination yet
+	// not sure when this happens, suspect it's when envoy hasn't configured the local upstream yet
 	require.NotEqual(t, http.StatusBadRequest, res.StatusCode)
 	body, err = io.ReadAll(res.Body)
 	require.NoError(t, err)
@@ -294,19 +296,8 @@ func (a *Asserter) fortioFetch2Destination(
 	return body, res
 }
 
-func getFortioFetch2DestinationResponse(t testutil.TestingTB, client *http.Client, addr string, dest *topology.Destination, path string, headers map[string]string) (error, *http.Response) {
-	var actualURL string
-	if dest.Implied {
-		actualURL = fmt.Sprintf("http://%s--%s--%s.virtual.consul:%d/%s",
-			dest.ID.Name,
-			dest.ID.Namespace,
-			dest.ID.Partition,
-			dest.VirtualPort,
-			path,
-		)
-	} else {
-		actualURL = fmt.Sprintf("http://localhost:%d/%s", dest.LocalPort, path)
-	}
+func getFortioFetch2UpstreamResponse(t testutil.TestingTB, client *http.Client, addr string, us *topology.Upstream, path string, headers map[string]string) (error, *http.Response) {
+	actualURL := fmt.Sprintf("http://localhost:%d/%s", us.LocalPort, path)
 
 	url := fmt.Sprintf("http://%s/fortio/fetch2?url=%s", addr,
 		url.QueryEscape(actualURL),
@@ -324,20 +315,20 @@ func getFortioFetch2DestinationResponse(t testutil.TestingTB, client *http.Clien
 }
 
 // uses the /fortio/fetch2 endpoint to do a header echo check against an
-// destination fortio
-func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioWrk *topology.Workload, dest *topology.Destination) {
+// upstream fortio
+func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioWrk *topology.Workload, us *topology.Upstream) {
 	const kPassphrase = "x-passphrase"
 	const passphrase = "hello"
 	path := (fmt.Sprintf("/?header=%s:%s", kPassphrase, passphrase))
 
 	var (
 		node   = fortioWrk.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.PortOrDefault(dest.PortName))
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.Port)
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		_, res := a.fortioFetch2Destination(r, client, addr, dest, path)
+		_, res := a.fortioFetch2Upstream(r, client, addr, us, path)
 		require.Equal(r, http.StatusOK, res.StatusCode)
 		v := res.Header.Get(kPassphrase)
 		require.Equal(r, passphrase, v)
@@ -345,12 +336,12 @@ func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioWrk *topology.Work
 }
 
 // similar to libassert.AssertFortioName,
-// uses the /fortio/fetch2 endpoint to hit the debug endpoint on the destination,
+// uses the /fortio/fetch2 endpoint to hit the debug endpoint on the upstream,
 // and assert that the FORTIO_NAME == name
 func (a *Asserter) FortioFetch2FortioName(
 	t *testing.T,
 	fortioWrk *topology.Workload,
-	dest *topology.Destination,
+	us *topology.Upstream,
 	clusterName string,
 	sid topology.ID,
 ) {
@@ -358,7 +349,7 @@ func (a *Asserter) FortioFetch2FortioName(
 
 	var (
 		node   = fortioWrk.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.PortOrDefault(dest.PortName))
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.Port)
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
@@ -366,7 +357,7 @@ func (a *Asserter) FortioFetch2FortioName(
 	path := "/debug?env=dump"
 
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		body, res := a.fortioFetch2Destination(r, client, addr, dest, path)
+		body, res := a.fortioFetch2Upstream(r, client, addr, us, path)
 
 		require.Equal(r, http.StatusOK, res.StatusCode)
 
@@ -378,24 +369,24 @@ func (a *Asserter) FortioFetch2FortioName(
 	})
 }
 
-func (a *Asserter) FortioFetch2ServiceUnavailable(t *testing.T, fortioWrk *topology.Workload, dest *topology.Destination) {
+func (a *Asserter) FortioFetch2ServiceUnavailable(t *testing.T, fortioWrk *topology.Workload, us *topology.Upstream) {
 	const kPassphrase = "x-passphrase"
 	const passphrase = "hello"
 	path := (fmt.Sprintf("/?header=%s:%s", kPassphrase, passphrase))
-	a.FortioFetch2ServiceStatusCodes(t, fortioWrk, dest, path, nil, []int{http.StatusServiceUnavailable})
+	a.FortioFetch2ServiceStatusCodes(t, fortioWrk, us, path, nil, []int{http.StatusServiceUnavailable})
 }
 
-// FortioFetch2ServiceStatusCodes uses the /fortio/fetch2 endpoint to do a header echo check against a destination
+// FortioFetch2ServiceStatusCodes uses the /fortio/fetch2 endpoint to do a header echo check against a upstream
 // fortio and asserts that the returned status code matches the desired one(s)
-func (a *Asserter) FortioFetch2ServiceStatusCodes(t *testing.T, fortioWrk *topology.Workload, dest *topology.Destination, path string, headers map[string]string, statuses []int) {
+func (a *Asserter) FortioFetch2ServiceStatusCodes(t *testing.T, fortioWrk *topology.Workload, us *topology.Upstream, path string, headers map[string]string, statuses []int) {
 	var (
 		node   = fortioWrk.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.PortOrDefault(dest.PortName))
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.Port)
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		_, res := getFortioFetch2DestinationResponse(r, client, addr, dest, path, headers)
+		_, res := getFortioFetch2UpstreamResponse(r, client, addr, us, path, headers)
 		defer res.Body.Close()
 		require.Contains(r, statuses, res.StatusCode)
 	})

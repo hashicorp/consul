@@ -229,6 +229,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 	t.Run("check that metric isLeader is set properly on server", func(t *testing.T) {
 		metricsPrefix1 := getUniqueMetricsPrefix()
 		metricsPrefix2 := getUniqueMetricsPrefix()
+		metricsPrefix3 := getUniqueMetricsPrefix()
 
 		hcl1 := fmt.Sprintf(`
 		server = true
@@ -248,15 +249,28 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		}
 		`, metricsPrefix2)
 
+		hcl3 := fmt.Sprintf(`
+		server = true
+		telemetry = {
+			prometheus_retention_time = "25s",
+			disable_hostname = true
+			metrics_prefix = "%s"
+		}
+		`, metricsPrefix3)
+
 		overrides := `
 		  bootstrap = false
-		  bootstrap_expect = 2
+		  bootstrap_expect = 3
 		`
 
 		s1 := StartTestAgent(t, TestAgent{Name: "s1", HCL: hcl1, Overrides: overrides})
-		s2 := StartTestAgent(t, TestAgent{Name: "s2", HCL: hcl2, Overrides: overrides})
 		defer s1.Shutdown()
+
+		s2 := StartTestAgent(t, TestAgent{Name: "s2", HCL: hcl2, Overrides: overrides})
 		defer s2.Shutdown()
+
+		s3 := StartTestAgent(t, TestAgent{Name: "s3", HCL: hcl3, Overrides: overrides})
+		defer s3.Shutdown()
 
 		// agent hasn't become a leader
 		retry.RunWith(retry.ThirtySeconds(), t, func(r *testretry.R) {
@@ -268,8 +282,12 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 
 		_, err := s2.JoinLAN([]string{s1.Config.SerfBindAddrLAN.String()}, nil)
 		require.NoError(t, err)
+		_, err = s3.JoinLAN([]string{s1.Config.SerfBindAddrLAN.String()}, nil)
+		require.NoError(t, err)
+
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
 		testrpc.WaitForLeader(t, s2.RPC, "dc1")
+		testrpc.WaitForLeader(t, s3.RPC, "dc1")
 
 		// Verify agent's isLeader metrics is 1
 		retry.RunWith(retry.ThirtySeconds(), t, func(r *testretry.R) {
@@ -281,7 +299,11 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 			recordPromMetrics(r, s2, respRec2)
 			found2 := strings.Contains(respRec2.Body.String(), metricsPrefix2+"_server_isLeader 1")
 
-			require.True(r, found1 || found2, "leader server should have isLeader 1")
+			respRec3 := httptest.NewRecorder()
+			recordPromMetrics(r, s3, respRec3)
+			found3 := strings.Contains(respRec3.Body.String(), metricsPrefix3+"_server_isLeader 1")
+
+			require.True(r, found1 || found2 || found3, "leader server should have isLeader 1")
 		})
 	})
 }

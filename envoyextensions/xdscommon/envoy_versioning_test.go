@@ -4,6 +4,8 @@
 package xdscommon
 
 import (
+	"fmt"
+	"slices"
 	"testing"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -70,99 +72,53 @@ func TestDetermineEnvoyVersionFromNode(t *testing.T) {
 }
 
 func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
-	const (
-		errTooOld = "is too old and is not supported by Consul"
-	)
+	const errTooOld = "is too old and is not supported by Consul"
 
 	type testcase struct {
+		name      string
 		expect    SupportedProxyFeatures
 		expectErr string
 	}
+	var cases []testcase
 
-	// Just the bad versions
-	cases := map[string]testcase{
-		"1.9.0":   {expectErr: "Envoy 1.9.0 " + errTooOld},
-		"1.10.0":  {expectErr: "Envoy 1.10.0 " + errTooOld},
-		"1.11.0":  {expectErr: "Envoy 1.11.0 " + errTooOld},
-		"1.12.0":  {expectErr: "Envoy 1.12.0 " + errTooOld},
-		"1.12.1":  {expectErr: "Envoy 1.12.1 " + errTooOld},
-		"1.12.2":  {expectErr: "Envoy 1.12.2 " + errTooOld},
-		"1.12.3":  {expectErr: "Envoy 1.12.3 " + errTooOld},
-		"1.12.4":  {expectErr: "Envoy 1.12.4 " + errTooOld},
-		"1.12.5":  {expectErr: "Envoy 1.12.5 " + errTooOld},
-		"1.12.6":  {expectErr: "Envoy 1.12.6 " + errTooOld},
-		"1.12.7":  {expectErr: "Envoy 1.12.7 " + errTooOld},
-		"1.13.0":  {expectErr: "Envoy 1.13.0 " + errTooOld},
-		"1.13.1":  {expectErr: "Envoy 1.13.1 " + errTooOld},
-		"1.13.2":  {expectErr: "Envoy 1.13.2 " + errTooOld},
-		"1.13.3":  {expectErr: "Envoy 1.13.3 " + errTooOld},
-		"1.13.4":  {expectErr: "Envoy 1.13.4 " + errTooOld},
-		"1.13.5":  {expectErr: "Envoy 1.13.5 " + errTooOld},
-		"1.13.6":  {expectErr: "Envoy 1.13.6 " + errTooOld},
-		"1.13.7":  {expectErr: "Envoy 1.13.7 " + errTooOld},
-		"1.14.0":  {expectErr: "Envoy 1.14.0 " + errTooOld},
-		"1.14.1":  {expectErr: "Envoy 1.14.1 " + errTooOld},
-		"1.14.2":  {expectErr: "Envoy 1.14.2 " + errTooOld},
-		"1.14.3":  {expectErr: "Envoy 1.14.3 " + errTooOld},
-		"1.14.4":  {expectErr: "Envoy 1.14.4 " + errTooOld},
-		"1.14.5":  {expectErr: "Envoy 1.14.5 " + errTooOld},
-		"1.14.6":  {expectErr: "Envoy 1.14.6 " + errTooOld},
-		"1.14.7":  {expectErr: "Envoy 1.14.7 " + errTooOld},
-		"1.15.0":  {expectErr: "Envoy 1.15.0 " + errTooOld},
-		"1.15.1":  {expectErr: "Envoy 1.15.1 " + errTooOld},
-		"1.15.2":  {expectErr: "Envoy 1.15.2 " + errTooOld},
-		"1.15.3":  {expectErr: "Envoy 1.15.3 " + errTooOld},
-		"1.15.4":  {expectErr: "Envoy 1.15.4 " + errTooOld},
-		"1.15.5":  {expectErr: "Envoy 1.15.5 " + errTooOld},
-		"1.16.1":  {expectErr: "Envoy 1.16.1 " + errTooOld},
-		"1.16.2":  {expectErr: "Envoy 1.16.2 " + errTooOld},
-		"1.16.3":  {expectErr: "Envoy 1.16.3 " + errTooOld},
-		"1.16.4":  {expectErr: "Envoy 1.16.4 " + errTooOld},
-		"1.16.5":  {expectErr: "Envoy 1.16.5 " + errTooOld},
-		"1.16.6":  {expectErr: "Envoy 1.16.6 " + errTooOld},
-		"1.17.4":  {expectErr: "Envoy 1.17.4 " + errTooOld},
-		"1.18.6":  {expectErr: "Envoy 1.18.6 " + errTooOld},
-		"1.19.5":  {expectErr: "Envoy 1.19.5 " + errTooOld},
-		"1.20.7":  {expectErr: "Envoy 1.20.7 " + errTooOld},
-		"1.21.5":  {expectErr: "Envoy 1.21.5 " + errTooOld},
-		"1.22.0":  {expectErr: "Envoy 1.22.0 " + errTooOld},
-		"1.22.1":  {expectErr: "Envoy 1.22.1 " + errTooOld},
-		"1.22.2":  {expectErr: "Envoy 1.22.2 " + errTooOld},
-		"1.22.3":  {expectErr: "Envoy 1.22.3 " + errTooOld},
-		"1.22.4":  {expectErr: "Envoy 1.22.4 " + errTooOld},
-		"1.22.5":  {expectErr: "Envoy 1.22.5 " + errTooOld},
-		"1.22.6":  {expectErr: "Envoy 1.22.6 " + errTooOld},
-		"1.22.7":  {expectErr: "Envoy 1.22.7 " + errTooOld},
-		"1.22.8":  {expectErr: "Envoy 1.22.8 " + errTooOld},
-		"1.22.9":  {expectErr: "Envoy 1.22.9 " + errTooOld},
-		"1.22.10": {expectErr: "Envoy 1.22.10 " + errTooOld},
-		"1.22.11": {expectErr: "Envoy 1.22.11 " + errTooOld},
+	// Bad versions.
+	minMajorVersion := version.Must(version.NewVersion(getMinEnvoyVersion()))
+	minMajorVersionMajorPart := minMajorVersion.Segments()[len(minMajorVersion.Segments())-2]
+	for major := 9; major < minMajorVersionMajorPart; major++ {
+		for minor := 0; minor < 10; minor++ {
+			cases = append(cases, testcase{
+				name:      version.Must(version.NewVersion(fmt.Sprintf("1.%d.%d", major, minor))).String(),
+				expectErr: errTooOld,
+			})
+		}
 	}
 
-	// Insert a bunch of valid versions.
-	// Populate feature flags here when appropriate. See consul 1.10.x for reference.
-	/* Example from 1.18
-	for _, v := range []string{
-		"1.18.0", "1.18.1", "1.18.2", "1.18.3", "1.18.4", "1.18.5", "1.18.6",
-	} {
-		cases[v] = testcase{expect: SupportedProxyFeatures{
-			ForceLDSandCDSToAlwaysUseWildcardsOnReconnect: true,
-		}}
-	}
-	*/
-	for _, v := range []string{
-		"1.25.0", "1.25.1", "1.25.2", "1.25.3", "1.25.4", "1.25.5", "1.25.6", "1.25.7", "1.25.8", "1.25.9", "1.25.10", "1.25.11",
-		"1.26.0", "1.26.1", "1.26.2", "1.26.3", "1.26.4", "1.26.5", "1.26.6", "1.26.7", "1.26.8",
-		"1.27.0", "1.27.1", "1.27.2", "1.27.3", "1.27.4",
-		"1.28.0", "1.28.1", "1.28.2",
-	} {
-		cases[v] = testcase{expect: SupportedProxyFeatures{}}
+	// Good versions.
+	// Sort ascending so test output is ordered like bad cases above.
+	var supportedVersionsAscending []string
+	supportedVersionsAscending = append(supportedVersionsAscending, EnvoyVersions...)
+	slices.Reverse(supportedVersionsAscending)
+	for _, v := range supportedVersionsAscending {
+		envoyVersion := version.Must(version.NewVersion(v))
+		// e.g. this is 27 in 1.27.4
+		versionMajorPart := envoyVersion.Segments()[len(envoyVersion.Segments())-2]
+		// e.g. this is 4 in 1.27.4
+		versionMinorPart := envoyVersion.Segments()[len(envoyVersion.Segments())-1]
+
+		// Create synthetic minor versions from .0 through the actual configured version.
+		for minor := 0; minor <= versionMinorPart; minor++ {
+			minorVersion := version.Must(version.NewVersion(fmt.Sprintf("1.%d.%d", versionMajorPart, minor)))
+			cases = append(cases, testcase{
+				name:   minorVersion.String(),
+				expect: SupportedProxyFeatures{},
+			})
+		}
 	}
 
-	for name, tc := range cases {
+	for _, tc := range cases {
 		tc := tc
-		t.Run(name, func(t *testing.T) {
-			sf, err := DetermineSupportedProxyFeaturesFromString(name)
+		t.Run(tc.name, func(t *testing.T) {
+			sf, err := DetermineSupportedProxyFeaturesFromString(tc.name)
 			if tc.expectErr == "" {
 				require.NoError(t, err)
 				require.Equal(t, tc.expect, sf)

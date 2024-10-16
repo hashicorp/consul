@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
-
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
@@ -98,13 +97,6 @@ func tokenForWorkload(wrk *topology.Workload, overridePolicy *api.ACLPolicy, ent
 	}
 	if overridePolicy != nil {
 		token.Policies = []*api.ACLTokenPolicyLink{{ID: overridePolicy.ID}}
-	} else if wrk.IsV2() {
-		token.TemplatedPolicies = []*api.ACLTemplatedPolicy{{
-			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
-			TemplateVariables: &api.ACLTemplatedPolicyVariables{
-				Name: wrk.WorkloadIdentity,
-			},
-		}}
 	} else {
 		token.ServiceIdentities = []*api.ACLServiceIdentity{{
 			ServiceName: wrk.ID.Name,

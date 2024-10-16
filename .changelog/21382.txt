@@ -1,0 +1,3 @@
+```release-note:bug
+terminating-gateway: **(Enterprise Only)** Fixed issue where enterprise metadata applied to linked services was the terminating-gateways enterprise metadata and not the linked services enterprise metadata.
+```

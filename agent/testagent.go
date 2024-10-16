@@ -19,9 +19,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -105,7 +106,7 @@ type TestAgentOpts struct {
 
 // NewTestAgent returns a started agent with the given configuration. It fails
 // the test if the Agent could not be started.
-func NewTestAgent(t *testing.T, hcl string, opts ...TestAgentOpts) *TestAgent {
+func NewTestAgent(t testing.TB, hcl string, opts ...TestAgentOpts) *TestAgent {
 	// This varargs approach is used so that we don't have to modify all of the `NewTestAgent()` calls
 	// in order to introduce more optional arguments.
 	require.LessOrEqual(t, len(opts), 1, "NewTestAgent cannot accept more than one opts argument")
@@ -133,7 +134,7 @@ func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) 
 //
 // The caller is responsible for calling Shutdown() to stop the agent and remove
 // temporary directories.
-func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
+func StartTestAgent(t testing.TB, a TestAgent) *TestAgent {
 	t.Helper()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		r.Helper()
@@ -313,22 +314,6 @@ func (a *TestAgent) waitForUp() error {
 					retErr = fmt.Errorf("acl system not bootstrapped yet")
 					continue // fail, try again
 				}
-			}
-
-			if a.baseDeps.UseV2Resources() {
-				args := structs.DCSpecificRequest{
-					Datacenter: "dc1",
-				}
-				var leader string
-				if err := a.RPC(context.Background(), "Status.Leader", args, &leader); err != nil {
-					retErr = fmt.Errorf("Status.Leader failed: %v", err)
-					continue // fail, try again
-				}
-				if leader == "" {
-					retErr = fmt.Errorf("No leader")
-					continue // fail, try again
-				}
-				return nil // success
 			}
 
 			// Ensure we have a leader and a node registration.

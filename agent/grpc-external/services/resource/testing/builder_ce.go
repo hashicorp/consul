@@ -14,13 +14,12 @@ import (
 )
 
 type Builder struct {
-	registry     resource.Registry
-	registerFns  []func(resource.Registry)
-	useV2Tenancy bool
-	tenancies    []*pbresource.Tenancy
-	aclResolver  svc.ACLResolver
-	serviceImpl  *svc.Server
-	cloning      bool
+	registry    resource.Registry
+	registerFns []func(resource.Registry)
+	tenancies   []*pbresource.Tenancy
+	aclResolver svc.ACLResolver
+	serviceImpl *svc.Server
+	cloning     bool
 }
 
 func (b *Builder) ensureLicenseManager() {
@@ -33,6 +32,5 @@ func (b *Builder) newConfig(logger hclog.Logger, backend svc.Backend, tenancyBri
 		Backend:       backend,
 		ACLResolver:   b.aclResolver,
 		TenancyBridge: tenancyBridge,
-		UseV2Tenancy:  b.useV2Tenancy,
 	}
 }

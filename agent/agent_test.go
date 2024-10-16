@@ -58,9 +58,9 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbautoconf"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -3954,7 +3954,7 @@ func TestAgent_GetCoordinate(t *testing.T) {
 
 	coords, err := a.GetLANCoordinate()
 	require.NoError(t, err)
-	expected := lib.CoordinateSet{
+	expected := librtt.CoordinateSet{
 		"": &coordinate.Coordinate{
 			Error:  1.5,
 			Height: 1e-05,

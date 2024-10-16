@@ -20,6 +20,7 @@ You can configure API gateways to use JWTs to verify incoming requests so that y
 
 Complete the following steps to use JWTs to verify requests:
 
+1. Define a JWTProvider that specifies the JWT provider and claims used to verify requests to the gateway.
 1. Configure default and override settings for listeners in the API gateway configuration entry.
 1. Define route-specific JWT verification settings as filters in the HTTP route configuration entries.
 1. Write the configuration entries to Consul to begin verifying requests using JWTs.
@@ -29,17 +30,155 @@ Complete the following steps to use JWTs to verify requests:
 - Consul 1.17 or later
 - JWT details, such as claims and provider
 
+## Define a JWTProvider
+
+Create a JWTProvider config entry that defines the JWT provider to verify claims against.
+In the following example, the JWTProvider CRD contains a local JWKS. In production environments, use a production-grade JWKs endpoint instead.
+
+<CodeBlockConfig filename="jwt-provider.hcl">
+
+```hcl
+Kind = "jwt-provider"
+Name = "local"
+
+Issuer = "local"
+
+JSONWebKeySet = {
+    Local = {
+        JWKS="<JWKS-Key>"
+    }
+}
+```
+
+</CodeBlockConfig>
+
+For more information about the fields you can configure in this CRD, refer to [`JWTProvider` configuration reference](/consul/docs/connect/config-entries/jwtprovider).
+
 ## Configure default and override settings
 
-Define default and override settings for JWT verification in the [API gateway configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway). 
+Define default and override settings for JWT verification in the [API gateway configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway).
 
-1. Add a `default.JWT` block to the listener that you want to apply JWT verification to. Consul applies these configurations to routes attached to the listener. Refer to the [`Listeners.default.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) configuration reference for details. 
-1. Add an `override.JWT` block to the listener that you want to apply JWT verification policies to. Consul applies these configurations to all routes attached to the listener, regardless of the `default` or route-specific settings. Refer to the [`Listeners.override.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) configuration reference for details. 
-1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write). 
+1. Add a `default.JWT` block to the listener that you want to apply JWT verification to. Consul applies these configurations to routes attached to the listener. Refer to the [`Listeners.default.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) configuration reference for details.
+1. Add an `override.JWT` block to the listener that you want to apply JWT verification policies to. Consul applies these configurations to all routes attached to the listener, regardless of the `default` or route-specific settings. Refer to the [`Listeners.override.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) configuration reference for details.
+1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write).
+
+The following examples configure a Gateway so that every request coming through the listener must meet these conditions:
+- The request must be signed by the `local` provider
+- The request must have a claim of `role` with a value of `user` unless the HTTPRoute attached to the listener overrides it
+
+<CodeBlockConfig filename="gateway.hcl">
+
+```hcl
+Kind = "api-gateway"
+Name = "api-gateway"
+Listeners = [
+  {
+    Name     = "listener-one"
+    Port     = 9001
+    Protocol = "http"
+    Override = {
+      JWT = {
+        Providers = [
+          {
+            Name = "local"
+          }
+        ]
+      }
+    }
+    default = {
+      JWT = {
+        Providers = [
+          {
+            Name = "local"
+            VerifyClaims = [
+              {
+                Path  = ["role"]
+                Value = "pet"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+]
+```
+
+</CodeBlockConfig>
 
 ## Configure verification for specific HTTP routes
 
-Define filters to enable route-specific JWT verification settings in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route). 
+Define filters to enable route-specific JWT verification settings in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).
 
 1. Add a `JWT` configuration to the `rules.filter` block. Route-specific configurations that overlap the [default settings ](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) in the API gateway configuration entry take precedence. Configurations defined in the [listener override settings](/consul/docs/connect/config-entries/api-gateway#listeners-override-jwt) take the highest precedence.
-1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write). 
+1. Apply the settings in the API gateway configuration entry. You can use the [`/config` API endpoint](/consul/api-docs/config#apply-configuration) or the [`consul config write` command](/consul/commands/config/write).
+
+The following example configures an HTTPRoute so that every request to `api-gateway-fqdn:3002/admin` must meet these conditions:
+- The request be signed by the `local` provider.
+- The request must have a `role` claim.
+- The value of the claim must be `admin`.
+
+Every other request must be signed by the `local` provider and have a claim of `role` with a value of `user`, as defined in the Gateway listener.
+
+<CodeBlockConfig filename="http-route.hcl">
+
+```hcl
+Kind = "http-route"
+Name = "api-gateway-route"
+Parents = [
+  {
+    SectionName = "listener-one"
+    Name        = "api-gateway"
+    Kind        = "api-gateway"
+  },
+]
+Rules = [
+  {
+    Matches = [
+      {
+        Path = {
+          Match = "prefix"
+          Value = "/admin"
+        }
+      }
+    ]
+    Filters = {
+      JWT = {
+        Providers = [
+          {
+            Name = "local"
+            VerifyClaims = [
+              {
+                Path  = ["role"]
+                Value = "admin"
+              }
+            ]
+          }
+        ]
+      }
+    }
+    Services = [
+      {
+        Name = "admin-service"
+      }
+    ]
+  },
+  {
+    Matches = [
+      {
+        Path = {
+          Match = "prefix"
+          Value = "/"
+        }
+      }
+    ]
+    Services = [
+      {
+        Name = "user-service"
+      }
+    ]
+  },
+]
+```
+
+</CodeBlockConfig>

@@ -38,9 +38,14 @@ container {
 		suppress {
 			# N.b. `vulnerabilites` is the correct spelling for this tool.
 			vulnerabilites = [
-				"CVE-2023-46218", # curl@8.4.0-r0
-				"CVE-2023-46219", # curl@8.4.0-r0
-				"CVE-2023-5678",  # openssl@3.1.4-r0
+				"CVE-2024-8096", # curl@8.9.1-r2,
+			]
+			paths = [
+				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+				"test/integration/connect/envoy/test-sds-server/*",
+				"test/integration/consul-container/*",
+				"testing/deployer/*",
+				"test-integ/*",
 			]
 		}
 	}
@@ -49,6 +54,7 @@ container {
 binary {
 	go_modules   = true
 	osv          = true
+	go_stdlib    = true
 	# We can't enable npm for binary targets today because we don't yet embed the relevant file
 	# (yarn.lock) in the Consul binary. This is something we may investigate in the future.
 	
@@ -74,7 +80,13 @@ binary {
 		suppress {
 			# N.b. `vulnerabilites` is the correct spelling for this tool.
 			vulnerabilites = [
-				"GO-2024-2631", # go-jose/v3@v3.0.3 (false positive)
+			]
+			paths = [
+				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
+				"test/integration/connect/envoy/test-sds-server/*",
+				"test/integration/consul-container/*",
+				"testing/deployer/*",
+				"test-integ/*",
 			]
 		}
 	}

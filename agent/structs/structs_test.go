@@ -1725,7 +1725,7 @@ func TestCheckServiceNodes_Filter(t *testing.T) {
 		if n := copy(twiddle, nodes); n != len(nodes) {
 			t.Fatalf("bad: %d", n)
 		}
-		filtered := twiddle.Filter(false)
+		filtered := twiddle.Filter(CheckServiceNodeFilterOptions{FilterType: HealthFilterExcludeCritical})
 		expected := CheckServiceNodes{
 			nodes[0],
 			nodes[1],
@@ -1741,7 +1741,7 @@ func TestCheckServiceNodes_Filter(t *testing.T) {
 		if n := copy(twiddle, nodes); n != len(nodes) {
 			t.Fatalf("bad: %d", n)
 		}
-		filtered := twiddle.Filter(true)
+		filtered := twiddle.Filter(CheckServiceNodeFilterOptions{FilterType: HealthFilterIncludeOnlyPassing})
 		expected := CheckServiceNodes{
 			nodes[1],
 		}
@@ -1757,7 +1757,7 @@ func TestCheckServiceNodes_Filter(t *testing.T) {
 		if n := copy(twiddle, nodes); n != len(nodes) {
 			t.Fatalf("bad: %d", n)
 		}
-		filtered := twiddle.FilterIgnore(true, []types.CheckID{""})
+		filtered := twiddle.Filter(CheckServiceNodeFilterOptions{FilterType: HealthFilterIncludeOnlyPassing, IgnoreCheckIDs: []types.CheckID{""}})
 		expected := CheckServiceNodes{
 			nodes[0],
 			nodes[1],

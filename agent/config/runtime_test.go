@@ -6016,24 +6016,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "logstore defaults",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json: []string{`
-			{
-				"experiments": ["resource-apis"]
-			}
-		`},
-		hcl: []string{`experiments=["resource-apis"]`},
-		expected: func(rt *RuntimeConfig) {
-			rt.DataDir = dataDir
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendDefault
-			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
-			rt.Experiments = []string{"resource-apis"}
-		},
-	})
-	run(t, testCase{
 		// this was a bug in the initial config commit. Specifying part of this
 		// stanza should still result in sensible defaults for the other parts.
 		desc: "wal defaults",
@@ -6612,6 +6594,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		RaftSnapshotThreshold:   16384,
 		RaftSnapshotInterval:    30 * time.Second,
 		RaftTrailingLogs:        83749,
+		RaftPreVoteDisabled:     false,
 		ReconnectTimeoutLAN:     23739 * time.Second,
 		ReconnectTimeoutWAN:     26694 * time.Second,
 		RequestLimitsMode:       consulrate.ModePermissive,

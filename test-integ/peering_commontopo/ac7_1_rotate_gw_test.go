@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/require"
 )
 
 // TestRotateGW ensures that peered services continue to be able to talk to their
@@ -27,7 +28,7 @@ type suiteRotateGW struct {
 	sidClient  topology.ID
 	nodeClient topology.NodeID
 
-	upstream *topology.Destination
+	upstream *topology.Upstream
 
 	newMGWNodeName string
 }
@@ -70,7 +71,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 	)
 
 	// Make clients which have server upstreams
-	upstream := &topology.Destination{
+	upstream := &topology.Upstream{
 		ID: topology.ID{
 			Name:      server.ID.Name,
 			Partition: partition,
@@ -88,7 +89,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 			Partition: partition,
 		},
 		func(s *topology.Workload) {
-			s.Destinations = []*topology.Destination{
+			s.Upstreams = []*topology.Upstream{
 				upstream,
 			}
 		},

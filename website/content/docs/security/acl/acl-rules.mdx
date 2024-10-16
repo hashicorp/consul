@@ -19,7 +19,6 @@ The following table provides an overview of the resources you can use to create 
 | `partition`<br/>`partition_prefix` | <EnterpriseAlert inline /> Controls access to one or more admin partitions. <br/>See [Admin Partition Rules](#admin-partition-rules) for details.                                                                                                                                                                                                    | Yes    |
 | `agent`<br/>`agent_prefix`         | Controls access to the utility operations in the [Agent API](/consul/api-docs/agent), such as `join` and `leave`. <br/>See [Agent Rules](#agent-rules) for details.                                                                                                                                                                                              | Yes    |
 | `event`<br/>`event_prefix`         | Controls access to event operations in the [Event API](/consul/api-docs/event), such as firing and listing events. <br/>See [Event Rules](#event-rules) for details.                                                                                                                                                                                             | Yes    |
-| `identity`<br/>`identity_prefix`   | Controls access to workload identity operations in the [Catalog v2 group](/consul/docs/architecture/v2/catalog).
 | `key`<br/>`key_prefix` &nbsp;      | Controls access to key/value store operations in the [KV API](/consul/api-docs/kv). <br/>Can also use the `list` access level when setting the policy disposition. <br/>Has additional value options in Consul Enterprise for integrating with [Sentinel](https://docs.hashicorp.com/sentinel/consul). <br/>See [Key/Value Rules](#key-value-rules) for details. | Yes    |
 | `keyring` &nbsp; &nbsp; &nbsp;     | Controls access to keyring operations in the [Keyring API](/consul/api-docs/operator/keyring). <br/>See [Keyring Rules](#keyring-rules) for details.                                                                                                                                                                                                                      | No     |
 | `mesh` &nbsp; &nbsp; &nbsp;        | Provides operator-level permissions for resources in the admin partition, such as ingress gateways or mesh proxy defaults. See [Mesh Rules](#mesh-rules) for details.                                                                                                                                                                                | No     |
@@ -247,48 +246,6 @@ The [`consul exec`](/consul/commands/exec) command uses events with the "\_rexec
 operation, so to enable this feature in a Consul environment with ACLs enabled, you will need to
 give agents a token with access to this event prefix, in addition to configuring
 [`disable_remote_exec`](/consul/docs/agent/config/config-files#disable_remote_exec) to `false`.
-
-## Identity Rules
-
-The `identity` and `identity_prefix` resources control workload-identity-level registration and read access to the [Catalog v2 API group](/consul/docs/architecture/v2/catalog).
-Specify the resource label in identity rules to set the scope of the rule.
-The resource label in the following example is empty. As a result, the rules allow read-only access to any workload identity name with the empty prefix.
-The rules also allow read-write access to the `app` identity and deny all access to the `admin` identity:
-
-<CodeTabs heading="Example identity rules">
-
-```hcl
-identity_prefix "" {
-  policy = "read"
-}
-identity "app" {
-  policy = "write"
-}
-identity "admin" {
-  policy = "deny"
-}
-```
-
-```json
-{
-  "identity_prefix": {
-    "": {
-      "policy": "read"
-    }
-  },
-  "identity": {
-    "app": {
-      "policy": "write"
-    },
-    "admin": {
-      "policy": "deny"
-    }
-  }
-}
-```
-
-</CodeTabs>
-
 
 ## Key/Value Rules
 
@@ -638,7 +595,7 @@ Read access to all imported nodes is granted when either of the following rule s
 - `service:write` is granted to any service.
 - `node:read` is granted to all nodes.
 
-For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
+For Consul Enterprise, either set of rules must be scoped to the requesting service's partition and at least one namespace.
 
 You may need similarly scoped [Service Rules](#reading-imported-services) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
 These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).
@@ -877,7 +834,7 @@ Read access to all imported services is granted when either of the following rul
 - `service:write` is granted to any service.
 - `service:read` is granted to all services.
 
-For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
+For Consul Enterprise, either set of rules must be scoped to the requesting service's partition and at least one namespace.
 
 You may need similarly scoped [Node Rules](#reading-imported-nodes) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
 These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).

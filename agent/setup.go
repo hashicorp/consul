@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
-	"github.com/hashicorp/consul/agent/discovery"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpcInt "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
@@ -437,7 +436,6 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		consul.CatalogCounters,
 		consul.ClientCounters,
 		consul.RPCCounters,
-		discovery.DNSCounters,
 		grpcWare.StatsCounters,
 		local.StateCounters,
 		xds.StatsCounters,

@@ -556,6 +556,8 @@ func TestHTTP_Peering_Read(t *testing.T) {
 	_, err = a.rpcClientPeering.PeeringWrite(ctx, bar)
 	require.NoError(t, err)
 
+	var lastIndex uint64
+
 	t.Run("return foo", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/peering/foo", nil)
 		require.NoError(t, err)
@@ -578,6 +580,8 @@ func TestHTTP_Peering_Read(t *testing.T) {
 
 		require.Equal(t, 0, len(apiResp.StreamStatus.ImportedServices))
 		require.Equal(t, 0, len(apiResp.StreamStatus.ExportedServices))
+
+		lastIndex = getIndex(t, resp)
 	})
 
 	t.Run("not found", func(t *testing.T) {
@@ -587,6 +591,43 @@ func TestHTTP_Peering_Read(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusNotFound, resp.Code)
 		require.Equal(t, "Peering not found for \"baz\"", resp.Body.String())
+	})
+
+	const timeout = 5 * time.Second
+	t.Run("read blocking query result", func(t *testing.T) {
+		var (
+			// out and resp are not safe to read until reading from errCh
+			out   api.Peering
+			resp  = httptest.NewRecorder()
+			errCh = make(chan error, 1)
+		)
+		go func() {
+			url := fmt.Sprintf("/v1/peering/foo?index=%d&wait=%s", lastIndex, timeout)
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusOK, resp.Code)
+			err = json.NewDecoder(resp.Body).Decode(&out)
+			errCh <- err
+		}()
+
+		time.Sleep(200 * time.Millisecond)
+
+		// update peering
+		foo.Peering.Meta["spooky-key"] = "boo!"
+		_, err = a.rpcClientPeering.PeeringWrite(ctx, foo)
+		require.NoError(t, err)
+
+		if err := <-errCh; err != nil {
+			require.NoError(t, err)
+		}
+
+		require.Equal(t, "boo!", out.Meta["spooky-key"])
+		require.Equal(t, "blocking-query", resp.Header().Get("X-Consul-Query-Backend"))
 	})
 }
 

@@ -2,25 +2,25 @@
 layout: docs
 page_title: Register services and health checks
 description: ->
-    Learn how to register services and health checks with Consul agents. 
+    Learn how to register services and health checks with Consul agents.
 ---
 
 # Register services and health checks
 
-This topic describes how to register services and health checks with Consul in networks running on virtual machines (VM). Refer to [Define Services](/consul/docs/services/usage/define-services) and [Define Health Checks](/consul/docs/services/usage/checks) for information about how to define services and health checks. 
+This topic describes how to register services and health checks with Consul in networks running on virtual machines (VM). Refer to [Define Services](/consul/docs/services/usage/define-services) and [Define Health Checks](/consul/docs/services/usage/checks) for information about how to define services and health checks.
 
 ## Overview
 Register services and health checks in VM environments by providing the service definition to a Consul agent. You can use several different methods to register services and health checks.
 
 - Start a Consul agent and pass the service definition in the [agent's configuration directory](/consul/docs/agent#configuring-consul-agents).
 - Reload the a running Consul agent and pass the service definition in the [agent's configuration directory](/consul/docs/agent#configuring-consul-agents). Use this method when implementing changes to an existing service or health check definition.
-- Use the [`consul services register` command](/consul/commands/services/register) to register new service and health checks with a running Consul agent. 
-- Call the [`/agent/service/register`](/consul/api-docs/agent/service#register-service) HTTP API endpoint to to register new service and health checks with a running Consul agent.
+- Use the [`consul services register` command](/consul/commands/services/register) to register new service and health checks with a running Consul agent.
+- Call the [`/agent/service/register`](/consul/api-docs/agent/service#register-service) HTTP API endpoint to register new service and health checks with a running Consul agent.
 - Call the [`/agent/check/register`](/consul/api-docs/agent/check#register-check) HTTP API endpoint to register a health check independent from the service.
 
-When a service is registered using the HTTP API endpoint or CLI command, the checks persist in the Consul data folder. If the agent restarts, Consul uses the service and check configurations in the configuration directory to start the services.  
+When a service is registered using the HTTP API endpoint or CLI command, the checks persist in the Consul data folder. If the agent restarts, Consul uses the service and check configurations in the configuration directory to start the services.
 
-Note that health checks associated with a service are application-level checks. 
+Note that health checks associated with a service are application-level checks.
 
 ## Start an agent
 We recommend registering services on startup because the service persists if the agent fails. Specify the directory containing the service definition with the `-config-dir` option on startup. When the Consul agent starts, it processes all configurations in the directory and registers any services contained in the configurations. In the following example, the Consul agent starts and loads the configurations contained in the `configs` directory:
@@ -48,7 +48,7 @@ Refer to [Consul Agent Service Registration](/consul/commands/services/register)
 Use the following methods to register services and health checks using the HTTP API.
 
 ### Register services
-Send a `PUT` request to the `/agent/service/register` API endpoint to dynamically register a service and its associated health checks. To register health checks independently, [call the checks API endpoint](#call-the-checks-http-api-endpoint). 
+Send a `PUT` request to the `/agent/service/register` API endpoint to dynamically register a service and its associated health checks. To register health checks independently, [call the checks API endpoint](#call-the-checks-http-api-endpoint).
 
 The following example request registers the service defined in the `service.json` file.
 

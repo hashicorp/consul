@@ -42,12 +42,6 @@ func TestPolicySourceParse(t *testing.T) {
 				event "bar" {
 					policy = "deny"
 				}
-				identity_prefix "" {
-					policy = "write"
-				}
-				identity "foo" {
-					policy = "read"
-				}
 				key_prefix "" {
 					policy = "read"
 				}
@@ -121,16 +115,6 @@ func TestPolicySourceParse(t *testing.T) {
 					},
 					"bar": {
 					  "policy": "deny"
-					}
-				  },
-				  "identity_prefix": {
-					"": {
-					  "policy": "write"
-					}
-				  },
-				  "identity": {
-					"foo": {
-					  "policy": "read"
 					}
 				  },
 				  "key_prefix": {
@@ -233,18 +217,6 @@ func TestPolicySourceParse(t *testing.T) {
 						Policy: PolicyDeny,
 					},
 				},
-				IdentityPrefixes: []*IdentityRule{
-					{
-						Name:   "",
-						Policy: PolicyWrite,
-					},
-				},
-				Identities: []*IdentityRule{
-					{
-						Name:   "foo",
-						Policy: PolicyRead,
-					},
-				},
 				Keyring: PolicyDeny,
 				KeyPrefixes: []*KeyRule{
 					{
@@ -332,39 +304,6 @@ func TestPolicySourceParse(t *testing.T) {
 			}},
 		},
 		{
-			Name:      "Identity No Intentions",
-			Rules:     `identity "foo" { policy = "write" }`,
-			RulesJSON: `{ "identity": { "foo": { "policy": "write" }}}`,
-			Expected: &Policy{PolicyRules: PolicyRules{
-				Identities: []*IdentityRule{
-					{
-						Name:   "foo",
-						Policy: "write",
-					},
-				},
-			}},
-		},
-		{
-			Name:      "Identity Intentions",
-			Rules:     `identity "foo" { policy = "write" intentions = "read" }`,
-			RulesJSON: `{ "identity": { "foo": { "policy": "write", "intentions": "read" }}}`,
-			Expected: &Policy{PolicyRules: PolicyRules{
-				Identities: []*IdentityRule{
-					{
-						Name:       "foo",
-						Policy:     "write",
-						Intentions: "read",
-					},
-				},
-			}},
-		},
-		{
-			Name:      "Identity Intention: invalid value",
-			Rules:     `identity "foo" { policy = "write" intentions = "foo" }`,
-			RulesJSON: `{ "identity": { "foo": { "policy": "write", "intentions": "foo" }}}`,
-			Err:       "Invalid identity intentions policy",
-		},
-		{
 			Name:      "Service No Intentions",
 			Rules:     `service "foo" { policy = "write" }`,
 			RulesJSON: `{ "service": { "foo": { "policy": "write" }}}`,
@@ -414,18 +353,6 @@ func TestPolicySourceParse(t *testing.T) {
 			Rules:     `agent_prefix "foo" { policy = "nope" }`,
 			RulesJSON: `{ "agent_prefix": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid agent_prefix policy",
-		},
-		{
-			Name:      "Bad Policy - Identity",
-			Rules:     `identity "foo" { policy = "nope" }`,
-			RulesJSON: `{ "identity": { "foo": { "policy": "nope" }}}`,
-			Err:       "Invalid identity policy",
-		},
-		{
-			Name:      "Bad Policy - Identity Prefix",
-			Rules:     `identity_prefix "foo" { policy = "nope" }`,
-			RulesJSON: `{ "identity_prefix": { "foo": { "policy": "nope" }}}`,
-			Err:       "Invalid identity_prefix policy",
 		},
 		{
 			Name:      "Bad Policy - Key",
@@ -754,109 +681,6 @@ func TestMergePolicies(t *testing.T) {
 					{
 						Event:  "222",
 						Policy: PolicyDeny,
-					},
-				},
-			}},
-		},
-		{
-			name: "Identities",
-			input: []*Policy{
-				{PolicyRules: PolicyRules{
-					Identities: []*IdentityRule{
-						{
-							Name:       "foo",
-							Policy:     PolicyWrite,
-							Intentions: PolicyWrite,
-						},
-						{
-							Name:       "bar",
-							Policy:     PolicyRead,
-							Intentions: PolicyRead,
-						},
-						{
-							Name:       "baz",
-							Policy:     PolicyWrite,
-							Intentions: PolicyWrite,
-						},
-					},
-					IdentityPrefixes: []*IdentityRule{
-						{
-							Name:       "000",
-							Policy:     PolicyWrite,
-							Intentions: PolicyWrite,
-						},
-						{
-							Name:       "111",
-							Policy:     PolicyRead,
-							Intentions: PolicyRead,
-						},
-						{
-							Name:       "222",
-							Policy:     PolicyWrite,
-							Intentions: PolicyWrite,
-						},
-					},
-				}},
-				{PolicyRules: PolicyRules{
-					Identities: []*IdentityRule{
-						{
-							Name:       "foo",
-							Policy:     PolicyRead,
-							Intentions: PolicyRead,
-						},
-						{
-							Name:       "baz",
-							Policy:     PolicyDeny,
-							Intentions: PolicyDeny,
-						},
-					},
-					IdentityPrefixes: []*IdentityRule{
-						{
-							Name:       "000",
-							Policy:     PolicyRead,
-							Intentions: PolicyRead,
-						},
-						{
-							Name:       "222",
-							Policy:     PolicyDeny,
-							Intentions: PolicyDeny,
-						},
-					},
-				}},
-			},
-			expected: &Policy{PolicyRules: PolicyRules{
-				Identities: []*IdentityRule{
-					{
-						Name:       "foo",
-						Policy:     PolicyWrite,
-						Intentions: PolicyWrite,
-					},
-					{
-						Name:       "bar",
-						Policy:     PolicyRead,
-						Intentions: PolicyRead,
-					},
-					{
-						Name:       "baz",
-						Policy:     PolicyDeny,
-						Intentions: PolicyDeny,
-					},
-				},
-				IdentityPrefixes: []*IdentityRule{
-					{
-						Name:       "000",
-						Policy:     PolicyWrite,
-						Intentions: PolicyWrite,
-					},
-					{
-						Name:       "111",
-						Policy:     PolicyRead,
-						Intentions: PolicyRead,
-					},
-					{
-						Name:       "222",
-						Policy:     PolicyDeny,
-						Intentions: PolicyDeny,
 					},
 				},
 			}},

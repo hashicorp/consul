@@ -10,19 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1234,9 +1233,9 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 
 	// Set all but one of the nodes to known coordinates.
 	updates := structs.Coordinates{
-		{Node: "foo", Coord: lib.GenerateCoordinate(2 * time.Millisecond)},
-		{Node: "bar", Coord: lib.GenerateCoordinate(5 * time.Millisecond)},
-		{Node: "baz", Coord: lib.GenerateCoordinate(1 * time.Millisecond)},
+		{Node: "foo", Coord: librtt.GenerateCoordinate(2 * time.Millisecond)},
+		{Node: "bar", Coord: librtt.GenerateCoordinate(5 * time.Millisecond)},
+		{Node: "baz", Coord: librtt.GenerateCoordinate(1 * time.Millisecond)},
 	}
 	if err := s1.fsm.State().CoordinateBatchUpdate(5, updates); err != nil {
 		t.Fatalf("err: %v", err)
@@ -2138,9 +2137,9 @@ func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 
 	// Set all but one of the nodes to known coordinates.
 	updates := structs.Coordinates{
-		{Node: "foo", Coord: lib.GenerateCoordinate(2 * time.Millisecond)},
-		{Node: "bar", Coord: lib.GenerateCoordinate(5 * time.Millisecond)},
-		{Node: "baz", Coord: lib.GenerateCoordinate(1 * time.Millisecond)},
+		{Node: "foo", Coord: librtt.GenerateCoordinate(2 * time.Millisecond)},
+		{Node: "bar", Coord: librtt.GenerateCoordinate(5 * time.Millisecond)},
+		{Node: "baz", Coord: librtt.GenerateCoordinate(1 * time.Millisecond)},
 	}
 	if err := s1.fsm.State().CoordinateBatchUpdate(9, updates); err != nil {
 		t.Fatalf("err: %v", err)

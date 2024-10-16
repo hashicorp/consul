@@ -5,13 +5,13 @@ description: >-
   You can migrate tasks in existing Amazon Web Services ECS deployments to a service mesh deployed with Terraform. Learn how to convert a task specified as an ECS task definition into a `mesh-task` Terraform module.
 ---
 
-# Migrate existing tasks to Consul on ECS with Terraform 
+# Migrate existing tasks to Consul on ECS with Terraform
 
-To migrate existing tasks to Consul, rewrite the existing Terraform code for your tasks so that the container definitions include the [`mesh-task` Terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task). 
+To migrate existing tasks to Consul, rewrite the existing Terraform code for your tasks so that the container definitions include the [`mesh-task` Terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
 
 Your tasks must already be defined in Terraform using the `ecs_task_definition` resource so that they can then be converted to use the `mesh-task` module.
 
-## Example 
+## Example
 
 The following example shows an existing task definition configured in Terraform:
 
@@ -93,7 +93,7 @@ module "my_task" {
 Note the following differences:
 
 - The `execution_role_arn` and `task_role_arn` fields are removed. The `mesh-task` module creates the task and execution roles by default. If you need to use existing IAM roles, set the `task_role` and `execution_role` fields to pass in existing roles.
-- The `port` field specifes the port that your application listens on. If your application has no listening port, set `outbound_only = true` and remove the `port` field.
+- The `port` field specifies the port that your application listens on. If your application has no listening port, set `outbound_only = true` and remove the `port` field.
 - The `jsonencode()` function is removed from the `container_definitions` field.
 
 The `mesh-task` module creates a new version of your task definition with the necessary dataplane containers so you can delete your existing `aws_ecs_task_definition` resource.

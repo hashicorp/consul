@@ -46,10 +46,11 @@ func NewHealthView(req structs.ServiceSpecificRequest) (*HealthView, error) {
 		return nil, err
 	}
 	return &HealthView{
-		state:   make(map[string]structs.CheckServiceNode),
-		filter:  fe,
-		connect: req.Connect,
-		kind:    req.ServiceKind,
+		state:            make(map[string]structs.CheckServiceNode),
+		filter:           fe,
+		connect:          req.Connect,
+		kind:             req.ServiceKind,
+		healthFilterType: req.HealthFilterType,
 	}, nil
 }
 
@@ -61,10 +62,11 @@ var _ submatview.View = (*HealthView)(nil)
 // (IndexedCheckServiceNodes) and update it in place for each event - that
 // involves re-sorting each time etc. though.
 type HealthView struct {
-	connect bool
-	kind    structs.ServiceKind
-	state   map[string]structs.CheckServiceNode
-	filter  filterEvaluator
+	connect          bool
+	kind             structs.ServiceKind
+	state            map[string]structs.CheckServiceNode
+	filter           filterEvaluator
+	healthFilterType structs.HealthFilterType
 }
 
 // Update implements View
@@ -85,6 +87,11 @@ func (s *HealthView) Update(events []*pbsubscribe.Event) error {
 			}
 			if csn == nil {
 				return errors.New("check service node was unexpectedly nil")
+			}
+
+			if csn.ExcludeBasedOnChecks(structs.CheckServiceNodeFilterOptions{FilterType: s.healthFilterType}) {
+				delete(s.state, id)
+				continue
 			}
 
 			// check if we intentionally need to skip the filter

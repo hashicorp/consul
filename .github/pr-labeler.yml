@@ -2,45 +2,75 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 pr/dependencies:
-    - vendor/**/*
-    - go.*
+  - changed-files:
+    - any-glob-to-any-file:
+      - vendor/**/*
+      - go.*
 theme/acls:
-    - acl/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - acl/**/*
 theme/agent-cache:
-    - agent/cache/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - agent/cache/**/*
 theme/api:
-    - api/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - api/**/*
 theme/catalog:
-    - agent/catalog/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - agent/catalog/**/*
 theme/certificates:
-    - tlsutil/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - tlsutil/**/*
 theme/cli:
-    - command/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - command/**/*
 theme/config:
-    - agent/config/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - agent/config/**/*
 theme/connect:
-    - connect/**/*
-    - agent/connect/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - connect/**/*
+      - agent/connect/**/*
 # theme/consul-nomad:
 theme/consul-terraform-sync:
-    - website/content/docs/nia/**/*
-    - website/content/docs/integrate/nia*
+  - changed-files:
+    - any-glob-to-any-file:
+      - website/content/docs/nia/**/*
+      - website/content/docs/integrate/nia*
 # theme/consul-vault:
 theme/contributing:
-    - .github/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/**/*
 theme/dns:
-    - dns/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - dns/**/*
 theme/envoy/xds:
-    - agent/xds/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - agent/xds/**/*
 # theme/federation-usability:
 theme/health-checks:
-    - agent/health*
-    - api/health*
+  - changed-files:
+    - any-glob-to-any-file:
+      - agent/health*
+      - api/health*
 # theme/ingress-gw:
 # theme/internal-cleanup:
 theme/internals:
-    - lib/**/*
-    - types/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - lib/**/*
+      - types/**/*
 # theme/kubernetes:
 # theme/mesh-gw:
 # theme/operator-usability:
@@ -48,19 +78,31 @@ theme/internals:
 # theme/service-metadata:
 # theme/streaming:
 theme/telemetry:
-    - logging/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - logging/**/*
 # theme/terminating-gw:
 theme/testing:
-    - ./*test*/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - ./*test*/**/*
 theme/tls:
-    - tlsutil/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - tlsutil/**/*
 theme/ui:
-    - ui/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - ui/**/*
 # theme/windows:
 # thinking:
 # type/bug:
 type/ci:
-    - .github/workflows/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/workflows/*
 # type/crash:
 type/docs:
-    - website/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - website/**/*

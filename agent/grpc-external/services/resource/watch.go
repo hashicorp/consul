@@ -130,10 +130,6 @@ func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (
 		req.Tenancy = wildcardTenancyFor(reg.Scope)
 	}
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Type); err != nil {
-		return nil, err
-	}
-
 	if err := validateWildcardTenancy(req.Tenancy, req.NamePrefix); err != nil {
 		return nil, err
 	}

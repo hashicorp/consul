@@ -15,9 +15,10 @@
 # unlike the scans configured here, will block releases in CRT.
 
 repository {
-  go_modules   = true
-  npm          = true
-  osv          = true
+  go_modules              = true
+  npm                     = true
+  osv                     = true
+  go_stdlib_version_file  = ".go-version"
 
   secrets {
     all = true
@@ -29,7 +30,6 @@ repository {
     suppress {
       # N.b. `vulnerabilites` is the correct spelling for this tool.
       vulnerabilites = [
-        "GO-2024-2631", # go-jose/v3@v3.0.3 (false positive)
       ]
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
@@ -37,6 +37,7 @@ repository {
         "test/integration/consul-container/*",
         "testing/deployer/*",
         "test-integ/*",
+        "agent/uiserver/dist/assets/vendor-*.js",
       ]
     }
   }

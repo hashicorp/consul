@@ -102,7 +102,8 @@ function verify_rpm {
     ${docker_image} \
     /scripts/verify_rpm.sh \
     "/workdir/${artifact_path}" \
-    "${expect_version}"
+    "${expect_version}" \
+    "${docker_image}"
 }
 
 # Arguments:

@@ -264,6 +264,58 @@ spec:
 
 Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/k8s/crds), which can only be scoped to their own partition.
 
+### Request Normalization
+
+Enable options under `HTTP.Incoming.RequestNormalization` to apply normalization to all inbound traffic to mesh proxies.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "mesh"
+HTTP {
+  Incoming {
+    RequestNormalization {
+      InsecureDisablePathNormalization = false // default false, shown for completeness
+      MergeSlashes = true
+      PathWithEscapedSlashesAction = "UNESCAPE_AND_FORWARD"
+      HeadersWithUnderscoresAction = "REJECT_REQUEST"
+    }
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: Mesh
+metadata:
+  name: mesh
+spec:
+  http:
+    incoming:
+      requestNormalization:
+        insecureDisablePathNormalization: false # default false, shown for completeness
+        mergeSlashes: true
+        pathWithEscapedSlashesAction: UNESCAPE_AND_FORWARD
+        headersWithUnderscoresAction: REJECT_REQUEST
+```
+
+```json
+{
+  "Kind": "mesh",
+  "HTTP": {
+    "Incoming": {
+      "RequestNormalization": {
+        "InsecureDisablePathNormalization": false,
+        "MergeSlashes": true,
+        "PathWithEscapedSlashesAction": "UNESCAPE_AND_FORWARD",
+        "HeadersWithUnderscoresAction": "REJECT_REQUEST"
+      }
+    }
+  }
+}
+```
+
+</CodeTabs>
 
 ## Available Fields
 
@@ -341,6 +393,17 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       type: 'bool: false',
       description:
         'Controls whether `MutualTLSMode=permissive` can be set in the `proxy-defaults` and `service-defaults` configuration entries. '
+    },
+    {
+      name: 'ValidateClusters',
+      type: 'bool: false',
+      description:
+        `Controls whether the clusters the route table refers to are validated. The default value is false. When set to
+         false and a route refers to a cluster that does not exist, the route table loads and routing to a non-existent
+         cluster results in a 404. When set to true and the route is set to a cluster that do not exist, the route table
+         will not load.  For more information, refer to
+         [HTTP route configuration in the Envoy docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route.proto#envoy-v3-api-field-config-route-v3-routeconfiguration-validate-clusters)
+         for more details. `,
     },
     {
       name: 'TLS',
@@ -441,6 +504,57 @@ Note that the Kubernetes example does not include a `partition` field. Configura
                         for all Envoy proxies. As a result, Consul will not include the \`x-forwarded-client-cert\` header in the next hop.
                         If set to \`false\` (default), the XFCC header is propagated to upstream applications.`,
         },
+        {
+          name: 'Incoming',
+          type: 'DirectionalHTTPConfig: <optional>',
+          description: `HTTP configuration for inbound traffic to mesh proxies.`,
+          children: [
+            {
+              name: 'RequestNormalization',
+              type: 'RequestNormalizationConfig: <optional>',
+              description: `Request normalization configuration for inbound traffic to mesh proxies.`,
+              children: [
+                {
+                  name: 'InsecureDisablePathNormalization',
+                  type: 'bool: false',
+                  description: `Sets the value of the \`normalize_path\` option in the Envoy listener's \`HttpConnectionManager\`.  The default value is \`false\`.
+                                When set to \`true\` in Consul, \`normalize_path\` is set to \`false\` for the Envoy proxy.
+                                This parameter disables the normalization of request URL paths according to RFC 3986,
+                                conversion of \`\\\` to \`/\`, and decoding non-reserved %-encoded characters. When using L7
+                                intentions with path match rules, we recommend enabling path normalization in order
+                                to avoid match rule circumvention with non-normalized path values.`,
+                },
+                {
+                  name: 'MergeSlashes',
+                  type: 'bool: false',
+                  description: `Sets the value of the \`merge_slashes\` option in the Envoy listener's \`HttpConnectionManager\`. The default value is \`false\`.
+                                This option controls the normalization of request URL paths by merging consecutive \`/\` characters. This normalization is not part
+                                of RFC 3986. When using L7 intentions with path match rules, we recommend enabling this setting to avoid match rule circumvention through non-normalized path values, unless legitimate service
+                                traffic depends on allowing for repeat \`/\` characters, or upstream services are configured to
+                                differentiate between single and multiple slashes.`,
+                },
+                {
+                  name: 'PathWithEscapedSlashesAction',
+                  type: 'string: ""',
+                  description: `Sets the value of the \`path_with_escaped_slashes_action\` option in the Envoy listener's
+                               \`HttpConnectionManager\`. The default value of this option is empty, which is
+                               equivalent to \`IMPLEMENTATION_SPECIFIC_DEFAULT\`. This parameter controls the action taken in response to request URL paths with escaped
+                               slashes in the path. When using L7 intentions with path match rules, we recommend enabling this setting to avoid match rule circumvention through non-normalized path values, unless legitimate service
+                               traffic depends on allowing for escaped \`/\` or \`\\\` characters, or upstream services are configured to
+                               differentiate between escaped and unescaped slashes. Refer to the Envoy documentation for more information on available
+                               options.`,
+                },
+                {
+                  name: 'HeadersWithUnderscoresAction',
+                  type: 'string: ""',
+                  description: `Sets the value of the \`headers_with_underscores_action\` option in the Envoy listener's
+                                \`HttpConnectionManager\` under \`common_http_protocol_options\`. The default value of this option is
+                                empty, which is equivalent to \`ALLOW\`. Refer to the Envoy documentation for more information on available options.`,
+                },
+              ],
+            },
+          ],
+        }
       ],
     },
     {

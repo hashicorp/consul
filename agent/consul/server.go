@@ -63,24 +63,18 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 	hcpctl "github.com/hashicorp/consul/internal/hcp"
-	"github.com/hashicorp/consul/internal/mesh"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	"github.com/hashicorp/consul/internal/storage"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -130,25 +124,8 @@ const (
 	// and wait for a periodic reconcile.
 	reconcileChSize = 256
 
-	LeaderTransferMinVersion      = "1.6.0"
-	CatalogResourceExperimentName = "resource-apis"
-	V1DNSExperimentName           = "v1dns"
-	V2TenancyExperimentName       = "v2tenancy"
-	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
+	LeaderTransferMinVersion = "1.6.0"
 )
-
-// IsExperimentAllowedOnSecondaries returns true if an experiment is currently
-// disallowed for wan federated secondary datacenters.
-//
-// Likely these will all be short lived exclusions.
-func IsExperimentAllowedOnSecondaries(name string) bool {
-	switch name {
-	case CatalogResourceExperimentName, V2TenancyExperimentName:
-		return false
-	default:
-		return true
-	}
-}
 
 const (
 	aclPolicyReplicationRoutineName       = "ACL policy replication"
@@ -474,15 +451,6 @@ type Server struct {
 	reportingManager *reporting.ReportingManager
 
 	registry resource.Registry
-
-	useV2Resources bool
-
-	// useV2Tenancy is tied to the "v2tenancy" feature flag.
-	useV2Tenancy bool
-
-	// whether v2 resources are enabled for use with HCP
-	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
-	hcpAllowV2Resources bool
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -504,22 +472,10 @@ type connHandler interface {
 	Shutdown() error
 }
 
-// ProxyUpdater is an interface for ProxyTracker.
-type ProxyUpdater interface {
-	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
-	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
-
-	// ProxyConnectedToServer returns whether this id is connected to this server. If it is connected, it also returns
-	// the token as the first argument.
-	ProxyConnectedToServer(id *pbresource.ID) (string, bool)
-
-	EventChannel() chan controller.Event
-}
-
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
 func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
-	incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, proxyUpdater ProxyUpdater) (*Server, error) {
+	incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -572,9 +528,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 		registry:                flat.Registry,
-		useV2Resources:          flat.UseV2Resources(),
-		useV2Tenancy:            flat.UseV2Tenancy(),
-		hcpAllowV2Resources:     flat.HCPAllowV2Resources(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -636,15 +589,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 
 	rpcServerOpts := []func(*rpc.Server){
 		rpc.WithPreBodyInterceptor(
-			middleware.ChainedRPCPreBodyInterceptor(
-				func(reqServiceMethod string, sourceAddr net.Addr) error {
-					if s.useV2Resources && isV1CatalogRequest(reqServiceMethod) {
-						return structs.ErrUsingV2CatalogExperiment
-					}
-					return nil
-				},
-				middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger)),
-			),
+			middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger)),
 		),
 	}
 
@@ -747,7 +692,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	}
 
 	// Initialize the Raft server.
-	if err := s.setupRaft(stringslice.Contains(flat.Experiments, CatalogResourceExperimentName)); err != nil {
+	if err := s.setupRaft(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
@@ -925,7 +870,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		pbresource.NewResourceServiceClient(s.insecureUnsafeGRPCChan),
 		s.loggers.Named(logging.ControllerRuntime),
 	)
-	if err := s.registerControllers(flat, proxyUpdater); err != nil {
+	if err := s.registerControllers(flat); err != nil {
 		return nil, err
 	}
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
@@ -943,22 +888,12 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
 
-	// Construct the registrator that makes sense for the catalog version
-	if s.useV2Resources {
-		s.registrator = V2ConsulRegistrator{
-			Logger:   serverLogger,
-			NodeName: s.config.NodeName,
-			EntMeta:  s.config.AgentEnterpriseMeta(),
-			Client:   pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
-		}
-	} else {
-		s.registrator = V1ConsulRegistrator{
-			Datacenter:    s.config.Datacenter,
-			FSM:           s.fsm,
-			Logger:        serverLogger,
-			NodeName:      s.config.NodeName,
-			RaftApplyFunc: s.raftApplyMsgpack,
-		}
+	s.registrator = V1ConsulRegistrator{
+		Datacenter:    s.config.Datacenter,
+		FSM:           s.fsm,
+		Logger:        serverLogger,
+		NodeName:      s.config.NodeName,
+		RaftApplyFunc: s.raftApplyMsgpack,
 	}
 
 	// Start monitoring leadership. This must happen after Serf is set up
@@ -993,86 +928,17 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	return s, nil
 }
 
-func isV1CatalogRequest(rpcName string) bool {
-	switch {
-	case strings.HasPrefix(rpcName, "Catalog."),
-		strings.HasPrefix(rpcName, "Health."),
-		strings.HasPrefix(rpcName, "ConfigEntry."):
-		return true
-	}
-
-	switch rpcName {
-	case "Internal.EventFire", "Internal.KeyringOperation", "Internal.OIDCAuthMethods":
-		return false
-	default:
-		if strings.HasPrefix(rpcName, "Internal.") {
-			return true
-		}
-		return false
-	}
-}
-
-func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+func (s *Server) registerControllers(deps Deps) error {
 	if s.config.Cloud.IsConfigured() {
 		hcpctl.RegisterControllers(
 			s.controllerManager, hcpctl.ControllerDependencies{
-				ResourceApisEnabled:    s.useV2Resources,
-				HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
-				CloudConfig:            deps.HCP.Config,
+				CloudConfig: deps.HCP.Config,
 			},
 		)
 	}
 
-	// When not enabled, the v1 tenancy bridge is used by default.
-	if s.useV2Tenancy {
-		tenancy.RegisterControllers(
-			s.controllerManager,
-			tenancy.Dependencies{Registry: deps.Registry},
-		)
-	}
-
-	if s.useV2Resources {
-		catalog.RegisterControllers(s.controllerManager)
-		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
-		if err != nil {
-			return err
-		}
-
-		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
-			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
-				var bundle pbproxystate.TrustBundle
-				roots, err := s.getCARoots(nil, s.GetState())
-				if err != nil {
-					return nil, err
-				}
-				bundle.TrustDomain = roots.TrustDomain
-				for _, root := range roots.Roots {
-					bundle.Roots = append(bundle.Roots, root.RootCert)
-				}
-				return &bundle, nil
-			},
-			// This function is adapted from server_connect.go:getCARoots.
-			TrustDomainFetcher: func() (string, error) {
-				_, caConfig, err := s.fsm.State().CAConfig(nil)
-				if err != nil {
-					return "", err
-				}
-
-				return s.getTrustDomain(caConfig)
-			},
-
-			LeafCertManager: deps.LeafCertManager,
-			LocalDatacenter: s.config.Datacenter,
-			DefaultAllow:    defaultAllow,
-			ProxyUpdater:    proxyUpdater,
-		})
-
-		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
-		multicluster.RegisterControllers(s.controllerManager)
-	} else {
-		shim := NewExportedServicesShim(s)
-		multicluster.RegisterCompatControllers(s.controllerManager, multicluster.DefaultCompatControllerDependencies(shim))
-	}
+	shim := NewExportedServicesShim(s)
+	multicluster.RegisterCompatControllers(s.controllerManager, multicluster.DefaultCompatControllerDependencies(shim))
 
 	reaper.RegisterControllers(s.controllerManager)
 
@@ -1109,7 +975,7 @@ func (s *Server) connectCARootsMonitor(ctx context.Context) {
 }
 
 // setupRaft is used to setup and initialize Raft
-func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
+func (s *Server) setupRaft() error {
 	// If we have an unclean exit then attempt to close the Raft store.
 	defer func() {
 		if s.raft == nil && s.raftStore != nil {
@@ -1190,7 +1056,7 @@ func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
 			return nil
 		}
 		// Only use WAL if there is no existing raft.db, even if it's enabled.
-		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists && isCatalogResourceExperiment {
+		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists {
 			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
 			if !s.config.LogStoreConfig.Verification.Enabled {
 				s.config.LogStoreConfig.Verification.Enabled = true
@@ -1958,13 +1824,13 @@ func (s *Server) Stats() map[string]map[string]string {
 // are ancillary members of.
 //
 // NOTE: This assumes coordinates are enabled, so check that before calling.
-func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
+func (s *Server) GetLANCoordinate() (librtt.CoordinateSet, error) {
 	lan, err := s.serfLAN.GetCoordinate()
 	if err != nil {
 		return nil, err
 	}
 
-	cs := lib.CoordinateSet{"": lan}
+	cs := librtt.CoordinateSet{"": lan}
 	if err := s.addEnterpriseLANCoordinates(cs); err != nil {
 		return nil, err
 	}

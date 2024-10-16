@@ -15,7 +15,10 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.27.0"}
+if [[ -z "${ENVOY_VERSION:-}" ]]; then
+    echo "please set Envoy version via ENVOY_VERSION"
+    exit 1
+fi
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -179,14 +182,6 @@ function start_consul {
     license=$(cat $CONSUL_LICENSE_PATH)
   fi
 
-  USE_RESOURCE_APIS=${USE_RESOURCE_APIS:-false}
-
-  experiments="experiments=[]"
-  # set up consul to run in V1 or V2 catalog mode
-  if [[ "${USE_RESOURCE_APIS}" == true ]]; then
-   experiments="experiments=[\"resource-apis\"]"
-  fi
-
   # We currently run these integration tests in two modes: one in which Envoy's
   # xDS sessions are served directly by a Consul server, and another in which it
   # goes through a client agent.
@@ -270,7 +265,6 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
-      -hcl=${experiments} \
       -client "0.0.0.0" >/dev/null
   fi
 }
@@ -559,8 +553,7 @@ function suite_setup {
     docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        k8s.gcr.io/pause &>/dev/null
-    # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
+        registry.k8s.io/pause &>/dev/null
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
@@ -609,21 +602,68 @@ function run_container {
   "run_container_$1"
 }
 
+# Run the common service container. By default, uses fortio/fortio.
+#
+# To use mendhak/http-https-echo, set SERVICE_CONTAINER=echo in vars.sh.
+#
+# To provide a custom docker run command for test containers, override
+# common_run_container_service in vars.sh (which will be sourced prior to
+# invocation). Use $(container_name_prev) in the custom function to get
+# the correct effective container name. See common_run_container-fortio
+# for the expected args list.
 function common_run_container_service {
-  local service="$1"
-  local CLUSTER="$2"
-  local httpPort="$3"
-  local grpcPort="$4"
+  local serviceContainer=${SERVICE_CONTAINER:-fortio}
+  local containerName=$(container_name_prev)
 
-  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $(container_name_prev) \
+  case "$serviceContainer" in
+    fortio)
+      common_run_container-fortio "$containerName" "$@"
+      ;;
+    echo)
+      common_run_container-echo "$containerName" "$@"
+      ;;
+    *)
+      echo "Unknown common run container: $runContainer"
+      return 1
+      ;;
+  esac
+}
+
+function common_run_container-fortio {
+  local containerName="$1"
+  local service="$2"
+  local cluster="$3"
+  local httpPort="$4"
+  local grpcPort="$5"
+
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $containerName \
     -e "FORTIO_NAME=${service}" \
-    $(network_snippet $CLUSTER) \
+    $(network_snippet $cluster) \
     "${HASHICORP_DOCKER_PROXY}/fortio/fortio" \
     server \
     -http-port ":$httpPort" \
     -grpc-port ":$grpcPort" \
     -redirect-port disabled >/dev/null
 }
+
+# Alternative to Fortio, which has limited ability to echo back arbitrary
+# requests (only one pre-determined debug path), and uses Go's net/http, which
+# force-normalizes paths. Useful for verifying HTTP request parameters sent by
+# Envoy to the upstream.
+function common_run_container-echo {
+  local containerName="$1"
+  local cluster="$3"
+  local httpPort="$4"
+
+  # HTTPS_PORT=0 will randomly assign a port number. It must be set, otherwise
+  # multiple containers on same network will fail due to using the same default port.
+  docker run --sysctl net.ipv6.conf.all.disable_ipv6=1 -d --name $containerName \
+    -e "HTTP_PORT=${httpPort}" \
+    -e "HTTPS_PORT=0" \
+    $(network_snippet $cluster) \
+    ${HASHICORP_DOCKER_PROXY}/mendhak/http-https-echo:34 >/dev/null
+}
+
 
 function run_container_s1 {
   common_run_container_service s1 primary 8080 8079

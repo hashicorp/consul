@@ -4,17 +4,31 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
 
+type UnsupportedFSMApplyPanicError struct {
+	Wrapped error
+}
+
+func (e *UnsupportedFSMApplyPanicError) Unwrap() error {
+	return e.Wrapped
+}
+
+func (e *UnsupportedFSMApplyPanicError) Error() string {
+	return e.Wrapped.Error()
+}
+
 // txnKVS handles all KV-related operations.
 func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.TxnResults, error) {
 	var entry *structs.DirEntry
 	var err error
 
+	// enumcover: api.KVOp
 	switch op.Verb {
 	case api.KVSet:
 		entry = &op.DirEnt
@@ -95,7 +109,7 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 		}
 
 	default:
-		err = fmt.Errorf("unknown KV verb %q", op.Verb)
+		err = &UnsupportedFSMApplyPanicError{fmt.Errorf("unknown KV verb %q", op.Verb)}
 	}
 	if err != nil {
 		return nil, err
@@ -123,11 +137,12 @@ func (s *Store) txnKVS(tx WriteTxn, idx uint64, op *structs.TxnKVOp) (structs.Tx
 func txnSession(tx WriteTxn, idx uint64, op *structs.TxnSessionOp) error {
 	var err error
 
+	// enumcover: api.SessionOp
 	switch op.Verb {
 	case api.SessionDelete:
 		err = sessionDeleteWithSession(tx, &op.Session, idx)
 	default:
-		err = fmt.Errorf("unknown Session verb %q", op.Verb)
+		return &UnsupportedFSMApplyPanicError{fmt.Errorf("unknown session verb %q", op.Verb)}
 	}
 	if err != nil {
 		return fmt.Errorf("failed to delete session: %v", err)
@@ -146,11 +161,17 @@ func txnLegacyIntention(tx WriteTxn, idx uint64, op *structs.TxnIntentionOp) err
 	case structs.IntentionOpDelete:
 		return legacyIntentionDeleteTxn(tx, idx, op.Intention.ID)
 	case structs.IntentionOpDeleteAll:
-		fallthrough // deliberately not available via this api
+		// deliberately not available via this api
+		return fmt.Errorf("Intention op not supported %q", op.Op)
 	case structs.IntentionOpUpsert:
-		fallthrough // deliberately not available via this api
+		// deliberately not available via this api
+		return fmt.Errorf("Intention op not supported %q", op.Op)
 	default:
-		return fmt.Errorf("unknown Intention op %q", op.Op)
+		// If we've gotten to this point, the unknown verb has slipped by
+		// endpoint validation. This means it could be a mismatch in Server versions
+		// that are sending known verbs as part of Raft logs. We panic rather than silently
+		// swallowing the error during Raft Apply.
+		panic(fmt.Sprintf("unknown Intention op %q", op.Op))
 	}
 }
 
@@ -202,7 +223,7 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 		}
 
 	default:
-		err = fmt.Errorf("unknown Node verb %q", op.Verb)
+		err = &UnsupportedFSMApplyPanicError{fmt.Errorf("unknown Node verb %q", op.Verb)}
 	}
 	if err != nil {
 		return nil, err
@@ -271,7 +292,7 @@ func (s *Store) txnService(tx WriteTxn, idx uint64, op *structs.TxnServiceOp) (s
 		return nil, err
 
 	default:
-		return nil, fmt.Errorf("unknown Service verb %q", op.Verb)
+		return nil, &UnsupportedFSMApplyPanicError{fmt.Errorf("unknown Service verb %q", op.Verb)}
 	}
 }
 
@@ -326,7 +347,7 @@ func (s *Store) txnCheck(tx WriteTxn, idx uint64, op *structs.TxnCheckOp) (struc
 		}
 
 	default:
-		err = fmt.Errorf("unknown Check verb %q", op.Verb)
+		err = &UnsupportedFSMApplyPanicError{fmt.Errorf("unknown check verb %q", op.Verb)}
 	}
 	if err != nil {
 		return nil, err
@@ -352,7 +373,7 @@ func (s *Store) txnCheck(tx WriteTxn, idx uint64, op *structs.TxnCheckOp) (struc
 // txnDispatch runs the given operations inside the state store transaction.
 func (s *Store) txnDispatch(tx WriteTxn, idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
 	results := make(structs.TxnResults, 0, len(ops))
-	errors := make(structs.TxnErrors, 0, len(ops))
+	errs := make(structs.TxnErrors, 0, len(ops))
 	for i, op := range ops {
 		var ret structs.TxnResults
 		var err error
@@ -374,24 +395,33 @@ func (s *Store) txnDispatch(tx WriteTxn, idx uint64, ops structs.TxnOps) (struct
 			// compatibility with pre-1.9.0 raft logs and during upgrades.
 			err = txnLegacyIntention(tx, idx, op.Intention)
 		default:
-			err = fmt.Errorf("no operation specified")
+			panic("no operation specified")
 		}
 
 		// Accumulate the results.
 		results = append(results, ret...)
 
+		var panicErr *UnsupportedFSMApplyPanicError
+		if errors.As(err, &panicErr) {
+			// If we've gotten to this point, the unknown verb has slipped by
+			// endpoint validation. This means it could be a mismatch in Server versions
+			// that are sending known verbs as part of Raft logs. We panic rather than silently
+			// swallowing the error during Raft Apply. See NET-9016 for historical context.
+			panic(panicErr.Wrapped)
+		}
+
 		// Capture any error along with the index of the operation that
 		// failed.
 		if err != nil {
-			errors = append(errors, &structs.TxnError{
+			errs = append(errs, &structs.TxnError{
 				OpIndex: i,
 				What:    err.Error(),
 			})
 		}
 	}
 
-	if len(errors) > 0 {
-		return nil, errors
+	if len(errs) > 0 {
+		return nil, errs
 	}
 
 	return results, nil

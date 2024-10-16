@@ -6,25 +6,25 @@ description: Learn about the fields available in the JSON scheme for configuring
 
 # Consul server configuration JSON schema reference
 
-This topic provides reference information about the JSON schema used to build the `config.tf` file. Refer to [Configure Consul server settings](/consul/docs/ecs/deploy/terraform#configure-consul-server-settings) for information about how Consul on ECS uses the JSON schema. 
+This topic provides reference information about the JSON schema used to build the `config.tf` file. Refer to [Configure Consul server settings](/consul/docs/ecs/deploy/terraform#configure-consul-server-settings) for information about how Consul on ECS uses the JSON schema.
 
 ## Configuration model
 
 The following list describes the attributes, data types, and default values, if any, in the `config.tf` file. Click on a value to learn more about the attribute.
 
-- [`consulServers`](#consulservers): map 
+- [`consulServers`](#consulservers): map
 	- [`hosts`](#consulservers-hosts): string
    	- [`skipServerWatch`](#consulservers-hosts): boolean | `false`
-	- [`defaults`](#consulservers-defaults): map 
-		- [`caCertFile`](#consulservers-defaults): string 
-		- [`tlsServerName`](#consulservers-defaults): string 
+	- [`defaults`](#consulservers-defaults): map
+		- [`caCertFile`](#consulservers-defaults): string
+		- [`tlsServerName`](#consulservers-defaults): string
 		- [`tls`](#consulservers-defaults): boolean | `false`
-	- [`grpc`](#consulservers-grpc): map 
-		- [`port`](#consulservers-grpc): number 
-		- [`caCertFile`](#consulservers-grpc): string 
-		- [`tlsServerName`](#consulservers-grpc): string 
+	- [`grpc`](#consulservers-grpc): map
+		- [`port`](#consulservers-grpc): number
+		- [`caCertFile`](#consulservers-grpc): string
+		- [`tlsServerName`](#consulservers-grpc): string
 		- [`tls`](#consulservers-grpc): boolean | `false`
-	- [`http`](#consulservers-http): map 
+	- [`http`](#consulservers-http): map
 		- [`https`](#consulservers-http): boolean | `false`
 		- [`port`](#consulservers-http): number
 		- [`caCertFile`](#consulservers-http): string
@@ -33,11 +33,11 @@ The following list describes the attributes, data types, and default values, if 
 
 ## Specification
 
-This section provides details about the attribes in the `config.tf` file.
+This section provides details about the attributes in the `config.tf` file.
 
 ### `consulServers`
 
-Parent-level attribute containing all of the server configurations. All other configuraitons in the file are children of the `consulServers` attribute. 
+Parent-level attribute containing all of the server configurations. All other configurations in the file are children of the `consulServers` attribute.
 
 #### Values
 
@@ -47,7 +47,7 @@ Parent-level attribute containing all of the server configurations. All other co
 
 ### `consulServers.hosts`
 
-Map that contains the `skipServerWatch` configuration for Consul server hosts.  
+Map that contains the `skipServerWatch` configuration for Consul server hosts.
 
 #### Values
 
@@ -56,7 +56,7 @@ Map that contains the `skipServerWatch` configuration for Consul server hosts.
 
 ### `consulServers.hosts.skipServerWatch`
 
-Boolean that disables watches on the Consul server. Set to `true` if the Consul server is already behind a load balancer.  
+Boolean that disables watches on the Consul server. Set to `true` if the Consul server is already behind a load balancer.
 
 #### Values
 
@@ -65,7 +65,7 @@ Boolean that disables watches on the Consul server. Set to `true` if the Consul 
 
 ### `consulServers.defaults`
 
-Map of default server configurations. Defaults apply to gRPC and HTTP traffic.  
+Map of default server configurations. Defaults apply to gRPC and HTTP traffic.
 
 #### Values
 
@@ -83,7 +83,7 @@ The following table describes the attributes available in the `defaults` configu
 
 ### `consulServers.grpc`
 
-Map of server configuration for gRPC traffic that override attributes defined in `consulServers.defaults`. 
+Map of server configuration for gRPC traffic that override attributes defined in `consulServers.defaults`.
 
 #### Values
 
@@ -101,7 +101,7 @@ The following table describes the attributes available in the `grpc` configurati
 
 ### `consulServers.http`
 
-Map of server configuration for HTTP traffic that override attributes defined in `consulServers.defaults`. 
+Map of server configuration for HTTP traffic that override attributes defined in `consulServers.defaults`.
 
 #### Values
 

@@ -22,7 +22,6 @@ permissions:
 env:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
-  SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 # concurrency
 concurrency:
@@ -31,17 +30,7 @@ concurrency:
 
 jobs:
   conditional-skip:
-    runs-on: ubuntu-latest 
-    name: Get files changed and conditionally skip CI
-    outputs:
-      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          fetch-depth: 0  
-      - name: Get changed files
-        id: read-files
-        run: ./.github/scripts/filter_changed_files_go_test.sh
+    uses: ./.github/workflows/reusable-conditional-skip.yml
 
   setup:
     needs: [conditional-skip]
@@ -54,7 +43,7 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     - id: setup-outputs
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
@@ -80,12 +69,12 @@ jobs:
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make proto-tools
@@ -106,12 +95,12 @@ jobs:
      - get-go-version
      runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
      steps:
-     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
      - name: Setup Git
        if: ${{ endsWith(github.repository, '-enterprise') }}
        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+     - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
        with:
          go-version: ${{ needs.get-go-version.outputs.go-version }}
      - run: make --always-make codegen
@@ -127,12 +116,12 @@ jobs:
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
@@ -143,11 +132,11 @@ jobs:
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make lint-container-test-deps
@@ -158,12 +147,12 @@ jobs:
     - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
     - name: Setup Git
       if: ${{ endsWith(github.repository, '-enterprise') }}
       run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+    - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
         go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: make lint-consul-retry
@@ -598,7 +587,7 @@ jobs:
         # FAILED_TESTS must also be checked to avoid running this step on cancellation due to the summary check above
         if: ${{ failure() && env.FAILED_TESTS == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }}
         id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
         with:
           # Escape entire message string to ensure valid JSON. If invalid, the notification will fail silently in CI.
           payload: |

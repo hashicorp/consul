@@ -4,7 +4,6 @@
 package dataplane
 
 import (
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/go-hclog"
@@ -27,10 +26,6 @@ type Config struct {
 	ACLResolver ACLResolver
 	// Datacenter of the Consul server this gRPC server is hosted on
 	Datacenter string
-
-	// EnableV2 indicates whether a feature flag for v2 APIs is provided.
-	EnableV2          bool
-	ResourceAPIClient pbresource.ResourceServiceClient
 }
 
 type StateStore interface {

@@ -180,16 +180,10 @@ func (s *TestSigner) SignCert(ctx context.Context, req *structs.CASignRequest) (
 		return nil, fmt.Errorf("error parsing CSR URI: %w", err)
 	}
 
-	var isService bool
 	var serviceID *connect.SpiffeIDService
-	var workloadID *connect.SpiffeIDWorkloadIdentity
-
 	switch spiffeID.(type) {
 	case *connect.SpiffeIDService:
-		isService = true
 		serviceID = spiffeID.(*connect.SpiffeIDService)
-	case *connect.SpiffeIDWorkloadIdentity:
-		workloadID = spiffeID.(*connect.SpiffeIDWorkloadIdentity)
 	default:
 		return nil, fmt.Errorf("unexpected spiffeID type %T", spiffeID)
 	}
@@ -270,35 +264,19 @@ func (s *TestSigner) SignCert(ctx context.Context, req *structs.CASignRequest) (
 	}
 
 	index := s.nextIndex()
-	if isService {
-		// Service Spiffe ID case
-		return &structs.IssuedCert{
-			SerialNumber: connect.EncodeSerialNumber(leafCert.SerialNumber),
-			CertPEM:      leafPEM,
-			Service:      serviceID.Service,
-			ServiceURI:   leafCert.URIs[0].String(),
-			ValidAfter:   leafCert.NotBefore,
-			ValidBefore:  leafCert.NotAfter,
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: index,
-				ModifyIndex: index,
-			},
-		}, nil
-	} else {
-		// Workload identity Spiffe ID case
-		return &structs.IssuedCert{
-			SerialNumber:        connect.EncodeSerialNumber(leafCert.SerialNumber),
-			CertPEM:             leafPEM,
-			WorkloadIdentity:    workloadID.WorkloadIdentity,
-			WorkloadIdentityURI: leafCert.URIs[0].String(),
-			ValidAfter:          leafCert.NotBefore,
-			ValidBefore:         leafCert.NotAfter,
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: index,
-				ModifyIndex: index,
-			},
-		}, nil
-	}
+	// Service Spiffe ID case
+	return &structs.IssuedCert{
+		SerialNumber: connect.EncodeSerialNumber(leafCert.SerialNumber),
+		CertPEM:      leafPEM,
+		Service:      serviceID.Service,
+		ServiceURI:   leafCert.URIs[0].String(),
+		ValidAfter:   leafCert.NotBefore,
+		ValidBefore:  leafCert.NotAfter,
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: index,
+			ModifyIndex: index,
+		},
+	}, nil
 }
 
 type testRootsReader struct {

@@ -11,16 +11,12 @@ import (
 )
 
 type Dependencies struct {
-	CloudConfig            config.CloudConfig
-	ResourceApisEnabled    bool
-	HCPAllowV2ResourceApis bool
+	CloudConfig config.CloudConfig
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(
 		link.LinkController(
-			deps.ResourceApisEnabled,
-			deps.HCPAllowV2ResourceApis,
 			link.DefaultHCPClientFn,
 			deps.CloudConfig,
 		),

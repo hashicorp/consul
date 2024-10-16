@@ -1,0 +1,187 @@
+---
+layout: docs
+page_title: DNS forwarding
+description: ->
+  Learn how to configure your local DNS servers to perform DNS forwarding to Consul servers.
+---
+
+# DNS forwarding
+
+This topic describes the process to configure different DNS servers to enable DNS forwarding to Consul servers.
+
+You can apply these operations on every node where a Consul agent is running.
+
+## Introduction
+
+You deployed a Consul datacenter and want to use Consul DNS interface for name resolution.
+
+When configured with default values, Consul exposes the DNS interface on port `8600`. By default, DNS is served from port `53`. On most operating systems, this requires elevated privileges. It is also common, for most operating systems, to have a local DNS server already running on port `53`.
+
+Instead of running Consul with an administrative or root account, you can forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or using port redirect.
+
+There are two configurations for a node's DNS forwarding behavior:
+
+ - **Conditional DNS forwarding**: the local DNS servers are configured to forward to Consul only queries relative to the `.consul` zone. All other queries are still served via the default DNS server in the node.
+ - **Full DNS forwarding**: Consul serves all DNS queries and forwards to a remote DNS server the ones outside `.consul` domain.
+
+### Conditional DNS forwarding
+
+We recommend the conditional DNS forwarding approach. This configuration lowers the Consul agent's resource consumption by limiting the number of DNS requests it handles.
+
+![Consul DNS conditional forwarding - Only .consul requests are routed to Consul](/img/consul-dns-conditional-forwarding.png#light-theme-only)
+![Consul DNS conditional forwarding - Only .consul requests are routed to Consul](/img/consul-dns-conditional-forwarding-dark.png#dark-theme-only)
+
+In this configuration, Consul only serves queries relative to the `.consul` domain. There is no unnecessary load on Consul servers to serve queries from different domains.
+
+This behavior is not enabled by default.
+
+### Full DNS forwarding
+
+This approach can be useful in scenarios where the Consul agent's node is allocated limited resources and you want to avoid the overhead of running a local DNS server. In this configuration, Consul serves all DNS queries for all domains and forwards the ones outside the `.consul` domain to one or more configured forwarder servers.
+
+![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding.png#light-theme-only)
+![Consul DNS forwarding - All requests are routed to Consul](/img/consul-dns-forwarding-dark.png#dark-theme-only)
+
+This behavior is not enabled by default. Consul standard configuration only resolves DNS records inside the `.consul` zone. To enable DNS forwarding, you need to set the [recursors](/consul/docs/agent/config/config-files#recursors) option in your Consul configuration.
+
+In this scenario, if a Consul DNS reply includes a `CNAME` record pointing outside the `.consul` top level domain, then the DNS reply only includes `CNAME` records by default.
+
+When `recursors` is set and the upstream resolver is functioning correctly, Consul tries to resolve CNAMEs and include any records (for example, A, AAAA, PTR) for them in its DNS reply. In these scenarios, Consul is used for full DNS forwarding and is able to serve queries for all domains.
+
+## Workflow
+
+To use DNS forwarding in Consul deployments, complete the following steps:
+
+1. Configure the local DNS service to enable DNS forwarding to Consul. Follow the instructions for one of the following services:
+  
+    - [systemd-resolved](/consul/docs/services/discovery/dns-forwarding/enable#systemd-resolved)
+    - [BIND](/consul/docs/services/discovery/dns-forwarding/enable#bind)
+    - [Dnsmasq](/consul/docs/services/discovery/dns-forwarding/enable#dnsmasq)
+    - [Unbound](/consul/docs/services/discovery/dns-forwarding/enable#unbound)
+    - [iptables](/consul/docs/services/discovery/dns-forwarding/enable#iptables)
+    - [macOS system resolver](/consul/docs/services/discovery/dns-forwarding/enable#macOS)
+
+1. Query the Consul DNS to confirm that DNS forwarding functions correctly.
+
+    ```shell-session
+    $ dig consul.service.consul A
+    
+    ; <<>> DiG 9.16.48-Debian <<>> consul.service.consul A
+    ;; global options: +cmd
+    ;; Got answer:
+    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 51736
+    ;; flags: qr rd ra; QUERY: 1, ANSWER: 3, AUTHORITY: 0, ADDITIONAL: 1
+    
+    ;; OPT PSEUDOSECTION:
+    ; EDNS: version: 0, flags:; udp: 65494
+    ;; QUESTION SECTION:
+    ;consul.service.consul.		IN	A
+    
+    ;; ANSWER SECTION:
+    consul.service.consul.	0	IN	A	10.0.4.140
+    consul.service.consul.	0	IN	A	10.0.4.121
+    consul.service.consul.	0	IN	A	10.0.4.9
+    
+    ;; Query time: 4 msec
+    ;; SERVER: 127.0.0.53#53(127.0.0.53)
+    ;; WHEN: Wed Jun 26 20:47:05 UTC 2024
+    ;; MSG SIZE  rcvd: 98
+    
+    ```
+
+1. Optionally, verify reverse DNS.
+
+    ```shell-session
+    $ dig 140.4.0.10.in-addr.arpa. PTR
+    
+    ; <<>> DiG 9.16.48-Debian <<>> 140.4.0.10.in-addr.arpa. PTR
+    ;; global options: +cmd
+    ;; Got answer:
+    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 35085
+    ;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+    
+    ;; OPT PSEUDOSECTION:
+    ; EDNS: version: 0, flags:; udp: 65494
+    ;; QUESTION SECTION:
+    ;140.4.0.10.in-addr.arpa.	IN	PTR
+    
+    ;; ANSWER SECTION:
+    140.4.0.10.in-addr.arpa. 0	IN	PTR	consul-server-0.node.dc1.consul.
+    
+    ;; Query time: 0 msec
+    ;; SERVER: 127.0.0.53#53(127.0.0.53)
+    ;; WHEN: Wed Jun 26 20:47:57 UTC 2024
+    ;; MSG SIZE  rcvd: 97
+    
+    ```
+    
+    You can use the `short` option for `dig` to only get the node name instead of the full output.
+
+    ```shell-session
+    $ dig +short -x 10.0.4.140
+    consul-server-0.node.dc1.consul.
+    ```
+
+## Troubleshooting
+
+If your DNS server does not respond but you do get an answer from Consul, turn on your DNS server's query log to check for errors.
+
+### systemd-resolved
+
+Enable query logging for `systemd-resolved`:
+
+```shell-session
+# resolvectl log-level debug
+```
+
+Check query log:
+
+```shell-session
+# journalctl -r -u systemd-resolved
+```
+
+Disable query logging:
+
+```shell-session
+# resolvectl log-level info
+```
+
+DNS forwarding may fail if you use the default `systemd-resolved` configuration and attempt to bind to `0.0.0.0`. The default configuration uses a DNS stub that listens for UDP and TCP requests at `127.0.0.53`. As a result, attempting to bind to `127.0.0.53` conflicts with the running stub. You can disable the stub as described in the [Using any local resolver with systemd](/consul/docs/services/discovery/dns-forwarding/enable#using-any-local-resolver-with-systemd) section to troubleshoot this problem.
+
+### Dnsmasq
+
+To enable query log refer to [Dnsmasq documentation](https://thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html).
+
+In particular, look for the `log-queries` and `log-facility` configuration option.
+
+When query log is enabled, it is possible to force Dnsmasq to emit a full cache dump using the `SIGUSR1` signal.
+
+### BIND
+
+Enable query log:
+
+```shell-session
+$ rndc querylog
+```
+
+Check logs:
+
+```shell-session
+$ tail -f /var/log/messages
+```
+
+The log may show errors like this:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+error (no valid RRSIG) resolving
+error (no valid DS) resolving
+```
+
+</CodeBlockConfig>
+
+This error indicates that `DNSSEC` is not disabled properly.
+
+If you receive errors about network connections, verify that there are no firewall
+or routing problems between the servers running BIND and Consul.

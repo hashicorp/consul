@@ -1,0 +1,8 @@
+```release-note:bug
+dns: Fix a regression where DNS tags using the standard lookup syntax, `tag.name.service.consul`, were being disregarded.
+```
+
+```release-note:bug
+dns: Fix a regression where DNS SRV questions were returning duplicate hostnames instead of encoded IPs.
+This affected Nomad integrations with Consul.
+```

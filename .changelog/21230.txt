@@ -1,0 +1,3 @@
+```release-note:enhancement
+dns: new version was not supporting partition or namespace being set to 'default' in CE version.
+```

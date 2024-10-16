@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -20,8 +21,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/gossip/libserf"
 	"github.com/hashicorp/consul/lib"
-	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
 )

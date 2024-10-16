@@ -60,6 +60,8 @@ The corresponding CLI command is [`consul intention create -replace`](/consul/co
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
+@include 'http-api-query-parms-partition.mdx'
+
 ### JSON Request Body Schema
 
 - `SourceType` `(string: "")` - The type for the `SourceName` value.
@@ -150,6 +152,8 @@ The corresponding CLI command is [`consul intention create`](/consul/commands/in
   to use when `SourceNS` or `DestinationNS` request body parameters do not include a namespace
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### JSON Request Body Schema
 
@@ -290,6 +294,8 @@ The corresponding CLI command is [`consul intention get`](/consul/commands/inten
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
+@include 'http-api-query-parms-partition.mdx'
+
 ### Sample Request
 
 ```shell-session
@@ -404,6 +410,8 @@ The corresponding CLI command is [`consul intention list`](/consul/commands/inte
   The `*` wildcard may be used to list intentions from all namespaces.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
+@include 'http-api-query-parms-partition.mdx'
+
 ### Sample Request
 
 ```shell-session
@@ -484,6 +492,8 @@ The corresponding CLI command is [`consul intention delete`](/consul/commands/in
   to use when `source` or `destination` query parameters do not include a namespace
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -627,6 +637,8 @@ The corresponding CLI command is [`consul intention match`](/consul/commands/int
   to use when the `name` query parameter does not include a namespace
   as shown in the [source and destination naming conventions](/consul/commands/intention#source-and-destination-naming).
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

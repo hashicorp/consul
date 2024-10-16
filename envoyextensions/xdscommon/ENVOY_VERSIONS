@@ -1,0 +1,14 @@
+# This file represents the canonical list of supported Envoy versions for this version of Consul.
+#
+# Every line must contain a valid version number in the format "x.y.z" where x, y, and z are integers.
+# All other lines must be comments beginning with a "#", or a blank line.
+#
+# Every prior "minor" version for a given "major" (x.y) version is implicitly supported unless excluded by
+# `xdscommon.UnsupportedEnvoyVersions`. For example, 1.28.3 implies support for 1.28.0, 1.28.1, and 1.28.2.
+#
+# See https://www.consul.io/docs/connect/proxies/envoy#supported-versions for more information on Consul's Envoy
+# version support.
+1.31.2
+1.30.6
+1.29.9
+1.28.7

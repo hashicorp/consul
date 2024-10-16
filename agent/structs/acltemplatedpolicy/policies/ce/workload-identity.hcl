@@ -1,3 +1,0 @@
-identity "{{.Name}}" {
-	policy = "write"
-}

@@ -38,8 +38,6 @@ var DefaultHCPClientFn HCPClientFn = func(cfg config.CloudConfig) (hcpclient.Cli
 }
 
 func LinkController(
-	resourceApisEnabled bool,
-	hcpAllowV2ResourceApis bool,
 	hcpClientFn HCPClientFn,
 	cfg config.CloudConfig,
 ) *controller.Controller {
@@ -51,19 +49,15 @@ func LinkController(
 		).
 		WithReconciler(
 			&linkReconciler{
-				resourceApisEnabled:    resourceApisEnabled,
-				hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
-				hcpClientFn:            hcpClientFn,
-				cloudConfig:            cfg,
+				hcpClientFn: hcpClientFn,
+				cloudConfig: cfg,
 			},
 		)
 }
 
 type linkReconciler struct {
-	resourceApisEnabled    bool
-	hcpAllowV2ResourceApis bool
-	hcpClientFn            HCPClientFn
-	cloudConfig            config.CloudConfig
+	hcpClientFn HCPClientFn
+	cloudConfig config.CloudConfig
 }
 
 func hcpAccessLevelToConsul(level *gnmmod.HashicorpCloudGlobalNetworkManager20220215ClusterConsulAccessLevel) pbhcp.AccessLevel {
@@ -107,18 +101,12 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 		return err
 	}
 
-	// Validation - Ensure V2 Resource APIs are not enabled unless hcpAllowV2ResourceApis flag is set
 	newStatus := &pbresource.Status{
 		ObservedGeneration: res.Generation,
 		Conditions:         []*pbresource.Condition{},
 	}
 	defer writeStatusIfNotEqual(ctx, rt, res, newStatus)
-	if r.resourceApisEnabled && !r.hcpAllowV2ResourceApis {
-		newStatus.Conditions = append(newStatus.Conditions, ConditionValidatedFailed)
-		return nil
-	} else {
-		newStatus.Conditions = append(newStatus.Conditions, ConditionValidatedSuccess)
-	}
+	newStatus.Conditions = append(newStatus.Conditions, ConditionValidatedSuccess)
 
 	// Merge the link data with the existing cloud config so that we only overwrite the
 	// fields that are provided by the link. This ensures that:

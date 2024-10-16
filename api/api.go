@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -116,6 +117,13 @@ type QueryOptions struct {
 	// Partition overrides the `default` partition
 	// Note: Partitions are available only in Consul Enterprise
 	Partition string
+
+	// SamenessGroup is used find the SamenessGroup in the given
+	// Partition and will find the failover order for the Service
+	// from the SamenessGroup Members, with the given Partition being
+	// the first member.
+	// Note: SamenessGroups are available only in Consul Enterprise
+	SamenessGroup string
 
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
@@ -847,6 +855,12 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		// rather than the alternative short-hand "ap"
 		r.params.Set("partition", q.Partition)
 	}
+	if q.SamenessGroup != "" {
+		// For backwards-compatibility with existing tests,
+		// use the long-hand query param name "sameness-group"
+		// rather than the alternative short-hand "sg"
+		r.params.Set("sameness-group", q.SamenessGroup)
+	}
 	if q.Datacenter != "" {
 		// For backwards-compatibility with existing tests,
 		// use the short-hand query param name "dc"
@@ -1168,6 +1182,9 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 	if err != nil {
 		return fmt.Errorf("Failed to parse X-Consul-LastContact: %v", err)
 	}
+	if last > math.MaxInt64 {
+		return fmt.Errorf("X-Consul-LastContact Header value is out of range: %d", last)
+	}
 	q.LastContact = time.Duration(last) * time.Millisecond
 
 	// Parse the X-Consul-KnownLeader
@@ -1208,6 +1225,9 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		age, err := strconv.ParseUint(ageStr, 10, 64)
 		if err != nil {
 			return fmt.Errorf("Failed to parse Age Header: %v", err)
+		}
+		if age > math.MaxInt64 {
+			return fmt.Errorf("Age Header value is out of range: %d", last)
 		}
 		q.CacheAge = time.Duration(age) * time.Second
 	}

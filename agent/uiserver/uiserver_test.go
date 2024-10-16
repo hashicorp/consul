@@ -13,9 +13,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -51,8 +52,7 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				},
-				"V2CatalogEnabled": false
+				}
 			}`,
 		},
 		{
@@ -91,8 +91,7 @@ func TestUIServerIndex(t *testing.T) {
 					},
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				},
-				"V2CatalogEnabled": false
+				}
 			}`,
 		},
 		{
@@ -113,8 +112,7 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				},
-				"V2CatalogEnabled": false
+				}
 			}`,
 		},
 		{
@@ -135,30 +133,7 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				},
-				"V2CatalogEnabled": false
-			}`,
-		},
-		{
-			name:         "v2 catalog enabled",
-			cfg:          basicUIEnabledConfig(withV2CatalogEnabled()),
-			path:         "/",
-			wantStatus:   http.StatusOK,
-			wantContains: []string{"<!-- CONSUL_VERSION:"},
-			wantUICfgJSON: `{
-				"ACLsEnabled": false,
-				"HCPEnabled": false,
-				"LocalDatacenter": "dc1",
-				"PrimaryDatacenter": "dc1",
-				"ContentPath": "/ui/",
-				"PeeringEnabled": true,
-				"UIConfig": {
-					"hcp_enabled": false,
-					"metrics_provider": "",
-					"metrics_proxy_enabled": false,
-					"dashboard_url_templates": null
-				},
-				"V2CatalogEnabled": true 
+				}
 			}`,
 		},
 		{
@@ -181,8 +156,7 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				},
-				"V2CatalogEnabled": false
+				}
 			}`,
 		},
 		{
@@ -214,8 +188,7 @@ func TestUIServerIndex(t *testing.T) {
 					"metrics_provider": "bar",
 					"metrics_proxy_enabled": false,
 					"dashboard_url_templates": null
-				},
-				"V2CatalogEnabled": false
+				}
 			}`,
 		},
 		{
@@ -345,12 +318,6 @@ func withMetricsProviderOptions(jsonStr string) cfgFunc {
 func withHCPEnabled() cfgFunc {
 	return func(cfg *config.RuntimeConfig) {
 		cfg.UIConfig.HCPEnabled = true
-	}
-}
-
-func withV2CatalogEnabled() cfgFunc {
-	return func(cfg *config.RuntimeConfig) {
-		cfg.Experiments = append(cfg.Experiments, "resource-apis")
 	}
 }
 
@@ -500,7 +467,6 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 			"metrics_proxy_enabled": false,
 			"dashboard_url_templates": null
 		},
-		"V2CatalogEnabled": false,
 		"apple": "seeds"
 	}`
 		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))
@@ -527,7 +493,6 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 				"metrics_proxy_enabled": false,
 				"dashboard_url_templates": null
 			},
-			"V2CatalogEnabled": false,
 			"apple": "plant"
 		}`
 		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))

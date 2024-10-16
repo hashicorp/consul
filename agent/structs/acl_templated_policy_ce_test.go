@@ -83,21 +83,6 @@ query_prefix "" {
 }`,
 			},
 		},
-		"workload-identity-template": {
-			templatedPolicy: &ACLTemplatedPolicy{
-				TemplateID:   ACLTemplatedPolicyWorkloadIdentityID,
-				TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
-				TemplateVariables: &ACLTemplatedPolicyVariables{
-					Name: "api",
-				},
-			},
-			expectedPolicy: &ACLPolicy{
-				Description: "synthetic policy generated from templated policy: builtin/workload-identity",
-				Rules: `identity "api" {
-	policy = "write"
-}`,
-			},
-		},
 		"api-gateway-template": {
 			templatedPolicy: &ACLTemplatedPolicy{
 				TemplateID:   ACLTemplatedPolicyAPIGatewayID,

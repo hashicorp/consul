@@ -2,6 +2,12 @@ name: get-go-version
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: |
+          The Consul ref/branch (e.g. release/1.18.x) for which to determine the Go version.
+          If not provided, the default actions/checkout value (current ref) is used.
+        type: string
     outputs:
       go-version:
         description: "The Go version detected by this workflow"
@@ -18,7 +24,10 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
       go-version-previous: ${{ steps.get-go-version.outputs.go-version-previous }}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        with:
+          # If not set, will default to current branch.
+          ref: ${{ inputs.ref }}
       - name: Determine Go version
         id: get-go-version
         # We use .go-version as our source of truth for current Go

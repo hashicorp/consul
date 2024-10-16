@@ -13,9 +13,10 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	"github.com/hashicorp/consul/api"
+
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/build"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/tfgen"
@@ -258,8 +259,8 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("error creating final client for cluster=%s: %v", cluster.Name, err)
 		}
 
-		// Connect to gRPC as well.
-		if cluster.EnableV2 {
+		// Connect to gRPC as well for the resource service.
+		{
 			s.grpcConns[cluster.Name], s.grpcConnCancel[cluster.Name], err = s.dialServerGRPC(cluster, node, mgmtToken)
 			if err != nil {
 				return fmt.Errorf("error creating gRPC client conn for cluster=%s: %w", cluster.Name, err)
@@ -281,11 +282,8 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
 		}
 
-		if cluster.EnableV2 {
-			// Resources are available only in V2
-			if err := s.populateInitialResources(cluster); err != nil {
-				return fmt.Errorf("populateInitialResources[%s]: %w", cluster.Name, err)
-			}
+		if err := s.populateInitialResources(cluster); err != nil {
+			return fmt.Errorf("populateInitialResources[%s]: %w", cluster.Name, err)
 		}
 
 		if err := s.createAnonymousToken(cluster); err != nil {
@@ -535,9 +533,6 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 }
 
 func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
-	if cluster.EnableV2 {
-		return nil // v1 catalog is disabled when v2 catalog is enabled
-	}
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)

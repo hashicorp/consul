@@ -6,11 +6,11 @@ package consul
 import (
 	"context"
 	"fmt"
-	"github.com/oklog/ulid/v2"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 
+	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -129,7 +129,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 			Entry: &structs.ServiceConfigEntry{
 				Kind:     structs.ServiceDefaults,
 				Name:     fmt.Sprintf("svc-%d", i),
-				Protocol: "udp",
+				Protocol: "tcp",
 			},
 		}
 

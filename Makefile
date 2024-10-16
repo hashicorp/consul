@@ -18,7 +18,7 @@ PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'
 MOG_VERSION='v0.4.2'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION='v0.1.0'
-DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
+DEEP_COPY_VERSION='e112476c0181d3d69067bac191f9b6bcda2ce812'
 COPYWRITE_TOOL_VERSION='v0.16.4'
 LINT_CONSUL_RETRY_VERSION='v1.4.0'
 # Go imports formatter
@@ -71,9 +71,10 @@ CONSUL_IMAGE_VERSION?=latest
 # When changing the method of Go version detection, also update
 # version detection in CI workflows (reusable-get-go-version.yml).
 GOLANG_VERSION?=$(shell head -n 1 .go-version)
-ENVOY_VERSION?='1.28.0'
-CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi")
-DEPLOYER_CONSUL_DATAPLANE_IMAGE := $(or $(DEPLOYER_CONSUL_DATAPLANE_IMAGE), "docker.io/hashicorppreview/consul-dataplane:1.3-dev")
+# Takes the highest version from the ENVOY_VERSIONS file.
+ENVOY_VERSION?=$(shell cat envoyextensions/xdscommon/ENVOY_VERSIONS | grep '^[[:digit:]]' | sort -nr | head -n 1)
+CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.6-dev-ubi")
+DEPLOYER_CONSUL_DATAPLANE_IMAGE := $(or $(DEPLOYER_CONSUL_DATAPLANE_IMAGE), "docker.io/hashicorppreview/consul-dataplane:1.6-dev")
 
 CONSUL_VERSION?=$(shell cat version/VERSION)
 
@@ -293,7 +294,6 @@ lint-container-test-deps: ## Check that the test-container module only imports a
 	@cd test/integration/consul-container && \
 		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
 			github.com/hashicorp/consul \
-			"internal/catalog/catalogtest" \
 			"internal/resource/resourcetest"
 
 ##@ Testing
@@ -619,6 +619,14 @@ envoy-regen: ## Regenerating envoy golden files
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
+
+##@ Changelog
+
+.PHONY: gen-changelog
+gen-changelog: ## Generate changelog entry for the current branch based on the currently open PR for that branch
+	@$(SHELL) $(CURDIR)/build-support/scripts/gen-changelog.sh
+
+	
 ##@ Help
 
 # The help target prints out all targets with their descriptions organized
@@ -634,3 +642,4 @@ envoy-regen: ## Regenerating envoy golden files
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+

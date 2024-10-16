@@ -21,7 +21,12 @@
   },
   "resolutions": {
     "xmlhttprequest-ssl": "^1.6.3",
-    "ember-basic-dropdown": "3.0.21"
+    "ember-basic-dropdown": "3.0.21",
+    "glob": "7.2.3",
+    "braces": "^3.0.0",
+    "markdown-it": "^12.3.2",
+    "codemirror": "5.58.2",
+    "ansi-html": "0.0.8"
   },
   "engines": {
     "node": "18"

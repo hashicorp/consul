@@ -22,12 +22,13 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/memberlist"
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
@@ -774,6 +775,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			if err != nil {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
 			}
+			// Ensure Normalize is called before Validate for accurate validation
 			if err := entry.Normalize(); err != nil {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
 			}
@@ -1071,6 +1073,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:              b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
 		RaftTrailingLogs:                  intVal(c.RaftTrailingLogs),
+		RaftPreVoteDisabled:               boolVal(c.RaftPreVoteDisabled),
 		RaftLogStoreConfig:                b.raftLogStoreConfigVal(&c.RaftLogStore),
 		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
@@ -1140,23 +1143,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 	if rt.Cache.EntryFetchRate <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
-	}
-
-	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
-	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
-		// Allow override of this check for development/testing purposes. Should not be used in production
-		if !stringslice.Contains(rt.Experiments, consul.HCPAllowV2ResourceAPIs) {
-			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
-		}
-	}
-
-	// For now, disallow usage of several v2 experiments in secondary datacenters.
-	if rt.ServerMode && rt.PrimaryDatacenter != rt.Datacenter {
-		for _, name := range rt.Experiments {
-			if !consul.IsExperimentAllowedOnSecondaries(name) {
-				return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include `%s` for servers in secondary datacenters", name)
-			}
-		}
 	}
 
 	if rt.UIConfig.MetricsProvider == "prometheus" {

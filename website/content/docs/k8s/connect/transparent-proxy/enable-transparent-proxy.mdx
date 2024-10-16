@@ -16,7 +16,7 @@ Your network must meet the following environment and software requirements to us
 * Transparent proxy is available for Kubernetes environments.
 * Consul 1.10.0+
 * Consul Helm chart 0.32.0+. If you want to use the Consul CNI plugin to redirect traffic, Helm chart 0.48.0+ is required. Refer to [Enable the Consul CNI plugin](#enable-the-consul-cni-plugin) for additional information.
-* You must create [service intentions](/consul/docs/connect/intentions) that explicitly allow communication between intended services so that Consul can infer upstream connections and use sidecar proxies to route messages appropriately.  
+* You must create [service intentions](/consul/docs/connect/intentions) that explicitly allow communication between services. Consul uses service intentions to infer upstream connections and route messages appropriately between sidecar proxies.
 * The `ip_tables` kernel module must be running on all worker nodes within a Kubernetes cluster. If you are using the `modprobe` Linux utility, for example, issue the following command:
 
   `$ modprobe ip_tables`
@@ -25,7 +25,7 @@ Your network must meet the following environment and software requirements to us
 
 ## Enable transparent proxy
 
-Transparent proxy mode is enabled for the entire cluster by default when you install Consul on Kubernetes using the Consul Helm chart. Refer to the [Consul Helm chart reference](/consul/docs/k8s/helm) for information about all default configurations. 
+Transparent proxy mode is enabled for the entire cluster by default when you install Consul on Kubernetes using the Consul Helm chart. Refer to the [Consul Helm chart reference](/consul/docs/k8s/helm) for information about all default configurations.
 
 You can explicitly enable transparent proxy for the entire cluster, individual namespaces, and individual services.
 
@@ -242,7 +242,7 @@ spec:
 
 Additional services can query the [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) at `sample-app.default.svc.cluster.local` to reach `sample-app`. If ACLs are enabled and configured with default `deny` policies, the configuration also requires a [`ServiceIntention`](/consul/docs/connect/config-entries/service-intentions) to allow it to talk to `sample-app`.
 
-You can query the KubeDNS for a service that belongs to a sameness group at `sample-app.virtual.group-name.sg.consul`. This syntax is required when failover is desired and `spec.defaultForFailover` is set to `false` in the sameness group CRD. Refer to [sameness group configuration entry reference](/consul/docs/connect/config-entries/sameness-group) for more information.
+You can query the KubeDNS for a service that belongs to a sameness group at `sample-app.virtual.group-name.sg.consul`. This syntax is required when failover is desired. To use KubeDNS with sameness groups, `spec.defaultForFailover` must be set to `true` in the sameness group CRD. Refer to [sameness group configuration entry reference](/consul/docs/connect/config-entries/sameness-group) for more information.
 
 ### Headless services
 For services that are not addressed using a virtual cluster IP, you must configure the upstream service using the [DialedDirectly](/consul/docs/connect/config-entries/service-defaults#dialeddirectly) option. Then, use DNS to discover individual instance addresses and dial them through the transparent proxy. When this mode is enabled on the upstream, services present service mesh certificates for mTLS and intentions are enforced at the destination.

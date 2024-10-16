@@ -1153,8 +1153,10 @@ func IntentionHTTPHeaderPermissionToStructs(s *IntentionHTTPHeaderPermission, t 
 	t.Exact = s.Exact
 	t.Prefix = s.Prefix
 	t.Suffix = s.Suffix
+	t.Contains = s.Contains
 	t.Regex = s.Regex
 	t.Invert = s.Invert
+	t.IgnoreCase = s.IgnoreCase
 }
 func IntentionHTTPHeaderPermissionFromStructs(t *structs.IntentionHTTPHeaderPermission, s *IntentionHTTPHeaderPermission) {
 	if s == nil {
@@ -1165,8 +1167,10 @@ func IntentionHTTPHeaderPermissionFromStructs(t *structs.IntentionHTTPHeaderPerm
 	s.Exact = t.Exact
 	s.Prefix = t.Prefix
 	s.Suffix = t.Suffix
+	s.Contains = t.Contains
 	s.Regex = t.Regex
 	s.Invert = t.Invert
+	s.IgnoreCase = t.IgnoreCase
 }
 func IntentionHTTPPermissionToStructs(s *IntentionHTTPPermission, t *structs.IntentionHTTPPermission) {
 	if s == nil {
@@ -1710,6 +1714,7 @@ func MeshConfigToStructs(s *MeshConfig, t *structs.MeshConfigEntry) {
 		TransparentProxyMeshConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
 	}
 	t.AllowEnablingPermissiveMutualTLS = s.AllowEnablingPermissiveMutualTLS
+	t.ValidateClusters = s.ValidateClusters
 	if s.TLS != nil {
 		var x structs.MeshTLSConfig
 		MeshTLSConfigToStructs(s.TLS, &x)
@@ -1738,6 +1743,7 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 		s.TransparentProxy = &x
 	}
 	s.AllowEnablingPermissiveMutualTLS = t.AllowEnablingPermissiveMutualTLS
+	s.ValidateClusters = t.ValidateClusters
 	if t.TLS != nil {
 		var x MeshTLSConfig
 		MeshTLSConfigFromStructs(t.TLS, &x)
@@ -1755,6 +1761,26 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 	}
 	s.Meta = t.Meta
 	s.Hash = t.Hash
+}
+func MeshDirectionalHTTPConfigToStructs(s *MeshDirectionalHTTPConfig, t *structs.MeshDirectionalHTTPConfig) {
+	if s == nil {
+		return
+	}
+	if s.RequestNormalization != nil {
+		var x structs.RequestNormalizationMeshConfig
+		RequestNormalizationMeshConfigToStructs(s.RequestNormalization, &x)
+		t.RequestNormalization = &x
+	}
+}
+func MeshDirectionalHTTPConfigFromStructs(t *structs.MeshDirectionalHTTPConfig, s *MeshDirectionalHTTPConfig) {
+	if s == nil {
+		return
+	}
+	if t.RequestNormalization != nil {
+		var x RequestNormalizationMeshConfig
+		RequestNormalizationMeshConfigFromStructs(t.RequestNormalization, &x)
+		s.RequestNormalization = &x
+	}
 }
 func MeshDirectionalTLSConfigToStructs(s *MeshDirectionalTLSConfig, t *structs.MeshDirectionalTLSConfig) {
 	if s == nil {
@@ -1789,12 +1815,22 @@ func MeshHTTPConfigToStructs(s *MeshHTTPConfig, t *structs.MeshHTTPConfig) {
 		return
 	}
 	t.SanitizeXForwardedClientCert = s.SanitizeXForwardedClientCert
+	if s.Incoming != nil {
+		var x structs.MeshDirectionalHTTPConfig
+		MeshDirectionalHTTPConfigToStructs(s.Incoming, &x)
+		t.Incoming = &x
+	}
 }
 func MeshHTTPConfigFromStructs(t *structs.MeshHTTPConfig, s *MeshHTTPConfig) {
 	if s == nil {
 		return
 	}
 	s.SanitizeXForwardedClientCert = t.SanitizeXForwardedClientCert
+	if t.Incoming != nil {
+		var x MeshDirectionalHTTPConfig
+		MeshDirectionalHTTPConfigFromStructs(t.Incoming, &x)
+		s.Incoming = &x
+	}
 }
 func MeshTLSConfigToStructs(s *MeshTLSConfig, t *structs.MeshTLSConfig) {
 	if s == nil {
@@ -1913,6 +1949,24 @@ func RemoteJWKSFromStructs(t *structs.RemoteJWKS, s *RemoteJWKS) {
 		JWKSClusterFromStructs(t.JWKSCluster, &x)
 		s.JWKSCluster = &x
 	}
+}
+func RequestNormalizationMeshConfigToStructs(s *RequestNormalizationMeshConfig, t *structs.RequestNormalizationMeshConfig) {
+	if s == nil {
+		return
+	}
+	t.InsecureDisablePathNormalization = s.InsecureDisablePathNormalization
+	t.MergeSlashes = s.MergeSlashes
+	t.PathWithEscapedSlashesAction = pathWithEscapedSlashesActionToStructs(s.PathWithEscapedSlashesAction)
+	t.HeadersWithUnderscoresAction = headersWithUnderscoresActionToStructs(s.HeadersWithUnderscoresAction)
+}
+func RequestNormalizationMeshConfigFromStructs(t *structs.RequestNormalizationMeshConfig, s *RequestNormalizationMeshConfig) {
+	if s == nil {
+		return
+	}
+	s.InsecureDisablePathNormalization = t.InsecureDisablePathNormalization
+	s.MergeSlashes = t.MergeSlashes
+	s.PathWithEscapedSlashesAction = pathWithEscapedSlashesActionFromStructs(t.PathWithEscapedSlashesAction)
+	s.HeadersWithUnderscoresAction = headersWithUnderscoresActionFromStructs(t.HeadersWithUnderscoresAction)
 }
 func ResourceReferenceToStructs(s *ResourceReference, t *structs.ResourceReference) {
 	if s == nil {

@@ -31,12 +31,6 @@ func NewControllerTestBuilder() *Builder {
 	}
 }
 
-// WithV2Tenancy tells the internally created resource service to use V2 tenancy.
-func (b *Builder) WithV2Tenancy(useV2Tenancy bool) *Builder {
-	b.serviceBuilder = b.serviceBuilder.WithV2Tenancy(useV2Tenancy)
-	return b
-}
-
 // Registry retrieves the resource registry from the internal im-mem resource service.
 func (b *Builder) Registry() resource.Registry {
 	return b.serviceBuilder.Registry()

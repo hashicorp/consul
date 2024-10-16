@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/cli"
 
+	"github.com/hashicorp/serf/coordinate"
+
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/internal/gossip/librtt"
 )
 
 // TODO(partitions): how will this command work when asking for RTT between a
@@ -146,7 +147,7 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		// Index all the coordinates by segment.
-		cs1, cs2 := make(lib.CoordinateSet), make(lib.CoordinateSet)
+		cs1, cs2 := make(librtt.CoordinateSet), make(librtt.CoordinateSet)
 		for _, entry := range entries {
 			if strings.EqualFold(entry.Node, nodes[0]) {
 				cs1[entry.Segment] = entry.Coord

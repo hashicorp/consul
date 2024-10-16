@@ -41,6 +41,13 @@ Refer to [Supported Consul and Kubernetes versions](/consul/docs/v1.18.x/k8s/com
 
 For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
 
+## Known issues
+
+The following issues are known to exist in the v1.4.x releases:
+
+- v1.4.2 - Service-to-service networking is broken when deployed on OpenShift. OpenShift users are advised to avoid deploying this version of consul-k8s.
+    A fix is present in the v1.4.3 release [[GH-4034](https://github.com/hashicorp/consul-k8s/pull/4034)].
+
 ## Changelogs
 
 The changelogs for this major release version and any maintenance versions are listed below.

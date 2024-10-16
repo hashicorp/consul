@@ -2,7 +2,7 @@
 layout: docs
 page_title: FIPS 140-2
 description: >-
-  A version of Consul compliant with FIPS 140-2 is available to Enterprise users. Learn about where to find FIPS-compliant versions of Consul, as well as usage restrictions and technical details.
+  A version of Consul compliant with FIPS 140-2 is available to Enterprise users. Learn about where to find FIPS-compliant versions of Consul, its usage restrictions, technical details, and Leidos validation.
 ---
 
 # FIPS 140-2
@@ -17,9 +17,9 @@ To use this feature, you must have an [active or trial license for Consul Enterp
 
 ## Using FIPS 140-2 Consul Enterprise
 
-FIPS 140-2 builds of Consul Enterprise behave in the same way as non-FIPS builds. There are no restrictions on Consul algorithms and ensuring that Consul remains in a FIPS-compliant mode of operation is your responsibility. To maintain FIPS-compliant operation, you must [ensure that TLS is enabled](/consul/tutorials/security/tls-encryption-secure) so that communication is encrypted. Consul products surface some helpful warnings where settings are insecure.
+FIPS 140-2 builds of Consul Enterprise behave in the same way as non-FIPS builds. There are no restrictions on Consul algorithms and ensuring that Consul remains in a FIPS-compliant mode of operation is your responsibility. To maintain FIPS-compliant operation, you must [ensure that TLS is enabled](/consul/tutorials/archive/tls-encryption-secure) so that communication is encrypted. Consul products surface some helpful warnings where settings are insecure.
 
-Encryption is disabled in Consul Enterprise by default. As a result, Consul may transmit sensitive control plane information. You must ensure that gossip encryption and mTLS is enabled for all agents when running Consul with FIPS-compliant settings. In addition, be aware that TLSv1.3 does not work with FIPS 140-2, as HKDF is not a certified primitive.
+Encryption is disabled in Consul Enterprise by default. As a result, Consul may transmit sensitive control plane information. You must ensure that gossip encryption and mTLS is enabled for all agents when running Consul with FIPS-compliant settings. In addition, be aware that TLS v1.3 does not work with FIPS 140-2, as HKDF is not a certified primitive.
 
 HashiCorp is not a NIST-certified testing laboratory and can only provide general guidance about using Consul Enterprise in a FIPS-compliant manner. We recommend consulting an approved auditor for further information.
 
@@ -45,6 +45,7 @@ When using Consul Enterprise with FIPS 140-2, be aware of the following operatio
 We do not support in-place migrations from non-FIPS builds of Consul to FIPS builds of Consul, regardless of version. A fresh cluster installation is required to support FIPS 140-2. You cannot upgrade directly to a FIPS-compliant build.
 
 #### TLS restrictions
+
 Consul Enterprise's FIPS modifications include restrictions to supported TLS cipher suites and key information. Only the following cipher suites are allowed:
 
 - `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`
@@ -125,7 +126,21 @@ Similarly, on a FIPS Windows binary, run `go tool nm` on the binary to get a sym
 
 On both Linux and Windows non-FIPS builds, the search output yields no results.
 
-### Compliance validation
+## Leidos validation
 
-A Lab, authorized by the U.S. Government to certify FIPS 140-2 compliance, is in the process of verifying that Consul Enterprise and its related packages are compliant with the requirements of FIPS 140-2 Level 1.
+In 2024, Leidos certified the integration of FIPS 140-2 cryptographic module [BoringCrypto Cert. #4407](https://csrc.nist.gov/Projects/Cryptographic-Module-Validation-Program/Certificate/4407) for the following Consul releases:
 
+- Consul Enterprise builds:
+  - [`consul_1.16.0+ent.fips1402`](https://releases.hashicorp.com/consul/1.16.0+ent.fips1402/)
+  - [`consul_1.16.1+ent.fips1402`](https://releases.hashicorp.com/consul/1.16.1+ent.fips1402/)
+- Consul Dataplane builds:
+  - [`consul-dataplane_1.2.0+fips1402`](https://releases.hashicorp.com/consul-dataplane/1.2.0+fips1402/)
+  - [`consul-dataplane_1.2.1+fips1402`](https://releases.hashicorp.com/consul-dataplane/1.2.1+fips1402/)
+- Consul K8s builds:
+  - [`consul-k8s_1.2.0+fips1402`](https://releases.hashicorp.com/consul-k8s/1.2.0+fips1402/)
+  - [`consul-k8s_1.2.1+fips1402`](https://releases.hashicorp.com/consul-k8s/1.2.1+fips1402/)
+- Consul K8s Control Plane builds:
+  - [`consul-k8s-control-plane_1.2.0+fips1402`](https://releases.hashicorp.com/consul-k8s-control-plane/1.2.0+fips1402/)
+  - [`consul-k8s-control-plane_1.2.1+fips1402`](https://releases.hashicorp.com/consul-k8s-control-plane/1.2.2+fips1402/)
+
+For more information about verified platform architectures and confirmed feature support, [review the Leidos certification letter](https://www.datocms-assets.com/2885/1715791547-boringcrypto_compliance_letter_signed.pdf).

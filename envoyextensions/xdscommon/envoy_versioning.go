@@ -13,7 +13,7 @@ import (
 var (
 	// minSupportedVersion is the oldest mainline version we support. This should always be
 	// the zero'th point release of the last element of xdscommon.EnvoyVersions.
-	minSupportedVersion = version.Must(version.NewVersion(GetMinEnvoyMinorVersion()))
+	minSupportedVersion = version.Must(version.NewVersion(GetMinEnvoyMajorVersion()))
 
 	specificUnsupportedVersions = []unsupportedVersion{}
 )

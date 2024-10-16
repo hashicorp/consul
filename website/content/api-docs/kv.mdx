@@ -79,6 +79,8 @@ The corresponding CLI command is [`consul kv get`](/consul/commands/kv/get).
   For recursive lookups, the namespace may be specified as '\*'
   to return results for all namespaces.
 
+@include 'http-api-query-parms-partition.mdx'
+
 ### Sample Request
 
 ```shell-session
@@ -210,7 +212,7 @@ The corresponding CLI command is [`consul kv put`](/consul/commands/kv/put).
   session has locked the key.**
 
   For an example of how to use the lock feature, check the
-  [Leader Election tutorial](/consul/tutorials/developer-configuration/application-leader-elections).
+  [Leader Election tutorial](/consul/docs/dynamic-app-config/sessions/application-leader-election).
 
 - `release` `(string: "")` - Supply a session ID to use in a release operation. This is
   useful when paired with `?acquire=` as it allows clients to yield a lock. This
@@ -219,6 +221,8 @@ The corresponding CLI command is [`consul kv put`](/consul/commands/kv/put).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Payload
 
@@ -288,6 +292,8 @@ The corresponding CLI command is [`consul kv delete`](/consul/commands/kv/delete
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+@include 'http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

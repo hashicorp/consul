@@ -102,7 +102,7 @@ func DockerImages(
 	built := make(map[string]struct{})
 	for _, c := range t.Clusters {
 		for _, n := range c.Nodes {
-			needsTproxy := n.NeedsTransparentProxy()
+			const needsTproxy = false // TODO: see if we can bring this back for v1 CDP
 
 			joint := n.Images.EnvoyConsulImage()
 			if _, ok := built[joint]; joint != "" && !ok {

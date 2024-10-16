@@ -4,7 +4,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "alt.api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -28,7 +27,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -52,7 +50,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -76,7 +73,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "prod.cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [

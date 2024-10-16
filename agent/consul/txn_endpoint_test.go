@@ -946,3 +946,128 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		require.Empty(t, out.Results)
 	})
 }
+
+// TestTxn_Validation works across RW and RO Txn endpoints validating the "preCheck()" operation consistently
+// validates operations provided in the request.
+func TestTxn_Validation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Each one of these test cases should error as invalid.
+	testCases := []struct {
+		request       structs.TxnReadRequest
+		expectedError string
+	}{
+		{
+			request: structs.TxnReadRequest{
+				Datacenter: "dc1",
+				Ops: structs.TxnOps{
+					&structs.TxnOp{
+						KV: &structs.TxnKVOp{
+							Verb: "tick",
+							DirEnt: structs.DirEntry{
+								Key: "nope",
+							},
+						},
+					},
+				},
+			},
+			expectedError: "unknown KV operation",
+		},
+		{
+			request: structs.TxnReadRequest{
+				Datacenter: "dc1",
+				Ops: structs.TxnOps{
+					&structs.TxnOp{
+						Node: &structs.TxnNodeOp{
+							Verb: "tick",
+						},
+					},
+				},
+			},
+			expectedError: "unknown node operation",
+		},
+		{
+			request: structs.TxnReadRequest{
+				Datacenter: "dc1",
+				Ops: structs.TxnOps{
+					&structs.TxnOp{
+						Service: &structs.TxnServiceOp{
+							Verb: "tick",
+						},
+					},
+				},
+			},
+			expectedError: "unknown service operation",
+		},
+		{
+			request: structs.TxnReadRequest{
+				Datacenter: "dc1",
+				Ops: structs.TxnOps{
+					&structs.TxnOp{
+						Check: &structs.TxnCheckOp{
+							Verb: "tick",
+						},
+					},
+				},
+			},
+			expectedError: "unknown check operation",
+		},
+		{
+			request: structs.TxnReadRequest{
+				Datacenter: "dc1",
+				Ops: structs.TxnOps{
+					&structs.TxnOp{
+						Session: &structs.TxnSessionOp{
+							Verb: "tick",
+						},
+					},
+				},
+			},
+			expectedError: "unknown session operation",
+		},
+		{
+			request: structs.TxnReadRequest{
+				Datacenter: "dc1",
+				Ops: structs.TxnOps{
+					&structs.TxnOp{
+						Intention: &structs.TxnIntentionOp{ // nolint:staticcheck // SA1019 intentional use of deprecated field
+							Op: "BOOM!",
+						},
+					},
+				},
+			},
+			expectedError: "unknown intention operation",
+		},
+		{
+			request: structs.TxnReadRequest{
+				Datacenter: "dc1",
+				Ops: structs.TxnOps{
+					&structs.TxnOp{
+						// Intentionally Empty
+					},
+				},
+			},
+			expectedError: "unknown operation type",
+		},
+	}
+
+	for _, tc := range testCases {
+		var out structs.TxnReadResponse
+		err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &tc.request, &out)
+		require.NoError(t, err)
+		require.Greater(t, len(out.Errors), 0)
+		require.Contains(t, out.Errors[0].Error(), tc.expectedError)
+	}
+}

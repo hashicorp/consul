@@ -6,7 +6,6 @@ package util
 import (
 	"fmt"
 
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -82,11 +81,5 @@ func EqualType(a, b *pbresource.Type) bool {
 }
 
 func IsTypePartitionScoped(typ *pbresource.Type) bool {
-
-	switch typ.Kind {
-	case pbmulticluster.SamenessGroupType.Kind:
-		return true
-	}
-
 	return false
 }

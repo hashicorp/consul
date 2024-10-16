@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -143,7 +142,6 @@ func TestCompile_CE(t *testing.T) {
 						Images:      DefaultImages().ChooseConsul(false),
 						Nodes: []*Node{{
 							Kind:      NodeKindServer,
-							Version:   NodeVersionV1,
 							Partition: "default",
 							Name:      "node1",
 							Images:    DefaultImages().ChooseConsul(false).ChooseNode(NodeKindServer),
@@ -154,7 +152,6 @@ func TestCompile_CE(t *testing.T) {
 							Cluster:    "foo2",
 							Datacenter: "foo2",
 						}},
-						Services: map[ID]*pbcatalog.Service{},
 						Partitions: []*Partition{{
 							Name:       "default",
 							Namespaces: []string{"default"},
@@ -285,31 +282,10 @@ func TestCompile_CE(t *testing.T) {
 									Image:          "busybox",
 									Port:           8877,
 									EnvoyAdminPort: 19001,
-									Destinations: []*Destination{{
+									Upstreams: []*Upstream{{
 										ID:           NewID("gaz", "ns3", "ap3"),
 										LocalAddress: "127.0.0.1",
 										LocalPort:    5000,
-									}},
-								},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
-							Name:      "mesh2",
-							Partition: "ap2",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-							Workloads: []*Workload{
-								{
-									ID:             NewID("gir", "ns4", "ap2"),
-									Image:          "busybox",
-									Port:           8877,
-									EnvoyAdminPort: 19001,
-									ImpliedDestinations: []*Destination{{
-										ID:       NewID("gaz", "", "ap4"),
-										PortName: "www",
 									}},
 								},
 							},
@@ -329,24 +305,10 @@ func TestCompile_CE(t *testing.T) {
 						NetworkName: "foo",
 						Datacenter:  "foo",
 						Enterprise:  true,
-						EnableV2:    true,
 						Images:      DefaultImages().ChooseConsul(true),
-						Services: map[ID]*pbcatalog.Service{
-							NewID("gir", "ns4", "ap2"): {
-								Workloads: &pbcatalog.WorkloadSelector{
-									Names: []string{"gir-mesh2"},
-								},
-								Ports: []*pbcatalog.ServicePort{
-									{TargetPort: "legacy", VirtualPort: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-									{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-								},
-								VirtualIps: []string{"10.244.0.2"},
-							},
-						},
 						Nodes: []*Node{
 							{
 								Kind:      NodeKindServer,
-								Version:   NodeVersionV1,
 								Name:      "server1",
 								Partition: "default",
 								Images:    DefaultImages().ChooseConsul(true).ChooseNode(NodeKindServer),
@@ -358,7 +320,6 @@ func TestCompile_CE(t *testing.T) {
 							},
 							{
 								Kind:      NodeKindClient,
-								Version:   NodeVersionV1,
 								Name:      "mesh1",
 								Partition: "ap1",
 								Images:    DefaultImages().ChooseConsul(true).ChooseNode(NodeKindClient),
@@ -374,54 +335,17 @@ func TestCompile_CE(t *testing.T) {
 										Image:          "busybox",
 										Port:           8888,
 										EnvoyAdminPort: 19000,
-										NodeVersion:    NodeVersionV1,
 									},
 									{
 										ID:             NewID("gir", "ns2", "ap1"),
 										Image:          "busybox",
 										Port:           8877,
 										EnvoyAdminPort: 19001,
-										NodeVersion:    NodeVersionV1,
-										Destinations: []*Destination{{
+										Upstreams: []*Upstream{{
 											ID:           NewID("gaz", "ns3", "ap3"),
 											Cluster:      "foo",
 											LocalAddress: "127.0.0.1",
 											LocalPort:    5000,
-										}},
-									},
-								},
-							},
-							{
-								Kind:      NodeKindDataplane,
-								Version:   NodeVersionV2,
-								Name:      "mesh2",
-								Partition: "ap2",
-								Images:    DefaultImages().ChooseConsul(true).ChooseNode(NodeKindDataplane),
-								Addresses: []*Address{
-									{Network: "foo", Type: "lan", DockerNetworkName: "cslc-foo-" + clusterID},
-								},
-								Cluster:    "foo",
-								Datacenter: "foo",
-								Index:      2,
-								Workloads: []*Workload{
-									{
-										ID:    NewID("gir", "ns4", "ap2"),
-										Image: "busybox",
-										Ports: map[string]*Port{
-											"legacy": {Number: 8877, Protocol: "tcp", ActualProtocol: pbcatalog.Protocol_PROTOCOL_TCP},
-											"mesh":   {Number: 20000, Protocol: "mesh", ActualProtocol: pbcatalog.Protocol_PROTOCOL_MESH},
-										},
-										EnvoyAdminPort:          19001,
-										EnvoyPublicListenerPort: 20000,
-										NodeVersion:             NodeVersionV2,
-										V2Services:              []string{"gir"},
-										WorkloadIdentity:        "gir",
-										Workload:                "gir-mesh2",
-										ImpliedDestinations: []*Destination{{
-											ID:       NewID("gaz", "default", "ap4"),
-											Cluster:  "foo", // TODO: why is this only sometimes populated?
-											PortName: "www",
-											Implied:  true,
 										}},
 									},
 								},
@@ -433,16 +357,8 @@ func TestCompile_CE(t *testing.T) {
 								Namespaces: []string{"default", "ns1", "ns2"},
 							},
 							{
-								Name:       "ap2",
-								Namespaces: []string{"default", "ns4"},
-							},
-							{
 								Name:       "ap3",
 								Namespaces: []string{"default", "ns3"},
-							},
-							{
-								Name:       "ap4",
-								Namespaces: []string{"default"},
 							},
 							{
 								Name:       "default",
@@ -452,93 +368,6 @@ func TestCompile_CE(t *testing.T) {
 					},
 				},
 			},
-		},
-		"explicit v2 services": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{{
-						Kind: NodeKindServer,
-						Name: "node1",
-					}},
-					Services: map[ID]*pbcatalog.Service{
-						NewID("zim", "default", "default"): {
-							Ports: []*pbcatalog.ServicePort{
-								{TargetPort: "http"},
-								{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-							},
-						},
-					},
-				}},
-			},
-			expect: &Topology{
-				ID:     clusterID,
-				Images: DefaultImages(),
-				Networks: map[string]*Network{
-					"foo": {Name: "foo", Type: "lan", DockerName: "cslc-foo-" + clusterID},
-				},
-				Clusters: map[string]*Cluster{
-					"foo": {
-						Name:        "foo",
-						NetworkName: "foo",
-						Datacenter:  "foo",
-						Images:      DefaultImages().ChooseConsul(false),
-						Nodes: []*Node{{
-							Kind:      NodeKindServer,
-							Version:   NodeVersionV1,
-							Partition: "default",
-							Name:      "node1",
-							Images:    DefaultImages().ChooseConsul(false).ChooseNode(NodeKindServer),
-							Addresses: []*Address{
-								{Network: "foo", Type: "lan", DockerNetworkName: "cslc-foo-" + clusterID},
-							},
-							Cluster:    "foo",
-							Datacenter: "foo",
-						}},
-						EnableV2: true,
-						Services: map[ID]*pbcatalog.Service{
-							NewID("zim", "default", "default"): {
-								Ports: []*pbcatalog.ServicePort{
-									{TargetPort: "http", VirtualPort: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-									{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-								},
-								VirtualIps: []string{"10.244.0.2"},
-							},
-						},
-						Partitions: []*Partition{{
-							Name:       "default",
-							Namespaces: []string{"default"},
-						}},
-					},
-				},
-			},
-		},
-		"explicit v2 services/bad workload selector": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{{
-						Kind: NodeKindServer,
-						Name: "node1",
-					}},
-					Services: map[ID]*pbcatalog.Service{
-						NewID("zim", "default", "default"): {
-							Workloads: &pbcatalog.WorkloadSelector{Names: []string{"zzz"}},
-							Ports: []*pbcatalog.ServicePort{
-								{TargetPort: "http"},
-								{TargetPort: "mesh"},
-							},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": the workloads field for v2 service "default/default/zim" is not user settable`,
 		},
 		"tls volume errantly set": {
 			in: &Config{
@@ -598,38 +427,6 @@ func TestCompile_CE(t *testing.T) {
 				}},
 			},
 			expectErr: `error building cluster "foo": error compiling node "zim": cluster "foo" node "zim" has invalid kind`,
-		},
-		"node/bad version": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{{
-						Kind:    NodeKindServer,
-						Version: "v3",
-						Name:    "zim",
-					}},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "zim": cluster "foo" node "zim" has invalid version: v3`,
-		},
-		"node/bad version for client": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{{
-						Kind:    NodeKindClient,
-						Version: NodeVersionV2,
-						Name:    "zim",
-					}},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "zim": v2 does not support client agents at this time`,
 		},
 		"node/invalid partition": {
 			in: &Config{
@@ -977,41 +774,7 @@ func TestCompile_CE(t *testing.T) {
 			},
 			expectErr: `error building cluster "foo": error compiling node "mesh1": cannot have two services on the same node "default/mesh1" in the same cluster "foo" with the same name "default/default/zim"`,
 		},
-		"workload/v1 and implied dest": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindClient,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								Port:           8080,
-								EnvoyAdminPort: 19000,
-								ImpliedDestinations: []*Destination{{
-									ID: NewID("gir", "", ""),
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": v1 does not support implied destinations yet`,
-		},
-		"workload/default-destination/impl dest need port names in v2": {
+		"workload/default-upstream/expl dest local address defaulting": {
 			in: &Config{
 				Networks: []*Network{
 					{Name: "foo"},
@@ -1028,7 +791,6 @@ func TestCompile_CE(t *testing.T) {
 						},
 						{
 							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
 							Name:      "mesh1",
 							Addresses: []*Address{{Network: "foo"}},
 							Workloads: []*Workload{{
@@ -1036,158 +798,7 @@ func TestCompile_CE(t *testing.T) {
 								Image:          "busybox",
 								Port:           8080,
 								EnvoyAdminPort: 19000,
-								ImpliedDestinations: []*Destination{{
-									ID: NewID("gir", "", ""),
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": implicit destinations must use port names in v2`,
-		},
-		"workload/default-destination/expl dest port name legacy defaulting": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								Port:           8888,
-								EnvoyAdminPort: 19000,
-								Destinations: []*Destination{{
-									ID:           NewID("gir", "", ""),
-									LocalAddress: "127.0.0.1",
-									LocalPort:    5000,
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expect: &Topology{
-				ID:     clusterID,
-				Images: DefaultImages(),
-				Networks: map[string]*Network{
-					"foo": {Name: "foo", Type: "lan", DockerName: "cslc-foo-" + clusterID},
-				},
-				Clusters: map[string]*Cluster{
-					"foo": {
-						Name:        "foo",
-						NetworkName: "foo",
-						Datacenter:  "foo",
-						Images:      DefaultImages().ChooseConsul(false),
-						EnableV2:    true,
-						Services: map[ID]*pbcatalog.Service{
-							NewID("zim", "default", "default"): {
-								Workloads: &pbcatalog.WorkloadSelector{
-									Names: []string{"zim-mesh1"},
-								},
-								Ports: []*pbcatalog.ServicePort{
-									{TargetPort: "legacy", VirtualPort: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-									{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-								},
-								VirtualIps: []string{"10.244.0.2"},
-							},
-						},
-						Nodes: []*Node{
-							{
-								Kind:      NodeKindServer,
-								Version:   NodeVersionV1,
-								Partition: "default",
-								Name:      "server1",
-								Images:    DefaultImages().ChooseConsul(false).ChooseNode(NodeKindServer),
-								Addresses: []*Address{
-									{Network: "foo", Type: "lan", DockerNetworkName: "cslc-foo-" + clusterID},
-								},
-								Cluster:    "foo",
-								Datacenter: "foo",
-							},
-							{
-								Kind:      NodeKindDataplane,
-								Version:   NodeVersionV2,
-								Partition: "default",
-								Name:      "mesh1",
-								Images:    DefaultImages().ChooseConsul(false).ChooseNode(NodeKindDataplane),
-								Addresses: []*Address{
-									{Network: "foo", Type: "lan", DockerNetworkName: "cslc-foo-" + clusterID},
-								},
-								Cluster:    "foo",
-								Datacenter: "foo",
-								Index:      1,
-								Workloads: []*Workload{{
-									ID:    NewID("zim", "", ""),
-									Image: "busybox",
-									Ports: map[string]*Port{
-										"legacy": {Number: 8888, Protocol: "tcp", ActualProtocol: pbcatalog.Protocol_PROTOCOL_TCP},
-										"mesh":   {Number: 20000, Protocol: "mesh", ActualProtocol: pbcatalog.Protocol_PROTOCOL_MESH},
-									},
-									EnvoyAdminPort:          19000,
-									EnvoyPublicListenerPort: 20000,
-									NodeVersion:             NodeVersionV2,
-									V2Services:              []string{"zim"},
-									WorkloadIdentity:        "zim",
-									Workload:                "zim-mesh1",
-									Destinations: []*Destination{{
-										ID:           NewID("gir", "", ""),
-										LocalAddress: "127.0.0.1",
-										LocalPort:    5000,
-										Cluster:      "foo",
-										PortName:     "legacy", // <--- this
-									}},
-								}},
-							},
-						},
-						Partitions: []*Partition{{
-							Name:       "default",
-							Namespaces: []string{"default"},
-						}},
-					},
-				},
-			},
-		},
-		"workload/default-destination/expl dest local address defaulting": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV1,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								Port:           8080,
-								EnvoyAdminPort: 19000,
-								Destinations: []*Destination{{
+								Upstreams: []*Upstream{{
 									ID:        NewID("gir", "", ""),
 									LocalPort: 5000,
 								}},
@@ -1208,13 +819,9 @@ func TestCompile_CE(t *testing.T) {
 						NetworkName: "foo",
 						Datacenter:  "foo",
 						Images:      DefaultImages().ChooseConsul(false),
-						Services:    map[ID]*pbcatalog.Service{
-							//
-						},
 						Nodes: []*Node{
 							{
 								Kind:      NodeKindServer,
-								Version:   NodeVersionV1,
 								Partition: "default",
 								Name:      "server1",
 								Images:    DefaultImages().ChooseConsul(false).ChooseNode(NodeKindServer),
@@ -1226,7 +833,6 @@ func TestCompile_CE(t *testing.T) {
 							},
 							{
 								Kind:      NodeKindDataplane,
-								Version:   NodeVersionV1,
 								Partition: "default",
 								Name:      "mesh1",
 								Images:    DefaultImages().ChooseConsul(false).ChooseNode(NodeKindDataplane),
@@ -1242,8 +848,7 @@ func TestCompile_CE(t *testing.T) {
 									Port:                    8080,
 									EnvoyAdminPort:          19000,
 									EnvoyPublicListenerPort: 20000,
-									NodeVersion:             NodeVersionV1,
-									Destinations: []*Destination{{
+									Upstreams: []*Upstream{{
 										ID:           NewID("gir", "", ""),
 										LocalAddress: "127.0.0.1", // <--- this
 										LocalPort:    5000,
@@ -1259,42 +864,6 @@ func TestCompile_CE(t *testing.T) {
 					},
 				},
 			},
-		},
-		"workload/default-destination/expl dest cannot use port names in v1": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV1,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								Port:           8080,
-								EnvoyAdminPort: 19000,
-								Destinations: []*Destination{{
-									ID:       NewID("gir", "", ""),
-									PortName: "http",
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": explicit destinations cannot use port names in v1`,
 		},
 		"workload/validate/no name": {
 			in: &Config{
@@ -1398,13 +967,9 @@ func TestCompile_CE(t *testing.T) {
 						NetworkName: "foo",
 						Datacenter:  "foo",
 						Images:      DefaultImages().ChooseConsul(false),
-						Services:    map[ID]*pbcatalog.Service{
-							//
-						},
 						Nodes: []*Node{
 							{
 								Kind:      NodeKindServer,
-								Version:   NodeVersionV1,
 								Partition: "default",
 								Name:      "server1",
 								Images:    DefaultImages().ChooseConsul(false).ChooseNode(NodeKindServer),
@@ -1416,7 +981,6 @@ func TestCompile_CE(t *testing.T) {
 							},
 							{
 								Kind:      NodeKindClient,
-								Version:   NodeVersionV1,
 								Partition: "default",
 								Name:      "mesh1",
 								Images:    DefaultImages().ChooseConsul(false).ChooseNode(NodeKindClient),
@@ -1431,7 +995,6 @@ func TestCompile_CE(t *testing.T) {
 									Port:           8080,
 									EnvoyAdminPort: 19000,
 									IsMeshGateway:  true,
-									NodeVersion:    NodeVersionV1,
 								}},
 							},
 						},
@@ -1442,188 +1005,6 @@ func TestCompile_CE(t *testing.T) {
 					},
 				},
 			},
-		},
-		"workload/validate/single and multiport v2": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Name:      "mesh1",
-							Version:   NodeVersionV2,
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								Port:           8080,
-								EnvoyAdminPort: 19000,
-								Ports: map[string]*Port{
-									"blah": {
-										Number:   8181,
-										Protocol: "tcp",
-									},
-								},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: cannot specify both singleport and multiport on service in v2`,
-		},
-		"workload/validate/multiport nil port": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Name:      "mesh1",
-							Version:   NodeVersionV2,
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								EnvoyAdminPort: 19000,
-								Ports: map[string]*Port{
-									"blah": nil,
-								},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: cannot be nil`,
-		},
-		"workload/validate/multiport negative port": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Name:      "mesh1",
-							Version:   NodeVersionV2,
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								EnvoyAdminPort: 19000,
-								Ports: map[string]*Port{
-									"blah": {
-										Number: -5,
-									},
-								},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: service has invalid port number`,
-		},
-		"workload/validate/multiport set actualprotocol": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Name:      "mesh1",
-							Version:   NodeVersionV2,
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								EnvoyAdminPort: 19000,
-								Ports: map[string]*Port{
-									"blah": {
-										Number:         8888,
-										ActualProtocol: pbcatalog.Protocol_PROTOCOL_GRPC,
-									},
-								},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: user cannot specify ActualProtocol field`,
-		},
-		"workload/validate/multiport invalid port protocol": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Name:      "mesh1",
-							Version:   NodeVersionV2,
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								EnvoyAdminPort: 19000,
-								Ports: map[string]*Port{
-									"blah": {
-										Number:   8888,
-										Protocol: "zzzz",
-									},
-								},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: service has invalid port protocol "zzzz"`,
 		},
 		"workload/validate/singleport invalid port": {
 			in: &Config{
@@ -1655,38 +1036,6 @@ func TestCompile_CE(t *testing.T) {
 				}},
 			},
 			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: service has invalid port`,
-		},
-		"workload/validate/singleport tproxy": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:                     NewID("zim", "", ""),
-								Image:                  "busybox",
-								EnvoyAdminPort:         19000,
-								Port:                   999,
-								EnableTransparentProxy: true,
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: tproxy does not work with v1 yet`,
 		},
 		"workload/validate/mesh with no admin port": {
 			in: &Config{
@@ -1774,7 +1123,7 @@ func TestCompile_CE(t *testing.T) {
 								EnvoyAdminPort: 19000,
 								Image:          "busybox",
 								Port:           999,
-								Destinations: []*Destination{{
+								Upstreams: []*Upstream{{
 									ID: NewID("", "", ""),
 								}},
 							}},
@@ -1782,7 +1131,7 @@ func TestCompile_CE(t *testing.T) {
 					},
 				}},
 			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: destination service name is required`,
+			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: upstream service name is required`,
 		},
 		"workload/validate/expl dest with no local port": {
 			in: &Config{
@@ -1808,7 +1157,7 @@ func TestCompile_CE(t *testing.T) {
 								EnvoyAdminPort: 19000,
 								Image:          "busybox",
 								Port:           999,
-								Destinations: []*Destination{{
+								Upstreams: []*Upstream{{
 									ID: NewID("dib", "", ""),
 								}},
 							}},
@@ -1816,7 +1165,7 @@ func TestCompile_CE(t *testing.T) {
 					},
 				}},
 			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: destination local port is required`,
+			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: upstream local port is required`,
 		},
 		"workload/validate/expl dest bad local address": {
 			in: &Config{
@@ -1842,7 +1191,7 @@ func TestCompile_CE(t *testing.T) {
 								EnvoyAdminPort: 19000,
 								Image:          "busybox",
 								Port:           999,
-								Destinations: []*Destination{{
+								Upstreams: []*Upstream{{
 									ID:           NewID("dib", "", ""),
 									LocalPort:    5000,
 									LocalAddress: "clown@address",
@@ -1852,186 +1201,7 @@ func TestCompile_CE(t *testing.T) {
 					},
 				}},
 			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: destination local address is invalid: clown@address`,
-		},
-		"workload/validate/expl dest with implied": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								EnvoyAdminPort: 19000,
-								Image:          "busybox",
-								Port:           999,
-								Destinations: []*Destination{{
-									ID:        NewID("dib", "", ""),
-									LocalPort: 5000,
-									PortName:  "http",
-									Implied:   true,
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: implied field cannot be set`,
-		},
-		"workload/validate/impl dest with no name": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								EnvoyAdminPort: 19000,
-								Image:          "busybox",
-								Port:           999,
-								ImpliedDestinations: []*Destination{{
-									ID:       NewID("", "", ""),
-									PortName: "http",
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: implied destination service name is required`,
-		},
-		"workload/validate/impl dest with local port": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								EnvoyAdminPort: 19000,
-								Image:          "busybox",
-								Port:           999,
-								ImpliedDestinations: []*Destination{{
-									ID:        NewID("dib", "", ""),
-									PortName:  "http",
-									LocalPort: 5000,
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: implied destination local port cannot be set`,
-		},
-		"workload/validate/impl dest with local address": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								EnvoyAdminPort: 19000,
-								Image:          "busybox",
-								Port:           999,
-								ImpliedDestinations: []*Destination{{
-									ID:           NewID("dib", "", ""),
-									PortName:     "http",
-									LocalAddress: "127.0.0.1",
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: implied destination local address cannot be set`,
-		},
-		"workload/validate/v1 cannot use multiport": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:             NewID("zim", "", ""),
-								Image:          "busybox",
-								EnvoyAdminPort: 19000,
-								Ports:          map[string]*Port{"web": {Number: 8080}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: cannot specify multiport on service in v1`,
+			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: upstream local address is invalid: clown@address`,
 		},
 		"workload/validate/disable-mesh/mgw": {
 			in: &Config{
@@ -2083,7 +1253,6 @@ func TestCompile_CE(t *testing.T) {
 						},
 						{
 							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
 							Name:      "mesh1",
 							Addresses: []*Address{{Network: "foo"}},
 							Workloads: []*Workload{{
@@ -2092,7 +1261,7 @@ func TestCompile_CE(t *testing.T) {
 								EnvoyAdminPort:     19000,
 								Port:               8443,
 								DisableServiceMesh: true,
-								Destinations: []*Destination{{
+								Upstreams: []*Upstream{{
 									ID: NewID("gir", "", ""),
 								}},
 							}},
@@ -2100,78 +1269,7 @@ func TestCompile_CE(t *testing.T) {
 					},
 				}},
 			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: cannot disable service mesh and configure destinations`,
-		},
-		"workload/validate/disable-mesh/impl dest": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:                 NewID("zim", "", ""),
-								Image:              "busybox",
-								EnvoyAdminPort:     19000,
-								Port:               8443,
-								DisableServiceMesh: true,
-								ImpliedDestinations: []*Destination{{
-									ID:       NewID("gir", "", ""),
-									PortName: "web",
-								}},
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: cannot disable service mesh and configure implied destinations`,
-		},
-		"workload/validate/disable-mesh/tproxy": {
-			in: &Config{
-				Networks: []*Network{
-					{Name: "foo"},
-				},
-				Clusters: []*Cluster{{
-					Name: "foo",
-					Nodes: []*Node{
-						{
-							Kind: NodeKindServer,
-							Name: "server1",
-							Addresses: []*Address{
-								{Network: "foo"},
-							},
-						},
-						{
-							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
-							Name:      "mesh1",
-							Addresses: []*Address{{Network: "foo"}},
-							Workloads: []*Workload{{
-								ID:                     NewID("zim", "", ""),
-								Image:                  "busybox",
-								EnvoyAdminPort:         19000,
-								Port:                   8443,
-								DisableServiceMesh:     true,
-								EnableTransparentProxy: true,
-							}},
-						},
-					},
-				}},
-			},
-			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: cannot disable service mesh and activate tproxy`,
+			expectErr: `error building cluster "foo": error compiling node "mesh1": cluster "foo" node "mesh1" service "default/default/zim" is not valid: cannot disable service mesh and configure upstreams`,
 		},
 		"workload/validate/disable-mesh/set admin port": {
 			in: &Config{
@@ -2190,7 +1288,6 @@ func TestCompile_CE(t *testing.T) {
 						},
 						{
 							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
 							Name:      "mesh1",
 							Addresses: []*Address{{Network: "foo"}},
 							Workloads: []*Workload{{
@@ -2223,7 +1320,6 @@ func TestCompile_CE(t *testing.T) {
 						},
 						{
 							Kind:      NodeKindDataplane,
-							Version:   NodeVersionV2,
 							Name:      "mesh1",
 							Addresses: []*Address{{Network: "foo"}},
 							Workloads: []*Workload{{

@@ -10,8 +10,9 @@ const (
 	GroupName = "demo"
 	Version   = "v2"
 
-	AlbumKind  = "Album"
-	ArtistKind = "Artist"
+	AlbumKind    = "Album"
+	ArtistKind   = "Artist"
+	FestivalKind = "Festival"
 )
 
 var (
@@ -25,5 +26,11 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         ArtistKind,
+	}
+
+	FestivalType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         FestivalKind,
 	}
 )

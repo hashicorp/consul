@@ -10,24 +10,16 @@ import (
 )
 
 // ComputeRelationships will analyze a full topology and generate all of the
-// caller/destination information for all of them.
+// caller/upstream information for all of them.
 func (t *Topology) ComputeRelationships() []Relationship {
 	var out []Relationship
 	for _, cluster := range t.Clusters {
 		for _, n := range cluster.Nodes {
 			for _, w := range n.Workloads {
-				for _, dest := range w.Destinations {
+				for _, us := range w.Upstreams {
 					out = append(out, Relationship{
-						Caller:      w,
-						Destination: dest,
-						Upstream:    dest,
-					})
-				}
-				for _, dest := range w.ImpliedDestinations {
-					out = append(out, Relationship{
-						Caller:      w,
-						Destination: dest,
-						Upstream:    dest,
+						Caller:   w,
+						Upstream: us,
 					})
 				}
 			}
@@ -43,18 +35,14 @@ func RenderRelationships(ships []Relationship) string {
 	w := tabwriter.NewWriter(&buf, 0, 0, 3, ' ', tabwriter.Debug)
 	fmt.Fprintf(w, "CALLER\tnode\tservice\tport\tDEST\tservice\t\n")
 	for _, r := range ships {
-		suffix := ""
-		if r.Destination.Implied {
-			suffix = " (implied)"
-		}
 		fmt.Fprintf(w,
 			"%s\t%s\t%s\t%d\t%s\t%s\t\n",
 			r.callingCluster(),
 			r.Caller.Node.ID().String(),
 			r.Caller.ID.String(),
-			r.Destination.LocalPort,
-			r.destinationCluster(),
-			r.Destination.ID.String()+suffix,
+			r.Upstream.LocalPort,
+			r.upstreamCluster(),
+			r.Upstream.ID.String(),
 		)
 	}
 	fmt.Fprintf(w, "\t\t\t\t\t\t\n")
@@ -64,27 +52,19 @@ func RenderRelationships(ships []Relationship) string {
 }
 
 type Relationship struct {
-	Caller      *Workload
-	Destination *Destination
-
-	// Deprecated: Destination
-	Upstream *Destination
+	Caller   *Workload
+	Upstream *Upstream
 }
 
 func (r Relationship) String() string {
-	suffix := ""
-	if r.Destination.PortName != "" {
-		suffix = " port " + r.Destination.PortName
-	}
 	return fmt.Sprintf(
-		"%s on %s in %s via :%d => %s in %s%s",
+		"%s on %s in %s via :%d => %s in %s",
 		r.Caller.ID.String(),
 		r.Caller.Node.ID().String(),
 		r.callingCluster(),
-		r.Destination.LocalPort,
-		r.Destination.ID.String(),
-		r.destinationCluster(),
-		suffix,
+		r.Upstream.LocalPort,
+		r.Upstream.ID.String(),
+		r.upstreamCluster(),
 	)
 }
 
@@ -92,6 +72,6 @@ func (r Relationship) callingCluster() string {
 	return r.Caller.Node.Cluster
 }
 
-func (r Relationship) destinationCluster() string {
-	return r.Destination.Cluster
+func (r Relationship) upstreamCluster() string {
+	return r.Upstream.Cluster
 }

@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,11 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -64,9 +63,9 @@ func TestAgent_local_proxycfg(t *testing.T) {
 
 	var (
 		firstTime = true
-		ch        <-chan proxysnapshot.ProxySnapshot
+		ch        <-chan *proxycfg.ConfigSnapshot
 		stc       limiter.SessionTerminatedChan
-		cancel    proxysnapshot.CancelFunc
+		cancel    context.CancelFunc
 	)
 	defer func() {
 		if cancel != nil {
@@ -87,7 +86,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 			// Prior to fixes in https://github.com/hashicorp/consul/pull/16497
 			// this call to Watch() would deadlock.
 			var err error
-			ch, stc, _, cancel, err = cfg.Watch(rtest.Resource(pbmesh.ProxyConfigurationType, sid.ID).ID(), a.config.NodeName, token)
+			ch, stc, _, cancel, err = cfg.Watch(sid, a.config.NodeName, token)
 			require.NoError(t, err)
 		}
 		select {

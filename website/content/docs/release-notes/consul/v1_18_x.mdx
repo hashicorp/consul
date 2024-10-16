@@ -11,11 +11,11 @@ We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
-- **Consul v2 Catalog API and Traffic Permission API updates:** Additional improvements were made to the v2 catalog API, which enables support for [multi-port services on Kubernetes](/consul/docs/k8s/multiport). End user facing changes include the ability to use a service's ports in xRoute configurations as opposed to the workload port for reference in the parentRef stanza of the xRoute configuration. In addition, the Traffic Permissions API was changed to only allow `ACTION_DENY` for Consul Enterprise as it will enable future governance related workflows. 
+- **Consul v2 Catalog API and Traffic Permission API updates:** Additional improvements were made to the v2 catalog API, which enables support for [multi-port services on Kubernetes](/consul/docs/k8s/multiport). End user facing changes include the ability to use a service's ports in xRoute configurations as opposed to the workload port for reference in the parentRef stanza of the xRoute configuration. In addition, the Traffic Permissions API was changed to only allow `ACTION_DENY` for Consul Enterprise as it will enable future governance related workflows.
 
   The v2 Catalog API is currently available for Consul on Kubernetes deployments only. Refer to [Consul v2 architecture](/consul/docs/architecture/v2) for more information.
 
-  <Note> The v2 Catalog API and the Traffic Permssions API are in beta and under active development, so we do not recommend using them in production. </Note>
+  <Note> The v2 Catalog API and the Traffic Permissions API are in beta and under active development, so we do not recommend using them in production. </Note>
 
 - **Consul Long Term Support (LTS) (Enterprise):** Consul Enterprise users can now receive Long Term Support for approximately 2 years on some Consul releases, starting with Consul Enterprise v1.15. During the LTS window, eligible fixes are provided through a new minor release on the affected LTS release branch.
 
@@ -37,7 +37,7 @@ We are pleased to announce the following Consul updates.
 
   Refer to [transparent proxy overview](/consul/docs/k8s/connect/transparent-proxy) and [Consul on ECS overview](/consul/docs/ecs) for more information.
 
-- **Downgrade from Consul Enterprise to Consul Community Edition**: Consul now provides the ability for enterprise users to migrate their deployments to Community edition and disable enterprise features for business continuity. Refer to [Downgrade from Consul Enterprise to the community edition](/consul/docs/enterprise/ent-to-ce-downgrades) for more information. 
+- **Downgrade from Consul Enterprise to Consul Community Edition**: Consul now provides the ability for enterprise users to migrate their deployments to Community edition and disable enterprise features for business continuity. Refer to [Downgrade from Consul Enterprise to the community edition](/consul/docs/enterprise/ent-to-ce-downgrades) for more information.
 
 - **Consul Snapshot Agent support for multiple destinations (Enterprise):** Consul Enterprise users can now specify [multiple local and remote destinations](/consul/commands/snapshot/agent) for Consul snapshot backups.
 

@@ -12,19 +12,19 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (
@@ -84,7 +84,7 @@ type ACLResolverFunc func(id string) (acl.Authorizer, error)
 // ProxyConfigSource is the interface xds.Server requires to consume proxy
 // config updates.
 type ProxyWatcher interface {
-	Watch(proxyID *pbresource.ID, nodeName string, token string) (<-chan proxysnapshot.ProxySnapshot, limiter.SessionTerminatedChan, proxycfg.SrcTerminatedChan, proxysnapshot.CancelFunc, error)
+	Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.SrcTerminatedChan, context.CancelFunc, error)
 }
 
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
@@ -201,9 +201,9 @@ func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
 // using a token with the same permissions, and that it stores the data by
 // proxy ID. We assume that any data in the snapshot was already filtered,
 // which allows this authorization to be a shallow authorization check
-// for all the data in a ProxySnapshot.
-func (s *Server) authorize(ctx context.Context, proxySnapshot proxysnapshot.ProxySnapshot) error {
-	if proxySnapshot == nil {
+// for all the data in a ConfigSnapshot.
+func (s *Server) authorize(ctx context.Context, snapshot *proxycfg.ConfigSnapshot) error {
+	if snapshot == nil {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
@@ -212,5 +212,5 @@ func (s *Server) authorize(ctx context.Context, proxySnapshot proxysnapshot.Prox
 		return err
 	}
 
-	return proxySnapshot.Authorize(authz)
+	return snapshot.Authorize(authz)
 }

@@ -9,14 +9,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"
 )
@@ -49,9 +46,6 @@ func (s *Sprawl) registerServicesToAgents(cluster *topology.Cluster) error {
 		if !node.IsAgent() {
 			continue
 		}
-		if node.IsV2() {
-			panic("don't call this")
-		}
 
 		agentClient, err := util.ProxyAPIClient(
 			node.LocalProxyPort(),
@@ -82,9 +76,6 @@ func (s *Sprawl) registerAgentService(
 	if !node.IsAgent() {
 		panic("called wrong method type")
 	}
-	if node.IsV2() {
-		panic("don't call this")
-	}
 
 	if wrk.IsMeshGateway {
 		return nil // handled at startup time for agent-ful, but won't be for agent-less
@@ -107,19 +98,19 @@ func (s *Sprawl) registerAgentService(
 
 	if !wrk.DisableServiceMesh {
 		var upstreams []api.Upstream
-		for _, dest := range wrk.Destinations {
+		for _, us := range wrk.Upstreams {
 			uAPI := api.Upstream{
-				DestinationPeer:  dest.Peer,
-				DestinationName:  dest.ID.Name,
-				LocalBindAddress: dest.LocalAddress,
-				LocalBindPort:    dest.LocalPort,
+				DestinationPeer:  us.Peer,
+				DestinationName:  us.ID.Name,
+				LocalBindAddress: us.LocalAddress,
+				LocalBindPort:    us.LocalPort,
 				// Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
 				// MeshGateway          MeshGatewayConfig      `json:",omitempty"`
 			}
 			if cluster.Enterprise {
-				uAPI.DestinationNamespace = dest.ID.Namespace
-				if dest.Peer == "" {
-					uAPI.DestinationPartition = dest.ID.Partition
+				uAPI.DestinationNamespace = us.ID.Namespace
+				if us.Peer == "" {
+					uAPI.DestinationPartition = us.ID.Partition
 				}
 			}
 			upstreams = append(upstreams, uAPI)
@@ -179,65 +170,14 @@ RETRY:
 
 // syncWorkloadsForDataplaneInstances register/deregister services in the given cluster
 func (s *Sprawl) syncWorkloadsForDataplaneInstances(cluster *topology.Cluster) error {
-	identityInfo := make(map[topology.ID]*Resource[*pbauth.WorkloadIdentity])
-
 	// registerWorkloadToNode is called when node is not disabled
 	registerWorkloadToNode := func(node *topology.Node, wrk *topology.Workload) error {
-		if node.IsV2() {
-			pending := workloadInstanceToResources(node, wrk)
-
-			workloadID := topology.NewID(wrk.WorkloadIdentity, wrk.ID.Namespace, wrk.ID.Partition)
-			if _, ok := identityInfo[workloadID]; !ok {
-				identityInfo[workloadID] = pending.WorkloadIdentity
-			}
-
-			// Write workload
-			res, err := pending.Workload.Build()
-			if err != nil {
-				return fmt.Errorf("error serializing resource %s: %w", util.IDToString(pending.Workload.Resource.Id), err)
-			}
-			workload, err := s.writeResource(cluster, res)
-			if err != nil {
-				return err
-			}
-			// Write check linked to workload
-			for _, check := range pending.HealthStatuses {
-				check.Resource.Owner = workload.Id
-				res, err := check.Build()
-				if err != nil {
-					return fmt.Errorf("error serializing resource %s: %w", util.IDToString(check.Resource.Id), err)
-				}
-				if _, err := s.writeResource(cluster, res); err != nil {
-					return err
-				}
-			}
-			// maybe write destinations
-			if pending.Destinations != nil {
-				res, err := pending.Destinations.Build()
-				if err != nil {
-					return fmt.Errorf("error serializing resource %s: %w", util.IDToString(pending.Destinations.Resource.Id), err)
-				}
-				if _, err := s.writeResource(cluster, res); err != nil {
-					return err
-				}
-			}
-			if pending.ProxyConfiguration != nil {
-				res, err := pending.ProxyConfiguration.Build()
-				if err != nil {
-					return fmt.Errorf("error serializing resource %s: %w", util.IDToString(pending.ProxyConfiguration.Resource.Id), err)
-				}
-				if _, err := s.writeResource(cluster, res); err != nil {
-					return err
-				}
-			}
-		} else {
-			if err := s.registerCatalogServiceV1(cluster, node, wrk); err != nil {
-				return fmt.Errorf("error registering service: %w", err)
-			}
-			if !wrk.DisableServiceMesh {
-				if err := s.registerCatalogSidecarServiceV1(cluster, node, wrk); err != nil {
-					return fmt.Errorf("error registering sidecar service: %w", err)
-				}
+		if err := s.registerCatalogServiceV1(cluster, node, wrk); err != nil {
+			return fmt.Errorf("error registering service: %w", err)
+		}
+		if !wrk.DisableServiceMesh {
+			if err := s.registerCatalogSidecarServiceV1(cluster, node, wrk); err != nil {
+				return fmt.Errorf("error registering sidecar service: %w", err)
 			}
 		}
 		return nil
@@ -245,17 +185,12 @@ func (s *Sprawl) syncWorkloadsForDataplaneInstances(cluster *topology.Cluster) e
 
 	// deregisterWorkloadFromNode is called when node is disabled
 	deregisterWorkloadFromNode := func(node *topology.Node, wrk *topology.Workload) error {
-		if node.IsV2() {
-			// TODO: implement deregister workload for v2
-			panic("deregister workload is not implemented for V2")
-		} else {
-			if err := s.deregisterCatalogServiceV1(cluster, node, wrk); err != nil {
-				return fmt.Errorf("error deregistering service: %w", err)
-			}
-			if !wrk.DisableServiceMesh {
-				if err := s.deregisterCatalogSidecarServiceV1(cluster, node, wrk); err != nil {
-					return fmt.Errorf("error deregistering sidecar service: %w", err)
-				}
+		if err := s.deregisterCatalogServiceV1(cluster, node, wrk); err != nil {
+			return fmt.Errorf("error deregistering service: %w", err)
+		}
+		if !wrk.DisableServiceMesh {
+			if err := s.deregisterCatalogSidecarServiceV1(cluster, node, wrk); err != nil {
+				return fmt.Errorf("error deregistering sidecar service: %w", err)
 			}
 		}
 		return nil
@@ -299,42 +234,6 @@ func (s *Sprawl) syncWorkloadsForDataplaneInstances(cluster *topology.Cluster) e
 		}
 	}
 
-	if cluster.EnableV2 {
-		for _, identity := range identityInfo {
-			res, err := identity.Build()
-			if err != nil {
-				return fmt.Errorf("error serializing resource %s: %w", util.IDToString(identity.Resource.Id), err)
-			}
-			if _, err := s.writeResource(cluster, res); err != nil {
-				return err
-			}
-		}
-
-		for id, svcData := range cluster.Services {
-			svcInfo := &Resource[*pbcatalog.Service]{
-				Resource: &pbresource.Resource{
-					Id: &pbresource.ID{
-						Type: pbcatalog.ServiceType,
-						Name: id.Name,
-						Tenancy: &pbresource.Tenancy{
-							Partition: id.Partition,
-							Namespace: id.Namespace,
-						},
-					},
-				},
-				Data: svcData,
-			}
-
-			res, err := svcInfo.Build()
-			if err != nil {
-				return fmt.Errorf("error serializing resource %s: %w", util.IDToString(svcInfo.Resource.Id), err)
-			}
-			if _, err := s.writeResource(cluster, res); err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -342,9 +241,6 @@ func (s *Sprawl) registerCatalogNode(
 	cluster *topology.Cluster,
 	node *topology.Node,
 ) error {
-	if node.IsV2() {
-		return s.registerCatalogNodeV2(cluster, node)
-	}
 	return s.registerCatalogNodeV1(cluster, node)
 }
 
@@ -352,47 +248,7 @@ func (s *Sprawl) deregisterCatalogNode(
 	cluster *topology.Cluster,
 	node *topology.Node,
 ) error {
-	if node.IsV2() {
-		panic("deregister V2 node is not implemented")
-	}
 	return s.deregisterCatalogNodeV1(cluster, node)
-}
-
-func (s *Sprawl) registerCatalogNodeV2(
-	cluster *topology.Cluster,
-	node *topology.Node,
-) error {
-	if !node.IsDataplane() {
-		panic("called wrong method type")
-	}
-
-	nodeRes := &Resource[*pbcatalog.Node]{
-		Resource: &pbresource.Resource{
-			Id: &pbresource.ID{
-				Type: pbcatalog.NodeType,
-				Name: node.PodName(),
-				Tenancy: &pbresource.Tenancy{
-					Partition: node.Partition,
-				},
-			},
-			Metadata: map[string]string{
-				"dataplane-faux": "1",
-			},
-		},
-		Data: &pbcatalog.Node{
-			Addresses: []*pbcatalog.NodeAddress{
-				{Host: node.LocalAddress()},
-			},
-		},
-	}
-
-	res, err := nodeRes.Build()
-	if err != nil {
-		return err
-	}
-
-	_, err = s.writeResource(cluster, res)
-	return err
 }
 
 func (s *Sprawl) writeResource(cluster *topology.Cluster, res *pbresource.Resource) (*pbresource.Resource, error) {
@@ -505,9 +361,6 @@ func (s *Sprawl) deregisterCatalogServiceV1(
 	if !node.IsDataplane() {
 		panic("called wrong method type")
 	}
-	if node.IsV2() {
-		panic("don't call this")
-	}
 
 	var (
 		client = s.clients[cluster.Name]
@@ -542,9 +395,6 @@ func (s *Sprawl) registerCatalogServiceV1(
 ) error {
 	if !node.IsDataplane() {
 		panic("called wrong method type")
-	}
-	if node.IsV2() {
-		panic("don't call this")
 	}
 
 	var (
@@ -581,9 +431,6 @@ func (s *Sprawl) deregisterCatalogSidecarServiceV1(
 	}
 	if wrk.DisableServiceMesh {
 		panic("not valid")
-	}
-	if node.IsV2() {
-		panic("don't call this")
 	}
 
 	var (
@@ -626,9 +473,6 @@ func (s *Sprawl) registerCatalogSidecarServiceV1(
 	if wrk.DisableServiceMesh {
 		panic("not valid")
 	}
-	if node.IsV2() {
-		panic("don't call this")
-	}
 
 	var (
 		client = s.clients[cluster.Name]
@@ -667,172 +511,11 @@ func (r *Resource[V]) Build() (*pbresource.Resource, error) {
 	return r.Resource, nil
 }
 
-type ServiceResources struct {
-	Workload           *Resource[*pbcatalog.Workload]
-	HealthStatuses     []*Resource[*pbcatalog.HealthStatus]
-	Destinations       *Resource[*pbmesh.Destinations]
-	WorkloadIdentity   *Resource[*pbauth.WorkloadIdentity]
-	ProxyConfiguration *Resource[*pbmesh.ProxyConfiguration]
-}
-
-func workloadInstanceToResources(
-	node *topology.Node,
-	wrk *topology.Workload,
-) *ServiceResources {
-	if wrk.IsMeshGateway {
-		panic("v2 does not yet support mesh gateways")
-	}
-
-	tenancy := &pbresource.Tenancy{
-		Partition: wrk.ID.Partition,
-		Namespace: wrk.ID.Namespace,
-	}
-
-	var (
-		wlPorts = map[string]*pbcatalog.WorkloadPort{}
-	)
-	for name, port := range wrk.Ports {
-		wlPorts[name] = &pbcatalog.WorkloadPort{
-			Port:     uint32(port.Number),
-			Protocol: port.ActualProtocol,
-		}
-	}
-
-	var (
-		selector = &pbcatalog.WorkloadSelector{
-			Names: []string{wrk.Workload},
-		}
-
-		workloadRes = &Resource[*pbcatalog.Workload]{
-			Resource: &pbresource.Resource{
-				Id: &pbresource.ID{
-					Type:    pbcatalog.WorkloadType,
-					Name:    wrk.Workload,
-					Tenancy: tenancy,
-				},
-				Metadata: wrk.Meta,
-			},
-			Data: &pbcatalog.Workload{
-				NodeName: node.PodName(),
-				Identity: wrk.WorkloadIdentity,
-				Ports:    wlPorts,
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: node.LocalAddress()},
-				},
-			},
-		}
-		workloadIdentityRes = &Resource[*pbauth.WorkloadIdentity]{
-			Resource: &pbresource.Resource{
-				Id: &pbresource.ID{
-					Type:    pbauth.WorkloadIdentityType,
-					Name:    wrk.WorkloadIdentity,
-					Tenancy: tenancy,
-				},
-			},
-			Data: &pbauth.WorkloadIdentity{},
-		}
-
-		healthResList   []*Resource[*pbcatalog.HealthStatus]
-		destinationsRes *Resource[*pbmesh.Destinations]
-		proxyConfigRes  *Resource[*pbmesh.ProxyConfiguration]
-	)
-
-	if wrk.HasCheck() {
-		// TODO: needs ownerId
-		checkRes := &Resource[*pbcatalog.HealthStatus]{
-			Resource: &pbresource.Resource{
-				Id: &pbresource.ID{
-					Type:    pbcatalog.HealthStatusType,
-					Name:    wrk.Workload + "-check-0",
-					Tenancy: tenancy,
-				},
-			},
-			Data: &pbcatalog.HealthStatus{
-				Type:   "external-sync",
-				Status: pbcatalog.Health_HEALTH_PASSING,
-			},
-		}
-
-		healthResList = []*Resource[*pbcatalog.HealthStatus]{checkRes}
-	}
-
-	if node.HasPublicAddress() {
-		workloadRes.Data.Addresses = append(workloadRes.Data.Addresses,
-			&pbcatalog.WorkloadAddress{Host: node.PublicAddress(), External: true},
-		)
-	}
-
-	if !wrk.DisableServiceMesh {
-		destinationsRes = &Resource[*pbmesh.Destinations]{
-			Resource: &pbresource.Resource{
-				Id: &pbresource.ID{
-					Type:    pbmesh.DestinationsType,
-					Name:    wrk.Workload,
-					Tenancy: tenancy,
-				},
-			},
-			Data: &pbmesh.Destinations{
-				Workloads: selector,
-			},
-		}
-
-		for _, dest := range wrk.Destinations {
-			meshDest := &pbmesh.Destination{
-				DestinationRef: &pbresource.Reference{
-					Type: pbcatalog.ServiceType,
-					Name: dest.ID.Name,
-					Tenancy: &pbresource.Tenancy{
-						Partition: dest.ID.Partition,
-						Namespace: dest.ID.Namespace,
-					},
-				},
-				DestinationPort: dest.PortName,
-				ListenAddr: &pbmesh.Destination_IpPort{
-					IpPort: &pbmesh.IPPortAddress{
-						Ip:   dest.LocalAddress,
-						Port: uint32(dest.LocalPort),
-					},
-				},
-			}
-			destinationsRes.Data.Destinations = append(destinationsRes.Data.Destinations, meshDest)
-		}
-
-		if wrk.EnableTransparentProxy {
-			proxyConfigRes = &Resource[*pbmesh.ProxyConfiguration]{
-				Resource: &pbresource.Resource{
-					Id: &pbresource.ID{
-						Type:    pbmesh.ProxyConfigurationType,
-						Name:    wrk.Workload,
-						Tenancy: tenancy,
-					},
-				},
-				Data: &pbmesh.ProxyConfiguration{
-					Workloads: selector,
-					DynamicConfig: &pbmesh.DynamicConfig{
-						Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
-					},
-				},
-			}
-		}
-	}
-
-	return &ServiceResources{
-		Workload:           workloadRes,
-		HealthStatuses:     healthResList,
-		Destinations:       destinationsRes,
-		WorkloadIdentity:   workloadIdentityRes,
-		ProxyConfiguration: proxyConfigRes,
-	}
-}
-
 func workloadToCatalogRegistration(
 	cluster *topology.Cluster,
 	node *topology.Node,
 	wrk *topology.Workload,
 ) *api.CatalogRegistration {
-	if node.IsV2() {
-		panic("don't call this")
-	}
 	reg := &api.CatalogRegistration{
 		Node:           node.PodName(),
 		SkipNodeUpdate: true,
@@ -921,9 +604,6 @@ func workloadToSidecarCatalogRegistration(
 	node *topology.Node,
 	wrk *topology.Workload,
 ) (topology.ID, *api.CatalogRegistration) {
-	if node.IsV2() {
-		panic("don't call this")
-	}
 	pid := wrk.ID
 	pid.Name += "-sidecar-proxy"
 	reg := &api.CatalogRegistration{
@@ -970,17 +650,17 @@ func workloadToSidecarCatalogRegistration(
 		reg.Checks[0].Partition = pid.Partition
 	}
 
-	for _, dest := range wrk.Destinations {
+	for _, us := range wrk.Upstreams {
 		pu := api.Upstream{
-			DestinationName:  dest.ID.Name,
-			DestinationPeer:  dest.Peer,
-			LocalBindAddress: dest.LocalAddress,
-			LocalBindPort:    dest.LocalPort,
+			DestinationName:  us.ID.Name,
+			DestinationPeer:  us.Peer,
+			LocalBindAddress: us.LocalAddress,
+			LocalBindPort:    us.LocalPort,
 		}
 		if cluster.Enterprise {
-			pu.DestinationNamespace = dest.ID.Namespace
-			if dest.Peer == "" {
-				pu.DestinationPartition = dest.ID.Partition
+			pu.DestinationNamespace = us.ID.Namespace
+			if us.Peer == "" {
+				pu.DestinationPartition = us.ID.Partition
 			}
 		}
 		reg.Service.Proxy.Upstreams = append(reg.Service.Proxy.Upstreams, pu)

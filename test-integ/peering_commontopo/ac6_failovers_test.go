@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/require"
 )
 
 type ac6FailoversSuite struct {
@@ -347,8 +348,8 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		nearClu.Datacenter,
 		clientSID,
 		func(s *topology.Workload) {
-			// Destination per partition
-			s.Destinations = []*topology.Destination{
+			// Upstream per partition
+			s.Upstreams = []*topology.Upstream{
 				{
 					ID: topology.ID{
 						Name:      nearServerSID.Name,
@@ -437,8 +438,8 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 	require.Len(t, svcs, 1, "expected exactly one client in datacenter")
 
 	client := svcs[0]
-	require.Len(t, client.Destinations, 1, "expected one upstream for client")
-	upstream := client.Destinations[0]
+	require.Len(t, client.Upstreams, 1, "expected one upstream for client")
+	upstream := client.Upstreams[0]
 
 	fmt.Println("### preconditions")
 

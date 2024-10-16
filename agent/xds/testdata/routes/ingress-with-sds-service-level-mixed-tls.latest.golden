@@ -4,7 +4,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "9191",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -29,7 +28,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "9191_web",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [

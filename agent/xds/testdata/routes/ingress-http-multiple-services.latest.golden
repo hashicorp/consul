@@ -4,7 +4,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "443",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
@@ -45,7 +44,6 @@
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "8080",
-      "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [

@@ -1,0 +1,48 @@
+---
+layout: docs
+page_title: 1.5.x
+description: >-
+  Consul on Kubernetes release notes for version 1.5.x
+---
+
+# Consul on Kubernetes 1.5.0
+
+We are pleased to announce the following Consul updates.
+
+## Release highlights
+
+- **External Services CRD**: You can now configure and register external services, including their health checks, alongside existing Kubernetes application manifests with the new [`Registration` Custom Resource Definition (CRD)](/consul/docs/connect/config-entries/registration). This CRD changes the workflow to register a service running on an external node with the Consul catalog. A terminating gateway is still required to enable downstream services in the service mesh to communicate with external services. Refer to [Register external services on Kubernetes overview](/consul/docs/k8s/deployment-configurations/external-service) for more information.
+
+- **File system certificate**: A new [`file-system-certificate` configuration entry](/consul/docs/connect/config-entries/file-system-certificate) for Consul API Gateway on VMs supports specifying a filepath to the certificate and private key on the local system. Consul on Kubernetes deployments that use `consul-k8s` Helm chart v1.5.0 or later use file system certificates instead of inline certificates without additional configuration. For information about certificate configuration for Kubernetes environments, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
+
+- **v2 catalog API deprecation**: Consul introduced an experimental v2 Catalog API in v1.17.0. This API supported multi-port Service configurations on Kubernetes, and it was made available for testing and development purposes. The v2 catalog and its support for multiport Kubernetes Services were deprecated in the v1.19.0 release.
+
+- **Argo Rollouts Plugin**: A new Argo Rollouts plugin for progressive delivery is now available for `consul-k8s`. This plugin supports canary deployments by allowing you to incrementally release and test new versions of applications and roll back to previous versions by splitting traffic between subsets of services. Refer to [Argo Rollouts Progressive Delivery with Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/argo-rollouts-configuration) for more information.
+
+## Supported software
+
+This version of Consul on Kubernetes supports the following software versions:
+
+- Consul v1.19.x
+- Consul Dataplane v1.5.x. Refer to [Envoy and Consul Dataplane](/consul/docs/v1.19.x/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version.
+- Kubernetes 1.27.x - 1.30.x
+- kubectl 1.27.x - 1.30.x
+- Helm 3.11.3+
+
+Refer to [Supported Consul and Kubernetes versions](/consul/docs/v1.19.x/k8s/compatibility#supported-consul-and-kubernetes-versions) for more information.
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
+
+## Known issues
+
+The following issues are known to exist in the v1.5.x releases:
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+<Note> These links take you to the changelogs on the GitHub website. </Note>
+
+- [1.5.0](https://github.com/hashicorp/consul-k8s/releases/tag/v1.5.0)

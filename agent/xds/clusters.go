@@ -148,7 +148,7 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 
 	// add clusters for jwt-providers
 	for _, prov := range cfgSnap.JWTProviders {
-		//skip cluster creation for local providers
+		// skip cluster creation for local providers
 		if prov.JSONWebKeySet == nil || prov.JSONWebKeySet.Remote == nil {
 			continue
 		}
@@ -214,9 +214,12 @@ func makeJWTProviderCluster(p *structs.JWTProviderConfigEntry) (*envoy_cluster_v
 		return nil, err
 	}
 
+	discoveryType := makeJWKSDiscoveryClusterType(p.JSONWebKeySet.Remote)
+	lookupFamily := makeJWKSClusterDNSLookupFamilyType(discoveryType)
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 makeJWKSClusterName(p.Name),
-		ClusterDiscoveryType: makeJWKSDiscoveryClusterType(p.JSONWebKeySet.Remote),
+		ClusterDiscoveryType: discoveryType,
+		DnsLookupFamily:      lookupFamily,
 		LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
 			ClusterName: makeJWKSClusterName(p.Name),
 			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
@@ -276,6 +279,23 @@ func makeJWKSDiscoveryClusterType(r *structs.RemoteJWKS) *envoy_cluster_v3.Clust
 		ct.Type = envoy_cluster_v3.Cluster_STRICT_DNS
 	}
 	return ct
+}
+
+func makeJWKSClusterDNSLookupFamilyType(r *envoy_cluster_v3.Cluster_Type) envoy_cluster_v3.Cluster_DnsLookupFamily {
+	// When using LOGICAL_DNS we want to use the Cluster_ALL lookup family which will fetch all the ip addresses for a given hostname and then
+	// try to connect to each one and will create the cluster based on the first one that passes.
+	// When using STRICT_DNS we want to use the CLUSTER_V4_PREFERRED lookup family which will prefer
+	// creating clusters using ipv4 addresses if those are available.
+	// Otherwise we fallback to Cluser_AUTO which will use the default behavior, and will be ignored as per the documentation.
+	// https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/cluster.proto#envoy-v3-api-enum-config-cluster-v3-cluster-dnslookupfamily
+	switch r.Type {
+	case envoy_cluster_v3.Cluster_LOGICAL_DNS:
+		return envoy_cluster_v3.Cluster_ALL
+	case envoy_cluster_v3.Cluster_STRICT_DNS:
+		return envoy_cluster_v3.Cluster_V4_PREFERRED
+	default:
+		return envoy_cluster_v3.Cluster_AUTO
+	}
 }
 
 func makeJWTCertValidationContext(p *structs.JWKSCluster) *envoy_tls_v3.CertificateValidationContext {
@@ -923,7 +943,6 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 			}
 			c.TransportSocket = transportSocket
 		}
-
 	}
 	return nil
 }
@@ -1005,6 +1024,8 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 			createdClusters[uid] = true
 		}
 	}
+
+	clusters = append(clusters, makeAPIGatewayJWKClusters(s.Logger, cfgSnap)...)
 	return clusters, nil
 }
 
@@ -1145,7 +1166,6 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 	}
 
 	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
-
 	if err != nil {
 		return c, err
 	}

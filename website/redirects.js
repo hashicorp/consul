@@ -213,16 +213,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/k8s/multiport/reference/resource-command/:slug',
-    destination: '/consul/commands/resource/:slug',
-    permanent: true,
-  },
-  {
-    source: '/consul/commands/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/resource/:slug*',
-    destination: '/consul/docs/:version/k8s/multiport/reference/resource-command/:slug',
-    permanent: true
-  },
-  {
     source: '/consul/docs/architecture/catalog/v1/:slug',
     destination: '/consul/docs/architecture/catalog/:slug',
     permanent: true,
@@ -230,26 +220,41 @@ module.exports = [
   {
     source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/architecture/catalog/:slug*',
     destination: '/consul/docs/:version/architecture/catalog/v1/:slug',
-    permanent: true
-  },
-  {
-    source: '/consul/docs/architecture/catalog/v2/:slug',
-    destination: '/consul/docs/architecture/v2/catalog/:slug',
     permanent: true,
-  },
-  {
-    source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/architecture/v2/catalog/:slug*',
-    destination: '/consul/docs/:version/architecture/catalog/v2/:slug',
-    permanent: true
   },
   {
     source: '/consul/docs/nia/network-drivers/terraform-cloud',
     destination: '/consul/docs/nia/network-drivers/hcp-terraform',
-    permanent: true
+    permanent: true,
   },
   {
     source: '/consul/docs/:version(v1\.(?:8|9|10|11|12|13|14|15|16|17)\.x)/nia/network-drivers/hcp-terraform',
     destination: '/consul/docs/:version/nia/network-drivers/terraform-cloud',
-    permanent: true
+    permanent: true,
   },
+  {
+    source: '/consul/docs/k8s/multiport/:slug',
+    destination: '/consul/docs/architecture/catalog#v2-catalog',
+    permanent: true,
+  },
+  {
+    source: 'consul/docs/architecture/v2/:slug*',
+    destination: '/consul/docs/architecture/catalog#v2-catalog',
+    permanent: true,
+  },
+  {
+    source: '/consul/commands/resource/:slug',
+    destination: '/consul/docs/architecture/catalog#v2-catalog',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/k8s/dns',
+    destination: '/consul/docs/k8s/dns/enable',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/:version(v1\.(?:11|12|13|14|15|16|17|18)\.x)/k8s/dns/enable',
+    destination: '/consul/docs/:version/k8s/dns',
+    permanent: true,
+  }
 ]

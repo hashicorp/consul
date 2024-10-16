@@ -5,7 +5,6 @@ package consul
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -16,10 +15,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/google/go-cmp/cmp"
-	"github.com/oklog/ulid/v2"
 	"golang.org/x/time/rate"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
@@ -32,13 +28,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 var LeaderSummaries = []prometheus.SummaryDefinition{
@@ -347,18 +338,6 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	if s.config.LogStoreConfig.Verification.Enabled {
 		s.startLogVerification(ctx)
-	}
-
-	if s.useV2Tenancy {
-		if err := s.initTenancy(ctx, s.storageBackend); err != nil {
-			return err
-		}
-	}
-
-	if s.useV2Resources {
-		if err := s.initConsulService(ctx, pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan)); err != nil {
-			return err
-		}
 	}
 
 	if s.config.Reporting.License.Enabled && s.reportingManager != nil {
@@ -1309,122 +1288,4 @@ func (s *serversIntentionsAsConfigEntriesInfo) update(srv *metadata.Server) bool
 
 	// prevent continuing server evaluation
 	return false
-}
-
-func (s *Server) initConsulService(ctx context.Context, client pbresource.ResourceServiceClient) error {
-	service := &pbcatalog.Service{
-		Workloads: &pbcatalog.WorkloadSelector{
-			Prefixes: []string{consulWorkloadPrefix},
-		},
-		Ports: []*pbcatalog.ServicePort{
-			{
-				TargetPort: consulPortNameServer,
-				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
-				// No virtual port defined for now, as we assume this is generally for Service Discovery
-			},
-		},
-	}
-
-	serviceData, err := anypb.New(service)
-	if err != nil {
-		return fmt.Errorf("could not convert Service to `any` message: %w", err)
-	}
-
-	// create a default namespace in default partition
-	serviceID := &pbresource.ID{
-		Type:    pbcatalog.ServiceType,
-		Name:    structs.ConsulServiceName,
-		Tenancy: resource.DefaultNamespacedTenancy(),
-	}
-
-	serviceResource := &pbresource.Resource{
-		Id:   serviceID,
-		Data: serviceData,
-	}
-
-	res, err := client.Read(ctx, &pbresource.ReadRequest{Id: serviceID})
-	if err != nil && !grpcNotFoundErr(err) {
-		return fmt.Errorf("failed to read the %s Service: %w", structs.ConsulServiceName, err)
-	}
-
-	if err == nil {
-		existingService := res.GetResource()
-		s.logger.Debug("existingService consul Service found")
-
-		// If the Service is identical, we're done.
-		if cmp.Equal(serviceResource, existingService, resourceCmpOptions...) {
-			s.logger.Debug("no updates to perform on consul Service")
-			return nil
-		}
-
-		// If the existing Service is different, add the Version to the patch for CAS write.
-		serviceResource.Id = existingService.Id
-		serviceResource.Version = existingService.Version
-	}
-
-	_, err = client.Write(ctx, &pbresource.WriteRequest{Resource: serviceResource})
-	if err != nil {
-		return fmt.Errorf("failed to create the %s service: %w", structs.ConsulServiceName, err)
-	}
-
-	s.logger.Info("Created consul Service in catalog")
-	return nil
-}
-
-func (s *Server) initTenancy(ctx context.Context, b storage.Backend) error {
-	// we write these defaults directly to the storage backend
-	// without going through the resource service since tenancy
-	// validation hooks block writes to the default namespace
-	// and partition.
-	if err := s.createDefaultPartition(ctx, b); err != nil {
-		return err
-	}
-
-	if err := s.createDefaultNamespace(ctx, b); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *Server) createDefaultNamespace(ctx context.Context, b storage.Backend) error {
-	readID := &pbresource.ID{
-		Type:    pbtenancy.NamespaceType,
-		Name:    resource.DefaultNamespaceName,
-		Tenancy: resource.DefaultPartitionedTenancy(),
-	}
-
-	read, err := b.Read(ctx, storage.StrongConsistency, readID)
-
-	if err != nil && !errors.Is(err, storage.ErrNotFound) {
-		return fmt.Errorf("failed to read the %q namespace: %v", resource.DefaultNamespaceName, err)
-	}
-	if read == nil && errors.Is(err, storage.ErrNotFound) {
-		nsData, err := anypb.New(&pbtenancy.Namespace{Description: "default namespace in default partition"})
-		if err != nil {
-			return err
-		}
-
-		// create a default namespace in default partition
-		nsID := &pbresource.ID{
-			Type:    pbtenancy.NamespaceType,
-			Name:    resource.DefaultNamespaceName,
-			Tenancy: resource.DefaultPartitionedTenancy(),
-			Uid:     ulid.Make().String(),
-		}
-
-		_, err = b.WriteCAS(ctx, &pbresource.Resource{
-			Id:         nsID,
-			Generation: ulid.Make().String(),
-			Data:       nsData,
-			Metadata: map[string]string{
-				"generated_at": time.Now().Format(time.RFC3339),
-			},
-		})
-
-		if err != nil {
-			return fmt.Errorf("failed to create the %q namespace: %v", resource.DefaultNamespaceName, err)
-		}
-	}
-	s.logger.Info("Created", "namespace", resource.DefaultNamespaceName)
-	return nil
 }

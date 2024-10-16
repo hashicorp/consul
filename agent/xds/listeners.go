@@ -1396,6 +1396,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, addMeta)
 
 		}
+		setNormalizationOptions(cfgSnap.MeshConfig().GetHTTPIncomingRequestNormalization(), &filterOpts)
 	}
 
 	// If an inbound connect limit is set, inject a connection limit filter on each chain.
@@ -1462,6 +1463,28 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		}
 	}
 	return l, err
+}
+
+// setNormalizationOptions sets the normalization options for the listener filter.
+// This is only used for inbound listeners today (see MeshHTTPConfig).
+func setNormalizationOptions(rn *structs.RequestNormalizationMeshConfig, opts *listenerFilterOpts) {
+	// Note that these options are _always_ set, not just when rn is non-nil. This enables us to set
+	// Consul defaults (e.g. InsecureDisablePathNormalization = false) that override Envoy defaults
+	// (e.g. normalize_path = false). We override defaults here rather than in xDS code s.t. Consul
+	// defaults are only applied where Consul configuration dictates it should be.
+
+	opts.normalizePath = !rn.GetInsecureDisablePathNormalization() // invert to enable path normalization by default
+	opts.mergeSlashes = rn.GetMergeSlashes()
+	if rn.GetPathWithEscapedSlashesAction() != "" {
+		v := string(rn.GetPathWithEscapedSlashesAction())
+		a := envoy_http_v3.HttpConnectionManager_PathWithEscapedSlashesAction_value[v]
+		opts.pathWithEscapedSlashesAction = envoy_http_v3.HttpConnectionManager_PathWithEscapedSlashesAction(a)
+	}
+	if rn.GetHeadersWithUnderscoresAction() != "" {
+		v := string(rn.GetHeadersWithUnderscoresAction())
+		a := envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction_value[v]
+		opts.headersWithUnderscoresAction = envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction(a)
+	}
 }
 
 func makePermissiveFilterChain(cfgSnap *proxycfg.ConfigSnapshot, opts listenerFilterOpts) (*envoy_listener_v3.FilterChain, error) {
@@ -1759,14 +1782,8 @@ type terminatingGatewayFilterChainOpts struct {
 }
 
 func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, tgtwyOpts terminatingGatewayFilterChainOpts) (*envoy_listener_v3.FilterChain, error) {
-	// We need to at least match the SNI and use the root PEMs from the local cluster; however, requests coming
-	// from peered clusters where the external service is exported to will have their own SNI and root PEMs.
+	// We need to at least match the SNI and use the root PEMs from the local cluster
 	sniMatches := []string{tgtwyOpts.cluster}
-	for _, bundle := range tgtwyOpts.peerTrustBundles {
-		svc := tgtwyOpts.service
-		sourceSNI := connect.PeeredServiceSNI(svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), bundle.PeerName, cfgSnap.Roots.TrustDomain)
-		sniMatches = append(sniMatches, sourceSNI)
-	}
 
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContext(
@@ -1777,9 +1794,19 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 		RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 	}
 
-	err := injectSpiffeValidatorConfigForPeers(cfgSnap, tlsContext.CommonTlsContext, tgtwyOpts.peerTrustBundles)
-	if err != nil {
-		return nil, err
+	// For TCP connections, TLS is not terminated at the mesh gateway but is instead proxied through;
+	// therefore, we need to account for callers from other datacenters when setting up our filter chain.
+	if tgtwyOpts.protocol == "tcp" {
+		for _, bundle := range tgtwyOpts.peerTrustBundles {
+			svc := tgtwyOpts.service
+			sourceSNI := connect.PeeredServiceSNI(svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), bundle.PeerName, cfgSnap.Roots.TrustDomain)
+			sniMatches = append(sniMatches, sourceSNI)
+		}
+
+		err := injectSpiffeValidatorConfigForPeers(cfgSnap, tlsContext.CommonTlsContext, tgtwyOpts.peerTrustBundles)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -2361,16 +2388,20 @@ type listenerFilterOpts struct {
 	statPrefix string
 
 	// HTTP listener filter options
-	forwardClientDetails bool
-	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
-	httpAuthzFilters     []*envoy_http_v3.HttpFilter
-	idleTimeoutMs        *int
-	requestTimeoutMs     *int
-	routeName            string
-	routePath            string
-	tracing              *envoy_http_v3.HttpConnectionManager_Tracing
-	useRDS               bool
-	fetchTimeoutRDS      *durationpb.Duration
+	forwardClientDetails         bool
+	forwardClientPolicy          envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	httpAuthzFilters             []*envoy_http_v3.HttpFilter
+	idleTimeoutMs                *int
+	requestTimeoutMs             *int
+	routeName                    string
+	routePath                    string
+	tracing                      *envoy_http_v3.HttpConnectionManager_Tracing
+	normalizePath                bool
+	mergeSlashes                 bool
+	pathWithEscapedSlashesAction envoy_http_v3.HttpConnectionManager_PathWithEscapedSlashesAction
+	headersWithUnderscoresAction envoy_core_v3.HttpProtocolOptions_HeadersWithUnderscoresAction
+	useRDS                       bool
+	fetchTimeoutRDS              *durationpb.Duration
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
@@ -2484,6 +2515,19 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 
 	if opts.tracing != nil {
 		cfg.Tracing = opts.tracing
+	}
+
+	// Request normalization
+	if opts.normalizePath {
+		cfg.NormalizePath = &wrapperspb.BoolValue{Value: true}
+	}
+	cfg.MergeSlashes = opts.mergeSlashes
+	cfg.PathWithEscapedSlashesAction = opts.pathWithEscapedSlashesAction
+	if opts.headersWithUnderscoresAction != 0 { // check for non-default to avoid needless instantiation of options
+		if cfg.CommonHttpProtocolOptions == nil {
+			cfg.CommonHttpProtocolOptions = &envoy_core_v3.HttpProtocolOptions{}
+		}
+		cfg.CommonHttpProtocolOptions.HeadersWithUnderscoresAction = opts.headersWithUnderscoresAction
 	}
 
 	if opts.useRDS {

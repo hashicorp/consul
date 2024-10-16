@@ -9,16 +9,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/test-integ/topoutil"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 // commonTopo helps create a shareable topology configured to represent
@@ -509,7 +509,7 @@ func NewFortioServiceWithDefaults(
 	sid topology.ID,
 	mut func(s *topology.Workload),
 ) *topology.Workload {
-	return topoutil.NewFortioServiceWithDefaults(cluster, sid, topology.NodeVersionV1, mut)
+	return topoutil.NewFortioServiceWithDefaults(cluster, sid, mut)
 }
 
 func newTopologyMeshGatewaySet(

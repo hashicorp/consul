@@ -52,61 +52,6 @@ func TestParseCertURIFromString(t *testing.T) {
 			ParseError: "",
 		},
 		{
-			Name: "basic workload ID",
-			URI:  "spiffe://1234.consul/ap/default/ns/default/identity/web",
-			Struct: &SpiffeIDWorkloadIdentity{
-				TrustDomain:      "1234.consul",
-				Partition:        defaultEntMeta.PartitionOrDefault(),
-				Namespace:        "default",
-				WorkloadIdentity: "web",
-			},
-			ParseError: "",
-		},
-		{
-			Name: "basic workload ID with nondefault partition",
-			URI:  "spiffe://1234.consul/ap/bizdev/ns/default/identity/web",
-			Struct: &SpiffeIDWorkloadIdentity{
-				TrustDomain:      "1234.consul",
-				Partition:        "bizdev",
-				Namespace:        "default",
-				WorkloadIdentity: "web",
-			},
-			ParseError: "",
-		},
-		{
-			Name: "workload ID error - missing identity",
-			URI:  "spiffe://1234.consul/ns/default",
-			Struct: &SpiffeIDWorkloadIdentity{
-				TrustDomain:      "1234.consul",
-				Partition:        defaultEntMeta.PartitionOrDefault(),
-				Namespace:        "default",
-				WorkloadIdentity: "web",
-			},
-			ParseError: "SPIFFE ID is not in the expected format",
-		},
-		{
-			Name: "workload ID error - missing partition",
-			URI:  "spiffe://1234.consul/ns/default/identity/web",
-			Struct: &SpiffeIDWorkloadIdentity{
-				TrustDomain:      "1234.consul",
-				Partition:        defaultEntMeta.PartitionOrDefault(),
-				Namespace:        "default",
-				WorkloadIdentity: "web",
-			},
-			ParseError: "SPIFFE ID is not in the expected format",
-		},
-		{
-			Name: "workload ID error - missing namespace",
-			URI:  "spiffe://1234.consul/ap/default/identity/web",
-			Struct: &SpiffeIDWorkloadIdentity{
-				TrustDomain:      "1234.consul",
-				Partition:        defaultEntMeta.PartitionOrDefault(),
-				Namespace:        "default",
-				WorkloadIdentity: "web",
-			},
-			ParseError: "SPIFFE ID is not in the expected format",
-		},
-		{
 			Name: "basic agent ID",
 			URI:  "spiffe://1234.consul/agent/client/dc/dc1/id/uuid",
 			Struct: &SpiffeIDAgent{

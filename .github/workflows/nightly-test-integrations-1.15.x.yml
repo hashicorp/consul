@@ -6,7 +6,7 @@ name: Nightly test-integrations 1.15.x
 on:
   schedule:
     # Run nightly at 1AM UTC/9PM EST/6PM PST
-    - cron: '* 1 * * *'
+    - cron: '0 1 * * *'
   workflow_dispatch: {}
 
 env:
@@ -23,8 +23,15 @@ env:
   BRANCH_NAME: "release-1.15.x"   # Used for naming artifacts
 
 jobs:
+  check-ent:
+    runs-on: ubuntu-latest
+    if: ${{ endsWith(github.repository, '-enterprise') }}
+    steps:
+      - run: echo "Building Enterprise"
+
   setup:
     runs-on: ubuntu-latest
+    needs: [check-ent]
     name: Setup
     outputs:
       compute-small: ${{ steps.runners.outputs.compute-small }}
@@ -34,14 +41,23 @@ jobs:
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           ref: ${{ env.BRANCH }}
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
   get-go-version:
+    needs: [check-ent]
     uses: ./.github/workflows/reusable-get-go-version.yml
+    with:
+      ref: release/1.15.x
+
+  get-envoy-versions:
+    needs: [check-ent]
+    uses: ./.github/workflows/reusable-get-envoy-versions.yml
+    with:
+      ref: release/1.15.x
 
   dev-build:
     needs:
@@ -65,42 +81,40 @@ jobs:
       envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           ref: ${{ env.BRANCH }}
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
-          # this is further going to multiplied in envoy-integration tests by the 
-          # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
-          # 14 based on these values:
-          # envoy-version: ["1.22.11", "1.23.12", "1.24.12", "1.25.11", "1.26.8", "1.27.4", "1.28.2"]
-          # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 7
+          # TEST_SPLITS sets the number of test case splits to use in the matrix. This will be
+          # further multiplied in envoy-integration tests by the other dimensions in the matrix
+          # to determine the total number of runners used.
+          TEST_SPLITS: 4
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
-          NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(find ./test/integration/connect/envoy -mindepth 1 -maxdepth 1 -type d | wc -l)
 
-          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
-            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
-            NUM_RUNNERS=$((NUM_DIRS-1))
+          if [ "$NUM_DIRS" -lt "$TEST_SPLITS" ]; then
+            echo "TEST_SPLITS is larger than the number of tests/packages to split."
+            TEST_SPLITS=$((NUM_DIRS-1))
           fi
-          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$((NUM_RUNNERS-1))
+          # fix issue where test splitting calculation generates 1 more split than TEST_SPLITS.
+          TEST_SPLITS=$((TEST_SPLITS-1))
           {
             echo -n "envoy-matrix="
             find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
               | xargs -0 -n 1 basename \
-              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
+              | jq --raw-input --argjson runnercount "$TEST_SPLITS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-  
+
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - get-go-version
+      - get-envoy-versions
       - generate-envoy-job-matrices
       - dev-build
     permissions:
@@ -109,7 +123,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.22.11", "1.23.12", "1.24.12", "1.25.11", "1.26.8", "1.27.4", "1.28.2"]
+        envoy-version: ${{ fromJSON(needs.get-envoy-versions.outputs.envoy-versions-json) }}
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -118,25 +132,29 @@ jobs:
       AWS_LAMBDA_REGION: us-west-2
     steps:
       - name: Checkout code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           ref: ${{ env.BRANCH }}
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
       - name: restore mode+x
         run: chmod +x ./bin/consul
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
+
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
+
       - name: Envoy Integration Tests
+        id: envoy-integration-tests
         env:
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
@@ -157,6 +175,23 @@ jobs:
               --packages=./test/integration/connect/envoy \
               -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
 
+      # See https://github.com/orgs/community/discussions/8945#discussioncomment-9897011
+      # and overall topic discussion for why this is necessary.
+      - name: Generate artifact ID
+        id: generate-artifact-id
+        if: ${{ failure() && steps.envoy-integration-tests.conclusion == 'failure' }}
+        run: |
+          ARTIFACT_ID=$(uuidgen)
+          echo "Artifact ID: $ARTIFACT_ID (search this in job summary for download link)"
+          echo "artifact_id=$ARTIFACT_ID" >> "$GITHUB_ENV"
+
+      - name: Upload failure logs
+        if: ${{ failure() && steps.envoy-integration-tests.conclusion == 'failure' }}
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: envoy-${{ matrix.envoy-version }}-logs-${{ env.artifact_id }}
+          path: test/integration/connect/envoy/workdir/logs/
+
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
@@ -167,7 +202,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -188,7 +223,7 @@ jobs:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-  
+
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
@@ -204,24 +239,34 @@ jobs:
         consul-version: ["1.14", "1.15"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
-      ENVOY_VERSION: "1.24.6"
+      # ENVOY_VERSION should be the latest version supported by _all_ Consul versions in the
+      # matrix.consul-version, since we are testing upgrade from an older Consul version.
+      # In practice, this should be the highest Envoy version supported by the lowest non-LTS
+      # Consul version in the matrix (LTS versions receive additional Envoy version support).
+      #
+      # This value should be kept current in new nightly test workflows, and updated any time
+      # a new major Envoy release is added to the set supported by Consul versions in
+      # matrix.consul-version (i.e. whenever the highest common Envoy version across active
+      # Consul versions changes). The minor Envoy version does not necessarily need to be
+      # kept current for the purpose of these tests, but the major (1.N) version should be.
+      ENVOY_VERSION: "1.24.12"
     steps:
       - name: Checkout code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           ref: ${{ env.BRANCH }}
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
 
       # Get go binary from workspace
       - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: .
@@ -275,7 +320,7 @@ jobs:
       - name: Fetch Secrets
         if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
-        uses: hashicorp/vault-action@v2.5.0
+        uses: hashicorp/vault-action@v3
         with:
           url: ${{ steps.vault-auth.outputs.addr }}
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
@@ -305,7 +350,7 @@ jobs:
     - envoy-integration-test
     - upgrade-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: ${{ always() }}
+    if: ${{ always() && endsWith(github.repository, '-enterprise') }}
     steps:
       - name: evaluate upstream job results
         run: |
@@ -317,7 +362,7 @@ jobs:
       - name: Notify Slack
         if: ${{ failure() }}
         id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
         with:
           payload: |
             {
