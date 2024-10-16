@@ -1835,6 +1835,58 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 				}, nil)
 			},
 		},
+		{
+			// Same as below case, but keeps the recommended default value of InsecureDisablePathNormalization
+			// to show that the inverse value is reflected in xDS `normalize_path` config.
+			name: "connect-proxy-with-mesh-config-request-normalization-all-envoy-options-enabled",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				cfgSnap := proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// Ensure public inbound listener has HTTP filter so normalization applies.
+					ns.Proxy.Config["protocol"] = "http"
+					// Ensure outbound HTTP listener has HTTP filter so we can observe normalization is not applied.
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
+				}, nil)
+				cfgSnap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
+					HTTP: &structs.MeshHTTPConfig{
+						Incoming: &structs.MeshDirectionalHTTPConfig{
+							RequestNormalization: &structs.RequestNormalizationMeshConfig{
+								InsecureDisablePathNormalization: false,
+								MergeSlashes:                     true,
+								PathWithEscapedSlashesAction:     "UNESCAPE_AND_FORWARD",
+								HeadersWithUnderscoresAction:     "REJECT_REQUEST",
+							},
+						},
+					},
+				}
+				return cfgSnap
+			},
+		},
+		{
+			// Same as above case, but inverts the recommended default value of InsecureDisablePathNormalization
+			// to show that the value is respected when explicitly set (does not set `normalize_path`).
+			name: "connect-proxy-with-mesh-config-request-normalization-all-consul-options",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				cfgSnap := proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// Ensure public inbound listener has HTTP filter so normalization applies.
+					ns.Proxy.Config["protocol"] = "http"
+					// Ensure outbound HTTP listener has HTTP filter so we can observe normalization is not applied.
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
+				}, nil)
+				cfgSnap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
+					HTTP: &structs.MeshHTTPConfig{
+						Incoming: &structs.MeshDirectionalHTTPConfig{
+							RequestNormalization: &structs.RequestNormalizationMeshConfig{
+								InsecureDisablePathNormalization: true, // note: this is the opposite of the recommended default
+								MergeSlashes:                     true,
+								PathWithEscapedSlashesAction:     "UNESCAPE_AND_FORWARD",
+								HeadersWithUnderscoresAction:     "REJECT_REQUEST",
+							},
+						},
+					},
+				}
+				return cfgSnap
+			},
+		},
 	}
 }
 

@@ -1250,7 +1250,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
 						Exact: hdr.Exact,
 					},
-					IgnoreCase: false,
+					IgnoreCase: hdr.IgnoreCase,
 				},
 			}
 		case hdr.Regex != "":
@@ -1259,7 +1259,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
 						SafeRegex: response.MakeEnvoyRegexMatch(hdr.Regex),
 					},
-					IgnoreCase: false,
+					// IgnoreCase is not supported for SafeRegex matching per Envoy docs.
 				},
 			}
 
@@ -1269,7 +1269,7 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 					MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
 						Prefix: hdr.Prefix,
 					},
-					IgnoreCase: false,
+					IgnoreCase: hdr.IgnoreCase,
 				},
 			}
 
@@ -1279,7 +1279,17 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 					MatchPattern: &envoy_matcher_v3.StringMatcher_Suffix{
 						Suffix: hdr.Suffix,
 					},
-					IgnoreCase: false,
+					IgnoreCase: hdr.IgnoreCase,
+				},
+			}
+
+		case hdr.Contains != "":
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Contains{
+						Contains: hdr.Contains,
+					},
+					IgnoreCase: hdr.IgnoreCase,
 				},
 			}
 
