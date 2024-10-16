@@ -11,7 +11,14 @@ export default (scope = '.consul-intention-permission-header-form') => {
     scope: scope,
     HeaderType: {
       scope: '[data-property="headertype"]',
-      ...powerSelect(['ExactlyMatching', 'PrefixedBy', 'SuffixedBy', 'RegEx', 'IsPresent']),
+      ...powerSelect([
+        'ExactlyMatching',
+        'PrefixedBy',
+        'SuffixedBy',
+        'Containing',
+        'RegEx',
+        'IsPresent',
+      ]),
     },
     Name: {
       scope: '[data-property="name"] input',

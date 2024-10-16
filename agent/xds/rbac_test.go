@@ -786,11 +786,19 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 								{Name: "x-bar", Exact: "xyz"},
 								{Name: "x-dib", Prefix: "gaz"},
 								{Name: "x-gir", Suffix: "zim"},
+								{Name: "x-baz", Contains: "qux"},
 								{Name: "x-zim", Regex: "gi[rR]"},
+								// Present does not support IgnoreCase
+								{Name: "y-bar", Exact: "xyz", IgnoreCase: true},
+								{Name: "y-dib", Prefix: "gaz", IgnoreCase: true},
+								{Name: "y-gir", Suffix: "zim", IgnoreCase: true},
+								{Name: "y-baz", Contains: "qux", IgnoreCase: true},
+								// Regex does not support IgnoreCase
 								{Name: "z-foo", Present: true, Invert: true},
 								{Name: "z-bar", Exact: "xyz", Invert: true},
 								{Name: "z-dib", Prefix: "gaz", Invert: true},
 								{Name: "z-gir", Suffix: "zim", Invert: true},
+								{Name: "z-baz", Contains: "qux", Invert: true},
 								{Name: "z-zim", Regex: "gi[rR]", Invert: true},
 							},
 						},
@@ -825,15 +833,25 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 						Action: structs.IntentionActionDeny,
 						HTTP: &structs.IntentionHTTPPermission{
 							Header: []structs.IntentionHTTPHeaderPermission{
+								// Valid vanilla match options
 								{Name: "x-foo", Present: true},
 								{Name: "x-bar", Exact: "xyz"},
 								{Name: "x-dib", Prefix: "gaz"},
 								{Name: "x-gir", Suffix: "zim"},
+								{Name: "x-baz", Contains: "qux"},
 								{Name: "x-zim", Regex: "gi[rR]"},
+								// Valid ignore case match options
+								// (Present and Regex do not support IgnoreCase)
+								{Name: "y-bar", Exact: "xyz", IgnoreCase: true},
+								{Name: "y-dib", Prefix: "gaz", IgnoreCase: true},
+								{Name: "y-gir", Suffix: "zim", IgnoreCase: true},
+								{Name: "y-baz", Contains: "qux", IgnoreCase: true},
+								// Valid invert match options
 								{Name: "z-foo", Present: true, Invert: true},
 								{Name: "z-bar", Exact: "xyz", Invert: true},
 								{Name: "z-dib", Prefix: "gaz", Invert: true},
 								{Name: "z-gir", Suffix: "zim", Invert: true},
+								{Name: "z-baz", Contains: "qux", Invert: true},
 								{Name: "z-zim", Regex: "gi[rR]", Invert: true},
 							},
 						},

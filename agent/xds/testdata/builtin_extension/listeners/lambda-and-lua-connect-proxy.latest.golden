@@ -209,6 +209,7 @@
                     }
                   }
                 ],
+                "normalizePath": true,
                 "routeConfig": {
                   "name": "public_listener",
                   "virtualHosts": [

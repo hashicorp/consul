@@ -116,11 +116,55 @@
                         },
                         {
                           "header": {
+                            "name": "x-baz",
+                            "stringMatch": {
+                              "contains": "qux"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
                             "name": "x-zim",
                             "stringMatch": {
                               "safeRegex": {
                                 "regex": "gi[rR]"
                               }
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "y-bar",
+                            "stringMatch": {
+                              "exact": "xyz",
+                              "ignoreCase": true
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "y-dib",
+                            "stringMatch": {
+                              "ignoreCase": true,
+                              "prefix": "gaz"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "y-gir",
+                            "stringMatch": {
+                              "ignoreCase": true,
+                              "suffix": "zim"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "y-baz",
+                            "stringMatch": {
+                              "contains": "qux",
+                              "ignoreCase": true
                             }
                           }
                         },
@@ -155,6 +199,15 @@
                             "name": "z-gir",
                             "stringMatch": {
                               "suffix": "zim"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "invertMatch": true,
+                            "name": "z-baz",
+                            "stringMatch": {
+                              "contains": "qux"
                             }
                           }
                         },

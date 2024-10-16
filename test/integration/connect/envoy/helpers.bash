@@ -761,17 +761,13 @@ function must_fail_http_connection {
 }
 
 # must_pass_http_request allows you to craft a specific http request to assert
-# that envoy will NOT reject the request. Primarily of use for testing L7
-# intentions.
+# that envoy will NOT reject the request.
 function must_pass_http_request {
   local METHOD=$1
   local URL=$2
-  local DEBUG_HEADER_VALUE="${3:-""}"
+  shift 2
 
   local extra_args
-  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
-    extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
-  fi
   case "$METHOD" in
   GET) ;;
 
@@ -786,22 +782,25 @@ function must_pass_http_request {
     ;;
   esac
 
+  # Treat any remaining args as header KVs
+  for HEADER_ARG in "$@"; do
+    extra_args="$extra_args -H ${HEADER_ARG}"
+  done
+
   run curl --no-keepalive -v -s -f $extra_args "$URL"
   [ "$status" == 0 ]
 }
 
 # must_fail_http_request allows you to craft a specific http request to assert
-# that envoy will reject the request. Primarily of use for testing L7
-# intentions.
+# that envoy will reject the request. Must supply the expected status code before
+# method and URL.
 function must_fail_http_request {
-  local METHOD=$1
-  local URL=$2
-  local DEBUG_HEADER_VALUE="${3:-""}"
+  local EXPECT_RESPONSE=$1
+  local METHOD=$2
+  local URL=$3
+  shift 2
 
   local extra_args
-  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
-    extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
-  fi
   case "$METHOD" in
   HEAD)
     extra_args="$extra_args -I"
@@ -819,12 +818,42 @@ function must_fail_http_request {
     ;;
   esac
 
+  # Treat any remaining args as header KVs
+  for HEADER_ARG in "$@"; do
+    extra_args="$extra_args -H ${HEADER_ARG}"
+  done
+
   # Attempt to curl through upstream
   run curl --no-keepalive -s -i $extra_args "$URL"
 
   echo "OUTPUT $output"
 
-  echo "$output" | grep "403 Forbidden"
+  # Output of curl should include status code immediately after 'HTTP/1.1'
+  echo "$output" | grep "HTTP/1.1 $EXPECT_RESPONSE"
+}
+
+# Gets the JSON response containing request parameters from the echo service response.
+# See https://github.com/mendhak/docker-http-https-echo?tab=readme-ov-file#screenshots
+# for example response body.
+# Requires SERVICE_CONTAINER=echo.
+function get_echo_output {
+  # Take the JSON response from $output, starting with first line containing only '{'
+  # and ending with the next line containing only '}'.
+  # The first sed converts a trailing '}* <some text...>' (curl -v output) to just '}'.
+  local json=$(echo "$output" | sed 's/}\*.*/}/' | sed -n -e '/^{$/,/^}$/{ p; }')
+  echo $json | jq -r '.' || echo "Output did not contain valid JSON: $output" >&3
+}
+
+# Gets the value of the raw request path from the echo service response.
+# Requires SERVICE_CONTAINER=echo.
+function get_echo_request_path {
+  get_echo_output | jq -r '.path'
+}
+
+# Gets the value of a given request header from the echo service response.
+# Requires SERVICE_CONTAINER=echo.
+function get_echo_request_header_value {
+  get_echo_output | jq -r ".headers.$1"
 }
 
 function gen_envoy_bootstrap {

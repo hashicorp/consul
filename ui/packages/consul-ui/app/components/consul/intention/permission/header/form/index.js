@@ -4,7 +4,7 @@
  */
 
 import Component from '@ember/component';
-import { get, set, computed } from '@ember/object';
+import { set, computed } from '@ember/object';
 import { alias, equal, not } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 
@@ -37,6 +37,7 @@ export default Component.extend({
       Exact: 'Exactly Matching',
       Prefix: 'Prefixed by',
       Suffix: 'Suffixed by',
+      Contains: 'Containing',
       Regex: 'Regular Expression',
       Present: 'Is present',
     };
@@ -49,9 +50,14 @@ export default Component.extend({
   headerTypeEqualsPresent: equal('headerType', 'Present'),
   shouldShowValueField: not('headerTypeEqualsPresent'),
 
+  shouldShowIgnoreCaseField: computed('headerType', function () {
+    return this.headerType !== 'Present' && this.headerType !== 'Regex';
+  }),
+
   actions: {
     change: function (name, changeset, e) {
-      const value = typeof get(e, 'target.value') !== 'undefined' ? e.target.value : e;
+      const valueIndicator = e.target?.type === 'checkbox' ? e.target?.checked : e.target?.value;
+      const value = typeof valueIndicator !== 'undefined' ? valueIndicator : e;
       switch (name) {
         default:
           changeset.set(name, value);
@@ -65,6 +71,7 @@ export default Component.extend({
       // Present is a boolean, whereas all other header types have a value
       const value = changeset.HeaderType === 'Present' ? true : changeset.Value;
       changeset.set(changeset.HeaderType, value);
+      changeset.set('IgnoreCase', changeset.IgnoreCase);
 
       // this will prevent the changeset from overwriting the
       // computed properties on the ED object

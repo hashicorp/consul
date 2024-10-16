@@ -26,6 +26,10 @@ environment, but the general mechanisms for a secure Consul deployment revolve a
   [authentication methods](/consul/docs/security/acl/auth-methods) can be used to enable trusted external parties to authorize
   ACL token creation.
 
+- **Intentions** - If in use, configure service intentions to use a default-deny policy. If L7 intentions are
+  in use, enable [Mesh request normalization](/consul/docs/connect/config-entries/mesh#request-normalization) 
+  and review your [header match rules](/consul/docs/connect/config-entries/service-intentions#spec-sources-permissions-http-header) to prevent malformed requests from bypassing intentions.
+
 - **Namespaces** <EnterpriseAlert inline /> - Read and write operations can be scoped to a logical namespace to restrict
   access to Consul components within a multi-tenant environment.
 
@@ -178,6 +182,13 @@ environment and adapt these configurations accordingly.
   - **🏷 Namespace** <EnterpriseAlert inline /> - a named, logical scoping of Consul Enterprise resources, typically to
     enable multi-tenant environments. Consul CE clusters always operate within the "default" namespace.
 
+- **Intentions** - Service intentions control traffic communication between services at the network layer (L4) and
+  application layer (L7). If in use, we strongly recommend configuring intentions to use a default-deny policy.
+  When L7 intentions are in use, review your configuration for [Mesh request normalization](/consul/docs/connect/config-entries/mesh#request-normalization)
+  and use the strictest set of options suitable to your environment. At minimum, we
+  recommend keeping path normalization enabled, because this default setting prevents requests that do not conform to [RFC 3986](
+  https://tools.ietf.org/html/rfc3986#section-6) from bypassing path match rules.
+
 - **Gossip Encryption** - A shared, base64-encoded 32-byte symmetric key is required to [encrypt Serf gossip
   communication](/consul/tutorials/security/gossip-encryption-secure?utm_source=consul.io&utm_medium=docs) within a cluster using
   AES GCM. The key size determines which AES encryption types to use; 16, 24, or 32 bytes to select AES-128, AES-192,
@@ -251,6 +262,10 @@ environment and adapt these configurations accordingly.
     }
   }
   ```
+
+- **Customize Mesh HTTP Request Normalization** - If L7 intentions are in use, we recommend configuring request normalization to
+  avoid match rule circumvention. Other normalization options, such as dropping or rejecting headers with underscores,
+  may also be appropriate depending on your requirements. Review the options in the [Mesh configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization) to determine the appropriate settings for your use case.
 
 - **Customize Default Limits** - Consul has a number of builtin features with default connection limits that should be
   tuned to fit your environment.
