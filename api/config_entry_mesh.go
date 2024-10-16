@@ -69,10 +69,51 @@ type MeshDirectionalTLSConfig struct {
 
 type MeshHTTPConfig struct {
 	SanitizeXForwardedClientCert bool `alias:"sanitize_x_forwarded_client_cert"`
+	// Incoming configures settings for incoming HTTP traffic to mesh proxies.
+	Incoming *MeshDirectionalHTTPConfig `json:",omitempty"`
+}
+
+// MeshDirectionalHTTPConfig holds mesh configuration specific to HTTP
+// requests for a given traffic direction.
+type MeshDirectionalHTTPConfig struct {
+	RequestNormalization *RequestNormalizationMeshConfig `json:",omitempty" alias:"request_normalization"`
 }
 
 type PeeringMeshConfig struct {
 	PeerThroughMeshGateways bool `json:",omitempty" alias:"peer_through_mesh_gateways"`
+}
+
+// RequestNormalizationMeshConfig contains options pertaining to the
+// normalization of HTTP requests processed by mesh proxies.
+type RequestNormalizationMeshConfig struct {
+	// InsecureDisablePathNormalization sets the value of the \`normalize_path\` option in the Envoy listener's
+	// `HttpConnectionManager`. The default value is \`false\`. When set to \`true\` in Consul, \`normalize_path\` is
+	// set to \`false\` for the Envoy proxy. This parameter disables the normalization of request URL paths according to
+	// RFC 3986, conversion of \`\\\` to \`/\`, and decoding non-reserved %-encoded characters. When using L7 intentions
+	// with path match rules, we recommend enabling path normalization in order to avoid match rule circumvention with
+	// non-normalized path values.
+	InsecureDisablePathNormalization bool `json:",omitempty" alias:"insecure_disable_path_normalization"`
+	// MergeSlashes sets the value of the \`merge_slashes\` option in the Envoy listener's \`HttpConnectionManager\`.
+	// The default value is \`false\`. This option controls the normalization of request URL paths by merging
+	// consecutive \`/\` characters. This normalization is not part of RFC 3986. When using L7 intentions with path
+	// match rules, we recommend enabling this setting to avoid match rule circumvention through non-normalized path
+	// values, unless legitimate service traffic depends on allowing for repeat \`/\` characters, or upstream services
+	// are configured to differentiate between single and multiple slashes.
+	MergeSlashes bool `json:",omitempty" alias:"merge_slashes"`
+	// PathWithEscapedSlashesAction sets the value of the \`path_with_escaped_slashes_action\` option in the Envoy
+	// listener's \`HttpConnectionManager\`. The default value of this option is empty, which is equivalent to
+	// \`IMPLEMENTATION_SPECIFIC_DEFAULT\`. This parameter controls the action taken in response to request URL paths
+	// with escaped slashes in the path. When using L7 intentions with path match rules, we recommend enabling this
+	// setting to avoid match rule circumvention through non-normalized path values, unless legitimate service traffic
+	// depends on allowing for escaped \`/\` or \`\\\` characters, or upstream services are configured to differentiate
+	// between escaped and unescaped slashes. Refer to the Envoy documentation for more information on available
+	// options.
+	PathWithEscapedSlashesAction string `json:",omitempty" alias:"path_with_escaped_slashes_action"`
+	// HeadersWithUnderscoresAction sets the value of the \`headers_with_underscores_action\` option in the Envoy
+	// listener's \`HttpConnectionManager\` under \`common_http_protocol_options\`. The default value of this option is
+	// empty, which is equivalent to \`ALLOW\`. Refer to the Envoy documentation for more information on available
+	// options.
+	HeadersWithUnderscoresAction string `json:",omitempty" alias:"headers_with_underscores_action"`
 }
 
 func (e *MeshConfigEntry) GetKind() string            { return MeshConfig }

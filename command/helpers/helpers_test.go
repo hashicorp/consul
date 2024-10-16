@@ -2306,6 +2306,10 @@ func TestParseConfigEntry(t *testing.T) {
 							  suffix = "suffix"
 							},
 							{
+							  name   = "hdr-contains"
+							  contains = "contains"
+							},
+							{
 							  name  = "hdr-regex"
 							  regex = "regex"
 							},
@@ -2313,7 +2317,12 @@ func TestParseConfigEntry(t *testing.T) {
 							  name    = "hdr-absent"
 							  present = true
 							  invert  = true
-							}
+							},
+							{
+							  name  = "hdr-ignore-case"
+							  exact = "exact"
+							  ignore_case = true
+							},
 						  ]
 						}
 					  },
@@ -2383,6 +2392,10 @@ func TestParseConfigEntry(t *testing.T) {
 							  Suffix = "suffix"
 							},
 							{
+							  Name   = "hdr-contains"
+							  Contains = "contains"
+							},
+							{
 							  Name  = "hdr-regex"
 							  Regex = "regex"
 							},
@@ -2390,6 +2403,11 @@ func TestParseConfigEntry(t *testing.T) {
 							  Name    = "hdr-absent"
 							  Present = true
 							  Invert  = true
+							},
+							{
+							  Name  = "hdr-ignore-case"
+							  Exact = "exact"
+							  IgnoreCase = true
 							}
 						  ]
 						}
@@ -2461,6 +2479,10 @@ func TestParseConfigEntry(t *testing.T) {
 											"suffix": "suffix"
 										},
 										{
+										    "name": "hdr-contains",
+										    "contains": "contains"
+										},
+										{
 											"name": "hdr-regex",
 											"regex": "regex"
 										},
@@ -2468,6 +2490,11 @@ func TestParseConfigEntry(t *testing.T) {
 											"name": "hdr-absent",
 											"present": true,
 											"invert": true
+										},
+										{
+											"name": "hdr-ignore-case",
+											"exact": "exact",
+											"ignore_case": true
 										}
 									]
 								}
@@ -2543,6 +2570,10 @@ func TestParseConfigEntry(t *testing.T) {
 											"Suffix": "suffix"
 										},
 										{
+										    "Name": "hdr-contains",
+										    "Contains": "contains"
+										},
+										{
 											"Name": "hdr-regex",
 											"Regex": "regex"
 										},
@@ -2550,6 +2581,11 @@ func TestParseConfigEntry(t *testing.T) {
 											"Name": "hdr-absent",
 											"Present": true,
 											"Invert": true
+										},
+										{
+											"Name": "hdr-ignore-case",
+											"Exact": "exact",
+											"IgnoreCase": true
 										}
 									]
 								}
@@ -2624,6 +2660,10 @@ func TestParseConfigEntry(t *testing.T) {
 											Suffix: "suffix",
 										},
 										{
+											Name:     "hdr-contains",
+											Contains: "contains",
+										},
+										{
 											Name:  "hdr-regex",
 											Regex: "regex",
 										},
@@ -2631,6 +2671,11 @@ func TestParseConfigEntry(t *testing.T) {
 											Name:    "hdr-absent",
 											Present: true,
 											Invert:  true,
+										},
+										{
+											Name:       "hdr-ignore-case",
+											Exact:      "exact",
+											IgnoreCase: true,
 										},
 									},
 								},
@@ -2719,7 +2764,7 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "mesh",
+			name: "mesh: kitchen sink",
 			snake: `
 				kind = "mesh"
 				meta {
@@ -2729,6 +2774,8 @@ func TestParseConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
+				allow_enabling_permissive_mutual_tls = true
+                validate_clusters = true
 				tls {
 					incoming {
 						tls_min_version = "TLSv1_1"
@@ -2747,6 +2794,20 @@ func TestParseConfigEntry(t *testing.T) {
 						]
 					}
 				}
+                http {
+                    sanitize_x_forwarded_client_cert = true
+                    incoming {
+                        request_normalization {
+                        	insecure_disable_path_normalization = true
+                            merge_slashes = true
+                            path_with_escaped_slashes_action = "UNESCAPE_AND_FORWARD"
+							headers_with_underscores_action = "DROP_HEADER"
+                        }
+                    }
+                }
+				peering {
+					peer_through_mesh_gateways = true
+				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -2757,6 +2818,8 @@ func TestParseConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
+				AllowEnablingPermissiveMutualTLS = true
+                ValidateClusters = true
 				TLS {
 					Incoming {
 						TLSMinVersion = "TLSv1_1"
@@ -2775,6 +2838,20 @@ func TestParseConfigEntry(t *testing.T) {
 						]
 					}
 				}
+                HTTP {
+                    SanitizeXForwardedClientCert = true
+                    Incoming {
+                        RequestNormalization {
+                        	InsecureDisablePathNormalization = true
+                            MergeSlashes = true
+                            PathWithEscapedSlashesAction = "UNESCAPE_AND_FORWARD"
+							HeadersWithUnderscoresAction = "DROP_HEADER"
+                        }
+                    }
+                }
+				Peering {
+					PeerThroughMeshGateways = true
+				}
 			`,
 			snakeJSON: `
 			{
@@ -2786,6 +2863,8 @@ func TestParseConfigEntry(t *testing.T) {
 				"transparent_proxy": {
 					"mesh_destinations_only": true
 				},
+				"allow_enabling_permissive_mutual_tls": true,
+                "validate_clusters": true,
 				"tls": {
 					"incoming": {
 						"tls_min_version": "TLSv1_1",
@@ -2803,6 +2882,20 @@ func TestParseConfigEntry(t *testing.T) {
 							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
 						]
 					}
+				},
+                "http": {
+                    "sanitize_x_forwarded_client_cert": true,
+                    "incoming": {
+						"request_normalization": {
+							"insecure_disable_path_normalization": true,
+							"merge_slashes": true,
+							"path_with_escaped_slashes_action": "UNESCAPE_AND_FORWARD",
+							"headers_with_underscores_action": "DROP_HEADER"	
+						}
+					}
+                },
+				"peering": {
+					"peer_through_mesh_gateways": true
 				}
 			}
 			`,
@@ -2816,6 +2909,8 @@ func TestParseConfigEntry(t *testing.T) {
 				"TransparentProxy": {
 					"MeshDestinationsOnly": true
 				},
+				"AllowEnablingPermissiveMutualTLS": true,
+				"ValidateClusters": true,
 				"TLS": {
 					"Incoming": {
 						"TLSMinVersion": "TLSv1_1",
@@ -2833,6 +2928,20 @@ func TestParseConfigEntry(t *testing.T) {
 							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
 						]
 					}
+				},
+				"HTTP": {
+					"SanitizeXForwardedClientCert": true,
+					"Incoming": {
+						"RequestNormalization": {
+							"InsecureDisablePathNormalization": true,
+							"MergeSlashes": true,
+							"PathWithEscapedSlashesAction": "UNESCAPE_AND_FORWARD",
+							"HeadersWithUnderscoresAction": "DROP_HEADER"
+						}
+					}
+				},
+				"Peering": {
+					"PeerThroughMeshGateways": true
 				}
 			}
 			`,
@@ -2844,6 +2953,8 @@ func TestParseConfigEntry(t *testing.T) {
 				TransparentProxy: api.TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
 				},
+				AllowEnablingPermissiveMutualTLS: true,
+				ValidateClusters:                 true,
 				TLS: &api.MeshTLSConfig{
 					Incoming: &api.MeshDirectionalTLSConfig{
 						TLSMinVersion: "TLSv1_1",
@@ -2861,6 +2972,20 @@ func TestParseConfigEntry(t *testing.T) {
 							"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
 						},
 					},
+				},
+				HTTP: &api.MeshHTTPConfig{
+					SanitizeXForwardedClientCert: true,
+					Incoming: &api.MeshDirectionalHTTPConfig{
+						RequestNormalization: &api.RequestNormalizationMeshConfig{
+							InsecureDisablePathNormalization: true,
+							MergeSlashes:                     true,
+							PathWithEscapedSlashesAction:     "UNESCAPE_AND_FORWARD",
+							HeadersWithUnderscoresAction:     "DROP_HEADER",
+						},
+					},
+				},
+				Peering: &api.PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
 				},
 			},
 		},
