@@ -63,13 +63,15 @@ type IntentionHTTPPermission struct {
 }
 
 type IntentionHTTPHeaderPermission struct {
-	Name    string
-	Present bool   `json:",omitempty"`
-	Exact   string `json:",omitempty"`
-	Prefix  string `json:",omitempty"`
-	Suffix  string `json:",omitempty"`
-	Regex   string `json:",omitempty"`
-	Invert  bool   `json:",omitempty"`
+	Name       string
+	Present    bool   `json:",omitempty"`
+	Exact      string `json:",omitempty"`
+	Prefix     string `json:",omitempty"`
+	Suffix     string `json:",omitempty"`
+	Contains   string `json:",omitempty"`
+	Regex      string `json:",omitempty"`
+	Invert     bool   `json:",omitempty"`
+	IgnoreCase bool   `json:",omitempty" alias:"ignore_case"`
 }
 
 type IntentionJWTRequirement struct {
