@@ -809,6 +809,14 @@ func (o *MeshConfigEntry) DeepCopy() *MeshConfigEntry {
 	if o.HTTP != nil {
 		cp.HTTP = new(MeshHTTPConfig)
 		*cp.HTTP = *o.HTTP
+		if o.HTTP.Incoming != nil {
+			cp.HTTP.Incoming = new(MeshDirectionalHTTPConfig)
+			*cp.HTTP.Incoming = *o.HTTP.Incoming
+			if o.HTTP.Incoming.RequestNormalization != nil {
+				cp.HTTP.Incoming.RequestNormalization = new(RequestNormalizationMeshConfig)
+				*cp.HTTP.Incoming.RequestNormalization = *o.HTTP.Incoming.RequestNormalization
+			}
+		}
 	}
 	if o.Peering != nil {
 		cp.Peering = new(PeeringMeshConfig)

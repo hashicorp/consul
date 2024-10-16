@@ -8,6 +8,8 @@ import (
 	"testing"
 	"text/template"
 
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -366,6 +368,74 @@ func TestGetAlpnProtocols(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			got := getAlpnProtocols(tc.protocol)
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func Test_setNormalizationOptions(t *testing.T) {
+	tests := map[string]struct {
+		rn   *structs.RequestNormalizationMeshConfig
+		opts *listenerFilterOpts
+		want *listenerFilterOpts
+	}{
+		"nil entry": {
+			rn:   nil,
+			opts: &listenerFilterOpts{},
+			want: &listenerFilterOpts{
+				normalizePath: true,
+			},
+		},
+		"empty entry": {
+			rn:   &structs.RequestNormalizationMeshConfig{},
+			opts: &listenerFilterOpts{},
+			want: &listenerFilterOpts{
+				normalizePath: true,
+			},
+		},
+		"empty is equivalent to defaults": {
+			rn:   &structs.RequestNormalizationMeshConfig{},
+			opts: &listenerFilterOpts{},
+			want: &listenerFilterOpts{
+				normalizePath:                true,
+				mergeSlashes:                 false,
+				pathWithEscapedSlashesAction: envoy_http_v3.HttpConnectionManager_IMPLEMENTATION_SPECIFIC_DEFAULT,
+				headersWithUnderscoresAction: envoy_core_v3.HttpProtocolOptions_ALLOW,
+			},
+		},
+		"some options": {
+			rn: &structs.RequestNormalizationMeshConfig{
+				InsecureDisablePathNormalization: false,
+				MergeSlashes:                     true,
+				PathWithEscapedSlashesAction:     "",
+				HeadersWithUnderscoresAction:     "DROP_HEADER",
+			},
+			opts: &listenerFilterOpts{},
+			want: &listenerFilterOpts{
+				normalizePath:                true,
+				mergeSlashes:                 true,
+				headersWithUnderscoresAction: envoy_core_v3.HttpProtocolOptions_DROP_HEADER,
+			},
+		},
+		"all options": {
+			rn: &structs.RequestNormalizationMeshConfig{
+				InsecureDisablePathNormalization: true, // note: this is the opposite of the recommended default
+				MergeSlashes:                     true,
+				PathWithEscapedSlashesAction:     "REJECT_REQUEST",
+				HeadersWithUnderscoresAction:     "DROP_HEADER",
+			},
+			opts: &listenerFilterOpts{},
+			want: &listenerFilterOpts{
+				normalizePath:                false,
+				mergeSlashes:                 true,
+				pathWithEscapedSlashesAction: envoy_http_v3.HttpConnectionManager_REJECT_REQUEST,
+				headersWithUnderscoresAction: envoy_core_v3.HttpProtocolOptions_DROP_HEADER,
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			setNormalizationOptions(tc.rn, tc.opts)
+			assert.Equal(t, tc.want, tc.opts)
 		})
 	}
 }

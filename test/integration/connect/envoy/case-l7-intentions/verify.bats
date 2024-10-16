@@ -34,49 +34,84 @@ load helpers
 
 @test "test exact path" {
   retry_default must_pass_http_request GET localhost:5000/exact
-  retry_default must_fail_http_request GET localhost:5000/exact-nope
+  retry_default must_fail_http_request 403 GET localhost:5000/exact-nope
 }
 
 @test "test prefix path" {
   retry_default must_pass_http_request GET localhost:5000/prefix
-  retry_default must_fail_http_request GET localhost:5000/nope-prefix
+  retry_default must_fail_http_request 403 GET localhost:5000/nope-prefix
 }
 
 @test "test regex path" {
   retry_default must_pass_http_request GET localhost:5000/regex
-  retry_default must_fail_http_request GET localhost:5000/reggex
+  retry_default must_fail_http_request 403 GET localhost:5000/reggex
 }
 
 @test "test present header" {
-  retry_default must_pass_http_request GET localhost:5000/hdr-present anything
-  retry_default must_fail_http_request GET localhost:5000/hdr-present ""
+  retry_default must_pass_http_request GET localhost:5000/hdr-present x-test-debug:anything
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-present x-test-debug:
 }
 
 @test "test exact header" {
-  retry_default must_pass_http_request GET localhost:5000/hdr-exact exact
-  retry_default must_fail_http_request GET localhost:5000/hdr-exact exact-nope
+  retry_default must_pass_http_request GET localhost:5000/hdr-exact x-test-debug:exact
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-exact x-test-debug:exact-nope
 }
 
 @test "test prefix header" {
-  retry_default must_pass_http_request GET localhost:5000/hdr-prefix prefix
-  retry_default must_fail_http_request GET localhost:5000/hdr-prefix nope-prefix
+  retry_default must_pass_http_request GET localhost:5000/hdr-prefix x-test-debug:prefix
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-prefix x-test-debug:nope-prefix
 }
 
 @test "test suffix header" {
-  retry_default must_pass_http_request GET localhost:5000/hdr-suffix suffix
-  retry_default must_fail_http_request GET localhost:5000/hdr-suffix suffix-nope
+  retry_default must_pass_http_request GET localhost:5000/hdr-suffix x-test-debug:suffix
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-suffix x-test-debug:suffix-nope
+}
+
+@test "test contains header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains x-test-debug:contains
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains x-test-debug:ccontainss
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains x-test-debug:still-contains-value
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-contains x-test-debug:conntains
 }
 
 @test "test regex header" {
-  retry_default must_pass_http_request GET localhost:5000/hdr-regex regex
-  retry_default must_fail_http_request GET localhost:5000/hdr-regex reggex
+  retry_default must_pass_http_request GET localhost:5000/hdr-regex x-test-debug:regex
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-regex x-test-debug:reggex
+}
+
+@test "test exact ignore case header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-exact-ignore-case x-test-debug:foo.bar.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-exact-ignore-case x-test-debug:foo.BAR.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-exact-ignore-case x-test-debug:fOo.bAr.coM
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-exact-ignore-case x-test-debug:fOo.bAr.coM.nope
+}
+
+@test "test prefix ignore case header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-prefix-ignore-case x-test-debug:foo.bar.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-prefix-ignore-case x-test-debug:foo.BAR.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-prefix-ignore-case x-test-debug:fOo.bAr.coM
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-prefix-ignore-case x-test-debug:nope.fOo.bAr.coM
+}
+
+@test "test suffix ignore case header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-suffix-ignore-case x-test-debug:foo.bar.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-suffix-ignore-case x-test-debug:foo.BAR.com
+  retry_default must_pass_http_request GET localhost:5000/hdr-suffix-ignore-case x-test-debug:fOo.bAr.coM
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-suffix-ignore-case x-test-debug:fOo.bAr.coM.nope
+}
+
+@test "test contains ignore case header" {
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains-ignore-case x-test-debug:cOntAins
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains-ignore-case x-test-debug:CconTainsS
+  retry_default must_pass_http_request GET localhost:5000/hdr-contains-ignore-case x-test-debug:still-cOntAins-value
+  retry_default must_fail_http_request 403 GET localhost:5000/hdr-contains-ignore-case x-test-debug:cOnntAins
 }
 
 @test "test method match" {
   retry_default must_pass_http_request GET localhost:5000/method-match
   retry_default must_pass_http_request PUT localhost:5000/method-match
-  retry_default must_fail_http_request POST localhost:5000/method-match
-  retry_default must_fail_http_request HEAD localhost:5000/method-match
+  retry_default must_fail_http_request 403 POST localhost:5000/method-match
+  retry_default must_fail_http_request 403 HEAD localhost:5000/method-match
 }
 
 # @test "s1 upstream should NOT be able to connect to s2" {
