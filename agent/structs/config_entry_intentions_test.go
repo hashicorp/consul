@@ -574,323 +574,164 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] missing required Name field`,
 		},
 		"permission header has too many parts (1)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name:    "x-abc",
-											Present: true,
-											Exact:   "foo",
-											// Regex:   "foo",
-											// Prefix:  "foo",
-											// Suffix:  "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name: "x-abc",
+					// Present: true,
+					Exact: "foo",
+					// Regex: "foo",
+					// Prefix: "foo",
+					Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (2)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name:    "x-abc",
-											Present: true,
-											// Exact:   "foo",
-											Regex: "foo",
-											// Prefix:  "foo",
-											// Suffix:  "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name: "x-abc",
+					// Present: true,
+					// Exact: "foo",
+					Regex:  "foo",
+					Prefix: "foo",
+					// Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (3)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name:    "x-abc",
-											Present: true,
-											// Exact:   "foo",
-											// Regex: "foo",
-											Prefix: "foo",
-											// Suffix:  "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name: "x-abc",
+					// Present: true,
+					// Exact: "foo",
+					// Regex: "foo",
+					Prefix: "foo",
+					Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (4)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name:    "x-abc",
-											Present: true,
-											// Exact:   "foo",
-											// Regex: "foo",
-											// Prefix: "foo",
-											Suffix: "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name: "x-abc",
+					// Present: true,
+					Exact: "foo",
+					// Regex: "foo",
+					Prefix: "foo",
+					Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (5)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name: "x-abc",
-											// Present: true,
-											Exact: "foo",
-											Regex: "foo",
-											// Prefix: "foo",
-											// Suffix: "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name:     "x-abc",
+					Present:  true,
+					Exact:    "foo",
+					Regex:    "foo",
+					Prefix:   "foo",
+					Suffix:   "foo",
+					Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (6)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name: "x-abc",
-											// Present: true,
-											Exact: "foo",
-											// Regex: "foo",
-											Prefix: "foo",
-											// Suffix: "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name:    "x-abc",
+					Present: true,
+					Exact:   "foo",
+					// Regex: "foo",
+					Prefix: "foo",
+					Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (7)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name: "x-abc",
-											// Present: true,
-											Exact: "foo",
-											// Regex: "foo",
-											// Prefix: "foo",
-											Suffix: "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name: "x-abc",
+					// Present: true,
+					Exact: "foo",
+					// Regex: "foo",
+					Prefix: "foo",
+					Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (8)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name: "x-abc",
-											// Present: true,
-											// Exact: "foo",
-											Regex:  "foo",
-											Prefix: "foo",
-											// Suffix: "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name: "x-abc",
+					// Present: true,
+					// Exact: "foo",
+					Regex:  "foo",
+					Prefix: "foo",
+					// Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (9)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name: "x-abc",
-											// Present: true,
-											// Exact: "foo",
-											Regex: "foo",
-											// Prefix: "foo",
-											Suffix: "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name: "x-abc",
+					// Present: true,
+					// Exact: "foo",
+					Regex: "foo",
+					// Prefix: "foo",
+					Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
 		"permission header has too many parts (10)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name: "x-abc",
-											// Present: true,
-											// Exact: "foo",
-											// Regex: "foo",
-											Prefix: "foo",
-											Suffix: "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name: "x-abc",
+					// Present: true,
+					// Exact: "foo",
+					// Regex: "foo",
+					Prefix: "foo",
+					Suffix: "foo",
+					// Contains: "foo",
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex`,
 		},
-		"permission header has too many parts (11)": {
-			entry: &ServiceIntentionsConfigEntry{
-				Kind: ServiceIntentions,
-				Name: "test",
-				Sources: []*SourceIntention{
-					{
-						Name: "foo",
-						Permissions: []*IntentionPermission{
-							{
-								Action: IntentionActionAllow,
-								HTTP: &IntentionHTTPPermission{
-									Header: []IntentionHTTPHeaderPermission{
-										{
-											Name:    "x-abc",
-											Present: true,
-											Exact:   "foo",
-											Regex:   "foo",
-											Prefix:  "foo",
-											Suffix:  "foo",
-										},
-									},
-								},
-							},
-						},
-					},
+		"permission header invalid ignore case (1)": {
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name:       "x-abc",
+					Present:    true,
+					IgnoreCase: true,
 				},
-			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should set one of Exact, Prefix, Suffix, or Contains when using IgnoreCase`,
+		},
+		"permission header invalid ignore case (2)": {
+			entry: httpHeaderPermissionEntry([]IntentionHTTPHeaderPermission{
+				{
+					Name:       "x-abc",
+					Regex:      "qux",
+					IgnoreCase: true,
+				},
+			}),
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should set one of Exact, Prefix, Suffix, or Contains when using IgnoreCase`,
 		},
 		"permission invalid method": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -1675,5 +1516,27 @@ func TestMigrateIntentions(t *testing.T) {
 			got := MigrateIntentions(tc.in)
 			require.Equal(t, tc.expect, got)
 		})
+	}
+}
+
+// httpHeaderPermissionEntry is a helper to generate a ServiceIntentionsConfigEntry for testing
+// IntentionHTTPHeaderPermission values.
+func httpHeaderPermissionEntry(header []IntentionHTTPHeaderPermission) *ServiceIntentionsConfigEntry {
+	return &ServiceIntentionsConfigEntry{
+		Kind: ServiceIntentions,
+		Name: "test",
+		Sources: []*SourceIntention{
+			{
+				Name: "foo",
+				Permissions: []*IntentionPermission{
+					{
+						Action: IntentionActionAllow,
+						HTTP: &IntentionHTTPPermission{
+							Header: header,
+						},
+					},
+				},
+			},
+		},
 	}
 }

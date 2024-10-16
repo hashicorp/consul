@@ -13,7 +13,7 @@ export const schema = {
     required: true,
   },
   HeaderType: {
-    allowedValues: ['Exact', 'Prefix', 'Suffix', 'Regex', 'Present'],
+    allowedValues: ['Exact', 'Prefix', 'Suffix', 'Contains', 'Regex', 'Present'],
   },
 };
 
@@ -23,11 +23,13 @@ export default class IntentionPermission extends Fragment {
   @attr('string') Exact;
   @attr('string') Prefix;
   @attr('string') Suffix;
+  @attr('string') Contains;
   @attr('string') Regex;
   // this is a boolean but we don't want it to automatically be set to false
   @attr() Present;
 
   @or(...schema.HeaderType.allowedValues) Value;
+  @attr('boolean') IgnoreCase;
 
   @computed(...schema.HeaderType.allowedValues)
   get HeaderType() {
