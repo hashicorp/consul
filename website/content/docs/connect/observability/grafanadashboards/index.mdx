@@ -23,19 +23,12 @@ The repository includes the following dashboards:
 
   - **Consul server dashboard**: Provides detailed monitoring of Consul servers, tracking key metrics like server health, CPU and memory usage, disk I/O, and network performance. This dashboard is critical for ensuring the stability and performance of Consul servers within the service mesh.
 
-## Enabling observability
+## Enabling prometheus
 
-Add the following configurations to your Consul Helm chart to enable the observability tools.
+Add the following configurations to your Consul Helm chart to enable the prometheus tools.
 
 ```yaml
 global:
-  logLevel: trace
-  name: consul
-  datacenter: dc1
-  tls:
-    enabled: true
-    enableAutoEncrypt: true
-    httpsOnly: false
   acls:
     manageSystemACLs: true
   metrics:
@@ -62,14 +55,6 @@ ui:
     enabled: true
     provider: "prometheus"
     baseURL: http://prometheus-server.consul
-
-connectInject:
-  enabled: true
-  metrics:
-    defaultEnabled: true
-  apiGateway:
-    managedGatewayClass:
-      serviceType: LoadBalancer
 ```
 
 ## Enable access logs
