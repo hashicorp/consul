@@ -426,13 +426,15 @@ func (p *IntentionHTTPPermission) Clone() *IntentionHTTPPermission {
 }
 
 type IntentionHTTPHeaderPermission struct {
-	Name    string
-	Present bool   `json:",omitempty"`
-	Exact   string `json:",omitempty"`
-	Prefix  string `json:",omitempty"`
-	Suffix  string `json:",omitempty"`
-	Regex   string `json:",omitempty"`
-	Invert  bool   `json:",omitempty"`
+	Name       string
+	Present    bool   `json:",omitempty"`
+	Exact      string `json:",omitempty"`
+	Prefix     string `json:",omitempty"`
+	Suffix     string `json:",omitempty"`
+	Contains   string `json:",omitempty"`
+	Regex      string `json:",omitempty"`
+	Invert     bool   `json:",omitempty"`
+	IgnoreCase bool   `json:",omitempty" alias:"ignore_case"`
 }
 
 func cloneStringStringMap(m map[string]string) map[string]string {
@@ -880,8 +882,14 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 				if hdr.Suffix != "" {
 					hdrParts++
 				}
+				if hdr.Contains != "" {
+					hdrParts++
+				}
 				if hdrParts != 1 {
-					return fmt.Errorf(errorPrefix+".Header[%d] should only contain one of Present, Exact, Prefix, Suffix, or Regex", i, j, k)
+					return fmt.Errorf(errorPrefix+".Header[%d] should only contain one of Present, Exact, Prefix, Suffix, Contains, or Regex", i, j, k)
+				}
+				if hdr.IgnoreCase && (hdr.Present || hdr.Regex != "") {
+					return fmt.Errorf(errorPrefix+".Header[%d] should set one of Exact, Prefix, Suffix, or Contains when using IgnoreCase", i, j, k)
 				}
 				permParts++
 			}

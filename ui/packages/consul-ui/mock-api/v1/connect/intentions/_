@@ -63,11 +63,15 @@ ${range(headerCount).map(item => `
 ${fake.random.boolean() ? `
                     "Invert": true,
 ` : ``}
+${fake.random.boolean() ? `
+                    "IgnoreCase": true,
+` : ``}
 ${fake.helpers.randomize([
                     '"Present": true',
                     '"Exact": "abc"',
                     '"Prefix": "abc"',
                     '"Suffix": "xyz"',
+                    '"Contains": "abc"',
                     '"Regex": "[abc]"'
 ])}
                   }
