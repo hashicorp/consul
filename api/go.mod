@@ -2,8 +2,6 @@ module github.com/hashicorp/consul/api
 
 go 1.19
 
-replace github.com/hashicorp/consul/sdk => ../sdk
-
 retract v1.28.0 // tag was mutated
 
 require (
