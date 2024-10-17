@@ -1,0 +1,3 @@
+```release-note:improvement
+api: remove dependency on proto-public, protobuf, and grpc
+```
