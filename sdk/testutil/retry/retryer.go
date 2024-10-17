@@ -34,3 +34,8 @@ func TwoSeconds() *Timer {
 func ThreeTimes() *Counter {
 	return &Counter{Count: 3, Wait: 25 * time.Millisecond}
 }
+
+// Seconds repeats an operation for the number of input seconds and waits 25ms in between.
+func Seconds(secs time.Duration) *Timer {
+	return &Timer{Timeout: secs * time.Second, Wait: 25 * time.Millisecond}
+}
