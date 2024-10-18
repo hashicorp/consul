@@ -48,7 +48,9 @@ The following outline shows how to format the service intentions configuration e
         - [`Exact`](#sources-permissions-http-header): string
         - [`Prefix`](#sources-permissions-http-header): string
         - [`Suffix`](#sources-permissions-http-header): string
-        - [`Regex`](#sources-permissions-http-header): string
+        - [`Contains`](#spec-sources-permissions-http-header): string
+        - [`Regex`](#spec-sources-permissions-http-header): string
+        - [`IgnoreCase`](#spec-sources-permissions-http-header): boolean | `false`
         - [`Invert`](#sources-permissions-http-header): boolean | `false`
   - [`Precedence`](#sources-precedence): number
   - [`Type`](#sources-type): string | `consul`
@@ -648,7 +650,9 @@ Each member of the `Header` list is a map that contains a `Name` field and at le
 | `Exact` | Specifies a value for the header key set in the `Name` field. If the request header value matches the `Exact` value, Consul applies the permission.  Do not specify `Exact` if `Present`, `Prefix`, `Suffix`, or `Regex` are configured in the same `Header` configuration. | string | optional |
 | `Prefix` | Specifies a prefix value for the header key set in the `Name` field. If the request header value starts with the `Prefix` value, Consul applies the permission.  Do not specify `Prefix` if `Present`, `Exact`, `Suffix`, or `Regex` are configured in the same `Header` configuration. | string | optional |
 | `Suffix` | Specifies a suffix value for the header key set in the `Name` field. If the request header value ends with the `Suffix` value, Consul applies the permission.  Do not specify `Suffix` if `Present`, `Exact`, `Prefix`, or `Regex` are configured in the same `Header` configuration. | string | optional |
-| `Regex` | Specifies a regular expression pattern as the value for the header key set in the `Name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `Regex` if `Present`, `Exact`, `Prefix`, or `Suffix` are configured in the same `Header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `Contains` | Specifies a contains value for the header key set in the `Name` field. If the request header value includes the `Contains` value, Consul applies the permission.  Do not specify `Contains` if `Present`, `Exact`, `Prefix`, `Suffix`, or `Regex` are configured in the same `header` configuration. | string | optional |
+| `Regex` | Specifies a regular expression pattern as the value for the header key set in the `Name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `Regex` if `Present`, `Exact`, `Prefix`, `Suffix`, or `Contains` are configured in the same `Header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `IgnoreCase` | Ignores the case of the provided header value when matching with `Exact`, `Prefix`, `Suffix`, or `Contains`. Default is `false`. | boolean | optional |
 | `Invert` | Inverts the matching logic configured in the `Header`. Default is `false`. | boolean | optional |
 
 ### `Sources[].Precedence`
@@ -964,7 +968,7 @@ Specifies a set of criteria for matching HTTP request headers. The request heade
 
 Each member of the `header` list is a map that contains a `name` field and at least one match criterion.
 
-~> **Warning**: If it is possible for a header to contain multiple values, we recommend using `contains` or `regex` rather than `exact`, `prefix`, or `suffix`. Envoy internally concatenates multiple header values into a single CSV value prior to applying match rules, which may result in match rules that depend on the beginning or end of a string vulnerable to circumvention. A more robust alternative is using `contains` or, if a stricter value match is required, configuring a regex pattern that is tolerant of comma-separated values.
+~> **Warning**: If it is possible for a header to contain multiple values, we recommend using `contains` or `regex` rather than `exact`, `prefix`, or `suffix`. Envoy internally concatenates multiple header values into a single CSV value prior to applying match rules, which may result in match rules that depend on the beginning or end of a string vulnerable to circumvention. A more robust alternative is using `contains` or, if a stricter value match is required, configuring a regex pattern that is tolerant of comma-separated values. These options are available as of Consul CE 1.20.1 and Consul Enterprise 1.20.1, 1.19.2, 1.18.3, and 1.15.15.
 
 The following table describes the parameters that each member of the `header` list may contain:
 

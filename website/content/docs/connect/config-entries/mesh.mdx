@@ -268,6 +268,8 @@ Note that the Kubernetes example does not include a `partition` field. Configura
 
 Enable options under `HTTP.Incoming.RequestNormalization` to apply normalization to all inbound traffic to mesh proxies.
 
+~> **Compatibility warning**: This feature is available as of Consul CE 1.20.1 and Consul Enterprise 1.20.1, 1.19.2, 1.18.3, and 1.15.15. We recommend upgrading to the latest version of Consul to take advantage of the latest features and improvements.
+
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
