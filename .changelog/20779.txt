@@ -1,0 +1,5 @@
+```release-note:feature
+ui: UI user can add a global custom label that will be visible at the begining of side navigation
+bar. The text, text-color and background-color for the label can be provided as inputs
+under ui_config in the configuration file.
+```
