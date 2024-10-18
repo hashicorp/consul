@@ -1,0 +1,11 @@
+
+${[0].map(
+() => {
+    return `
+[
+    {
+        "Certificate": "TLS Certificate",
+        "ExpiresInDays": ${fake.helpers.randomize([30,365,90])}
+    }
+]
+`})}
