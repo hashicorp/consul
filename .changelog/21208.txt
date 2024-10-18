@@ -1,0 +1,3 @@
+```release-note:bug
+http: Fix regression preventing sessions from being created without a node, as long as a TTL was specified and there are no `NodeChecks`.
+```

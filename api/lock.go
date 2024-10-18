@@ -355,9 +355,11 @@ func (l *Lock) createSession() (string, error) {
 	se := l.opts.SessionOpts
 	if se == nil {
 		se = &SessionEntry{
-			Name:      l.opts.SessionName,
-			TTL:       l.opts.SessionTTL,
-			LockDelay: l.opts.LockDelay,
+			Name:       l.opts.SessionName,
+			TTL:        l.opts.SessionTTL,
+			LockDelay:  l.opts.LockDelay,
+			Node:       "",
+			NodeChecks: []string{},
 		}
 	}
 	w := WriteOptions{Namespace: l.opts.Namespace}
