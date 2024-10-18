@@ -33,6 +33,12 @@ issues:
       text: 'SA1019:'
       path: "(agent/grpc-external|agent/grpc-internal)"
 
+    # Allow usage of deprecated grpc DialContext and WithBlock until we've migrated from it.
+    - linters: [ staticcheck ]
+      text: '(Dial|DialContext) is deprecated: use NewClient instead'
+    - linters: [ staticcheck ]
+      text: 'WithBlock is deprecated: this DialOption is not supported by NewClient'
+
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]
       text: "always receives"
