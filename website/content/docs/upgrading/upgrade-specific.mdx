@@ -14,6 +14,12 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.18.x
+
+### Mesh traffic request path normalization enabled by default
+
+As of Consul v1.18.5, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
+
 ## Consul 1.17.x
 #### Audit Log naming changes (Enterprise)
 Prior to Consul 1.17.0, audit logs contained timestamps on both the original log file names as well as rotated log file names.
@@ -203,6 +209,10 @@ In Consul v1.15 and higher:
    ```
 
    </CodeBlockConfig>
+
+### Mesh traffic request path normalization enabled by default
+
+As of Consul v1.15.15, inbound traffic to mesh proxies will have Envoy request [path normalization](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path) applied by default. This should not interfere with the majority of service traffic, but can be disabled if needed by setting `http.incoming.request_normalization.insecure_disable_path_normalization` to `true` in the [global `mesh` configuration entry](/consul/docs/connect/config-entries/mesh#request-normalization). This setting is generally safe to change if not using L7 intentions with path matching.
 
 ## Consul 1.14.x
 

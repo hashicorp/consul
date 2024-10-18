@@ -32,9 +32,39 @@ Consul should be configured with a default deny intention policy. This forces
 all service-to-service communication to be explicitly
 allowed via an allow [intention](/consul/docs/connect/intentions).
 
+One advantage of using a default deny policy in combination with specific "allow" rules
+is that a failure of intentions due to misconfiguration always results in
+_denied_ traffic, rather than unwanted _allowed_ traffic.
+
 In the absence of `default_intention_policy` Consul will fall back to the ACL
 default policy when determining whether to allow or deny communications without
 an explicit intention.
+
+### Request Normalization Configured for L7 Intentions
+
+~> **Compatibility warning**: This feature is available as of Consul CE 1.20.1 and Consul Enterprise 1.20.1, 1.19.2, 1.18.3, and 1.15.15. We recommend upgrading to the latest version of Consul to take advantage of the latest features and improvements.
+
+Atypical traffic patterns may interfere with the enforcement of L7 intentions. For
+example, if a service makes request to a non-normalized URI path and Consul is not
+configured to force path normalization, it becomes possible to circumvent path match rules. While a
+default deny policy can limit the impact of this issue, we still recommend
+that you review your current request normalization configuration. Normalization is critical to avoid unwanted
+traffic, especially when using unrecommended security options such as a default allow intentions policy.
+
+Consul adopts a default normalization mode that adheres to [RFC 3986](
+https://tools.ietf.org/html/rfc3986#section-6), but additional options to enable stricter
+normalization are available in the cluster-wide [Mesh configuration entry](
+/consul/docs/connect/config-entries/mesh). We recommend reviewing these options and
+enabling the strictest set that does not interfere with application traffic.
+
+We also recommend that you review L7 intention header match rules for potential
+issues with multiple header values. Refer to the [service intentions
+configuration entry reference](/consul/docs/connect/config-entries/service-intentions#spec-sources-permissions-http-header)
+for more information.
+
+You do not need to enable request normalization if you are not using L7 intentions. 
+However, normalization may also benefit the use of other service mesh features that 
+rely on L7 attribute matching, such as [service routers](/consul/docs/connect/manage-traffic#routing).
 
 ### ACLs Enabled with Default Deny
 
@@ -50,6 +80,10 @@ is not configured, this may allow anyone to edit intentions. We do not recommend
 this. **If ACLs are not enabled**, deny intentions will still be enforced, but anyone
 may edit intentions. This renders the security of the created intentions
 effectively useless.
+
+The advantage of a default deny policy in combination with specific "allow" rules
+is that at worst, a failure of intentions due to misconfiguration will result in
+_denied_ traffic, rather than unwanted _allowed_ traffic.
 
 ### TCP and UDP Encryption Enabled
 
