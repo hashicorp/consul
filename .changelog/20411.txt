@@ -1,0 +1,4 @@
+```release-note:bug
+api: fixes the issue of healthCheckDefinition not matching in the response of endpoint - agent/health/service/id/{id},
+with that of input healthCheckDefinition provided during service registration.
+```
