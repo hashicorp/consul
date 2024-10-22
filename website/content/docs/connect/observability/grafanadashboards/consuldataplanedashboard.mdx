@@ -7,7 +7,7 @@ description: >-
 
 # Consul dataplane monitoring dashboard
 
-This page provides reference information about the Grafana dashboard configuration included in [this GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consuldataplanedashboard.json). The Consul dataplane dashboard provides a comprehensive view of the service health, performance, and resource utilization within the Consul service mesh. You can monitor key metrics at both the cluster and service levels with this dashboard. It can help you ensure service reliability and performance.
+This page provides reference information about the `consuldataplanedashboard.json` Grafana dashboard configuration included in the [grafana](https://github.com/hashicorp/consul/tree/main/grafana/) directory within the Consul repository. The Consul dataplane dashboard provides a comprehensive view of the service health, performance, and resource utilization within the Consul service mesh. You can monitor key metrics at both the cluster and service levels with this dashboard. It can help you ensure service reliability and performance.
 
 ![Preview of the Consul dataplane dashboard](/public/img/grafana/consul-dataplane-dashboard.png)
 
@@ -62,7 +62,7 @@ sum(rate(envoy_http_downstream_rq_total{service=~"$service",envoy_http_conn_mana
 ```promql
 SUM(envoy_server_memory_heap_size{app=~"$service"})
 ```
- 
+
 ### Allocated memory
 
 **Description:** This metric shows the amount of memory allocated by the Envoy proxies. It helps operators monitor the resource usage of services to prevent memory overuse and optimize performance.
@@ -70,7 +70,7 @@ SUM(envoy_server_memory_heap_size{app=~"$service"})
 ```promql
 SUM(envoy_server_memory_allocated{app=~"$service"})
 ```
- 
+
 ### Avg uptime per node
 
 **Description:** This metric calculates the average uptime of Envoy proxies across all nodes. It helps operators monitor the stability of services and detect potential issues with service restarts or crashes.
@@ -78,7 +78,7 @@ SUM(envoy_server_memory_allocated{app=~"$service"})
 ```promql
 avg(envoy_server_uptime{app=~"$service"})
 ```
- 
+
 ### Cluster state
 
 **Description:** This metric indicates whether all clusters are healthy. It provides a quick overview of the cluster state to ensure that there are no issues affecting service performance.
@@ -86,7 +86,7 @@ avg(envoy_server_uptime{app=~"$service"})
 ```promql
 (sum(envoy_cluster_membership_total{app=~"$service",envoy_cluster_name=~"$cluster"})-sum(envoy_cluster_membership_healthy{app=~"$service",envoy_cluster_name=~"$cluster"})) == bool 0
 ```
- 
+
 ### CPU throttled seconds by namespace
 
 **Description:** This metric tracks the number of seconds during which CPU usage was throttled. Monitoring CPU throttling helps operators identify when services are exceeding their allocated CPU limits and may need optimization.
@@ -94,7 +94,7 @@ avg(envoy_server_uptime{app=~"$service"})
 ```promql
 rate(container_cpu_cfs_throttled_seconds_total{namespace=~"$namespace"}[5m])
 ```
- 
+
 ### Memory usage by pod limits
 
 **Description:** This metric shows memory usage as a percentage of the memory limit set for each pod. It helps operators ensure that services are staying within their allocated memory limits to avoid performance degradation.
@@ -102,18 +102,18 @@ rate(container_cpu_cfs_throttled_seconds_total{namespace=~"$namespace"}[5m])
 ```promql
 100 * max (container_memory_working_set_bytes{namespace=~"$namespace"} / on(container, pod) label_replace(kube_pod_container_resource_limits{resource="memory"}, "pod", "$1", "exported_pod", "(.+)")) by (pod)
 ```
- 
+
 ### CPU usage by pod limits
 
 **Description:** This metric displays CPU usage as a percentage of the CPU limit set for each pod. Monitoring CPU usage helps operators optimize service performance and prevent CPU exhaustion.
 
 ```promql
 100 * max(
-  container_memory_working_set_bytes{namespace=~"$namespace"} / 
+  container_memory_working_set_bytes{namespace=~"$namespace"} /
   on(container, pod) label_replace(kube_pod_container_resource_limits{resource="memory"}, "pod", "$1", "exported_pod", "(.+)")
 ) by (pod)
 ```
- 
+
 ### Total active upstream connections
 
 **Description:** This metric tracks the total number of active upstream connections to other services in the mesh. It provides insight into service dependencies and network load.
@@ -121,7 +121,7 @@ rate(container_cpu_cfs_throttled_seconds_total{namespace=~"$namespace"}[5m])
 ```promql
 sum(envoy_cluster_upstream_cx_active{app=~"$service",envoy_cluster_name=~"$cluster"}) by (app, envoy_cluster_name)
 ```
- 
+
 ### Total active downstream connections
 
 **Description:** This metric tracks the total number of active downstream connections from services to clients. It helps operators monitor service load and ensure that services are able to handle the traffic effectively.
