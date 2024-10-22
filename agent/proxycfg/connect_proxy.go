@@ -430,10 +430,12 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		}
 
 		seenUpstreams := make(map[UpstreamID]struct{})
+		seenPeers := make(map[string]struct{})
 		for _, svc := range resp.Services {
 			uid := NewUpstreamIDFromServiceName(svc)
 
 			seenUpstreams[uid] = struct{}{}
+			seenPeers[uid.Peer] = struct{}{}
 
 			cfgMap := make(map[string]interface{})
 			u, ok := snap.ConnectProxy.UpstreamConfig[uid]
@@ -496,7 +498,11 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 					targetUID := NewUpstreamIDFromTargetID(targetID)
 					if targetUID.Peer != "" {
 						snap.ConnectProxy.PeerUpstreamEndpoints.CancelWatch(targetUID)
-						snap.ConnectProxy.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
+						// Only cancel watch if the peer is not seen,
+						// otherwise keep it as it's used by another service on the same peer
+						if _, ok := seenPeers[targetUID.Peer]; !ok {
+							snap.ConnectProxy.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
+						}
 					}
 				}
 				delete(snap.ConnectProxy.WatchedUpstreams, uid)
