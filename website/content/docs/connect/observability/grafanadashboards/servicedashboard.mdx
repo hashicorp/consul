@@ -83,7 +83,7 @@ sum(rate(envoy_tcp_downstream_cx_rx_bytes_total{}[10m])) by (local_cluster)
 
 ### Total TCP inbound and outbound bytes buffered
 
-**Description:** This metric tracks the amount of TCP traffic buffered during inbound and outbound communications. It helps in identifying whether there is any potential latency caused by buffer overflow or congestion.
+**Description:** This metric tracks the amount of TCP traffic buffered during inbound and outbound communications. It helps in identifying whether there is any potential latency caused by packet buffering or congestion.
 
 ```promql
 sum(rate(envoy_tcp_downstream_cx_rx_bytes_buffered{}[10m])) by (local_cluster)
