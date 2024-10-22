@@ -17,140 +17,112 @@ This dashboard provides the following information about service mesh operations.
 
 **Description:** Displays the number of Consul servers currently active. This metric provides insight into the cluster's health and the number of Consul nodes running in the environment.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 consul_consul_server_0_consul_members_servers{pod="consul-server-0"}
 ```
-</CodeBlockConfig>
-
+  
 ### Number of connected Consul dataplanes
 
 **Description:** Tracks the number of connected Consul dataplanes. This metric helps operators understand how many Envoy sidecars are actively connected to the mesh.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 count(consul_dataplane_envoy_connected)
 ```
-</CodeBlockConfig>
-
+  
 ### CPU usage in seconds (Consul servers)
 
 **Description:** This metric shows the CPU usage of the Consul servers over time, helping operators monitor resource consumption.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 rate(container_cpu_usage_seconds_total{container="consul", pod=~"consul-server-.*"}[5m])
 ```
-</CodeBlockConfig>
-
+  
 ### Memory usage (Consul servers)
 
 **Description:** Displays the memory usage of the Consul servers. This metric helps ensure that the servers have sufficient memory resources for proper operation.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 container_memory_working_set_bytes{container="consul", pod=~"consul-server-.*"}
 ```
-</CodeBlockConfig>
-
+  
 ### Disk read/write total per 5 minutes (Consul servers)
 
 **Description:** Tracks the total network bytes received by Consul servers within a 5 minute window. This metric helps assess the network load on Consul nodes.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 sum(rate(container_fs_writes_bytes_total{pod=~"consul-server-.*", container="consul"}[5m])) by (pod, device)
 ```
-</CodeBlockConfig>
-
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+  
+```promql
 sum(rate(container_fs_reads_bytes_total{pod=~"consul-server-.*", container="consul"}[5m])) by (pod, device)
 ```
-</CodeBlockConfig>
-
+  
 ### Received bytes total per 5 minutes (Consul servers)
 
 **Description:** Tracks the total network bytes received by Consul servers within a 5-minute window. This metric helps assess the network load on Consul nodes.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 sum(rate(container_network_receive_bytes_total{pod=~"consul-server-.*"}[5m])) by (pod)
 ```
-</CodeBlockConfig>
-
+  
 ### Memory limit (Consul servers)
 
 **Description:** Displays the memory limit for Consul servers. This metric ensures that memory usage stays within the defined limits for each Consul server.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 kube_pod_container_resource_limits{resource="memory", pod="consul-server-0"}
 ```
-</CodeBlockConfig>
-
+  
 ### CPU limit in seconds (Consul servers)
 
 **Description:** Displays the CPU limit for Consul servers. Monitoring CPU limits helps operators ensure that the services are not constrained by resource limitations.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 kube_pod_container_resource_limits{resource="cpu", pod="consul-server-0"}
 ```
-</CodeBlockConfig>
-
+  
 ### Disk usage (Consul servers)
 
 **Description:** Shows the amount of filesystem storage used by Consul servers. This metric helps operators track disk usage and plan for capacity.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 sum(container_fs_usage_bytes{}) by (pod)
 ```
-</CodeBlockConfig>
-
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+  
+```promql
 sum(container_fs_usage_bytes{pod="consul-server-0"})
 ```
-</CodeBlockConfig>
-
+  
 ### CPU usage in seconds (Connect injector)
 
 **Description:** Tracks the CPU usage of the Connect Injector, which is responsible for injecting Envoy sidecars and other operations within the mesh. Monitoring this helps ensure that Connect Injector has adequate CPU resources.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 rate(container_cpu_usage_seconds_total{pod=~".*-connect-injector-.*", container="sidecar-injector"}[5m])
 ```
-</CodeBlockConfig>
-
+  
 ### CPU limit in seconds (Connect injector)
 
 **Description:** Displays the CPU limit for the Connect Injector. Monitoring the CPU limits ensures that Connect Injector is not constrained by resource limitations.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 max(kube_pod_container_resource_limits{resource="cpu", container="sidecar-injector"})
 ```
-</CodeBlockConfig>
-
+  
 ### Memory usage (Connect injector)
 
 **Description:** Tracks the memory usage of the Connect Injector. Monitoring this helps ensure the Connect Injector has sufficient memory resources.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 container_memory_working_set_bytes{pod=~".*-connect-injector-.*", container="sidecar-injector"}
 ```
-</CodeBlockConfig>
-
+  
 ### Memory limit (Connect injector)
 
 **Description:** Displays the memory limit for the Connect Injector, helping to monitor if the service is nearing its resource limits.
 
-<CodeBlockConfig heading="Grafana query" language="promql">
-```
+```promql
 max(kube_pod_container_resource_limits{resource="memory", container="sidecar-injector"})
 ```
-</CodeBlockConfig>
+
+
