@@ -33,7 +33,10 @@ jobs:
     - run: make go-mod-tidy
     - run: |
         if [[ -n $(git status -s) ]]; then
-          echo "Git directory has changes"
+          echo "Git directory has changes after running 'make go-mod-tidy'."
+          echo "This means go.mod/go.sum have entries that have not been cleaned up, or go.mod and go.work are out of sync."
+          echo
+          echo "Run 'make go-mod-tidy' locally, then review and commit changes to resolve."
           git status -s
           exit 1
         fi

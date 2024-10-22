@@ -10,13 +10,14 @@ import (
 	"io"
 
 	jsonpatch "github.com/evanphx/json-patch"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/decode"
-	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 	"github.com/testcontainers/testcontainers-go"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/hcl"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -143,6 +144,9 @@ func convertHcl2Json(in string) (string, error) {
 			// JSON configs. It is left here for now to maintain backwards compat
 			// for the unlikely scenario that someone is using malformed JSON configs
 			// and expecting this behaviour to correct their config.
+			//TODO Note that the reuse of `decode` here is the entire reason why `consul` is
+			//     required as a module. In the future, we should consider moving this code
+			//     to a separate shared module.
 			decode.HookWeakDecodeFromSlice,
 			decode.HookTranslateKeys,
 		),
