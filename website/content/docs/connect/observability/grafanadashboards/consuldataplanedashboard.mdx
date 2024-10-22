@@ -28,7 +28,7 @@ sum(envoy_server_live{app=~"$service"})
 **Description:** Tracks the percentage of successful requests across the service mesh. It excludes 4xx and 5xx response codes to focus on operational success. Use it to monitor the overall reliability of your services.
 
 ```promql
-sum(irate(envoy_cluster_upstream_rq_xx{...}[10m]))
+sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!~"5|4",consul_destination_service=~"$service"}[10m])) / sum(irate(envoy_cluster_upstream_rq_xx{consul_destination_service=~"$service"}[10m]))
 ```
 
 ### Total failed requests
@@ -36,7 +36,7 @@ sum(irate(envoy_cluster_upstream_rq_xx{...}[10m]))
 **Description:** This pie chart shows the total number of failed requests within the service mesh, categorized by service. It provides a visual breakdown of where failures are occurring, allowing operators to focus on problematic services.
 
 ```promql
-sum(increase(envoy_cluster_upstream_rq_xx{...}[10m]))
+sum(increase(envoy_cluster_upstream_rq_xx{envoy_response_code_class=~"4|5", consul_destination_service=~"$service"}[10m])) by (local_cluster)
 ```
 
 ### Requests per second
@@ -44,7 +44,7 @@ sum(increase(envoy_cluster_upstream_rq_xx{...}[10m]))
 **Description:** This metric shows the rate of incoming HTTP requests per second to the selected services. It helps operators understand the current load on services and how much traffic they are processing.
 
 ```promql
-sum(rate(envoy_http_downstream_rq_total{...}[5m]))
+sum(rate(envoy_http_downstream_rq_total{service=~"$service",envoy_http_conn_manager_prefix="public_listener"}[5m])) by (service)
 ```
 
 ### Unhealthy clusters
@@ -52,7 +52,7 @@ sum(rate(envoy_http_downstream_rq_total{...}[5m]))
 **Description:** This metric tracks the number of unhealthy clusters in the mesh, helping operators identify services that are experiencing issues and need attention to ensure operational health.
 
 ```promql
-(sum(envoy_cluster_membership_healthy{...}) - sum(envoy_cluster_membership_total{...}))
+(sum(envoy_cluster_membership_healthy{app=~"$service",envoy_cluster_name=~"$cluster"})  - sum(envoy_cluster_membership_total{app=~"$service",envoy_cluster_name=~"$cluster"}))
 ```
 
 ### Heap size
@@ -84,7 +84,7 @@ avg(envoy_server_uptime{app=~"$service"})
 **Description:** This metric indicates whether all clusters are healthy. It provides a quick overview of the cluster state to ensure that there are no issues affecting service performance.
 
 ```promql
-(sum(envoy_cluster_membership_total{...}) - sum(envoy_cluster_membership_healthy{...})) == bool 0
+(sum(envoy_cluster_membership_total{app=~"$service",envoy_cluster_name=~"$cluster"})-sum(envoy_cluster_membership_healthy{app=~"$service",envoy_cluster_name=~"$cluster"})) == bool 0
 ```
  
 ### CPU throttled seconds by namespace
@@ -100,7 +100,7 @@ rate(container_cpu_cfs_throttled_seconds_total{namespace=~"$namespace"}[5m])
 **Description:** This metric shows memory usage as a percentage of the memory limit set for each pod. It helps operators ensure that services are staying within their allocated memory limits to avoid performance degradation.
 
 ```promql
-100 * max(container_memory_working_set_bytes{namespace=~"$namespace"} / kube_pod_container_resource_limits{resource="memory"})
+100 * max (container_memory_working_set_bytes{namespace=~"$namespace"} / on(container, pod) label_replace(kube_pod_container_resource_limits{resource="memory"}, "pod", "$1", "exported_pod", "(.+)")) by (pod)
 ```
  
 ### CPU usage by pod limits
@@ -108,7 +108,10 @@ rate(container_cpu_cfs_throttled_seconds_total{namespace=~"$namespace"}[5m])
 **Description:** This metric displays CPU usage as a percentage of the CPU limit set for each pod. Monitoring CPU usage helps operators optimize service performance and prevent CPU exhaustion.
 
 ```promql
-100 * max(container_cpu_usage{namespace=~"$namespace"} / kube_pod_container_resource_limits{resource="cpu"})
+100 * max(
+  container_memory_working_set_bytes{namespace=~"$namespace"} / 
+  on(container, pod) label_replace(kube_pod_container_resource_limits{resource="memory"}, "pod", "$1", "exported_pod", "(.+)")
+) by (pod)
 ```
  
 ### Total active upstream connections
@@ -116,7 +119,7 @@ rate(container_cpu_cfs_throttled_seconds_total{namespace=~"$namespace"}[5m])
 **Description:** This metric tracks the total number of active upstream connections to other services in the mesh. It provides insight into service dependencies and network load.
 
 ```promql
-sum(envoy_cluster_upstream_cx_active{app=~"$service"})
+sum(envoy_cluster_upstream_cx_active{app=~"$service",envoy_cluster_name=~"$cluster"}) by (app, envoy_cluster_name)
 ```
  
 ### Total active downstream connections
@@ -126,5 +129,3 @@ sum(envoy_cluster_upstream_cx_active{app=~"$service"})
 ```promql
 sum(envoy_http_downstream_cx_active{app=~"$service"})
 ```
-
-
