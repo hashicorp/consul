@@ -1,0 +1,3 @@
+```release-note:improvement
+cli: Combine inputs from cli arguments and service definition file while registering services.
+```
