@@ -2,7 +2,7 @@ agent_prefix "" {
   policy = "read"
 }
 node_prefix "" {
-  policy = "read"
+  policy = "write"
 }
 service_prefix "" {
   policy = "write"
