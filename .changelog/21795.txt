@@ -1,0 +1,3 @@
+```release-note:feature
+docs: added the docs for the grafana dashboards
+```
