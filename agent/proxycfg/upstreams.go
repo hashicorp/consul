@@ -301,14 +301,13 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		delete(snap.WatchedUpstreams[uid], targetID)
 		delete(snap.WatchedUpstreamEndpoints[uid], targetID)
 		cancelFn()
-
-		targetUID := NewUpstreamIDFromTargetID(targetID)
-		if targetUID.Peer != "" {
-			snap.PeerUpstreamEndpoints.CancelWatch(targetUID)
-			snap.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
-		}
 	}
-
+	reconcilePeeringWatches(snap.DiscoveryChain,
+		snap.UpstreamConfig,
+		snap.PeeredUpstreams,
+		snap.PeerUpstreamEndpoints,
+		snap.UpstreamPeerTrustBundles,
+		s.logger)
 	var (
 		watchedChainEndpoints bool
 		needGateways          = make(map[string]struct{})
