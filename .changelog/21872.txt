@@ -1,0 +1,3 @@
+```release-note:improvement
+acl: update Nomad templated policies to work with Workload-Identities.
+```

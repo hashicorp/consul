@@ -1,6 +1,6 @@
 {
     "TemplateName": "builtin/nomad-server",
     "Schema": "",
-    "Template": "\nacl = \"write\"\nagent_prefix \"\" {\n  policy = \"read\"\n}\nnode_prefix \"\" {\n  policy = \"read\"\n}\nservice_prefix \"\" {\n  policy = \"write\"\n}",
+    "Template": "acl  = \"write\"\nmesh = \"write\"\n\nagent \"{{.Name}}\" {\n  policy = \"read\"\n}\nnode \"{{.Name}}\" {\n  policy = \"write\"\n}\nservice_prefix \"\" {\n  policy = \"write\"\n}\n",
     "Description": "Gives the token or role permissions required for integration with a nomad server."
 }
