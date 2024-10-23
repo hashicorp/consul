@@ -27,11 +27,10 @@ The repository includes the following dashboards:
 
 Add the following configurations to your Consul Helm chart to enable the prometheus tools.
 
-<CodeBlockConfig highlight="4-8,10-11,16-18,24-27">
-  ```yaml
+<CodeBlockConfig>
+
+```yaml
 global:
-  acls:
-    manageSystemACLs: true
   metrics:
     enabled: true
     provider: "prometheus"
@@ -41,22 +40,14 @@ global:
 prometheus:
   enabled: true
 
-server:
-  logLevel: trace
-  replicas: 1
-  annotations: |
-    "prometheus.io/scheme": "https"
-    "prometheus.io/port": "8501"
-
 ui:
   enabled: true
-  service:
-    type: NodePort
   metrics:
     enabled: true
     provider: "prometheus"
     baseURL: http://prometheus-server.consul
 ```
+
 </CodeBlockConfig>
 
 ## Enable access logs
