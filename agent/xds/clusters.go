@@ -1824,13 +1824,15 @@ func configureClusterWithHostnames(
 	cluster.DnsRefreshRate = durationpb.New(rate)
 	cluster.DnsLookupFamily = envoy_cluster_v3.Cluster_V4_ONLY
 
+	envoyMaxEndpoints := 1
 	discoveryType := envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_LOGICAL_DNS}
 	if dnsDiscoveryType == "strict_dns" {
 		discoveryType.Type = envoy_cluster_v3.Cluster_STRICT_DNS
+		envoyMaxEndpoints = len(hostnameEndpoints)
 	}
 	cluster.ClusterDiscoveryType = &discoveryType
 
-	endpoints := make([]*envoy_endpoint_v3.LbEndpoint, 0, 1)
+	endpoints := make([]*envoy_endpoint_v3.LbEndpoint, 0, envoyMaxEndpoints)
 	uniqueHostnames := make(map[string]bool)
 
 	var (
@@ -1848,12 +1850,15 @@ func configureClusterWithHostnames(
 			continue
 		}
 
-		if len(endpoints) == 0 {
+		if len(endpoints) < envoyMaxEndpoints {
 			endpoints = append(endpoints, makeLbEndpoint(addr, port, health, weight))
 
 			hostname = addr
 			idx = i
-			break
+
+			if len(endpoints) == envoyMaxEndpoints {
+				break
+			}
 		}
 	}
 
@@ -1867,8 +1872,8 @@ func configureClusterWithHostnames(
 
 		endpoints = append(endpoints, fallback)
 	}
-	if len(uniqueHostnames) > 1 {
-		logger.Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q be resolved by Envoy", hostname),
+	if len(uniqueHostnames) > 1 && envoyMaxEndpoints == 1 {
+		logger.Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q will be resolved by Envoy", hostname),
 			"dc", dc, "service", service.String())
 	}
 
