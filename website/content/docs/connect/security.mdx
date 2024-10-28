@@ -42,6 +42,8 @@ an explicit intention.
 
 ### Request Normalization Configured for L7 Intentions
 
+~> **Compatibility warning**: This feature is available as of Consul CE 1.20.1 and Consul Enterprise 1.20.1, 1.19.2, 1.18.3, and 1.15.15. We recommend upgrading to the latest version of Consul to take advantage of the latest features and improvements.
+
 Atypical traffic patterns may interfere with the enforcement of L7 intentions. For
 example, if a service makes request to a non-normalized URI path and Consul is not
 configured to force path normalization, it becomes possible to circumvent path match rules. While a
