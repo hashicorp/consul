@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS"
+```
