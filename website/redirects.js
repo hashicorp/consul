@@ -238,7 +238,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: 'consul/docs/architecture/v2/:slug*',
+    source: '/consul/docs/architecture/v2/:slug*',
     destination: '/consul/docs/architecture/catalog#v2-catalog',
     permanent: true,
   },
