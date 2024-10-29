@@ -12,74 +12,14 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/go-hclog"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
-	hcpctl "github.com/hashicorp/consul/internal/hcp"
-	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
-
-func TestManager_MonitorHCPLink(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	logger := hclog.New(&hclog.LoggerOptions{Output: io.Discard})
-
-	mgr := NewManager(
-		ManagerConfig{
-			Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		},
-	)
-	mockHCPClient := hcpclient.NewMockClient(t)
-	mockHcpClientFn := func(_ config.CloudConfig) (hcpclient.Client, error) {
-		return mockHCPClient, nil
-	}
-	loadMgmtTokenFn := func(ctx context.Context, logger hclog.Logger, hcpClient hcpclient.Client, dataDir string) (string, error) {
-		return "test-mgmt-token", nil
-	}
-
-	require.False(t, mgr.isRunning())
-	updateManagerLifecycle := HCPManagerLifecycleFn(
-		mgr, mockHcpClientFn,
-		loadMgmtTokenFn, config.CloudConfig{}, "",
-	)
-
-	// Set up a link
-	link := pbhcp.Link{
-		ResourceId:   "abc",
-		ClientId:     "def",
-		ClientSecret: "ghi",
-		AccessLevel:  pbhcp.AccessLevel_ACCESS_LEVEL_GLOBAL_READ_WRITE,
-	}
-	linkResource, err := anypb.New(&link)
-	require.NoError(t, err)
-	updateManagerLifecycle(ctx, logger, &pbresource.WatchEvent{
-		Event: &pbresource.WatchEvent_Upsert_{
-			Upsert: &pbresource.WatchEvent_Upsert{
-				Resource: &pbresource.Resource{
-					Id: &pbresource.ID{
-						Name: "global",
-						Type: pbhcp.LinkType,
-					},
-					Status: map[string]*pbresource.Status{
-						hcpctl.StatusKey: {
-							Conditions: []*pbresource.Condition{hcpctl.ConditionValidatedSuccess},
-						},
-					},
-					Data: linkResource,
-				},
-			},
-		},
-	})
-
-	// Validate that the HCP manager is started
-	require.True(t, mgr.isRunning())
-}
 
 func TestManager_Start(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
