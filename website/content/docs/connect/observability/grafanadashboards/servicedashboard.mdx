@@ -2,12 +2,12 @@
 layout: docs
 page_title: Dashboard for monitoring Consul service mesh
 description: >-
-  This documentation provides an overview of the Service Dashboard.
+  This documentation provides an overview of the Service Dashboard. Learn about the metrics it displays and the queries that produce the metrics.
 ---
 
 # Service dashboard
 
-This page provides reference information about the Grafana dashboard configuration included in [this GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consulservicedashboard.json). The service dashboard offers an overview of the performance and health of individual services within the Consul service mesh. It provides insights into service availability, request success rates, latency, and connection metrics. This dashboard is essential for maintaining optimal service performance and quickly identifying any issues with service communications. 
+This page provides reference information about the [Grafana dashboard configuration included in the `hashicorp/consul` GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consulservicedashboard.json). The service dashboard offers an overview of the performance and health of individual services within the Consul service mesh. It provides insights into service availability, request success rates, latency, and connection metrics. This dashboard is essential for maintaining optimal service performance and quickly identifying any issues with service communications. 
 
 ## Grafana queries overview
 
@@ -31,7 +31,7 @@ sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!="5", envoy_res
 
 ### Total failed request rate
 
-**Description:** This stat tracks the rate of failed requests (4xx and 5xx errors) for the selected service. It helps operators quickly identify if there are issues with client requests or server errors for a specific service.
+**Description:** This stat tracks the rate of failed requests for the selected service according to 4xx and 5xx errors. It helps operators quickly identify if there are issues with client requests or server errors for a specific service.
 
 ```promql
 sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=~"4|5", consul_destination_service=~"$service"}[10m])) / sum(irate(envoy_cluster_upstream_rq_xx{consul_destination_service=~"$service"}[10m]))
@@ -47,7 +47,7 @@ sum(rate(envoy_cluster_upstream_rq_time_sum{consul_destination_service=~"$servic
 
 ### Total failed requests
 
-**Description:** This gauge tracks the total number of failed requests over a 10-minute window, categorized by service. It allows for easy identification of services that are experiencing high failure rates.
+**Description:** This gauge tracks the total number of failed requests over a 10 minute window, categorized by service. It allows for easy identification of services that are experiencing high failure rates.
 
 ```promql
 sum(increase(envoy_cluster_upstream_rq_xx{envoy_response_code_class=~"4|5", consul_destination_service=~"$service"}[10m])) by(local_cluster)
