@@ -2,12 +2,12 @@
 layout: docs
 page_title: Dashboard for Consul server metrics
 description: >-
-  This documentation provides an overview of the Consul Server Dashboard
+  This documentation provides an overview of the Consul Server Dashboard. Learn about the metrics it displays and the queries that produce the metrics.
 ---
 
 # Consul server monitoring dashboard
 
-This page provides reference information about the Grafana dashboard configuration included in [this GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consul-server-monitoring.json).
+This page provides reference information about the [Grafana dashboard configuration included in the `hashicorp/consul` GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consul-server-monitoring.json).
 
 ## Grafana queries overview
 
@@ -59,7 +59,7 @@ consul_autopilot_healthy
 
 ### DNS queries per 5 minutes
 
-**Description:** This metric tracks the rate of DNS queries per node, bucketed into 5-minute intervals. It helps monitor the query load on Consul’s DNS service.
+**Description:** This metric tracks the rate of DNS queries per node, bucketed into 5 minute intervals. It helps monitor the query load on Consul’s DNS service.
 
 ```promql
 rate(consul_dns_domain_query_count[5m])
@@ -83,7 +83,7 @@ consul_dns_ptr_query
 
 ### KV applies per 5 minutes
 
-**Description:** This metric tracks the rate of Key-Value store applies over 5-minute intervals, indicating the operational load on Consul’s KV store.
+**Description:** This metric tracks the rate of key-value store applies over 5 minute intervals, indicating the operational load on Consul’s KV store.
 
 ```promql
 rate(consul_kvs_apply_count[5m])
@@ -91,7 +91,7 @@ rate(consul_kvs_apply_count[5m])
 
 ### KV apply time
 
-**Description:** Measures the time taken to apply updates to the Key-Value store. Spikes in this metric might suggest resource contention or client overload.
+**Description:** Measures the time taken to apply updates to the key-value store. Spikes in this metric might suggest resource contention or client overload.
 
 ```promql
 consul_kvs_apply
@@ -107,7 +107,7 @@ consul_txn_apply
 
 ### ACL resolves per 5 minutes
 
-**Description:** This metric tracks the rate of ACL token resolutions per 5-minute intervals. It provides insights into the activity related to ACL tokens within the cluster.
+**Description:** This metric tracks the rate of ACL token resolutions over 5 minute intervals. It provides insights into the activity related to ACL tokens within the cluster.
 
 ```promql
 rate(consul_acl_ResolveToken_count[5m])
@@ -123,7 +123,7 @@ consul_acl_ResolveToken
 
 ### ACL updates per 5 minutes
 
-**Description:** Tracks the rate of ACL updates per 5-minute intervals. This metric helps monitor changes in ACL configurations over time.
+**Description:** Tracks the rate of ACL updates over 5 minute intervals. This metric helps monitor changes in ACL configurations over time.
 
 ```promql
 rate(consul_acl_apply_count[5m])
