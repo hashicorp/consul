@@ -1,3 +1,19 @@
+## 1.20.1 (October 29, 2024)
+BREAKING CHANGES:
+
+* mesh: Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005). [[GH-21816](https://github.com/hashicorp/consul/issues/21816)]
+
+SECURITY:
+
+* mesh: Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006). [[GH-21816](https://github.com/hashicorp/consul/issues/21816)]
+* mesh: Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006). [[GH-21816](https://github.com/hashicorp/consul/issues/21816)]
+
+IMPROVEMENTS:
+
+* api: remove dependency on proto-public, protobuf, and grpc [[GH-21780](https://github.com/hashicorp/consul/issues/21780)]
+* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
+* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
+
 ## 1.20.0 (October 14, 2024)
 
 SECURITY:
