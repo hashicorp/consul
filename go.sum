@@ -491,6 +491,8 @@ github.com/hashicorp/hcdiag v0.5.1 h1:KZcx9xzRfEOQ2OMbwPxVvHyXwLLRqYpSHxCEOtHfQ6
 github.com/hashicorp/hcdiag v0.5.1/go.mod h1:RMC2KkffN9uJ+5mFSaL67ZFVj4CDeetPF2d/53XpwXo=
 github.com/hashicorp/hcl v1.0.0 h1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
+github.com/hashicorp/hcl v1.0.1-vault-4.0.20241030175312-9371994b9b05 h1:GAOv1pH8PSJ98Z9nYs+zdIEiAK20m8beO7TM07lu/t4=
+github.com/hashicorp/hcl v1.0.1-vault-4.0.20241030175312-9371994b9b05/go.mod h1:XYhtn6ijBSAj6n4YqAaf7RBPS4I06AItNorpy+MoQNM=
 github.com/hashicorp/hcl/v2 v2.14.1 h1:x0BpjfZ+CYdbiz+8yZTQ+gdLO7IXvOut7Da+XJayx34=
 github.com/hashicorp/hcl/v2 v2.14.1/go.mod h1:e4z5nxYlWNPdDSNYX+ph14EvWYMFm3eP0zIUqPc2jr0=
 github.com/hashicorp/hcp-scada-provider v0.2.4 h1:XvctVEd4VqWVlqN1VA4vIhJANstZrc4gd2oCfrFLWZc=
