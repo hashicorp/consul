@@ -310,8 +310,8 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 	return nil
 }
 
-func parse(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
-	p, err := decodeRules(rules, conf, meta)
+func parse(rules string, warnOnDuplicateKey bool, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
+	p, err := decodeRules(rules, warnOnDuplicateKey, conf, meta)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,12 @@ func NewPolicyFromSource(rules string, conf *Config, meta *EnterprisePolicyMeta)
 
 	var policy *Policy
 	var err error
-	policy, err = parse(rules, conf, meta)
+	warnOnDuplicateKey := false
+	if conf != nil {
+		warnOnDuplicateKey = conf.WarnOnDuplicateKey
+		fmt.Println(warnOnDuplicateKey)
+	}
+	policy, err = parse(rules, warnOnDuplicateKey, conf, meta)
 	return policy, err
 }
 
