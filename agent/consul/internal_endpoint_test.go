@@ -3890,6 +3890,7 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 		expect      structs.AssignServiceManualVIPsResponse
 		expectAgain structs.AssignServiceManualVIPsResponse
 		expectErr   string
+		expectIPs   []string
 	}
 
 	run := func(t *testing.T, tc testcase, again bool) {
@@ -3910,6 +3911,12 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 			} else {
 				require.Equal(t, tc.expect, resp)
 			}
+
+			psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(tc.req.Service, nil)}
+			got, err := s1.fsm.State().ServiceManualVIPs(psn)
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			require.Equal(t, tc.expectIPs, got.ManualIPs)
 		}
 	}
 
@@ -3920,6 +3927,17 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 				Service:    "web",
 				ManualVIPs: []string{"1.1.1.1", "2.2.2.2"},
 			},
+			expectIPs:   []string{"1.1.1.1", "2.2.2.2"},
+			expect:      structs.AssignServiceManualVIPsResponse{Found: true},
+			expectAgain: structs.AssignServiceManualVIPsResponse{Found: true},
+		},
+		{
+			name: "successfully ignoring duplicates",
+			req: structs.AssignServiceManualVIPsRequest{
+				Service:    "web",
+				ManualVIPs: []string{"1.2.3.4", "5.6.7.8", "1.2.3.4", "5.6.7.8"},
+			},
+			expectIPs:   []string{"1.2.3.4", "5.6.7.8"},
 			expect:      structs.AssignServiceManualVIPsResponse{Found: true},
 			expectAgain: structs.AssignServiceManualVIPsResponse{Found: true},
 		},
@@ -3929,6 +3947,7 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 				Service:    "web",
 				ManualVIPs: []string{"8.8.8.8"},
 			},
+			expectIPs: []string{"8.8.8.8"},
 			expect: structs.AssignServiceManualVIPsResponse{
 				Found: true,
 				UnassignedFrom: []structs.PeeredServiceName{
@@ -3946,7 +3965,6 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 				Service:    "web",
 				ManualVIPs: []string{"3.3.3.3", "invalid"},
 			},
-			expect:    structs.AssignServiceManualVIPsResponse{},
 			expectErr: "not a valid",
 		},
 	}

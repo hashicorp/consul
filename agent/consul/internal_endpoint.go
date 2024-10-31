@@ -8,6 +8,7 @@ import (
 	"net"
 
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
@@ -790,11 +791,10 @@ func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPs
 		if parsedIP == nil || parsedIP.To4() == nil {
 			return fmt.Errorf("%q is not a valid IPv4 address", parsedIP.String())
 		}
-		if _, ok := vipMap[ip]; ok {
-			return fmt.Errorf("duplicate manual ip found: %q", ip)
-		}
 		vipMap[ip] = struct{}{}
 	}
+	// Silently ignore duplicates.
+	args.ManualVIPs = maps.Keys(vipMap)
 
 	psn := structs.PeeredServiceName{
 		ServiceName: structs.NewServiceName(args.Service, &args.EnterpriseMeta),
