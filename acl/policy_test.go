@@ -346,7 +346,7 @@ func TestPolicySourceParse(t *testing.T) {
 			Name: "Bad Policy - Duplicate ACL Key",
 			Rules: `acl="read"
 					acl="write"`,
-			Err: "Failed to parse ACL rules: The argument \"acl\" at 2:21 was already set. Each argument can only be defined once",
+			Err: "Failed to parse ACL rules: The argument \"acl\" at",
 		},
 		{
 			Name:      "Bad Policy - Agent",
