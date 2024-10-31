@@ -341,7 +341,6 @@ func NewPolicyFromSource(rules string, conf *Config, meta *EnterprisePolicyMeta)
 	warnOnDuplicateKey := false
 	if conf != nil {
 		warnOnDuplicateKey = conf.WarnOnDuplicateKey
-		fmt.Println(warnOnDuplicateKey)
 	}
 	policy, err = parse(rules, warnOnDuplicateKey, conf, meta)
 	return policy, err
