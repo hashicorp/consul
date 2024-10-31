@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -1169,7 +1170,7 @@ func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceNam
 	newEntry := entry.(ServiceVirtualIP)
 
 	// Check to see if the slice already contains the same ips.
-	if !vipSliceEqualsMapKeys(newEntry.ManualIPs, assignedIPs) {
+	if !stringslice.EqualMapKeys(newEntry.ManualIPs, assignedIPs) {
 		newEntry.ManualIPs = slices.Clone(ips)
 		newEntry.ModifyIndex = idx
 
@@ -1191,18 +1192,6 @@ func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceNam
 	}
 
 	return true, maps.SliceOfKeys(modifiedEntries), nil
-}
-
-func vipSliceEqualsMapKeys(a []string, b map[string]struct{}) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for _, ip := range a {
-		if _, ok := b[ip]; !ok {
-			return false
-		}
-	}
-	return true
 }
 
 func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName string) error {
