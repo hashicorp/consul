@@ -80,6 +80,9 @@ func cleanDuplicates(rules string, err error) string {
 		if len(keysubmatch) > 0 {
 			//found a match
 			match = keysubmatch[0][0]
+		} else {
+			//no match found, return error up to caller
+			return rules
 		}
 		//replace the captured block 1 time to preserve the other instance of the key, then check the cleaned string
 		//for duplicate key errors
