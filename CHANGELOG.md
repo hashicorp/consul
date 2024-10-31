@@ -1,3 +1,19 @@
+## 1.20.1 (October 29, 2024)
+BREAKING CHANGES:
+
+* mesh: Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005). [[GH-21816](https://github.com/hashicorp/consul/issues/21816)]
+
+SECURITY:
+
+* mesh: Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006). [[GH-21816](https://github.com/hashicorp/consul/issues/21816)]
+* mesh: Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006). [[GH-21816](https://github.com/hashicorp/consul/issues/21816)]
+
+IMPROVEMENTS:
+
+* api: remove dependency on proto-public, protobuf, and grpc [[GH-21780](https://github.com/hashicorp/consul/issues/21780)]
+* snapshot agent: **(Enterprise only)**  Implement Service Principal Auth for snapshot agent on azure.
+* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
+
 ## 1.20.0 (October 14, 2024)
 
 SECURITY:
@@ -59,6 +75,38 @@ BUG FIXES:
 
 * jwt-provider: change dns lookup family from the default of AUTO which would prefer ipv6 to ALL if LOGICAL_DNS is used or PREFER_IPV4 if STRICT_DNS is used to gracefully handle transitions to ipv6. [[GH-21703](https://github.com/hashicorp/consul/issues/21703)]
 
+## 1.19.3 Enterprise (October 29, 2024)
+BREAKING CHANGES:
+
+* mesh: **(Enterprise Only)** Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005).
+
+SECURITY:
+
+* Explicitly set 'Content-Type' header to mitigate XSS vulnerability. [[GH-21704](https://github.com/hashicorp/consul/issues/21704)]
+* Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI. [[GH-21711](https://github.com/hashicorp/consul/issues/21711)]
+* UI: Remove codemirror linting due to package dependency [[GH-21726](https://github.com/hashicorp/consul/issues/21726)]
+* Upgrade Go to use 1.22.7. This addresses CVE 
+[CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
+* Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
+[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
+[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
+* mesh: **(Enterprise Only)** Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
+* mesh: **(Enterprise Only)** Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
+* ui: Pin a newer resolution of Braces [[GH-21710](https://github.com/hashicorp/consul/issues/21710)]
+* ui: Pin a newer resolution of Codemirror [[GH-21715](https://github.com/hashicorp/consul/issues/21715)]
+* ui: Pin a newer resolution of Markdown-it [[GH-21717](https://github.com/hashicorp/consul/issues/21717)]
+* ui: Pin a newer resolution of ansi-html [[GH-21735](https://github.com/hashicorp/consul/issues/21735)]
+
+IMPROVEMENTS:
+
+* security: upgrade ubi base image to 9.4 [[GH-21750](https://github.com/hashicorp/consul/issues/21750)]
+* api: remove dependency on proto-public, protobuf, and grpc [[GH-21780](https://github.com/hashicorp/consul/issues/21780)]
+* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
+
+BUG FIXES:
+
+* jwt-provider: change dns lookup family from the default of AUTO which would prefer ipv6 to ALL if LOGICAL_DNS is used or PREFER_IPV4 if STRICT_DNS is used to gracefully handle transitions to ipv6. [[GH-21703](https://github.com/hashicorp/consul/issues/21703)]
+
 ## 1.19.2 (August 26, 2024)
 
 SECURITY:
@@ -72,6 +120,39 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * api-gateway: **(Enterprise only)** ensure clusters are properly created for JWT providers with a remote URI for the JWKS endpoint [[GH-21604](https://github.com/hashicorp/consul/issues/21604)]
+
+## 1.18.5 Enterprise (October 29, 2024)
+
+Enterprise LTS: Consul Enterprise 1.18 is a Long-Term Support (LTS) release.
+BREAKING CHANGES:
+
+* mesh: **(Enterprise Only)** Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005).
+
+SECURITY:
+
+* Explicitly set 'Content-Type' header to mitigate XSS vulnerability. [[GH-21704](https://github.com/hashicorp/consul/issues/21704)]
+* Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI. [[GH-21711](https://github.com/hashicorp/consul/issues/21711)]
+* Upgrade Go to use 1.22.7. This addresses CVE 
+[CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
+* Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
+[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
+[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
+* mesh: **(Enterprise Only)** Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
+* mesh: **(Enterprise Only)** Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
+* ui: Pin a newer resolution of Braces [[GH-21710](https://github.com/hashicorp/consul/issues/21710)]
+* ui: Pin a newer resolution of Codemirror [[GH-21715](https://github.com/hashicorp/consul/issues/21715)]
+* ui: Pin a newer resolution of Markdown-it [[GH-21717](https://github.com/hashicorp/consul/issues/21717)]
+* ui: Pin a newer resolution of ansi-html [[GH-21735](https://github.com/hashicorp/consul/issues/21735)]
+
+IMPROVEMENTS:
+
+* security: upgrade ubi base image to 9.4 [[GH-21750](https://github.com/hashicorp/consul/issues/21750)]
+* api: remove dependency on proto-public, protobuf, and grpc [[GH-21780](https://github.com/hashicorp/consul/issues/21780)]
+* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
+
+BUG FIXES:
+
+* jwt-provider: change dns lookup family from the default of AUTO which would prefer ipv6 to ALL if LOGICAL_DNS is used or PREFER_IPV4 if STRICT_DNS is used to gracefully handle transitions to ipv6. [[GH-21703](https://github.com/hashicorp/consul/issues/21703)]
 
 ## 1.18.4 Enterprise (August 26, 2024)
 
@@ -92,6 +173,35 @@ SECURITY:
 IMPROVEMENTS:
 
 * Use Envoy's default for a route's validate_clusters option, which is false. This fixes a case where non-existent clusters could cause a route to no longer route to any of its backends, including existing ones. [[GH-21587](https://github.com/hashicorp/consul/issues/21587)]
+
+## 1.15.15 Enterprise (October 29, 2024)
+
+Enterprise LTS: Consul Enterprise 1.15 is a Long-Term Support (LTS) release.
+BREAKING CHANGES:
+
+* mesh: **(Enterprise Only)** Enable Envoy `HttpConnectionManager.normalize_path` by default on inbound traffic to mesh proxies. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005).
+
+SECURITY:
+
+* Explicitly set 'Content-Type' header to mitigate XSS vulnerability. [[GH-21704](https://github.com/hashicorp/consul/issues/21704)]
+* Implement HTML sanitization for user-generated content to prevent XSS attacks in the UI. [[GH-21711](https://github.com/hashicorp/consul/issues/21711)]
+* UI: Remove codemirror linting due to package dependency [[GH-21726](https://github.com/hashicorp/consul/issues/21726)]
+* Upgrade Go to use 1.22.7. This addresses CVE 
+[CVE-2024-34155](https://nvd.nist.gov/vuln/detail/CVE-2024-34155) [[GH-21705](https://github.com/hashicorp/consul/issues/21705)]
+* Upgrade to support aws/aws-sdk-go `v1.55.5 or higher`. This resolves CVEs
+[CVE-2020-8911](https://nvd.nist.gov/vuln/detail/cve-2020-8911) and 
+[CVE-2020-8912](https://nvd.nist.gov/vuln/detail/cve-2020-8912). [[GH-21684](https://github.com/hashicorp/consul/issues/21684)]
+* mesh: **(Enterprise Only)** Add `contains` and `ignoreCase` to L7 Intentions HTTP header matching criteria to support configuration resilient to variable casing and multiple values. This resolves [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
+* mesh: **(Enterprise Only)** Add `http.incoming.requestNormalization` to Mesh configuration entry to support inbound service traffic request normalization. This resolves [CVE-2024-10005](https://nvd.nist.gov/vuln/detail/CVE-2024-10005) and [CVE-2024-10006](https://nvd.nist.gov/vuln/detail/CVE-2024-10006).
+* ui: Pin a newer resolution of Braces [[GH-21710](https://github.com/hashicorp/consul/issues/21710)]
+* ui: Pin a newer resolution of Codemirror [[GH-21715](https://github.com/hashicorp/consul/issues/21715)]
+* ui: Pin a newer resolution of Markdown-it [[GH-21717](https://github.com/hashicorp/consul/issues/21717)]
+* ui: Pin a newer resolution of ansi-html [[GH-21735](https://github.com/hashicorp/consul/issues/21735)]
+
+IMPROVEMENTS:
+
+* security: upgrade ubi base image to 9.4 [[GH-21750](https://github.com/hashicorp/consul/issues/21750)]
+* xds: configures Envoy to load balance over all instances of an external service configured with hostnames when "envoy_dns_discovery_type" is set to "STRICT_DNS" [[GH-21655](https://github.com/hashicorp/consul/issues/21655)]
 
 ## 1.15.14 Enterprise (August 26, 2024)
 
