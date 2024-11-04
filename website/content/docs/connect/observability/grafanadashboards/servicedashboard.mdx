@@ -8,6 +8,7 @@ description: >-
 # Service dashboard
 
 This page provides reference information about the [Grafana dashboard configuration included in the `hashicorp/consul` GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consulservicedashboard.json). The service dashboard offers an overview of the performance and health of individual services within the Consul service mesh. It provides insights into service availability, request success rates, latency, and connection metrics. This dashboard is essential for maintaining optimal service performance and quickly identifying any issues with service communications. 
+![Preview of the service dashboard](/public/img/grafana/service-dashboard-2.png)
 
 ## Grafana queries overview
 
@@ -56,6 +57,7 @@ sum(increase(envoy_cluster_upstream_rq_xx{envoy_response_code_class=~"4|5", cons
 ### Dataplane latency
 
 **Description:** This stat tracks the dataplane latency percentiles (p50, p75, p90, p99.9) for the selected service. It gives detailed insights into the distribution of latency within the service's request handling, helping identify performance bottlenecks.
+![Preview of the dataplane latency metrics](/public/img/grafana/service-dashboard-1.png)
 
 ```promql
 histogram_quantile(0.50, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))
