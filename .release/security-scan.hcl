@@ -14,7 +14,7 @@
 
 container {
 	dependencies = true
-	osv 		 = true
+	osv          = true
 
 	secrets {
 		matchers {
