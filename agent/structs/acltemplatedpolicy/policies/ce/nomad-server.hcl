@@ -5,7 +5,7 @@ mesh = "write"
 agent_prefix "" {
   policy = "read"
 }
-node_prefix "" {
+node "{{.Name}}" {
   policy = "write"
 }
 service_prefix "" {
