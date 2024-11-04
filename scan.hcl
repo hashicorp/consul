@@ -28,8 +28,8 @@ repository {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      # N.b. `vulnerabilites` is the correct spelling for this tool.
-      vulnerabilites = [
+      # N.b. `vulnerabilities` is the correct spelling for this tool.
+      vulnerabilities = [
       ]
       paths = [
         "internal/tools/proto-gen-rpc-glue/e2e/consul/*",
