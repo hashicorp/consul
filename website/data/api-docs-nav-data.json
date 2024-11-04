@@ -136,10 +136,6 @@
     "path": "exported-services"
   },
   {
-    "title": "HCP Consul Central Link",
-    "path": "hcp-link"
-  },
-  {
     "title": "Health",
     "path": "health"
   },
