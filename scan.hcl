@@ -28,7 +28,6 @@ repository {
   # periodically cleaned up to remove items that are no longer found by the scanner.
   triage {
     suppress {
-      # N.b. `vulnerabilities` is the correct spelling for this tool.
       vulnerabilities = [
       ]
       paths = [

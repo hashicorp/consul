@@ -36,7 +36,6 @@ container {
 	# periodically cleaned up to remove items that are no longer found by the scanner.
 	triage {
 		suppress {
-			# N.b. `vulnerabilities` is the correct spelling for this tool.
 			vulnerabilities = [
 				"CVE-2024-8096", # curl@8.9.1-r2,
 				"CVE-2024-9143", # openssl@3.3.2-r0,
@@ -79,7 +78,6 @@ binary {
 	# periodically cleaned up to remove items that are no longer found by the scanner.
 	triage {
 		suppress {
-			# N.b. `vulnerabilities` is the correct spelling for this tool.
 			vulnerabilities = [
 			]
 			paths = [
