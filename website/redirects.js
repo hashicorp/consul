@@ -258,7 +258,7 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/api-docs/hcp-link',
+    source: '/consul/api-docs/hcp-link',
     destination: '/hcp/docs/consul/concepts/consul-central',
     permanent: true,
   },
