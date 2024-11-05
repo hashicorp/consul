@@ -256,5 +256,10 @@ module.exports = [
     source: '/consul/docs/:version(v1\.(?:11|12|13|14|15|16|17|18)\.x)/k8s/dns/enable',
     destination: '/consul/docs/:version/k8s/dns',
     permanent: true,
-  }
+  },
+  {
+    source: '/consul/api-docs/hcp-link',
+    destination: '/hcp/docs/consul/concepts/consul-central',
+    permanent: true,
+  },
 ]
