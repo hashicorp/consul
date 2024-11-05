@@ -1,0 +1,128 @@
+---
+layout: docs
+page_title: Dashboard for Consul k8s control plane metrics
+description: >-
+  This documentation provides an overview of the Consul on Kubernetes Grafana Dashboard. Learn about the metrics it displays and the queries that produce the metrics.
+---
+
+# Consul on Kubernetes control plane monitoring dashboard
+
+This page provides reference information about the [Grafana dashboard configuration included in the `hashicorp/consul` GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consul-k8s-control-plane-monitoring.json).
+
+## Grafana queries overview
+
+This dashboard provides the following information about service mesh operations.
+
+### Number of Consul servers
+
+**Description:** Displays the number of Consul servers currently active. This metric provides insight into the cluster's health and the number of Consul nodes running in the environment.
+
+```promql
+consul_consul_server_0_consul_members_servers{pod="consul-server-0"}
+```
+  
+### Number of connected Consul dataplanes
+
+**Description:** Tracks the number of connected Consul dataplanes. This metric helps operators understand how many Envoy sidecars are actively connected to the mesh.
+
+```promql
+count(consul_dataplane_envoy_connected)
+```
+  
+### CPU usage in seconds (Consul servers)
+
+**Description:** This metric shows the CPU usage of the Consul servers over time, helping operators monitor resource consumption.
+
+```promql
+rate(container_cpu_usage_seconds_total{container="consul", pod=~"consul-server-.*"}[5m])
+```
+  
+### Memory usage (Consul servers)
+
+**Description:** Displays the memory usage of the Consul servers. This metric helps ensure that the servers have sufficient memory resources for proper operation.
+
+```promql
+container_memory_working_set_bytes{container="consul", pod=~"consul-server-.*"}
+```
+  
+### Disk read/write total per 5 minutes (Consul servers)
+
+**Description:** Tracks the total network bytes received by Consul servers within a 5 minute window. This metric helps assess the network load on Consul nodes.
+
+```promql
+sum(rate(container_fs_writes_bytes_total{pod=~"consul-server-.*", container="consul"}[5m])) by (pod, device)
+```
+  
+```promql
+sum(rate(container_fs_reads_bytes_total{pod=~"consul-server-.*", container="consul"}[5m])) by (pod, device)
+```
+  
+### Received bytes total per 5 minutes (Consul servers)
+
+**Description:** Tracks the total network bytes received by Consul servers within a 5 minute window. This metric helps assess the network load on Consul nodes.
+
+```promql
+sum(rate(container_network_receive_bytes_total{pod=~"consul-server-.*"}[5m])) by (pod)
+```
+  
+### Memory limit (Consul servers)
+
+**Description:** Displays the memory limit for Consul servers. This metric ensures that memory usage stays within the defined limits for each Consul server.
+
+```promql
+kube_pod_container_resource_limits{resource="memory", pod="consul-server-0"}
+```
+  
+### CPU limit in seconds (Consul servers)
+
+**Description:** Displays the CPU limit for Consul servers. Monitoring CPU limits helps operators ensure that the services are not constrained by resource limitations.
+
+```promql
+kube_pod_container_resource_limits{resource="cpu", pod="consul-server-0"}
+```
+  
+### Disk usage (Consul servers)
+
+**Description:** Shows the amount of filesystem storage used by Consul servers. This metric helps operators track disk usage and plan for capacity.
+
+```promql
+sum(container_fs_usage_bytes{}) by (pod)
+```
+  
+```promql
+sum(container_fs_usage_bytes{pod="consul-server-0"})
+```
+  
+### CPU usage in seconds (Connect injector)
+
+**Description:** Tracks the CPU usage of the Connect injector, which is responsible for injecting Envoy sidecars and other operations within the mesh. Monitoring this helps ensure that Connect injector has adequate CPU resources.
+
+```promql
+rate(container_cpu_usage_seconds_total{pod=~".*-connect-injector-.*", container="sidecar-injector"}[5m])
+```
+  
+### CPU limit in seconds (Connect injector)
+
+**Description:** Displays the CPU limit for the Connect injector. Monitoring the CPU limits ensures that Connect injector is not constrained by resource limitations.
+
+```promql
+max(kube_pod_container_resource_limits{resource="cpu", container="sidecar-injector"})
+```
+  
+### Memory usage (Connect injector)
+
+**Description:** Tracks the memory usage of the Connect injector. Monitoring this helps ensure the Connect injector has sufficient memory resources.
+
+```promql
+container_memory_working_set_bytes{pod=~".*-connect-injector-.*", container="sidecar-injector"}
+```
+  
+### Memory limit (Connect injector)
+
+**Description:** Displays the memory limit for the Connect injector, helping to monitor if the service is nearing its resource limits.
+
+```promql
+max(kube_pod_container_resource_limits{resource="memory", container="sidecar-injector"})
+```
+
+
