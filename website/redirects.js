@@ -260,4 +260,9 @@ module.exports = [
     destination: '/consul/docs/:version/k8s/dns',
     permanent: true,
   },
+  {
+    source: '/consul/api-docs/hcp-link',
+    destination: '/hcp/docs/consul/concepts/consul-central',
+    permanent: true,
+  },
 ]
