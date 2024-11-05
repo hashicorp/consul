@@ -62,7 +62,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6
-	github.com/hashicorp/go-sockaddr v1.0.2
+	github.com/hashicorp/go-sockaddr v1.0.7
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.2.1
@@ -87,7 +87,7 @@ require (
 	github.com/imdario/mergo v0.3.15
 	github.com/kr/text v0.2.0
 	github.com/miekg/dns v1.1.50
-	github.com/mitchellh/cli v1.1.4
+	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-testing-interface v1.14.0
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
