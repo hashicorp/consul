@@ -177,12 +177,7 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 				delete(snap.IngressGateway.WatchedDiscoveryChains, uid)
 			}
 		}
-		reconcilePeeringWatches(snap.IngressGateway.DiscoveryChain,
-			snap.IngressGateway.UpstreamConfig,
-			snap.IngressGateway.PeeredUpstreams,
-			snap.IngressGateway.PeerUpstreamEndpoints,
-			snap.IngressGateway.UpstreamPeerTrustBundles,
-			s.logger)
+		reconcilePeeringWatches(snap.IngressGateway.DiscoveryChain, snap.IngressGateway.UpstreamConfig, snap.IngressGateway.PeeredUpstreams, snap.IngressGateway.PeerUpstreamEndpoints, snap.IngressGateway.UpstreamPeerTrustBundles)
 
 		if err := s.watchIngressLeafCert(ctx, snap); err != nil {
 			return err
