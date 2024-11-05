@@ -489,8 +489,6 @@ github.com/hashicorp/golang-lru/v2 v2.0.0/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyf
 github.com/hashicorp/hcdiag v0.5.1 h1:KZcx9xzRfEOQ2OMbwPxVvHyXwLLRqYpSHxCEOtHfQ6w=
 github.com/hashicorp/hcdiag v0.5.1/go.mod h1:RMC2KkffN9uJ+5mFSaL67ZFVj4CDeetPF2d/53XpwXo=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
-github.com/hashicorp/hcl v1.0.1-vault-6 h1:qThxNRouu5cv9LCLZ7pY43TroykqN+Uc7fT3f7tyYh4=
-github.com/hashicorp/hcl v1.0.1-vault-6/go.mod h1:XYhtn6ijBSAj6n4YqAaf7RBPS4I06AItNorpy+MoQNM=
 github.com/hashicorp/hcl v1.0.1-vault-6.0.20241105194533-fccb5644a3ed h1:lmBfoLJnumTa+P1VOjH/cEii2x+LAJMH+VLh3syJ5Sg=
 github.com/hashicorp/hcl v1.0.1-vault-6.0.20241105194533-fccb5644a3ed/go.mod h1:XYhtn6ijBSAj6n4YqAaf7RBPS4I06AItNorpy+MoQNM=
 github.com/hashicorp/hcl/v2 v2.14.1 h1:x0BpjfZ+CYdbiz+8yZTQ+gdLO7IXvOut7Da+XJayx34=
