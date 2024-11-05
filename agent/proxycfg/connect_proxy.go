@@ -380,12 +380,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		//
 		// Clean up data
 		//
-		reconcilePeeringWatches(snap.ConnectProxy.DiscoveryChain,
-			snap.ConnectProxy.UpstreamConfig,
-			snap.ConnectProxy.PeeredUpstreams,
-			snap.ConnectProxy.PeerUpstreamEndpoints,
-			snap.ConnectProxy.UpstreamPeerTrustBundles,
-			s.logger)
+		reconcilePeeringWatches(snap.ConnectProxy.DiscoveryChain, snap.ConnectProxy.UpstreamConfig, snap.ConnectProxy.PeeredUpstreams, snap.ConnectProxy.PeerUpstreamEndpoints, snap.ConnectProxy.UpstreamPeerTrustBundles)
 	case u.CorrelationID == intentionUpstreamsID:
 		resp, ok := u.Result.(*structs.IndexedServiceList)
 		if !ok {
@@ -459,12 +454,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				delete(snap.ConnectProxy.WatchedUpstreams, uid)
 			}
 		}
-		reconcilePeeringWatches(snap.ConnectProxy.DiscoveryChain,
-			snap.ConnectProxy.UpstreamConfig,
-			snap.ConnectProxy.PeeredUpstreams,
-			snap.ConnectProxy.PeerUpstreamEndpoints,
-			snap.ConnectProxy.UpstreamPeerTrustBundles,
-			s.logger)
+		reconcilePeeringWatches(snap.ConnectProxy.DiscoveryChain, snap.ConnectProxy.UpstreamConfig, snap.ConnectProxy.PeeredUpstreams, snap.ConnectProxy.PeerUpstreamEndpoints, snap.ConnectProxy.UpstreamPeerTrustBundles)
 		for uid := range snap.ConnectProxy.WatchedUpstreamEndpoints {
 			if upstream, ok := snap.ConnectProxy.UpstreamConfig[uid]; ok && !upstream.CentrallyConfigured {
 				continue

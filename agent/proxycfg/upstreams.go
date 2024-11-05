@@ -102,12 +102,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		if err := s.resetWatchesFromChain(ctx, uid, resp.Chain, upstreamsSnapshot); err != nil {
 			return err
 		}
-		reconcilePeeringWatches(upstreamsSnapshot.DiscoveryChain,
-			upstreamsSnapshot.UpstreamConfig,
-			upstreamsSnapshot.PeeredUpstreams,
-			upstreamsSnapshot.PeerUpstreamEndpoints,
-			upstreamsSnapshot.UpstreamPeerTrustBundles,
-			s.logger)
+		reconcilePeeringWatches(upstreamsSnapshot.DiscoveryChain, upstreamsSnapshot.UpstreamConfig, upstreamsSnapshot.PeeredUpstreams, upstreamsSnapshot.PeerUpstreamEndpoints, upstreamsSnapshot.UpstreamPeerTrustBundles)
 
 	case strings.HasPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)

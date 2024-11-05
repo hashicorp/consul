@@ -481,12 +481,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		cancelDiscoChain()
 		delete(snap.APIGateway.WatchedDiscoveryChains, upstreamID)
 	}
-	reconcilePeeringWatches(snap.APIGateway.DiscoveryChain,
-		snap.APIGateway.UpstreamConfig,
-		snap.APIGateway.PeeredUpstreams,
-		snap.APIGateway.PeerUpstreamEndpoints,
-		snap.APIGateway.UpstreamPeerTrustBundles,
-		h.logger)
+	reconcilePeeringWatches(snap.APIGateway.DiscoveryChain, snap.APIGateway.UpstreamConfig, snap.APIGateway.PeeredUpstreams, snap.APIGateway.PeerUpstreamEndpoints, snap.APIGateway.UpstreamPeerTrustBundles)
 
 	return nil
 }

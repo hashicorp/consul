@@ -555,13 +555,8 @@ func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
 	}, correlationId, opts.notifyCh)
 }
 
-func reconcilePeeringWatches(
-	compiledDiscoveryChains map[UpstreamID]*structs.CompiledDiscoveryChain,
-	upstreams map[UpstreamID]*structs.Upstream,
-	peeredUpstreams map[UpstreamID]struct{},
-	peerUpstreamEndpoints watch.Map[UpstreamID, structs.CheckServiceNodes],
-	upstreamPeerTrustBundles watch.Map[PeerName, *pbpeering.PeeringTrustBundle],
-	logger hclog.Logger) {
+func reconcilePeeringWatches(compiledDiscoveryChains map[UpstreamID]*structs.CompiledDiscoveryChain, upstreams map[UpstreamID]*structs.Upstream, peeredUpstreams map[UpstreamID]struct{}, peerUpstreamEndpoints watch.Map[UpstreamID, structs.CheckServiceNodes], upstreamPeerTrustBundles watch.Map[PeerName, *pbpeering.PeeringTrustBundle]) {
+
 	peeredChainTargets := make(map[UpstreamID]struct{})
 	for _, discoChain := range compiledDiscoveryChains {
 		for _, target := range discoChain.Targets {
