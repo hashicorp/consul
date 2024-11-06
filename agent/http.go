@@ -6,7 +6,6 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"io"
 	"net"
 	"net/http"
@@ -19,6 +18,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
@@ -348,16 +349,24 @@ func withRemoteAddrHandler(next http.Handler) http.Handler {
 	})
 }
 
-// Injects content type explicitly if not already set into response to prevent XSS
+// ensureContentTypeHeader injects content-type explicitly if not already set into response to prevent XSS
 func ensureContentTypeHeader(next http.Handler, logger hclog.Logger) http.Handler {
-
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		next.ServeHTTP(resp, req)
 
-		val := resp.Header().Get(contentTypeHeader)
-		if val == "" {
-			resp.Header().Set(contentTypeHeader, plainContentType)
-			logger.Debug("warning: content-type header not explicitly set.", "request-path", req.URL)
+		contentType := api.GetContentType(req)
+
+		if req != nil {
+			logger.Debug("warning: request content-type is not supported", "request-path", req.URL)
+			req.Header.Set(contentTypeHeader, contentType)
+		}
+
+		if resp != nil {
+			respContentType := resp.Header().Get(contentTypeHeader)
+			if respContentType == "" || respContentType != contentType {
+				logger.Debug("warning: response content-type header not explicitly set.", "request-path", req.URL)
+				resp.Header().Set(contentTypeHeader, contentType)
+			}
 		}
 	})
 }
