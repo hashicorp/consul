@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.2.1
-	github.com/hashicorp/hcl v1.0.1-vault-6.0.20241105194533-fccb5644a3ed
+	github.com/hashicorp/hcl v1.0.1-vault-7
 	github.com/hashicorp/serf v0.10.1
 	github.com/itchyny/gojq v0.12.12
 	github.com/mitchellh/copystructure v1.2.0
