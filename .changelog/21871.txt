@@ -1,0 +1,3 @@
+```release-note:bug
+proxycfg: fix a bug where peered upstreams watches is cancels even when another target need it.
+```
