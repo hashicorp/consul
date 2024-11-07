@@ -53,7 +53,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/hcp"
-	"github.com/hashicorp/consul/agent/hcp/bootstrap"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -65,7 +64,6 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/gossip/librtt"
-	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
@@ -838,25 +836,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// to enable RPC forwarding.
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 
-	if s.config.Cloud.IsConfigured() {
-		// Start watching HCP Link resource. This needs to be created after
-		// the GRPC services are set up in order for the resource service client to
-		// function. This uses the insecure grpc channel so that it doesn't need to
-		// present a valid ACL token.
-		go hcp.RunHCPLinkWatcher(
-			&lib.StopChannelContext{StopCh: shutdownCh},
-			logger.Named("hcp-link-watcher"),
-			pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan),
-			hcp.HCPManagerLifecycleFn(
-				s.hcpManager,
-				hcpclient.NewClient,
-				bootstrap.LoadManagementToken,
-				flat.HCP.Config,
-				flat.HCP.DataDir,
-			),
-		)
-	}
-
 	s.controllerManager = controller.NewManager(
 		// Usage of the insecure + unsafe grpc chan is required for the controller
 		// manager. It must be unauthorized so that controllers do not need to
@@ -928,15 +907,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	return s, nil
 }
 
-func (s *Server) registerControllers(deps Deps) error {
-	if s.config.Cloud.IsConfigured() {
-		hcpctl.RegisterControllers(
-			s.controllerManager, hcpctl.ControllerDependencies{
-				CloudConfig: deps.HCP.Config,
-			},
-		)
-	}
-
+func (s *Server) registerControllers(_ Deps) error {
 	shim := NewExportedServicesShim(s)
 	multicluster.RegisterCompatControllers(s.controllerManager, multicluster.DefaultCompatControllerDependencies(shim))
 
