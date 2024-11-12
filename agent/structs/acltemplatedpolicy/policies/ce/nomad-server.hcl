@@ -1,8 +1,7 @@
-
 acl  = "write"
 mesh = "write"
 
-agent_prefix "" {
+agent "{{.Name}}" {
   policy = "read"
 }
 node "{{.Name}}" {
