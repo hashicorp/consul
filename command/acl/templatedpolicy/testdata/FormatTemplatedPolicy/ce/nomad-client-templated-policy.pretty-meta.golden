@@ -5,7 +5,7 @@ Input variables:
 Example usage:
 	consul acl token create -templated-policy builtin/nomad-client -var name:node-1
 Raw Template:
-agent_prefix "" {
+agent "{{.Name}}" {
   policy = "read"
 }
 node "{{.Name}}" {
@@ -17,3 +17,4 @@ service_prefix "" {
 key_prefix "" {
   policy = "read"
 }
+
