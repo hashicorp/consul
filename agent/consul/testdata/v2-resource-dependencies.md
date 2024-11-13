@@ -7,8 +7,6 @@ flowchart TD
   demo/v1/recordlabel
   demo/v2/album
   demo/v2/artist
-  hcp/v2/link
-  hcp/v2/telemetrystate
   internal/v1/tombstone
   multicluster/v2/computedexportedservices --> multicluster/v2/exportedservices
   multicluster/v2/computedexportedservices --> multicluster/v2/namespaceexportedservices

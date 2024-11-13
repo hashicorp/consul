@@ -43,10 +43,12 @@ refer to the previous release's version of this page.
 ### Envoy and Consul Client Agent
 
 Every major Consul release initially supports **four major Envoy releases**.
-Standard major Consul releases do not expand that support in minor releases.
 However, [Consul Enterprise Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)
-releases do expand their Envoy version compatibility window in minor releases
-to ensure compatibility with a maintained Envoy version.
+releases expand their Envoy version compatibility window in minor releases to
+ensure compatibility with a maintained Envoy version. Standard (non-LTS) Consul
+Enterprise releases may also expand support to a new major version of Envoy in
+order to receive important security fixes, if the previous major Envoy version
+has reached end-of-life.
 
 Every major Consul release maintains and tests compatibility with specific Envoy
 patch releases to ensure users can benefit from bug and security fixes in Envoy.
@@ -86,18 +88,18 @@ which packages both Envoy and the `consul-dataplane` binary in a single containe
 To enable seamless upgrades, each major version of Consul also supports
 the previous and next Consul dataplane versions.
 
-Compared to standard Consul releases, Consul Enterprise
-[Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)
-releases have the following differences with Consul dataplane compatibility:
-- [Expanded compatibility window](#enterprise-long-term-support-releases):
+Compared to community edition releases, Consul Enterprise releases have
+the following differences with Consul dataplane compatibility:
+- [LTS-Only: Expanded compatibility window](#enterprise-long-term-support-releases):
   Active Consul Enterprise LTS releases expand their Consul dataplane
-  version compatibility window until the LTS release reaches its
-  end of maintenance.
+  version compatibility window to include the version of Consul dataplane
+  aligned with the next Consul LTS release.
 - [Maintained Envoy version](#consul-dataplane-releases-that-span-envoy-major-versions):
-  Major versions of Consul dataplane aligned with a Consul Enterprise LTS version
-  may contain minor version updates that use a new major version of Envoy.
-  These minor version updates are necessary to ensure maintained versions
-  of Consul dataplane use a maintained version of Envoy.
+  Major versions of Consul dataplane aligned with a maintained Consul
+  Enterprise version may contain minor version updates that use a new
+  major version of Envoy. These minor version updates are necessary to
+  ensure that maintained versions of Consul dataplane use a maintained
+  version of Envoy.
 
 #### Standard releases
 
@@ -106,6 +108,7 @@ apply to both Consul Enterprise and Consul community edition (CE).
 
 | Consul Version | Default `consul-dataplane` Version   | Other compatible `consul-dataplane` Versions |
 | -------------- | -------------------------------------|----------------------------------------------|
+| 1.20.x CE      | 1.6.x (Envoy 1.31.x)                 | 1.5.x (Envoy 1.29.x)                         |
 | 1.19.x CE      | 1.5.x (Envoy 1.29.x)                 | 1.4.x (Envoy 1.28.x)                         |
 | 1.18.x CE      | 1.4.x (Envoy 1.28.x)                 | 1.3.x (Envoy 1.27.x)                         |
 | 1.17.x         | 1.3.x (Envoy 1.27.x)                 | 1.4.x (Envoy 1.28.x), 1.2.x (Envoy 1.26.x)   |
@@ -120,22 +123,21 @@ until the LTS release reaches its end of maintenance.
 
 | Consul Version | Default `consul-dataplane` Version   | Other compatible `consul-dataplane` Versions |
 | -------------- | -------------------------------------|----------------------------------------------|
-| 1.19.x Ent     | 1.5.x (Envoy 1.29.x)                 | 1.4.x (Envoy 1.28.x)                         |
 | 1.18.x Ent     | 1.4.x (Envoy 1.28.x)                 | 1.3.x (Envoy 1.27.x)                         |
 | 1.15.x Ent     | 1.1.x (Envoy 1.26.x)                 | 1.4.x (Envoy 1.28.x) - 1.0.x (Envoy 1.24.x)  |
 
 #### Consul dataplane releases that span Envoy major versions
 
-Major versions of Consul dataplane aligned with a Consul Enterprise LTS version
+Major versions of Consul dataplane aligned with active versions of Consul
 may contain minor version updates that use a new major version of Envoy.
 These minor version updates are necessary to ensure maintained versions
-of Consul dataplane use a maintained version of Envoy.
+of Consul dataplane use a maintained version of Envoy including important
+security fixes.
 
-| `consul-dataplane` Version Range | Associated Consul Enterprise LTS version | Contained Envoy Binary Version |
+| `consul-dataplane` Version Range | Associated Consul Enterprise version     | Contained Envoy Binary Version |
 | -------------------------------- | ---------------------------------------- | ------------------------------ |
-| 1.5.0 - 1.5.latest               | 1.18.x Ent                               | Envoy 1.29.x                   |
-| 1.4.0 - 1.4.latest               | 1.18.x Ent                               | Envoy 1.28.x                   |
-| 1.1.9 - 1.1.latest               | 1.15.x Ent                               | Envoy 1.26.x                   |
+| 1.1.11 - 1.1.latest              | 1.15.x Ent                               | Envoy 1.27.x                   |
+| 1.1.9 - 1.1.10                   | 1.15.x Ent                               | Envoy 1.26.x                   |
 | 1.1.0 - 1.1.8                    | 1.15.x Ent                               | Envoy 1.25.x                   |
 
 ## Getting Started

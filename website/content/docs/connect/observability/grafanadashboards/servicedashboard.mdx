@@ -1,0 +1,157 @@
+---
+layout: docs
+page_title: Dashboard for monitoring Consul service mesh
+description: >-
+  This documentation provides an overview of the Service Dashboard. Learn about the metrics it displays and the queries that produce the metrics.
+---
+
+# Service dashboard
+
+This page provides reference information about the [Grafana dashboard configuration included in the `hashicorp/consul` GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consulservicedashboard.json). The service dashboard offers an overview of the performance and health of individual services within the Consul service mesh. It provides insights into service availability, request success rates, latency, and connection metrics. This dashboard is essential for maintaining optimal service performance and quickly identifying any issues with service communications. 
+
+![Preview of the service dashboard](/public/img/grafana/service-dashboard-2.png)
+
+## Grafana queries overview
+
+This dashboard provides the following information about service mesh operations.
+
+### Total running services
+
+**Description:** This gauge tracks the total number of running services within the mesh that are not labeled as `traffic-generator`. It provides an overall view of active services, helping operators maintain visibility into service availability.
+
+```promql
+sum(envoy_server_live{app!="traffic-generator"})
+```
+
+### Total request success rate
+
+**Description:** This stat visualizes the success rate of upstream requests to the selected service. It filters out 4xx and 5xx response codes, providing a clearer picture of how well the service is performing in terms of handling requests successfully.
+
+```promql
+sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!="5", envoy_response_code_class!="4", consul_destination_service=~"$service"}[10m])) / sum(irate(envoy_cluster_upstream_rq_xx{consul_destination_service=~"$service"}[10m]))
+```
+
+### Total failed request rate
+
+**Description:** This stat tracks the rate of failed requests for the selected service according to 4xx and 5xx errors. It helps operators quickly identify if there are issues with client requests or server errors for a specific service.
+
+```promql
+sum(irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=~"4|5", consul_destination_service=~"$service"}[10m])) / sum(irate(envoy_cluster_upstream_rq_xx{consul_destination_service=~"$service"}[10m]))
+```
+
+### Average request response time in milliseconds
+
+**Description:** This gauge displays the average response time for requests to the selected service, providing an overview of the service's performance and responsiveness.
+
+```promql
+sum(rate(envoy_cluster_upstream_rq_time_sum{consul_destination_service=~"$service"}[10m])) / sum(rate(envoy_cluster_upstream_rq_total{consul_destination_service=~"$service"}[10m]))
+```
+
+### Total failed requests
+
+**Description:** This gauge tracks the total number of failed requests over a 10 minute window, categorized by service. It allows for easy identification of services that are experiencing high failure rates.
+
+```promql
+sum(increase(envoy_cluster_upstream_rq_xx{envoy_response_code_class=~"4|5", consul_destination_service=~"$service"}[10m])) by(local_cluster)
+```
+
+### Dataplane latency
+
+**Description:** This stat tracks the dataplane latency percentiles (p50, p75, p90, p99.9) for the selected service. It gives detailed insights into the distribution of latency within the service's request handling, helping identify performance bottlenecks.
+
+![Preview of the dataplane latency metrics](/public/img/grafana/service-dashboard-1.png)
+
+```promql
+histogram_quantile(0.50, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))
+```
+
+```promql
+histogram_quantile(0.75, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))
+```
+
+```promql
+histogram_quantile(0.90, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))
+```
+
+```promql
+histogram_quantile(0.999, sum by(le) (rate(envoy_cluster_upstream_rq_time_bucket{kubernetes_namespace=~"$namespace", local_cluster=~"$service"}[5m])))
+```
+
+### Total TCP inbound and outbound bytes
+
+**Description:** This time series shows the total number of inbound and outbound TCP bytes for services within the mesh. It provides visibility into the data transfer patterns and volume between services.
+
+```promql
+sum(rate(envoy_tcp_downstream_cx_rx_bytes_total{}[10m])) by (local_cluster)
+```
+
+### Total TCP inbound and outbound bytes buffered
+
+**Description:** This metric tracks the amount of TCP traffic buffered during inbound and outbound communications. It helps in identifying whether there is any potential latency caused by packet buffering or congestion.
+
+```promql
+sum(rate(envoy_tcp_downstream_cx_rx_bytes_buffered{}[10m])) by (local_cluster)
+```
+
+### Total TCP downstream active connections
+
+**Description:** This metric counts the total number of active TCP downstream connections, providing an overview of the current connection load on the services within the mesh.
+
+```promql
+sum(rate(envoy_tcp_downstream_cx_total{}[10m])) by(local_cluster)
+```
+
+### Total active HTTP upstream connections
+
+**Description:** This time series tracks the total number of active HTTP upstream connections for the selected service. It helps monitor connection patterns and assess load.
+
+```promql
+sum(envoy_cluster_upstream_cx_active{app=~"$service"}) by (app)
+```
+
+### Total active HTTP downstream connections
+
+**Description:** This time series monitors the number of active HTTP downstream connections for the selected service, providing visibility into the current active user or client load on the service.
+
+```promql
+sum(envoy_http_downstream_cx_active{app=~"$service"}) by (app)
+```
+
+### Upstream requests by status code
+
+**Description:** This metric tracks the number of upstream requests, grouped by HTTP status codes, giving insight into the health of the requests being made to upstream services from the selected service.
+
+```promql
+sum by(namespace,app,envoy_response_code_class) (rate(envoy_cluster_upstream_rq_xx[5m]))
+```
+
+### Downstream requests by status code
+
+**Description:** This time series tracks downstream HTTP requests by status code, showing how well the selected service is responding to downstream requests from clients.
+
+```promql
+sum(rate(envoy_http_downstream_rq_xx{envoy_http_conn_manager_prefix="public_listener"}[5m])) by (namespace, app, envoy_response_code_class)
+```
+
+### Connections rejected
+
+**Description:** This metric tracks the number of connections rejected due to overload or overflow conditions on listeners. Monitoring these values helps identify if the service is under too much load or has insufficient capacity to handle the incoming connections.
+
+```promql
+rate(envoy_listener_downstream_cx_overload_reject{}[$__interval])
+```
+
+## Customization options
+
+The service dashboard offers various customization options to help you analyze specific services and metrics. Use these options to tailor the dashboard to your needs and improve your ability to monitor and troubleshoot service health.
+
+- **Filter by service:** You can filter the dashboard by the service you want to monitor. This helps narrow down the metrics to the service of interest and provides a more targeted view of its performance.
+  
+- **Filter by namespace:** The namespace filter allows operators to focus on a particular namespace in a multi-tenant or multi-namespace environment, isolating the service metrics within that specific context.
+
+- **Time range selection:** The dashboard supports flexible time range selection, allowing operators to analyze service behavior over different time periods. This is helpful for pinpointing issues that may occur at specific times or during high-traffic periods.
+
+- **Percentile latency tracking:** The dashboard allows operators to track multiple latency percentiles (p50, p75, p90, p99.9) to get a more detailed view of how the service performs across different levels of traffic load.
+
+
+
