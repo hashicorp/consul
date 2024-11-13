@@ -230,6 +230,7 @@ func (c *cmd) run(args []string) int {
 		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.GRPCTLSPort, config.DNSPort))
 	ui.Info(fmt.Sprintf("      Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
+	ui.Info(fmt.Sprintf("         Use Vault: %t", config.UseVault))
 	ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
 	ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
