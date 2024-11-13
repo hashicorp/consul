@@ -2,7 +2,7 @@ module github.com/hashicorp/consul
 
 go 1.22
 
-toolchain go1.22.8
+toolchain go1.22.5
 
 replace (
 	github.com/hashicorp/consul/api => ./api
@@ -79,7 +79,6 @@ require (
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
 	github.com/hashicorp/raft-wal v0.4.1
 	github.com/hashicorp/serf v0.10.1
-	github.com/hashicorp/vault-client-go v0.4.3
 	github.com/hashicorp/vault-plugin-auth-alicloud v0.14.0
 	github.com/hashicorp/vault/api v1.12.2
 	github.com/hashicorp/vault/api/auth/gcp v0.3.0

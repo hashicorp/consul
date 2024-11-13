@@ -303,15 +303,6 @@ type Config struct {
 
 	// license reporting
 	Reporting Reporting `mapstructure:"reporting" json:"-"`
-
-	// Vault
-	UseVault                    *bool   `mapstructure:"use_vault" json:"use_vault,omitempty"`
-	VaultAddress                *string `mapstructure:"vault_address" json:"vault_address,omitempty"`
-	VaultRoleID                 *string `mapstructure:"vault_role_id" json:"vault_role_id,omitempty"`
-	VaultSecretID               *string `mapstructure:"vault_secret_id" json:"vault_secret_id,omitempty"`
-	VaultSecretPath             *string `mapstructure:"vault_secret_path" json:"vault_secret_path,omitempty"`
-	VaultSecretMountPath        *string `mapstructure:"vault_secret_mount_path" json:"vault_secret_mount_path,omitempty"`
-	CredentialNameInVaultSecret *string `mapstructure:"credential_name_in_vault_secret" json:"credential_name_in_vault_secret,omitempty"`
 }
 
 type GossipLANConfig struct {

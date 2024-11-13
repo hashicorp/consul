@@ -4,7 +4,6 @@
 package config
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -30,8 +29,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/vault-client-go"
-	"github.com/hashicorp/vault-client-go/schema"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
@@ -820,8 +817,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	serverMode := boolVal(c.ServerMode)
 
-	SetEncryptKeyIfVaultIsUsed(&c)
-
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -1121,13 +1116,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		XDSUpdateRateLimit:                limitVal(c.XDS.UpdateMaxPerSecond),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
 		LocalProxyConfigResyncInterval:    30 * time.Second,
-		UseVault:                          boolVal(c.UseVault),
-		VaultAddress:                      stringVal(c.VaultAddress),
-		VaultRoleID:                       stringVal(c.VaultRoleID),
-		VaultSecretID:                     stringVal(c.VaultSecretID),
-		VaultSecretPath:                   stringVal(c.VaultSecretPath),
-		VaultSecretMountPath:              stringVal(c.VaultSecretMountPath),
-		CredentialNameInVaultSecret:       stringVal(c.CredentialNameInVaultSecret),
 	}
 
 	// host metrics are enabled if consul is configured with HashiCorp Cloud Platform integration
@@ -2861,38 +2849,4 @@ func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStor
 		cfg.WAL.SegmentSize = intVal(raw.WALConfig.SegmentSizeMB) * 1024 * 1024
 	}
 	return cfg
-}
-
-func SetEncryptKeyIfVaultIsUsed(config *Config) {
-	if !boolVal(config.UseVault) {
-		return
-	}
-	client, err := vault.New(vault.WithAddress(stringVal(config.VaultAddress)))
-	if err != nil {
-		panic(fmt.Errorf("failed to create vault client: %v", err))
-	}
-	ctx := context.Background()
-	resp, err := client.Auth.AppRoleLogin(
-		ctx,
-		schema.AppRoleLoginRequest{
-			RoleId:   stringVal(config.VaultRoleID),
-			SecretId: stringVal(config.VaultSecretID),
-		},
-	)
-	if err != nil {
-		panic(fmt.Errorf("failed to login to vault: %v", err))
-	}
-	if err = client.SetToken(resp.Auth.ClientToken); err != nil {
-		panic(fmt.Errorf("failed to set vault token: %v", err))
-	}
-	vault_response, err := client.Secrets.KvV2Read(
-		ctx,
-		stringVal(config.VaultSecretPath),
-		vault.WithMountPath(stringVal(config.VaultSecretMountPath)),
-	)
-	if err != nil {
-		panic(fmt.Errorf("failed to get Vault secret: %v", err))
-	}
-	encrypt_key := vault_response.Data.Data[stringVal(config.CredentialNameInVaultSecret)].(string)
-	config.EncryptKey = &encrypt_key
 }
