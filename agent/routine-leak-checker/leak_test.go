@@ -64,9 +64,7 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 
 	config := `
 	   server = true
-		datacenter = "primary"
-		primary_datacenter = "primary"
-		
+		datacenter = "primary"	
 		connect {
 			enabled = true
 		}
