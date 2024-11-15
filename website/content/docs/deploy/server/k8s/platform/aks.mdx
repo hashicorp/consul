@@ -1,0 +1,308 @@
+---
+layout: docs
+page_title: Deploy Consul on AKS
+description: >-
+  Deploy Consul on AKS and learn how to manage your Consul datacenter with the Consul CLI, UI, and API.
+---
+
+# Deploy Consul on AKS
+
+This topic describes how to deploy a Consul datacenter to an Azure Kubernetes Services (AKS) cluster. After deploying Consul, you will interact with Consul using the CLI, UI, and/or API.
+
+## Requirements
+
+To deploy Consul on AKS, you will need:
+
+- An Azure account with the ability to create a Kubernetes cluster
+- [Azure Cloud Shell](https://shell.azure.com/)
+- [consul v1.14.0+](/consul/install/)
+- [Helm v3.6+](https://helm.sh/docs/helm/helm_install/)
+- [consul-k8s v1.0.2+](/consul/docs/reference-cli/consul-k8s#install-the-cli)
+
+This example uses the latest version of Helm and `kubectl`, which are installed with the Azure Cloud Shell.
+
+### Create an AKS cluster
+
+You need at least a three node AKS cluster to deploy Consul using the official Consul Helm chart or the Consul K8S CLI. Create a three node cluster on AKS by following the [AKS documentation](https://docs.microsoft.com/en-us/azure/aks/).
+
+### Configure kubectl to interact to your cluster
+
+Login to the Azure Shell on your console.
+
+```shell-session
+$ az login
+```
+
+Configure `kubectl` to connect to your Kubernetes cluster. This command downloads credentials and configures the Kubernetes CLI to use them. Replace `myResourceGroup` and `myAKSCluster` with your resource group and AKS cluster name.
+
+```shell-session
+$ az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+```
+
+Verify you are connected to your Kubernetes cluster.
+
+```shell-session
+$ kubectl cluster-info
+Kubernetes control plane is running at <your AKS ip(s)>
+CoreDNS is running at https://<your AKS ip(s)>/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Metrics-server is running at https://<your AKS ip(s)>/api/v1/namespaces/kube-system/services/https:metrics-server:/proxy
+
+To further debug and diagnose cluster problems, use the command`kubectl cluster-info dump`.
+```
+
+## Deploy Consul
+
+You can deploy a complete Consul datacenter using the official Consul Helm chart or the Consul K8S CLI. By default, these methods will install a total of three Consul servers. You can review the Consul Kubernetes installation [documentation](/consul/docs/k8s/installation/install) to learn more about these installation options.
+
+### Create a values file
+
+To customize your deployment, create a `values.yaml` file to customization your Consul deployment.
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+# Contains values that affect multiple components of the chart.
+global:
+  # The main enabled/disabled setting.
+  # If true, servers, clients, Consul DNS and the Consul UI will be enabled.
+  enabled: true
+  # The prefix used for all resources created in the Helm chart.
+  name: consul
+  # The name of the datacenter that the agents should register as.
+  datacenter: dc1
+  # Enables TLS across the cluster to verify authenticity of the Consul servers and clients.
+  tls:
+    enabled: true
+ # Enables ACLs across the cluster to secure access to data and APIs.
+ acls:
+    # If true, automatically manage ACL tokens and policies for all Consul components.
+    manageSystemACLs: true
+# Configures values that configure the Consul server cluster.
+server:
+  enabled: true
+  # The number of server agents to run. This determines the fault tolerance of the cluster.
+  replicas: 3
+# Contains values that configure the Consul UI.
+ui:
+  enabled: true
+  # Registers a Kubernetes Service for the Consul UI as a LoadBalancer.
+  service:
+    type: LoadBalancer
+# Configures and installs the automatic Consul Connect sidecar injector.
+connectInject:
+  enabled: true
+```
+
+</CodeBlockConfig>
+
+### Install Consul in your cluster
+
+You can now deploy a complete Consul datacenter in your Kubernetes cluster using the official Consul Helm chart or the Consul K8S CLI.
+
+<Tabs>
+<Tab heading="Consul K8S CLI (Mac & Linux)">
+
+Install Consul onto the AKS cluster with `consul-k8s`. Confirm the installation with a `y` when prompted.
+
+```shell-session
+$ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.14.0
+```
+
+Review the official [Consul K8S CLI documentation](/consul/docs/reference-cli/consul-k8s) to learn more about additional settings.
+
+</Tab>
+<Tab heading="Helm">
+
+Install Consul onto the kind cluster with Helm. Confirm the installation with a `y` when prompted.
+
+```shell-session
+$ helm install --values values.yaml consul hashicorp/consul --create-namespace --namespace consul --version "1.0.0"
+```
+
+Review the official [Helm chart values](/consul/docs/reference/k8s/helm#configuration-values) to learn more about the default settings.
+
+</Tab>
+</Tabs>
+
+Verify the Consul resources were successfully created.
+
+```shell-session
+$ kubectl get pods --namespace consul
+NAME                                           READY   STATUS    RESTARTS   AGE
+consul-connect-injector-6fc8d669b8-2n82l       1/1     Running   0          2m34s
+consul-connect-injector-6fc8d669b8-9mqfm       1/1     Running   0          2m34s
+consul-controller-554c7f79c4-2xc64             1/1     Running   0          2m34s
+consul-server-0                                1/1     Running   0          2m34s
+consul-server-1                                1/1     Running   0          2m34s
+consul-server-2                                1/1     Running   0          2m34s
+consul-webhook-cert-manager-64889c4964-wxc9b   1/1     Running   0          2m34s
+```
+
+## Configure your CLI to interact with Consul cluster
+
+In this section, you will set environment variables in your terminal so your Consul CLI can interact with your Consul cluster. The Consul CLI reads these environment variables for behavior defaults and will reference these values when you run `consul` commands.
+
+Tokens are artifacts in the ACL system used to authenticate users, services, and Consul agents. Since ACLs are enabled in this Consul datacenter, entities requesting access to a resource must include a token that is linked with a policy, service identity, or node identity that grants permission to the resource. The ACL system checks the token and grants or denies access to resources based on the associated permissions. A bootstrap token has unrestricted privileges to all resources and APIs.
+
+Retrieve the ACL bootstrap token from the respective Kubernetes secret and set it as an environment variable.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=$(kubectl get --namespace consul secrets/consul-bootstrap-acl-token --template={{.data.token}} | base64 -d)
+```
+
+Set the Consul destination address.
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=https://$(kubectl get services/consul-ui --namespace consul -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+```
+
+Remove SSL verification checks to simplify communication to your Consul cluster.
+
+```shell-session
+$ export CONSUL_HTTP_SSL_VERIFY=false
+```
+
+<Note>
+
+ In a production environment, we recommend keeping this SSL verification set to `true`. Only remove this verification for if you have a Consul cluster without TLS configured in development environment and demonstration purposes.
+
+</Note>
+
+## View Consul services
+
+In this section, you will view your Consul services with the CLI, UI, and/or API to explore the details of your service mesh.
+
+<Tabs>
+<Tab heading="CLI">
+
+Run the CLI command `consul catalog services` to return the list of services registered in Consul. Notice this returns only the `consul` service since it is the only running service in your Consul cluster.
+
+```shell-session
+$ consul catalog services
+consul
+```
+
+Agents run in either server or client mode. Server agents store all state information, including service and node IP addresses, health checks, and configuration. Client agents are lightweight processes that make up the majority of the datacenter. They report service health status to the server agents. Clients must run on every pod where services are running.
+
+Run the CLI command `consul members` to return the list of Consul agents in your environment. 
+
+```shell-session
+$ consul members
+Node             Address          Status  Type    Build        Protocol  DC   Partition  Segment
+consul-server-0  10.0.4.117:8301  alive   server  1.14.0beta1  2         dc1  default    <all>
+consul-server-1  10.0.5.11:8301   alive   server  1.14.0beta1  2         dc1  default    <all>
+consul-server-2  10.0.4.55:8301   alive   server  1.14.0beta1  2         dc1  default    <all>
+```
+
+</Tab>
+<Tab heading="UI">
+
+Output the token value to your terminal and copy the value to your clipboard. You will use this ACL token to authenticate in the Consul UI.
+
+```shell-session
+$ echo $CONSUL_HTTP_TOKEN
+fe0dd5c3-f2e1-81e8-cde8-49d26cee5efc
+```
+
+Open a separate terminal window and expose the Consul UI with `kubectl port-forward` using the `consul-ui` service name as the target. By default, Consul UI runs on port `6443` when you enable TLS, and port `8500` when TLS is disabled.
+
+```shell-session
+$ kubectl port-forward svc/consul-ui --namespace consul 6443:443
+```
+
+Open [https://localhost:6443](https://localhost:6443) in your browser to find the Consul UI. Since this environment uses a self-signed TLS certificate for its resources, click to proceed through the certificate warnings.
+
+On the left navigation pane, click **Services** to review your deployed services. At this time, you will only find the `consul` service.
+
+![Consul UI Services Page](/img/consul/kubernetes-gs-deploy_consul_ui_services.png 'Consul services page in UI with Consul services')
+
+By default, the anonymous ACL policy allows you to view the contents of Consul services, nodes, and intentions. To make changes and see more details within the Consul UI, click **Log In** in the top right and insert your bootstrap ACL token.
+
+![Consul UI Login Page](/img/consul/kubernetes-gs-deploy_consul_ui_login.png 'Consul login page in UI')
+
+After successfully authenticating with your ACL token, you are now able to view additional Consul components and make changes in the UI. Notice you can view and manage more options under the **Access Controls** section on the left navigation pane.
+
+![Consul UI Post Authentication](/img/consul/kubernetes-gs-deploy_consul_ui_post_authentication.png 'Consul UI post authentication')
+
+On the left navigation pane, click on **Nodes**. 
+
+Agents run in either server or client mode. Server agents store all state information, including service and node IP addresses, health checks, and configuration. Client agents are lightweight processes that make up the majority of the datacenter. They report service health status to the server agents. Clients must run on every pod where services are running.
+ 
+![Consul UI Nodes](/img/consul/kubernetes-eks-aws-consul_view_nodes.png 'Consul UI Nodes')
+
+</Tab>
+<Tab heading="API">
+
+View the list of services registered in Consul.
+
+```shell-session
+$ curl -k \
+    --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+    $CONSUL_HTTP_ADDR/v1/catalog/services
+```
+
+Sample output: 
+
+```json hideClipboard
+{"consul":[]}
+```
+
+Agents run in either server or client mode. Server agents store all state information, including service and node IP addresses, health checks, and configuration. Client agents are lightweight processes that make up the majority of the datacenter. They report service health status to the server agents. Clients must run on every pod where services are running.
+
+View the list of server and client Consul agents in your environment.
+
+```shell-session
+$ curl -k \
+    --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+    $CONSUL_HTTP_ADDR/v1/agent/members\?pretty
+```
+
+Sample output:
+
+```json hideClipboard
+[
+  {
+    "Name": "consul-server-0",
+    "Addr": "10.244.0.13",
+    "Port": 8301,
+    "Tags": {
+      "acls": "1",
+      "bootstrap": "1",
+      "build": "1.14.0",
+      "dc": "dc1",
+      "ft_fs": "1",
+      "ft_si": "1",
+      "grpc_port": "8502",
+      "id": "8016fc4d-767f-8552-b018-0812228bd135",
+      "port": "8300",
+      "raft_vsn": "3",
+      "role": "consul",
+      "segment": "",
+      "use_tls": "1",
+      "vsn": "2",
+      "vsn_max": "3",
+      "vsn_min": "2",
+      "wan_join_port": "8302"
+    },
+    "Status": 1,
+    "ProtocolMin": 1,
+    "ProtocolMax": 5,
+    "ProtocolCur": 2,
+    "DelegateMin": 2,
+    "DelegateMax": 5,
+    "DelegateCur": 4
+  }
+  ## ...
+]
+```
+
+</Tab>
+</Tabs>
+
+All services listed in your Consul catalog are empowered with Consul's service discovery capabilities that simplify scalability challenges and improve application resiliency. Review the [Service Discovery overview](/consul/docs/concepts/service-discovery) page to learn more.
+
+## Next steps
+
+You learned how to deploy a Consul datacenter onto an Azure Kubernetes Service (AKS) cluster. After deploying Consul, you interacted with Consul using the CLI, UI, and API.
+
+To learn more about deployment best practices, review the [Kubernetes reference architecture tutorial](/consul/tutorials/kubernetes/kubernetes-reference-architecture).

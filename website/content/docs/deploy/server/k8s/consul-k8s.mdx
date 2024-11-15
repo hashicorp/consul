@@ -1,0 +1,95 @@
+---
+layout: docs
+page_title: Install Consul on Kubernetes with the Consul K8s CLI
+description: >-
+  You can use the Consul K8s CLI tool to schedule Kubernetes deployments instead of using Helm. Learn how to download and install the tool to interact with Consul on Kubernetes using the `consul-k8s` command.
+---
+
+# Install Consul on Kubernetes with the Consul K8s CLI
+
+This topic describes how to install Consul on Kubernetes using the Consul K8s CLI (`consul-k8s`). The Consul K8s CLI lets you quickly install and interact with Consul on Kubernetes. Use the Consul K8s CLI tool to install Consul on Kubernetes if you are deploying a single cluster. 
+
+We recommend using the [Helm chart installation method](/consul/docs/deploy/server/k8s/helm) if you are installing Consul on Kubernetes for multi-cluster deployments that involve cross-partition or cross datacenter communication.
+
+## Requirements
+
+You must meet the following requirements to install Consul on Kubernetes with `consul-k8s`:
+
+- `kubectl` configured to point to the Kubernetes cluster you want to install Consul on
+- `consul-k8s` installed on your local machine. Refer to [Consul on Kubernetes CLI reference](/consul/docs/reference-cli/consul-k8s#install-the-cli) for instructions.
+
+   <Note>
+
+   You must install the correct version of the CLI for your Consul on Kubernetes deployment. To deploy a previous version of Consul on Kubernetes, download the specific version of the CLI that matches the version of the control plane that you would like to deploy. Refer to the [compatibility matrix](/consul/docs/k8s/compatibility) for details.
+
+   </Note>
+
+
+## Install Consul on Kubernetes
+
+Issue the `install` subcommand to install Consul on your existing Kubernetes cluster. If you do not include any additional options, the `consul-k8s` CLI installs Consul on Kubernetes using the default settings from the Consul Helm chart values. 
+
+You can specify options to configure your Consul install. For example, you can include the `-auto-approve` option set to `true` to proceed with the installation if the pre-install checks pass. Refer to the [Consul K8s CLI reference](/consul/docs/reference-cli/consul-k8s) for details about all commands and available options.
+
+The following example installs Consul on Kubernetes with service mesh and CRDs enabled.
+
+```shell-session
+$ consul-k8s install 
+==> Pre-Install Checks
+No existing installations found.
+ ✓ No previous persistent volume claims found
+ ✓ No previous secrets found
+==> Consul Installation Summary
+   Installation name: consul
+   Namespace: consul
+   Overrides:
+   connectInject:
+      enabled: true
+
+   Proceed with installation? (y/N) y
+
+==> Running Installation
+   ✓ Downloaded charts
+--> creating 1 resource(s)
+--> creating 45 resource(s)
+--> beginning wait for 45 resources with timeout of 10m0s
+   ✓ Consul installed into namespace "consul"
+```
+
+The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are detected. Refer to the [uninstall instructions](/consul/docs/deploy/server/k8s/uninstall) for information about removing PVCs.
+
+## Custom installation
+
+You can create a values file and specify parameters to overwrite the default Helm chart installation. Add the `-f` and specify your values file to implement your configuration, for example:
+
+```shell-session
+$ consul-k8s install -f values.yaml
+``` 
+
+### Install Consul on OpenShift clusters
+
+[Red Hat OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift) is a security-conscious, opinionated wrapper for Kubernetes. To install Consul on OpenShift-managed Kubernetes, set `global.openshift.enabled=true` in your [custom installation](#custom-installation) values file:
+
+```yaml
+global:
+  openshift:
+    enabled: true
+```
+
+Refer to [`openshift` in the Helm chart reference](/consul/docs/reference/k8s/helm#v-global-openshift) for additional information.  
+
+## Check the Consul cluster status
+
+Issue the `consul-k8s status` command to view the status of the installed Consul cluster.
+
+```shell-session
+$ consul-k8s status
+
+==> Consul-K8s Status Summary
+   NAME  | NAMESPACE |  STATUS  | CHARTVERSION | APPVERSION | REVISION |      LAST UPDATED
+---------+-----------+----------+--------------+------------+----------+--------------------------
+   consul | consul    | deployed | 0.40.0       | 1.14.0     |        1 | 2022/01/31 16:58:51 PST
+
+✓ Consul servers healthy (3/3)
+✓ Consul clients healthy (3/3)
+```

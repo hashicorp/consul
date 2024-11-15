@@ -1,0 +1,430 @@
+---
+layout: docs
+page_title: Consul External Service Monitor (ESM)
+description: >-
+  Register and health check services with Consul, even when they are running on nodes without a co-located Consul agent.
+---
+
+# Consul External Service Monitor (ESM)
+
+Consul enables the registration and discovery of services internal to your
+infrastructure as well as external services: third-party SaaS services, and
+services running in other environments where it is not possible to run the
+Consul agent directly.
+
+In this tutorial, you will compare the process of registering and health checking
+internal and external services using Consul and [Consul ESM](https://github.com/hashicorp/consul-esm)
+(External Service Monitor). Before you begin you will want to
+[download Consul](/consul/install/). This is the only
+prerequisite.
+
+We will cover:
+
+- Internal service registration and health checks
+- External service registration and health checks
+- Using Consul ESM to monitor the health of external services
+- A discussion of pull vs. push health checking
+
+~> This tutorial is an illustration of the differences between internal and
+external service monitoring, and is not intended for production use.
+
+## Start the Consul agent
+
+For this tutorial, you will deploy a Consul agent running locally in `-dev` mode
+with the Consul `-ui` enabled. You'll use the
+[`-enable-script-checks`](/consul/docs/agent/config/config-files#_enable_script_checks)
+flag to allow simple ping-based health checks, and will specify a node name of
+`web` rather than the default of `hostname` to make the examples clearer.
+
+Begin by starting the Consul agent.
+
+```shell-session
+$ consul agent -dev -enable-script-checks -node=web -ui
+```
+
+Throughout the tutorial, you will use `curl` to interact with Consul's [HTTP API](/consul/api-docs/)
+as well as Consul's Web UI, available at http://localhost:8500/ui.
+
+~> **Security Warning**: Because [`-enable-script-checks`](/consul/docs/agent/config/config-files#_enable_script_checks)
+allows script checks to be registered via HTTP API, it may introduce a
+[remote execution vulnerability](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+known to be targeted by malware. For production environments, we strongly recommend using
+[`-enable-local-script-checks`](/consul/docs/agent/config/config-files#_enable_local_script_checks)
+instead, which removes that vulnerability by allowing script checks to only be
+defined in the Consul agent's [local configuration files](/consul/docs/agent/config/config-files#_config_dir),
+not via HTTP API.
+
+## Register an internal service with a health check
+
+First you will register an internal service. Internal services run on the same
+node (machine) as a Consul agent. You register internal services via
+[service definitions](/consul/docs/services/configuration/services-configuration-overview),
+which you supply in configuration files that Consul loads from the Consul
+agent's data directory, either when the Consul agent starts, or after the agent
+has started via the local HTTP API endpoint at
+[`/agent/service/register`](/consul/api-docs/agent/service#register-service).
+The local Consul agent is responsible for running any health checks registered
+for the service and updating the catalog accordingly.
+
+Create a file called `web.json` that contains the following configuration:
+
+<CodeBlockConfig filename="web.json">
+
+```json
+{
+  "id": "web1",
+  "name": "web",
+  "port": 80,
+  "check": {
+    "name": "ping check",
+    "args": ["ping", "-c1", "learn.hashicorp.com"],
+    "interval": "30s",
+    "status": "passing"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+The above web service will have unique id `web1`, logical name `web`, run on
+port `80` and have one health check.
+
+The health check verifies that the web service can connect to the public
+internet by pinging hashicorp.com every 30 seconds. In the case of an actual web
+service, you should configure a more useful health check. Consul provides
+several kinds of [health checks](/consul/docs/services/usage/checks),
+including: Script, HTTP, TCP, Time to Live (TTL), Docker, and gPRC.
+
+Register the example web service by calling the HTTP API with a PUT request:
+
+```shell-session
+$ curl --request PUT --data @web.json localhost:8500/v1/agent/service/register
+```
+
+-> If you prefer to register services by providing a configuration file and
+restarting the Consul agent, check the [Registering Services](/consul/tutorials/get-started-vms/virtual-machine-gs-service-discovery)
+tutorial for instructions.
+
+Verify that the example web service has been registered, by querying the
+[`/catalog/service/:service`](/consul/api-docs/catalog#list-nodes-for-service)
+endpoint:
+
+```shell-session
+$ curl localhost:8500/v1/catalog/service/web
+[
+	{
+		"ID": "a2ebf70e-f912-54b5-2354-c65e2a2808de",
+		"Node": "web",
+		"Address": "127.0.0.1",
+		"Datacenter": "dc1",
+		"TaggedAddresses": {
+			"lan": "127.0.0.1",
+			"wan": "127.0.0.1"
+		},
+		"NodeMeta": {
+			"consul-network-segment": ""
+		},
+		"ServiceID": "web1",
+		"ServiceName": "web",
+		"ServiceAddress": "",
+		"ServiceMeta": {},
+		"ServicePort": 80,
+		"ServiceEnableTagOverride": false,
+		"CreateIndex": 7,
+		"ModifyIndex": 7
+	}
+]
+```
+
+Inspect all the health checks configured for services registered with a given
+local node using the
+[`/agent/checks/`](/consul/api-docs/agent/check#list-checks)
+endpoint:
+
+```shell-session
+$ curl localhost:8500/v1/agent/checks
+{
+	"service:web1": {
+		"Node": "web",
+		"CheckID": "service:web1",
+		"Name": "ping check",
+		"Status": "passing",
+		"Notes": "",
+		"Output": "PING learn.hashicorp.com (172.217.3.164): 56 data bytes\n64 bytes from 172.217.3.164: icmp_seq=0 ttl=52 time=21.902 ms\n\n--- learn.hashicorp.com ping statistics ---\n1 packets transmitted, 1 packets received, 0.0% packet loss\nround-trip min/avg/max/stddev = 21.902/21.902/21.902/0.000 ms\n",
+		"ServiceID": "web1",
+		"ServiceName": "web",
+		"ServiceTags": [
+			"rails"
+		],
+		"Definition": {},
+		"CreateIndex": 0,
+		"ModifyIndex": 0
+	}
+}
+```
+
+You can also query the health of individual services with
+[`/health/service/:service`](/consul/api-docs/health#list-checks-for-service)
+and nodes with
+[`/health/node/:node`](/consul/api-docs/health#list-checks-for-node).
+
+Navigate to your web service in the Consul UI and click on the "Health Checks"
+tab for a graphical view of your health check.
+
+## Register an external service with a health check
+
+In the context of Consul, external services run on nodes where you cannot run a
+local Consul agent. These nodes might be inside your infrastructure (e.g. a
+mainframe, virtual appliance, or unsupported platform) or outside of it (e.g. a
+SaaS platform).
+
+Because external services by definition don't have a local Consul agent, you
+can't register them with that agent or use it for health checking. Instead, you
+must register them directly with the catalog using the
+[`/catalog/register`](/consul/api-docs/catalog#register-entity)
+endpoint. In contrast to service registration where the object context for the
+endpoint is a service, the object context for the catalog endpoint is the node.
+In other words, using the `/catalog/register` endpoint registers an entire node,
+while the `/agent/service/register` endpoint registers individual services in
+the context of a node.
+
+The configuration for an external service registered directly with the catalog
+is slightly different than for an internal service registered via an agent:
+
+- `Node` and `Address` are both required since they cannot be automatically
+  determined from the local node Consul agent.
+
+- Services and health checks are defined separately.
+
+- If a `ServiceID` is provided that matches the ID of a service on that node,
+  the check is treated as a service level health check, instead of a node level
+  health check.
+
+- The `Definition` field can be provided with details for a TCP or HTTP health
+  check. For more information, check the [Health Checks](/consul/docs/services/usage/checks)
+  documentation.
+
+To understand how external service registration works, register an external
+learn service provided by HashiCorp. First create the following configuration
+file, `external.json`:
+
+<CodeBlockConfig filename="external.json">
+
+```json
+{
+  "Node": "hashicorp",
+  "Address": "learn.hashicorp.com",
+  "NodeMeta": {
+    "external-node": "true",
+    "external-probe": "true"
+  },
+  "Service": {
+    "ID": "learn1",
+    "Service": "learn",
+    "Port": 80
+  },
+  "Checks": [
+    {
+      "Name": "http-check",
+      "status": "passing",
+      "Definition": {
+        "http": "https://learn.hashicorp.com/consul/",
+        "interval": "30s"
+      }
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+This configuration defines a node named `hashicorp` available at address
+`learn.hashicorp.com/consul/` that provides a `learn` service with an ID of
+`learn1` running on port 80. When `Address` is defined, Consul will ping the address by default. It also defines an HTTP-type health check to be run
+every 30 seconds and sets an initial state for that check of `passing`.
+
+Typically external services are registered via nodes dedicated for that purpose
+so we'll continue our example using the Consul dev agent (localhost) as if it
+were running on a different node (e.g. "External Services") from the one where
+our internal `web` service is registered.
+
+This diagram visualizes the differences between how internal and external
+services are registered with Consul:
+
+![Diagram showing difference between how internal and external services are registered with Consul.](https://www.datocms-assets.com/2885/1531780995-consul-registering-services.png 'Registering internal and external services with Consul')
+
+Use a PUT request to register the external service.
+
+```shell-session
+$ curl --request PUT --data @external.json localhost:8500/v1/catalog/register
+true
+```
+
+Query the `/catalog/service/:service` endpoint to verify that the external
+service registered with the catalog, just like you did for the internal service.
+
+```shell-session
+$ curl localhost:8500/v1/catalog/service/learn
+[
+	{
+		"ID": "",
+		"Node": "hashicorp",
+		"Address": "learn.hashicorp.com",
+		"Datacenter": "dc1",
+		"TaggedAddresses": null,
+		"NodeMeta": {
+			"external-node": "true",
+			"external-probe": "true"
+		},
+		"ServiceID": "learn1",
+		"ServiceName": "learn",
+		"ServiceTags": [],
+		"ServiceAddress": "",
+		"ServiceMeta": {},
+		"ServicePort": 80,
+		"ServiceEnableTagOverride": false,
+		"CreateIndex": 246,
+		"ModifyIndex": 246
+	}
+]
+```
+
+In the example of an internal web service, you verified your health check was
+active by querying the local agent endpoint `/agent/checks`. If you query this
+again after adding our external service, you won't get the health check listed
+because it was registered with the service catalog not the local agent. Instead,
+you'll need to query a catalog-level endpoint such as
+[`/health/service/:service`](/consul/api-docs/health#list-nodes-for-service),
+[`/health/node/:node`](/consul/api-docs/health#list-checks-for-node),
+or
+[`/health/state/:state`](/consul/api-docs/health#list-checks-in-state).
+You can, however, verify the service and its health check are listed in the Consul UI.
+Because the check is listed we know that there is an entry for it in the
+catalog, but because this node and service don't have a local agent to run the
+check the node's health will not be monitored.
+
+## Simulate an outage
+
+To see the difference between internal and external service health checks query
+for node health after simulating an outage.
+
+To simulate an outage, disconnect from the internet, wait a few moments, and
+look at your health checks in the Consul UI. You will see a failing check for
+the internal web service, but continue to see the passing check for the external
+learn service, even though it can't reach learn.hashicorp.com. Health checks for
+both services should fail while disconnected from the internet but only the
+check for our internal web service is failing.
+
+The external service's health check doesn't update with the new failing status,
+because Consul's health checks rely on the local Consul agent to report status
+changes, and external services don't have local agents. An extra component is
+required to keep external service health checks up to date.
+
+## Monitor the external service with Consul ESM
+
+[Consul ESM](https://github.com/hashicorp/consul-esm) is a daemon that runs
+alongside Consul in order to health check external nodes and update their status
+in the catalog. It allows externally registered services and checks to access
+the same features as if they were registered locally on Consul agents. You can
+run multiple instances of ESM for availability. ESM will perform a leader
+election by holding a lock in Consul. The leader will then continually watch
+Consul for updates to the catalog and perform health checks defined on any
+external nodes it discovers.
+
+The diagram from earlier is updated to show how Consul ESM works with Consul to
+monitor the health of external services:
+
+![Diagram showing how Consul ESM works with Consul to monitor the health of external services.](https://www.datocms-assets.com/2885/1531780984-consul-consul-esm.png 'Monitoring external services with Consul ESM')
+
+Consul ESM is provided as a single binary. To install, download the latest
+[release](https://releases.hashicorp.com/consul-esm) appropriate for your system
+and make it available in your PATH.
+
+Open a new terminal and start Consul ESM with `consul-esm`.
+
+```shell-session
+$ consul-esm
+
+2018/06/14 12:50:44 [INFO] Connecting to Consul on 127.0.0.1:8500...
+Consul ESM running!
+      Datacenter: (default)
+         Service: "consul-esm"
+      Leader Key: "consul-esm/lock"
+Node Reconnect Timeout: "72h0m0s"
+
+Log data will now stream in as it occurs:
+
+2018/06/14 12:50:44 [INFO] Waiting to obtain leadership...
+2018/06/14 12:50:44 [INFO] Obtained leadership
+```
+
+If your internet provider does not allow UDP pings you may have to set
+`ping_type = "socket"` in a config file and launch `consul-esm` with that config
+file. If you are using macOS you will need to run with `sudo`:
+
+```shell-session
+$ sudo consul-esm -config-file=./consul-esm.hcl
+```
+
+The example external service definition you used included the following
+`NodeMeta` values that enable health monitoring by Consul ESM:
+
+- `"external-node"` identifies the node as an external one that Consul ESM
+  should monitor.
+- `"external-probe": "true"` tells Consul ESM to perform regular
+  pings to the node and maintain an externalNodeHealth check for the node (similar
+  to the serfHealth check used by Consul agents).
+
+Once Consul ESM is running, simulate an outage again by disconnecting from the
+internet. Now in Consul UI, you will see that the health checks for the external
+service are updated to critical as they should be.
+
+Consul ESM supports HTTP and TCP health checks. Ping health checks are added
+automatically with `"external-probe": "true"`.
+
+## Discussion: push vs. pull health checking
+
+Traditional health checking uses a pull model; on a regular interval, the
+monitoring server asks all the nodes if they are healthy and the nodes respond
+with a status. This makes sure that the status of each node stays up to date,
+but creates a bottleneck because as the number of nodes scales, so does the
+amount of traffic to the monitoring service. This clogs local network traffic
+and puts unnecessary load on the datacenter.
+
+Consul solves this problem using a push-based model, where agents send events
+only upon status changes which keeps the number of requests low. The problem
+with this edge-triggered monitoring is that there are no liveness heartbeats. In
+the absence of any updates Consul assumes that the server is still healthy, even
+if it has died. Consul gets around this by using a gossip-based failure
+detector. All datacenter members take part in a background gossip, which has a
+constant load regardless of datacenter size. The combination of gossip-based
+failure detection and edge-triggered updates allows Consul to scale to very
+large datacenter sizes without being heavily loaded.
+
+By definition, external services don't have a local Consul agent to participate
+in gossip, so if the node running an external service dies, Consul won't know
+about it. This is why ESM is required for monitoring external services.
+
+## Next steps
+
+Internal services are those provided by nodes where the Consul agent can run
+directly. They are registered with service definitions via the local Consul
+agent. The local Consul agent on the node is responsible for running any health
+checks registered for the service and updating the catalog accordingly.
+
+External services run on nodes where the Consul agent cannot be run. They must
+be registered directly with the catalog because, by definition, they don't have
+a local Consul agent to register with.
+
+Both internal and external services can have health checks associated with them.
+Health checking in Consul uses a push-based model where agents send events only
+upon status changes. Because Consul monitoring requires that a Consul agent be
+running on the monitored service, health checks are not performed on external
+services. To enable health monitoring for external services, use [Consul
+External Service Monitor](https://github.com/hashicorp/consul-esm).
+
+In this tutorial, you registered both internal and external services with heath
+checks, using the Consul ESM to monitor health of the external service. Consul
+provides several kinds of health checks including: Script , HTTP, TCP, Time to
+Live (TTL), Docker, and gPRC. To learn more about health check options in
+Consul, please visit the [health check documentation](/consul/docs/services/usage/checks).

@@ -1,0 +1,743 @@
+---
+layout: docs
+page_title: Deploy Consul on Openshift
+description: >-
+  Deploy Consul on OpenShift with the official Helm chart and deploy services into Consul's service mesh.
+---
+
+# Deploy Consul on Openshift
+
+This topic describes how to deploy a Consul datacenter to an Openshift Kubernetes cluster. After deploying Consul, you will interact with Consul using the CLI, UI, and/or API.
+
+[Red Hat OpenShift](https://www.openshift.com/learn/what-is-openshift) is a distribution of the Kubernetes platform that provides a number of usability and security enhancements.
+
+<Warning title="Security Warning">
+
+ This tutorial is not for production use. The chart was installed with an insecure configuration of Consul. Refer to the [Secure Consul and Registered Services on Kubernetes tutorial](/consul/tutorials/kubernetes/kubernetes-secure-agents) to learn how you can secure Consul on Kubernetes in production.
+
+</Warning>
+
+## Requirements
+
+To deploy Consul on Openshift, you will need:
+
+- Access to a Kubernetes cluster deployed with OpenShift
+- A Red Hat account
+- [CodeReady Containers v1.17.0+](https://access.redhat.com/documentation/en-us/red_hat_codeready_containers/1.0/html/getting_started_guide/getting-started-with-codeready-containers_gsg)
+- [consul v1.14.0+](/consul/install/)
+- [Helm v3.6+](https://helm.sh/docs/helm/helm_install/)
+- [consul-k8s v1.0.2+](/consul/docs/reference-cli/consul-k8s#install-the-cli)
+
+---
+
+## Deploy OpenShift
+
+You can deploy OpenShift on multiple [platforms](https://docs.openshift.com/container-platform/4.8/installing/index.html#supported-platforms-for-openshift-clusters_ocp-installation-overview), and there are several installation options available for installing OpenShift on either production and development environments. This guide requires a running OpenShift cluster to deploy Consul on Kubernetes. If an OpenShift cluster is already provisioned in a production or development environment to be used for deploying Consul on Kubernetes, skip ahead to [Deploy Consul](#deploy-consul).
+
+This tutorial will use CodeReady Containers (CRC) to provide a pre-configured development OpenShift environment on your local machine. CRC is bundled as a Red Hat Enterprise Linux virtual machine that supports native hypervisors for Linux, macOS, and Windows 10. CRC is the quickest way to get started building OpenShift clusters. It is designed to run on a local computer to simplify setup and emulate the cloud development environment locally with all the tools needed to develop container-based apps. While we use CRC in this tutorial, the Consul Helm deployment process will work on any OpenShift cluster and is production ready.
+
+If deploying CRC is not preferred, a managed OpenShift cluster could quickly be provisioned within less than an hour using [Azure RedHat OpenShift](https://docs.microsoft.com/en-us/azure/openshift/tutorial-create-cluster). [Azure RedHat Openshift](https://docs.microsoft.com/en-us/azure/openshift/intro-openshift) requires an Azure subscription. However, it provides the simplest installation flow for getting a production-ready OpenShift cluster available to be used for this tutorial. 
+
+### CRC Setup
+
+After installing CodeReady Containers, issue the following command to setup your environment.
+
+```shell-session
+$ crc setup
+INFO Using bundle path /Users/hashicorp/.crc/cache/crc_vfkit_4.11.3_arm64.crcbundle
+INFO Checking if running as non-root
+INFO Checking if crc-admin-helper executable is cached
+INFO Checking for obsolete admin-helper executable
+INFO Checking if running on a supported CPU architecture
+INFO Checking minimum RAM requirements
+INFO Checking if crc executable symlink exists
+INFO Creating symlink for crc executable
+INFO Checking if running emulated on a M1 CPU
+INFO Checking if vfkit is installed
+INFO Checking if CRC bundle is extracted in '$HOME/.crc'
+INFO Checking if /Users/hashicorp/.crc/cache/crc_vfkit_4.11.3_arm64.crcbundle exists
+INFO Checking if old launchd config for tray and/or daemon exists
+INFO Checking if crc daemon plist file is present and loaded
+INFO Adding crc daemon plist file and loading it
+Your system is correctly setup for using CRC. Use 'crc start' to start the instance
+```
+
+### CRC start
+
+Once the setup is complete, you can start the CRC service with the following command. The command will perform a few system checks to ensure your system meets the minimum requirements and will then ask you to provide an image pull secret. You should have your [Red Hat account](https://cloud.redhat.com/openshift/install/crc/installer-provisioned)
+open so that you can easily copy your image pull secret when prompted.
+
+```shell-session
+$ crc start
+INFO Checking if running as non-root
+INFO Checking if crc-admin-helper executable is cached
+INFO Checking for obsolete admin-helper executable
+INFO Checking if running on a supported CPU architecture
+INFO Checking minimum RAM requirements
+INFO Checking if crc executable symlink exists
+INFO Checking if running emulated on a M1 CPU
+INFO Checking if vfkit is installed
+INFO Checking if old launchd config for tray and/or daemon exists
+INFO Checking if crc daemon plist file is present and loaded
+INFO Loading bundle: crc_vfkit_4.11.3_arm64...
+CRC requires a pull secret to download content from Red Hat.
+You can copy it from the Pull Secret section of https://console.redhat.com/openshift/create/local.
+? Please enter the pull secret
+```
+
+Next, paste the image pull secret into the terminal and press enter.
+
+Example output:
+
+<CodeBlockConfig hideClipboard>
+
+```plain-text
+INFO Creating CRC VM for openshift 4.11.3...
+INFO Generating new SSH key pair...
+INFO Generating new password for the kubeadmin user
+...TRUNCATED...
+
+INFO Adding crc-admin and crc-developer contexts to kubeconfig...
+Started the OpenShift cluster.
+
+The server is accessible via web console at:
+  https://console-openshift-console.apps-crc.testing
+
+Log in as administrator:
+  Username: kubeadmin
+  Password: <redacted> 
+
+Log in as user:
+  Username: developer
+  Password: developer
+
+Use the 'oc' command line interface:
+  $ eval $(crc oc-env)
+  $ oc login -u developer https://api.crc.testing:6443
+```
+
+</CodeBlockConfig>
+
+Notice that the output instructs you to configure your `oc-env`, and also includes
+a login command and secret password. The secret is specific to your installation.
+Make note of this command, as you will use it to login to CRC on your development
+host later.
+
+### Configure CRC environment
+
+Next, configure the environment as instructed by CRC using the following command.
+
+```shell-session
+$ eval $(crc oc-env)
+```
+
+### Login to the OpenShift cluster
+
+Next, use the login command you made note of before to authenticate with the OpenShift cluster.
+
+-> **Note** You will have to replace the secret password below with the value output
+by CRC.
+
+```shell-session
+$ oc login -u kubeadmin -p <redacted> https://api.crc.testing:6443
+Login successful.
+
+You have access to 66 projects, the list has been suppressed. You can list all projects with 'oc projects'
+
+Using project "default".
+```
+
+### Verify configuration
+
+Validate that your CRC setup was successful with the following command.
+
+```shell-session
+$ kubectl cluster-info
+Kubernetes control plane is running at https://api.crc.testing:6443
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
+
+### Create a new project
+
+First, create an OpenShift project to install Consul on Kubernetes. Creating an OpenShift project creates a Kubernetes namespace to deploy Kubernetes resources.
+
+```shell-session
+$ oc new-project consul
+Now using project "consul" on server "https://api.crc.testing:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=k8s.gcr.io/e2e-test-images/agnhost:2.33 -- /agnhost serve-hostname
+```
+
+### Create an image pull secret for a RedHat Registry service account
+
+You must create an image pull secret before authenticating to the RedHat Registry and pulling images from the container registry. You must first create a registry service account on the [RedHat Customer Portal](https://access.redhat.com/terms-based-registry/), and then apply the OpenShift secret that is associated with the registry service account as shown below:
+
+```shell-session 
+$ kubectl create -f openshift-secret.yml --namespace=consul
+secret/15490118-openshift-secret-secret created
+```
+
+In the Helm chart values file, use the output of previous command and update the attribute `imagePullSecrets` stanza with its value.
+
+## Deploy Consul
+
+### Helm chart configuration
+
+To customize your deployment, you can pass a YAML configuration file to be used during the deployment.
+Any values specified in the values file will override the Helm chart's default settings.
+The following example file sets the `global.openshift.enabled` entry to true,
+which is required to operate Consul on OpenShift. Generate a
+file named `values.yaml` that you will reference in the `helm install` command later.
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+global:
+  name: consul
+  datacenter: dc1
+  image: registry.connect.redhat.com/hashicorp/consul:1.14.3-ubi 
+  imageK8S: registry.connect.redhat.com/hashicorp/consul-k8s-control-plane:1.0.2-ubi
+  imageConsulDataplane: registry.connect.redhat.com/hashicorp/consul-dataplane:1.0.0-ubi
+  imagePullSecrets:
+    - name: <Insert image pull secret name for RedHat Registry Service Account>
+  openshift:
+    enabled: true
+    
+server:
+  replicas: 1
+  bootstrapExpect: 1
+  disruptionBudget:
+    enabled: true
+    maxUnavailable: 0
+    
+ui:
+  enabled: true 
+    
+connectInject:
+  enabled: true
+  default: true
+  cni:
+    enabled: true
+    logLevel: info
+    multus: true
+    cniBinDir: /var/lib/cni/bin
+    cniNetDir: /etc/kubernetes/cni/net.d
+
+```
+
+</CodeBlockConfig>
+
+### Install Consul
+
+<Tabs>
+<Tab heading="Helm">
+
+### Helm chart preparation
+
+Consul on Kubernetes provides a Helm chart to deploy a Consul datacenter on Kubernetes in a highly customized configuration. Review the docs on [Helm chart Configuration](/consul/docs/reference/k8s/helm) to learn more about the available configurations.
+
+</Tab>
+<Tab heading="Download">
+
+
+If you have not already done so, download the latest official consul-helm
+chart now.
+
+```shell-session
+$ helm repo add hashicorp https://helm.releases.hashicorp.com
+"hashicorp" has been added to your repositories
+```
+
+</Tab>
+<Tab heading="Update">
+
+
+If you have already installed the official Consul Helm chart, update it now
+to ensure you have the latest chart versions available.
+
+```shell-session
+$ helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "hashicorp" chart repository
+```
+
+</Tab>
+</Tabs>
+
+
+### Verify chart version
+
+To ensure you have version `1.0.2` of the Helm chart, search your local repo.
+
+```shell-session
+$ helm search repo hashicorp/consul
+NAME            	CHART VERSION	APP VERSION	DESCRIPTION
+hashicorp/consul	1.0.2       	1.14.3      Official HashiCorp Consul Chart
+```
+
+If the correct version is not displayed in the output, try
+updating your helm repo.
+
+```shell-session
+$ helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "hashicorp" chart repository
+```
+
+### Import images from RedHat Catalog
+
+Instead of pulling images directly from the RedHat Registry, Consul and Consul on Kubernetes images could also be pre-loaded onto the internal OpenShift registry using the `oc import` command. Read more about importing images into the internal OpenShift Registry in the RedHat OpenShift [cookbook](https://cookbook.openshift.org/image-registry-and-image-streams/how-do-i-import-an-image-from-an-external-image.html)
+
+```shell-session
+$ oc import-image hashicorp/consul:1.14.3-ubi --from=registry.connect.redhat.com/hashicorp/consul:1.14.3-ubi --confirm
+$ oc import-image hashicorp/consul-k8s-control-plane:1.0.2-ubi --from=registry.connect.redhat.com/hashicorp/consul-k8s-control-plane:1.0.2-ubi --confirm
+$ oc import-image hashicorp/consul-dataplane:1.0.0-ubi --from=registry.connect.redhat.com/hashicorp/consul-dataplane:1.0.0-ubi --confirm
+```
+
+### Install Consul in your cluster
+
+You can now deploy a complete Consul datacenter in your Kubernetes cluster using the official Consul Helm chart or the Consul K8S CLI.
+
+<Tabs>
+<Tab heading="Helm">
+
+Now, issue the `helm install` command. The following command specifies that the
+installation should:
+
+- Use the custom values file you created earlier
+- Use the `hashicorp/consul` chart you downloaded in the last step
+- Set your Consul installation name to `consul`
+- Create Consul resources in the `consul` namespace
+- Use `consul-helm` chart version `1.0.2`
+
+
+```shell-session
+$ helm install consul hashicorp/consul --values values.yaml --create-namespace --namespace consul --version "1.0.2" --wait
+```
+
+The output will be similar to the following.
+
+```shell-session
+NAME: consul
+LAST DEPLOYED: Wed Sep 28 11:00:16 2022
+NAMESPACE: consul
+STATUS: deployed
+REVISION: 1
+NOTES:
+Thank you for installing HashiCorp Consul!
+
+Your release is named consul.
+
+To learn more about the release, run:
+
+  $ helm status consul
+  $ helm get all consul
+
+Consul on Kubernetes Documentation:
+https://www.consul.io/docs/platform/k8s
+
+Consul on Kubernetes CLI Reference:
+https://www.consul.io/docs/reference/k8s/consul-k8s-cli
+```
+
+</Tab>
+<Tab heading="Consul K8S CLI (Linux and Mac)">
+
+Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes. Ensure that you are installing the correct version of the CLI for your Consul on Kubernetes deployment, as the CLI and the control plane are version dependent.
+
+In order to install the latest version of the Consul K8s CLI depending on your operating system, follow the instructions [here](/consul/docs/k8s/installation/install-cli#install-the-cli).
+
+```shell-session
+$ consul-k8s install -config-file=values.yaml
+```
+
+<Note>
+
+ You can review the official [Consul K8S CLI documentation](/consul/docs/reference-cli/consul-k8s) to learn more about additional settings.
+
+</Note>
+
+When Consul is installed successfully, expect the following output:
+
+```shell-session
+==> Installing Consul
+ ✓ Downloaded charts
+ --> creating 1 resource(s)
+ --> creating 46 resource(s)
+ --> beginning wait for 46 resources with timeout of 10m0s
+ ✓ Consul installed in namespace "consul".
+```
+
+</Tab>
+</Tabs>
+
+### Verify installation
+
+
+Use `kubectl get pods` to verify your installation.
+
+```shell-session
+$ watch kubectl get pods --namespace consul
+NAME                                           READY   STATUS    RESTARTS   AGE
+consul-cni-45fgb                               1/1     Running   0          3m
+consul-connect-injector-574799b944-n6jf6       1/1     Running   0          3m
+consul-connect-injector-574799b944-xvksv       1/1     Running   0          3m
+consul-server-0                                1/1     Running   0          3m
+consul-webhook-cert-manager-74467cdd8d-88m6j   1/1     Running   0          3m
+```
+
+Once all pods have a status of `Running`, enter `CTRL-C` to stop the watch.
+
+## Accessing the Consul UI
+
+Now that Consul has been deployed, you can access the Consul UI to verify that the Consul installation was successful,
+and that the environment is healthy.
+
+### Expose the UI service to the host
+
+Since the application is running on your local development host, you can expose
+the Consul UI to the development host using `kubectl port-forward`. The UI and the
+HTTP API Server run on the `consul-server-0` pod. Issue the following command to
+expose the server endpoint at port `8500` to your local development host.
+
+```shell-session
+$ kubectl port-forward consul-server-0 --namespace consul 8500:8500
+Forwarding from 127.0.0.1:8500 -> 8500
+Forwarding from [::1]:8500 -> 8500
+```
+
+Open [`http://localhost:8500`](http://localhost:8500) in a new browser tab, and you should observe a
+page that looks similar to the following.
+
+![OpenShift Consul UI](/img/consul/consul-k8s/consul-ui-openshift.png)
+
+### Accessing Consul with the CLI and HTTP API
+
+To access Consul with the CLI, set the `CONSUL_HTTP_ADDR` following environment variable on the development host so that the Consul CLI knows which Consul server to interact with.
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=http://127.0.0.1:8500
+```
+
+You should be able to issue the `consul members` command to view all available
+Consul datacenter members.
+
+```shell-session
+$ consul members
+Node                Address            Status  Type    Build   Protocol  DC   Partition  Segment
+consul-server-0     10.217.0.106:8301  alive   server  1.14.3  2         dc1  default    <all>
+crc-dzk9v-master-0  10.217.0.104:8301  alive   client  1.14.3  2         dc1  default    <default>
+```
+
+You can use the same URL to make HTTP API requests with your custom code.
+
+## Deploy example services
+
+### Create a 'demo' project
+
+To simulate an active environment you will deploy a client, and an upstream backend
+service. First, create a new project to deploy the client and server to:
+
+```shell-session
+$ oc create-project demo
+Now using project "demo" on server "https://api.crc.testing:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=k8s.gcr.io/e2e-test-images/agnhost:2.33 -- /agnhost serve-hostname
+```
+
+### Create security context constraints for the application sidecars
+
+The `consul-dataplane` sidecar injected into each application pod runs with user ID 100, which is not allowed by default in OpenShift. Run the following commands to use this user ID.
+
+First, export the target namespace as an environment variable. 
+
+```shell-session
+$ export TARGET_NAMESPACE=demo
+```
+
+Add the service accounts in the targeted namespace access to the anyuid [security context constraints (SCC)](https://docs.openshift.com/container-platform/3.11/admin_guide/manage_scc.html).
+
+```shell-session
+$ oc adm policy add-scc-to-group anyuid system:serviceaccounts:$TARGET_NAMESPACE
+```
+
+When removing your application, remove the permissions as follows.
+
+```shell-session
+$ oc adm policy remove-scc-from-group anyuid system:serviceaccounts:$TARGET_NAMESPACE
+```
+  
+### Create a network attachment definition
+ 
+By default, OpenShift uses Multus for managed CNI, and thus requires a `NetworkAttachmentDefinition` in the application namespace to invoke the `consul-cni` plugin.
+Read about the [Network Attachment Definition](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/how-to-use.md) Custom Resource for more details. Issue the following command to create a file named `networkattachmentdefinition.yaml`
+that will be used to create a Network Attachment Definition in the `demo` namespace:
+
+<Note>
+
+ If your OpenShift cluster has network isolation enabled, a Network Attachment Definition will be need per namespace. If network isolation is disabled, it is possible to use the Network Attachment Definition created in the namespace where Consul is installed.
+
+</Note>
+
+```shell-session
+$ cat > networkattachementdefinition.yaml <<EOF
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: consul-cni
+spec:
+  config: '{
+            "cniVersion": "0.3.1",
+            "type": "consul-cni",
+            "cni_bin_dir": "/var/lib/cni/bin",
+            "cni_net_dir": "/etc/kubernetes/cni/net.d",
+            "kubeconfig": "ZZZ-consul-cni-kubeconfig",
+            "log_level": "info",
+            "multus": true,
+            "name": "consul-cni",
+            "type": "consul-cni"
+        }'
+EOF
+```  
+
+Next, deploy the NetworkAttachmentDefinition.
+
+```shell-session
+$ oc create -f networkattachmentdefinition.yaml -n demo
+networkattachmentdefinition.k8s.cni.cncf.io/consul-cni created
+```
+  
+When removing your application, remove the NetworkAttachmentDefinition as follows.
+
+```shell-session
+$ oc delete network-attachment-definition consul-cni -n demo
+```
+  
+### Deploy the server service
+
+Issue the following command to create a file named `server.yaml`
+that will be used to create an http echo server on Kubernetes:
+
+```shell-session
+$ cat > server.yaml <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'k8s.v1.cni.cncf.io/networks': '[{ "name":"consul-cni" }]'
+    spec:
+      containers:
+        - name: static-server
+          image: image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-server
+EOF
+```
+
+Next, deploy the sample backend service.
+
+```shell-session
+$ kubectl apply -f server.yaml -n demo
+servicedefaults.consul.hashicorp.com/static-server created
+serviceaccount/static-server created
+service/static-server created
+deployment.apps/static-server created
+```
+  
+### Deploy the client service
+
+Next, create a file named `client.yaml` that defines the sample client service.
+
+```shell-session
+$ cat > client.yaml <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-client
+  template:
+    metadata:
+      name: static-client
+      labels:
+        app: static-client
+      annotations:
+        'k8s.v1.cni.cncf.io/networks': '[{ "name":"consul-cni" }]'
+    spec:
+      containers:
+        - name: static-client
+          image: curlimages/curl:latest
+          # Just spin & wait forever, we'll use `kubectl exec` to demo
+          command: ['/bin/sh', '-c', '--']
+          args: ['while true; do sleep 30; done;']
+      # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-client
+EOF
+```
+
+Next, deploy the sample client.
+
+```shell-session
+$ kubectl apply -f client.yaml -n demo
+servicedefaults.consul.hashicorp.com/static-client created
+serviceaccount/static-client created
+service/static-client created
+deployment.apps/static-client created
+```
+
+Finally, ensure all pods/containers having a status of `Running` before proceeding to the next section.
+
+```shell-session
+$ watch kubectl get pods
+NAME                             READY   STATUS    RESTARTS   AGE
+static-client-755f485c45-dzg47   2/2     Running   0          14m
+static-server-6d5fb5f5d5-cz7sz   2/2     Running   0          14m
+```
+
+
+## Decommission the environment
+
+Now that you have completed the tutorial, you should decommission the CRC environment.
+Enter `CTRL-C` in the terminal to stop the port forwarding process.
+
+### Stop CRC
+
+First, stop the running cluster.
+
+```shell-session
+$ crc stop
+```
+
+Example output:
+
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+INFO Stopping the OpenShift cluster, this may take a few minutes...
+Stopped the OpenShift cluster
+```
+
+</CodeBlockConfig>
+
+### Delete CRC
+
+Next, issue the following command to delete the cluster.
+
+```shell-session
+$ crc delete
+```
+
+The CRC CLI will ask you to confirm that you want to delete the cluster.
+
+Example prompt:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext 
+Do you want to delete the OpenShift cluster? [y/N]:
+```
+
+</CodeBlockConfig>
+
+Enter `y` to confirm.
+
+Example output:
+
+<CodeBlockConfig hideClipboard>
+
+```plaintext
+Deleted the OpenShift cluster
+```
+
+</CodeBlockConfig>
+
+## Next steps
+
+In this tutorial you created a [Red Hat OpenShift](https://www.openshift.com/learn/what-is-openshift)
+cluster, and installed Consul to the cluster.
+
+Specifically, you:
+
+- Deployed an OpenShift cluster
+- Deployed a Consul datacenter
+- Accessed the Consul UI
+- Used the Consul CLI to inspect your environment
+- Decommissioned the environment
+
+It is highly recommended that you properly secure your Kubernetes cluster and
+that you understand and enable the recommended security features of Consul.
+Refer to the
+[Secure Consul and Registered Services on Kubernetes tutorial](/consul/tutorials/kubernetes/kubernetes-secure-agents)
+to learn how you can deploy an example workload, and secure Consul on Kubernetes
+for production.
+
+For more information on the Consul Helm chart configuration options, review the
+[consul-helm chart documentation](/consul/docs/reference/k8s/helm).

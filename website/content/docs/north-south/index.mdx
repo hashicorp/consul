@@ -20,7 +20,7 @@ API gateways forward requests from clients to specific destinations based on pat
 
 API gateways enable external network clients to securely access applications and services running in a Consul datacenter. Consul API gateways can also forward requests from clients to specific destinations in the service mesh based on request's path or protocol.
 
-To enable an API gateway, you must configure the gateway, its listeners, and its routes. Refer to [API gateway overview](/consul/docs/access/api-gateway) for additional information about deploying API gateways to your Consul service mesh.
+To enable an API gateway, you must configure the gateway, its listeners, and its routes. Refer to [API gateway overview](/consul/docs/north-south/api-gateway) for additional information about deploying API gateways to your Consul service mesh.
 
 ## Ingress gateways
 
@@ -28,11 +28,11 @@ Ingress gateways listen for external requests and route authorized traffic to in
 
 We recommend using API gateways to enable north-south traffic instead of implementing ingress gateways and terminating gateways.
 
-Refer to [Ingress gateway overview](/consul/docs/access/ingress-gateway) for additional information about deploying ingress gateways to your Consul service mesh.
+Refer to [Ingress gateway overview](/consul/docs/north-south/ingress-gateway) for additional information about deploying ingress gateways to your Consul service mesh.
 
 <Note>
 
-Ingress gateways are deprecated. Use [Consul API gateways](/access/api-gateway) to secure service mesh ingress instead.
+Ingress gateways are deprecated. Use [Consul API gateways](/north-south/api-gateway) to secure service mesh ingress instead.
 
 </Note>
 
@@ -40,5 +40,5 @@ Ingress gateways are deprecated. Use [Consul API gateways](/access/api-gateway) 
 
 Refer to the following topics for information about deploying API and ingress gateways:
 
-- [API gateway resources](/consul/docs/access/api-gateway#guidance)
-- [Ingress gateway resources](/consul/docs/access/ingress-gateway#guidance)
+- [API gateway resources](/consul/docs/north-south/api-gateway#guidance)
+- [Ingress gateway resources](/consul/docs/north-south/ingress-gateway#guidance)
