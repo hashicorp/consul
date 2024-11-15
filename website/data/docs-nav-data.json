@@ -3,10 +3,6 @@
     "heading": "Get started"
   },
   {
-    "title": "What is Consul?",
-    "path": ""
-  },
-  {
     "divider": true
   },
   {
@@ -14,28 +10,23 @@
   },
   {
     "title": "Deploy Consul",
-    "routes": [
-    ]
+    "path": "deploy"
   },
   {
     "title": "Secure Consul",
-    "routes": [
-    ]
+    "path": "secure"
   },
   {
     "title": "Manage Consul",
-    "routes": [
-    ]
+    "path": "manage"
   },
   {
     "title": "Monitor Consul",
-    "routes": [
-    ]
+    "path": "monitor"
   },
   {
     "title": "Upgrade Consul",
-    "routes": [
-    ]
+    "path": "upgrade"
   },
   {
     "title": "Release Notes",
@@ -215,48 +206,39 @@
   },
   {
     "title": "Register services",
-    "routes": [
-    ]
+    "path": "register"
   },
   {
     "title": "Discover services",
-    "routes": [
-    ]
+    "path": "discover"
   },
   {
     "title": "Connect service mesh",
-    "routes": [
-    ]
+    "path": "connect"
   },
   {
     "title": "Secure network north/south",
-    "routes": [
-    ]
+    "path": "north-south"
   },
   {
     "title": "Link network east/west",
-    "routes": [
-    ]
+    "path": "east-west"
   },
   {
     "title": "Secure mesh traffic",
-    "routes": [
-    ]
+    "path": "secure-mesh"
   },
   {
     "title": "Manage service traffic",
-    "routes": [
-    ]
+    "path": "manage-traffic"
   },
   {
     "title": "Observe service mesh",
-    "routes": [
-    ]
+    "path": "observe"
   },
   {
-    "title": "Automate serivce networking",
-    "routes": [
-    ]
+    "title": "Automate service networking",
+    "path": "automate"
   },
   {
     "divider": true
@@ -266,8 +248,7 @@
   },
   {
     "title": "Consul Enterprise",
-    "routes": [
-    ]
+    "path": "enterprise"
   },
   {
     "divider": true

@@ -1,0 +1,48 @@
+---
+layout: docs
+page_title: Dynamically configure applications
+description: >-
+  This topic provides an overview of deployment strategies that use Consul's key/value (KV) store to dynamically update applications and Consul configurations in response to deployment changes.
+---
+
+# Dynamically configure applications
+
+This topic provides an overview for dynamically configuring applications when Consul detects certain changes in your network. Many of these operations rely on Consul's key/value (KV)store.
+
+For information about automatically deploying infrastructure when Consul detects failed health checks or increased network traffic, refer to [Consul-Terraform-Sync](/consul/docs/cts).
+
+## Introduction
+
+Platform operators managing a Consul deployment at scale require automated processes for generating and distributing updated configurations dynamically as applications change. You can use Consul's KV store to store data for generating Consul agent configurations, and set up the agent to invoke custom scripts in response to changes.
+
+## Key/value store
+
+@include 'text/description/kv/store.mdx'
+
+## Consul template
+
+@include 'text/description/consul-template.mdx'
+
+## Sessions
+
+@include 'text/description/kv/session.mdx'
+
+## Watches
+
+@include 'text/description/kv/watch.mdx'
+
+## Tutorials
+
+To learn how to dynamically configure applications using Consul's KV store, complete the tutorials in the [Integrate your Applications with Consul collection](/consul/tutorials/developer-configuration).
+
+## Reference documentation
+
+The most experienced users want to quickly find the reference information for specific parts of the component they are using. List all relevant reference pages for the topic.
+
+- [`consul kv` CLI command reference](/consul/commands/kv)
+- [`/kv` HTTP API endpoint reference](/consul/api-docs/kv)
+- [Agent configuration reference](/consul/docs/reference/agent)
+
+### Constraints, limitations, and troubleshooting
+
+@include 'limitations/kv.mdx'
