@@ -1,0 +1,5 @@
+Cluster peering connects two or more independent Consul clusters so that services deployed to different datacenters can communicate. The process to establish a connection generates and exchanges peering tokens between admin partitions in each datacenter. 
+
+Peering topologies that include more than one admin partition in a single Consul datacenter require [Consul Enterprise](/consul/docs/enterprise). HCP Consul enables additional support for cluster peering lifecycle operations through [HCP Consul Central](/hcp/docs/consul/concepts/consul-central).
+
+Cluster peering in your service mesh enables [sameness groups](/consul/docs/segment/sameness-group), [service failover](/consul/docs/manage-traffic/failover), and connections between Consul clusters owned by different operators. Refer to the [Cluster peering documentation](/consul/docs/east-west/cluster-peering#guidance) for more information.

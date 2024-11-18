@@ -1,0 +1,400 @@
+---
+layout: docs
+page_title: Load balancing with F5
+description: >-
+  Use Consul to configure F5 BIG-IP nodes and server pools based on changes in Consul service discovery.
+---
+
+# Load balancing with F5
+
+The F5 BIG-IP AS3 service discovery integration with Consul queries Consul's
+catalog on a regular, configurable basis to get updates about changes for a
+given service, and adjusts the node pools dynamically without operator
+intervention.
+
+In this tutorial you will use Consul to configure F5 BIG-IP nodes and server pools.
+You will set up a basic F5 BIG-IP AS3 declaration that generates the F5 load
+balancer backend-server-pool configuration based on the available service
+instances registered in Consul's service catalog.
+
+## Prerequisites
+
+To complete this tutorial, you will need previous experience with F5 BIG-IP and
+Consul. You can either manually deploy the necessary infrastructure, or use the
+terraform demo code.
+
+### Watch the video - Optional
+
+Consul's integration with F5 was demonstrated in a webinar. If you would prefer
+to learn about the integration but aren't ready to try it out, you can watch the
+webinar recording to see the integration in action.
+
+### Manually deploy your infrastructure
+
+You should configure the following infrastructure.
+
+- A single Consul datacenter with server and client nodes, and the configuration
+  directory for Consul agents at `/etc/consul.d/`.
+
+- A running instance of the F5 BIG-IP platform. If you don’t already have one
+  you can use a [hosted AWS
+  instance](https://aws.amazon.com/marketplace/pp/B079C44MFH) for this tutorial.
+
+- The AS3 package version 3.7.0
+  [installed](https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/userguide/installation.html)
+  on your F5 BIG-IP platform.
+
+- Standard web server running on a node, listening on HTTP port 80. We will use
+  NGINX in this tutorial.
+
+**Note** The content of this tutorial also applies to Consul clusters hosted on HashiCorp Cloud (HCP)
+
+### Deploy a demo using Terraform - Optional
+
+You can set up the prerequisites on your own, or use the terraform
+configuration in [this
+repository](https://github.com/hashicorp/f5-terraform-consul-sd-webinar) to set
+up the entire tutorial environment.
+
+Once your environment is set up, you'll be able to visit the F5 GUI at
+`<F5_IP>:8443/tmui/login.jsp` where `<F5_IP>` is the address provided in your
+Terraform output. Login with the username `admin` and the password from your
+Terraform output.
+
+### Verify your environment
+
+Check your environment to ensure you have a healthy Consul datacenter by
+checking your datacenter members. You can do this by running the `consul members` command on the machine where Consul is running, or by accessing the
+Consul web UI at the IP address of your consul instances, on port 8500.
+
+If you deployed your infrastructure using the provided terraform you can SSH to
+the machine running consul using the key you will find in the terraform
+directory. For example `ssh ubuntu@<CONSUL_IP> -i terraform-20190917053444504900000001.pem`. Remember to replace `<CONSUL_IP>`
+with the address of your Consul node.
+
+```shell-session
+$ consul members
+```
+
+```plaintext hideClipboard
+Node           Address          Status  Type    Build  Protocol  DC   Segment
+consul         10.0.0.100:8301  alive   server  1.5.3  2         dc1  <all>
+nginx          10.0.0.109:8301  alive   client  1.5.3  2         dc1  <default>
+```
+
+In this sample environment we have one Consul server node and one web server
+node with a Consul client.
+
+## Register a web service
+
+To register the web service on your client node with Consul, create a
+service definition in Consul's config directory `/etc/consul.d/` and
+paste in the following configuration, which includes a tcp
+check for the web server so that Consul can monitor its health. (you many need
+to change directory permissions using `chmod` before writing the file).
+
+<CodeTabs>
+
+<CodeBlockConfig filename="nginx-service.hcl">
+
+```hcl
+service {
+  name = "nginx"
+  port = 80
+  checks = [
+    {
+      id = "nginx"
+      name = "nginx TCP Check"
+      tcp = "localhost:80"
+      interval = "5s"
+      timeout = "1s"
+    }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="nginx-service.json">
+
+```json
+{
+  "service": {
+    "name": "nginx",
+    "port": 80,
+    "checks": [
+      {
+        "id": "nginx",
+        "name": "nginx TCP Check",
+        "tcp": "localhost:80",
+        "interval": "5s",
+        "timeout": "1s"
+      }
+    ]
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+Reload the client to read the new service definition.
+
+```shell-session
+$ consul reload
+```
+
+In a browser window, visit the services page of the Consul web UI at
+`<CONSUL_IP>:8500/ui/dc1/services/nginx`. Remember to add your own node IP
+address.
+
+![Consul UI with NGINX registered](/img/consul-f5-nginx.png 'Consul web
+UI with a healthy NGINX service')
+
+You should notice your instance of the nginx service listed and healthy.
+
+## Apply an AS3 declaration
+
+Next, you will configure BIG-IP to use Consul Service discovery with an AS3
+declaration. You will use cURL to apply the declaration to the BIG-IP Instance.
+
+First construct an authorization header to authenticate our API call with
+BIG-IP. You will need to use a username and password for your instance. Below is
+an example for username “admin”, and password “password”.
+
+```shell-session
+$ echo -n 'admin:password' | base64
+```
+
+```plaintext hideClipboard
+YWRtaW46YWRtaW4=
+```
+
+The below declaration does the following:
+
+- Creates a partition (tenant) named `Consul_SD`.
+
+- Defines a virtual server named `serviceMain` in `Consul_SD` partition with:
+
+  - A pool named web_pool monitored by the http health monitor.
+
+  - NGINX Pool members auto-discovered via Consul's [catalog HTTP API
+    endpoint](/consul/api-docs/catalog#list-nodes-for-service).
+    For the `virtualAddresses` make sure to substitute your BIG-IP Virtual
+    Server.
+
+  - A URI specific to your Consul environment for the scheme, host, and port of
+    your consul address discovery. This could be a single server, load balanced
+    endpoint, or co-located agent, depending on your requirements. Make sure to
+    replace the `uri` in your configuration with the IP of your Consul client.
+
+Use cURL to send the authorized declaration to the BIG-IP Instance. It may
+be useful to edit the below command in a text editor before pasting it into the
+terminal.
+
+- Replace `<your-authorization-header>` with the value you created above for
+  your BIG-IP instance in the authorization header.
+
+- Replace `<your-BIG-IP-mgmt-ip>` with the real IP address.
+
+- Replace `<your-BIG-IP-virtual-ip>` with BIG-IP's virtual IP.
+
+- Replace `<your-consul-ip>` with Consul's IP address.
+
+```shell-session
+$ curl -X POST \
+  https://<your-BIG-IP-mgmt-ip>/mgmt/shared/appsvcs/declare \
+  -H 'authorization: Basic <your-authorization-header>' \
+  -d '{
+    "class": "ADC",
+    "schemaVersion": "3.7.0",
+    "id": "Consul_SD",
+        "controls": {
+        "class": "Controls",
+        "trace": true,
+        "logLevel": "debug"
+    },
+    "Consul_SD": {
+      "class": "Tenant",
+      "Nginx": {
+        "class": "Application",
+        "template": "http",
+        "serviceMain": {
+          "class": "Service_HTTP",
+          "virtualPort": 8080,
+          "virtualAddresses": [
+            "<your-BIG-IP-virtual-ip>"
+          ],
+          "pool": "web_pool"
+        },
+        "web_pool": {
+          "class": "Pool",
+          "monitors": [
+            "http"
+          ],
+          "members": [
+            {
+              "servicePort": 80,
+              "addressDiscovery": "consul",
+              "updateInterval": 5,
+              "uri": "http://<your-consul-ip>:8500/v1/catalog/service/nginx"
+            }
+          ]
+        }
+      }
+    }
+}'
+```
+
+You should get a similar output to the following after you’ve applied your
+declaration.
+
+```json hideClipboard
+{
+  "results": [
+    {
+      "message": "success",
+      "lineCount": 26,
+      "code": 200,
+      "host": "localhost",
+      "tenant": "Consul_SD",
+      "runTime": 3939
+    }
+  ],
+  "declaration": {
+    "class": "ADC",
+    "schemaVersion": "3.7.0",
+    "id": "Consul_SD",
+    "controls": {
+      "class": "Controls",
+      "trace": true,
+      "logLevel": "debug",
+      "archiveTimestamp": "2019-09-06T03:12:06.641Z"
+    },
+    "Consul_SD": {
+      "class": "Tenant",
+      "Nginx": {
+        "class": "Application",
+        "template": "http",
+        "serviceMain": {
+          "class": "Service_HTTP",
+          "virtualPort": 8080,
+          "virtualAddresses": ["10.0.0.200"],
+          "pool": "web_pool"
+        },
+        "web_pool": {
+          "class": "Pool",
+          "monitors": ["http"],
+          "members": [
+            {
+              "servicePort": 80,
+              "addressDiscovery": "consul",
+              "updateInterval": 5,
+              "uri": "http://10.0.0.100:8500/v1/catalog/service/nginx"
+            }
+          ]
+        }
+      }
+    },
+    "updateMode": "selective"
+  }
+}
+```
+
+You can find more information on Consul SD declarations in [F5’s Consul service
+discovery
+documentation](https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/declarations/discovery.html#service-discovery-using-hashicorp-consul)
+
+You can read more about composing AS3 declarations in the [F5
+documentation](https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/userguide/composing-a-declaration.html).
+The Terraform provider for BIG-IP [also supports AS3
+resources](https://registry.terraform.io/providers/F5Networks/bigip/latest/docs/resources/bigip_as3.html).
+
+## Verify BIG-IP Consul communication
+
+Use the `consul monitor` command on the Consul client specified in the AS3 URI
+to verify that you are receiving catalog requests from the BIG-IP instance.
+
+```shell-session
+$ consul monitor -log-level=debug
+```
+
+```log hideClipboard
+[DEBUG] http: Request GET /v1/catalog/service/nginx (103.796µs) from=10.0.0.200:29487
+[DEBUG] http: Request GET /v1/catalog/service/nginx (104.95µs) from=10.0.0.200:42079
+[DEBUG] http: Request GET /v1/catalog/service/nginx (98.652µs) from=10.0.0.200:45536
+[DEBUG] http: Request GET /v1/catalog/service/nginx (101.242µs) from=10.0.0.200:45940
+```
+
+Check that the interval matches the value you supplied in your AS3 declaration.
+
+## Verify the BIG-IP dynamic pool
+
+Check the network map of the BIG-IP instance to make sure that the NGINX
+instances registered in Consul are also in your BIG-IP dynamic pool.
+
+To check the network map, open a browser window and navigate to
+`https://<your-big-IP-mgmt-ip>/tmui/tmui/locallb/network_map/app/?xui=false#!/?p=Consul_SD`.
+Remember to replace the IP address.
+
+![NGINX instances in BIG-IP](/img/consul-f5-partition.png 'NGINX
+instances listed in the BIG-IP web graphical user interface')
+
+You can read more about the network map in the [F5
+documentation](https://support.f5.com/csp/article/K20448153#accessing%20map).
+
+## Test the BIG-IP virtual server
+
+Now that you have a healthy virtual service, you can use it to access your NGINX
+web server.
+
+```shell-session
+$ curl <your-BIG-IP-virtual-ip>:8080
+```
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Welcome to nginx!</title>
+    <style>
+      body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome to nginx!</h1>
+    <p>
+      If you see this page, the nginx web server is successfully installed and
+      working. Further configuration is required.
+    </p>
+
+    <p>
+      For online documentation and support please refer to
+      <a href="http://nginx.org/">nginx.org</a>.<br />
+      Commercial support is available at
+      <a href="http://nginx.com/">nginx.com</a>.
+    </p>
+
+    <p><em>Thank you for using nginx.</em></p>
+  </body>
+</html>
+```
+
+## Next steps
+
+The F5 BIG-IP AS3 service discovery integration with Consul queries Consul's
+catalog on a regular, configurable basis to get updates about changes for a
+given service, and adjusts the node pools dynamically without operator
+intervention.
+
+In this tutorial you configured an F5 BIG-IP instance to natively integrate with
+Consul for service discovery. You were able to monitor dynamic node registration
+for a web server pool member and test it with a virtual server.
+
+As a follow up, you can add or remove web server nodes registered with Consul
+and validate that the network map on the F5 BIG-IP updates automatically.

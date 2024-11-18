@@ -1,0 +1,73 @@
+---
+layout: docs
+page_title: Use JWTs to verify requests to API gateways on Kubernetes
+description: Learn how to use JSON web tokens (JWT) to verify requests from external clients to listeners on an API gateway on Kubernetes-orchestrated networks.
+---
+
+# Use JWTs to verify requests to API gateways on Kubernetes
+
+This topic describes how to use JSON web tokens (JWT) to verify requests to API gateways deployed to Kubernetes-orchestrated containers. If your API gateway is deployed to virtual machines, refer to [Use JWTs to verify requests to API gateways on VMs](/consul/docs/north-south/api-gateway/secure-traffic/jwt-vm).
+
+<EnterpriseAlert> This feature is available in Consul Enterprise. </EnterpriseAlert>
+
+## Overview
+
+You can configure API gateways to use JWTs to verify incoming requests so that you can stop unverified traffic at the gateway. You can configure JWT verification at different levels:
+
+- Listener defaults: Define basic defaults that apply to all routes attached to a listener.
+- HTTP route-specific settings: You can define JWT authentication settings for specific HTTP routes. Route-specific JWT settings override default listener configurations.
+- Listener overrides: Define override settings that take precedence over default and route-specific configurations. This enables you to set enforceable policies for listeners.
+
+
+Complete the following steps to use JWTs to verify requests:
+
+1. Define a policy that specifies default and override settings for API gateway listeners and attach it to the gateway.
+1. Define an HTTP route auth filter that specifies route-specific JWT verification settings.
+1. Attach the auth filter to the HTTP route values file.
+1. Apply the configurations.
+
+
+## Requirements
+
+- Consul v1.17+
+- Consul on Kubernetes CLI or Helm chart v1.3.0+
+- JWT details, such as claims and provider
+
+## Define override and default settings
+
+Create a `GatewayPolicy` values file and configure the following fields to define default and override settings for JWT verification. Refer to [`GatewayPolicy` configuration reference](/consul/docs/reference/k8s/api-gateway/gatewaypolicy) for details.
+
+- `kind`: Must be set to `GatewayPolicy`
+- `metadata.name`: Specifies a name for the policy.
+- `spec.targetRef.name`: Specifies the name of the API gateway to attach the policy to.
+- `spec.targetRef.kind`: Specifies the kind of resource to attach to the policy to. Must be set to `Gateway`.
+- `spec.targetRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kuberenetes.io`.
+- `spec.targetRef.sectionName`: Specifies a part of the gateway that the policy applies to.
+- `spec.targetRef.override.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
+- `spec.targetRef.default.jwt.providers`: Specifies a list of default providers and claims used to verify requests to the gateway.
+
+## Define an HTTP route auth filter
+
+Create an `RouteAuthFilter` values file and configure the following fields. Refer to [`RouteAuthFilter` configuration reference](/consul/docs/reference/k8s/api-gateway/routeauthfilter) for details.
+
+- `kind`: Must be set to `RouteAuthFilter`
+- `metadata.name`: Specifies a name for the filter.
+- `metadata.namespace`: Specifies the Consul namespace the filter applies to.
+- `spec.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings.
+
+## Attach the auth filter to your HTTP routes
+
+In the `filters` field of your HTTP route configuration, add the following fields. Refer to the [`extensionRef` configuration reference](/consul/docs/reference/k8s/api-gateway/routes#rules-filters-extensionref) for details:
+
+- `type: extensionRef`: Declare list of extension references.
+- `extensionRef.group`: Specifies the resource group. Unless you have created a custom group, this should be set to `gateway.networking.kuberenetes.io`.
+- `extensionRef.kind`: Specifies the type of extension reference to attach to the route. Must be `RouteAuthFilter`
+- `extensionRef.name`: Specifies the name of the auth filter.
+
+## Apply the configurations
+
+Run the `kubectl apply` command and specify the values files to apply the configurations. The following example applies the values files stored in the `jwt-routes` directory:
+
+```shell-session
+$ kubectl apply -f jwt-routes
+```

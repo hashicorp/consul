@@ -1,0 +1,495 @@
+---
+layout: docs
+page_title: Connect external services to Consul with terminating gateways
+description: >-
+  Consul terminating gateways give your services the ability to communicate securely with applications and services outside of your service mesh.
+---
+
+# Connect external services to Consul with terminating gateways
+
+Consul terminating gateways give your services the ability to communicate securely with applications and services outside of your service mesh. Common use cases include managed services (such as Amazon RDS), legacy services running on an unsupported OS, and hybrid applications transitioning towards the service mesh that require integration testing or are required to maintain compatibility with other legacy systems.  This extends the ability to securely connect your applications on any runtime, any cloud, or on-premises environments with Consul.
+
+Terminating gateways provide service mesh extendability to these scenarios that would otherwise require alternate security and policy enforcement mechanisms. They terminate service mesh mTLS connections, enforce intentions, and forward requests to the appropriate destination.
+
+In this tutorial, you will deploy a Consul terminating gateway that provides secure communication with a managed AWS RDS instance. You will connect the front end of the HashiCups demo application to the HashiCups backend database on AWS RDS. In the process you will see how this feature provides you with simplified and secure communication to services external to your service mesh.
+
+## Scenario overview
+
+HashiCups is a coffee shop demo application. It has a microservices architecture and uses Consul service mesh to securely connect the services. At the beginning of this tutorial, you will use Terraform to deploy the HashiCups microservices, a self-managed Consul cluster on AWS EKS, and a managed AWS RDS instance that contains the HashiCups database. 
+
+![The architecture diagram of the scenario. This shows the Kubernetes environment and the flow of traffic from the client request through the self-managed Consul service mesh and into AWS RDS.](/img/consul/terminating-gateway-architecture-diagram-dark.png#dark-theme-only)
+![The architecture diagram of the scenario. This shows the Kubernetes environment and the flow of traffic from the client request through the self-managed Consul service mesh and into AWS RDS.](/img/consul/terminating-gateway-architecture-diagram-light.png#light-theme-only)
+
+In this tutorial, you will:
+  
+- Deploy the following resources with Terraform:
+  - Elastic Kubernetes Service (EKS) cluster
+  - A self-managed Consul datacenter on EKS
+  - A managed AWS RDS instance
+  - HashiCups demo application on EKS
+- Perform the following Consul procedures:
+  - Explore the demo application (broken state)
+  - Review and enable the terminating gateway feature
+  - Register the AWS RDS instance as a Consul service
+  - Configure and link the AWS RDS service to the terminating gateway
+  - Update the service mesh applications to communicate with AWS RDS
+  - Explore the demo application (working state)
+
+## Prerequisites
+
+The tutorial assumes that you are familiar with Consul and its core functionality. If you are new to Consul, refer to the [Consul Getting Started tutorials collection](/consul/tutorials/get-started-kubernetes).
+
+For this tutorial, you will need:
+
+- An [AWS account](https://aws.amazon.com/account/) configured for [use with Terraform](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#authentication-and-configuration)
+- [terraform >= 1.0](/terraform/tutorials/aws-get-started/install-cli)
+- [consul >= 1.17.0](/consul/downloads/)
+- [consul-k8s >= 1.2.1](/consul/docs/k8s/installation/install-cli)
+- [helm >= 3.0](https://helm.sh/docs/using_helm/)
+- [git >= 2.0](https://git-scm.com/downloads)
+- [kubectl > 1.24](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+
+## Clone GitHub repository
+
+Clone the [GitHub repository](https://github.com/hashicorp-education/learn-consul-terminating-gateways) containing the configuration files and resources.
+
+```shell-session
+$ git clone https://github.com/hashicorp-education/learn-consul-terminating-gateways.git
+```
+
+Change into the directory that contains the complete configuration files for this tutorial.
+
+```shell-session
+$ cd learn-consul-terminating-gateways/self-managed/eks
+```
+
+## Review repository contents
+
+This repository contains Terraform configuration to spin up the initial infrastructure and all files to deploy Consul, the demo application, and the observability suite resources.
+
+The `eks` directory contains the following Terraform configuration files:
+
+- `aws-vpc.tf` defines the AWS VPC resources
+- `aws-lambda.tf` defines the AWS Lambda resources
+- `aws-rds.tf` defines the AWS RDS resources
+- `eks-cluster.tf` defines Amazon EKS cluster deployment resources
+- `eks-consul.tf` defines the self-managed Consul deployment
+- `eks-hashicups-with-consul.tf` defines the HashiCups resources
+- `providers.tf` defines AWS and Kubernetes provider definitions for Terraform
+- `variables.tf` defines variables you can use to customize the tutorial
+
+The directory also contains the following subdirectories:
+
+- `api-gw` contains the Kubernetes configuration files for the Consul API gateway
+- `hashicups` contains the Kubernetes configuration files for HashiCups
+- `config` contains the custom Consul ACL configuration file, AWS Lambda database initialization function, and terminating gateway configuration files
+- `helm` contains the Helm charts for Consul
+  
+## Deploy infrastructure and demo application
+
+With these Terraform configuration files, you are ready to deploy your infrastructure.
+Initialize your Terraform configuration to download the necessary providers and modules.
+```shell-session
+$ terraform init
+Initializing the backend...
+Initializing provider plugins...
+## ...
+Terraform has been successfully initialized!
+## …
+```
+
+Then, deploy the resources. Confirm the run by entering yes.
+
+```shell-session
+$ terraform apply
+## ...
+Do you want to perform these actions?
+Terraform will perform the actions described above.
+Only 'yes' will be accepted to approve.
+Enter a value: yes
+## ...
+Apply complete! Resources: 103 added, 0 changed, 0 destroyed.
+```
+The Terraform deployment could take up to 15 minutes to complete.
+
+### Connect to your infrastructure
+
+Now that you have deployed the Kubernetes cluster, configure `kubectl` to interact with it.
+
+```shell-session
+$ aws eks --region $(terraform output -raw region) update-kubeconfig --name $(terraform output -raw kubernetes_cluster_id)
+```
+
+### Configure your CLI to interact with Consul datacenter
+
+In this section, you will set environment variables in your terminal so your Consul CLI can interact with your Consul datacenter. The Consul CLI reads these environment variables for behavior defaults and will reference these values when you run `consul` commands.
+
+Set the Consul destination address. 
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=https://$(kubectl get services/consul-ui --namespace consul -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+```
+
+Retrieve the ACL bootstrap token from the respective Kubernetes secret and set it as an environment variable.
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=$(kubectl get --namespace consul secrets/consul-bootstrap-acl-token --template={{.data.token}} | base64 -d)
+```
+
+Export the Consul CA certificate to use for TLS communication with Consul.
+
+```shell-session
+$ kubectl get --namespace consul secrets/consul-ca-cert -o json | jq -r '.data."tls.crt"' | base64 -d > ca.crt && \
+export CONSUL_CACERT=ca.crt
+```
+
+Set the server name to use as the SNI host for connecting to Consul via TLS.
+
+```shell-session
+$ export CONSUL_TLS_SERVER_NAME=server.dc1.consul
+```
+
+Run the `consul catalog services` CLI command to print all known services in your Consul catalog.
+
+```shell-session
+$ consul catalog services
+api-gateway
+consul
+frontend
+frontend-sidecar-proxy
+nginx
+nginx-sidecar-proxy
+payments
+payments-sidecar-proxy
+product-api
+product-api-sidecar-proxy
+public-api
+public-api-sidecar-proxy
+```
+
+## Explore the demo application (broken state)
+
+In this section, you will visit your demo application to explore the HashiCups UI.
+
+Retrieve the Consul API gateway public DNS address.
+
+```shell-session
+$ export CONSUL_APIGW_ADDR=http://$(kubectl get svc/api-gateway -o json | jq -r '.status.loadBalancer.ingress[0].hostname') && echo $CONSUL_APIGW_ADDR
+http://a4cc3e77d86854fe4bbcc9c62b8d381d-221509817.us-west-2.elb.amazonaws.com
+```
+
+Open the Consul API gateway's URL in your browser and explore the HashiCups UI. Notice that HashiCups is in a broken state and unable to retrieve coffees from the backend product database. This behavior is expected since the HashiCups frontend services within the Consul service mesh cannot securely communicate with the external backend product database (on AWS RDS) by default. 
+
+![HashiCups in a dysfunctional state. No coffees are displayed on the screen. A message is displayed in the center of the UI stating "unable to query all coffees". ](/img/consul/hashicups-error-coffees.png)
+
+## Enable Consul terminating gateway
+
+Consul terminating gateways are egress proxies that provide your service mesh applications connectivity to external destinations by terminating mTLS connections, enforcing Consul intentions, and forwarding requests to appropriate destination services. 
+
+In this section, you will review the parameters that enable this feature and update your Consul installation to apply the new configuration.
+
+### Review the Consul values file
+
+Review the highlighted lines in the values file below to see the parameters that enable terminating gateways.
+
+<CodeBlockConfig filename="helm/consul-v2-terminating-gw.yaml" hideClipboard>
+
+```yaml
+## …
+## ...
+# Configures and installs the Consul terminating gateway.
+terminatingGateways:
+ # Enable terminating gateway deployment. Requires `connectInject.enabled=true`.
+ enabled: true
+```
+
+</CodeBlockConfig>
+
+Refer to the [Consul metrics for Kubernetes documentation](/consul/docs/k8s/connect/observability/metrics) and official [Helm chart values](/consul/docs/k8s/helm#configuration-values) to learn more about metrics configuration options and details.
+
+<Tabs>
+<Tab heading="Consul K8S CLI (Mac only)">
+
+Update Consul in your Kubernetes cluster with Consul K8S CLI to deploy a terminating gateway. Confirm the run by entering `y`.
+
+```shell-session
+$ consul-k8s upgrade -config-file=helm/consul-v2-terminating-gw.yaml
+```
+
+Refer to the [Consul K8S CLI documentation](/consul/docs/k8s/k8s-cli) to learn more about additional settings.
+
+</Tab>
+<Tab heading="Helm">
+
+Update Consul in your Kubernetes cluster with Helm to deploy a terminating gateway.
+
+```shell-session
+$ helm upgrade --values consul-v2-terminating-gw.yaml consul hashicorp/consul --namespace consul --version "1.2.1"
+```
+
+</Tab>
+</Tabs>
+
+The Consul update could take up to 5 minutes to complete. 
+
+Review the official [Helm chart values](/consul/docs/k8s/helm#configuration-values) to learn more about these settings.
+
+Verify the Consul terminating gateway successfully deployed in your environment.
+
+```shell-session
+$ kubectl get pods --namespace consul
+NAME                                           READY   STATUS    RESTARTS   AGE
+consul-connect-injector-7869cf6f69-sqqb4       1/1     Running   0          7m58s
+consul-server-0                                1/1     Running   0          5m40s
+consul-server-1                                1/1     Running   0          6m41s
+consul-server-2                                1/1     Running   0          7m56s
+consul-terminating-gateway-d6bfbf5fd-4km4x     1/1     Running   0          7m57s
+consul-webhook-cert-manager-7646f7456d-l2z8w   1/1     Running   0          7m57s
+```
+## Register the AWS RDS instance as a Consul service
+
+To reach external services through the Consul terminating gateway, the external service must be registered in the Consul catalog.
+
+In this section, you will create the Consul service configuration file for your AWS RDS instance and register it in the Consul catalog with the name `managed-aws-rds`.
+Retrieve the AWS RDS private DNS address and set it as an environment variable.
+
+```shell-session
+$ export AWS_RDS_ENDPOINT=$(terraform output -raw aws_rds_endpoint) && \
+echo $AWS_RDS_ENDPOINT
+```
+
+Create a custom Consul service configuration file for `managed-aws-rds` with `envsubst`. This will fill all placeholders with your unique AWS RDS private DNS address.
+
+```shell-session
+$ envsubst < config/external-service.template > config/external-service.json
+```
+
+Review your unique Consul service configuration file.
+
+<CodeBlockConfig filename="config/external-service.json" hideClipboard>
+
+```json
+{
+   "Node": "AWS RDS",
+   "Address": "learn-consul-4yyx.cvjehh8zzfhg.us-west-2.rds.amazonaws.com",
+   "NodeMeta": {
+     "external-node": "true",
+     "external-probe": "true"
+   },
+   "Service": {
+     "ID": "managed-aws-rds",
+     "Service": "managed-aws-rds",
+     "Tags": ["external", "postgres"],
+     "Port": 5432
+   }
+}
+```
+
+</CodeBlockConfig>
+
+Refer to the [Consul services configuration documentation](/consul/docs/services/configuration/services-configuration-reference) to learn more about Consul service configuration options and details.
+
+Register `managed-aws-rds` as a service in Consul.
+
+```shell-session
+$ curl -k \
+   --request PUT \
+   --data @config/external-service.json \
+   --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+   $CONSUL_HTTP_ADDR/v1/catalog/register
+```
+
+Apply the Consul service defaults for the external `managed-aws-rds`service. The configuration in `service-defaults.yaml` creates a [virtual service](/consul/docs/k8s/l7-traffic/route-to-virtual-services) in Consul, which allows the services within your service mesh to communicate with the external service using Consul DNS.
+
+```shell-session
+$ kubectl apply --filename config/service-defaults.yaml
+```
+
+Confirm that Consul can successfully resolve your external service.
+
+```shell-session
+$ kubectl exec -it svc/consul-server --namespace consul -- /bin/sh -c "nslookup -port=8600 managed-aws-rds.virtual.consul 127.0.0.1"
+Defaulted container "consul" out of: consul, locality-init (init)
+Server:         127.0.0.1
+Address:        127.0.0.1:8600
+
+Name:   managed-aws-rds.virtual.consul
+Address: 240.0.0.6
+
+Name:   managed-aws-rds.virtual.consul
+Address: 240.0.0.6
+```
+
+Notice that `managed-aws-rds.virtual.consul` resolves to a multicast IP address, which facilitates one-to-many communication for all instances of the `managed-aws-rds` Consul service.
+
+## Configure and link the AWS RDS service to the terminating gateway
+
+To begin routing traffic to external services, you must configure the Consul security systems and link your external service to the terminating gateway. 
+
+In this section, you will configure Consul ACLs and intentions to allow secure communication between the services within your mesh, the terminating gateway, and the external `managed-aws-rds` service. You will then link your external `managed-aws-rds` service to the terminating gateway.
+
+First, create a custom ACL policy that allows the terminating gateway to communicate with the `managed-aws-rds` service.
+
+```shell-session
+$ consul acl policy create -name "managed-aws-rds-write-policy" \
+                       -datacenter "dc1" \
+                       -rules @config/write-acl-policy.hcl
+```
+
+Example output:
+
+<CodeBlockConfig hideClipboard>
+
+```log
+ID: 56cd0458-2115-3722-22a5-aee974a4edb8
+Name: managed-aws-rds-write-policy
+Description:
+Datacenters:
+Rules:
+# Set write access for external managed-aws-rds service
+service "managed-aws-rds" {
+policy = "write"
+intentions = "read"
+}
+```
+
+</CodeBlockConfig>
+
+Review the [Consul ACL Policies](/consul/docs/security/acl/acl-policies) documentation to learn more.
+
+Retrieve the terminating gateway ACL role ID and set it as an environment variable.
+
+```shell-session
+$ export TGW_ACL_ROLE_ID=$(consul acl role list -format=json | jq --raw-output '[.[] | select(.Name | endswith("-terminating-gateway-acl-role"))] | if (. | length) == 1 then (. | first | .ID) else "Unable to determine the role ID because there are multiple roles matching this name.\n" | halt_error end')
+```
+
+Attach your custom ACL policy to the terminating gateway role.
+
+```shell-session
+$ consul acl role update -id $TGW_ACL_ROLE_ID \
+                       -datacenter "dc1" \
+                       -policy-name managed-aws-rds-write-policy
+```
+
+Example output:
+
+<CodeBlockConfig hideClipboard>
+
+```log
+ID: af87a7bb-660b-8d7b-39ea-e909c13779e7
+Name: consul-terminating-gateway-acl-role
+Description: ACL Role for consul-terminating-gateway
+Policies:
+054eccc4-e379-6aa7-a36d-ebf0fd0ce02f - terminating-gateway-policy
+56cd0458-2115-3722-22a5-aee974a4edb8 - managed-aws-rds-write-policy
+```
+
+</CodeBlockConfig>
+
+Create an intention that allows communication from the `product-api` service to the `managed-aws-rds` service. This intention allows traffic to flow from the HashiCups frontend services to the HashiCups backend database service.
+
+```shell-session
+$ kubectl apply --filename config/service-intentions.yaml
+serviceintentions.consul.hashicorp.com/managed-aws-rds created
+```
+
+Deploy the terminating gateway for the `managed-aws-rds` by applying the `terminating-gateway.yaml` CRD to your cluster.
+
+```shell-session
+$ kubectl apply --filename config/terminating-gateway.yaml
+terminatinggateway.consul.hashicorp.com/terminating-gateway created
+```
+
+## Update your service mesh applications to communicate with external services
+
+To configure your service mesh applications, the respective Consul virtual address must be configured into the relevant application connection parameter.
+
+In this section, you will deploy the `product-api` service mesh application to communicate with the external `managed-aws-rds` virtual service. 
+
+Open your `config/products-api` deployment configuration file and review the `ConfigMap` section of the deployment.
+
+<CodeBlockConfig filename="config/product-api.yaml" highlight="9" hideClipboard>
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: db-configmap
+ namespace: default
+data:
+ config: |
+   {
+     "db_connection": "host=managed-aws-rds.virtual.consul port=5432 user=postgres password=password dbname=products sslmode=disable",
+     "bind_address": ":9090",
+     "metrics_address": ":9103"
+   }
+##..
+```
+
+</CodeBlockConfig>
+
+Notice how the database connection string for this HashiCups service includes the `managed-aws-rds.virtual.consul` Consul DNS address. 
+
+<Note>
+
+The placement of the external service's virtual address is unique to the application. This scenario uses  PostgreSQL as the HashiCups database.
+
+</Note>
+
+Deploy the `product-api` service.
+
+```shell-session
+$ kubectl apply -f config/product-api.yaml
+configmap/db-configmap created
+service/product-api created
+serviceaccount/product-api created
+servicedefaults.consul.hashicorp.com/product-api created
+deployment.apps/product-api created
+```
+
+## Explore demo application (working state)
+
+Open the HashiCup's URL in your browser and refresh the HashiCups UI.
+
+```shell-session
+$ echo $CONSUL_APIGW_ADDR
+http://a4cc3e77d86854fe4bbcc9c62b8d381d-221509817.us-west-2.elb.amazonaws.com
+```
+
+![HashiCups in a state where all services are functional. An array of HashiCorp themed coffees are displayed in the UI.](/img/consul/hashicups-consul.png)
+
+Notice that the HashiCups UI functions correctly. You have successfully connected the HashiCups frontend to the external HashiCups backend database on AWS RDS using Consul terminating gateway.
+
+## Clean up resources
+
+Destroy the Terraform resources to clean up your environment. Confirm the destroy operation by inputting `yes`.
+
+```shell-session
+$ terraform destroy
+
+## ...
+Do you really want to destroy all resources?
+ Terraform will destroy all your managed infrastructure, as shown above.
+ There is no undo. Only 'yes' will be accepted to confirm.
+
+Enter a value: yes
+
+## ...
+
+Destroy complete! Resources: 0 added, 0 changed, 103 destroyed.
+```
+
+<Note>
+
+Due to race conditions with the cloud resources in this tutorial, you may need to run the `destroy` operation twice to remove all the resources.
+
+</Note>
+
+## Next steps
+
+In this tutorial, you deployed and configured a Consul terminating gateway to extend secure communication to services outside of your Consul service mesh. This integration offers increased simplicity for network, security, and policy uniformity. It also provides reduced operational overhead and ease of adoption for legacy services.
+
+For more information about the topics covered in this tutorial, refer to the following resources:
+
+- [Terminating gateway docs](/consul/tutorials/developer-mesh/service-mesh-terminating-gateways)
+- [Consul on Kubernetes docs](/consul/docs/k8s)

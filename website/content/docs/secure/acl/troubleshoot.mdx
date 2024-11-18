@@ -1,0 +1,162 @@
+---
+layout: docs
+page_title: Troubleshoot ACLs
+description: >-
+  Learn how to troubleshoot Consul's ACL system with the Consul CLI. You can check datacenter members and list available tokens to debug issues when agents and services don't appear in Consul.
+---
+
+# Troubleshoot ACLs
+
+This page describes how to troubleshoot your Consul access control list (ACL) system using the Consul CLI and the ACL system reset procedure.
+
+## Requirements
+
+These instructions assume an existing datacenter running Consul 1.4 or later.
+
+All commands on this page require a valid token with `write` permissions to the ACL system. If you do not have one, you can temporarily use the initial management token since it has unlimited privileges.
+
+## `consul members`
+
+You can use the `consul members` [command](/consul/commands/members) when configuring agents with tokens to check that they have the necessary privileges to join the datacenter.
+
+If an agent, server, or client, is missing from the list of members, then ACLs were not configured correctly on that agent or the token does not have the correct privileges. Only agents that have privileges to register themselves in the catalog are included in the member list.
+
+```shell-session
+$ consul members
+Node       Address         Status    Type    Build  Protocol  DC   Segment
+server-1  172.17.0.2:8301  alive     server  1.4.4  2         dc1  <all>
+server-2  172.17.0.3:8301  alive     server  1.4.4  2         dc1  <all>
+server-3  172.17.0.4:8301  alive     server  1.4.4  2         dc1  <all>
+```
+
+Use the `consul acl` commands listed in the following sections to help troubleshoot token privileges.
+
+## `consul catalog`
+
+The [`consul catalog nodes -detailed` command](/consul/commands/catalog/nodes) displays node information, including tagged addresses. If the "TaggedAddresses" field is null for any of the agents, that agent's ACLs are not configured correctly. To start debugging, review the Consul logs on all the servers. If ACLs are enabled correctly, you should investigate the agent's  token.
+
+```shell-session
+$ consul catalog nodes -detailed
+Node      ID                  Address   DC  TaggedAddresses
+server-1  a82c7db3-fdc3  192.168.1.191  kc  lan=192.168.1.191, wan=192.168.1.190
+server-2  a82c7db3-fdc3  192.168.1.192  kc  lan=192.168.1.192, wan=192.168.1.190
+server-3  a82c7db3-fdc3  192.168.1.193   kc  lan=192.168.1.193, wan=192.168.1.190
+```
+
+Use the `consul acl` commands listed below to help troubleshoot token privileges.
+
+## `consul acl`
+
+After you confirm the issue is not due to misconfiguration, you can use the following commands to help troubleshoot token or policy issues.
+
+### `consul acl policy list`
+
+The [`consul acl policy list` command](/consul/commands/acl/policy/list) outputs all available policies. This command is useful when you first set up policies so you can verify your Consul policies and their respective rules. In 
+the following example, there are two policies: the built-in `global-management` policy and a user-created policy named `server-one-policy`.
+
+```shell-session
+$ consul acl policy list
+global-management:
+   ID:           00000000-0000-0000-0000-000000000001
+   Description:  Builtin Policy that grants unlimited access
+   Datacenters:
+server-one-policy:
+   ID:           0bcee22c-6602-9dd6-b147-964958069426
+   Description:  policy for server one
+   Datacenters:
+```
+
+You can use `consul acl policy read -id <policy_id>` to investigate individual policies. In the following example, the `server-one-policy` policy has node write privileges for node "consul-server-one".
+
+```shell-session
+$ consul acl policy read -id 0bcee22c-6602-9dd6-b147-964958069426
+ID:           0bcee22c-6602-9dd6-b147-964958069426
+Name:         server-one-policy
+Description:  policy for server one
+Datacenters:
+Rules:
+node "consul-server-one" {
+  policy = "write"
+}
+```
+
+### `consul acl token list`
+
+The [`consul acl token list` command](/consul/commands/acl/policy/list) lists all tokens. Verify that this list includes the tokens in use. It is important for the security of your datacenter to remove old tokens that are no longer in use. Because tokens do not expire, it is the ACL administrator's responsibility to [delete ACL tokens](/consul/commands/acl/token#delete) when they are not in use.
+
+In the following example, there are three tokens. 
+
+1. The first token is created by Consul during the bootstrap process.
+1. The second token is user generated and was created with the `server-one-policy` policy. 
+1. The third token is also created by Consul, but it has no privileges.
+
+```shell-session
+$ consul acl token list
+AccessorID:       cf827c04-fb7d-ea75-da64-84e1dd2d5dfe
+SecretID:         af410085-8bf6-80d6-08ad-2bfaa6526256
+Description:      Bootstrap Token (Global Management)
+Local:            false
+Create Time:      2019-05-20 11:08:27.253096 -0500 CDT
+Legacy:           false
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+
+AccessorID:       5d3c3a03-e627-a749-444c-2984101190c0
+SecretID:         d203592e-3960-cf7e-801e-5b805825d359
+Description:      token for server one
+Local:            false
+Create Time:      2019-10-17 11:46:27.106158 -0500 CDT
+Legacy:           false
+Policies:
+   0bcee22c-6602-9dd6-b147-964958069426 - server-one-policy
+
+AccessorID:       00000000-0000-0000-0000-000000000002
+SecretID:         anonymous
+Description:      Anonymous Token
+Local:            false
+Create Time:      2019-05-20 11:08:27.253959 -0500 CDT
+Legacy:           false
+```
+
+### `consul acl token read`
+
+The [`consul acl token read` command](/consul/commands/acl/policy/read) provides information about the specified token. Verify the privileges of the token are expected. This command is useful when checking a node or service has the correct privileges to add itself to the catalog.
+
+The following example includes the same information that is returned with the `consul acl token list` command, but is useful when you do not want to view all tokens.
+
+```shell-session
+$ consul acl token read -id 5d3c3a03-e627-a749-444c-2984101190c0
+AccessorID:       5d3c3a03-e627-a749-444c-2984101190c0
+SecretID:         547a969c-5dff-f9a8-6b84-fb1d23f9a5cb
+Description:      token for server one
+Local:            false
+Create Time:      2019-10-17 11:46:27.106158 -0500 CDT
+Policies:
+   0bcee22c-6602-9dd6-b147-964958069426 - server-one-policy
+```
+
+Use the `consul acl token read` command first if the `consul catalog` or `consul members` commands return unexpected results.
+
+## Reset the ACL system
+
+If you encounter issues that are unresolvable or misplace the bootstrap token, you can reset the ACL system by updating the index. First, find the leader using the `/v1/status/leader` endpoint on any node. You must reset ACL on the leader. The following example shows the leader is at IP `172.17.0.3`.
+
+```shell-session
+$ curl 172.17.0.1:8500/v1/status/leader
+"172.17.0.3:8300"%
+```
+
+On the leader node, re-run the bootstrap command to get the index number. The output shows the reset index is `13`.
+
+```shell-session
+$ consul acl bootstrap
+Failed ACL bootstrapping: Unexpected response code: 403 (Permission denied: ACL bootstrap no longer allowed (reset index: 13))
+```
+
+Then, write the reset index into the bootstrap reset file.
+
+```shell-session
+$ echo 13 >> <data-directory>/acl-bootstrap-reset
+```
+
+After you have written the reset index, re-run the bootstrap command to recreate the bootstrap token.

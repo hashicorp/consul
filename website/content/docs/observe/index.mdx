@@ -1,0 +1,63 @@
+---
+layout: docs
+page_title: Observe your service mesh
+description: >-
+  This topic provides an overview of Consul's service mesh observability features, including L7 telemetry visualizations, access logs, and distributed tracing.
+---
+
+# Observe your service mesh
+
+This topic provides an overview of Consul's observability features. Consul can be configured with Prometheus to provide visualizations about agent operations and service traffic between proxies in your service mesh.
+
+## Introduction
+
+Consul supports observability functions that enable you to understand the state of your service mesh while it is running. By monitoring agent, client, dataplane, gateway, mesh proxy, and sidecar proxy requests and their L7 traffic, you can diagnose network issues and effectively mitigate communication failures in your service mesh. Consul can be configured to expose three kinds of telemetry features to help you observe your service mesh:
+
+- Access logs
+- Distributed traces
+- Service mesh telemetry metrics
+
+## Access logs
+
+@include 'text/description/access-log.mdx'
+
+## Distributed tracing
+
+@include 'text/description/distributed-tracing.mdx'
+
+## Service mesh telemetry metrics
+
+@include 'text/description/telemetry.mdx'
+
+## Tutorials
+
+To get started with the features described on this page, refer to the tutorials in the [Observability tutorial collection](/consul/tutorials/service-mesh-observability):
+
+- [Monitor application health and performance with Consul proxy metrics](/consul/tutorials/service-mesh-observability/proxy-metrics)
+- [Debug service mesh events and errors with Consul proxy access logs](/consul/tutorials/service-mesh-observability/proxy-access-logs)
+- [Monitor Consul server health and performance with metrics and logs](/consul/tutorials/service-mesh-observability/server-metrics-and-logs#enable-consul-server-metrics-and-logging)
+- [Visualize Service Mesh Communication in the Consul UI](/consul/tutorials/service-mesh-observability/service-mesh-visualization)
+- [Observe Consul service mesh traffic with Prometheus](/consul/tutorials/service-mesh-observability/service-mesh-observability)
+- [Layer 7 observability with Prometheus, Grafana, and Kubernetes](/consul/tutorials/service-mesh-observability/kubernetes-layer7-observability)
+- HashiConf 2023 Learn Lab: [Deep observability insights at any scale with Consul](/consul/tutorials/service-mesh-observability/hashiconf-2023)
+
+### Runtime specific usage documentation
+
+For runtime-specific guidance, refer to the following pages:
+
+- [Observe service mesh telemetry on virtual machines (VMs)](/consul/docs/observe/telemetry/vm)
+- [Observe service mesh telemetry on Kubernetes](/consul/docs/observe/telemetry/k8s)
+
+### Reference documentation
+
+For reference material related to Consul's observability functions, refer to the following pages:
+
+- [Telemetry parameters in Consul agent configuration reference](/consul/docs/reference/agent#telemetry-parameters)
+- [`global.metrics` parameters in Kubernetes Helm chart reference](/consul/docs/reference/k8s/helm#v-global-metrics)
+- [Proxy defaults configuration reference](/consul/docs/reference/config-entry/proxy-defaults)
+- [Envoy proxy configuration reference](/consul/docs/reference/proxy/envoy)
+- [OpenTelemetry Access Logging extension configuration reference](/consul/docs/reference/proxy/extensions/otel)
+
+### Constraints, limitations, and troubleshooting
+
+@include 'limitations/observe.mdx'

@@ -1,0 +1,3 @@
+Network areas specify a relationship between a pair of Consul datacenters. Operators create reciprocal areas on each side of the relationship and then joins them together. This networking strategy allows for more flexible relationships between Consul datacenters, such as hub/spoke or more general tree structures. Because traffic between network areas uses server RPC (8300/tcp), you can secure it using only TLS.
+
+Refer to the [Network area documentation](/consul/docs/east-west/network-area) for more information.

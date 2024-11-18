@@ -1,0 +1,52 @@
+---
+layout: docs
+page_title: Discover services on virtual machines (VMs)
+description: >-
+  This topic provides an overview of the service discovery features and operations enabled on virtual machines by Consul DNS, including application load balancing, static lookups, and prepared queries.
+---
+
+# Discover services on virtual machines (VMs)
+
+This topic provides an overview of Consul service discovery operations on virtual machines. After you register services with Consul, you can address them using Consul DNS to perform application load balancing and static service lookups. You can also create prepared queries for dynamic service lookups and service failover.
+
+## Introduction
+
+When a service registers with Consul, the catalog records the address of each service's node. Consul then updates an instance's catalog entry with the results of each health check it performs. Consul agents replicate catalog information between each other using the [Raft consensus protocol](/consul/docs/architecture/consensus), enabling high availability service networking through any Consul agent.
+
+Consul's service discovery operations use [Consul DNS addresses](consul/docs/discover/dns) to route traffic to healthy service instances and return information about service nodes registered to Consul.
+
+## Application load balancing
+
+@include 'feature/load-balancer.mdx'
+
+## Static lookups
+
+@include 'feature/static-query.mdx'
+
+## Prepared queries
+
+@include 'feature/prepared-query.mdx'
+
+## Tutorials
+
+To get started with Consul's service discovery features on VMs, refer to the following tutorials:
+
+- [Register your services to Consul](/consul/tutorials/get-started-vms/virtual-machine-gs-service-discovery) includes service queries with Consul DNS
+- [Ensure only healthy services are discoverable](/consul/tutorials/developer-discovery/service-registration-health-checks)
+- [DNS caching](/consul/tutorials/networking/dns-caching)
+- [Forward DNS for Consul service discovery](/consul/tutorials/networking/dns-forwarding)
+- [Register external services with Consul service discovery](/consul/tutorials/developer-discovery/service-registration-external-services)
+- [Load Balancing with NGINX Plus' Service Discovery Integration](/consul/tutorials/load-balancing/load-balancing-nginx-plus)
+- [Load Balancing with NGINX and Consul Template](/consul/tutorials/load-balancing/load-balancing-nginx)
+- [Load Balancing with HAProxy Service Discovery Integration](/consul/tutorials/load-balancing/load-balancing-haproxy)
+- [Load balancing with F5 and Consul](/consul/tutorials/load-balancing/load-balancing-f5)
+
+## Reference documentation
+
+For reference material related to Consul's service discovery functions, refer to the following pages:
+
+- [Consul DNS reference](/consul/docs/reference/dns)
+
+## Constraints, limitations, and troubleshooting
+
+@include 'limitations/discover.mdx'

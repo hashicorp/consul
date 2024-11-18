@@ -1,0 +1,44 @@
+---
+page_title: Secure north/south access overview
+description: API gateways and ingress gateways are types of service mesh proxies that you can use to securely allow systems outside the Consul service mesh to access services in the mesh. Learn how API and ingress gateways can help you enable access to services registered by Consul.
+layout: docs
+---
+
+# Secure north/south access overview
+
+This topic provides an overview of the Consul components that securely allow systems outside the service mesh to access services inside the mesh. Network traffic that connects services inside the mesh to external clients or services is referred to as _north-south traffic_.
+
+For information about intra-mesh, or _east-west traffic_ in your service mesh, refer to [Link network segments overview](/consul/docs/link).
+
+## Introduction
+
+You can define points of ingress to the service mesh using either API gateways or ingress gateways. These gateways allow external network clients to access applications and services running in a Consul datacenter.
+
+API gateways forward requests from clients to specific destinations based on path or request protocol. Ingress gateways are Consul's legacy capability for ingress. We recommend using API gateways instead of ingress gateways.
+
+## API gateways
+
+API gateways enable external network clients to securely access applications and services running in a Consul datacenter. Consul API gateways can also forward requests from clients to specific destinations in the service mesh based on request's path or protocol.
+
+To enable an API gateway, you must configure the gateway, its listeners, and its routes. Refer to [API gateway overview](/consul/docs/north-south/api-gateway) for additional information about deploying API gateways to your Consul service mesh.
+
+## Ingress gateways
+
+Ingress gateways listen for external requests and route authorized traffic to instances in the service mesh. They provide one-way traffic from external sources to services in the mesh. If you want to enable traffic from services in the mesh to external destinations, then you must also configure a [terminating gateway](/consul/docs/register/external/terminating-gateway), which is a separate component that requires additional configuration and maintenance.
+
+We recommend using API gateways to enable north-south traffic instead of implementing ingress gateways and terminating gateways.
+
+Refer to [Ingress gateway overview](/consul/docs/north-south/ingress-gateway) for additional information about deploying ingress gateways to your Consul service mesh.
+
+<Note>
+
+Ingress gateways are deprecated. Use [Consul API gateways](/north-south/api-gateway) to secure service mesh ingress instead.
+
+</Note>
+
+## Guidance
+
+Refer to the following topics for information about deploying API and ingress gateways:
+
+- [API gateway resources](/consul/docs/north-south/api-gateway#guidance)
+- [Ingress gateway resources](/consul/docs/north-south/ingress-gateway#guidance)

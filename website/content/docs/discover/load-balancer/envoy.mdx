@@ -1,0 +1,353 @@
+---
+layout: docs
+page_title: Load balancing services in Consul service mesh with Envoy
+description: >-
+  Manage traffic across services within Consul service mesh with Envoy load balancing policies.
+---
+
+# Load balancing services in Consul service mesh with Envoy
+
+Load balancing is a mechanism of distributing traffic between multiple targets in order to make use of available resources in the most effective way. There are many different ways of accomplishing this, so Envoy provides several different load balancing strategies. To take advantage of this Envoy functionality, Consul supports changing the load balancing policy used by the Envoy data plane proxy. Consul configuration entries specify the desired load balancing algorithm.
+
+Load balancing policies apply to both requests from internal services inside the service mesh, and requests from external clients accessing services in your datacenter through an ingress gateway.
+
+The policies will be defined using a [`service-resolver`](/consul/docs/connect/config-entries/service-resolver) configuration entry.
+
+This tutorial will guide you through the steps needed to change the load balancing policy for a service in your mesh. You will learn how to configure sticky session for services using the _maglev_ policy and how to setup a _least_request_ policy that will take into account the amount of requests on service instances for load balancing traffic.
+
+## Prerequisites
+
+In order to deploy and test Consul load balancing policies for Envoy proxies, you will need the following resources deployed in a non-production environment:
+
+- A Consul version 1.13.1 cluster or later with Consul service mesh functionality enabled. Check [Secure Service-to-Service Communication](/consul/tutorials/developer-mesh/service-mesh-with-envoy-proxy) for configuration guidance. In this tutorial, this will be referred to as the _server_ node.
+
+- Two nodes, each hosting an instance of a service, called _backend_ that requires load balancing policy tuning.
+
+- One node, hosting a client service, you are going to use to route requests to the backend services. The client service is configured to use the _backend_ service as upstream. In this tutorial we will refer to this as the _client_ node.
+
+Optional:
+
+- One node running as ingress gateway.
+
+<Tip>
+
+ The content of this tutorial also applies to Consul clusters hosted on HashiCorp Cloud (HCP).
+
+</Tip>
+
+The diagram below shows the minimal architecture needed to demonstrate the functionality.
+
+![Architectural diagram showing two backend services and a client service within a Consul service mesh](/img/consul/consul-lb-envoy-client-service.png)
+
+<InteractiveLabCallout />
+
+<Note title="Security Warning">
+
+ This tutorial is not for production use. By default, the lab will install an insecure configuration of Consul.
+
+</Note>
+
+## Available load balancing policies
+
+Consul implements load balancing by automating Envoy configuration to reflect the selected approach.
+
+The following policies are available:
+
+| Policy                    | Description                                                                                                                                                                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `round_robin` _(default)_ | The request will be resolved to any healthy service, in a round robin order.                                                                                                                                                                                              |
+| `least_request`           | An _O(1)_ algorithm selects N random available hosts as specified in the configuration (2 by default) and picks the host which has the fewest active requests.                                                                                                            |
+| `ring_hash`               | Implements consistent hashing to upstream hosts. Each host is mapped onto a circle (the “ring”) by hashing its address; each request is then routed to a host by hashing properties of the request, and finding the nearest corresponding host clockwise around the ring. |
+| `maglev`                  | Implements consistent hashing to upstream hosts. It can be used as a replacement for the ring_hash load balancer in any place in which consistent hashing is desired.                                                                                                     |
+| `random`                  | The request will be resolved to any healthy service, randomly.                                                                                                                                                                                                            |
+
+<Tip title="Envoy Support">
+
+ These policies are a reflection of the Envoy [supported load balancers](https://www.envoyproxy.io/docs/envoy/v1.23.0/intro/arch_overview/upstream/load_balancing/load_balancers). Refer to [Envoy supported versions](/consul/docs/connect/proxies/envoy#supported-versions) in the documentation to make sure your Envoy version is compatible with your Consul version.
+
+</Tip>
+
+## Default load balancing policy
+
+Consul automatically balances traffic across all the healthy instances of the resolved service using the _round_robin_ policy.
+
+You can verify this by using the `curl` command from the node running the _client_ service.
+
+First login to the _client_ node, then run a request against the client service.
+
+```shell-session
+$ curl --silent localhost:9192
+```
+
+Example output:
+
+```json
+{
+  "name": "main",
+  "uri": "/",
+  "type": "HTTP",
+  "ip_addresses": ["172.18.0.4"],
+  "start_time": "2020-10-01T16:15:54.151406",
+  "end_time": "2020-10-01T16:15:54.151885",
+  "duration": "478.867µs",
+  "body": "Hello World",
+  "code": 200
+}
+```
+
+If you run the command multiple times you will be able to confirm, using the output, that the requests are being balanced across the two different instances of the service.
+
+## Configure service defaults
+
+In order to enable service resolution and apply load balancer policies, you first need to configure HTTP as the service protocol in the service's `service-defaults` configuration entry.
+
+First, login to the _server_ node, then create a `default.hcl` file with the following content:
+
+<CodeBlockConfig filename="default.hcl">
+
+
+```hcl
+Kind           = "service-defaults"
+Name           = "backend"
+Protocol       = "http"
+```
+
+</CodeBlockConfig>
+
+
+Then, apply the configuration to your Consul datacenter.
+
+```shell-session
+$ consul config write /etc/consul.d/default.hcl
+```
+
+Example output:
+
+```plaintext hideClipboard
+Config entry written: service-defaults/backend
+```
+
+## Configure a sticky session for service resolution
+
+A common requirement for many applications is to have the ability to direct all the requests from a specific client to the same server. These configurations usually rely on an HTTP header to map client requests to a specific backend and route the traffic accordingly.
+
+For this tutorial you will configure a policy using the `x-user-id` header to implement sticky session.
+
+First login to the _server_ node and create a `hash-resolver.hcl` file using the following content:
+
+<CodeBlockConfig filename="hash-resolver.hcl">
+
+
+```hcl
+Kind           = "service-resolver"
+Name           = "backend"
+LoadBalancer = {
+  Policy = "maglev"
+  HashPolicies = [
+     {
+        Field = "header"
+        FieldValue = "x-user-id"
+     }
+  ]
+}
+```
+
+</CodeBlockConfig>
+
+
+This configuration creates a `service-resolver` configuration for the service `backend` that uses the `maglev` policy and relies on the content of the `x-user-id` header to resolve requests.
+
+You can apply the policy using the `consul config` command.
+
+```shell-session
+$ consul config write /etc/consul.d/hash-resolver.hcl
+```
+
+Example output:
+
+```plaintext hideClipboard
+Config entry written: service-resolver/backend
+```
+
+### Verify the policy is applied
+
+Once the policy is in place, you can test it using the `curl` command from the _client_ node and applying the `x-user-id` header to the request:
+
+```shell-session
+$ curl --silent localhost:9192 --header "x-user-id: 12345"
+```
+
+Example output:
+
+```json
+{
+  "name": "main",
+  "uri": "/",
+  "type": "HTTP",
+  "ip_addresses": ["172.18.0.4"],
+  "start_time": "2020-10-01T16:15:47.950151",
+  "end_time": "2020-10-01T16:15:47.950581",
+  "duration": "430.088µs",
+  "body": "Hello World",
+  "code": 200
+}
+```
+
+If you execute the previous command multiple times, you will always be redirected to the same instance of the _backend_ service.
+
+<Note>
+
+ sticky sessions are consistent given a stable service configuration. If the number of backend hosts changes, a fraction of the sessions will be routed to a new host after the change.
+
+</Note>
+
+## Use least_request LB policy
+
+The default load balancing policy, _round_robin_, is usually the best approach in scenarios where requests are homogeneous and the system is over-provisioned.
+
+In scenarios where the different instances might be subject to substantial differences in terms of workload, there are better approaches.
+
+Using the _least_request_ policy enables Consul to route requests using information on connection-level metrics and select the one with the lowest number of connections.
+
+### Configure least_request load balancing policy
+
+The tutorial's lab environment provides an example configuration file, `least-req-resolver.hcl` for the _least_request_ policy.
+
+<CodeBlockConfig filename="least-req-resolver.hcl">
+
+
+```hcl
+Kind           = "service-resolver"
+Name           = "backend"
+LoadBalancer = {
+  Policy = "least_request"
+  LeastRequestConfig = {
+    ChoiceCount = "2"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+
+This configuration creates a `service-resolver` configuration for the service `backend`, which for every request will select 2 (as expressed by `ChoiceCount`) random instances of the service, and route to the one with the least amount of load.
+
+You can apply the policy using the `consul config` command.
+
+```shell-session
+$ consul config write least-req-resolver.hcl
+```
+
+Example output:
+
+```plaintext hideClipboard
+Config entry written: service-resolver/backend
+```
+
+### Verify the policy is applied
+
+Once the policy is in place, you can test it using the `curl` command and applying the `x-user-id` header to the request.
+First, log in to the _client_ node and then use the following command:
+
+```shell-session
+$ curl --silent localhost:9192 --header "x-user-id: 12345"
+```
+
+Example output:
+
+```json
+{
+  "name": "main",
+  "uri": "/",
+  "type": "HTTP",
+  "ip_addresses": ["172.18.0.4"],
+  "start_time": "2020-10-01T16:25:47.950151",
+  "end_time": "2020-10-01T16:25:47.950581",
+  "duration": "420.066µs",
+  "body": "Hello World",
+  "code": 200
+}
+```
+
+If you execute the command multiple times, you will notice that despite applying the header used by the previous policy, the request is served by different instances of the service.
+
+-> The _least_request_ configuration with `ChoiceCount` set to 2 is also known as P2C (power of two choices). The P2C load balancer has the property that a host with the highest number of active requests in the cluster will never receive new requests. It will be allowed to drain until it is less than or equal to all of the other hosts. You can read more on this in [this paper](https://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf)
+
+## Load balancer policies and ingress gateways (optional)
+
+The load balancing policy for the datacenter applies also to the service resolution performed by ingress gateways. Once you have configured the policies for the services and tested it internally using the client service, you can introduce an ingress gateway in your configuration, and the same policies will be now respected by external requests being served by your Consul datacenter.
+
+Consul reduces the amount of configuration needed for specifying load balancing policies by using a common policy to resolve internal requests from services inside the mesh, and external requests from clients outside the mesh.
+
+![Architectural diagram showing two backend services and a client service accessing the Consul service mesh using an ingress gateway](/img/consul/consul-lb-envoy-ingress-gw.png)
+
+You can deploy an ingress gateway using the following configuration:
+
+<CodeBlockConfig filename="ingress-gateway.hcl">
+
+
+```hcl
+Kind = "ingress-gateway"
+Name = "ingress-service"
+
+Listeners = [
+ {
+   Port = 8080
+   Protocol = "http"
+   Services = [
+     {
+       Name = "backend"
+     }
+   ]
+ }
+]
+```
+
+</CodeBlockConfig>
+
+
+Once the configuration is applied, using command `consul config write` you can start the gateway on the gateway node using the following command:
+
+```shell-session
+$ consul connect envoy -gateway=ingress -register -service ingress-service -address '{{ GetInterfaceIP "eth0" }}:8888'
+```
+
+Once the Envoy proxy is active, you can test the load balancing policy accessing the service from your browser using the ingress gateway at `http://backend.ingress.consul:8080`, and test the policy by refreshing the page.
+
+Alternatively, you can test it using the `curl` command as explained in the previous chapters but using the DNS name and port `8080`.
+
+```shell-session
+$ curl --silent backend.ingress.consul:8080
+```
+
+Example output:
+
+```json
+{
+  "name": "main",
+  "uri": "/",
+  "type": "HTTP",
+  "ip_addresses": ["172.18.0.4"],
+  "start_time": "2020-10-01T18:15:27.650151",
+  "end_time": "2020-10-01T18:15:27.650581",
+  "duration": "420.066µs",
+  "body": "Hello World",
+  "code": 200
+}
+```
+
+-> Configuration Info: When using an `http` listener in the ingress gateway configuration, Consul will accept requests to the ingress gateway service only if the hostname matches with the internal naming convention `<service_name>.ingress.*`. If you need the service to be accessible using a different hostname or an IP, please refer to the ingress gateway [configuration entry](/consul/docs/connect/config-entries/ingress-gateway#hosts) documentation.
+
+<Note title="Challenge">
+
+ Try to configure the load balancing policy with a sticky session, and then use `curl` to verify the sticky session is configured for the traffic routed from the ingress gateway.
+
+</Note>
+
+## Next steps
+
+In this tutorial, you learned how to change the default load balancing policy for services in your service mesh.
+
+You can learn more about the other options for traffic splitting available in Consul from our [Deploy seamless canary deployments with service splitters](/consul/tutorials/developer-mesh/service-splitters-canary-deployment) tutorial.
+
+If you want to learn more on how to deploy an ingress gateway for your Consul service mesh, you can complete the [Allow External Traffic Inside Your Service Mesh With Ingress Gateways](/consul/tutorials/developer-mesh/service-mesh-ingress-gateways) tutorial.
