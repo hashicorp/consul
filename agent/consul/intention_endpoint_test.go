@@ -1639,6 +1639,11 @@ func TestIntentionList_acl(t *testing.T) {
 	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultInitialManagementToken, "dc1", `service_prefix "foo" { policy = "write" }`)
 	require.NoError(t, err)
 
+	const (
+		bexprMatch   = "DestinationName matches `f.*`"
+		bexprNoMatch = "DestinationName matches `nomatch.*`"
+	)
+
 	// Create a few records
 	for _, name := range []string{"foobar", "bar", "baz"} {
 		ixn := structs.IntentionRequest{
@@ -1691,12 +1696,29 @@ func TestIntentionList_acl(t *testing.T) {
 		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 
-	t.Run("filtered", func(t *testing.T) {
+	// maskResultsFilteredByACLs() in rpc.go sets ResultsFilteredByACLs to false if the token is an empty string
+	// after resp.QueryMeta.ResultsFilteredByACLs has been determined to be true from filterACLs().
+	t.Run("filtered with no token should return no results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+		req := &structs.IntentionListRequest{
+			Datacenter: "dc1",
+			QueryOptions: structs.QueryOptions{
+				Filter: bexprMatch,
+			},
+		}
+
+		var resp structs.IndexedIntentions
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.Len(t, resp.Intentions, 0)
+		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	// has access to everything
+	t.Run("filtered with initial management token should return 1 and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		req := &structs.IntentionListRequest{
 			Datacenter: "dc1",
 			QueryOptions: structs.QueryOptions{
 				Token:  TestDefaultInitialManagementToken,
-				Filter: "DestinationName == foobar",
+				Filter: bexprMatch,
 			},
 		}
 
@@ -1704,6 +1726,54 @@ func TestIntentionList_acl(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
 		require.Len(t, resp.Intentions, 1)
 		require.False(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be false")
+	})
+
+	// ResultsFilteredByACLs should reflect user does not have access to read all intentions but has access to some.
+	t.Run("filtered with user token whose permissions match filter should return 1 and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req := &structs.IntentionListRequest{
+			Datacenter: "dc1",
+			QueryOptions: structs.QueryOptions{
+				Token:  token.SecretID,
+				Filter: bexprMatch,
+			},
+		}
+
+		var resp structs.IndexedIntentions
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.Len(t, resp.Intentions, 1)
+		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	// ResultsFilteredByACLs need to act as though no filter was applied.
+	t.Run("filtered with user token whose permissions do match filter should return 0 and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req := &structs.IntentionListRequest{
+			Datacenter: "dc1",
+			QueryOptions: structs.QueryOptions{
+				Token:  token.SecretID,
+				Filter: bexprNoMatch,
+			},
+		}
+
+		var resp structs.IndexedIntentions
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.Len(t, resp.Intentions, 0)
+		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
+	})
+
+	// ResultsFilteredByACLs should reflect user does not have access to read any intentions
+	t.Run("filtered with anonymous token should return 0 and ResultsFilteredByACLs equal to true", func(t *testing.T) {
+		req := &structs.IntentionListRequest{
+			Datacenter: "dc1",
+			QueryOptions: structs.QueryOptions{
+				Token:  "anonymous",
+				Filter: bexprMatch,
+			},
+		}
+
+		var resp structs.IndexedIntentions
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
+		require.Len(t, resp.Intentions, 0)
+		require.True(t, resp.QueryMeta.ResultsFilteredByACLs, "ResultsFilteredByACLs should be true")
 	})
 }
 

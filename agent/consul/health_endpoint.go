@@ -63,18 +63,23 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 			}
 			reply.Index, reply.HealthChecks = index, checks
 
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			raw, err := filter.Execute(reply.HealthChecks)
 			if err != nil {
 				return err
 			}
 			reply.HealthChecks = raw.(structs.HealthChecks)
-
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
 		})
@@ -111,18 +116,23 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 			}
 			reply.Index, reply.HealthChecks = index, checks
 
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			raw, err := filter.Execute(reply.HealthChecks)
 			if err != nil {
 				return err
 			}
 			reply.HealthChecks = raw.(structs.HealthChecks)
-
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
-			if err := h.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			return nil
 		})
@@ -303,19 +313,24 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 					thisReply.Nodes = nodeMetaFilter(arg.NodeMetaFilters, thisReply.Nodes)
 				}
 
+				// Note: we filter the results with ACLs *before* applying the user-supplied
+				// bexpr filter to ensure that the user can only run expressions on data that
+				// they have access to.  This is a security measure to prevent users from
+				// running arbitrary expressions on data they don't have access to.
+				// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+				// that results they don't have access to have been removed.  If they were
+				// also allowed to run the bexpr filter on the data, they could potentially
+				// infer the specific attributes of data they don't have access to.
+				if err := h.srv.filterACL(arg.Token, &thisReply); err != nil {
+					return err
+				}
+
 				raw, err := filter.Execute(thisReply.Nodes)
 				if err != nil {
 					return err
 				}
 				filteredNodes := raw.(structs.CheckServiceNodes)
 				thisReply.Nodes = filteredNodes.Filter(structs.CheckServiceNodeFilterOptions{FilterType: arg.HealthFilterType})
-
-				// Note: we filter the results with ACLs *after* applying the user-supplied
-				// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-				// results that would be filtered out even if the user did have permission.
-				if err := h.srv.filterACL(arg.Token, &thisReply); err != nil {
-					return err
-				}
 
 				if err := h.srv.sortNodesByDistanceFrom(arg.Source, thisReply.Nodes); err != nil {
 					return err
