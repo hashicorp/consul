@@ -380,16 +380,14 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
-	raw, err := filter.Execute(agentSvcs)
-	if err != nil {
-		return nil, err
-	}
-	agentSvcs = raw.(map[string]*api.AgentService)
-
-	// Note: we filter the results with ACLs *after* applying the user-supplied
-	// bexpr filter, to ensure total (and the filter-by-acls header we set below)
-	// do not include results that would be filtered out even if the user did have
-	// permission.
+	// Note: we filter the results with ACLs *before* applying the user-supplied
+	// bexpr filter to ensure that the user can only run expressions on data that
+	// they have access to.  This is a security measure to prevent users from
+	// running arbitrary expressions on data they don't have access to.
+	// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+	// that results they don't have access to have been removed.  If they were
+	// also allowed to run the bexpr filter on the data, they could potentially
+	// infer the specific attributes of data they don't have access to.
 	total := len(agentSvcs)
 	if err := s.agent.filterServicesWithAuthorizer(authz, agentSvcs); err != nil {
 		return nil, err
@@ -406,6 +404,12 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	if token != "" {
 		setResultsFilteredByACLs(resp, total != len(agentSvcs))
 	}
+
+	raw, err := filter.Execute(agentSvcs)
+	if err != nil {
+		return nil, err
+	}
+	agentSvcs = raw.(map[string]*api.AgentService)
 
 	return agentSvcs, nil
 }
@@ -540,16 +544,14 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 		}
 	}
 
-	raw, err := filter.Execute(agentChecks)
-	if err != nil {
-		return nil, err
-	}
-	agentChecks = raw.(map[types.CheckID]*structs.HealthCheck)
-
-	// Note: we filter the results with ACLs *after* applying the user-supplied
-	// bexpr filter, to ensure total (and the filter-by-acls header we set below)
-	// do not include results that would be filtered out even if the user did have
-	// permission.
+	// Note: we filter the results with ACLs *before* applying the user-supplied
+	// bexpr filter to ensure that the user can only run expressions on data that
+	// they have access to.  This is a security measure to prevent users from
+	// running arbitrary expressions on data they don't have access to.
+	// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+	// that results they don't have access to have been removed.  If they were
+	// also allowed to run the bexpr filter on the data, they could potentially
+	// infer the specific attributes of data they don't have access to.
 	total := len(agentChecks)
 	if err := s.agent.filterChecksWithAuthorizer(authz, agentChecks); err != nil {
 		return nil, err
@@ -566,6 +568,12 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 	if token != "" {
 		setResultsFilteredByACLs(resp, total != len(agentChecks))
 	}
+
+	raw, err := filter.Execute(agentChecks)
+	if err != nil {
+		return nil, err
+	}
+	agentChecks = raw.(map[types.CheckID]*structs.HealthCheck)
 
 	return agentChecks, nil
 }
@@ -623,21 +631,14 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	// filter the members by parsed filter expression
-	var filterExpression string
-	s.parseFilter(req, &filterExpression)
-	if filterExpression != "" {
-		filter, err := bexpr.CreateFilter(filterExpression, nil, members)
-		if err != nil {
-			return nil, err
-		}
-		raw, err := filter.Execute(members)
-		if err != nil {
-			return nil, err
-		}
-		members = raw.([]serf.Member)
-	}
-
+	// Note: we filter the results with ACLs *before* applying the user-supplied
+	// bexpr filter to ensure that the user can only run expressions on data that
+	// they have access to.  This is a security measure to prevent users from
+	// running arbitrary expressions on data they don't have access to.
+	// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+	// that results they don't have access to have been removed.  If they were
+	// also allowed to run the bexpr filter on the data, they could potentially
+	// infer the specific attributes of data they don't have access to.
 	total := len(members)
 	if err := s.agent.filterMembers(token, &members); err != nil {
 		return nil, err
@@ -653,6 +654,21 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 	// For more information see the comment on: Server.maskResultsFilteredByACLs.
 	if token != "" {
 		setResultsFilteredByACLs(resp, total != len(members))
+	}
+
+	// filter the members by parsed filter expression
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+	if filterExpression != "" {
+		filter, err := bexpr.CreateFilter(filterExpression, nil, members)
+		if err != nil {
+			return nil, err
+		}
+		raw, err := filter.Execute(members)
+		if err != nil {
+			return nil, err
+		}
+		members = raw.([]serf.Member)
 	}
 
 	return members, nil

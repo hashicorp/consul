@@ -122,7 +122,7 @@ func TestCatalogDeregister(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	// Register node
+	// Deregister node
 	args := &structs.DeregisterRequest{Node: "foo"}
 	req, _ := http.NewRequest("PUT", "/v1/catalog/deregister", jsonReader(args))
 	obj, err := a.srv.CatalogDeregister(nil, req)
