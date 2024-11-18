@@ -1763,12 +1763,12 @@
         "href": "connect/vm"
       },
       {
-        "title": "Access services",
+        "title": "Secure north/south",
         "href": "access/vm"
       },
       {
-        "title": "Link network segments",
-        "href": "link/vm"
+        "title": "Extend east/west",
+        "href": "east-west/vm"
       },
       {
         "title": "Secure services",
@@ -1813,11 +1813,11 @@
       },
       {
         "title": "Secure north/south",
-        "href": "access/k8s"
+        "href": "north-south/k8s"
       },
       {
-        "title": "Link east/west",
-        "href": "link/k8s"
+        "title": "Extend east/west",
+        "href": "east-west/k8s"
       },
       {
         "title": "Secure service mesh",
