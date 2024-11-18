@@ -1764,7 +1764,7 @@
       },
       {
         "title": "Secure north/south",
-        "href": "access/vm"
+        "href": "north-south/vm"
       },
       {
         "title": "Extend east/west",
