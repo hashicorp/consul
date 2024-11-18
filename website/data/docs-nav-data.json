@@ -603,10 +603,6 @@
     ]
   },
   {
-    "title": "Manage Consul",
-    "path": "manage"
-  },
-  {
     "title": "Monitor Consul",
     "routes": [
       {
