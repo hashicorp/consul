@@ -474,7 +474,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -1525,7 +1525,7 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -2254,7 +2254,7 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 		require.NotEmpty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/members?filter="+url.QueryEscape(bexprNotMatchingUserTokenPermissions), nil)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)

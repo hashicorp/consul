@@ -1450,7 +1450,7 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		var reply structs.IndexedNodes
 		args = structs.DCSpecificRequest{
 			Datacenter: "dc1",
@@ -3081,7 +3081,7 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		req := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 			QueryOptions: structs.QueryOptions{
@@ -3204,7 +3204,7 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		opt = structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
 			ServiceName: "foo",
@@ -3346,7 +3346,7 @@ func TestCatalog_NodeServices_FilterACL(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		req := structs.NodeSpecificRequest{
 			Datacenter: "dc1",
 			Node:       srv.config.NodeName,
@@ -3425,7 +3425,7 @@ func TestCatalog_NodeServicesList_FilterACL(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		req := structs.NodeSpecificRequest{
 			Datacenter: "dc1",
 			Node:       srv.config.NodeName,
