@@ -476,16 +476,12 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 			cancelUpstream()
 			delete(snap.APIGateway.WatchedUpstreams[upstreamID], targetID)
 			delete(snap.APIGateway.WatchedUpstreamEndpoints[upstreamID], targetID)
-
-			if targetUID := NewUpstreamIDFromTargetID(targetID); targetUID.Peer != "" {
-				snap.APIGateway.PeerUpstreamEndpoints.CancelWatch(targetUID)
-				snap.APIGateway.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
-			}
 		}
 
 		cancelDiscoChain()
 		delete(snap.APIGateway.WatchedDiscoveryChains, upstreamID)
 	}
+	reconcilePeeringWatches(snap.APIGateway.DiscoveryChain, snap.APIGateway.UpstreamConfig, snap.APIGateway.PeeredUpstreams, snap.APIGateway.PeerUpstreamEndpoints, snap.APIGateway.UpstreamPeerTrustBundles)
 
 	return nil
 }
