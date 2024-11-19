@@ -59,7 +59,6 @@ splitter[B]:           A=50%,    B=50%
 splitter[effective_B]: A_v1=25%, A_v2=25%, B=50%
 ```
 
-
 ### Resolution
 
 The third stage of the discovery chain is the service resolver. Service resolvers specify which instances of a service satisfy discovery requests for the provided service name. Service resolvers enable several use cases, including: 
@@ -71,7 +70,6 @@ The third stage of the discovery chain is the service resolver. Service resolver
 - Create virtual services that route traffic to instances of the actual service in specific Consul datacenters.
 
 Apply a [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver) to implement a resolver. Service resolver configuration entries can only reference other service resolvers.
-
 
 ![screenshot of service resolver in the UI](/img/l7-routing/Resolver.png)
 
