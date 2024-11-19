@@ -865,7 +865,7 @@ operator = "read"
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		args = structs.ConfigEntryQuery{
 			Kind:       structs.ServiceDefaults,
 			Datacenter: s1.config.Datacenter,

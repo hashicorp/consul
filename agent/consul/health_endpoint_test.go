@@ -1566,7 +1566,7 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		opt := structs.NodeSpecificRequest{
 			Datacenter: "dc1",
 			Node:       srv.config.NodeName,
@@ -1678,7 +1678,7 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		opt := structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
 			ServiceName: "foo",
@@ -1780,7 +1780,7 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		opt := structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
 			ServiceName: "foo",
@@ -1867,7 +1867,7 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 		require.True(t, reply.ResultsFilteredByACLs)
 	})
 
-	t.Run("request with filter that would match only service without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
+	t.Run("request with filter that would normally match but without any token returns zero results and ResultsFilteredByACLs equal to false", func(t *testing.T) {
 		req := structs.ChecksInStateRequest{
 			Datacenter: "dc1",
 			State:      api.HealthPassing,
