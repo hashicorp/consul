@@ -9,7 +9,6 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/go-bexpr"
@@ -21,33 +20,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
-
-var ConfigSummaries = []prometheus.SummaryDefinition{
-	{
-		Name: []string{"config_entry", "apply"},
-		Help: "",
-	},
-	{
-		Name: []string{"config_entry", "get"},
-		Help: "",
-	},
-	{
-		Name: []string{"config_entry", "list"},
-		Help: "",
-	},
-	{
-		Name: []string{"config_entry", "listAll"},
-		Help: "",
-	},
-	{
-		Name: []string{"config_entry", "delete"},
-		Help: "",
-	},
-	{
-		Name: []string{"config_entry", "resolve_service_config"},
-		Help: "",
-	},
-}
 
 // The ConfigEntry endpoint is used to query centralized config information
 type ConfigEntry struct {
@@ -280,7 +252,14 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 				return err
 			}
 
-			// Filter the entries returned by ACL permissions.
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
 				if err := entry.CanRead(authz); err != nil {
