@@ -1,15 +1,13 @@
 ---
 layout: docs
-page_title: WAL LogStore Backend Overview
+page_title: WAL LogStore backend overview
 description: >-
-  The experimental WAL (write-ahead log) LogStore backend shipped in Consul 1.15 is intended to replace the BoltDB backend, improving performance and log storage issues.
+  The WAL (write-ahead log) LogStore backend shipped in Consul v1.15. It became the default backend in v1.20.
 ---
 
-# Experimental WAL LogStore backend overview
+# WAL LogStore backend overview
 
-This topic provides an overview of the WAL (write-ahead log) LogStore backend. The WAL backend is an experimental feature. Refer to [Requirements](/consul/docs/deploy/server/wal/enable#requirements) for supported environments and known issues.
-
-We do not recommend enabling the WAL backend in production without following [our guide for safe testing](/consul/docs/deploy/server/wal/enable).
+This topic provides an overview of the WAL (write-ahead log) LogStore backend. The WAL LogStore replaces the BoltDB backend used in previous versions of Consul.
 
 ## WAL versus BoltDB
 
@@ -27,7 +25,7 @@ To mitigate risks associated with sudden bursts of log data, Consul tries to lim
 
 But the larger the file, the more likely it is to have a large freelist or suddenly form one after a burst of writes. For this reason, the many of Consul's default options associated with snapshots, truncating logs, and keeping the log history aggressively keep BoltDT small rather than using disk IO more efficiently.
 
-Other reliability issues, such as [raft replication capacity issues](/consul/docs/agent/telemetry#raft-replication-capacity-issues), are much simpler to solve without the performance concerns caused by storing more logs in BoltDB.
+Other reliability issues, such as [raft replication capacity issues](/consul/docs/agent/monitor/telemetry#raft-replication-capacity-issues), are much simpler to solve without the performance concerns caused by storing more logs in BoltDB.
 
 ### WAL approaches storage issues differently
 

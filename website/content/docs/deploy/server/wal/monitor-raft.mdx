@@ -7,7 +7,7 @@ description: >-
 
 # Monitor Raft metrics and logs for WAL
 
-This topic describes how to monitor Raft metrics and logs if you are testing the WAL backend. We strongly recommend monitoring the Consul cluster, especially the target server, for evidence that the WAL backend is not functioning correctly. Refer to [Enable the experimental WAL LogStore backend](/consul/docs/deploy/server/wal/enable) for additional information about the WAL backend.
+This topic describes how to monitor Raft metrics and logs if you are testing the WAL backend. We strongly recommend monitoring the Consul cluster, especially the target server, for evidence that the WAL backend is not functioning correctly. Refer to [Enable the experimental WAL LogStore backend](/consul/docs/agent/wal-logstore/enable) for additional information about the WAL backend.
 
 !> **Upgrade warning:** The WAL LogStore backend is experimental.
 
@@ -39,7 +39,7 @@ The `consul.raft.logstore.verifier.write_checksum_failures` metric increments wh
 
 ## Resolve checksum failures
 
-If either type of corruption is detected, complete the instructions for [reverting to BoltDB](/consul/docs/deploy/server/wal/revert-boltdb). If the server already uses BoltDB, the errors likely indicate a latent bug in BoltDB or a bug in the verification code. In both cases, you should follow the revert instructions. 
+If either type of corruption is detected, complete the instructions for [reverting to BoltDB](/consul/docs/agent/wal-logstore/revert-to-boltdb). If the server already uses BoltDB, the errors likely indicate a latent bug in BoltDB or a bug in the verification code. In both cases, you should follow the revert instructions. 
 
 Report all verification failures as a [GitHub
 issue](https://github.com/hashicorp/consul/issues/new?assignees=&labels=&template=bug_report.md&title=WAL:%20Checksum%20Failure).
@@ -51,7 +51,7 @@ In your report, include the following:
  - Any metrics or description of the workload you have. For example, how many raft
    commits per second. Also include the performance metrics described on this page.
 
-We recommend setting up an alert on Consul server logs containing `verification checksum FAILED` or on the `consul.raft.logstore.verifier.{read|write}_checksum_failures` metrics. The sooner you respond to a corrupt server, the lower the chance of any of the [potential risks](/consul/docs/deploy/server/wal/enable#risks) causing problems in your cluster.
+We recommend setting up an alert on Consul server logs containing `verification checksum FAILED` or on the `consul.raft.logstore.verifier.{read|write}_checksum_failures` metrics. The sooner you respond to a corrupt server, the lower the chance of any of the [potential risks](/consul/docs/agent/wal-logstore/enable#risks) causing problems in your cluster.
 
 ## Performance metrics
 

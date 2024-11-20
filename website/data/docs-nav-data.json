@@ -82,10 +82,6 @@
                 "path": "deploy/server/wal"
               },
               {
-                "title": "Enable WAL LogStore backend",
-                "path": "deploy/server/wal/enable"
-              },
-              {
                 "title": "Monitor Raft metrics and logs",
                 "path": "deploy/server/wal/monitor-raft"
               },
@@ -431,6 +427,15 @@
             "path": "secure/acl/enable-federated-datacenters"
           },
           {
+            "title": "Enforce ACL policies with Sentinel",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "path": "secure/acl/sentinel"
+          },
+          {
             "title": "Migrate legacy tokens",
             "path": "secure/acl/legacy"
           },
@@ -588,7 +593,7 @@
               "type": "outlined",
               "color": "neutral"
             },
-            "path": "manage/agent-rate-limit/source-ip-address"
+            "path": "manage/agent-rate-limit/source-ip"
           }
         ]
       },
@@ -637,12 +642,12 @@
         "path": "monitor"
       },
       {
+        "title": "Set up alerts",
+        "path": "monitor/alerts"
+      },
+      {
         "title": "Consul telemetry",
         "routes": [
-          {
-            "title": "Overview",
-            "path": "monitor/telemetry"
-          },
           {
             "title": "Agent telemetry",
             "path": "monitor/telemetry/agent"
@@ -2210,8 +2215,16 @@
         "title": "Agent",
         "routes": [
           {
-            "title": "Configuration reference",
+            "title": "Configuration overview",
             "path": "reference/agent"
+          },
+          {
+            "title": "Configuration reference",
+            "path": "reference/agent/configuration-file"
+          },
+          {
+            "title": "CLI flag reference",
+            "path": "reference/agent/cli-flags"
           },
           {
             "title": "Telemetry reference",
