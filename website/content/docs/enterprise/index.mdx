@@ -18,43 +18,41 @@ The following features are [available in several forms of Consul Enterprise](#co
 
 ### Multi-Tenancy
 
-- [Admin Partitions](/consul/docs/enterprise/admin-partitions): Define administrative boundaries between tenants within a single Consul datacenter.
-- [Namespaces](/consul/docs/enterprise/namespaces): Define resource boundaries within a single admin partition for further organizational flexibility.
-- [Sameness Groups](/consul/docs/connect/config-entries/sameness-group): Define partitions and cluster peers as members of a group with identical services.
+- [Admin Partitions](/consul/docs/segment/admin-partition): Define administrative boundaries between tenants within a single Consul datacenter
+- [Namespaces](/consul/docs/segment/namespace): Define resource boundaries within a single admin partition for further organizational flexibility
+- [Sameness Groups](/consul/docs/reference/config-entry/sameness-group): Define partitions and cluster peers as members of a group with identical services
 
 ### Resiliency
 
-- [Automated Backups](/consul/docs/enterprise/backups): Configure the automatic backup of Consul state.
-- [Redundancy Zones](/consul/docs/enterprise/redundancy): Deploy backup voting Consul servers to efficiently improve Consul fault tolerance
-- [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips): Limit gRPC and RPC traffic to servers for source IP addresses.
-- [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates): Limit the rate of HTTP requests a service receives per service instance.
+- [Automated Backups](/consul/docs/manage-consul/automated-backups): Configure the automatic backup of Consul state
+- [Redundancy Zones](/consul/docs/manage-consul/redundancy-zones): Deploy backup voting Consul servers to efficiently improve Consul fault tolerance
+- [Server request rate limits per source IP](/consul/docs/manage-consul/agent-rate-limit/source-ip-addresses): Limit gRPC and RPC traffic to servers for source IP addresses.
+- [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates): Limit the rate of HTTP requests a service receives per service instance.  
 - [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams): Prioritize upstream services in the same region and zone as the downstream service.
-- [Fault injection](/consul/docs/connect/manage-traffic/fault-injection): Explore the resiliency of downstream services in response to problems with an upstream service, such as errors, latency, or response rate limits.
 
 ### Scalability
 
-- [Read Replicas](/consul/docs/enterprise/read-scale): Deploy non-voting Consul servers to enhance the scalability of read requests.
+- [Read Replicas](/consul/docs/manage-consul/read-replicas): Deploy non-voting Consul servers to enhance the scalability of read requests
 
 ### Operational simplification
 
-- [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support): Reduce operational overhead and risk by using LTS releases that are maintained for longer than standard releases.
-- [Automated Upgrades](/consul/docs/enterprise/upgrades): Ease upgrades by automating the transition from existing to newly deployed Consul servers.
-- [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise): Leverage the enhanced network infrastructure automation capabilities of the enterprise version of Consul-Terraform-Sync.
+- [Automated Upgrades](/consul/docs/upgrade/automated): Ease upgrades by automating the transition from existing to newly deployed Consul servers
+- [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise): Leverage the enhanced network infrastructure automation capabilities of the enterprise version of Consul-Terraform-Sync
 
 ### Complex network topology support
 
-- [Network Areas](/consul/docs/enterprise/federation): Support complex network topologies between federated Consul datacenters with pairwise federation rather than full mesh federation.
-- [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview): Support complex network topologies within a Consul datacenter by enforcing boundaries in Consul client gossip traffic.
+- [Network Areas](/consul/docs/enterprise/federation): Support complex network topologies between federated Consul datacenters with pairwise federation rather than full mesh federation
+- [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview): Support complex network topologies within a Consul datacenter by enforcing boundaries in Consul client gossip traffic
 
 ### Governance
 
-- [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc): Manage user access to Consul through an OIDC identity provider instead of Consul ACL tokens directly.
-- [Audit Logging](/consul/docs/enterprise/audit-logging): Understand Consul access and usage patterns by reviewing access to the Consul HTTP API.
-- JWT authentication and authorization for API gateway: Prevent unverified traffic at the API gateway using JWTs for authentication and authorization on [VMs](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) and on [Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s).
+- [OIDC Auth Method](/consul/docs/secure-consul/acl/auth-methods/oidc): Manage user access to Consul through an OIDC identity provider instead of Consul ACL tokens directly
+- [Audit Logging](/consul/docs/enterprise/audit-logging): Understand Consul access and usage patterns by reviewing access to the Consul HTTP API
+- JWT authentication and authorization for API gateway: Prevent unverified traffic at the API gateway using JWTs for authentication and authorization on [VMs](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) and on [Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s):
 
 ### Regulatory compliance
 
-- [FIPS 140-2 Compliance](/consul/docs/enterprise/fips): Leverage FIPS builds of Consul Enterprise to ensure your Consul deployments are secured with BoringCrypto and CNGCrypto, and compliant with FIPS 140-2.
+- [FIPS 140-2 Compliance](/consul/docs/deploy/server/fips): Leverage FIPS builds of Consul Enterprise to ensure your Consul deployments are secured with BoringCrypto and CNGCrypto, and compliant with FIPS 140-2.
 
   <Note>
 
@@ -65,20 +63,20 @@ The following features are [available in several forms of Consul Enterprise](#co
 ## Access Consul Enterprise
 
 The method of accessing Consul Enterprise and its features depends on the whether using
-HashiCorp Cloud Platform or self-managed Consul Enterprise.
+HashiCorp Cloud Platform or self-managed Consul.
 
-### HCP Consul Dedicated
+### HCP Consul
 
 No action is required to access Consul Enterprise in a
 [HashiCorp Cloud Platform](https://cloud.hashicorp.com/products/consul) installation.
 
-You can try out HCP Consul Dedicated for free. Refer to the
-[HCP Consul Dedicated product page](https://cloud.hashicorp.com/products/consul) for more details.
+You can try out HCP Consul for free. Refer to the
+[HCP Consul product page](https://cloud.hashicorp.com/products/consul) for more details.
 
-### Self-managed Consul Enterprise
+### Self-Managed Consul
 
 To access Consul Enterprise in a self-managed installation,
-[apply a purchased license](/consul/docs/enterprise/license/overview)
+[apply a purchased license](/consul/docs/enterprise/license)
 to the Consul Enterprise binary that grants access to the desired features.
 
 Contact your [HashiCorp Support contact](https://support.hashicorp.com/) for a development license.
@@ -91,28 +89,27 @@ The Consul Enterprise features that are available depend on your license and the
 
 Available Enterprise features per Consul form and license include:
 
-| Feature                                                                                                       | [HashiCorp Cloud Platform (HCP) Consul] | [Consul Enterprise] | Legacy Consul Enterprise (module-based)           |
-| ------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------- | ------------------------------------------------- |
-| Consul servers as a managed service                                                                           | Yes                                     | No (self-managed)   | No (self-managed)                                 |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)                                                  | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Audit Logging](/consul/docs/enterprise/audit-logging)                                                        | Standard tier and above                 | Yes                 | With Governance and Policy module                 |
-| [Automated Server Backups](/consul/docs/enterprise/backups)                                                   | All tiers                               | Yes                 | Yes                                               |
-| [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 | All tiers                               | Yes                 | Yes                                               |
-| [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise)                                               | All tiers                               | Yes                 | Yes                                               |
-| [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)                                               | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Fault injection](/consul/docs/connect/manage-traffic/fault-injection)                                        | Yes                                     | Yes                 | No                                                |
-| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         | No                                      | Yes                 | No                                                |
-| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) | Yes                                     | Yes                 | Yes                                               |
-| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        | Yes                                     | Yes                 | Yes                                               |
-| [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)                                          | Not applicable                          | Yes                 | Not applicable                                    |
-| [Namespaces](/consul/docs/enterprise/namespaces)                                                              | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Network Areas](/consul/docs/enterprise/federation)                                                           | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)                        | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)                                               | No                                      | Yes                 | Yes                                               |
-| [Redundancy Zones](/consul/docs/enterprise/redundancy)                                                        | Not applicable                          | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Sameness Groups](/consul/docs/connect/config-entries/sameness-group)                                         | No                                      | Yes                 | Not applicable                                    |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips)      | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                 | Yes                                     | Yes                 | Yes                                               |
+| Feature                                                  | [HashiCorp Cloud Platform (HCP) Consul] | [Consul Enterprise] | Legacy Consul Enterprise (module-based)           |
+| -------------------------------------------------------- | --------------------------------------- | ------------------- | ------------------------------------------------- |
+| Consul servers as a managed service                      | Yes                                     | No (self-managed)   | No (self-managed)                                 |
+| [Admin Partitions](/consul/docs/segment/admin-partition)    | All tiers                               | Yes                 | With Governance and Policy module                 |
+| [Audit Logging](/consul/docs/enterprise/audit-logging)          | Standard tier and above                 | Yes                 | With Governance and Policy module                 |
+| [Automated Server Backups](/consul/docs/manage-consul/automated-backups)     | All tiers                               | Yes                 | Yes                                               |
+| [Automated Server Upgrades](/consul/docs/upgrade/automated)   | All tiers                               | Yes                 | Yes                                               |
+| [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise) | All tiers                               | Yes                 | Yes                                               |
+| [Enhanced Read Scalability](/consul/docs/manage-consul/read-replicas) | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
+| [FIPS 140-2 Compliance](/consul/docs/deploy/server/fips) | No                                      | Yes                 | No |
+| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms)   |  Yes          |  Yes   | Yes |
+| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                    |  Yes                |  Yes   | Yes |
+| [Namespaces](/consul/docs/segment/namespace)                | All tiers                               | Yes                 | With Governance and Policy module                 |
+| [Network Areas](/consul/docs/enterprise/federation)             | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)    | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
+| [OIDC Auth Method](/consul/docs/secure-consul/acl/auth-methods/oidc) | No                                      | Yes                 | Yes                                               |
+| [Redundancy Zones](/consul/docs/manage-consul/redundancy-zones)          | Not applicable                          | Yes                 | With Global Visibility, Routing, and Scale module |
+| [Sameness Groups](/consul/docs/reference/config-entry/sameness-group) | No | Yes | N/A |
+| [Server request rate limits per source IP](/consul/docs/manage-consul/agent-rate-limit/source-ip-addresses) | All tiers | Yes | With Governance and Policy module |
+| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)             |  Yes                |  Yes   | Yes |
+
 
 [HashiCorp Cloud Platform (HCP) Consul]: https://cloud.hashicorp.com/products/consul
 [Consul Enterprise]: https://www.hashicorp.com/products/consul/
@@ -125,75 +122,69 @@ Consul Enterprise feature availability can change depending on your server and c
 
 <Tab heading="Server Runtime: VMs">
 
-| Enterprise Feature                                                                                            | VM Client | K8s Client | ECS Client |
-|-------------------------------------------------------------------------------------------------------------- | :-------: | :--------: | :--------: |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)                                                  |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Audit Logging](/consul/docs/enterprise/audit-logging)                                                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Automated Server Backups](/consul/docs/enterprise/backups)                                                   |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)                                               |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Fault injection](/consul/docs/connect/manage-traffic/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         |  &#9989;  |  &#9989;   |  &#9989;   |
-| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) |  &#9989;  |  &#9989;   |  &#10060;  |
-| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)                                          |  &#9989;  |  &#9989;   |  &#10060;  |
-| [Namespaces](/consul/docs/enterprise/namespaces)                                                              |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Network Areas](/consul/docs/enterprise/federation)                                                           |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)                        |  &#9989;  |  &#9989;   |  &#10060;  |
-| [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)                                               |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Redundancy Zones](/consul/docs/enterprise/redundancy)                                                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Sameness Groups](/consul/docs/connect/config-entries/sameness-group)                                         |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips)      |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                 |  &#9989;  |  &#9989;   |  &#9989;   |
+| Enterprise Feature                                                                                       | VM Client | K8s Client | ECS Client |
+|----------------------------------------------------------------------------------------------------------|:---------:|:----------:| :--------: |
+| [Admin Partitions](/consul/docs/segment/admin-partition)                                             |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Audit Logging](/consul/docs/enterprise/audit-logging)                                                   |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Automated Server Backups](/consul/docs/manage-consul/automated-backups)                                              |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Automated Server Upgrades](/consul/docs/upgrade/automated)                                            |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Enhanced Read Scalability](/consul/docs/manage-consul/read-replicas)                                          |  &#9989;  |  &#9989;   |   &#9989;  |
+| [FIPS 140-2 Compliance](/consul/docs/deploy/server/fips)                                                    |  &#9989;  |  &#9989;   |   &#9989;  |
+| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) |  &#9989;  |  &#9989;   |   &#10060;  |
+| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                   |  &#9989;  |  &#9989;   | &#9989; |
+| [Namespaces](/consul/docs/segment/namespace)                                                         |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Network Areas](/consul/docs/enterprise/federation)                                                      |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)                   |  &#9989;  |  &#9989;   |  &#10060;  |
+| [OIDC Auth Method](/consul/docs/secure-consul/acl/auth-methods/oidc)                                          |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Redundancy Zones](/consul/docs/manage-consul/redundancy-zones)                                                   |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Sameness Groups](/consul/docs/reference/config-entry/sameness-group)                                    |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Server request rate limits per source IP](/consul/docs/manage-consul/agent-rate-limit/source-ip-addresses) |  &#9989;  |  &#9989;   | &#9989; |
+| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                   |  &#9989;  |  &#9989;   | &#9989; |
 
 </Tab>
 
 <Tab heading="Server Runtime: Kubernetes">
 
 | Enterprise Feature                                                                                            | VM Client | K8s Client | ECS Client |
-|-------------------------------------------------------------------------------------------------------------- | :-------: | :--------: | :--------: |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)                                                  |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Audit Logging](/consul/docs/enterprise/audit-logging)                                                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Automated Server Backups](/consul/docs/enterprise/backups)                                                   |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 |  &#10060; |  &#10060;  |  &#10060;  |
-| [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)                                               |  &#10060; |  &#10060;  |  &#10060;  |
-| [Fault injection](/consul/docs/connect/manage-traffic/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         |  &#9989;  |  &#9989;   |  &#9989;   |
-| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) |  &#9989;  |  &#9989;   |  &#10060;  |
-| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)                                          |  &#9989;  |  &#9989;   |  &#10060;  |
-| [Namespaces](/consul/docs/enterprise/namespaces)                                                              |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Network Areas](/consul/docs/enterprise/federation)                                                           |  &#9989;  |  &#9989;   |  &#9989;   |
+|---------------------------------------------------------------------------------------------------------------| :-------: | :--------: | :--------: |
+| [Admin Partitions](/consul/docs/segment/admin-partition)                                                  |  &#9989;  |  &#9989;   |  &#9989;  |
+| [Audit Logging](/consul/docs/enterprise/audit-logging)                                                        |  &#9989;  |  &#9989;   |  &#9989;  |
+| [Automated Server Backups](/consul/docs/manage-consul/automated-backups)                                                   |  &#9989;  |  &#9989;   |  &#9989;  |
+| [Automated Server Upgrades](/consul/docs/upgrade/automated)                                                 |  &#10060; |  &#10060;  |  &#10060;  |
+| [Enhanced Read Scalability](/consul/docs/manage-consul/read-replicas)                                               |  &#10060; |  &#10060;  |  &#10060;  |
+| [FIPS 140-2 Compliance](/consul/docs/deploy/server/fips)                                                         |  &#9989;  |  &#9989;   |   &#9989;  |
+| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) |  &#9989;  |  &#9989;   |   &#10060;  |
+| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        |  &#9989;  |  &#9989;   | &#9989; |
+| [Namespaces](/consul/docs/segment/namespace)                                                              |  &#9989;  |  &#9989;   |  &#9989;  |
+| [Network Areas](/consul/docs/enterprise/federation)                                                           |  &#9989;  |  &#9989;   |  &#9989;  |
 | [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)                        |  &#9989;  |  &#9989;   |  &#10060;  |
-| [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)                                               |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Redundancy Zones](/consul/docs/enterprise/redundancy)                                                        |  &#10060; |  &#10060;  |  &#10060;  |
-| [Sameness Groups](/consul/docs/connect/config-entries/sameness-group)                                         |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips)      |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                 |  &#9989;  |  &#9989;   |  &#9989;   |
+| [OIDC Auth Method](/consul/docs/secure-consul/acl/auth-methods/oidc)                                               |  &#9989;  |  &#9989;   |  &#9989;  |
+| [Redundancy Zones](/consul/docs/manage-consul/redundancy-zones)                                                        |  &#10060; |  &#10060;  |  &#10060;  |
+| [Sameness Groups](/consul/docs/reference/config-entry/sameness-group)                                         |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Server request rate limits per source IP](/consul/docs/manage-consul/agent-rate-limit/source-ip-addresses)      | &#9989; | &#9989; | &#9989; |
+| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates) |  &#9989;  |  &#9989;   | &#9989; |
 </Tab>
 
 <Tab heading ="Server Runtime: HCP">
 
-| Enterprise Feature                                                                                            | VM Client | K8s Client | ECS Client |
-| ------------------------------------------------------------------------------------------------------------- | :-------: | :--------: | :--------: |
-| [Admin Partitions](/consul/docs/enterprise/admin-partitions)                                                  |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Audit Logging](/consul/docs/enterprise/audit-logging)                                                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Automated Server Backups](/consul/docs/enterprise/backups)                                                   |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)                                               |  &#10060; |  &#10060;  |  &#10060;  |
-| [Fault injection](/consul/docs/connect/manage-traffic/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         |  &#10060; |  &#10060;  |  &#10060;  |
-| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) |  &#9989;  |  &#9989;   |  &#10060;  |
-| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)                                          |  N/A      |  N/A       |  N/A       |
-| [Namespaces](/consul/docs/enterprise/namespaces)                                                              |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Network Areas](/consul/docs/enterprise/federation)                                                           |  &#10060; |  &#10060;  |  &#10060;  |
-| [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)                        |  &#10060; |  &#10060;  |  &#10060;  |
-| [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc)                                               |  &#10060; |  &#10060;  |  &#10060;  |
-| [Redundancy Zones](/consul/docs/enterprise/redundancy)                                                        |  N/A      |  N/A       |  N/A       |
-| [Sameness Groups](/consul/docs/connect/config-entries/sameness-group)                                         |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Server request rate limits per source IP](/consul/docs/agent/limits/usage/limit-request-rates-from-ips)      |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                 |  &#9989;  |  &#9989;   |  &#9989;   |
+| Enterprise Feature                                                      | VM Client | K8s Client | ECS Client |
+| ----------------------------------------------------------------------- | :-------: | :--------: | :--------: |
+| [Admin Partitions](/consul/docs/segment/admin-partition)            |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Audit Logging](/consul/docs/enterprise/audit-logging)                  |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Automated Server Backups](/consul/docs/manage-consul/automated-backups)             |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Automated Server Upgrades](/consul/docs/upgrade/automated)           |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Enhanced Read Scalability](/consul/docs/manage-consul/read-replicas)         |  &#10060; |  &#10060;  |  &#10060;  |
+| [FIPS 140-2 Compliance](/consul/docs/deploy/server/fips)                   |  &#10060; |  &#10060;  |  &#10060;  |
+| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) |  &#9989;  |  &#9989;   |   &#10060;  |
+| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                   |  &#9989;  |  &#9989;   | &#9989; |
+| [Namespaces](/consul/docs/segment/namespace)                        |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Network Areas](/consul/docs/enterprise/federation)                     |  &#10060; |  &#10060;  |  &#10060;  |
+| [Network Segments](/consul/docs/enterprise/network-segments/network-segments-overview)            |  &#10060; |  &#10060;  |  &#10060;  |
+| [OIDC Auth Method](/consul/docs/secure-consul/acl/auth-methods/oidc)         |  &#10060; |  &#10060;  |  &#10060;  |
+| [Redundancy Zones](/consul/docs/manage-consul/redundancy-zones)                  |  n/a      |  n/a       |  n/a       |
+| [Sameness Groups](/consul/docs/reference/config-entry/sameness-group)    |  &#9989;  |  &#9989;   |   &#9989;  |
+| [Server request rate limits per source IP](/consul/docs/manage-consul/agent-rate-limit/source-ip-addresses) | &#9989; | &#9989; | &#9989; |
+| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates) |  &#9989;  |  &#9989;   | &#9989; |
 
 </Tab>
 </Tabs>

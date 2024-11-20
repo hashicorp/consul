@@ -1,0 +1,81 @@
+---
+layout: docs
+page_title: API gateway on Kubernetes error messages
+description: Use error message outputs to debug and troubleshoot Consul API gateways on Kubernetes. 
+---
+
+# API gateway on Kubernetes error messages 
+
+This topic provides information about potential error messages associated with Consul API Gateway. If you receive an error message that does not appear in this section, refer to the following resources:
+
+- [Consul error messages](/consul/docs/error-messages/consul)
+- [Consul on Kubernetes error messages](/consul/docs/error-messages/k8s)
+- [Consul-Terraform-Sync error messages](/consul/docs/error-messages/cts)
+- [Consul Discuss forum](https://discuss.hashicorp.com/)
+
+<!--
+
+Each common error should have its own section on this page. Each section
+should start with a heading line that is a short description of the error or
+the text of the error.
+
+Two examples:
+    ## Failed opening file during installation
+    ## Message: "Can't connect to repository" when running Helm chart
+
+******** Template for new Error Messages ********
+ Copy and paste the following 13 lines when adding a new error message to this page.
+
+## Title for this error
+
+```
+Replace with text of example error message
+```
+**Conditions:**
+REPLACE THIS with description of when and why the error is typically seen
+
+**Impact:**
+REPLACE THIS with description of most likely impact of the event that caused this error to occur
+
+**Resolution:**
+REPLACE THIS with the actions the user should take to try to correct the situation
+
+-->
+
+## Helm installation failed: "no matches for kind"
+
+<CodeBlockConfig hideClipboard>
+
+```log
+Error: INSTALLATION FAILED: unable to build kubernetes objects from release manifest: [unable to recognize "": no matches for kind "GatewayClass" in version "gateway.networking.k8s.io/v1alpha2", unable to recognize "": no matches for kind "GatewayClassConfig" in version "api-gateway.consul.hashicorp.com/v1alpha1"]
+```
+
+</CodeBlockConfig>
+
+**Conditions:**
+Consul API Gateway generates this error when the required CRD files have not been installed in Kubernetes prior to installing Consul API Gateway.
+
+**Impact:**
+The installation process typically fails after this error message is generated.
+
+**Resolution:**
+Install the required CRDs. Refer to the [Consul API Gateway installation instructions](/consul/docs/connect/gateways/api-gateway/deploy/install-k8s) for instructions.
+
+## Operation cannot be fulfilled, the object has been modified
+
+<CodeBlockConfig hideClipboard>
+
+```log
+{"error": "Operation cannot be fulfilled on gatewayclassconfigs.consul.hashicorp.com \"consul-api-gateway\": the object has been modified; please apply your changes to the latest version and try again"}
+```
+
+</CodeBlockConfig>
+
+**Conditions:**
+This error occurs when the gateway controller attempts to update an object that has been modified previously. It is a normal part of running the controller and will resolve itself by automatically retrying.
+
+**Impact:**
+Excessive error logs are produced, but there is no impact to the functionality of the controller.
+
+**Resolution:**
+No action needs to be taken to resolve this issue.
