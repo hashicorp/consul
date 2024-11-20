@@ -20,6 +20,33 @@
     ]
   },
   {
+    "title": "Concepts",
+    "routes": [
+      {
+        "title": "Agents",
+        "path": "concept/agent"
+      }
+    ]
+  },
+  {
+    "title": "Fundamentals",
+    "routes": [
+      {
+        "title": "Configuring Consul",
+        "routes": [
+          {
+            "title": "Agents",
+            "path": "fundamentals/configuration/agent"
+          },
+          {
+            "title": "Configuration entries",
+            "path": "fundamentals/configuration/configuration-entry"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "divider": true
   },
   {
