@@ -5,23 +5,23 @@ description: Learn how to configure Consul API gateway to route traffic to servi
 
 # Route traffic to peered services
 
-This topic describes how to configure Consul API gateway to route traffic to services connected to the mesh through a cluster peering connection. These instructions apply to API gateways running in Kubernetes. 
+This topic describes how to configure Consul API Gateway to route traffic to services connected to the mesh through a cluster peering connection.
 
 ## Requirements
 
 - Consul v1.14 or later
-- Verify that the [requirements](/consul/docs/north-south/api-gateway/tech-specs) have been met.
-- Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Install API gateway on Kubernetes](/consul/docs/north-south/api-gateway/install) for details.
-- A peering connection must already be established between Consul clusters. Refer to [Cluster Peering on Kubernetes](/consul/docs/east-west/cluster-peering/tech-specs) for instructions.
-- The Consul service that you want to route traffic to must be exported to the cluster containing your `Gateway`. Refer to [Cluster Peering on Kubernetes](/consul/docs/east-west/cluster-peering/tech-specs) for instructions.
-- A `ServiceResolver` for the Consul service you want to route traffic to must be created in the cluster that contains your `Gateway`. Refer to [Service resolver configuration reference](/consul/docs/reference/config-entry/service-resolver) for instructions.
+- Verify that the [requirements](/consul/docs/api-gateway/tech-specs) have been met.
+- Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/consul/docs/connect/gateways/api-gateway/deploy/install-k8s) for details.
+- A peering connection must already be established between Consul clusters. Refer to [Cluster Peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/tech-specs) for instructions.
+- The Consul service that you want to route traffic to must be exported to the cluster containing your `Gateway`. Refer to [Cluster Peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/tech-specs) for instructions.
+- A `ServiceResolver` for the Consul service you want to route traffic to must be created in the cluster that contains your `Gateway`. Refer to [Service Resolver Configuration Entry](/consul/docs/connect/config-entries/service-resolver) for instructions.
 
 ## Configuration
 
-Specify the following fields in your `MeshService` configuration to use this feature. Refer to the [MeshService configuration reference](/consul/docs/reference/k8s/api-gateway/meshservice) for details about the parameters.
+Specify the following fields in your `MeshService` configuration to use this feature. Refer to the [MeshService configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/meshservice) for details about the parameters.
 
-- [`name`](/consul/docs/reference/k8s/api-gateway/meshservice#name)
-- [`peer`](/consul/docs/reference/k8s/api-gateway/meshservice#peer)
+- [`name`](/consul/docs/connect/gateways/api-gateway/configuration/meshservice#name)
+- [`peer`](/consul/docs/connect/gateways/api-gateway/configuration/meshservice#peer)
 
 ## Example
 

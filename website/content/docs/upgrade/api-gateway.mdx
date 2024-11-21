@@ -7,13 +7,13 @@ description: >-
 
 # Upgrade API gateway for Kubernetes
 
-This topic describes how to upgrade to a version of Consul on Kubernetes that includes native API gateway functionality. 
+Since Consul v1.15, the Consul API gateway is a native feature within the Consul binary and is installed during the normal Consul installation process. Since Consul on Kubernetes v1.2 (Consul v1.16), the CRDs necessary for using the Consul API gateway for Kubernetes are also included. You can install Consul v1.16 using the Consul Helm chart v1.2 and later. Refer to [Install API gateway for Kubernetes](/consul/docs/connect/gateways/api-gateway/deploy/install-k8s) for additional information.
 
 ## Introduction
 
-Since Consul v1.15, the Consul API gateway is a native feature within the Consul binary and is installed during the normal Consul installation process. Since Consul on Kubernetes v1.2 (Consul v1.16), the CRDs necessary for using the Consul API gateway for Kubernetes are also included. Refer to the [release notes](/consul/docs/release-notes) for additional information.
+Because Consul API gateway releases as part of Consul, it no longer has an independent version number. Instead, the API gateway inherits the same version number as the Consul binary. Refer to the [release notes](/consul/docs/release-notes) for additional information.
 
-Because Consul API gateway releases as part of Consul, it no longer has an independent version number. Instead, the API gateway inherits the same version number as the Consul binary. You can install Consul v1.16 using the Consul Helm chart v1.2 and later. Refer to [Install API gateway for Kubernetes](/consul/docs/north-south/api-gateway/install) for additional information.
+To begin using the native API gateway, complete one of the following upgrade paths:
 
 ### Upgrade from Consul on Kubernetes v1.1.x
 
@@ -65,9 +65,9 @@ If you are able to tolerate downtime for your applications, you should delete pr
   $ consul-k8s install -config-file values.yaml
   ```
 
-1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intention) for additional information.
+1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information.
 
-1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/reference/k8s/api-gateway/gateway#gatewayclassname) for additional information.
+1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/connect/gateways/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
 1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller.
 
@@ -128,9 +128,9 @@ If you are unable to tolerate any downtime, you can complete the following steps
   $ consul-k8s install -config-file values.yaml
   ```
 
-1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/reference/config-entry/service-intention) for additional information.
+1. Create `ServiceIntentions` allowing `Gateways` to communicate with any backend services that they route to. Refer to [Service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information.
 
-1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/reference/k8s/api-gateway/gateway#gatewayclassname) for additional information.
+1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/connect/gateways/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
 1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller.
 

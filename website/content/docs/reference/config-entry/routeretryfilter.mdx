@@ -1,0 +1,206 @@
+---
+layout: docs
+page_title: RouteRetryFilter configuration reference
+description: >-
+  Learn how to configure the `RouteRetryFilter` resource, which defines retry settings for specific routes from an API gateway listener to the destination service in Consul service mesh.
+---
+
+# RouteRetryFilter configuration reference
+
+This topic provides configuration reference information for  details about the `RouteRetryFilter` resource, which defines retry settings for specific routes from an API gateway listener to the destination service in Consul service mesh. 
+
+## Introduction
+
+Define the one or more configurations in the `spec` to define the retry logic for the route. Refer to the [retry logic example configuration](#example) for additional information. 
+
+To apply retry settings to a `HTTPRoute`, set the `rules.filters.type` parameter in an route to `extensionRef` and specify the name of the filter in `rules.filters.extensionRef.name` field. Refer to [Route resource configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes) for additional information. 
+
+## Configuration Model
+
+The following list outlines field hierarchy, data types, and requirements in a `RouteRetryFilter` resource. Click on a property name to view additional details, including default values.
+
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `RouteRetryFilter`
+- [`metadata`](#metadata): map | required
+   - [`name`](#metadata-name): string | required 
+   - [`namespace`](#metadata-namespace): string  | `default`
+- [`spec`](#spec): map | required
+  - [`numRetries`](#spec-numretries): number | `1`
+  - [`retryOnConnectFailure`](#spec-retryonconnectfailure): boolean | `false`
+  - [`retryOn`](#spec-retryon): list
+  - [`retryOnStatusCodes`](#spec-retryonstatuscodes): list
+
+## Complete configuration
+
+When every field is defined, this resource has the following form: 
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: RouteRetryFilter
+metadata:
+  name: <name for the retry filter>
+spec:
+  requestTimeout: <amount of time to wait before retrying>
+  numRetries: <number of times to retry>
+  retryOnConnectFailure: false
+  retryOn: ['<condition types that trigger retries>']
+```
+
+## Specification
+
+This section provides details about the fields you can configure in the resource.
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `consul.hashicorp.com/v1alpha1`.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to `RouteRetryFilter`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `RouteRetryFilter`.
+
+### `metadata`
+
+Map that contains an arbitrary name for the resource and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the resource. The name is metadata that you can use to reference the resource when performing Consul operations, such as applying the resource to a specific cluster. 
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` 
+
+Specifies the namespace that the configuration applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the gateway policy. The `apiVersion`, `kind`, and `metadata` fields are siblings of the `spec` field. All other configurations are children.
+
+### `spec.numRetries`
+
+Specifies the number of times to retry the request when a retry condition occurs. 
+
+#### Values
+
+- Default: `1`
+- Data type: Integer
+
+### `spec.retryOnConnectFailure`
+
+Enables Consul to retry the request if the connection fails. Define the one or more retry configurations to define the retry logic for the route. 
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.retryOn`
+
+Specifies a list of conditions for Consul to retry requests based on the response from an upstream service. The following retry conditions are supported:
+
+| Conditions           | Description                                                                                              |
+| :------------------- | :------------------------------------------------------------------------------------------------------- |
+| `5xx`                | Consul retries the request when an upstream responds with any 5xx error code or does not respond at all. |
+| `gateway-error`      | Consul retries the request when the upstream responds with a 502, 503, or 504 error.                     |
+| `reset`              | Consul retries the request when the upstream does not respond at all.                                    |
+| `connect-failure`    | Consul retries the request when the connection to the upstream fails.                                    |
+| `envoy-ratelimited`  | Consul retries the request when the header `x-envoy-ratelimited` is present.                             |
+| `retriable-4xx`      | Consul retries the request when the upstream responds with a retriable 4xx code.                         |
+| `refused-stream`     | Consul retries the request when the upstream resets the stream with a `REFUSED_STREAM` error code.       |
+| `cancelled`          | Consul retries the request when the gRPC status code in the response headers is `cancelled`.             |
+| `deadline-exceeded`  | Consul retries the request when the gRPC status code in the response headers is `deadline-exceeded`.     |
+| `internal`           | Consul retries the request when the gRPC status code in the response headers is `internal`.              |
+| <nobr>`resource-exhausted`</nobr> | Consul retries the request when the gRPC status code in the response headers is `resource-exhausted`.    |
+| `unavailable`        | Consul retries the request when the gRPC status code in the response headers is `unavailable`.           |
+
+#### Values
+
+- Default: None
+- Data type: List of strings. Strings must match one of the following values:
+
+  - `5xx`
+  - `gateway-error`
+  - `reset`
+  - `connect-failure`
+  - `envoy-ratelimited`
+  - `retriable-4xx`
+  - `refused-stream`
+  - `cancelled`
+  - `deadline-exceeded`
+  - `internal`
+  - `resource-exhausted`
+  - `unavailable`
+
+### `spec.retryOnStatusCodes`
+
+Specifies a list of integers for [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) that trigger a retry request.
+
+#### Values
+
+- Default: None
+- Data type: List of integers
+
+
+## Example
+
+The following example configures Consul to retry the route five times after 15 when the connection fails:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: RouteRetryFilter
+metadata:
+  name: orders
+spec:
+  numRetries: 5
+  retryOnConnectFailure: true
+  retryOn: ['reset']
+  
+  ---
+  
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: example-route
+  namespace: default
+spec:
+  parentRefs:
+    - name: gateway
+  rules:
+     - backendRefs:
+          - name: example-service
+            kind: Service
+            port: 80
+       filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: consul.hashicorp.com
+            kind: RouteRetryFilter
+            name: orders
+
+```

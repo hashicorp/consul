@@ -29,6 +29,18 @@
       {
         "title": "Configuration entries",
         "path": "concept/config-entry"
+      },
+      {
+        "title": "Dataplane",
+        "path": "concept/dataplane"
+      },
+      {
+        "title": "Service mesh",
+        "path": "concept/connect"
+      },
+      {
+        "title": "Gateways",
+        "path": "concept/gateways"
       }
     ]
   },
@@ -1168,8 +1180,8 @@
         "path": "connect"
       },
       {
-        "title": "Configuration entries",
-        "path": "connect/config-entry"
+        "title": "Configuration",
+        "path": "connect/configuration"
       },
       {
         "title": "Enable service mesh",
@@ -1353,10 +1365,15 @@
             "routes": [
               {
                 "title": "Encrypt traffic on VMs",
-                "path": "north-south/api-gateway/secure-traffic/encrypt"
+                "path": "north-south/api-gateway/secure-traffic/encrypt/vm"
               },
               {
                 "title": "Verify requests with JWTs",
+                "badge": {
+                  "text": "ENTERPRISE",
+                  "type": "outlined",
+                  "color": "neutral"
+                },
                 "routes": [
                   {
                     "title": "Verify requests with JWTS on VMs",
@@ -1392,6 +1409,10 @@
             "path": "north-south/ingress-gateway/external"
           }
         ]
+      },
+      {
+        "title": "Terminating gateways",
+        "path": "north-south/terminating-gateway"
       },
       {
         "title": "Virtual machine (VM)",
@@ -2171,6 +2192,10 @@
     ]
   },
   {
+    "title": "Debug service mesh",
+    "path": "troubleshoot/mesh"
+  },
+  {
     "title": "Configuration reference",
     "routes": [
       {
@@ -2260,6 +2285,22 @@
             "path": "reference/config-entry/file-system-certificate"
           },
           {
+            "title": "Gateway CRD",
+            "path": "reference/config-entry/gateway"
+          },
+          {
+            "title": "GatewayClass CRD",
+            "path": "reference/config-entry/gatewayclass"
+          },
+          {
+            "title": "GatewayClassConfig CRD",
+            "path": "reference/config-entry/gatewayclassconfig"
+          },
+          {
+            "title": "GatewayPolicy CRD",
+            "path": "reference/config-entry/gatewaypolicy"
+          },
+          {
             "title": "HTTP route",
             "path": "reference/config-entry/http-route"
           },
@@ -2280,12 +2321,32 @@
             "path": "reference/config-entry/mesh"
           },
           {
+            "title": "MeshService CRD",
+            "path": "reference/config-entry/meshservice"
+          },
+          {
             "title": "Proxy defaults",
             "path": "reference/config-entry/proxy-defaults"
           },
           {
             "title": "Registration CRD",
             "path": "reference/config-entry/registration"
+          },
+          {
+            "title": "Routes CRD",
+            "path": "reference/config-entry/routes"
+          },
+          {
+            "title": "RouteAuthFilter CRD",
+            "path": "reference/config-entry/routeauthfilter"
+          },
+          {
+            "title": "RouteRetryFilter CRD",
+            "path": "reference/config-entry/routeretryfilter"
+          },
+          {
+            "title": "RouteTimeoutFilter CRD",
+            "path": "reference/config-entry/routetimeoutfilter"
           },
           {
             "title": "Sameness group",
@@ -2370,7 +2431,16 @@
       },
       {
         "title": "Dataplanes",
-        "path": "reference/dataplane"
+        "routes": [
+          {
+            "title": "Configuration",
+            "path": "reference/dataplane"
+          },
+          {
+            "title": "Telemetry",
+            "path": "reference/dataplane/telemetry"
+          }
+        ]
       },
       {
         "title": "DNS",

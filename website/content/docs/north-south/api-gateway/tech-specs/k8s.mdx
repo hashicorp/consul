@@ -73,7 +73,7 @@ Refer to the [release notes](/consul/docs/release-notes) for your version of Con
 
 ## Supported Kubernetes gateway specification features
 
-Consul API gateways for Kuberentes support a subset of the Kubernetes Gateway API specification. For a complete list of features, including the list of gateway and route statuses and an explanation on how they
+Consul API gateways for Kubernetes support a subset of the Kubernetes Gateway API specification. For a complete list of features, including the list of gateway and route statuses and an explanation on how they
 are used, refer to the [documentation in our GitHub repo](https://github.com/hashicorp/consul-api-gateway/blob/main/dev/docs/supported-features.md):
 
 ### `GatewayClass`
@@ -86,7 +86,7 @@ You must specify the `"hashicorp.com/consul-api-gateway-controller"` controller 
 
 The `Gateway` resource is the core API gateway component. Gateways have one or more listeners that can route `HTTP`, `HTTPS`, or `TCP` traffic. You can define header-based hostname matching for listeners, but SNI is not supported.
 
-You can apply filters to add, remove, and set header values on incoming requests. Gateways support the `terminate` TLS mode and `core/v1/Secret` TLS certificates. Extended option support includes TLS version and cipher constraints. Refer to the [Kubernetes `Gateway` documentation](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.Gateway) for additional information.
+You can apply filters to add, remove, and set header values on incoming requests. Gateways support the `terminate` TLS mode and `core/v1/Secret` TLS certificates. Extended option support includes TLS version and cipher constraints. Refer to [Kubernetes `Gateway` resource configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/gateway) for more information.
 
 ### `HTTPRoute`
 
@@ -120,10 +120,10 @@ Refer to the [Kubernetes `ReferenceGrant` documentation](https://gateway-api.sig
 
 ## Consul server deployments
 
-- Consul Enterprise and the free community edition are both supported.
+- Consul Enterprise and the community edition are both supported.
 - Supported Consul Server deployment types:
-    - Self-Managed
-    - HCP Consul
+  - Self-Managed
+  - HCP Consul Dedicated
 
 ### Consul feature support
 
@@ -151,5 +151,3 @@ The following resources are allocated for each component of the API gateway.
 
 - **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
 - **Memory**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
-
-
