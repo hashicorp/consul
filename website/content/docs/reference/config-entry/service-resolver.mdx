@@ -399,7 +399,7 @@ Specifies a name for the configuration entry. The name is metadata that you can 
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/segment/namespace) for more information.
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
 
 #### Values
 
@@ -408,7 +408,7 @@ Specifies the namespace that the service resolver applies to. Refer to [namespac
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the admin partition that the service resolver applies to. Refer to [admin partitions](/consul/docs/segment/admin-partition) for more information.
+Specifies the admin partition that the service resolver applies to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
 
 #### Values
 
@@ -543,7 +543,7 @@ Specifies the datacenter at the redirect’s destination that resolves local ups
 
 ### `Redirect{}.Peer`
 
-Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/east-west/cluster-peering/establish-connection/vm#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry.
+Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry.
 
 #### Values
 
@@ -689,7 +689,7 @@ Specifies the WAN federated datacenter to use for the failover target. If empty,
 
 ### `Failover{}.Targets[].Peer`
 
-Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/east-west/cluster-peering/create-manage-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service.
+Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service.
 
 #### Values
 
@@ -881,7 +881,7 @@ Specifies a name for the configuration entry. The name is metadata that you can 
 
 ### `metadata.namespace`<EnterpriseAlert inline />
 
-Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/segment/namespace) for more information.
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
 
 #### Values
 
@@ -1016,7 +1016,7 @@ Specifies the datacenter at the redirect’s destination that resolves local ups
 
 ### `spec.redirect.peer`
 
-Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/east-west/cluster-peering/establish-connection/vm#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry.
+Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry.
 
 #### Values
 
@@ -1113,7 +1113,7 @@ For examples, refer to the [failover example configurations](#service-failover).
   - [`namespace`](#spec-failover-targets-namespace)
   - [`partition`](#spec-failover-targets-partition)
   - [`datacenter`](#spec-failover-targets-datacenter)
-  - [`peer](#spec-failover-targets-peer)
+  - [`peer`](#spec-failover-targets-peer)
 
 ### `spec.failover.targets.service`
 
@@ -1162,7 +1162,7 @@ Specifies the WAN federated datacenter to use for the failover target. If empty,
 
 ### `spec.failover.targets.peer`
 
-Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/east-west/cluster-peering/establish-connection/k8s#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service.
+Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service.
 
 #### Values
 

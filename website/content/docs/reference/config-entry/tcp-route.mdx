@@ -8,7 +8,7 @@ description: >-
 # TCP route configuration entry reference
 
 This topic provides reference information for the gateway TCP routes configuration
-entry. Refer to [Route Resource Configuration](/consul/docs/reference/k8s/api-gateway/routes) for information
+entry. Refer to [Route Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/routes) for information
 about configuring API gateways in Kubernetes environments.
 
 ## Configuration model
@@ -129,7 +129,7 @@ such as applying a configuration entry to a specific cluster.
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
 
 #### Values
 
@@ -138,7 +138,7 @@ Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
 
 #### Values
 
@@ -178,7 +178,7 @@ Specifies the list of TCP-based services to route to. You can specify a maximum 
 
 ### `Services.Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/segment/namespace) where the service is located.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the service is located.
 
 #### Values
 
@@ -187,7 +187,7 @@ Specifies the Enterprise [namespace](/consul/docs/segment/namespace) where the s
 
 ### `Services.Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) where the service is located.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the service is located.
 
 #### Values
 
@@ -231,7 +231,7 @@ Specifies the name of the API gateway to bind to.
 
 ### `Parents.Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/segment/namespace) where the parent is located.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the parent is located.
 
 #### Values
 
@@ -240,7 +240,7 @@ Specifies the Enterprise [namespace](/consul/docs/segment/namespace) where the p
 
 ### `Parents.Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) where the parent is located.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the parent is located.
 
 #### Values
 
@@ -249,7 +249,7 @@ Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition)
 
 ### `Parents.SectionName`
 
-Specifies the name of the listener defined in the [`api-gateway` configuration](/consul/docs/reference/config-entry/api-gateway) that the route binds to. If the field is configured to an empty string, the route binds to all listeners on the parent gateway.
+Specifies the name of the listener defined in the [`api-gateway` configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway) that the route binds to. If the field is configured to an empty string, the route binds to all listeners on the parent gateway.
 
 #### Values
 

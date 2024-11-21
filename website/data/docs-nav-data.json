@@ -25,6 +25,10 @@
       {
         "title": "Agents",
         "path": "concept/agent"
+      },
+      {
+        "title": "Configuration entries",
+        "path": "concept/config-entry"
       }
     ]
   },
@@ -40,7 +44,7 @@
           },
           {
             "title": "Configuration entries",
-            "path": "fundamentals/configuration/configuration-entry"
+            "path": "fundamentals/configuration/config-entry"
           }
         ]
       }
@@ -2252,6 +2256,10 @@
             "path": "reference/config-entry/exported-services"
           },
           {
+            "title": "File system certificate",
+            "path": "reference/config-entry/file-system-certificate"
+          },
+          {
             "title": "HTTP route",
             "path": "reference/config-entry/http-route"
           },
@@ -2274,6 +2282,10 @@
           {
             "title": "Proxy defaults",
             "path": "reference/config-entry/proxy-defaults"
+          },
+          {
+            "title": "Registration CRD",
+            "path": "reference/config-entry/registration"
           },
           {
             "title": "Sameness group",

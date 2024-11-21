@@ -7,8 +7,10 @@ description: >-
 
 # Inline certificate configuration entry reference
 
-This topic provides reference information for the gateway inline certificate
-configuration entry. For information about certificate configuration for Kubernetes environments, refer to [Gateway Resource Configuration](/consul/docs/reference/k8s/api-gateway/gateway).
+This topic provides reference information for the inline certificate
+configuration entry. The inline certificate secures TLS for the Consul API gateway on VMs. In production environments, we recommend you use the more secure [file system certificate configuration entry](/consul/docs/connect/config-entries/file-system-certificate) instead.
+
+The inline certificate configuration entry is not used for Consul on Kubernetes deployments. To learn about configuring certificates for Kubernetes environments, refer to [Gateway Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway).
 
 ## Configuration model
 
@@ -28,9 +30,11 @@ to view additional details, including default values.
 
 When every field is defined, an `inline-certificate` configuration entry has the following form:
 
-<CodeTabs>
+<Tabs>
 
-```HCL
+<Tab heading="HCL" group="hcl">
+
+```hcl
 Kind = "inline-certificate"
 Name = "<name of certificate>"
 
@@ -42,19 +46,24 @@ Certificate = "<public certificate>"
 PrivateKey = "<private key>"
 ```
 
-```JSON
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
 {
 	"Kind": "inline-certificate",
 	"Name": "<name of certificate>",
 	"Meta": {
 		"any key": "any value"
-	}
+	},
 	"Certificate": "<public certificate>",
 	"PrivateKey": "<private key>"
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
 ## Specification
 
@@ -82,7 +91,7 @@ as applying a configuration entry to a specific cluster.
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
 
 #### Values
 
@@ -91,7 +100,7 @@ Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
 
 #### Values
 
@@ -126,3 +135,34 @@ Specifies the inline private key to use for TLS.
 - Default: none
 - This field is required.
 - Data type: string value of the private key
+
+## Examples
+
+The following example demonstrates an inline certificate configuration.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind                     = "inline-certificate"
+Name                     = "tls-certificate"
+Certificate              = "<complete-public-certificate>"
+PrivateKey               = "<complete-private-key>"
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind": "inline-certificate",
+  "Name": "tls-certificate",
+	"Certificate": "<complete-public-certificate>",
+	"PrivateKey": "<complete-private-key>"
+}
+```
+
+</Tab>
+</Tabs>
