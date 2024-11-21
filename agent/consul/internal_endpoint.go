@@ -117,6 +117,18 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			}
 			reply.Index = maxIndex
 
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			raw, err := filter.Execute(reply.Dump)
 			if err != nil {
 				return fmt.Errorf("could not filter local node dump: %w", err)
@@ -128,13 +140,6 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 				return fmt.Errorf("could not filter peer node dump: %w", err)
 			}
 			reply.ImportedDump = importedRaw.(structs.NodeDump)
-
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
-			if err := m.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			return nil
 		})
@@ -235,12 +240,25 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 					}
 				}
 				reply.Index = maxIndex
-				raw, err := filter.Execute(reply.Nodes)
-				if err != nil {
-					return fmt.Errorf("could not filter local service dump: %w", err)
-				}
-				reply.Nodes = raw.(structs.CheckServiceNodes)
 			}
+
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
+			raw, err := filter.Execute(reply.Nodes)
+			if err != nil {
+				return fmt.Errorf("could not filter local service dump: %w", err)
+			}
+			reply.Nodes = raw.(structs.CheckServiceNodes)
 
 			if !args.NodesOnly {
 				importedRaw, err := filter.Execute(reply.ImportedNodes)
@@ -248,12 +266,6 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 					return fmt.Errorf("could not filter peer service dump: %w", err)
 				}
 				reply.ImportedNodes = importedRaw.(structs.CheckServiceNodes)
-			}
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
-			if err := m.srv.filterACL(args.Token, reply); err != nil {
-				return err
 			}
 
 			return nil

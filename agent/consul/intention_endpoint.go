@@ -550,18 +550,24 @@ func (s *Intention) List(args *structs.IntentionListRequest, reply *structs.Inde
 			} else {
 				reply.DataOrigin = structs.IntentionDataOriginLegacy
 			}
+
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
+			if err := s.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			raw, err := filter.Execute(reply.Intentions)
 			if err != nil {
 				return err
 			}
 			reply.Intentions = raw.(structs.Intentions)
-
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
-			if err := s.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			return nil
 		},
