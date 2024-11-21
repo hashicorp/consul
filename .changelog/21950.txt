@@ -1,0 +1,3 @@
+```release-note:security
+Removed ability to use bexpr to filter results without ACL read on endpoint
+```
