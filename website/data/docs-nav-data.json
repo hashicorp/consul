@@ -1770,6 +1770,10 @@
         ]
       },
       {
+        "title": "Application leader elections",
+        "path": "automate/application-leader-election"
+      },
+      {
         "title": "Consul template",
         "path": "automate/consul-template"
       },
