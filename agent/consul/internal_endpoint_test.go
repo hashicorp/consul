@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -3885,21 +3885,41 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.AssignManualServiceVIPs", req, &resp))
 
 	type testcase struct {
-		name      string
-		req       structs.AssignServiceManualVIPsRequest
-		expect    structs.AssignServiceManualVIPsResponse
-		expectErr string
+		name        string
+		req         structs.AssignServiceManualVIPsRequest
+		expect      structs.AssignServiceManualVIPsResponse
+		expectAgain structs.AssignServiceManualVIPsResponse
+		expectErr   string
+		expectIPs   []string
 	}
-	run := func(t *testing.T, tc testcase) {
-		var resp structs.AssignServiceManualVIPsResponse
-		err := msgpackrpc.CallWithCodec(codec, "Internal.AssignManualServiceVIPs", tc.req, &resp)
-		if tc.expectErr != "" {
-			require.Error(t, err)
-			require.Contains(t, err.Error(), tc.expectErr)
-			return
+
+	run := func(t *testing.T, tc testcase, again bool) {
+		if tc.expectErr != "" && again {
+			return // we don't retest known errors
 		}
-		require.Equal(t, tc.expect, resp)
+
+		var resp structs.AssignServiceManualVIPsResponse
+		idx1 := s1.raft.CommitIndex()
+		err := msgpackrpc.CallWithCodec(codec, "Internal.AssignManualServiceVIPs", tc.req, &resp)
+		idx2 := s1.raft.CommitIndex()
+		if tc.expectErr != "" {
+			testutil.RequireErrorContains(t, err, tc.expectErr)
+		} else {
+			if again {
+				require.Equal(t, tc.expectAgain, resp)
+				require.Equal(t, idx1, idx2, "no raft operations occurred")
+			} else {
+				require.Equal(t, tc.expect, resp)
+			}
+
+			psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(tc.req.Service, nil)}
+			got, err := s1.fsm.State().ServiceManualVIPs(psn)
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			require.Equal(t, tc.expectIPs, got.ManualIPs)
+		}
 	}
+
 	tcs := []testcase{
 		{
 			name: "successful manual ip assignment",
@@ -3907,7 +3927,19 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 				Service:    "web",
 				ManualVIPs: []string{"1.1.1.1", "2.2.2.2"},
 			},
-			expect: structs.AssignServiceManualVIPsResponse{Found: true},
+			expectIPs:   []string{"1.1.1.1", "2.2.2.2"},
+			expect:      structs.AssignServiceManualVIPsResponse{Found: true},
+			expectAgain: structs.AssignServiceManualVIPsResponse{Found: true},
+		},
+		{
+			name: "successfully ignoring duplicates",
+			req: structs.AssignServiceManualVIPsRequest{
+				Service:    "web",
+				ManualVIPs: []string{"1.2.3.4", "5.6.7.8", "1.2.3.4", "5.6.7.8"},
+			},
+			expectIPs:   []string{"1.2.3.4", "5.6.7.8"},
+			expect:      structs.AssignServiceManualVIPsResponse{Found: true},
+			expectAgain: structs.AssignServiceManualVIPsResponse{Found: true},
 		},
 		{
 			name: "reassign existing ip",
@@ -3915,6 +3947,7 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 				Service:    "web",
 				ManualVIPs: []string{"8.8.8.8"},
 			},
+			expectIPs: []string{"8.8.8.8"},
 			expect: structs.AssignServiceManualVIPsResponse{
 				Found: true,
 				UnassignedFrom: []structs.PeeredServiceName{
@@ -3923,6 +3956,8 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 					},
 				},
 			},
+			// When we repeat this operation the second time it's a no-op.
+			expectAgain: structs.AssignServiceManualVIPsResponse{Found: true},
 		},
 		{
 			name: "invalid ip",
@@ -3930,13 +3965,19 @@ func TestInternal_AssignManualServiceVIPs(t *testing.T) {
 				Service:    "web",
 				ManualVIPs: []string{"3.3.3.3", "invalid"},
 			},
-			expect:    structs.AssignServiceManualVIPsResponse{},
 			expectErr: "not a valid",
 		},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			run(t, tc)
+			t.Run("initial", func(t *testing.T) {
+				run(t, tc, false)
+			})
+			if tc.expectErr == "" {
+				t.Run("repeat", func(t *testing.T) {
+					run(t, tc, true) // only repeat a write if it isn't an known error
+				})
+			}
 		})
 	}
 }

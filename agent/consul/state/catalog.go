@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"slices"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-memdb"
@@ -18,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -1106,6 +1109,9 @@ func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceNam
 	for _, ip := range ips {
 		assignedIPs[ip] = struct{}{}
 	}
+
+	txnNeedsCommit := false
+
 	modifiedEntries := make(map[structs.PeeredServiceName]struct{})
 	for ip := range assignedIPs {
 		entry, err := tx.First(tableServiceVirtualIPs, indexManualVIPs, psn.ServiceName.PartitionOrDefault(), ip)
@@ -1118,7 +1124,13 @@ func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceNam
 		}
 
 		newEntry := entry.(ServiceVirtualIP)
-		if newEntry.Service.ServiceName.Matches(psn.ServiceName) {
+
+		var (
+			thisServiceName = newEntry.Service.ServiceName
+			thisPeer        = newEntry.Service.Peer
+		)
+
+		if thisServiceName.Matches(psn.ServiceName) && thisPeer == psn.Peer {
 			continue
 		}
 
@@ -1130,6 +1142,7 @@ func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceNam
 				filteredIPs = append(filteredIPs, existingIP)
 			}
 		}
+		sort.Strings(filteredIPs)
 
 		newEntry.ManualIPs = filteredIPs
 		newEntry.ModifyIndex = idx
@@ -1137,6 +1150,12 @@ func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceNam
 			return false, nil, fmt.Errorf("failed inserting service virtual IP entry: %s", err)
 		}
 		modifiedEntries[newEntry.Service] = struct{}{}
+
+		if err := updateVirtualIPMaxIndexes(tx, idx, thisServiceName.PartitionOrDefault(), thisPeer); err != nil {
+			return false, nil, err
+		}
+
+		txnNeedsCommit = true
 	}
 
 	entry, err := tx.First(tableServiceVirtualIPs, indexID, psn)
@@ -1149,23 +1168,37 @@ func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceNam
 	}
 
 	newEntry := entry.(ServiceVirtualIP)
-	newEntry.ManualIPs = ips
-	newEntry.ModifyIndex = idx
 
-	if err := tx.Insert(tableServiceVirtualIPs, newEntry); err != nil {
-		return false, nil, fmt.Errorf("failed inserting service virtual IP entry: %s", err)
+	// Check to see if the slice already contains the same ips.
+	if !stringslice.EqualMapKeys(newEntry.ManualIPs, assignedIPs) {
+		newEntry.ManualIPs = slices.Clone(ips)
+		newEntry.ModifyIndex = idx
+
+		sort.Strings(newEntry.ManualIPs)
+
+		if err := tx.Insert(tableServiceVirtualIPs, newEntry); err != nil {
+			return false, nil, fmt.Errorf("failed inserting service virtual IP entry: %s", err)
+		}
+		if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {
+			return false, nil, err
+		}
+		txnNeedsCommit = true
 	}
-	if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {
-		return false, nil, err
-	}
-	if err = tx.Commit(); err != nil {
-		return false, nil, err
+
+	if txnNeedsCommit {
+		if err = tx.Commit(); err != nil {
+			return false, nil, err
+		}
 	}
 
 	return true, maps.SliceOfKeys(modifiedEntries), nil
 }
 
 func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName string) error {
+	// update global max index (for snapshots)
+	if err := indexUpdateMaxTxn(txn, idx, tableServiceVirtualIPs); err != nil {
+		return fmt.Errorf("failed while updating index: %w", err)
+	}
 	// update per-partition max index
 	if err := indexUpdateMaxTxn(txn, idx, partitionedIndexEntryName(tableServiceVirtualIPs, partition)); err != nil {
 		return fmt.Errorf("failed while updating partitioned index: %w", err)
@@ -3086,6 +3119,7 @@ func servicesVirtualIPsTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, []ServiceVirt
 		vips = append(vips, vip)
 	}
 
+	// Pull from the global one
 	idx := maxIndexWatchTxn(tx, nil, tableServiceVirtualIPs)
 
 	return idx, vips, nil
