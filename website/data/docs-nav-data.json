@@ -1224,8 +1224,8 @@
             "href": "envoy-extension"
           },
           {
-            "title": "Proxy integrations",
-            "href": "integrate/proxy"
+            "title": "Use custom proxy",
+            "path": "connect/proxy/custom"
           },
           {
             "title": "Transparent proxy",
@@ -1627,16 +1627,16 @@
         "path": "manage-traffic"
       },
       {
+        "title": "Configure discovery chain",
+        "path": "manage-traffic/discovery-chain"
+      },
+      {
         "title": "Route local traffic",
         "path": "manage-traffic/route-local"
       },
       {
         "title": "Rate limit service mesh traffic",
         "path": "manage-traffic/rate-limit"
-      },
-      {
-        "title": "Split TCP traffic between multi-port services",
-        "path": "manage-traffic/split-multi-port-traffic"
       },
       {
         "title": "Manage traffic for peered clusters",
@@ -1694,6 +1694,10 @@
         "path": "observe"
       },
       {
+        "title": "Technical specifications",
+        "path": "observe/tech-specs"
+      },
+      {
         "title": "Access logs",
         "path": "observe/access-log"
       },
@@ -1711,6 +1715,35 @@
           {
             "title": "Kubernetes",
             "path": "observe/telemetry/k8s"
+          }
+        ]
+      },
+      {
+        "title": "Grafana dashboards",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "observe/grafana"
+          },
+          {
+            "title": "Consul on Kubernetes",
+            "path": "observe/grafana/consul-k8s"
+          },
+          {
+            "title": "Dataplanes",
+            "path": "observe/grafana/dataplane"
+          },
+          {
+            "title": "Consul servers",
+            "path": "observe/grafana/server"
+          },
+          {
+            "title": "Inter-service traffic",
+            "path": "observe/grafana/service-to-service"
+          },
+          {
+            "title": "Services",
+            "path": "observe/grafana/service"
           }
         ]
       }
@@ -1739,6 +1772,19 @@
       {
         "title": "Consul template",
         "path": "automate/consul-template"
+      },
+      {
+        "title": "Native app integration",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "automate/native"
+          },
+          {
+            "title": "Go apps",
+            "path": "automate/native/go"
+          }
+        ]
       },
       {
         "title": "Session",
@@ -1969,10 +2015,6 @@
       {
         "title": "NIA integration program",
         "path": "integrate/nia"
-      },
-      {
-        "title": "Proxy integration",
-        "path": "integrate/proxy"
       }
     ]
   },
@@ -2192,8 +2234,22 @@
     ]
   },
   {
-    "title": "Debug service mesh",
-    "path": "troubleshoot/mesh"
+    "title": "Debug Consul",
+    "routes": [
+      {
+        "title": "Debug service mesh",
+        "path": "debug/mesh"
+      },
+      {
+        "title": "Fault injection",
+        "badge": {
+          "text": "ENTERPRISE",
+          "type": "outlined",
+          "color": "neutral"
+        },
+        "path": "debug/fault-injection"
+      }
+    ]
   },
   {
     "title": "Configuration reference",
