@@ -6,14 +6,14 @@ description: Learn how to configure the ext-authz Envoy extension, which is a bu
 
 # External authorization extension configuration reference
 
-This topic describes how to configure the external authorization Envoy extension, which configures Envoy proxies to request authorization from an external service. Refer to [Delegate authorization to an external service](/consul/docs/reference/proxy/envoy-extensions/usage/ext-authz) for usage information.
+This topic describes how to configure the external authorization Envoy extension, which configures Envoy proxies to request authorization from an external service. Refer to [Delegate authorization to an external service](/consul/docs/connect/proxies/envoy-extensions/usage/ext-authz) for usage information.
 
 ## Configuration model
 
 The following list outlines the field hierarchy, data types, and requirements for the external authorization configuration. Place the configuration inside the `EnvoyExtension.Arguments` field in the proxy defaults or service defaults configuration entry. Refer to the following documentation for additional information:
 
-- [`EnvoyExtensions` in proxy defaults](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions)
-- [`EnvoyExtensions` in service defaults](/consul/docs/reference/config-entry/service-default#envoyextensions)
+- [`EnvoyExtensions` in proxy defaults](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions)
+- [`EnvoyExtensions` in service defaults](/consul/docs/connect/config-entries/service-defaults#envoyextensions)
  - [Envoy External Authorization documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto)
 
 Click on a property name to view additional details, including default values.
