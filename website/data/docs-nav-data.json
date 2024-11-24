@@ -288,7 +288,16 @@
           },
           {
             "title": "AWS ECS",
-            "path": "deploy/server/ecs"
+            "routes": [
+              {
+                "title": "Deploy with Terraform",
+                "path": "deploy/server/ecs"
+              },
+              {
+                "title": "Deploy manually",
+                "path": "deploy/server/ecs/manual"
+              }
+            ]
           }
         ]
       },
@@ -1829,6 +1838,10 @@
             "path": "enterprise/license/faq"
           }
         ]
+      },
+      {
+        "title": "AWS ECS",
+        "route": "enterprise/ecs"
       }
     ]
   },
