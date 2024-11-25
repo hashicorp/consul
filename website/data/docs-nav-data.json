@@ -59,6 +59,14 @@
             "path": "fundamentals/configuration/config-entry"
           }
         ]
+      },
+      {
+        "title": "Consul UI",
+        "path": "fundamentals/ui"
+      },
+      {
+        "title": "Distributed tracing",
+        "path": "fundamentals/distributed-tracing"
       }
     ]
   },
@@ -287,6 +295,10 @@
             ]
           },
           {
+            "title": "Docker containers",
+            "path": "/deploy/server/docker"
+          },
+          {
             "title": "AWS ECS",
             "routes": [
               {
@@ -318,6 +330,10 @@
               {
                 "title": "Kubernetes",
                 "path": "deploy/workload/client/k8s"
+              },
+              {
+                "title": "Docker containers",
+                "path": "/deploy/workload/client/docker"
               }
             ]
           },
@@ -506,6 +522,23 @@
                 "path": "secure/encryption/tls/existing"
               }
             ]
+          },
+          {
+            "title": "Agent mTLS encryption",
+            "path": "secure/encryption/mtls"
+          }
+        ]
+      },
+      {
+        "title": "Audit logs",
+        "path": "secure/audit-log"
+      },
+      {
+        "title": "Auto-config",
+        "routes": [
+          {
+            "title": "Docker",
+            "path": "secure/auto-config/docker"
           }
         ]
       },
@@ -1026,6 +1059,10 @@
             ]
           },
           {
+            "title": "Docker containers",
+            "path": "register/service/docker"
+          },
+          {
             "title": "ECS",
             "routes": [
               {
@@ -1134,6 +1171,10 @@
           {
             "title": "Resolve Consul DNS in Kubernetes",
             "path": "discover/dns/k8s"
+          },
+          {
+            "title": "Resolve Consul DNS in Docker",
+            "path": "discover/dns/docker"
           }
         ]
       },
@@ -1147,6 +1188,10 @@
           {
             "title": "Envoy",
             "path": "discover/load-balancer/envoy"
+          },
+          {
+            "title": "HA Proxy",
+            "path": "discover/load-balancer/ha"
           },
           {
             "title": "NGINX",
@@ -1946,6 +1991,31 @@
       {
         "title": "Observe services",
         "href": "observe/telemetry/k8s"
+      }
+    ]
+  },
+  {
+    "title": "Docker",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "docker"
+      },
+      {
+        "title": "Deploy Consul",
+        "href": "deploy/server/docker"
+      },
+      {
+        "title": "Secure Consul",
+        "href": "secure/auto-config/docker"
+      },
+      {
+        "title": "Register services",
+        "href": "register/docker"
+      },
+      {
+        "title": "Discover services",
+        "href": "discover/dns/docker"
       }
     ]
   },

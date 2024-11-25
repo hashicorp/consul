@@ -1,0 +1,247 @@
+---
+layout: docs
+page_title: Audit logs
+description: >-
+  Ensure regulatory and organizational compliance by capturing event data with Consul audit logging.
+---
+
+# Audit logs
+
+This topic describes configuration and usage for audit logs, ehich capture records of all Consul events. With 
+audit logs, the audit team can inspect event data to learn which credentials 
+have been used, what actions have taken place, and the timestamps associated 
+with all of these transactions. This provides provides greater insight and 
+accountability for security teams that might be concerned with automating 
+service networking tasks.
+
+In this tutorial, you will enable audit logging by providing Consul with a 
+configuration file, generate audit log entries, then explore the generated logs 
+to understand the contents.
+
+## Prerequisites
+
+To execute the example commands in this tutorial, you will need a Consul 1.8+
+Enterprise datacenter with [ACLs enabled](/consul/tutorials/security/access-control-setup-production). 
+If you do not have an existing datacenter, you can use a single 
+[local agent](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy)
+with the [Consul Enterprise binary](https://releases.hashicorp.com/consul/1.9.4+ent/).
+
+You will also need an ACL token with `operator=write` and `acl=write` privileges
+or you can use a token with the [built-in global management policy](/consul/docs/security/acl#builtin-policies).
+
+## Enable audit logging
+
+To enable audit logging, you will need to create a configuration file in the 
+configuration directory on each of your Consul agents.
+
+Create a file with the audit logging configuration in your configuration 
+directory.
+
+<CodeTabs>
+
+<CodeBlockConfig filename="audit-logging.hcl">
+
+```hcl
+  audit {
+    enabled = true
+    sink "My sink" {
+      type   = "file"
+      format = "json"
+      path   = "/opt/consul/data/audit/audit.json"
+      delivery_guarantee = "best-effort"
+      rotate_duration = "24h"
+      rotate_max_files = 15
+      rotate_bytes = 25165824
+    }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="audit-logging.json">
+
+```json
+{
+	"audit": {
+		"enabled": true,
+		"sink": {
+			"My sink": {
+				"type": "file",
+				"format": "json",
+				"path": "/opt/consul/data/audit/audit.json",
+				"delivery_guarantee": "best-effort",
+				"rotate_duration": "24h",
+				"rotate_max_files": 15,
+				"rotate_bytes": 25165824
+			}
+		}
+	}
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+Each audit log configuration file uses the following customizable options:
+
+- `enabled` - Controls whether Consul logs each time a user performs an operation.
+  ACLs must be enabled to use this feature. Defaults to `false`.
+
+- `path`- The directory and filename to write audit events to.
+
+- `rotate_duration` - Specifies the interval by which the system rotates to a new log file.
+
+- `rotate_max_files` - Defines the limit that Consul should follow before it deletes old log files.
+
+- `rotate_bytes` - Specifies how large an individual log file can grow before Consul rotates to a new file.
+
+Restart each of your agents to load the new configuration. Take special care to 
+restart your servers one at a time, restarting the leader last. Ensure each 
+server has joined and is operating correctly before restarting the next.
+
+You will need to complete this process on _every_ agent, servers and clients, in 
+your datacenter.
+
+To learn more about specific configuration options, check the 
+[Consul audit logging documentation](/consul/docs/agent/config/config-files#audit).
+
+## Generate audit logs
+
+Audit logs will appear on the agent where the Consul commands are executed.
+
+Connect to a Consul node and set your ACL token as the `CONSUL_HTTP_TOKEN` 
+environment variable for your terminal session. 
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=[YOUR_ACL_TOKEN]
+```
+
+To generate an entry, run the `consul members` command.
+
+```shell-session
+$ consul members
+```
+
+## Explore audit logs
+
+Consul audit logs contain all operational events including which credentials 
+have been used, what actions have taken place, and the timestamps associated 
+with all of these transactions.
+
+Change directory to the `path` location specified in your configuration file.
+
+```shell-session
+$ cd /opt/consul/data/audit/
+```
+
+Use `tail` to read the latest contents of your audit log file.
+
+```shell-session
+$ tail audit-1616781015875224800.json
+```
+
+Below is an example records generated as a result of running the `consul members` 
+command on a server in the cluster with the ACL's initial management token set.
+
+```json hideClipboard
+[{
+   "created_at":"2021-03-31T18:44:53.0054641Z",
+   "event_type":"audit",
+   "payload":{
+      "id":"fe59a5ef-cd2e-1918-d6c8-e16eefbbb135",
+      "version":"1",
+      "type":"HTTPEvent",
+      "timestamp":"2021-03-31T18:44:53.0051734Z",
+      "auth":{
+         "accessor_id":"6b8960bd-2984-e8a6-2372-9897ae99e2ae",
+         "description":"Bootstrap Token (Global Management)",
+         "create_time":"2021-03-31T18:43:40.3414227Z"
+      },
+      "request":{
+         "operation":"GET",
+         "endpoint":"/v1/agent/members?segment=_all",
+         "remote_addr":"127.0.0.1:39814",
+         "user_agent":"Go-http-client/1.1",
+         "host":"127.0.0.1:8500",
+         "query_params":{
+            "segment":[
+               "_all"
+            ]
+         }
+      },
+      "stage":"OperationStart"
+   }
+},
+{
+   "created_at":"2021-03-31T18:44:53.0061569Z",
+   "event_type":"audit",
+   "payload":{
+      "id":"ebe9b85f-e300-6701-5c89-9e37e87add59",
+      "version":"1",
+      "type":"HTTPEvent",
+      "timestamp":"2021-03-31T18:44:53.0060985Z",
+      "auth":{
+         "accessor_id":"6b8960bd-2984-e8a6-2372-9897ae99e2ae",
+         "description":"Bootstrap Token (Global Management)",
+         "create_time":"2021-03-31T18:43:40.3414227Z"
+      },
+      "request":{
+         "operation":"GET",
+         "endpoint":"/v1/agent/members?segment=_all",
+         "remote_addr":"127.0.0.1:39814",
+         "user_agent":"Go-http-client/1.1",
+         "host":"127.0.0.1:8500",
+         "query_params":{
+            "segment":[
+               "_all"
+            ]
+         }
+      },
+      "response":{
+         "status":"200"
+      },
+      "stage":"OperationComplete"
+   }
+}]
+```
+
+Each Consul audit log contains the following data:
+
+- `created_at` - The timestamp value of when the event log was created.
+
+- `type` - The type of event.
+
+- `timestamp` - The timestamp value of when the event occurred.
+
+- `auth` - ACL authentication identity.
+
+- `request` - Detailed information about the event including the source host, 
+destination host, and additional content relevant to the type of request.
+
+- `response` - The HTTP response status of the request.
+
+<Note title="Best Practice">
+
+ Due to the amount of logs generated and their distributed 
+nature, it is _highly_ recommended to utilize a centralized logging solution to 
+simplify the collection, alerting, reporting, storage, and visualization of 
+these logs.
+
+</Note>
+
+You can use your log management solution to ingest Consul audit log data to best 
+meet your organization's regulatory compliance requirements or organizational policies.
+
+For more information on how to ingest these logs, check the documentation pages 
+for your log management solutions such as
+[Datadog](https://docs.datadoghq.com/logs/) or [Splunk](https://docs.splunk.com/Documentation).
+
+## Next steps
+
+In this tutorial, you learned how to enable audit logging and analyze the 
+contents of an audit log. 
+
+To learn about additional Consul logging information such as metrics and 
+performance, check out the [Monitor Consul Datacenter Health](/consul/tutorials/day-2-operations/monitor-datacenter-health) 
+tutorial to learn more.
