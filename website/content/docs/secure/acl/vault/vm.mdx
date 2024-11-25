@@ -1,20 +1,11 @@
 ---
-id: 79ee12ae-bd3d-4fe1-af38-a800a1c15ac5
-name: Administer Consul access control tokens with Vault
-short_name: Consul ACLs with Vault
-description: |-
-  Configure the Consul secrets engine in Vault to deliver Vault-managed Consul
-  Access Control tokens.
-products_used:
-  - product: consul
-    min_version: 1.8.0
-  - product: vault
-    min_version: 1.5.0
-default_collection_context: consul/operate-consul
-read_time: 14
-hands_on_lab_id: hashicorp-learn/tracks/administer-consul-access-control-tokens-with-vault?token=em_5yyaq7sB_iF8VveP
-hands_on_lab_provider: instruqt
+layout: docs
+page_title: Use Vault for ACL management with Consul on VMs
+description: >-
+  Configure the Consul secrets engine in Vault to deliver Vault-managed Consul Access Control tokens.
 ---
+
+# Use Vault for ACL management with Consul on VMs
 
 HashiCorp's Vault has a secrets engine for generating short-lived Consul tokens, the [Consul Secrets Engine](/vault/docs/secrets/consul). This engine generates Consul Access Control (ACL) tokens dynamically based on Consul ACL policies.
 
