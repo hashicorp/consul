@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Auto-join a Cloud Provider
+page_title: Automatically join clusters to a cloud provider
 description: >-
   Auto-join enables agents to automatically join other agents running in the cloud. To configure auto-join, specify agent addresses with compute node metadata for the cloud provider instead of an IP address. Use the CLI or an agent configuration file to configure cloud auto-join.
 ---
 
-# Automatic agent discovery (cloud auto-join)
+# Automatically join clusters to a cloud provider
 
 As of Consul 0.9.1, `retry-join` accepts a unified interface using the [go-discover](https://github.com/hashicorp/go-discover) library for automatically joining a Consul datacenter using cloud metadata. To use `retry-join` with a supported cloud provider, specify the configuration on the command line or configuration file as a `key=value key=value ...` string.
 
