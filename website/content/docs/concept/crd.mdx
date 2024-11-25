@@ -1,0 +1,390 @@
+---
+layout: docs
+page_title: Custom Resource Definitions for Consul on Kubernetes
+description: >-
+  Consul on Kubernetes supports Consul's configuration entry kind through Custom Resource Definitions (CRDs). Learn how to configure Helm charts to enable CRDs and use kubectl to create, manage, and delete mesh components like gateways and intentions on k8s.
+---
+
+# Custom Resource Definitions (CRDs) for Consul on Kubernetes
+
+This topic describes how to manage Consul [configuration entries](/consul/docs/agent/config-entries)
+with Kubernetes Custom Resources. Configuration entries provide cluster-wide defaults for the service mesh.
+
+## Supported Configuration Entries
+
+You can specify the following values in the `kind` field. Click on a configuration entry to view its documentation:
+
+- [`Mesh`](/consul/docs/connect/config-entries/mesh) 
+- [`ExportedServices`](/consul/docs/connect/config-entries/exported-services)
+- [`PeeringAcceptor`](/consul/docs/k8s/connect/cluster-peering/tech-specs#peeringacceptor)
+- [`PeeringDialer`](/consul/docs/k8s/connect/cluster-peering/tech-specs#peeringdialer)
+- [`ProxyDefaults`](/consul/docs/connect/config-entries/proxy-defaults)
+- [`Registration`](/consul/docs/connect/config-entries/registration)
+- [`SamenessGroup`](/consul/docs/connect/config-entries/sameness-group)
+- [`ServiceDefaults`](/consul/docs/connect/config-entries/service-defaults)
+- [`ServiceSplitter`](/consul/docs/connect/config-entries/service-splitter)
+- [`ServiceRouter`](/consul/docs/connect/config-entries/service-router)
+- [`ServiceResolver`](/consul/docs/connect/config-entries/service-resolver)
+- [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions) 
+- [`IngressGateway`](/consul/docs/connect/config-entries/ingress-gateway)
+- [`TerminatingGateway`](/consul/docs/connect/config-entries/terminating-gateway)
+
+## Installation
+
+Verify that the minimum version of the helm chart (`0.28.0`) is installed:
+
+```shell-session
+$ helm search repo hashicorp/consul
+NAME            	CHART VERSION	APP VERSION	DESCRIPTION
+hashicorp/consul	0.28.0       	1.9.1      	Official HashiCorp Consul Chart
+```
+
+Update your helm repository cache if necessary:
+
+```shell-session
+$ helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "hashicorp" chart repository
+Update Complete. ⎈Happy Helming!⎈
+```
+
+Refer to [Install with Helm Chart](/consul/docs/k8s/installation/install) for further installation
+instructions.
+
+**Note**: Configuration entries require `connectInject` to be enabled, which is a default behavior in the official Helm Chart. If you disabled this setting, you must re-enable it to use CRDs.
+
+## Upgrading An Existing Cluster to CRDs
+
+If you have an existing Consul cluster running on Kubernetes you may need to perform
+extra steps to migrate to CRDs. Refer to [Upgrade An Existing Cluster to CRDs](/consul/docs/k8s/crds/upgrade-to-crds) for full instructions.
+
+## Usage
+
+Once installed, you can use `kubectl` to create and manage Consul's configuration entries.
+
+### Create
+
+You can create configuration entries with `kubectl apply`.
+
+```shell-session
+$ cat <<EOF | kubectl apply --filename -
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: foo
+spec:
+  protocol: "http"
+EOF
+
+servicedefaults.consul.hashicorp.com/foo created
+```
+
+Refer to [Configuration Entries](/consul/docs/agent/config-entries) for detailed schema documentation.
+
+### Get
+
+You can use `kubectl get [kind] [name]` to get the status of the configuration entry:
+
+```shell-session
+$ kubectl get servicedefaults foo
+NAME  SYNCED
+foo   True
+```
+
+The `SYNCED` status shows whether the configuration entry was successfully created
+in Consul.
+
+### Describe
+
+You can use `kubectl describe [kind] [name]` to investigate the status of the
+configuration entry. If `SYNCED` is false, the status contains the reason
+why.
+
+```shell-session
+$ kubectl describe servicedefaults foo
+Status:
+  Conditions:
+    Last Transition Time:  2020-10-09T21:15:50Z
+    Status:                True
+    Type:                  Synced
+```
+
+### Edit
+
+You can use `kubectl edit [kind] [name]` to edit the configuration entry:
+
+```shell-session
+$ kubectl edit servicedefaults foo
+# change protocol: http => protocol: tcp
+servicedefaults.consul.hashicorp.com/foo edited
+```
+
+You can then use `kubectl get` to ensure the change was synced to Consul:
+
+```shell-session
+$ kubectl get servicedefaults foo
+NAME  SYNCED
+foo   True
+```
+
+### Delete
+
+You can use `kubectl delete [kind] [name]` to delete the configuration entry:
+
+```shell-session
+$ kubectl delete servicedefaults foo
+servicedefaults.consul.hashicorp.com "foo" deleted
+```
+
+You can then use `kubectl get` to ensure the configuration entry was deleted:
+
+```shell-session
+$ kubectl get servicedefaults foo
+Error from server (NotFound): servicedefaults.consul.hashicorp.com "foo" not found
+```
+
+#### Delete Hanging
+
+If running `kubectl delete` hangs without exiting, there may be
+a dependent configuration entry registered with Consul that prevents the target configuration entry from being
+deleted. For example, if you set the protocol of your service to `http` in `ServiceDefaults` and then
+create a `ServiceSplitter`, you will not be able to delete `ServiceDefaults`.
+
+This is because by deleting the `ServiceDefaults` config, you are setting the
+protocol back to the default which is `tcp`. Because `ServiceSplitter` requires
+that the service has an `http` protocol, Consul will not allow the `ServiceDefaults`
+to be deleted since that would put Consul into a broken state.
+
+In order to delete the `ServiceDefaults` config, you would need to first delete
+the `ServiceSplitter`.
+
+## Kubernetes Namespaces
+
+### Consul CE ((#consul_oss))
+
+Consul Community Edition (Consul CE) ignores Kubernetes namespaces and registers all services into the same
+global Consul registry based on their names. For example, service `web` in Kubernetes namespace
+`web-ns` and service `admin` in Kubernetes namespace `admin-ns` are registered into
+Consul as `web` and `admin` with the Kubernetes source namespace ignored.
+
+When creating custom resources to configure these services, the namespace of the
+custom resource is also ignored. For example, you can create a `ServiceDefaults`
+custom resource for service `web` in the Kubernetes namespace `admin-ns` even though
+the `web` service is actually running in the `web-ns` namespace (although this is not recommended):
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: web
+  namespace: admin-ns
+spec:
+  protocol: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: web-ns
+spec: ...
+```
+
+~> **Note:** If you create two custom resources with identical `kind` and `name` values in different Kubernetes namespaces, the last one you create is not able to sync.
+
+#### ServiceIntentions Special Case
+
+`ServiceIntentions` are different from the other custom resources because the
+name of the resource doesn't matter. For other resources, the name of the resource
+determines which service it configures. For example, this resource configures
+the service `web`:
+
+<CodeBlockConfig highlight="4">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: web
+spec:
+  protocol: http
+```
+
+</CodeBlockConfig>
+
+For `ServiceIntentions`, because we need to support the ability to create
+wildcard intentions (e.g. `foo => * (allow)` meaning that `foo` can talk to **any** service),
+and because `*` is not a valid Kubernetes resource name, we instead use the field `spec.destination.name`
+to configure the destination service for the intention:
+
+<CodeBlockConfig highlight="6-8,18-20">
+
+```yaml
+# foo => * (allow)
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: name-does-not-matter
+spec:
+  destination:
+    name: '*'
+  sources:
+    - name: foo
+      action: allow
+---
+# foo => web (allow)
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: name-does-not-matter
+spec:
+  destination:
+    name: web
+  sources:
+    - name: foo
+      action: allow
+```
+
+</CodeBlockConfig>
+
+~> **Note:** If two `ServiceIntentions` resources set the same `spec.destination.name`, the
+last one created is not synced.
+
+### Consul Enterprise <EnterpriseAlert inline />
+
+Consul Enterprise supports multiple configurations for how Kubernetes namespaces are mapped
+to Consul namespaces. The Consul namespace that the custom resource is registered
+into depends on the configuration being used but in general, you should create your
+custom resources in the same Kubernetes namespace as the service they configure.
+
+The details on each configuration are:
+
+1. **Mirroring** - The Kubernetes namespace is mirrored into Consul. For example, the
+   service `web` in Kubernetes namespace `web-ns` is registered as service `web`
+   in the Consul namespace `web-ns`. In the same vein, a `ServiceDefaults` custom resource with
+   name `web` in Kubernetes namespace `web-ns` configures that same service.
+
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
+
+   <CodeBlockConfig highlight="6-7">
+
+   ```yaml
+   global:
+     name: consul
+     enableConsulNamespaces: true
+     image: hashicorp/consul-enterprise:<tag>-ent
+   connectInject:
+     consulNamespaces:
+       mirroringK8S: true
+   ```
+
+   </CodeBlockConfig>
+
+1. **Mirroring with prefix** - The Kubernetes namespace is mirrored into Consul
+   with a prefix added to the Consul namespace. For example, if the prefix is `k8s-` then service `web` in Kubernetes namespace `web-ns` will be registered as service `web`
+   in the Consul namespace `k8s-web-ns`. In the same vein, a `ServiceDefaults` custom resource with
+   name `web` in Kubernetes namespace `web-ns` configures that same service.
+
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
+
+   <CodeBlockConfig highlight="8">
+
+   ```yaml
+   global:
+     name: consul
+     enableConsulNamespaces: true
+     image: hashicorp/consul-enterprise:<tag>-ent
+   connectInject:
+     consulNamespaces:
+       mirroringK8S: true
+       mirroringK8SPrefix: k8s-
+   ```
+
+   </CodeBlockConfig>
+
+1. **Single destination namespace** - The Kubernetes namespace is ignored and all services
+   are registered into the same Consul namespace. For example, if the destination Consul
+   namespace is `my-ns` then service `web` in Kubernetes namespace `web-ns` is registered as service `web` in Consul namespace `my-ns`.
+
+   In this configuration, the Kubernetes namespace of the custom resource is ignored.
+   For example, a `ServiceDefaults` custom resource with the name `web` in Kubernetes
+   namespace `admin-ns` configures the service with name `web` even though that
+   service is running in Kubernetes namespace `web-ns` because the `ServiceDefaults`
+   resource ends up registered into the same Consul namespace `my-ns`.
+
+   This is configured with [`connectInject.consulNamespaces`](/consul/docs/k8s/helm#v-connectinject-consulnamespaces):
+
+   <CodeBlockConfig highlight="7">
+
+   ```yaml
+   global:
+     name: consul
+     enableConsulNamespaces: true
+     image: hashicorp/consul-enterprise:<tag>-ent
+   connectInject:
+     consulNamespaces:
+       consulDestinationNamespace: 'my-ns'
+   ```
+
+   </CodeBlockConfig>
+
+   ~> **Note:** In this configuration, if two custom resources are created in two Kubernetes namespaces with identical `name` and `kind` values, the last one created is not synced.
+
+#### ServiceIntentions Special Case (Enterprise)
+
+`ServiceIntentions` are different from the other custom resources because the
+name of the resource does not matter. For other resources, the name of the resource
+determines which service it configures. For example, this resource configures
+the service `web`:
+
+<CodeBlockConfig highlight="4">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: web
+spec:
+  protocol: http
+```
+
+</CodeBlockConfig>
+
+For `ServiceIntentions`, because we need to support the ability to create
+wildcard intentions (e.g. `foo => * (allow)` meaning that `foo` can talk to any service),
+and because `*` is not a valid Kubernetes resource name, we instead use the field `spec.destination.name`
+to configure the destination service for the intention:
+
+<CodeBlockConfig highlight="6-8,18-20">
+
+```yaml
+# foo => * (allow)
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: name-does-not-matter
+spec:
+  destination:
+    name: '*'
+  sources:
+    - name: foo
+      action: allow
+---
+# foo => web (allow)
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: name-does-not-matter
+spec:
+  destination:
+    name: web
+  sources:
+    - name: foo
+      action: allow
+```
+
+</CodeBlockConfig>
+
+In addition, we support the field `spec.destination.namespace` to configure
+the destination service's Consul namespace. If `spec.destination.namespace`
+is empty, then the Consul namespace used is the same as the other
+config entries as outlined above.
