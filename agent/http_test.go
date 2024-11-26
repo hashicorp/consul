@@ -743,7 +743,7 @@ func requireHasHeadersSet(t *testing.T, a *TestAgent, path string, contentType s
 		"X-XSS-Protection header value incorrect")
 
 	require.Equal(t, contentType, hdrs.Get("Content-Type"),
-		"Reponse Content-Type header value incorrect")
+		"Response Content-Type header value incorrect")
 }
 
 func TestUIResponseHeaders(t *testing.T) {
