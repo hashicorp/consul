@@ -1,69 +1,54 @@
 ---
 layout: docs
-page_title: Encryption systems
+page_title: Encrypted communication between Consul agents
 description: >-
-  Consul supports encrypting all of its network traffic. Remote Process Calls (RPCs) between client and server agents can be encrypted with TLS and authenticated with certificates. Gossip communication between all agents can also be encrypted.
+  Consul supports encrypting all of its network traffic. Remote Procedure Calls (RPCs) between client and server agents can be encrypted with TLS and authenticated with certificates. Gossip communication between all agents can also be encrypted.
 ---
 
-# Encryption
+# Encrypted communication between Consul agents
 
-The Consul agent supports encrypting all of its network traffic. There are two separate encryption systems, one for agent communication in the LAN gossip pool and one for HTTP and RPC traffic. Gossip encryption is used to encrypt all communication between agents and participates in replication of the state machine. RPC encryption is used to encrypt all communication between clients and servers.
+This topic provides an overview of the two distinct encryption systems available in Consul. [Gossip encryption](/consul/docs/security/encryption#gossip-encryption) and [Mutual TLS encryption](/consul/docs/security/encryption#mutual-tls-mtls-encryption) are the foundations of a secure Consul datacenter.
 
+The guidelines in the [Consul security model](/consul/docs/security/security-models/core) for operating a secure Consul deployment recommends using both encryption systems.
 
-There are two different systems that need to be configured separately to encrypt communication within the datacenter: gossip encryption and TLS. TLS is used to secure the RPC calls between agents. Gossip communication is secured with a symmetric key because gossip between agents is done over UDP. 
+## Gossip Encryption
 
-## Gossip encryption
+Consul uses a [gossip protocol](/consul/docs/architecture/gossip) to perform the following cluster operations:
 
-Enabling gossip encryption only requires that you set an encryption key when starting the Consul agent. The key can be set via the `encrypt` parameter.
+- Identify datacenter members.
+- Quickly detect failed members and notify the rest of the cluster.
+- Broadcast events and queries that can trigger custom workflows.
 
-~> **WAN Joined Datacenters Note:** If using multiple WAN joined datacenters, be sure to use _the same encryption key_ in all datacenters.
+The gossip protocol, as well as its membership management and message broadcasting features, use the [Serf library](https://github.com/hashicorp/serf/).
 
-The key must be 32-bytes, Base64 encoded. As a convenience, Consul provides the [`consul keygen`](/consul/commands/keygen) command to generate a cryptographically suitable key:
+In a default Consul configuration, the gossip protocol uses [port `8301`](/consul/docs/install/ports#lan-serf) for LAN communications and [port `8302`](/consul/docs/install/ports#lan-serf) for WAN communications between federated datacenters. Enabling gossip encryption on a Consul datacenter is required to secure traffic on these two ports.
 
-```shell-session
-$ consul keygen
-pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
-```
+Gossip encryption is symmetric and based on a single key that is shared across all members of the datacenter. You can configure gossip encryption in Consul using the following parameters:
 
-With that key, you can enable encryption on the agent. If encryption is enabled, the output of [`consul agent`](/consul/commands/agent) will include "Encrypt: true":
+- [`encrypt`](/consul/docs/agent/config/config-files#encrypt).
+- [`encrypt_verify_incoming`](/consul/docs/agent/config/config-files#encrypt_verify_incoming). Only used when upshifting from unencrypted to encrypted gossip on a running cluster.
+- [`encrypt_verify_outgoing`](/consul/docs/agent/config/config-files#encrypt_verify_outgoing). Only used when upshifting from unencrypted to encrypted gossip on a running cluster.
 
-```shell-session
-$ cat encrypt.json
-{"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="}
+To learn more about enabling gossip encryption on your Consul datacenter and rotating gossip keys, refer to [manage gossip encryption](/consul/docs/security/encryption/gossip).
 
-$ consul agent -data-dir=/tmp/consul -config-file=encrypt.json
-==> WARNING: LAN keyring exists but -encrypt given, using keyring
-==> WARNING: WAN keyring exists but -encrypt given, using keyring
-==> Starting Consul agent...
-==> Starting Consul agent RPC...
-==> Consul agent running!
-         Node name: 'Armons-MacBook-Air.local'
-        Datacenter: 'dc1'
-            Server: false (bootstrap: false)
-       Client Addr: 127.0.0.1 (HTTP: 8500, HTTPS: -1, DNS: 8600, RPC: 8400)
-      Cluster Addr: 10.1.10.12 (LAN: 8301, WAN: 8302)
-    Gossip encrypt: true, RPC-TLS: false, TLS-Incoming: false
-...
-```
+## Mutual TLS (mTLS) Encryption
 
-All nodes within a Consul cluster must share the same encryption key in order to send and receive cluster information.
+Consul uses several communication protocols over different ports that you can secure using mTLS:
 
-## RPC encryption with TLS
+- A [consensus protocol](/consul/docs/architecture/consensus) provides data consistency between Consul servers. It typically uses [port `8300`](/consul/docs/install/ports#server-rpc).
+- Remote Procedure Calls (RPC) forward requests from client agents to server agents. They use the same port the consensus protocol uses.
+- An HTTP or HTTPS interface permits client communication with the Consul API, CLI, and UI. It typically uses [port `8500`](/consul/docs/install/ports#http) and [port `8501`](/consul/docs/install/ports#https).
+- A gRPC interface receives incoming traffic from the gateways and Envoy proxies registered to the agent node. It typically uses [port `8502`](/consul/docs/install/ports#client-grpc) and [port `8503`](/consul/docs/install/ports#client-grpc-tls).
 
-Consul supports using TLS to verify the authenticity of servers and clients. To enable this, Consul requires that all clients and servers have key pairs that are generated by a single certificate authority. It can be a private CA used only internally. The CA then signs keys for each of the agents, as demonstrated in [this tutorial on generating both a CA and signing keys](/consul/docs/secure-consul/encryption/tls/builtin?utm_source=docs).
+Consul uses mTLS to verify the authenticity of server and client agents. It requires that all clients and servers have key pairs that are generated by a single Certification Authority (CA). We recommend using a private CA that is not shared with other applications.
 
-~> Certificates need to be created with x509v3 extendedKeyUsage attributes for both clientAuth and serverAuth since Consul uses a single cert/key pair for both server and client communications.
+You can configure mTLS in Consul using the [`tls` stanza in agent configuration files](/consul/docs/agent/config/config-files#tls-1).
 
-TLS can be used to verify the authenticity of the servers or verify the authenticity of clients. These modes are controlled by the [`verify_outgoing`](/consul/docs/reference/agent#tls_internal_rpc_verify_outgoing), [`verify_server_hostname`](/consul/docs/reference/agent#tls_internal_rpc_verify_server_hostname), and [`verify_incoming`](/consul/docs/reference/agent#tls_internal_rpc_verify_incoming) options, respectively.
+You can configure mTLS encryption for each protocol separately using the following parameters in the agent configuration file:
 
-If [`verify_outgoing`](/consul/docs/reference/agent#tls_internal_rpc_verify_outgoing) is set, agents verify the authenticity of Consul for outgoing connections. Server nodes must present a certificate signed by a common certificate authority present on all agents, set via the agent's [`ca_file`](/consul/docs/reference/agent#tls_internal_rpc_ca_file) and [`ca_path`](/consul/docs/reference/agent#tls_internal_rpc_ca_path) options. All server nodes must have an appropriate key pair set using [`cert_file`](/consul/docs/reference/agent#tls_internal_rpc_cert_file) and [`key_file`](/consul/docs/reference/agent#tls_internal_rpc_key_file).
+- [`tls.defaults`](/consul/docs/agent/config/config-files#tls_defaults) provides default settings that Consul applies to every interface unless explicitly overridden by protocol-specific configurations.
+- [`tls.internal_rpc`](/consul/docs/agent/config/config-files#tls_internal_rpc) provides settings for the internal server RPC interface.
+- [`tls.https`](/consul/docs/agent/config/config-files#tls_https) provides settings for the HTTP/HTTPS interface.
+- [`tls.grpc`](/consul/docs/agent/config/config-files#tls_grpc) provides settings for the gRPC/xDS interface.
 
-If [`verify_server_hostname`](/consul/docs/reference/agent#tls_internal_rpc_verify_server_hostname) is set, then outgoing connections perform hostname verification. All servers must have a certificate valid for `server.<datacenter>.<domain>` or the client will reject the handshake. This is a new configuration as of 0.5.1, and it is used to prevent a compromised client from being able to restart in server mode and perform a MITM (Man-In-The-Middle) attack. New deployments should set this to true, and generate the proper certificates, but this is defaulted to false to avoid breaking existing deployments.
-
-If [`verify_incoming`](/consul/docs/reference/agent#tls_internal_rpc_verify_incoming) is set, the servers verify the authenticity of all incoming connections. All clients must have a valid key pair set using [`cert_file`](/consul/docs/reference/agent#tls_internal_rpc_cert_file) and [`key_file`](/consul/docs/reference/agent#tls_internal_rpc_key_file). Servers will also disallow any non-TLS connections. To force clients to use TLS, [`verify_outgoing`](/consul/docs/reference/agent#tls_internal_rpc_verify_outgoing) must also be set.
-
-TLS is used to secure the RPC calls between agents, but gossip between nodes is done over UDP and is secured using a symmetric key. See above for enabling gossip encryption.
-
-Securing your datacenter with TLS encryption is an important step for production deployments. TLS configuration is also a prerequisite of the [Consul security model](/consul/docs/secure-consul/security-model).  [Secure HTTP communication](/consul/docs/secure-consul/encryption/tls/openssl#configure-the-consul-ui-for-https) for the CLI and UI separately.
-
-Consul supports using TLS to verify the authenticity of servers and clients. To enable TLS, Consul requires that all servers have certificates that are signed by a single certificate authority (CA). Clients should also have certificates that are authenticated with the same CA.
+To learn more about enabling mTLS on your Consul datacenter, refer to [Manage mTLS encryption](/consul/docs/security/encryption/mTLS).
