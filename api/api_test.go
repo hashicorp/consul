@@ -935,11 +935,11 @@ func TestAPI_Headers(t *testing.T) {
 
 	_, _, err = kv.Get("test-headers", nil)
 	require.NoError(t, err)
-	require.Equal(t, "", request.Header.Get("Content-Type"))
+	require.Equal(t, "application/json", request.Header.Get("Content-Type"))
 
 	_, err = kv.Delete("test-headers", nil)
 	require.NoError(t, err)
-	require.Equal(t, "", request.Header.Get("Content-Type"))
+	require.Equal(t, "application/json", request.Header.Get("Content-Type"))
 
 	err = c.Snapshot().Restore(nil, strings.NewReader("foo"))
 	require.Error(t, err)
