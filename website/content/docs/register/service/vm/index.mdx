@@ -62,13 +62,3 @@ $ curl --request PUT --data @service.json http://localhost:8500/v1/agent/service
 ```
 
 Refer to [Service - Agent HTTP API](/consul/api-docs/agent/service) for additional information about the `services` endpoint.
-
-### Register health checks
-
-Send a `PUT` request to the `/agent/check/register` API endpoint to dynamically register a  health check to the local Consul agent. The following example request registers a health check defined in a `payload.json` file.
-
-```shell-session
-$ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/check/register
-```
-
-Refer to [Check - Agent HTTP API](/consul/api-docs/agent/check) for additional information about the `check` endpoint.
