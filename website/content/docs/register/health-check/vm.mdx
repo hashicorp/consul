@@ -90,6 +90,7 @@ checks = [
 </CodeTabs>
 
 ## Define initial health check status
+
 When checks are registered against a Consul agent, they are assigned a `critical` status by default. This prevents services from registering as `passing` and entering the service pool before their health is verified. You can add the `status` parameter to the check definition to specify the initial state. In the following example, the check registers in a `passing` state:
 
 <CodeTabs tabs={[ "HCL","JSON" ]} heading="Define initial check status example">
@@ -123,11 +124,13 @@ check = {
 </CodeTabs>
 
 ## Script checks
+
 Script checks invoke an external application that performs the health check, exits with an appropriate exit code, and potentially generates output data. The output of a script check is limited to 4KB. Outputs that exceed the limit are truncated.
 
 Script checks timeout after 30 seconds by default, but you can configure a custom script check timeout value by specifying the `timeout` field in the check definition. When the timeout is reached on Windows, Consul waits for any child processes spawned by the script to finish. For any other system, Consul attempts to force-kill the script and any child processes it has spawned once the timeout has passed. 
 
 ### Script check configuration
+
 To enable script checks, you must first enable the agent to send external requests, then configure the health check settings in the service definition:
 
 1. Add one of the following configurations to your agent configuration file to enable a script check:
@@ -172,6 +175,7 @@ To enable script checks, you must first enable the agent to send external reques
 Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
 
 ### Script check exit codes
+
 The following exit codes returned by the script check determine the health check status:
 
 - Exit code 0 - Check is passing
@@ -181,9 +185,11 @@ The following exit codes returned by the script check determine the health check
 Any output of the script is captured and made available in the `Output` field of checks included in HTTP API responses. Refer to the example described in the [local service health endpoint](/consul/api-docs/agent/service#by-name-json).
 
 ## HTTP checks 
+
 _HTTP_ checks send an HTTP request to the specified URL and report the service health based on the [HTTP response code](#http-check-response-codes). We recommend using HTTP checks over [script checks](#script-checks) that use cURL or another external process to check an HTTP operation. 
 
 ### HTTP check configuration
+
 Add an `http` field to the `check` block in your service definition file and specify the HTTP address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
 
 In the following example, an HTTP check named `HTTP API on port 5000` sends a `POST` request to the `health` endpoint every 10 seconds:
@@ -233,17 +239,19 @@ HTTP checks expect a valid TLS certificate by default. You can disable certifica
 The check follows HTTP redirects configured in the network by default. Set the `disable_redirects` field to `true` to disable redirects.
 
 ### HTTP check response codes
+
 Responses larger than 4KB are truncated. The HTTP response determines the status of the service: 
 
 - A `200`-`299` response code is healthy.
 - A `429` response code indicating too many requests is a warning. 
 - All other response codes indicate a failure.
 
-
 ## TCP checks
+
 TCP checks establish connections to the specified IPs or hosts. If the check successfully establishes a connection, the service status is reported as `success`. If the IP or host does not accept the connection, the service status is reported as `critical`. We recommend TCP checks over [script checks](#script-checks)  that use netcat or another external process to check a socket operation. 
 
 ### TCP check configuration
+
 Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations.
 
 In the following example, a TCP check named `SSH TCP on port 22` attempts to connect to `localhost:22` every 10 seconds:
@@ -280,9 +288,11 @@ If a hostname resolves to an IPv4 and an IPv6 address, Consul attempts to connec
 By default, TCP check requests timeout at 10 seconds, but you can specify a custom timeout in the `timeout` field.
 
 ## UDP checks
+
 UDP checks direct the Consul agent to send UDP datagrams to the specified IP or hostname and port. The check status is set to `success` if any response is received from the targeted UDP server. Any other result sets the status to `critical`.
 
 ### UDP check configuration
+
 Add a `udp` field to the `check` block in your service definition file and specify the address, including port number, for sending datagrams. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
 
 In the following example, a UDP check named `DNS UDP on port 53` sends datagrams to `localhost:53` every 10 seconds: 
@@ -316,9 +326,11 @@ check = {
 By default, UDP checks timeout at 10 seconds, but you can specify a custom timeout in the `timeout` field. If any timeout on read exists, the check is still considered healthy.
 
 ## OSService check
+
 OSService checks if an OS service is running on the host. OSService checks support Windows services on Windows hosts or SystemD services on Unix hosts. The check logs the service as `healthy` if it is running. If the service is not running, the status is logged as `critical`. All other results are logged with `warning`. A `warning` status indicates that the check is not reliable because an issue is preventing it from determining the health of the service.
 
 ### OSService check configurations
+
 Add an `os_service` field to the `check` block in your service definition file and specify the name of the service to check. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
 
 In the following example, an OSService check named `svcname-001 Windows Service Health` verifies that the `myco-svctype-svcname-001` service is running every 10 seconds:
@@ -350,6 +362,7 @@ check = {
 </CodeTabs>
 
 ## TTL checks
+
 Time-to-live (TTL) checks wait for an external process to report the service's state to a Consul [`/agent/check` HTTP endpoint](/consul/api-docs/agent/check). If the check does not receive an update before the specified `ttl` duration, the check logs the service as `critical`. For example, if a healthy application is configured to periodically send a `PUT` request a status update to the HTTP endpoint, then the health check logs a `critical` state if the application is unable to send the update before the TTL expires. The check uses the following endpoints to update health information:
 
 - [pass](/consul/api-docs/agent/check#ttl-check-pass) 
@@ -362,6 +375,7 @@ TTL checks also persist their last known status to disk so that the Consul agent
 You can manually mark a service as unhealthy using the [`consul maint` CLI command](/consul/commands/maint) or [`agent/maintenance` HTTP API endpoint](/consul/api-docs/agent#enable-maintenance-mode), rather than waiting for a TTL health check if the `ttl` duration is high.
 
 ### TTL check configuration
+
 Add a `ttl` field to the `check` block in your service definition file and specify how long to wait for an update from the external process. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/reference/service/health-checks) for information about all health check configurations. 
 
 In the following example, a TTL check named `Web App Status` logs the application as `critical` if a status update is not received every 30 seconds:
@@ -392,6 +406,7 @@ check = {
 </CodeTabs>
 
 ## Docker checks
+
 Docker checks invoke an application packaged within a Docker container. The application should perform a health check and exit with an appropriate exit code. 
 
 The application is triggered within the running container through the Docker `exec` API. You should have access to either the Docker HTTP API or the Unix socket. Consul uses the `$DOCKER_HOST` environment variable to determine the Docker API endpoint. 
@@ -399,6 +414,7 @@ The application is triggered within the running container through the Docker `ex
 The output of a Docker check is limited to 4KB. Larger outputs are truncated.
 
 ### Docker check configuration
+
 To enable Docker checks, you must first enable the agent to send external requests, then configure the health check settings in the service definition:
 
 1. Add one of the following configurations to your agent configuration file to enable a Docker check:
@@ -589,3 +605,13 @@ check = {
 </CodeTabs>
 
 By default, the alias must be registered with the same Consul agent as the alias check. If the service is not registered with the same agent, you must specify `"alias_node": "<node_id>"` in the `check` configuration. If no service is specified and the `alias_node` field is enabled, the check aliases the health of the node. If a service is specified, the check will alias the specified service on this particular node.
+
+## Register health checks
+
+Send a `PUT` request to the `/agent/check/register` API endpoint to dynamically register a  health check to the local Consul agent. The following example request registers a health check defined in a `payload.json` file.
+
+```shell-session
+$ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/check/register
+```
+
+Refer to [Check - Agent HTTP API](/consul/api-docs/agent/check) for additional information about the `check` endpoint.
