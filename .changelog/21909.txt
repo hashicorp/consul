@@ -1,0 +1,3 @@
+```release-note:bug
+state: ensure that identical manual virtual IP updates result in not bumping the modify indexes
+```
