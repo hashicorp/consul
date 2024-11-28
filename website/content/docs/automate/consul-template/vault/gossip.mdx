@@ -1,0 +1,314 @@
+---
+layout: docs
+page_title: Generate and manage gossip encryption for Consul with Vault and Consul Template
+description: >-
+  Use Vault's secure secrets management and consul-template to create and manage gossip key rotation for your Consul datacenter.
+---
+
+# Generate and manage gossip encryption for Consul with Vault and Consul Template
+
+This page describes the process to use HashiCorp Vault and `consul-template` to automate the process to create and manage gossip encryption keys for your Consul datacenter.
+
+## Overview
+
+To configure your Consul datacenter for production use, one of the necessary steps is to enable gossip encryption for all the agents in the datacenter. The process is explained in detail in the [Secure Gossip Communication with Encryption](/consul/tutorials/security/gossip-encryption-secure) tutorial.
+
+Once the gossip communication is secured with a symmetric key, our recommended best practice is to define a policy for rotating the gossip keys based on a defined interval that meets your needs. You can review how to perform this process manually in the [Rotate Gossip Encryption Keys in Consul](/consul/tutorials/datacenter-operations/gossip-encryption-rotate) tutorial.
+
+In this tutorial, you will integrate Consul with HashiCorp's Vault and consul-template to securely store and rotate your encryption key. This tutorial will guide you through the entire process including:
+
+1. Creating the gossip encryption key.
+1. Connecting to a Vault instance.
+1. Initializing a key value store.
+1. Storing and retrieving the encryption key from Vault.
+1. Configuring consul-template to retrieve the key and then use a script to rotate it.
+1. Starting consul-template.
+
+-> This tutorial will provide an example custom script with consul-template to automatically rotate the encryption key. You can use the script as a starting point to create your own rotation automation.
+
+## Prerequisites
+
+- **Consul:** to complete this tutorial, you can use a [local Consul dev agent](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy) or an existing Consul deployment. You will need to have gossip encryption already enabled for the datacenter.
+
+- **Vault:** this tutorial assumes you have a running Vault cluster in your network. You can use a [local Vault dev server](/vault/tutorials/getting-started/getting-started-dev-server) or an existing Vault deployment.
+
+- **consul-template:** to interact with your Consul agent you will need to install the `consul-template` binary on a node. To rotate gossip keys you need the binary to be installed on one node only; changes will be automatically propagated across the Consul datacenter. Refer to the [Consul Template tutorial](/consul/tutorials/developer-configuration/consul-template) to learn how to install and use `consul-template`.
+
+The diagram below shows the minimal architecture needed to demonstrate the functionality.
+
+![Architectural diagram showing a Client server and a Vault server with an operator issuing a command to start an automation](/img/consul/vault-consul/consul-vault-gossip.png)
+
+<InteractiveLabCallout />
+
+<Note title="Security Warning">
+
+ This tutorial is not for production use. By default, the lab will install an unsecured configuration of Consul.
+
+</Note>
+
+## Generate a encryption key
+
+You can use Consul's `consul keygen` command to generate the encryption key.
+
+```shell-session
+$ consul keygen | tee encryption.key
+
+T6kFttAkS3oSCS/nvlK8ONmfESmtKhCpRA2pc20RBcA=
+```
+
+## Configure Vault
+
+Vault provides a `kv` secrets engine that can be used to store arbitrary secrets. You will use this engine to store the encryption key.
+
+Before you can initialize the secrets engine, you need to set the `VAULT_ADDR` and `VAULT_TOKEN` environment variables so that you can connect to your local instance of Vault.
+
+```shell-session
+$ export VAULT_ADDR='http://127.0.0.1:8200'
+```
+
+The `VAULT_ADDR` environment variable should be set to the target Vault server address you want to connect to.
+
+```shell-session
+$ export VAULT_TOKEN="root"
+```
+
+The `VAULT_TOKEN` environment variable should store your client token (e.g. `root`).
+
+### Initialize the Vault secrets engine
+
+For this tutorial, you will use the Vault KV secrets engine. First, enable key/value v2 secrets engine (`kv-v2`).
+
+```shell-session
+$ vault secrets enable kv-v2
+
+Success! Enabled the kv-v2 secrets engine at: kv-v2/
+```
+
+Once the secret engine is enabled, verify it is functioning properly using
+the following command.
+
+```shell-session
+$ vault secrets list
+
+Path          Type         Accessor              Description
+----          ----         --------              -----------
+...
+kv-v2/        kv           kv_5e0867f7           n/a
+secret/       kv           kv_b5027aee           key/value secret storage
+...
+```
+
+### Store the encryption key in Vault
+
+```shell-session
+$ vault kv put kv-v2/consul/config/encryption key=$(cat encryption.key) ttl=1h
+
+Success! Data written to: kv-v2/consul/config/encryption
+```
+
+<Tip>
+
+ Vault's KV secrets engine does not enforce TTLs for expiration. Instead, the `lease_duration` value can be used as a hint to consumers for how often they should check back for a new value. You can change the `ttl` value or not use it, however, if you want to integrate with consul-template, you must define a TTL so that consul-template can know when to check for new versions of the key.
+
+</Tip>
+
+<Note title="Encryption key TTL tuning">
+
+ In this tutorial, the TTL for the encryption key is being set to 1 hour, meaning that the key will be valid only for 1 hour before expiring. You can try using a shorter TTL in a test environment to ensure keys are revoked properly after the TTL has expired.
+
+</Note>
+
+### Retrieve the gossip encryption key from Vault
+
+Once the key is stored in Vault, you can retrieve it
+from any machine that has access to Vault.
+
+From your Consul server node, use the `vault kv get`
+command with the `-field` parameter to retrieve the
+key value only.
+
+```shell-session
+$ vault kv get -field=key kv-v2/consul/config/encryption | tee encryption.key
+
+T6kFttAkS3oSCS/nvlK8ONmfESmtKhCpRA2pc20RBcA=
+```
+
+Once you retrieved the encryption key from Vault you can use it to configure your new Consul datacenter or to rotate the key to an already existing datacenter with gossip encryption enabled.
+
+The process of key rotation should be automated when possible and the next paragraph will show you how to use `consul-template` to automate the process.
+
+## Rotate the gossip encryption key with consul-template
+
+You can use consul-template in your Consul datacenter to integrate with Vault's KV secrets engine and dynamically rotate Consul's gossip encryption keys.
+
+You will create Go templates that consul-template can use
+to retrieve the key from Vault.
+For this tutorial, you will place these templates under `/opt/consul/templates`.
+
+```shell-session
+$ mkdir -p /opt/consul/templates
+```
+
+First, configure consul-template to retrieve the key from Vault at every change.
+
+To achieve this, write a template file that will define what you want to retrieve from Vault and which part of the secret you need. This template will be used in the consul-template configuration.
+
+### Create a template file
+
+Create a file named `gossip.key.tpl` under `/opt/consul/templates` with the following content.
+
+<CodeBlockConfig filename="gossip.key.tpl">
+
+
+```go
+{{ with secret "kv-v2/data/consul/config/encryption" }}
+{{ .Data.data.key}}
+{{ end }}
+```
+
+</CodeBlockConfig>
+
+
+The template will interact with Vault using the `kv-v2/data/consul/config/encryption` path and will only retrieve the `key` value for the secret at that path.
+
+### Create the consul-template configuration
+
+Next, write a configuration file for consul-template that uses the template you created. The configuration will execute the template and render a file locally on your machine.
+
+Create a file named `consul_template.hcl` under `/opt/consul/templates` with the following content.
+
+<CodeBlockConfig filename="consul_template.hcl">
+
+
+```hcl
+# This denotes the start of the configuration section for Vault. All values
+# contained in this section pertain to Vault.
+vault {
+  # This is the address of the Vault leader. The protocol (http(s)) portion
+  # of the address is required.
+  address      = "http://localhost:8200"
+
+  # This value can also be specified via the environment variable VAULT_TOKEN.
+  token        = "root"
+
+  unwrap_token = false
+
+  renew_token  = false
+}
+
+# This block defines the configuration for a template. Unlike other blocks,
+# this block may be specified multiple times to configure multiple templates.
+template {
+  # This is the source file on disk to use as the input template. This is often
+  # called the "consul-template template".
+  source      = "/opt/consul/templates/gossip.key.tpl"
+
+  # This is the destination path on disk where the source template will render.
+  # If the parent directories do not exist, consul-template will attempt to
+  # create them, unless create_dest_dirs is false.
+  destination = "/opt/consul/gossip/gossip.key"
+
+  # This is the permission to render the file. If this option is left
+  # unspecified, consul-template will attempt to match the permissions of the
+  # file that already exists at the destination path. If no file exists at that
+  # path, the permissions are 0644.
+  perms       = 0700
+
+  # This is the optional command to run when the template is rendered. The
+  # command will only run if the resulting template changes.
+  command     = "/opt/rotate_key.sh"
+}
+```
+
+</CodeBlockConfig>
+
+
+### Write a rotation script
+
+The last line of the configuration file refers to a script, located at `/opt/rotate_key.sh`, that will run every time a new key is retrieved from Vault.
+
+You can use the following example to create your own rotation script.
+
+<CodeBlockConfig filename="/opt/rotate_key.sh">
+
+
+```shell
+#!/usr/bin/env bash
+
+# Setup Consul address info
+export CONSUL_HTTP_ADDR="http://localhost:8500"
+
+# The new key will be in a file generated by consul-template
+# the script retrieves the key from the file
+NEW_KEY=`cat /opt/consul/gossip/gossip.key | sed -e '/^$/d'`
+
+# Install the key
+consul keyring -install ${NEW_KEY}
+
+# Set as primary
+consul keyring -use ${NEW_KEY}
+
+# Retrieve all keys used by Consul
+KEYS=`curl -s ${CONSUL_HTTP_ADDR}/v1/operator/keyring`
+
+ALL_KEYS=`echo ${KEYS} | jq -r '.[].Keys| to_entries[].key' | sort | uniq`
+
+for i in `echo ${ALL_KEYS}`; do
+  if [ $i != ${NEW_KEY} ] ; then
+    consul keyring -remove $i
+  fi
+done
+```
+
+</CodeBlockConfig>
+
+
+### Start consul-template
+
+Finally, you can start consul-template using the configuration file `consul_template.hcl`.
+
+```shell-session
+$ consul-template -config "consul_template.hcl"
+```
+
+The command will start consul-template as a long running daemon and it will keep listening for changes on Vault.
+
+## Rotate the Consul encryption key
+
+Once you have started the process, every time you update the key value in Vault, `consul-template` will make sure that the key is installed in Consul too.
+
+You can now use the `vault kv put` command to change the encryption key.
+
+```shell-session
+$ vault kv put kv-v2/consul/config/encryption key=$(consul keygen) ttl=1s
+```
+
+The script will pick up the `gossip.key` file containing the new key and use it to rotate the Consul gossip encryption key.
+
+It should output the following lines.
+
+```plaintext hideClipboard
+==> Installing new gossip encryption key...
+==> Changing primary gossip encryption key...
+==> Removing gossip encryption key...
+```
+
+You can test the key is actually changed in Consul using the `consul keyring` command:
+
+```shell-session
+$ consul keyring -list
+
+==> Gathering installed encryption keys...
+WAN:
+ ROfcQ/QLUgvBpIsWCCY9MtNqIyV7r3SS5eJmNZ6vUEA= [1/1]
+dc1 (LAN):
+ ROfcQ/QLUgvBpIsWCCY9MtNqIyV7r3SS5eJmNZ6vUEA= [1/1]
+```
+
+## Next steps
+
+In this tutorial, you learned how to use Vault KV secrets engine to store a Consul gossip encryption key and to automate gossip encryption key rotation using consul-template.
+
+To continue securing your datacenter leveraging Vault, refer to the [Generate mTLS Certificates for Consul with Vault](/consul/tutorials/vault-secure/vault-pki-consul-secure-tls) tutorial.
+
+To learn how to create Consul tokens using Vault, refer to the [Generate Consul Tokens with HashiCorp Vault](/consul/tutorials/vault-secure/vault-consul-secrets) tutorial.

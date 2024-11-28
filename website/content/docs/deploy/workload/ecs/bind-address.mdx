@@ -1,0 +1,47 @@
+---
+layout: docs
+page_title: Configure the ECS task bind address
+description: >-
+  Learn how to bind workloads to the loopback address, also called localhost and 127.0.0.1, so that your applications only send and receive traffic through Consul service mesh.
+---
+
+# Configure the ECS task bind address
+
+This topic describes how to configure the bind address for your workloads to the loopback address. 
+
+## Introduction
+
+Binding workloads to the loopback address ensures that your application only receives traffic through the dataplane container running in the same task, which limits requests to the service mesh. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`. If your application is listening on all interfaces, such as `0.0.0.0`, then other applications can bypass the proxy and call it directly.
+
+## Requirements
+
+Consul service mesh must be deployed to ECS before you can bind a network address. For more information, refer to the following topics:
+
+- [Deploy Consul to ECS using the Terraform module](/consul/docs/ecs/deploy/terraform)
+- [Deploy Consul to ECS manually](/consul/docs/ecs/deploy/manual)
+
+## Change the listening address
+
+Changing the listening address is specific to your language and framework, but binding the loopback address to a dynamic value, such as an environment variable, is a best practice:
+
+```bash
+$ export BIND_ADDRESS="127.0.0.1:8080"
+```
+
+The following examples demonstrate how to bind the loopback address to an environment variable in golang and Django (Python):
+
+<CodeTabs>
+
+```go
+s := &http.Server{
+	Addr: os.Getenv("BIND_ADDRESS"),
+  ...
+}
+log.Fatal(s.ListenAndServe())
+```
+
+```bash
+python manage.py runserver "$BIND_ADDRESS"
+```
+
+</CodeTabs>

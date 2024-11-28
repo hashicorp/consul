@@ -8,29 +8,72 @@ description: >-
 # Register services on Lambda overview
 
 You can configure Consul to allow services in your mesh to invoke Lambda functions, as well as allow Lambda functions to invoke services in your mesh. Lambda functions are programs or scripts that run in AWS Lambda. Refer to the [AWS Lambda website](https://aws.amazon.com/lambda/) for additional information.
+## Introduction
 
-## Register Lambda functions into Consul 
+You can either manually register AWS Lambda functions with Consul or use the Lambda registrator to automatically synchronize Lambda state into Consul. We recommend using the Lambda registrator when possible so that you can keep the configuration entry up to date. The registrator automatically registers, reconfigures, and deregisters Lambdas based on the Lambda function's tags. 
 
-The first step is to register your Lambda functions into Consul. We recommend using the [Lambda registrator module](https://github.com/hashicorp/terraform-aws-consul-lambda/tree/main/modules/lambda-registrator) to automatically synchronize Lambda functions into Consul. You can also manually register Lambda functions into Consul if you are unable to use the Lambda registrator.
+## Requirements
 
-Refer to [Lambda Function Registration Requirements](/consul/docs/lambda/registration) for additional information about registering Lambda functions into Consul.
+Consul v1.12.1 and later
 
-## Invoke Lambda functions from Consul service mesh
+## Prerequisites
 
-After registering AWS Lambda functions, you can invoke Lambda functions from the Consul service mesh through terminating gateways (recommended) or directly from connected proxies.
+Complete the following prerequisites prior to registering your Lambda functions. You only need to perform these steps once.
 
-Refer to [Invoke Lambda Functions from Services](/consul/docs/connect/lambda/invoke-function) for details.
+### Configure IAM Permissions for Envoy
 
-## Invoke mesh services from Lambda function 
+The Envoy proxy that invokes Lambda must have the `lambda:InvokeFunction` AWS IAM
+permissions. In the following example, the IAM policy
+enables an IAM user or role to invoke the `example` Lambda function:
 
-~> **Lambda-to-mesh functionality is currently in beta**: Functionality associated with beta features are subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may have performance issues, scaling issues, and limited support. 
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "Invoke",
+            "Effect": "Allow",
+            "Action": [
+                "lambda:InvokeFunction"
+            ],
+            "Resource": "arn:aws:lambda:us-east-1:123456789012:function:example"
+        }
+    ]
+}
+```
 
-You can also add the `consul-lambda-extension` plugin as a layer in your Lambda functions, which enables them to send requests to services in the mesh. The plugin starts a lightweight sidecar proxy that directs requests from Lambda functions to [mesh gateways](/consul/docs/connect/gateways#mesh-gateways). The gateways route traffic to the destination service to complete the request.  
+Define AWS IAM credentials in environment variables, EC2 metadata, or
+ECS metadata. On [AWS EKS](https://aws.amazon.com/eks/), associate an IAM role with the proxy's `ServiceAccount`. Refer to the [AWS IAM roles for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) documentation for instructions.
 
-![Invoke mesh service from Lambda function](/img/invoke-service-from-lambda-flow.svg)
+### Mesh gateway
 
-Refer to [Invoke Services from Lambda Functions](/consul/docs/lambda/invoke-from-lambda) for additional information about registering Lambda functions into Consul.
+A mesh gateway is required in the following scenarios:
 
-Consul mesh gateways are required to send requests from Lambda functions to mesh services. Refer to [Mesh Gateways](/consul/docs/east-west/mesh-gateway/) for additional information.
+- Invoking mesh services from Lambda functions
+- Invoking Lambda functions from a service deployed to a separate Consul datacenter
 
-Note that L7 traffic management features are not supported. As a result, requests from Lambda functions ignore service routes and splitters.
+Mesh gateways are optional for enabling services to invoke Lambda functions if they are in the same datacenter.
+ 
+The mesh gateway must be running and registered in the relevant Consul datacenters and admin partitions. Refer to the following documentation and tutorials for instructions on how to set up mesh gateways:
+
+- [Mesh gateway documentation](/consul/docs/connect/gateways#mesh-gateways)
+- [Connect Services Across Datacenters with Mesh Gateways tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways)
+- [Secure Service Mesh Communication Across Kubernetes Clusters tutorial](/consul/tutorials/kubernetes/kubernetes-mesh-gateways?utm_source=docs%3Fin%3Dconsul%2Fkubernetes)
+
+When using admin partitions, you must add Lambda services to the `Services`
+field of [the `exported-services` configuration
+entry](/consul/docs/connect/config-entries/exported-services).
+
+### Optional: Terminating gateway
+
+A terminating gateway is an access point in a Consul datacenter to an external service or node. Terminating gateways are optional when invoking Lambda functions from a mesh service, but they do not play a role when invoking services from Lambda functions. 
+
+Refer to the following documentation and tutorials for instructions on how to set up a terminating gateway:
+
+- [Terminating gateways documentation](/consul/docs/connect/gateways#terminating-gateways)
+- [Terminating gateways on Kubernetes documentation](/consul/docs/k8s/connect/terminating-gateways)
+- [Connect External Services to Consul With Terminating Gateways tutorial](/consul/tutorials/developer-mesh/terminating-gateways-connect-external-services)
+
+To register a Lambda service with a terminating gateway, add the service to the
+`Services` field of the terminating gateway's `terminating-gateway`
+configuration entry.

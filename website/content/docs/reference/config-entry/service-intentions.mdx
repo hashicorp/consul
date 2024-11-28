@@ -7,7 +7,7 @@ description: >-
 
 # Service intentions configuration entry reference
 
-This topic provides reference information for the service intentions configuration entry. Intentions are configurations for controlling access between services in the service mesh. A single service intentions configuration entry specifies one destination service and one or more L4 traffic sources, L7 traffic sources, or combination of traffic sources. Refer to [Service mesh intentions overview](/consul/docs/secure-mesh/intentions) for additional information.
+This topic provides reference information for the service intentions configuration entry. Intentions are configurations for controlling access between services in the service mesh. A single service intentions configuration entry specifies one destination service and one or more L4 traffic sources, L7 traffic sources, or combination of traffic sources. Refer to [Service mesh intentions overview](/consul/docs/connect/intentions) for additional information.
 
 ## Configuration model
 
@@ -48,7 +48,9 @@ The following outline shows how to format the service intentions configuration e
         - [`Exact`](#sources-permissions-http-header): string
         - [`Prefix`](#sources-permissions-http-header): string
         - [`Suffix`](#sources-permissions-http-header): string
-        - [`Regex`](#sources-permissions-http-header): string
+        - [`Contains`](#spec-sources-permissions-http-header): string
+        - [`Regex`](#spec-sources-permissions-http-header): string
+        - [`IgnoreCase`](#spec-sources-permissions-http-header): boolean | `false`
         - [`Invert`](#sources-permissions-http-header): boolean | `false`
   - [`Precedence`](#sources-precedence): number
   - [`Type`](#sources-type): string | `consul`
@@ -96,7 +98,9 @@ The following outline shows how to format the service intentions configuration e
             - [`exact`](#spec-sources-permissions-http-header): string | no default
             - [`prefix`](#spec-sources-permissions-http-header): string | no default
             - [`suffix`](#spec-sources-permissions-http-header): string | no default
+            - [`contains`](#spec-sources-permissions-http-header): string | no default
             - [`regex`](#spec-sources-permissions-http-header): string | no default
+            - [`ignoreCase`](#spec-sources-permissions-http-header): boolean | `false`
             - [`invert`](#spec-sources-permissions-http-header): boolean | `false`
     - [`description`](#spec-sources-description): string
 
@@ -156,18 +160,31 @@ Sources = [
             {
               Name = "<http header name>"              # string
               Present = <true or false>                # boolean
+              Invert = <true or false>                 # boolean
             },
             {
               Name = "<http header name>"              # string
               Exact = "<header-value>"                 # boolean
+              IgnoreCase = <true or false>             # boolean
+              Invert = <true or false>                 # boolean
             },
             {
               Name = "<http header name>"              # string
               Prefix = "<source header value prefix>"  # string
+              IgnoreCase = <true or false>             # boolean
+              Invert = <true or false>                 # boolean
             },
             {
               Name = "<http header name>"              # string
               Suffix = "<source header value suffix>"  # string
+              IgnoreCase = <true or false>             # boolean
+              Invert = <true or false>                 # boolean
+            },
+            {
+              Name = "<http header name>"              # string
+              Contains = "<value to search for>"       # string
+              IgnoreCase = <true or false>             # boolean
+              Invert = <true or false>                 # boolean
             },
             {
               Name = "<http header name>"              # string
@@ -227,12 +244,23 @@ spec:
       header:
       - name: <http header name>
         present: true
+        invert: false
       - name: <http header name>
-        exact: false
+        exact: <header-value>
+        ignoreCase: false
+        invert: false
       - name: <http header name>
         prefix: <source header value prefix>
+        ignoreCase: false
+        invert: false
       - name: <http header name>
         suffix: <source header value suffix>
+        ignoreCase: false
+        invert: false
+      - name: <http header name>
+        contains: <value to search for>
+        ignoreCase: false
+        invert: false
       - name: <http header name>
         regex: <regex pattern to match>
         invert: false
@@ -287,19 +315,32 @@ spec:
                   "Header":[
                      {
                         "Name":"<http header name>",
-                        "Present":true
+                        "Present":true,
+                        "Invert":false
                      },
                      {
                         "Name":"<http header name>",
-                        "Exact":false
+                        "Exact":"<header-value>",
+                        "IgnoreCase":false,,
+                        "Invert":false
                      },
                      {
                         "Name":"<http header name>",
-                        "Prefix":"<source header value prefix>"
+                        "Prefix":"<source header value prefix>",
+                        "IgnoreCase":false,
+                        "Invert":false
                      },
                      {
                         "Name":"<http header name>",
-                        "Suffix":"<source header value suffix>"
+                        "Suffix":"<source header value suffix>",
+                        "IgnoreCase":false,
+                        "Invert":false
+                     },
+                     {
+                        "Name":"<http header name>",
+                        "Contains":"<value to search for>",
+                        "IgnoreCase":false,
+                        "Invert":false
                      },
                      {
                         "Name":"<http header name>",
@@ -358,7 +399,7 @@ You can also specify a wildcard character (`*`) to match all services without in
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/segment/namespace) that the configuration entry applies to. Services in the namespace are the traffic destinations that the intentions allow or deny traffic to.
+Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Services in the namespace are the traffic destinations that the intentions allow or deny traffic to.
 
 #### Values
 
@@ -369,7 +410,7 @@ You can also specify a wildcard character (`*`) to match all namespaces. Intenti
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the [admin partition](/consul/docs/segment/admin-partition) to apply the configuration entry. Services in the specified partition are the traffic destinations that the intentions allow or deny traffic to.
+Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry. Services in the specified partition are the traffic destinations that the intentions allow or deny traffic to.
 
 #### Values
 
@@ -389,7 +430,7 @@ Specifies key-value pairs to add to the KV store when the configuration entry is
 
 ### `JWT`
 
-Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
+Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
 
 #### Values
 
@@ -398,7 +439,7 @@ Specifies a JSON Web Token provider configured in a [JWT provider configuration 
 
 ### `JWT{}.Providers`
 
-Specifies the names of one or more previously configured [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider), which include the information necessary to validate a JSON web token.
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
 
 #### Values
 
@@ -407,7 +448,7 @@ Specifies the names of one or more previously configured [JWT provider configura
 
 ### `JWT{}.Providers[].Name`
 
-Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/reference/config-entry/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
+Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
 
 #### Values
 
@@ -437,7 +478,7 @@ Specifies the path to the claim in the JSON web token. For more information abou
 
 ### `JWT{}.Providers[].VerifyClaims.Value`
 
-Specifies the value to match on when verifying the the claim designated in [`JWT{}.Providers[].VerifyClaims[].Path`](#jwt-providers-verifyclaims-path).
+Specifies the value to match on when verifying the claim designated in [`JWT{}.Providers[].VerifyClaims[].Path`](#jwt-providers-verifyclaims-path).
 
 #### Values
 
@@ -479,7 +520,7 @@ Specifies the name of the source that the intention allows or denies traffic fro
 
 ### `Sources[].Peer`
 
-Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/east-west/cluster-peering) for additional information about peers.
+Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers.
 
 The `Peer` and `Partition` fields are mutually exclusive.
 
@@ -499,7 +540,7 @@ Specifies the traffic source namespace that the intention allows or denies traff
 
 ### `Sources[].Partition` <EnterpriseAlert inline />
 
-Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/segment/admin-partition) for additional information about partitions.
+Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions.
 
 The `Peer` and `Partition` fields are mutually exclusive.
 
@@ -510,7 +551,7 @@ The `Peer` and `Partition` fields are mutually exclusive.
 
 ### `Sources[].SamenessGroup` <EnterpriseAlert inline />
 
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/east-west/cluster-peering/usage/create-sameness-groups) for additional information.
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for additional information.
 
 #### Values
 
@@ -541,7 +582,7 @@ Specifies a list of permissions for L7 traffic sources. The list contains one or
 
 Consul applies permissions in the order specified in the configuration. Beginning at the top of the list, Consul applies the first matching request and stops evaluating against the remaining configurations.
 
-For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/reference/agent#acl_default_policy) configuration.
+For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
 
 Do not configure this field for L4 intentions. Use the [`Sources.Action`](#sources-action) parameter instead.
 
@@ -609,12 +650,14 @@ Each member of the `Header` list is a map that contains a `Name` field and at le
 | `Exact` | Specifies a value for the header key set in the `Name` field. If the request header value matches the `Exact` value, Consul applies the permission.  Do not specify `Exact` if `Present`, `Prefix`, `Suffix`, or `Regex` are configured in the same `Header` configuration. | string | optional |
 | `Prefix` | Specifies a prefix value for the header key set in the `Name` field. If the request header value starts with the `Prefix` value, Consul applies the permission.  Do not specify `Prefix` if `Present`, `Exact`, `Suffix`, or `Regex` are configured in the same `Header` configuration. | string | optional |
 | `Suffix` | Specifies a suffix value for the header key set in the `Name` field. If the request header value ends with the `Suffix` value, Consul applies the permission.  Do not specify `Suffix` if `Present`, `Exact`, `Prefix`, or `Regex` are configured in the same `Header` configuration. | string | optional |
-| `Regex` | Specifies a regular expression pattern as the value for the header key set in the `Name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `Regex` if `Present`, `Exact`, `Prefix`, or `Suffix` are configured in the same `Header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `Contains` | Specifies a contains value for the header key set in the `Name` field. If the request header value includes the `Contains` value, Consul applies the permission.  Do not specify `Contains` if `Present`, `Exact`, `Prefix`, `Suffix`, or `Regex` are configured in the same `header` configuration. | string | optional |
+| `Regex` | Specifies a regular expression pattern as the value for the header key set in the `Name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `Regex` if `Present`, `Exact`, `Prefix`, `Suffix`, or `Contains` are configured in the same `Header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `IgnoreCase` | Ignores the case of the provided header value when matching with `Exact`, `Prefix`, `Suffix`, or `Contains`. Default is `false`. | boolean | optional |
 | `Invert` | Inverts the matching logic configured in the `Header`. Default is `false`. | boolean | optional |
 
 ### `Sources[].Precedence`
 
-The `Precedence` field contains a read-only integer. Consul generates the value based on name configurations for the source and destination services. Refer to [Precedence and matching order](/consul/docs/secure-mesh/intentions/create#precedence-and-matching-order) for additional information.
+The `Precedence` field contains a read-only integer. Consul generates the value based on name configurations for the source and destination services. Refer to [Precedence and matching order](/consul/docs/connect/intentions/create-manage-intentions#precedence-and-matching-order) for additional information.
 
 ### `Sources[].Type`
 
@@ -697,7 +740,7 @@ Specifies an arbitrary name for the configuration entry. Note that in other conf
 
 ### `metadata.namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/segment/namespace) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
+Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
 
 #### Values
 
@@ -737,7 +780,7 @@ You can also specify a wildcard character (`*`) to match all services that are m
 
 ### `spec.jwt`
 
-Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
+Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
 
 #### Values
 
@@ -746,7 +789,7 @@ Specifies a JSON Web Token provider configured in a [JWT provider configuration 
 
 ### `spec.jwt.providers`
 
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/reference/config-entry/jwt-provider), which include the information necessary to validate a JSON web token.
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
 
 #### Values
 
@@ -755,7 +798,7 @@ Specifies the names of one or more previously configured [JWT provider configura
 
 ### `spec.jwt.providers[].name`
 
-Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/reference/config-entry/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
+Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
 
 #### Values
 
@@ -785,7 +828,7 @@ Specifies the path to the claim in the JSON web token. For more information abou
 
 ### `spec.jwt.providers[].verifyClaims[].value`
 
-Specifies the value to match on when verifying the the claim designated in [`JWT{}.Providers[].VerifyClaims[].Path`](#jwt-providers-verifyclaims-path).
+Specifies the value to match on when verifying the claim designated in [`JWT{}.Providers[].VerifyClaims[].Path`](#jwt-providers-verifyclaims-path).
 
 #### Values
 
@@ -822,7 +865,7 @@ Specifies the name of the source that the intention allows or denies traffic fro
 
 ### `spec.sources[].peer`
 
-Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/east-west/cluster-peering) for additional information about peers. The `peer` and `partition` fields are mutually exclusive.
+Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers. The `peer` and `partition` fields are mutually exclusive.
 #### Values
 
 - Default: None
@@ -839,7 +882,7 @@ Specifies the traffic source namespace that the intention allows or denies traff
 
 ### `spec.sources[].partition` <EnterpriseAlert inline />
 
-Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/segment/admin-partition) for additional information about partitions. The `peer` and `partition` fields are mutually exclusive.
+Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions. The `peer` and `partition` fields are mutually exclusive.
 
 #### Values
 
@@ -848,7 +891,7 @@ Specifies the name of an admin partition that the intention allows or denies tra
 
 ### `spec.sources[].samenessGroup` <EnterpriseAlert inline />
 
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/east-west/sameness-group) for additional information.
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for additional information.
 
 #### Values
 
@@ -871,7 +914,7 @@ Specifies a list of permissions for L7 traffic sources. The list contains one or
 
 Consul applies permissions in the order specified in the configuration. Starting at the beginning of the list, Consul applies the first matching request and stops evaluating against the remaining configurations.
 
-For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/reference/agent#acl_default_policy) configuration.
+For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
 
 Do not configure this field for L4 intentions. Use the [`spec.sources.action`](#sources-action) parameter instead.
 
@@ -923,16 +966,22 @@ Specifies a set of criteria for matching HTTP request headers. The request heade
 - Default: None
 - Data type: List of maps
 
-Each member of the `header` list is a map that contains a `name` field and at least one match criterion. The following table describes the parameters that each member of the `header` list may contain:
+Each member of the `header` list is a map that contains a `name` field and at least one match criterion.
+
+~> **Warning**: If it is possible for a header to contain multiple values, we recommend using `contains` or `regex` rather than `exact`, `prefix`, or `suffix`. Envoy internally concatenates multiple header values into a single CSV value prior to applying match rules, which may result in match rules that depend on the beginning or end of a string vulnerable to circumvention. A more robust alternative is using `contains` or, if a stricter value match is required, configuring a regex pattern that is tolerant of comma-separated values. These options are available as of Consul CE 1.20.1 and Consul Enterprise 1.20.1, 1.19.2, 1.18.3, and 1.15.15.
+
+The following table describes the parameters that each member of the `header` list may contain:
 
 | Parameter | Description | Data type | Required |
 | --- | --- | --- | --- |
 | `name` | Specifies the name of the header to match. | string | required |
-| `present` | Enables a match if the header configured in the `name` field appears in the request. Consul matches on any value as long as the header key appears in the request. Do not specify `present` if `exact`, `prefix`, `suffix`, or `regex` are configured in the same `header` configuration. | boolean | optional |
-| `Exact` | Specifies a value for the header key set in the `Name` field. If the request header value matches the `exact` value, Consul applies the permission.  Do not specify `exact` if `present`, `prefix`, `suffix`, or `regex` are configured in the same `header` configuration. | string | optional |
-| `prefix` | Specifies a prefix value for the header key set in the `name` field. If the request header value starts with the `prefix` value, Consul applies the permission.  Do not specify `prefix` if `present`, `exact`, `suffix`, or `regex` are configured in the same `header` configuration. | string | optional |
-| `suffix` | Specifies a suffix value for the header key set in the `name` field. If the request header value ends with the `suffix` value, Consul applies the permission.  Do not specify `suffix` if `present`, `exact`, `prefix`, or `regex` are configured in the same `header` configuration. | string | optional |
-| `regex` | Specifies a regular expression pattern as the value for the header key set in the `name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `regex` if `present`, `exact`, `prefix`, or `suffix` are configured in the same `header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `present` | Enables a match if the header configured in the `name` field appears in the request. Consul matches on any value as long as the header key appears in the request. Do not specify `present` if `exact`, `prefix`, `suffix`, `contains`, or `regex` are configured in the same `header` configuration. | boolean | optional |
+| `Exact` | Specifies a value for the header key set in the `Name` field. If the request header value matches the `exact` value, Consul applies the permission.  Do not specify `exact` if `present`, `prefix`, `suffix`, `contains`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `prefix` | Specifies a prefix value for the header key set in the `name` field. If the request header value starts with the `prefix` value, Consul applies the permission.  Do not specify `prefix` if `present`, `exact`, `suffix`, `contains`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `suffix` | Specifies a suffix value for the header key set in the `name` field. If the request header value ends with the `suffix` value, Consul applies the permission.  Do not specify `suffix` if `present`, `exact`, `prefix`, `contains`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `contains` | Specifies a contains value for the header key set in the `name` field. If the request header value includes the `contains` value, Consul applies the permission.  Do not specify `contains` if `present`, `exact`, `prefix`, `suffix`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `regex` | Specifies a regular expression pattern as the value for the header key set in the `name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `regex` if `present`, `exact`, `prefix`, `suffix`, or `contains` are configured in the same `header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `ignoreCase` | Ignores the case of the provided header value when matching with exact, prefix, suffix, or contains. Default is `false`. | boolean | optional |
 | `invert` | Inverts the matching logic configured in the `header`. Default is `false`. | boolean | optional |
 
 ### `spec.sources[].type`

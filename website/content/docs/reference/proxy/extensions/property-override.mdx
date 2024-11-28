@@ -6,14 +6,14 @@ description: Learn how to configure the property-override plugin, which is a bui
 
 # Property override configuration reference
 
-This topic describes how to configure the `property-override` extension so that you can set and remove individual properties on the Envoy resources Consul generates. Refer to [Configure Envoy proxy properties](/consul/docs/reference/proxy/envoy-extensions/usage/property-override) for usage information.
+This topic describes how to configure the `property-override` extension so that you can set and remove individual properties on the Envoy resources Consul generates. Refer to [Configure Envoy proxy properties](/consul/docs/connect/proxies/envoy-extensions/usage/property-override) for usage information.
 
 ## Configuration model
 
 The following list outlines the field hierarchy, data types, and requirements for the `property-override` configuration. Place the configuration inside the `EnvoyExtension.Arguments` field in the proxy defaults or service defaults configuration entry. Refer the following documentation for additional information:
 
-- [`EnvoyExtensions` in proxy defaults](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions)
-- [`EnvoyExtensions` in service defaults](/consul/docs/reference/config-entry/service-default#envoyextensions)
+- [`EnvoyExtensions` in proxy defaults](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions)
+- [`EnvoyExtensions` in service defaults](/consul/docs/connect/config-entries/service-defaults#envoyextensions)
 
 Click on a property name to view additional details, including default values.
   
@@ -133,7 +133,7 @@ Specifies the JSON Patch operation to perform when the `ResourceFilter` matches 
 
 Specifies where the extension performs the associated operation on the specified resource type. Refer to [`ResourceType`](#patches-resourcefilter) for information about specifying a resource type to target. Refer to [`Op`](#patches-op) for information about setting an operation to perform on the resources. 
 
-The `Path` field does not support addressing array elements or protobuf map field entries. Refer to [Constructing paths](/consul/docs/reference/proxy/envoy-extensions/usage/property-override#constructing-paths) for information about how to construct paths. 
+The `Path` field does not support addressing array elements or protobuf map field entries. Refer to [Constructing paths](/consul/docs/connect/proxies/envoy-extensions/usage/property-override#constructing-paths) for information about how to construct paths. 
 
 When setting fields, the extension sets any unset intermediate fields to their default values. A single operation on a nested field can set multiple intermediate fields. Because Consul sets the intermediate fields to their default values, you may need to configure subsequent patches to satisfy Envoy or Consul validation. 
 
@@ -240,11 +240,7 @@ EnvoyExtensions = [
 
 The use of `/seconds` in these examples corresponds to the same field in the [google.protobuf.Duration](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/duration.proto) proto definition, since the extension does not support JSON serialized string forms of common protobuf types (e.g. `120s`).
 
-<Note> 
-  
-Using separate patches per field preserves any existing configuration of other fields in `outlier_detection` that may be directly set by Consul, such as [`enforcing_consecutive_5xx`](/consul/docs/reference/proxy/envoy#enforcing_consecutive_5xx).
-
-</Note>
+-> **Note:** Using separate patches per field preserves any existing configuration of other fields in `outlier_detection` that may be directly set by Consul, such as [`enforcing_consecutive_5xx`](https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#enforcing_consecutive_5xx).
 
 ### Replace a message field
 

@@ -6,14 +6,6 @@ description: |-
 
 # Admin partitions overview
 
-<EnterpriseAlert>
-
-This feature requires version 1.11.0+ of
-HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
-Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
-
-</EnterpriseAlert>
-
 This topic provides and overview of admin partitions, which are entities that define one or more administrative boundaries for single Consul deployments.
 
 ## Introduction
@@ -74,44 +66,6 @@ You can configure services to be discoverable by downstream services in any part
 ### Cluster Peering
 
 You can use [cluster peering](/consul/docs/connect/cluster-peering/) between two admin partitions to connect clusters owned by different operators. Without Consul Enterprise, cluster peering is limited to the `default` partitions in each datacenter. Enterprise users can [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) between any two admin partitions as long as the partitions are in separate datacenters. It is not possible to establish cluster peering connections between two partitions in a single datacenter.
-
-## Requirements
-
-Your Consul configuration must meet the following requirements to use admin partitions.
-
-### Versions
-
-- Consul 1.11.1 and newer
-
-### General Networking Requirements
-
-All Consul clients must be able to initiate Gossip, HTTPS, and RPC connections to the servers. All servers must also be able to initiate Gossip connections to the clients.
-
-For Consul on Kubernetes, a dedicated `partition` Kubernetes `LoadBalancer` service is deployed to allow communication from clients to servers for admin partitions support (refer to [Kubernetes Requirements](#kubernetes-requirements) for additional information).
-
-For other runtimes, refer to the documentation for your infrastructure environment for instructions on how to allow communication on the following ports:
-- 443 (HTTPS API requests)
-- 8300 (RPC)
-- 8301 (Gossip)
-- 8502 (gRPC from [Consul Dataplane](/consul/docs/connect/dataplane/consul-dataplane))
-
-### Security Configurations
-
-- The agent token used by the client agent must allow `node:write` in the admin partition.
-- The `write` permission for `proxy-defaults` requires `mesh:write`. See [Admin Partition Rules](/consul/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
-- The `write` permissions for ingress and terminating gateways require `mesh:write` privileges.
-- Wildcards (`*`) are not supported for the partition field when creating intentions for admin partitions. The partition name must be explicitly specified.
-- With the exception of the `default` admin partition, ACL rules configured for admin partitions are isolated, so policies defined in partitions outside of the `default` partition can only reference their local partition.
-
-### Agent Configurations
-
-- The admin partition name should be specified in client agent configurations:
-
-  ```hcl
-  partition = "<NAME>"
-  ```
-
-- The anti-entropy sync will use the configured admin partition name when registering the node.
 
 ## Known Limitations
 

@@ -9,33 +9,25 @@ description: >-
 
 The `terminating-gateway` config entry kind (`TerminatingGateway` on Kubernetes) allows you to configure terminating gateways
 to proxy traffic from services in the Consul service mesh to services registered with Consul that do not have a
-[service mesh sidecar proxy](/consul/docs/connect/proxy). The configuration is associated with the name of a gateway service
+[service mesh sidecar proxy](/consul/docs/connect/proxies). The configuration is associated with the name of a gateway service
 and will apply to all instances of the gateway with that name.
 
-<Note>
-  
-[Configuration entries](/consul/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
+~> [Configuration entries](/consul/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
 across all federated Consul datacenters. If terminating gateways in different Consul datacenters need to route to different
 sets of services within their datacenter then the terminating gateways **must** be registered with different names.
 
-</Note>
-
-Refer to  [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for more information.
+See [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for more information.
 
 ## TLS Origination
 
-By specifying a path to a [CA file](/consul/docs/reference/config-entry/terminating-gateway#cafile) connections
+By specifying a path to a [CA file](/consul/docs/connect/config-entries/terminating-gateway#cafile) connections
 from the terminating gateway will be encrypted using one-way TLS authentication. If a path to a
-[client certificate](/consul/docs/reference/config-entry/terminating-gateway#certfile)
-and [private key](/consul/docs/reference/config-entry/terminating-gateway#keyfile) are also specified connections
+[client certificate](/consul/docs/connect/config-entries/terminating-gateway#certfile)
+and [private key](/consul/docs/connect/config-entries/terminating-gateway#keyfile) are also specified connections
 from the terminating gateway will be encrypted using mutual TLS authentication.
 
-<Note>
-  
-Setting the `SNI` field is strongly recommended when enabling TLS to a service. If this field is not set,
+~> Setting the `SNI` field is strongly recommended when enabling TLS to a service. If this field is not set,
 Consul will not attempt to verify the Subject Alternative Name fields in the service's certificate.
-
-</Note>
 
 If none of these are provided, Consul will **only** encrypt connections to the gateway and not
 from the gateway to the destination service.
@@ -157,11 +149,9 @@ spec:
 Link gateway named "us-west-gateway" with the billing service, and specify a CA
 file to be used for one-way TLS authentication.
 
-<Note>
-  
-When not using destinations in transparent proxy mode, you must specify the `CAFile` parameter and point to a valid CA bundle in order to properly initiate a TLS connection to the destination service. For more information about configuring a gateway for destinations, refer to [Register an External Service as a Destination](/consul/docs/register/external/terminating-gateway/k8s#register-an-external-service-as-a-destination).
-
-</Note>
+-> **Note**: When not using destinations in transparent proxy mode, you must specify the `CAFile` parameter
+and point to a valid CA bundle in order to properly initiate a TLS
+connection to the destination service. For more information about configuring a gateway for destinations, refer to [Register an External Service as a Destination](/consul/docs/k8s/connect/terminating-gateways#register-an-external-service-as-a-destination).
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -212,11 +202,8 @@ spec:
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
 and specify a CA file to be used for one-way TLS authentication.
 
-<Note>
-  
-The `CAFile` parameter must be specified _and_ point to a valid CA bundle in order to properly initiate a TLS connection to the destination service.
-
-</Note>
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -277,11 +264,8 @@ spec:
 Link gateway named "us-west-gateway" with the billing service, and specify a CA
 file, key file, and cert file to be used for mutual TLS authentication.
 
-<Note>
-  
-The `CAFile` parameter must be specified _and_ point to a valid CA bundle in order to properly initiate a TLS connection to the destination service.
-
-</Note>
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -338,11 +322,8 @@ spec:
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace.
 Also specify a CA file, key file, and cert file to be used for mutual TLS authentication.
 
-<Note>
-
-The `CAFile` parameter must be specified _and_ point to a valid CA bundle in order to properly initiate a TLS connection to the destination service.
-
-</Note>
+-> **Note**: The `CAFile` parameter must be specified _and_ point to a valid CA
+bundle in order to properly initiate a TLS connection to the destination service.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -630,7 +611,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Community Edition, the namespace is ignored (refer to  [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise refer to  [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Community Edition, the namespace is ignored (see [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -698,6 +679,12 @@ spec:
           `An optional hostname or domain name to specify during the TLS handshake. This option will also configure [strict SAN matching](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-certificatevalidationcontext-match-typed-subject-alt-names), which requires
             the external services to have certificates with SANs, not having which will result in \`CERTIFICATE_VERIFY_FAILED\` error.`,
         },
+        {
+          name: 'DisableAutoHostRewrite',
+          type: 'bool: ""',
+          description:
+            'When set to true, Terminating Gateway will not modify the incoming requests host header for this service.',
+        },
       ],
     },
   ]}
@@ -705,7 +692,7 @@ spec:
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/consul/docs/secure-consul/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `terminating-gateway` config entry requires `service:read` on the `Name`
 field of the config entry.

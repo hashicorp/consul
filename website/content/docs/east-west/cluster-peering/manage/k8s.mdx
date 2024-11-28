@@ -1,6 +1,6 @@
 ---
 layout: docs
-page_title: Manage Cluster Peering Connections on Kubernetes
+page_title: Manage cluster peering connections on Kubernetes
 description: >-
   Learn how to list, read, and delete cluster peering connections using Consul on Kubernetes. You can also reset cluster peering connections on k8s deployments.
 ---
@@ -11,7 +11,7 @@ This usage topic describes how to manage cluster peering connections on Kubernet
 
 After you establish a cluster peering connection, you can get a list of all active peering connections, read a specific peering connection's information, and delete peering connections.
 
-For general guidance for managing cluster peering connections, refer to [Manage L7 traffic with cluster peering](/consul/docs/east-west/cluster-peering/usage/peering-traffic-management).
+For general guidance for managing cluster peering connections, refer to [Manage L7 traffic with cluster peering](/consul/docs/connect/cluster-peering/usage/peering-traffic-management).
 
 ## Reset a peering connection
 
@@ -38,7 +38,7 @@ To reset the cluster peering connection, you need to generate a new peering toke
 
   </CodeBlockConfig>
 
-1. After updating `PeeringAcceptor`, repeat all of the steps to [establish a new peering connection](/consul/docs/east-west/cluster-peering/establish-connection/k8s).
+1. After updating `PeeringAcceptor`, repeat all of the steps to [establish a new peering connection](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering).
 
 ## List all peering connections
 

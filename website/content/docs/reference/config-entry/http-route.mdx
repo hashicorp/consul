@@ -7,8 +7,7 @@ description: >-
 
 # HTTP route configuration entry reference
 
-
-This topic provides reference information for the gateway routes configuration entry. Refer to [Route Resource Configuration](/consul/docs/reference/k8s/api-gateway/routes) for information about configuring API gateway routes in Kubernetes environments.
+This topic provides reference information for the gateway routes configuration entry. Refer to [Route Resource Configuration](/consul/docs/connect/gateways/api-gateway/configuration/routes) for information about configuring API gateway routes in Kubernetes environments.
 
 ## Configuration model
 
@@ -391,7 +390,7 @@ such as applying a configuration entry to a specific cluster.
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
 
 #### Values
 
@@ -400,7 +399,7 @@ Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
 
 #### Values
 
@@ -453,7 +452,7 @@ Specifies the name of the api-gateway to bind to.
 
 ### `Parents[].Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
 
 #### Values
 
@@ -462,7 +461,7 @@ Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to
 
 ### `Parents[].Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
 
 #### Values
 
@@ -856,7 +855,7 @@ Specifies the name of an HTTP-based service to route to.
 
 ### `Rules[].Services[].Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to the configuration entry.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
 
 #### Values
 
@@ -865,7 +864,7 @@ Specifies the Enterprise [namespace](/consul/docs/segment/namespace) to apply to
 
 ### `Rules[].Services.Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/segment/admin-partition) to apply to the configuration entry.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
 
 #### Values
 

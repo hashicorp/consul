@@ -1,0 +1,124 @@
+---
+layout: docs
+page_title: Install Consul and Consul-Terraform-Sync
+description: >-
+  Consul-Terraform-Sync is a daemon that runs alongside Consul. Consul-Terraform-Sync is not included with the Consul binary and will need to be installed separately.
+---
+
+# Install Consul-Terraform-Sync
+
+Refer to the [introduction](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro?utm_source=docs) tutorial for details about installing, configuring, and running Consul-Terraform-Sync (CTS) on your local machine with the Terraform driver.
+
+## Install Consul-Terraform-Sync
+
+<Tabs>
+<Tab heading="Pre-compiled binary">
+
+To install CTS, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterprise license](/consul/docs/nia/enterprise/license) to run.
+
+Unzip the package to extract the binary named `consul-terraform-sync`. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
+
+Example:
+
+```shell-session
+$ echo $PATH
+/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+$ mv ./consul-terraform-sync /usr/local/bin/consul-terraform-sync
+```
+
+Once installed, verify the installation works by prompting the `-version` or `-help` option. The version outputted for the CTS Enterprise binary includes the `+ent` metadata.
+
+```shell-session
+$ consul-terraform-sync -version
+```
+
+</Tab>
+<Tab heading="Docker">
+
+Install and run CTS as a [Docker container](https://hub.docker.com/r/hashicorp/consul-terraform-sync).
+
+For the CTS Enterprise, use the Docker image [`hashicorp/consul-terraform-sync-enterprise`](https://hub.docker.com/r/hashicorp/consul-terraform-sync-enterprise).
+
+```shell-session
+$ docker pull hashicorp/consul-terraform-sync
+```
+
+Once installed, verify the installation works by prompting the `-version` or `-help` option. The version outputted for the CTS Enterprise image includes the `+ent` metadata.
+
+```shell-session
+$ docker run --rm hashicorp/consul-terraform-sync -version
+```
+
+</Tab>
+<Tab heading="Homebrew on OS X">
+
+The CTS OSS binary is available in the HashiCorp tap, which is a repository of all our Homebrew packages.
+
+```shell-session
+$ brew tap hashicorp/tap
+$ brew install hashicorp/tap/consul-terraform-sync
+```
+
+Run the following command to update to the latest version:
+
+```shell-session
+$ brew upgrade hashicorp/tap/consul-terraform-sync
+```
+
+Once installed, verify the installation works by prompting the `-version` or `-help` option.
+
+```shell-session
+$ consul-terraform-sync -version
+```
+
+</Tab>
+<Tab heading="Build from source">
+
+Clone the repository from GitHub [`hashicorp/consul-terraform-sync`](https://github.com/hashicorp/consul-terraform-sync) to build and install the CTS OSS binary in your path `$GOPATH/bin`. Building from source requires `git` and [Golang](https://go.dev/).
+
+```shell-session
+$ git clone https://github.com/hashicorp/consul-terraform-sync.git
+$ cd consul-terraform-sync
+$ git checkout tags/<vX.Y.Z>
+$ go install
+```
+
+Once installed, verify the installation works by prompting the `-version` or `-help` option.
+
+```shell-session
+$ consul-terraform-sync -version
+```
+
+</Tab>
+</Tabs>
+
+## Connect your Consul Cluster
+
+CTS connects with your Consul cluster in order to monitor the Consul catalog for service changes. These service changes lead to downstream updates to your network devices. You can configure your Consul cluster in CTS with the [Consul block](/consul/docs/nia/configuration#consul). Below is an example:
+
+```hcl
+consul {
+  address = "localhost:8500"
+  token   = "my-consul-acl-token"
+}
+```
+
+## Connect your Network Device
+
+CTS interacts with your network device through a network driver. For the Terraform network driver, CTS uses Terraform providers to make changes to your network infrastructure resources. You can reference existing provider docs on the Terraform Registry to configure each provider or create a new Terraform provider.
+
+Once you have identified a Terraform provider for all of your network devices, you can configure them in CTS with a [`terraform_provider` block](/consul/docs/nia/configuration#terraform-provider) for each network device. Below is an example:
+
+```hcl
+terraform_provider "fake-firewall" {
+  address  = "10.10.10.10"
+  username = "admin"
+  password = "password123"
+}
+```
+
+This provider is then used by task(s) to execute a Terraform module that will update the related network device.
+
+### Multiple Instances per Provider
+
+You might have multiple instances of the same type of network device; for example, multiple instances of a firewall or load balancer. You can configure each instance with its own provider block and distinguish it by the `alias` meta-argument. See [multiple provider configurations](/consul/docs/nia/configuration#multiple-provider-configurations) for more details and an example of the configuration.

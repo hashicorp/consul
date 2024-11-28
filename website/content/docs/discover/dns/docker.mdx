@@ -1,0 +1,45 @@
+---
+layout: docs
+page_title: Discover services running on Docker containers
+description: >-
+   Learn how to discover services running on a Docker container.
+---
+
+# Discover services running on Docker containers
+
+This topic provides an overview for deploying a Consul server when running Consul on Docker containers.
+
+## Use Consul DNS to discover the counting service
+
+Now you can query Consul for the location of your service using the following dig command against Consul's DNS.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 counting.service.consul
+```
+
+```plaintext hideClipboard
+; <<>> DiG 9.10.6 <<>> @127.0.0.1 -p 8600 counting.service.consul
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 61865
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;counting.service.consul.       IN      A
+
+;; ANSWER SECTION:
+counting.service.consul. 0      IN      A       172.17.0.3
+
+;; Query time: 4 msec
+;; SERVER: 127.0.0.1#8600(127.0.0.1)
+;; WHEN: Thu Dec 15 13:03:30 CST 2022
+;; MSG SIZE  rcvd: 68
+```
+
+You can also access your newly registered service from Consul's UI, [http://localhost:8500](http://localhost:8500).
+
+![Consul UI with Registered Service](/img/consul-containers-ui-services.png 'Consul UI with Registered Service')

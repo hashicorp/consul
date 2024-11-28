@@ -1,0 +1,79 @@
+---
+layout: docs
+page_title: Configure routes between ECS tasks
+description: >-
+  Learn how to configure routes between tasks after deploying Consul service mesh to your ECS workloads.
+---
+
+# Configure routes between ECS tasks
+
+This topic describes how to configure routes between tasks after registering the tasks to Consul service mesh.
+
+## Overview
+
+To enable tasks to call through the service mesh, complete the following steps:
+
+1. Configure the sidecar proxy to listen on a different port for each upstream service your application needs to call. 
+1. Modify your application to make requests to the sidecar proxy on the specified port.
+
+## Requirements
+
+Consul service mesh must be deployed to ECS before you can bind a network address. For more information, refer to the following topics:
+
+- [Deploy Consul to ECS using the Terraform module](/consul/docs/ecs/deploy/terraform)
+- [Deploy Consul to ECS manually](/consul/docs/ecs/deploy/manual)
+
+## Configure the sidecar proxy 
+
+Add the `upstreams` block to your application configuration and specify the following fields:
+
+- `destinationName`: Specifies the name of the upstream service as it is registered in the Consul service catalog.  
+- `localBindPort`: Specifies the port that the proxy forwards requests to. You must specify an unused port but it does not need to match the upstream service port.
+
+In the following example, the route from an application named `web` to an application named `backend` goes through port `8080`:
+
+```hcl
+module "web" {
+  family = "web"
+  upstreams = [
+    {
+      destinationName = "backend"
+      localBindPort = 8080
+    }
+  ]
+}
+```
+
+You must include all upstream services in the `upstream` configuration. 
+
+## Configure your application 
+
+Use an appropriate environment variable in your container definition to configure your application to call the upstream service at the loopback address. 
+
+In the following example, the `web` application calls the `backend` service by sending requests to the
+`BACKEND_URL` environment variable:
+
+```hcl
+module "web" {
+  family = "web"
+  upstreams = [
+    {
+      destinationName = "backend"
+      localBindPort = 8080
+    }
+  ]
+  container_definitions = [
+    {
+      name        = "web"
+      environment = [
+        {
+          name  = "BACKEND_URL"
+          value = "http://localhost:8080"
+        }
+      ]
+      ...
+    }
+  ]
+  ...
+}
+```

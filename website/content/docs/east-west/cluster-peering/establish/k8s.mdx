@@ -18,9 +18,9 @@ The overall process for establishing a cluster peering connection consists of th
 
 Cluster peering between services cannot be established until all four steps are complete.
 
-Cluster peering between services cannot be established until all four steps are complete. If you want to establish cluster peering connections and create sameness groups at the same time, refer to the guidance in [create sameness groups](/consul/docs/east-west/sameness-group).
+Cluster peering between services cannot be established until all four steps are complete. If you want to establish cluster peering connections and create sameness groups at the same time, refer to the guidance in [create sameness groups](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups).
 
-For general guidance for establishing cluster peering connections, refer to [Establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish-connection/vm).
+For general guidance for establishing cluster peering connections, refer to [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering).
 
 ## Prerequisites
 
@@ -194,7 +194,7 @@ Next, use the peering token to establish a secure connection between the cluster
 
 After you establish a connection between the clusters, you need to create an `exported-services` CRD that defines the services that are available to another admin partition.
 
-While the CRD can target admin partitions either locally or remotely, clusters peering always exports services to remote admin partitions. Refer to [exported service consumers](/consul/docs/reference/config-entry/exported-services#consumers-1) for more information.
+While the CRD can target admin partitions either locally or remotely, clusters peering always exports services to remote admin partitions. Refer to [exported service consumers](/consul/docs/connect/config-entries/exported-services#consumers-1) for more information.
 
 
 1. For the service in `cluster-02` that you want to export, add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods prior to deploying. The annotation allows the workload to join the mesh. It is highlighted in the following example:
@@ -440,18 +440,3 @@ Before you can call services from peered clusters, you must set service intentio
     ```
 
     </CodeBlockConfig>
-
-### Authorize service reads with ACLs
-
-If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access.
-
-Read access to all imported services is granted using either of the following rules associated with an ACL token:
-
-- `service:write` permissions for any service in the sidecar's partition.
-- `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
-  
-For Consul Enterprise, the permissions apply to all imported services in the service's partition. These permissions are satisfied when using a [service identity](/consul/docs/reference/acl/rule#service-identities).
-
-Refer to [Reading servers](/consul/docs/reference/config-entry/exported-services#reading-services) in the `exported-services` configuration entry documentation for example rules.
-
-For additional information about how to configure and use ACLs, refer to [ACLs system overview](/consul/docs/secure-consul/acl).

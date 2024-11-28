@@ -7,10 +7,13 @@ description: >-
 
 # Mesh configuration entry reference
 
-The `mesh` configuration entry allows you to define a global default configuration that applies to all service mesh proxies.
-Settings in this config entry apply across all namespaces and federated datacenters.
+This page provides reference information for the `mesh` configuration entry, which allows you to define a global default configuration that applies to all service mesh proxies.
+
+Settings in this configuration entry apply across all namespaces and federated datacenters.
 
 ## Sample Configuration Entries
+
+The following examples demonstrate common configuration patterns for the `mesh` configuration entry.
 
 ### Mesh-wide TLS Min Version
 
@@ -264,6 +267,60 @@ spec:
 
 Note that the Kubernetes example does not include a `partition` field. Configuration entries are applied on Kubernetes using [custom resource definitions (CRD)](/consul/docs/k8s/crds), which can only be scoped to their own partition.
 
+### Request Normalization
+
+Enable options under `HTTP.Incoming.RequestNormalization` to apply normalization to all inbound traffic to mesh proxies.
+
+~> **Compatibility warning**: This feature is available as of Consul CE 1.20.1 and Consul Enterprise 1.20.1, 1.19.2, 1.18.3, and 1.15.15. We recommend upgrading to the latest version of Consul to take advantage of the latest features and improvements.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "mesh"
+HTTP {
+  Incoming {
+    RequestNormalization {
+      InsecureDisablePathNormalization = false // default false, shown for completeness
+      MergeSlashes = true
+      PathWithEscapedSlashesAction = "UNESCAPE_AND_FORWARD"
+      HeadersWithUnderscoresAction = "REJECT_REQUEST"
+    }
+  }
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: Mesh
+metadata:
+  name: mesh
+spec:
+  http:
+    incoming:
+      requestNormalization:
+        insecureDisablePathNormalization: false # default false, shown for completeness
+        mergeSlashes: true
+        pathWithEscapedSlashesAction: UNESCAPE_AND_FORWARD
+        headersWithUnderscoresAction: REJECT_REQUEST
+```
+
+```json
+{
+  "Kind": "mesh",
+  "HTTP": {
+    "Incoming": {
+      "RequestNormalization": {
+        "InsecureDisablePathNormalization": false,
+        "MergeSlashes": true,
+        "PathWithEscapedSlashesAction": "UNESCAPE_AND_FORWARD",
+        "HeadersWithUnderscoresAction": "REJECT_REQUEST"
+      }
+    }
+  }
+}
+```
+
+</CodeTabs>
 
 ## Available Fields
 
@@ -294,7 +351,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       type: `string: "default"`,
       enterprise: true,
       description:
-        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/segment/admin-partition) for additional information.',
+        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for additional information.',
       yaml: false,
     },
     {
@@ -315,7 +372,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           name: 'namespace',
           enterprise: true,
           description:
-            'Must be set to `default`. If running Consul Community Edition, the namespace is ignored (refer to  [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise refer to  [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.',
+            'Must be set to `default`. If running Consul Community Edition, the namespace is ignored (see [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.',
         },
       ],
       hcl: false,
@@ -324,7 +381,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       name: 'TransparentProxy',
       type: 'TransparentProxyConfig: <optional>',
       description:
-        'Controls configuration specific to proxies in `transparent` [mode](/consul/docs/reference/config-entry/service-default#mode). Added in v1.10.0.',
+        'Controls configuration specific to proxies in `transparent` [mode](/consul/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.',
       children: [
         {
           name: 'MeshDestinationsOnly',
@@ -341,6 +398,17 @@ Note that the Kubernetes example does not include a `partition` field. Configura
       type: 'bool: false',
       description:
         'Controls whether `MutualTLSMode=permissive` can be set in the `proxy-defaults` and `service-defaults` configuration entries. '
+    },
+    {
+      name: 'ValidateClusters',
+      type: 'bool: false',
+      description:
+        `Controls whether the clusters the route table refers to are validated. The default value is false. When set to
+         false and a route refers to a cluster that does not exist, the route table loads and routing to a non-existent
+         cluster results in a 404. When set to true and the route is set to a cluster that do not exist, the route table
+         will not load.  For more information, refer to
+         [HTTP route configuration in the Envoy docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route.proto#envoy-v3-api-field-config-route-v3-routeconfiguration-validate-clusters)
+         for more details. `,
     },
     {
       name: 'TLS',
@@ -377,7 +445,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
                             to support when negotiating connections using
                             TLS 1.2 or earlier. If unspecified, Envoy will use a
                             [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
-                            The list of supported cipher suites can refer to n in
+                            The list of supported cipher suites can seen in
                             [\`consul/types/tls.go\`](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
                             and is dependent on underlying support in Envoy. Future
                             releases of Envoy may remove currently-supported but
@@ -417,7 +485,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
                             to support when negotiating connections using
                             TLS 1.2 or earlier. If unspecified, Envoy will use a
                             [default server cipher list](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites).
-                            The list of supported cipher suites can refer to n in
+                            The list of supported cipher suites can seen in
                             [\`consul/types/tls.go\`](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
                             and is dependent on underlying support in Envoy. Future
                             releases of Envoy may remove currently-supported but
@@ -441,13 +509,64 @@ Note that the Kubernetes example does not include a `partition` field. Configura
                         for all Envoy proxies. As a result, Consul will not include the \`x-forwarded-client-cert\` header in the next hop.
                         If set to \`false\` (default), the XFCC header is propagated to upstream applications.`,
         },
+        {
+          name: 'Incoming',
+          type: 'DirectionalHTTPConfig: <optional>',
+          description: `HTTP configuration for inbound traffic to mesh proxies.`,
+          children: [
+            {
+              name: 'RequestNormalization',
+              type: 'RequestNormalizationConfig: <optional>',
+              description: `Request normalization configuration for inbound traffic to mesh proxies.`,
+              children: [
+                {
+                  name: 'InsecureDisablePathNormalization',
+                  type: 'bool: false',
+                  description: `Sets the value of the \`normalize_path\` option in the Envoy listener's \`HttpConnectionManager\`.  The default value is \`false\`.
+                                When set to \`true\` in Consul, \`normalize_path\` is set to \`false\` for the Envoy proxy.
+                                This parameter disables the normalization of request URL paths according to RFC 3986,
+                                conversion of \`\\\` to \`/\`, and decoding non-reserved %-encoded characters. When using L7
+                                intentions with path match rules, we recommend enabling path normalization in order
+                                to avoid match rule circumvention with non-normalized path values.`,
+                },
+                {
+                  name: 'MergeSlashes',
+                  type: 'bool: false',
+                  description: `Sets the value of the \`merge_slashes\` option in the Envoy listener's \`HttpConnectionManager\`. The default value is \`false\`.
+                                This option controls the normalization of request URL paths by merging consecutive \`/\` characters. This normalization is not part
+                                of RFC 3986. When using L7 intentions with path match rules, we recommend enabling this setting to avoid match rule circumvention through non-normalized path values, unless legitimate service
+                                traffic depends on allowing for repeat \`/\` characters, or upstream services are configured to
+                                differentiate between single and multiple slashes.`,
+                },
+                {
+                  name: 'PathWithEscapedSlashesAction',
+                  type: 'string: ""',
+                  description: `Sets the value of the \`path_with_escaped_slashes_action\` option in the Envoy listener's
+                               \`HttpConnectionManager\`. The default value of this option is empty, which is
+                               equivalent to \`IMPLEMENTATION_SPECIFIC_DEFAULT\`. This parameter controls the action taken in response to request URL paths with escaped
+                               slashes in the path. When using L7 intentions with path match rules, we recommend enabling this setting to avoid match rule circumvention through non-normalized path values, unless legitimate service
+                               traffic depends on allowing for escaped \`/\` or \`\\\` characters, or upstream services are configured to
+                               differentiate between escaped and unescaped slashes. Refer to the Envoy documentation for more information on available
+                               options.`,
+                },
+                {
+                  name: 'HeadersWithUnderscoresAction',
+                  type: 'string: ""',
+                  description: `Sets the value of the \`headers_with_underscores_action\` option in the Envoy listener's
+                                \`HttpConnectionManager\` under \`common_http_protocol_options\`. The default value of this option is
+                                empty, which is equivalent to \`ALLOW\`. Refer to the Envoy documentation for more information on available options.`,
+                },
+              ],
+            },
+          ],
+        }
       ],
     },
     {
       name: 'Peering',
       type: 'PeeringMeshConfig: <optional>',
       description:
-        'Controls configuration specific to [peering connections](/consul/docs/east-west/cluster-peering).',
+        'Controls configuration specific to [peering connections](/consul/docs/connect/cluster-peering).',
       children: [
         {
           name: 'PeerThroughMeshGateways',
@@ -463,7 +582,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/consul/docs/secure-consul/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `mesh` config entry requires no specific privileges.
 

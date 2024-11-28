@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Auth Methods Overview
+page_title: Auth methods overview
 description: >-
   An auth method enables Consul to authenticate the identity of a user or application and then automatically provision an ACL token with privileges based on identity attributes. Learn how the overall login process works and how auth methods and binding rules can help you secure your service mesh with minimal operator intervention.
 ---
 
-# Auth Methods Overview
+# Auth methods overview
 
 -> **1.5.0+:** Auth methods only exist in Consul versions 1.5.0 and newer.
 
@@ -34,10 +34,10 @@ with minimal operator intervention.
 
 | Types                                             | Consul Version                    |
 | ------------------------------------------------- | --------------------------------- |
-| [`kubernetes`](/consul/docs/secure-consul/acl/auth-methods/kubernetes) | 1.5.0+                            |
-| [`jwt`](/consul/docs/secure-consul/acl/auth-methods/jwt)               | 1.8.0+                            |
-| [`oidc`](/consul/docs/secure-consul/acl/auth-methods/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
-| [`aws-iam`](/consul/docs/secure-consul/acl/auth-methods/aws-iam)       | 1.12.0+                           |
+| [`kubernetes`](/consul/docs/security/acl/auth-methods/kubernetes) | 1.5.0+                            |
+| [`jwt`](/consul/docs/security/acl/auth-methods/jwt)               | 1.8.0+                            |
+| [`oidc`](/consul/docs/security/acl/auth-methods/oidc)             | 1.8.0+ <EnterpriseAlert inline /> |
+| [`aws-iam`](/consul/docs/security/acl/auth-methods/aws-iam)       | 1.12.0+                           |
 
 ## Operator Configuration
 
@@ -59,7 +59,7 @@ using the API or command line before they can be used by applications.
   endpoints](/consul/api-docs/acl/binding-rules).
 
 -> **Note** - To configure auth methods in any connected secondary datacenter,
-[ACL token replication](/consul/docs/reference/agent#acl_enable_token_replication)
+[ACL token replication](/consul/docs/agent/config/config-files#acl_enable_token_replication)
 must be enabled. Auth methods require the ability to create local tokens which
 is restricted to the primary datacenter and any secondary datacenters with ACL
 token replication enabled.
@@ -67,8 +67,8 @@ token replication enabled.
 ## Binding Rules
 
 Binding rules allow an operator to express a systematic way of automatically
-linking [roles](/consul/docs/reference/acl/rule) and [service
-identities](/consul/docs/reference/acl/rule#service-identities) to newly created
+linking [roles](/consul/docs/security/acl/acl-roles) and [service
+identities](/consul/docs/security/acl/acl-roles#service-identities) to newly created
 tokens without operator intervention.
 
 Successful authentication with an auth method returns a set of trusted
@@ -86,8 +86,8 @@ Each binding rule is composed of two portions:
   `"serviceaccount.namespace==default and serviceaccount.name!=vault"`
 
 - **Bind Type and Name** - A binding rule can bind a token to a
-  [role](/consul/docs/reference/acl/rule) or to a [service
-  identity](/consul/docs/reference/acl/rule#service-identities) by name. The name
+  [role](/consul/docs/security/acl/acl-roles) or to a [service
+  identity](/consul/docs/security/acl/acl-roles#service-identities) by name. The name
   can be specified with a plain string or the bind name can be lightly
   templated using [HIL syntax](https://github.com/hashicorp/hil) to interpolate
   the same values that are usable by the `Selector` syntax. For example:

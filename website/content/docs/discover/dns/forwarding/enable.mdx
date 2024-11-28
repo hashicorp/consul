@@ -1,0 +1,420 @@
+---
+layout: docs
+page_title: Enable DNS forwarding
+description: ->
+  Learn how to configure different DNS servers to perform DNS forwarding to Consul servers.
+---
+
+# Enable DNS forwarding
+
+This page describes the process to enable DNS forwarding to Consul servers. 
+
+You can apply these operations on every node where a Consul agent is running.
+
+## Requirements
+
+To enable DNS forwarding, your deployment must have the following:
+
+- A running Consul server instance
+- One or more Consul client nodes with registered services in the Consul catalog
+- The `iptables` command available, or one of the following local DNS servers: 
+    - [systemd-resolved](#systemd-resolved)
+    - [BIND](#bind)
+    - [Dnsmasq](#dnsmasq)
+    - [Unbound](#unbound)
+    - [macOS system resolver](#macos)
+
+### Network address configuration
+
+The example configurations on this page assumes Consul's DNS server is listening on the loopback interface on the same node of the local DNS server. 
+
+If Consul is not listening on the loopback IP, replace the references to `localhost` and `120.0.0.1` in the configuration and commands with the appropriate IP address for your environment.
+
+## systemd-resolved
+
+[`systemd-resolved`](https://www.freedesktop.org/software/systemd/man/latest/systemd-resolved.service.html) is a system service that provides network name resolution to local applications. It is the default local DNS server for many Linux distributions.
+
+To configure the `systemd-resolved` service so that it sends `.consul` domain queries to Consul, create a `consul.conf` file located in the `/etc/systemd/resolved.conf.d/` directory.
+
+<Tabs>
+<Tab heading="systemd 245 and older">
+
+Add a `[Resolve]` section to your resolved configuration.
+
+<CodeBlockConfig filename="/etc/systemd/resolved.conf.d/consul.conf">
+
+```ini
+[Resolve]
+DNS=127.0.0.1
+DNSSEC=false
+Domains=~consul
+```
+
+</CodeBlockConfig>
+
+### Define port for Consul DNS server
+
+When using systemd 245 and older, you cannot specify port numbers in the `DNS` configuration field. systemd-resolved only uses port `53`, which is a privileged port.
+
+When you cannot specify ports for the system's configuration, there are two workarounds:
+ - [Configure Consul DNS service to listen on port `53`](/consul/docs/agent/config/config-files#dns_port) instead of `8600`.
+ - Map port `53` to `8600` using `iptables`. 
+
+Binding to port `53` usually requires running Consul as a privileged user or running Linux with the `CAP_NET_BIND_SERVICE` capability. 
+When using the Consul Docker image, add the following to the environment to allow Consul to use the port: `CONSUL_ALLOW_PRIVILEGED_PORTS=yes`.
+
+To avoid running Consul as a privileged user, the following `iptables` commands are sufficient to map port `53` to `8600` and redirect DNS queries to Consul.
+
+```shell-session
+# iptables --table nat --append OUTPUT --destination localhost --protocol udp --match udp --dport 53 --jump REDIRECT --to-ports 8600 && \
+  iptables --table nat --append OUTPUT --destination localhost --protocol tcp --match tcp --dport 53 --jump REDIRECT --to-ports 8600
+```
+
+</Tab>
+
+<Tab heading="systemd 246 and newer">
+
+Systemd 246 and newer allow you to specify the DNS port directly in the `systemd-resolved` configuration file.
+Previous versions of systemd required iptables rules to direct DNS traffic to Consul.
+
+Add a `[Resolve]` section to your resolved configuration.
+
+<CodeBlockConfig filename="/etc/systemd/resolved.conf.d/consul.conf">
+
+```ini
+[Resolve]
+DNS=127.0.0.1:8600
+DNSSEC=false
+Domains=~consul
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
+
+PTR record queries are still sent to the other configured resolvers, in addition to Consul.
+
+After creating the resolved configuration, restart `systemd-resolved`.
+
+```shell-session
+# systemctl restart systemd-resolved
+```
+
+The command produces no output.
+
+### Validate the systemd-resolved configuration
+
+Validate that `systemd-resolved` is active. 
+
+```shell-session
+# systemctl is-active systemd-resolved
+active
+```
+
+Verify that `systemd-resolved` is configured to forward queries for the `consul` domain to Consul.
+
+```shell-session
+# resolvectl domain
+Global: ~consul
+Link 2 (eth0):
+```
+
+Verify that `systemd-resolved` is able to resolve the Consul server address.
+
+```shell-session
+# resolvectl query consul.service.consul
+consul.service.consul: 127.0.0.1
+
+-- Information acquired via protocol DNS in 6.6ms.
+-- Data is authenticated: no
+```
+
+Confirm that `/etc/resolv.conf` points to the `stub-resolv.conf` file managed by `systemd-resolved`. 
+
+```shell-session
+$ ls -l /etc/resolv.conf
+lrwxrwxrwx 1 root root 37 Jul 14 10:10 /etc/resolv.conf -> /run/systemd/resolve/stub-resolv.conf
+```
+
+Confirm that the IP address for `systemd-resolved`'s stub resolver is the configured `nameserver`.
+
+<CodeBlockConfig>
+
+```shell-session
+$ cat /etc/resolv.conf
+## This file is managed by man:systemd-resolved(8). Do not edit.
+##
+## This is a dynamic resolv.conf file for connecting local clients to the
+## internal DNS stub resolver of systemd-resolved. This file lists all
+## configured search domains.
+##
+## Run "resolvectl status" to see details about the uplink DNS servers
+## currently in use.
+##
+## Third party programs must not access this file directly, but only through the
+## symlink at /etc/resolv.conf. To manage man:resolv.conf(5) in a different way,
+## replace this symlink by a static file or a different symlink.
+##
+## See man:systemd-resolved.service(8) for details about the supported modes of
+## operation for /etc/resolv.conf.
+
+nameserver 127.0.0.53
+options edns0
+```
+
+</CodeBlockConfig>
+
+Ensure that the operating system can resolve DNS queries to the `.consul` domain.
+
+```shell-session
+$ host consul.service.consul
+consul.service.consul has address 127.0.0.1
+```
+
+### Using any local resolver with systemd
+
+By default, the local resolver stub in the `resolved.conf` file is configured to listen for UDP and TCP requests at `127.0.0.53:53`. However, you can set the `DNSStubListener` option to `false` so that your system can use any DNS configuration, as long as it loads earlier than `resolved`.
+
+<CodeBlockConfig filename="/etc/systemd/resolved.conf">
+
+```plaintext
+DNSStubListener=false
+```
+
+</CodeBlockConfig>
+
+## Dnsmasq
+
+Use [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) if you have a small network and need a lightweight DNS solution.
+
+<Note>
+
+If your distribution uses systemd, disable `systemd-resolved` before you follow these steps. 
+ 
+</Note>
+
+Configure the `dnsmasq.conf` file or a series of files in the `/etc/dnsmasq.d` directory. Add server settings to your configuration file so that requests for the `consul` domain are forwarded to Consul DNS.
+
+<CodeBlockConfig filename="/etc/dnsmasq.d/10-consul">
+
+```plaintext
+# Enable forward lookup of the 'consul' domain:
+server=/consul/127.0.0.1#8600
+
+# Uncomment and modify as appropriate to enable reverse DNS lookups for
+# common netblocks found in RFC 1918, 5735, and 6598:
+#rev-server=0.0.0.0/8,127.0.0.1#8600
+#rev-server=10.0.0.0/8,127.0.0.1#8600
+#rev-server=100.64.0.0/10,127.0.0.1#8600
+#rev-server=127.0.0.1/8,127.0.0.1#8600
+#rev-server=169.254.0.0/16,127.0.0.1#8600
+#rev-server=172.16.0.0/12,127.0.0.1#8600
+#rev-server=192.168.0.0/16,127.0.0.1#8600
+#rev-server=224.0.0.0/4,127.0.0.1#8600
+#rev-server=240.0.0.0/4,127.0.0.1#8600
+# Accept DNS queries only from hosts whose address is on a local subnet.
+#local-service
+# Don't poll /etc/resolv.conf for changes.
+#no-poll
+# Don't read /etc/resolv.conf. Get upstream servers only from the command
+# line or the dnsmasq configuration file (see the "server" directive below).
+#no-resolv
+# Specify IP address(es) of other DNS servers for queries not handled
+# directly by consul. There is normally one 'server' entry set for every
+# 'nameserver' parameter found in '/etc/resolv.conf'. See dnsmasq(8)'s
+# 'server' configuration option for details.
+#server=1.2.3.4
+#server=208.67.222.222
+#server=8.8.8.8
+# Set the size of dnsmasq's cache. The default is 150 names. Setting the
+# cache size to zero disables caching.
+#cache-size=65536
+```
+
+</CodeBlockConfig>
+
+Restart the `dnsmasq` service after creating the configuration.
+
+Refer to [`dnsmasq(8)`](http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for additional configuration settings such as specifying IP addresses for queries not handled directly by Consul.
+
+
+## BIND
+
+[BIND](https://www.isc.org/bind/) is a robust DNS system. Its most prominent component, `named`, performs both of the main DNS server roles, acts as an authoritative name server for DNS zones, and is a recursive resolver in the network.
+
+<Note>
+
+If your distribution uses systemd, disable `systemd-resolved` before you follow these steps. 
+ 
+</Note>
+
+To configure the BIND service to send `.consul` domain queries to Consul:
+
+1. Create a `named` configuration file with `DNSSEC` disabled.
+1. Create a zone configuration file to manage the `.consul` domain. 
+
+### Named configuration file
+
+Edit the `/etc/named.conf` to configure your BIND instance. Remember to disable `DNSSEC` so that Consul and BIND can communicate. Add an `include` section to include the zone file that you create in the next step.
+
+The following example shows a BIND configuration with `DNSSEC` disabled.
+
+<CodeBlockConfig filename="/etc/named.conf">
+
+```plaintext
+options {
+  listen-on port 53 { 127.0.0.1; };
+  listen-on-v6 port 53 { ::1; };
+  directory       "/var/named";
+  dump-file       "/var/named/data/cache_dump.db";
+  statistics-file "/var/named/data/named_stats.txt";
+  memstatistics-file "/var/named/data/named_mem_stats.txt";
+  allow-query     { localhost; };
+  recursion yes;
+
+  dnssec-enable no;
+  dnssec-validation no;
+
+  /* Path to ISC DLV key */
+  bindkeys-file "/etc/named.iscdlv.key";
+
+  managed-keys-directory "/var/named/dynamic";
+};
+
+include "/etc/named/consul.conf";
+```
+
+</CodeBlockConfig>
+
+### Zone configuration file
+
+Set up a zone for your Consul-managed records in `consul.conf`.
+
+<CodeBlockConfig filename="/etc/named/consul.conf">
+
+```dns-zone-file
+zone "consul" IN {
+  type forward;
+  forward only;
+  forwarders { 127.0.0.1 port 8600; };
+};
+```
+
+</CodeBlockConfig>
+
+## Unbound
+
+Use [Unbound](https://www.unbound.net/) when you need a fast and lean DNS resolver for Linux and macOS.
+
+<Note>
+
+If your distribution uses systemd, disable `systemd-resolved` before you follow these steps. 
+ 
+</Note>
+
+
+The following example demonstrates a configuration for the `consul.conf` file in the `/etc/unbound/unbound.conf.d` directory.
+
+Add `server` and `stub-zone` settings to your Unbound configuration file.
+
+<CodeBlockConfig filename="/etc/unbound/unbound.conf.d/consul.conf">
+
+```plaintext
+#Allow insecure queries to local resolvers
+server:
+  do-not-query-localhost: no
+  domain-insecure: "consul"
+
+#Add consul as a stub-zone
+stub-zone:
+  name: "consul"
+  stub-addr: 127.0.0.1@8600
+```
+
+</CodeBlockConfig>
+
+You may have to add the following line to the bottom of your `/etc/unbound/unbound.conf` file for the new configuration to be included.
+
+<CodeBlockConfig filename="/etc/unbound/unbound.conf">
+
+```plaintext
+include: "/etc/unbound/unbound.conf.d/*.conf"
+```
+
+</CodeBlockConfig>
+
+## iptables
+
+[iptables](https://www.netfilter.org/projects/iptables/index.html) is a generic firewalling software that allows you to define traffic rules for your system.
+
+If you do not have a local DNS server on the Consul agent node, use `iptables` to forward DNS requests on port `53` to the Consul agent running on the same machine without using a secondary service.
+
+This configuration realizes full DNS forwarding, which means that all DNS queries for the host are forwarded to Consul, not just the ones for the `.consul` top level domain. Consul's default configuration resolves only the `.consul` top level domain, so you must set the [`recursors`](/consul/docs/agent/config/config-files#recursors) flag if you want your node to be able to resolve other domains when using `iptables` configuration.
+
+If you use DNS relay hosts in your network, do not place them on the same host as Consul. The redirects may intercept the traffic.
+
+### Configure Consul recursors
+
+Add recursors to your Consul configuration.
+
+<CodeBlockConfig filename="/etc/consul.d/consul.hcl">
+
+```hcl
+# DNS recursors
+recursors = [ "1.1.1.1" ]
+```
+
+</CodeBlockConfig>
+
+Recursors should not include the `localhost` address because the `iptables` redirects would intercept the requests.
+
+You can replace the `1.1.1.1` address in the example with another DNS server address. This is suitable for situations where an external DNS
+service is already running in your infrastructure and is used as the recursor.
+
+### Create iptables rules
+
+After you configure Consul to use a valid recursor, add rules to `iptables` to redirect traffic from port `53` to port `8600`.
+
+```shell-session
+# iptables -t nat -A PREROUTING -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600 \
+  iptables -t nat -A PREROUTING -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600 \
+  iptables -t nat -A OUTPUT -d localhost -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600 \
+  iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
+```
+
+## macOS
+
+On macOS systems, use the macOS system resolver to point all `.consul` requests to Consul.
+The `man 5 resolver` command describes this feature in more detail.
+
+The following instructions require `sudo` or root access.
+
+To configure the macOS system resolver to forward DNS queries to Consul, add a resolver entry in the `/etc/resolver/` directory that points at the Consul agent. 
+
+If you do not have this folder, create it.
+
+```shell-session
+# mkdir -p /etc/resolver
+```
+ 
+Create a new file `/etc/resolver/consul` with `nameserver` and `port` entries.
+
+<CodeBlockConfig filename="/etc/resolver/consul">
+
+```plaintext
+nameserver 127.0.0.1
+port 8600
+```
+
+</CodeBlockConfig>
+
+The configuration informs the macOS resolver daemon to forward all `.consul` TLD requests to `127.0.0.1` on port `8600`.
+
+## Next steps
+
+This instructions on this page helped you configure your node to forward DNS requests to Consul.
+
+To learn more on how to query Consul DNS once forwarding is enabled, refer to [DNS forwarding workflow](/consul/docs/services/discovery/dns-forwarding#workflow).
+
+For more information on other DNS features and configurations available in Consul, refer to [DNS usage overview](/consul/docs/services/discovery/dns-overview).

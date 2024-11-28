@@ -7,6 +7,10 @@ description: >-
 
 # Use Vault as a service mesh certificate authority
 
+This page describes the use HashiCorp Vault as the certificate authority for the Consul service mesh.
+
+## Introduction
+
 You can configure Consul to use [Vault](/vault) as the certificate authority (CA) so that Vault can manage and sign certificates distributed to services in the mesh.
 The Vault CA provider uses the [Vault PKI secrets engine](/vault/docs/secrets/pki) to generate and sign certificates.
 This page describes how configure the Vault CA provider.
@@ -21,17 +25,22 @@ This page describes how configure the Vault CA provider.
 
 ## Recommendations
 
-- Refer to [Service Mesh Certificate Authority Overview](/consul/docs/secure-mesh/certificate) for important background information about how Consul manages certificates with configurable CA providers.
+- Refer to [Service Mesh Certificate Authority Overview](/consul/docs/connect/ca) for important background information about how Consul manages certificates with configurable CA providers.
 
 - For best performance and resiliency, every datacenter should have a Vault cluster local to its Consul cluster.
 
 - If your Consul datacenters are WAN-federated and the secondary datacenter uses Vault Enterprise
   [performance secondaries](/vault/docs/enterprise/replication#performance-replication), we recommend
-  configuring [`local`](/vault/docs/enterprise/replication#local) mounts for their [`intermediate_pki_path`](/consul/docs/secure-mesh/certificate/vault#intermediatepkipath).
+  configuring [`local`](/vault/docs/enterprise/replication#local) mounts for their [`intermediate_pki_path`](/consul/docs/connect/ca/vault#intermediatepkipath).
 
 ## Enable Vault as the CA
 
-You can enable Vault as the CA by configuring Consul to use `"vault"` as the CA provider and including the required provider configuration options. You can provide the CA configuration in the server agents' configuration file or in the body of a `PUT` request to the [`/connect/ca/configuration`](/consul/api-docs/connect/ca#update-ca-configuration) API endpoint. Refer to the [Configuration Reference](#configuration-reference) for details about configuration options and for example use cases.
+You can enable Vault as the CA by configuring Consul to use `"vault"` as the CA provider
+and including the required provider configuration options.
+You can provide the CA configuration in the server agents' configuration file
+or in the body of a `PUT` request to the
+[`/connect/ca/configuration`](/consul/api-docs/connect/ca#update-ca-configuration) API endpoint.
+Refer to the [Configuration Reference](#configuration-reference) for details about configuration options and for example use cases.
 
 The following example shows the required configurations for a default implementation:
 

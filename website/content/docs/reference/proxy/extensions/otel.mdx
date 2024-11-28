@@ -6,14 +6,14 @@ description: Learn how to configure the otel-access-logging Envoy extension, whi
 
 # OpenTelemetry Access Logging extension configuration reference
 
-This topic describes how to configure the OpenTelemetry access logging Envoy extension, which configures Envoy proxies to send access logs to OpenTelemetry collector service. Refer to [Send access logs to OpenTelemetry collector service](/consul/docs/reference/proxy/envoy-extensions/usage/otel-access-logging) for usage information.
+This topic describes how to configure the OpenTelemetry access logging Envoy extension, which configures Envoy proxies to send access logs to OpenTelemetry collector service. Refer to [Send access logs to OpenTelemetry collector service](/consul/docs/connect/proxies/envoy-extensions/usage/otel-access-logging) for usage information.
 
 ## Configuration model
 
 The following list outlines the field hierarchy, data types, and requirements for the OpenTelemetry access logging configuration. Place the configuration inside the `EnvoyExtension.Arguments` field in the proxy defaults or service defaults configuration entry. Refer to the following documentation for additional information:
 
-- [`EnvoyExtensions` in proxy defaults](/consul/docs/reference/config-entry/proxy-defaults#envoyextensions)
-- [`EnvoyExtensions` in service defaults](/consul/docs/reference/config-entry/service-default#envoyextensions)
+- [`EnvoyExtensions` in proxy defaults](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions)
+- [`EnvoyExtensions` in service defaults](/consul/docs/connect/config-entries/service-defaults#envoyextensions)
 - [Envoy OpenTelemetry Access Logging Configuration documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/access_loggers/open_telemetry/v3/logs_service.proto#extensions-access-loggers-open-telemetry-v3-opentelemetryaccesslogconfig)
 
 Click on a property name to view additional details, including default values.
@@ -310,7 +310,7 @@ Specifies the number of times Envoy retries to fetch plugin data if the initial 
 
 ### `Arguments.Config.Body`
 
-Specifies OpenTelemetry [LogResource](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto) fields, following [Envoy access logging formatting](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage). Refer to  ‘body’ in the LogResource proto for more details.
+Specifies OpenTelemetry [LogResource](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto) fields, following [Envoy access logging formatting](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage). See ‘body’ in the LogResource proto for more details.
 
 #### Values
 

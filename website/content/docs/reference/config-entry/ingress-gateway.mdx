@@ -7,6 +7,14 @@ description: >-
 
 # Ingress gateway configuration entry reference
 
+<Note>
+
+Ingress gateway is deprecated and will not be enhanced beyond its current capabilities. Ingress gateway is fully supported in this version but will be removed in a future release of Consul.
+
+Consul's API gateway is the recommended alternative to ingress gateway.
+
+</Note>
+
 This topic provides configuration reference information for the ingress gateway configuration entry. An ingress gateway is a type of proxy you register as a service in Consul to enable network connectivity from external services to services inside of the service mesh. Refer to [Ingress gateways overview](/consul/docs/connect/gateways/ingress-gateway) for additional information.
 
 ## Configuration model
@@ -471,7 +479,7 @@ Specifies a name for the gateway. The name is metadata that you can use to refer
 
 ### `Namespace` <EnterpriseAlert inline/>
 
-Specifies the namespace to apply the configuration entry in. Refer to [Namespaces](/consul/docs/segment/namespace) for additional information about Consul namespaces.
+Specifies the namespace to apply the configuration entry in. Refer to [Namespaces](/consul/docs/enterprise/namespaces) for additional information about Consul namespaces.
 
 If unspecified, the ingress gateway is applied to the `default` namespace. You can override the namespace when using the [`/config` API endpoint](/consul/api-docs/config) to register the configuration entry by specifying the `ns` query parameter.
 
@@ -482,7 +490,7 @@ If unspecified, the ingress gateway is applied to the `default` namespace. You c
 
 ### `Partition` <EnterpriseAlert inline/>
 
-Specifies the admin partition that the ingress gateway applies to. The value must match the partition in which the gateway is registered. Refer to [Admin partitions](/consul/docs/segment/admin-partition) for additional information.
+Specifies the admin partition that the ingress gateway applies to. The value must match the partition in which the gateway is registered. Refer to [Admin partitions](/consul/docs/enterprise/admin-partitions) for additional information.
 
 If unspecified, the ingress gateway is applied to the `default` partition. You can override the partition when using the [`/config` API endpoint](/consul/api-docs/config) to register the configuration entry by specifying the `partition` query parameter.
 
@@ -568,9 +576,9 @@ Specifies a list of cipher suites that gateway listeners support when negotiatin
 - Default: None
 - Data type: List of string values. Refer to the [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169) for a list of supported ciphers.
 
-### `TSL.SDS`
+### `TLS.SDS`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/north-south/ingress-gateway/tls-external-service) for additional information.
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 Consul applies the SDS configuration specified in this field as defaults for all listeners defined in the gateway. You can override the SDS settings for per listener or per service defined in the listener. Refer to the following configurations for additional information:
 
@@ -817,7 +825,7 @@ Specifies a TLS configuration for a specific service. The settings in this confi
 
 ### `Listeners[].Services[].TLS.SDS`
 
-Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/north-south/ingress-gateway/tls-external-service) for additional information.
+Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 This configuration overrides the main [`TLS.SDS`](#tls-sds) settings for configuration entry. If unspecified, Consul applies the top-level [`TLS.SDS`](#tls-sds) settings.
 
@@ -829,7 +837,7 @@ This configuration overrides the main [`TLS.SDS`](#tls-sds) settings for configu
   - `ClusterName`
   - `CertResource`
 
-The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/north-south/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
+The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
 
 | Parameter | Description | Data type |
 | `ClusterName` | Specifies the name of the SDS cluster where Consul should retrieve certificates. The cluster must be specified in the gateway's bootstrap configuration.  | String |
@@ -953,7 +961,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `Listeners[].TLS.SDS`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/north-south/ingress-gateway/tls-external-service) for additional information.
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 Consul applies the SDS configuration specified in this field to all services in the listener. You can override the `Listeners.TLS.SDS` configuration per service by configuring the  [`Listeners.Services.TLS.SDS`](#listeners-services-tls-sds) settings for each service.
 
@@ -962,7 +970,7 @@ Consul applies the SDS configuration specified in this field to all services in 
 - Default: None
 - The data type is a map containing `ClusterName` and `CertResource` fields.
 
-The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/north-south/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
+The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
 
 | Parameter | Description | Data type |
 | ---       | ---         | ---       |
@@ -1011,7 +1019,7 @@ Specifies a name for the gateway. The name is metadata that you can use to refer
 
 ### `metadata.namespace` <EnterpriseAlert inline/>
 
-Specifies the namespace to apply the configuration entry in. Refer to [Namespaces](/consul/docs/segment/namespace) for additional information about Consul namespaces.
+Specifies the namespace to apply the configuration entry in. Refer to [Namespaces](/consul/docs/enterprise/namespaces) for additional information about Consul namespaces.
 
 If unspecified, the ingress gateway is applied to the `default` namespace. You can override the namespace when using the [`/config` API endpoint](/consul/api-docs/config) to register the configuration entry by specifying the `ns` query parameter.
 
@@ -1101,7 +1109,7 @@ Specifies a list of cipher suites that gateway listeners support when negotiatin
 
 ### `spec.tls.sds`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/north-south/ingress-gateway/tls-external-service) for additional information.
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 Consul applies the SDS configuration specified in this field as defaults for all listeners defined in the gateway. You can override the SDS settings for per listener or per service defined in the listener. Refer to the following configurations for additional information:
 
@@ -1352,7 +1360,7 @@ Specifies a TLS configuration for a specific service. The settings in this confi
 
 ### `spec.listeners[].services[].tls.sds`
 
-Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/north-south/ingress-gateway/tls-external-service) for additional information.
+Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 If unspecified, Consul applies the [`sds`](#spec-tls-sds) settings configured for the ingress gateway. If both are specified, this configuration overrides the settings for configuration entry.
 
@@ -1364,7 +1372,7 @@ If unspecified, Consul applies the [`sds`](#spec-tls-sds) settings configured fo
   - `clusterName`
   - `certResource`
 
-The following table describes how to configure SDS parameters. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/north-south/ingress-gateway/tls-external-service) for usage information:
+The following table describes how to configure SDS parameters. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for usage information:
 
 | Parameter | Description | Data type |
 | ---       | ---         | ---       |
@@ -1489,7 +1497,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `spec.listeners[].tls.sds`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/north-south/ingress-gateway/tls-external-service) for additional information.
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 Consul applies the SDS configuration specified in this field to all services in the listener. You can override the `spec.listeners[].tls.sds` configuration per service by configuring the  [`spec.listeners.services.tls.sds`](#spec-listeners-services-tls-sds) settings for each service.
 
@@ -1500,7 +1508,7 @@ Consul applies the SDS configuration specified in this field to all services in 
   - `clusterName`
   - `certResource`
 
-The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/north-south/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
+The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
 
 | Parameter | Description | Data type |
 | ---       | ---         | ---       |
@@ -1646,8 +1654,8 @@ TLS is enabled on every listener. The `max_connections` of the ingress gateway p
 
 The Consul Enterprise version implements the following additional configurations:
 
-- The ingress gateway is set up in the `default` [namespace](/consul/docs/segment/namespace) and proxies traffic to all services in the `frontend` namespace.
-- The `api` and `web` services are proxied to team-specific [admin partitions](/consul/docs/segment/admin-partition):
+- The ingress gateway is set up in the `default` [namespace](/consul/docs/enterprise/namespaces) and proxies traffic to all services in the `frontend` namespace.
+- The `api` and `web` services are proxied to team-specific [admin partitions](/consul/docs/enterprise/admin-partitions):
 
 #### Consul CE
 

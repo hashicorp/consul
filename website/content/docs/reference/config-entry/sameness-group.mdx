@@ -9,7 +9,7 @@ description: >-
 
 This page provides reference information for sameness group configuration entries. Sameness groups associate identical admin partitions to facilitate traffic between identical services. When partitions are part of the same Consul datacenter, you can create a sameness group by listing them in the `Members[].Partition` field. When partitions are located on remote clusters, you must establish cluster peering connections between remote partitions in order to add them to a sameness group in the `Members[].Peer` field.
 
-To learn more about creating a sameness group, refer to [Create sameness groups](/consul/docs/east-west/cluster-peering/usage/create-sameness-groups) or [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups).
+To learn more about creating a sameness group, refer to [Create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) or [Create sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups).
 
 ## Configuration model
 
@@ -76,7 +76,7 @@ Members = [                                       # required
     "Name": "<group-name>",                             // required
     "Partition": "<partition-configuration-applies-to>",
     "DefaultForFailover": false,
-    "IncludeLocal": true,    
+    "IncludeLocal": true,
     "Members": [                                        // required
         {
             "Partition": "<partition-with-services-in-group>"
@@ -138,7 +138,7 @@ Specifies a name for the configuration entry that is used to identify the samene
 
 ### `Partition`
 
-Specifies the local admin partition that the sameness group applies to. Refer to [admin partitions](/consul/docs/segment/admin-partition) for more information.
+Specifies the local admin partition that the sameness group applies to. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
 
 #### Values
 
@@ -151,7 +151,9 @@ Determines whether the sameness group should be used to establish connections to
 
 When this field is set to `true`, upstream requests automatically fail over to services in the sameness group according to the order of the members in the `Members` list. It impacts all services on the partition.
 
-When this field is set to `false`, you can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/reference/config-entry/service-resolver).
+When this field is set to `false`, you can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+
+When you [query Consul DNS](/consul/docs/services/discovery/dns-static-lookups) using sameness groups, `DefaultForFailover` must be set to `true`.  Otherwise, Consul DNS returns an error.
 
 #### Values
 
@@ -173,7 +175,7 @@ If you enable this parameter, you do not need to list the local partition as the
 
 Specifies the partitions and cluster peers that are members of the sameness group from the perspective of the local partition.
 
-The local partition should be the first member listed unless `IncludeLocal=true`. The order of the members determines their precedence during failover scenarios. If a member is listed but Consul cannot connect to it, failover proceeds with the next healthy member in the list. For an example demonstrating how to configure this parameter, refer to [Failover between sameness groups](#failover-between-sameness-groups).
+The local partition should be the first member listed unless `IncludeLocal=true`. The order of the members determines their precedence during failover scenarios. If a member is listed but Consul cannot connect to it, failover proceeds with the next healthy member in the list. For an example demonstrating how to configure this parameter, refer to [Failover between sameness groups](#failover-between-members-of-a-sameness-group).
 
 Each partition can belong to a single sameness group. You cannot associate a partition or cluster peer with multiple sameness groups.
 
@@ -198,7 +200,7 @@ Specifies a partition in the local datacenter that is a member of the sameness g
 
 Specifies the name of a cluster peer that is a member of the sameness group.
 
-Cluster peering connections must be established before adding a remote partition to the list of members. Refer to [establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish-connection/vm) for more information.
+Cluster peering connections must be established before adding a remote partition to the list of members. Refer to [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
 
 #### Values
 
@@ -211,7 +213,7 @@ Cluster peering connections must be established before adding a remote partition
 
 ### `apiVersion`
 
-Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`. 
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
 
 #### Values
 
@@ -229,7 +231,7 @@ Specifies the type of configuration entry to implement. Must be set to `Sameness
 - This field is required.
 - Data type: String value that must be set to `SamenessGroup`.
 
-## `metadata`
+### `metadata`
 
 Map that contains an arbitrary name for the configuration entry and the namespace it applies to.
 
@@ -262,7 +264,7 @@ Map that contains the details about the `SamenessGroup` configuration entry. The
 
 Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, upstream requests automatically failover to services in the sameness group according to the order of the members in the `spec.members` list. This setting affects all services on the partition.
 
-When this field is set to `false`, you can use a sameness group for failover by configuring the `spec.failover` block of a [service resolver CRD](/consul/docs/reference/config-entry/service-resolver).
+When this field is set to `false`, you can use a sameness group for failover by configuring the `spec.failover` block of a [service resolver CRD](/consul/docs/connect/config-entries/service-resolver).
 
 #### Values
 
@@ -293,7 +295,7 @@ Each partition can belong to a single sameness group. You cannot associate a par
 - Default: None
 - This field is required.
 - Data type: List that can contain maps of the following parameters:
-  
+
   - [`partition`](#spec-members-partition)
   - [`peer`](#spec-members-peer)
 
@@ -310,7 +312,7 @@ Specifies a partition in the local datacenter that is a member of the sameness g
 
 Specifies the name of a cluster peer that is a member of the sameness group.
 
-Cluster peering connections must be established before adding a peer to the list of members. Refer to [establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish-connection/vm) for more information.
+Cluster peering connections must be established before adding a peer to the list of members. Refer to [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
 
 #### Values
 
@@ -338,7 +340,7 @@ In the following example, the configuration entry defines a sameness group named
 <Tab heading="HCL" group="hcl">
 
 ```hcl
-Kind                     = "sameness-group"  
+Kind                     = "sameness-group"
 Name                     = "products-api"
 Partition                = "store-east"
 Members = [
@@ -355,8 +357,8 @@ Members = [
 
 ```json
 {
-    "Kind": "sameness-group", 
-    "Name": "products-api", 
+    "Kind": "sameness-group",
+    "Name": "products-api",
     "Partition": "store-east",
     "Members": [
         {
@@ -381,11 +383,11 @@ Members = [
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: SamenessGroup 
+kind: SamenessGroup
 metadata:
   name: products-api
 spec:
-  members:                                   
+  members:
     - partition: store-east
     - partition: inventory-east
     - peer: dc2-store-west
