@@ -13,10 +13,18 @@
         "title": "Control plane",
         "routes": [
           {
+            "title": "Overview",
+            "path": "architecture/control-plane"
+          },
+          {
             "title": "Kubernetes",
             "path": "architecture/control-plane/k8s"
           }
         ]
+      },
+      {
+        "title": "Service mesh",
+        "path": "architecture/mesh"
       },
       {
         "title": "Consul-Terraform-Sync (CTS)",
@@ -49,8 +57,16 @@
         "path": "concept/agent"
       },
       {
+        "title": "Anti-entropy",
+        "path": "concept/anti-entropy"
+      },
+      {
         "title": "Configuration entries",
         "path": "concept/config-entry"
+      },
+      {
+        "title": "Consensus",
+        "path": "concept/consensus"
       },
       {
         "title": "Custom Resource Definitions (CRDs)",
@@ -61,12 +77,57 @@
         "path": "concept/dataplane"
       },
       {
-        "title": "Service mesh",
-        "path": "concept/connect"
+        "title": "Fault tolerance",
+        "path": "concept/fault-tolerance"
       },
       {
         "title": "Gateways",
         "path": "concept/gateways"
+      },
+      {
+        "title": "Gossip",
+        "path": "concept/gossip"
+      },
+      {
+        "title": "Jepsen tests",
+        "path": "concept/jepsen"
+      },
+      {
+        "title": "Service discovery",
+        "path": "concept/service-discovery"
+      },
+      {
+        "title": "Service mesh",
+        "path": "concept/service-mesh"
+      },
+      {
+        "title": "Service",
+        "path": "concept/service"
+      }
+    ]
+  },
+  {
+    "title": "Product comparison",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "compare"
+      },
+      {
+        "title": "API gateways",
+        "path": "compare/api-gateway"
+      },
+      {
+        "title": "Configuration management",
+        "path": "compare/config-management"
+      },
+      {
+        "title": "DNS",
+        "path": "compare/dns"
+      },
+      {
+        "title": "Service Mesh",
+        "path": "compare/service-mesh"
       }
     ]
   },
@@ -87,8 +148,16 @@
           {
             "title": "Configuration entries",
             "path": "fundamentals/configuration/config-entry"
+          },
+          {
+            "title": "Services",
+            "path": "fundamentals/configuration/service"
           }
         ]
+      },
+      {
+        "title": "Consul catalog",
+        "path": "fundamentals/catalog"
       },
       {
         "title": "Consul UI",
@@ -99,8 +168,16 @@
         "path": "fundamentals/distributed-tracing"
       },
       {
+        "title": "Consul service mesh",
+        "path": "fundamentals/connect"
+      },
+      {
         "title": "Troubleshoot Consul",
         "path": "fundamentals/troubleshoot"
+      },
+      {
+        "title": "Capacity planning",
+        "path": "fundamentals/capacity"
       }
     ]
   },
@@ -247,7 +324,7 @@
                   },
                   {
                     "title": "System integration",
-                    "path": "deploy/server/k8s/vault/system-integration"
+                    "path": "deploy/server/k8s/vault/backend"
                   },
                   {
                     "title": "Data integration",
@@ -294,10 +371,6 @@
                         "path": "deploy/server/k8s/vault/data/webhook-certificate"
                       }
                     ]
-                  },
-                  {
-                    "title": "WAN federation",
-                    "path": "deploy/server/k8s/vault/wan"
                   }
                 ]
               },
@@ -362,6 +435,23 @@
                 "path": "deploy/workload/dataplane/ecs"
               }
             ]
+          },
+          {
+            "title": "ECS",
+            "routes": [
+              {
+                "title": "Configure task bind address",
+                "path": "deploy/workload/ecs/bind-address"
+              },
+              {
+                "title": "Configure task route",
+                "path": "deploy/workload/ecs/task-route"
+              },
+              {
+                "title": "Migrate tasks with Terraform",
+                "path": "deploy/workload/ecs/migrate-task"
+              }
+            ]
           }
         ]
       }
@@ -381,10 +471,58 @@
             "title": "Overview",
             "path": "secure/acl"
           },
-
           {
             "title": "Tokens",
-            "path": "secure/acl/token"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "secure/acl/token"
+              },
+              {
+                "title": "Agent token",
+                "path": "secure/acl/token/agent"
+              },
+              {
+                "title": "DNS token",
+                "path": "secure/acl/token/dns"
+              },
+              {
+                "title": "External Service Monitor (ESM) token",
+                "path": "secure/acl/token/esm"
+              },
+              {
+                "title": "Ingress gateway token",
+                "path": "secure/acl/token/ingress-gateway"
+              },
+              {
+                "title": "Mesh gateway token",
+                "path": "secure/acl/token/mesh-gateway"
+              },
+              {
+                "title": "Replication token",
+                "path": "secure/acl/token/replication"
+              },
+              {
+                "title": "Service token",
+                "path": "secure/acl/token/service"
+              },
+              {
+                "title": "Snapshot agent token",
+                "path": "secure/acl/token/snapshot-agent"
+              },
+              {
+                "title": "Terminating gateway token",
+                "path": "secure/acl/token/terminating-gateway"
+              },
+              {
+                "title": "UI token",
+                "path": "secure/acl/token/ui"
+              },
+              {
+                "title": "Vault as storage backend",
+                "path": "secure/acl/token/vault-backend"
+              }
+            ]
           },
           {
             "title": "Policies",
@@ -396,7 +534,7 @@
           },
           {
             "title": "Rules",
-            "href": "reference/acl/rule"
+            "path": "secure/acl/rule"
           },
           {
             "title": "Auth methods",
@@ -419,66 +557,13 @@
               },
               {
                 "title": "AWS IAM",
-                "path": "secure/acl/auth-method/aws-iam"
+                "path": "secure/acl/auth-method/aws"
               }
             ]
           },
           {
             "title": "Bootstrap ACL system",
             "path": "secure/acl/bootstrap"
-          },
-          {
-            "title": "Create common policies and tokens",
-            "routes": [
-              {
-                "title": "Agent token",
-                "path": "secure/acl/create-token/agent"
-              },
-              {
-                "title": "DNS token",
-                "path": "secure/acl/create-token/dns"
-              },
-              {
-                "title": "External Service Monitor (ESM) token",
-                "path": "secure/acl/create-token/esm"
-              },
-              {
-                "title": "Ingress gateway token",
-                "path": "secure/acl/create-token/ingress-gateway"
-              },
-              {
-                "title": "Mesh gateway token",
-                "path": "secure/acl/create-token/mesh-gateway"
-              },
-              {
-                "title": "Replication token",
-                "path": "secure/acl/create-token/replication"
-              },
-              {
-                "title": "Service token",
-                "path": "secure/acl/create-token/service"
-              },
-              {
-                "title": "Snapshot agent token",
-                "path": "secure/acl/create-token/snapshot-agent"
-              },
-              {
-                "title": "Terminating gateway token",
-                "path": "secure/acl/create-token/terminating-gateway"
-              },
-              {
-                "title": "UI token",
-                "path": "secure/acl/create-token/ui"
-              },
-              {
-                "title": "Vault as storage backend",
-                "path": "secure/acl/create-token/vault-storage-backend"
-              }
-            ]
-          },
-          {
-            "title": "Enable ACLs in federated datacenters",
-            "path": "secure/acl/enable-federated-datacenters"
           },
           {
             "title": "Enforce ACL policies with Sentinel",
@@ -701,6 +786,15 @@
         "path": "manage"
       },
       {
+        "title": "Best practices",
+        "routes": [
+          {
+            "title": "Consul at scale",
+            "path": "manage/best-practice/scale"
+          }
+        ]
+      },
+      {
         "title": "Agent rate limits",
         "routes": [
           {
@@ -885,7 +979,7 @@
       },
       {
         "title": "Compatibility promise",
-        "path": "upgrade/compatibility-promise"
+        "path": "upgrade/compatibility"
       },
       {
         "title": "Long Term Support (LTS)",
@@ -1166,7 +1260,7 @@
         "path": "register"
       },
       {
-        "title": "Services and health checks",
+        "title": "Services",
         "routes": [
           {
             "title": "Virtual machine (VM)",
@@ -1176,11 +1270,7 @@
                 "path": "register/service/vm/define"
               },
               {
-                "title": "Define health checks",
-                "path": "register/service/vm/health-check"
-              },
-              {
-                "title": "Register services and health checks",
+                "title": "Register services",
                 "path": "register/service/vm"
               }
             ]
@@ -1191,10 +1281,6 @@
               {
                 "title": "Overview",
                 "path": "register/service/k8s"
-              },
-              {
-                "title": "Register health checks",
-                "path": "register/service/k8s/health-check"
               },
               {
                 "title": "Register services in transparent proxy mode",
@@ -1315,6 +1401,19 @@
             "path": "register/external/permissive-mtls"
           }
         ]
+      },
+      {
+        "title": "Health checks",
+        "routes": [
+          {
+            "title": "Virtual machines (VMs)",
+            "path": "register/health-check/vm"
+          },
+          {
+            "title": "Kubernetes",
+            "path": "register/health-check/k8s"
+          }
+        ]
       }
     ]
   },
@@ -1335,6 +1434,19 @@
           {
             "title": "Configure DNS behavior",
             "path": "discover/dns/configure"
+          },
+          {
+            "title": "DNS forwarding",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "discover/dns/forwarding"
+              },
+              {
+                "title": "Enable DNS forwarding",
+                "path": "discover/dns/forwarding/enable"
+              }
+            ]
           },
           {
             "title": "Resolve Consul DNS in Kubernetes",
@@ -1736,6 +1848,10 @@
           {
             "title": "Federate Kubernetes and VM",
             "path": "east-west/wan-federation/k8s-vm"
+          },
+          {
+            "title": "ACLs in federated datacenters",
+            "path": "east-west/wan-federation/acl"
           },
           {
             "title": "Vault backend on Kubernetes",
@@ -2512,11 +2628,19 @@
     ]
   },
   {
-    "title": "Debug Consul",
+    "title": "Troubleshoot Consul",
     "routes": [
       {
+        "title": "FAQ",
+        "path": "troubleshoot/faq"
+      },
+      {
         "title": "Debug service mesh",
-        "path": "debug/mesh"
+        "path": "troubleshoot/mesh"
+      },
+      {
+        "title": "Troubleshoot service-to-service communication",
+        "path": "troubleshoot/service-communication"
       },
       {
         "title": "Fault injection",
@@ -2525,7 +2649,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "debug/fault-injection"
+        "path": "troubleshoot/fault-injection"
       }
     ]
   },
@@ -2795,6 +2919,14 @@
       {
         "title": "ECS",
         "routes": [
+          {
+            "title": "Reference architecture",
+            "path": "reference/ecs/architecture"
+          },
+          {
+            "title": "Technical specifications",
+            "path": "reference/ecs/tech-specs"
+          },
           {
             "title": "Task module",
             "path": "reference/ecs"
