@@ -22,11 +22,12 @@ const DefaultTimeout = 10 * time.Second
 // This view is watched for changes and a handler is invoked to take any
 // appropriate actions.
 type Plan struct {
-	Datacenter  string
-	Token       string
-	Type        string
-	HandlerType string
-	Exempt      map[string]interface{}
+	Datacenter     string
+	AllDatacenters bool
+	Token          string
+	Type           string
+	HandlerType    string
+	Exempt         map[string]interface{}
 
 	Watcher WatcherFunc
 	// Handler is kept for backward compatibility but only supports watches based
@@ -38,10 +39,12 @@ type Plan struct {
 	// Deprecated: use Logger
 	LogOutput io.Writer
 
-	address      string
-	client       *consulapi.Client
-	lastParamVal BlockingParamVal
-	lastResult   interface{}
+	address         string
+	client          *consulapi.Client
+	lastParamVal    BlockingParamVal
+	lastResult      interface{}
+	mapLastParamVal map[string]BlockingParamVal
+	mapLastResult   map[string]interface{}
 
 	stop       bool
 	stopCh     chan struct{}
@@ -146,6 +149,9 @@ func ParseExempt(params map[string]interface{}, exempt []string) (*Plan, error) 
 
 	// Parse the generic parameters
 	if err := assignValue(params, "datacenter", &plan.Datacenter); err != nil {
+		return nil, err
+	}
+	if err := assignValueBool(params, "alldatacenters", &plan.AllDatacenters); err != nil {
 		return nil, err
 	}
 	if err := assignValue(params, "token", &plan.Token); err != nil {
