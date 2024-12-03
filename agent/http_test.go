@@ -617,7 +617,6 @@ func TestHTTPAPI_DefaultACLPolicy(t *testing.T) {
 		})
 	}
 }
-
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -646,6 +645,87 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 	requireHasHeadersSet(t, a, "/", "text/plain; charset=utf-8")
 }
 
+func TestHTTPAPIValidateContentTypeHeaders(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	type testcase struct {
+		name                string
+		endpoint            string
+		method              string
+		requestBody         io.Reader
+		expectedContentType string
+	}
+
+	cases := []testcase{
+		{
+			name:                "snapshot endpoint expect non-default content type",
+			method:              http.MethodPut,
+			endpoint:            "/v1/snapshot",
+			requestBody:         bytes.NewBuffer([]byte("test")),
+			expectedContentType: "application/octet-stream",
+		},
+		{
+			name:                "kv endpoint expect non-default content type",
+			method:              http.MethodPut,
+			endpoint:            "/v1/kv",
+			requestBody:         bytes.NewBuffer([]byte("test")),
+			expectedContentType: "application/octet-stream",
+		},
+		{
+			name:                "event/fire endpoint expect default content type",
+			method:              http.MethodPut,
+			endpoint:            "/v1/event/fire",
+			requestBody:         bytes.NewBuffer([]byte("test")),
+			expectedContentType: "application/octet-stream",
+		},
+		{
+			name:                "peering/token endpoint expect default content type",
+			method:              http.MethodPost,
+			endpoint:            "/v1/peering/token",
+			requestBody:         bytes.NewBuffer([]byte("test")),
+			expectedContentType: "application/json",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			a := NewTestAgent(t, "")
+			defer a.Shutdown()
+
+			requireContentTypeHeadersSet(t, a, tc.method, tc.endpoint, tc.requestBody, tc.expectedContentType)
+		})
+	}
+}
+
+func requireContentTypeHeadersSet(t *testing.T, a *TestAgent, method, path string, body io.Reader, contentType string) {
+	t.Helper()
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest(method, path, body)
+	a.enableDebug.Store(true)
+
+	a.srv.handler().ServeHTTP(resp, req)
+
+	reqHdrs := req.Header
+	respHdrs := resp.Header()
+
+	// require request content-type
+	require.NotEmpty(t, reqHdrs.Get("Content-Type"))
+	require.Equal(t, contentType, reqHdrs.Get("Content-Type"),
+		"Request Header Content-Type value incorrect")
+
+	// require response content-type
+	require.NotEmpty(t, respHdrs.Get("Content-Type"))
+	require.Equal(t, contentType, respHdrs.Get("Content-Type"),
+		"Response Header Content-Type value incorrect")
+}
+
 func requireHasHeadersSet(t *testing.T, a *TestAgent, path string, contentType string) {
 	t.Helper()
 
@@ -663,7 +743,7 @@ func requireHasHeadersSet(t *testing.T, a *TestAgent, path string, contentType s
 		"X-XSS-Protection header value incorrect")
 
 	require.Equal(t, contentType, hdrs.Get("Content-Type"),
-		"")
+		"Response Content-Type header value incorrect")
 }
 
 func TestUIResponseHeaders(t *testing.T) {
@@ -704,7 +784,7 @@ func TestErrorContentTypeHeaderSet(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	requireHasHeadersSet(t, a, "/fake-path-doesn't-exist", "text/plain; charset=utf-8")
+	requireHasHeadersSet(t, a, "/fake-path-doesn't-exist", "application/json")
 }
 
 func TestAcceptEncodingGzip(t *testing.T) {
