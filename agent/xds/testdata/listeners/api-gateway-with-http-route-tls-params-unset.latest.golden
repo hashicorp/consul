@@ -61,14 +61,7 @@
                     }
                   }
                 ],
-                "tlsParams": {
-                  "cipherSuites": [
-                    "ECDHE-ECDSA-AES256-GCM-SHA384",
-                    "ECDHE-RSA-CHACHA20-POLY1305"
-                  ],
-                  "tlsMaximumProtocolVersion": "TLSv1_3",
-                  "tlsMinimumProtocolVersion": "TLSv1_2"
-                }
+                "tlsParams": {}
               },
               "requireClientCertificate": false
             }
