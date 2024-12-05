@@ -635,35 +635,54 @@
             "title": "Encrypt RPC traffic (TLS)",
             "routes": [
               {
+                "title": "Overview",
+                "path": "secure/encryption/tls/mtls"
+              },
+              {
                 "title": "Enable TLS",
                 "routes": [
                   {
-                    "title": "Built-in",
-                    "path": "secure/encryption/tls/enable/builtin"
-                  },
-                  {
-                    "title": "OpenSSL",
-                    "path": "secure/encryption/tls/enable/openssl"
+                    "title": "Enable on new datacenters",
+                    "routes": [
+                      {
+                        "title": "Built-in",
+                        "path": "secure/encryption/tls/enable/new/builtin"
+                      },
+                      {
+                        "title": "OpenSSL",
+                        "path": "secure/encryption/tls/enable/new/openssl"
+                      }
+                    ]
                   },
                   {
                     "title": "Enable on existing datacenters",
-                    "path": "secure/encryption/tls/enable/existing"
+                    "routes": [
+                      {
+                        "title": "Virtual machines (VMs)",
+                        "path": "secure/encryption/tls/enable/existing/vm"
+                      },
+                      {
+                        "title": "Kubernetes",
+                        "path": "secure/encryption/tls/enable/existing/k8s"
+                      }
+                    ]
                   }
                 ]
               },
               {
                 "title": "Rotate certificates",
-                "path": "secure/encryption/tls/rotate"
-              },
-              {
-                "title": "Rolling updates on Kubernetes",
-                "path": "secure/encryption/tls/rolling"
+                "routes": [
+                  {
+                    "title": "Virtual machines (VMs)",
+                    "path": "secure/encryption/tls/rotate/vm"
+                  },
+                  {
+                    "title": "Kubernetes",
+                    "path": "secure/encryption/tls/rotate/k8s"
+                  }
+                ]
               }
             ]
-          },
-          {
-            "title": "Agent mTLS encryption",
-            "path": "secure/encryption/mtls"
           }
         ]
       },
