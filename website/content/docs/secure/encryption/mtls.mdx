@@ -370,6 +370,36 @@ $ systemctl start consul
 
 Your client agents now communicate using mutual TLS encryption.
 
+## Rotate TLS certificates
+
+To maintain the security offered by TLS encryption, we recommend that you rotate TLS certificates often.
+
+TLS certificates are part of [Consul's reloadable configuration](/consul/docs/agent/config#reloadable-configuration), so you do not need to restart the Consul agents when you renew certificates. As a result, there is no risk of downtime.
+
+To rotate certificates for Consul server agents complete the following steps:
+1. [Generate new certificates for all server agents](/consul/docs/security/encryption/mtls#create-server-certificates) to replace the old ones.
+1. Distribute the new certificates to the server nodes.
+1. Reload Consul configuration on each server with the `consul reload` command.
+
+To rotate certificates for Consul client agents complete the following steps:
+
+<Tabs>
+<Tab heading="Auto-encryption method" group="auto">
+
+When using the auto-encryption method, Consul automatically rotates the client certificates without operator intervention.
+
+</Tab>
+
+<Tab heading="Operator method" group="manual">
+
+1. [Generate new certificates for all client agents](/consul/docs/security/encryption/mtls#configure-client-agents) to replace the old ones.
+1. Distribute the new certificates to the client nodes. 
+1. Reload Consul configuration on all clients with `consul reload` command.
+
+</Tab>
+
+</Tabs>
+
 ## API, CLI, and UI interactions
 
 The configuration snippets provided in this page are valid to configure complete mTLS for your Consul datacenter. This means that all interfaces require the client to provide a valid certificate in order to communicate with the Consul agent. This is valid for all requests, API, CLI, and UI.
