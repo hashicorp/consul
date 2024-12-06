@@ -1,10 +1,14 @@
 * @hashicorp/consul-selfmanage-maintainers
 
-# Techical Writer Review
+# web presence
 
-/website/content/docs/ @hashicorp/consul-docs
-/website/content/commands/ @hashicorp/consul-docs
-/website/content/api-docs/ @hashicorp/consul-docs
+/website/   @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
+
+# education
+
+/website/content/     @hashicorp/consul-education @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
+/website/public/      @hashicorp/consul-education @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
+
 
 
 # release configuration
