@@ -6,8 +6,8 @@
 
 # education
 
-/website/content/     @hashicorp/consul-education @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
-/website/public/      @hashicorp/consul-education @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
+/website/content/     @hashicorp/consul-docs @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
+/website/public/      @hashicorp/consul-docs @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
 
 
 
