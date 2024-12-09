@@ -1309,7 +1309,7 @@
             "path": "register/service/docker"
           },
           {
-            "title": "AWS CloudMap services",
+            "title": "AWS Cloud Map services",
             "path": "register/service/aws"
           },
           {
