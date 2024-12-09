@@ -1,14 +1,8 @@
 * @hashicorp/consul-selfmanage-maintainers
 
-# web presence
+# web presence and education
 
-/website/   @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
-
-# education
-
-/website/content/     @hashicorp/consul-docs @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
-/website/public/      @hashicorp/consul-docs @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
-
+/website/   @hashicorp/consul-docs @hashicorp/web-presence @hashicorp/consul-selfmanage-maintainers
 
 
 # release configuration
