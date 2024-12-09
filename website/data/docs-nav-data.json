@@ -1301,7 +1301,12 @@
             ]
           },
           {
-            "title": "Register services into a specific namespace",
+            "title": "Register services into a namespace",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
             "path": "register/service/namespace"
           },
           {
