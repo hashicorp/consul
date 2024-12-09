@@ -1,25 +1,29 @@
 ---
 layout: docs
-page_title: Register services running on Docker containers
+page_title: Sync Consul service catalog with AWS Cloud Map
 description: >-
-     Use Consul-AWS to sync services in an AWS CloudMap namespace to a Consul datacenter or vice versa.
+     Use Consul-AWS to sync services in an AWS Cloud Map namespace to a Consul datacenter or vice versa.
 ---
 
-# Sync Consul service registration with AWS CloudMap
+# Sync Consul service catalog with AWS Cloud Map
 
-This page describes the process to sync the Consul catalog and AWS CloudMap so that service changes in one propagate to the other.
+This page describes how to sync the Consul service catalog and AWS Cloud Map so that service changes made in one propagate to the other. Refer to the [AWS Cloud Map page](https://aws.amazon.com/cloud-map/) for more information.
 
-## Prerequisites
+## Introduction
 
-For this tutorial, you will need:
+AWS Cloud Map is an AWS cloud resource discovery service. It allows you to add custom names for resources and it maintains the location of these resources as they change. Your application services can then query AWS Cloud Map to get the location of the resource.
 
-- [`curl: v7.64.1`](https://curl.se/download.html)
-- [`jq jq-1.6`](https://stedolan.github.io/jq/download/)
+The [`consul-aws` tool](https://github.com/hashicorp/consul-aws) enables one or two-way directional syncing between the Consul service catalog and AWS Cloud Map to ensure that both catalogs have the most up-to-date locations for each service.
 
-## Installation
+## Requirements
 
-Begin by downloading the latest `consul-aws` binary from the HashiCorp releases directory. If the provided `$OS` and
-`$ARCH` variables do not resolve as expected in your local environment, edit and set these variables as preferred.
+- [`curl v7.64.1`](https://curl.se/download.html) or higher
+- [`jq v1.6`](https://stedolan.github.io/jq/download/) or higher
+
+## Download `consul-aws`
+
+Download the latest `consul-aws` binary from the HashiCorp releases directory. Change the `$ARCH` and
+`$OS` variables if they do not match or resolve in your environment.
 
 ```shell-session
 $ ARCH=amd64 && \
@@ -30,106 +34,165 @@ curl -L -o $FILENAME $DL_URL 2&>/dev/null && \
 tar -xvf $FILENAME
 ```
 
-Update your `$PATH` variable to the current working directory to use `consul-aws`.
+Update your `$PATH` variable to include the current working directory and the `consul-aws` binary.
 
 ```shell-session
 $ export $PATH=$PATH:$(pwd)
 ```
 
-## Authentication
+## Set up authentication
 
-`consul-aws` requires access to Consul and AWS for uni- or bi-directional syncing.
+`consul-aws` requires access to Consul and AWS for one or two-way directional syncing.
 
-`consul-aws` accepts the CLI flag `-token`, or the environment variable `CONSUL_HTTP_TOKEN` to connect to a Consul
-cluster.
+### Authenticate to a Consul cluster
 
-<Tip>
+To connect to a Consul cluster, `consul-aws` accepts either the `-token` CLI flag or the `CONSUL_HTTP_TOKEN` environment variable.
 
- When using the ACL functionality of Consul, we recommend using ACL tokens for the values for `-token` and
-`CONSUL_HTTP_TOKEN`. Read more about ACL tokens in the [Consul token documentation](/consul/docs/security/acl/tokens).
+When using the ACL functionality of Consul, we recommend using ACL tokens for the `-token` or
+`CONSUL_HTTP_TOKEN` values. Read more about ACL tokens in the [Consul token documentation](/consul/docs/security/acl/tokens).
 
-</Tip>
+### Authenticate to AWS
 
-For AWS, `consul-aws` uses AWS's default credential provider chain to discover AWS credentials. The default provider
-chain searches for AWS credentials in this order:
+To connect to AWS, `consul-aws` uses the default AWS credential provider chain to discover AWS credentials. The provider chain searches for AWS credentials in this order:
 
 1. Environment variables.
 2. A shared credentials file.
 3. An AWS IAM role, when an application is hosted on an Amazon EC2 instance.
 
-## Configuration
+## Sync one-way from Consul to AWS Cloud Map
 
-Two subcommands are available with `consul-aws`:
+The `-to-aws` flag instructs the `consul-aws` tool to begin syncing services from Consul to an AWS Cloud Map namespace.
 
-- `version`: displays version number
-- `sync-catalog`: syncs services in the consul catalog
+When passing the 
+`-aws-service-prefix` flag, imported services from Consul share a common identifier. One strategy when syncing from multiple
+Consul clusters, such as an HCP Consul Dedicated cluster, is to use the Consul cluster's name in the prefix and provide it with the `-consul-service-prefix` flag.
 
-The `version` subcommand contains no flags.
-The `sync-catalog` subcommand provides the following flags:
-
-- A set of parameters to connect to your Consul datacenter, including`-http-addr`, `-token`, `-ca-file`, `-client-cert`, among others.
-- `-aws-namespace-id`: (REQUIRED) The AWS namespace to sync with Consul services.
-- `-aws-service-prefix`: A prefix to prepend to services written to AWS from Consul. When not set, the services use no prefix.
-- `-consul-service-prefix`: A prefix to prepend to all services written to Consul from AWS CloudMap. If not set then services will have no prefix.
-- `-to-aws`: When true, Consul services sync to AWS CloudMap (defaults to false).
-- `-to-consul`: When true, AWS services sync to Consul (defaults to false).
-- `-aws-pull-interval`: The time between syncing from AWS CloudMap. Accepts a sequence of decimal numbers with optional fractional values, each with a unit suffix, such as "300ms", "10s", "1.5m" (defaults to 30s).
-- `-aws-dns-ttl`: DNS TTL for services created in AWS CloudMap, in seconds (defaults to 60).
-
-## Sync Consul services one-way to AWS CloudMap
-
-Using the `-to-aws` command line flag begins syncing services to an AWS CloudMap namespace. When passing
-`-aws-service-prefix`, imported services from Consul share a common identifier. One strategy when syncing from multiple
-Consul clusters, such as an HCP Consul Dedicated cluster, is using the Consul cluster's name in the prefix.
+In this example, a service in Consul with the name `web` identifies as `my_hcp_consul_cluster_web` in AWS Cloud Map. The `-aws-namespace-id` flag is required.
 
 ```shell-session
-$ consul-aws -aws-namespace-id ns-hjrgt3bapp7phzff -to-aws -consul-service-prefix my_hcp_consul_cluster_
+$ consul-aws \
+     -aws-namespace-id ns-hjrgt3bapp7phzff \
+     -to-aws \
+     -consul-service-prefix my_hcp_consul_cluster_
 ```
 
-After the command starts, `consul-aws` begins importing services from Consul to AWS CloudMap. A service in Consul with
-the name`web` identifies as `my_hcp_consul_cluster_web` in AWS CloudMap.
+Consul sets the following properties for services it syncs from Consul to AWS Cloud Map.
 
-Consul sets the following properties for services synced _to_ AWS CloudMap:
+|Property|Value|
+|---|---|
+|Description|Imported from Consul|
+|Record types|A and SRV|
+|DNS routing policy|Multivalue answer routing|
 
-- Description: "Imported from Consul"
-- Record types: A and SRV
-- DNS routing policy: Multivalue answer routing
+## Sync one-way from AWS Cloud Map to Consul
 
-## Sync AWS CloudMap namespaces one-way to Consul
+The `-to-consul` flag instructs the `consul-aws` tool to begin syncing services from an AWS Cloud Map namespace to Consul.
 
-To sync services from an AWS CloudMap namespace to Consul, the `-to-consul` flag enables syncing from AWS to Consul. If
-you are using HCP Consul Dedicated or hosting services across multiple cloud providers, one strategy for prefixing is adding
-`aws` somewhere in the prefix. This lets you quickly differentiate services imported with this tool, and other
- hosted Consul services. The prefix is fully customizable to your choosing.
+One strategy for prefixing services when using HCP Consul Dedicated or hosting services across multiple cloud providers is to add `aws` in the prefix. The `aws-service-prefix` flag allows you to customize the prefix.
+
+In this example, a service in AWS Cloud Map with the name `redis` identifies as `my_aws_cloudmap_namespace_redis` in Consul. The `-aws-namespace-id` flag is required.
 
 ```shell-session
-$ consul-aws -aws-namespace-id ns-hjrgt3bapp7phzff -to-consul -aws-service-prefix my_aws_account_
+$ consul-aws \
+     -aws-namespace-id ns-hjrgt3bapp7phzff \
+     -to-consul\
+     -aws-service-prefix my_aws_cloudmap_namespace_
 ```
 
-After the command starts, `consul-aws` begins importing services from the CloudMap namespace to Consul. A
-service in AWS CloudMap with the name `redis` identifies as `my_cloudmap_namespace_redis` in Consul.
+Consul sets the following properties for services it syncs from AWS Cloud Map to Consul.
 
-Consul sets the following properties for services synced _from_ AWS CloudMap:
+|Property|Value|
+|---|---|
+|Tag|aws|
+|Meta-Data|includes `aws` as the source set, the `aws-id`, the `aws-namespace` and custom attributes the instance uses in AWS Cloud Map|
+|Node|the node name is `consul-aws`|
 
-- Tag: aws
-- Meta-Data: includes `aws` as the source set, the `aws-id`, the `aws-namespace` and custom attributes the instance uses in AWS CloudMap
-- Node: the node name is `consul-aws`
+## Sync two-way between Consul and AWS Cloud Map
 
-## Bidirectional syncing
+To enable a two-way or bidirectional sync between Consul and an AWS Cloud Map namespace, add both the `-to-consul` and `-to-aws` flags.
 
-To enable bidirectional sync, between Consul and AWS CloudMap, provide `-to-consul` and `-to-aws`, including the
-optional `-aws-service-prefix` and `-consul-service-prefix` flags:
+The `-aws-namespace-id` flag is required. but the `-aws-service-prefix` and `-consul-service-prefix` flags are optional.
 
 ```shell-session
-$ consul-aws -aws-namespace-id ns-hjrgt3bapp7phzff -to-consul -aws-service-prefix my_cloudmap_namespace_ -to-aws -consul-service-prefix hcp_consul_
+$ consul-aws \
+     -aws-namespace-id ns-hjrgt3bapp7phzff \
+     -to-consul \
+     -aws-service-prefix my_aws_cloudmap_namespace_ \
+     -to-aws \
+     -consul-service-prefix my_hcp_consul_cluster_
 ```
-
-After the command starts, `consul-aws` syncs services in both directions between Consul from AWS CloudMap.
 
 ## Next steps
 
-You have completed this tutorial. Uni- or bidirectional sync is active between Consul and AWS CloudMap, with service
-discovery available across Consul and AWS CloudMap.
+After setting up a sync between Consul and AWS Cloud Map, you can further manage your services with the following resources.
 
-Try setting up `consul-aws` using a Consul ACL token for authentication. The [Secure Consul with ACLs tutorial](/consul/tutorials/security/access-control-setup-production)
-provides instructions on configuring ACLs for your cluster.
+- [Connect services with service mesh](/consul/docs/connect)
+- [Manage application traffic](/consul/docs/manage-traffic)
+- [Observe service mesh traffic](/consul/docs/observe)
+
+## `consul-aws` configuration reference
+
+`consul-aws` has two subcommands, `version` and `sync-catalog`.
+
+```shell-session
+$ consul-aws
+Usage: consul-aws [--version] [--help] <command> [<args>]
+
+Available commands are:
+    sync-catalog    Sync AWS services and Consul services.
+    version         Prints the version
+```
+
+`version` takes no flags and prints the version of the tool.
+
+```shell-session
+$ consul-aws version
+consul-aws 0.1.3
+```
+
+`sync-catalog` syncs the services and accepts several flags specific to the tool as well as the general flags for connecting to the cluster including `-http-addr`, `-token`, and `-ca-file`.
+
+```shell-session
+$ consul-aws sync-catalog -h
+Usage: consul-aws sync-catalog [options]
+
+  Sync AWS services, and more with the Consul service catalog.
+  This enables AWS services to discover and communicate with external
+  services, and allows external services to discover and communicate with
+  AWS services.
+
+# ...
+
+Command Options
+
+  -aws-dns-ttl=<int>
+     DNS TTL for services created in AWS CloudMap in seconds. (Defaults
+     to 60)
+
+  -aws-namespace-id=<string>
+     The AWS namespace to sync with Consul services.
+
+  -aws-poll-interval=<string>
+     The interval between fetching from AWS CloudMap. Accepts a sequence
+     of decimal numbers, each with optional fraction and a unit suffix,
+     such as "300ms", "10s", "1.5m". Defaults to 30s)
+
+  -aws-pull-interval=<string>
+     [DEPRECATED] The interval between fetching from AWS CloudMap.
+     Accepts a sequence of decimal numbers, each with optional fraction
+     and a unit suffix, such as "300ms", "10s", "1.5m". Defaults to 30s)
+
+  -aws-service-prefix=<string>
+     A prefix to prepend to all services written to AWS from Consul. If
+     this is not set then services will have no prefix.
+
+  -consul-service-prefix=<string>
+     A prefix to prepend to all services written to Consul from AWS. If
+     this is not set then services will have no prefix.
+
+  -to-aws
+     If true, Consul services will be synced to AWS. (Defaults to false)
+
+  -to-consul
+     If true, AWS services will be synced to Consul. (Defaults to false)
+```
