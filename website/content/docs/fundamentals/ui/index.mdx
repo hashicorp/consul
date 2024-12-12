@@ -1,27 +1,24 @@
 ---
 layout: docs
-page_title: Consul UI
+page_title: Explore the Consul web UI
 description: >-
-  Consul includes a built-in web user interface that you can use to observe services and manage datacenter operations. Learn about the Consul UI and how its features.
+  Consul includes a built-in web user interface that you can use to observe services and manage datacenter operations.
 ---
 
-# Consul UI
+# Explore the Consul web UI
 
-This page provides an overview of the Consul UI, one of the major user interfaces with Consul clusters alongside the [Consul CLI](consul/commands) and [HTTP API](consul/api-docs).
+This page provides an overview of the Consul web UI, which is one of the ways to interface with a Consul cluster alongside the [Consul CLI](/consul/commands) and [HTTP API](/consul/api-docs).
 
-## Overview
+## Introduction
 
-Consul's UI allows you to view and interact with Consul via a graphical user
-interface, which can lower the barrier of entry for new users, and ease
-troubleshooting.
+The web UI allows you to interact with Consul via a graphical user
+interface and view information about your Consul datacenter, including:
 
-The Consul UI enables you to view all information about your Consul datacenter, including:
+- [Registered server and client nodes](#nodes)
+- [Registered services and sidecar proxies](#services)
+- Registered API, terminating, ingress, and mesh gateways
 
-- [Registered nodes](#nodes), both Consul servers and clients.
-- [Registered services](#services) and their sidecar proxies.
-- Registered gateways, including API, terminating, ingress, and mesh gateways.
-
-Additionally, you can view and update the following information through the Consul UI:
+Additionally, you can view and update the following components through the Consul UI:
 
 - [Key-value store](#key-value-store)
 - [Access Control List (ACL) tokens](#acl-tokens)
@@ -33,79 +30,124 @@ Additionally, you can view and update the following information through the Cons
 
 ## Navigate to the UI
 
-If you have a [local development agent](/consul/tutorials/certification-associate-tutorials/get-started-agent), started with `consul agent -dev`, you can open a browser
-window and navigate to the UI, which is available at the `/ui` path on the same
-port as the HTTP API (port `8500`).
+A local development agent started with `consul agent -dev` automatically enables the web UI. It is available at the `/ui` path on port `8500`, which is the same port as the HTTP API.
 
-[http://localhost:8500/ui](http://localhost:8500/ui)
+Open [`http://localhost:8500/ui`](http://localhost:8500/ui) in your web browser to see the Consul web UI.
 
-If you were running Consul in production you would need to enable the UI in
-Consul's configuration file or using the `-ui` command line flag, but because
-your agent is running in development mode, the UI is automatically enabled.
+### Enable the UI for non-development agents
 
-## Nodes
+Agents that are run without the `-dev` flag must explicitly enable the web UI.
 
-Click on the "Nodes" option in the top navigation bar to go to the
-nodes page. There you'll find an overview of the entire datacenter including the
-health status of each node, IPAddress, number of registered services, and a leader badge
-indicating which node is hosting the leading Consul server.
+To enable the web UI, you can: 
 
-You can select individual nodes to learn about their
-health checks, registered services, round trip time, lock sessions, and metadata.
+- Modify the agent start-up command to include the [`-ui` flag](/consul/docs/reference-cli/agent#ui-options).
+- Modify the agent configuration file to include the [`ui_config.enabled` attribute](/consul/docs/reference/agent#ui_config_enabled) and set it to `true`.
 
-You can also filter the nodes by heath status, or search for them in the search
-bar.
+<Tabs>
+
+<Tab heading="Modify the agent start-up command" group="agent-command">
+
+```shell-session
+$ consul agent -ui [...]
+```
+
+</Tab>
+
+<Tab heading="Modify the agent configuration file" group="agent-config-file">
+
+<CodeBlockConfig filename="agent-config.hcl" highlight="6-8">
+
+```hcl
+datacenter = "dc1"
+data_dir   = "/opt/consul"
+
+server     = true
+
+ui_config {
+  enabled = true
+}
+
+# ...
+```
+
+</CodeBlockConfig>
+
+</Tab>
+
+</Tabs>
+
+Using the server address of your Consul server node, open the address in your web browser on port `8500` at the `/ui` path. For example, if the server address is `212.44.23.212`, then open `http://212.44.23.212:8500/ui` in your web browser.
 
 ## Services
 
-The landing page for the Consul UI is the services page, which gives you a list of all
-registered services and gateways including their health, tags, type, and source. You can filter the services visible on the page based on their name, tag,
-status, or other search terms.
+The initial Consul UI landing page is the Services page, which gives you a list of all
+registered services and gateways including their health, tags, type, and source. The Services page is also accessible by clicking on the **Services** option from the left navigation bar.
 
-Click on a specific service to learn more about its instance count, the health
+You can filter services by health status and service type or search for services with the search bar.
+
+Click on a service to see more information about its instance count, the health
 of individual instances, and which agent each instance is registered with.
+
+## Nodes
+
+Click on the **Nodes** option in the left navigation bar to go to the Nodes page.
+
+This page shows an overview of the datacenter with information about each node including the health status, the network address, the number of registered services on the node, and a badge beside the node which is currently hosting the cluster leader.
+
+Click on a node to see more information about service health checks, instances, round trip time, lock sessions, and metadata.
+
+You can filter nodes by health status or search for nodes with the search bar.
 
 ## Key-value store
 
-In the top navigation, select "Key/Value" to view the page for Consul KV.
+Click the **Key/Value** option from the left navigation bar to go to the Key/Value page.
 
-The Key/Value page has a folder-like structure. Objects appear nested according to
-their key prefix. For example, you could have a folder for each application,
-business function, or a nested combination of the two.
+This page has a folder-like structure and nests objects according to
+their key prefix.
 
-## ACL tokens
-
-Consul uses Access Control Lists (ACLs) to secure access to the UI, API, CLI, service
-communications, and agent communications. You need to [configure
-ACLs](/consul/tutorials/security/access-control-setup-production) in your Consul datacenter to
-secure it for production. However, on a local development agent started with `consul agent -dev`,
-they aren't enabled, so there would be no data on your "ACL" page.
-
-You can secure the UI itself with ACLs, by limiting read, write, and update
-permissions for the various pages in the UI. You do this by creating a token
-with the appropriate privileges and adding it to the UI under the ACL
-page.
-
-To remove access, simply select "Stop using" from your tokens action menu in the
-token list.
-
-The browser can store tokens that you add to the UI.
+Objects can be organized with prefixes including by application, business function, or a combination of the two.
 
 ## Intentions
 
-Select the "Intentions" option in the top navigation menu to view service ntention data for Consul
-service mesh. To create new intentions, click on the "Create" button at the top right of the
-page.
+Intentions are mechanisms in Consul that control communication between services. Refer to the [Intentions](/consul/docs/secure-mesh/intention) page for more information on Intentions and how to use them.
 
-The new intention page allows you to specify the source and destination services, configure service
-communication, and add a description. Notice that you have three options for service
-communication; Allow, Deny, and Application Aware. The Application Aware option enables you
-to more granularly allow or deny communication between services based on path, header, or method.
+Click the **Intentions** option from the left navigation bar to go to the Intentions page. Here you can create new intentions specifying the source and destination service, a description, and whether to allow or deny traffic between the two services. Additionally you can set the Intention to be **Application Aware** which allows you to more granularly allow or deny communication between services based on Layer 7 criteria such as path, header, or method.
+
+## Access Control Lists
+
+Consul uses [Access Control Lists](/consul/docs/secure/acl), or ACLs, to secure access to the web UI, API, CLI, service
+communications, and agent communications. An operator configures [ACLs](/consul/tutorials/security/access-control-setup-production) in a Consul datacenter to secure it for production.
+
+ACLs are not enabled for local development agents so there will be a red dot beside the **Access Controls** heading in the left navigation bar if Consul is running as a local development agent.
+
+You enable ACLs in the agent configuration file with `enabled` attribute in the `acl` block. Refer to the [Bootstrap ACL system page](/consul/docs/secure/acl/bootstrap) for more information on configuring ACLs.
+
+<CodeBlockConfig filename="agent-config.hcl" highlight="10-12">
+
+```hcl
+datacenter = "dc1"
+data_dir   = "/opt/consul"
+
+server     = true
+
+ui_config {
+  enabled = true
+}
+
+acl {
+  enabled = true
+}
+
+# ...
+
+```
+
+</CodeBlockConfig>
+
+With ACLs enabled and proper permissions set, you can click on the ACL-related pages under the **Access Controls** heading in the left navigation bar and view the **Tokens**, **Policies**, **Roles**, and **Auth Methods** pages. Refer to the the [ACL Tokens](/consul/docs/secure/acl/token), [ACL Policies](/consul/docs/secure/acl/policy), [Roles](/consul/docs/secure/acl/role), and [Auth Methods](/consul/docs/secure/acl/auth-method) documentation pages for more information.
 
 ## Adjust UI settings
 
-In the top-right of any page, select **Settings**.
+Click on the **Settings** option from the top navigation bar.
 
-You can select whether or not you would like to set up a blocking query to
-update the UI in real time, rather than upon refresh. This is on by default,
-but may need to be disabled for large datacenters due to performance concerns.
+You can select whether or not to enable **Blocking Queries**. This allows the UI to update in real time without manually having to refresh the page. This setting is enabled by default but you may want to disable it on large datacenters for better performance.
