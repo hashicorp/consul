@@ -1,50 +1,159 @@
 ---
 layout: docs
-page_title: Load balancing with HA proxy
+page_title: Load balance with HA proxy
 description: >-
-  Use Consul to configure F5 BIG-IP nodes and server pools based on changes in Consul service discovery.
+  Configure HAProxy to use Consul DNS interface to load balance traffic across multiple instances of the same service.
 ---
 
-# Load balance with HA proxy
+# Load balance with HAProxy
 
 This page describes how to use HAProxy's native integration to automatically
 configure the load balancer with service discovery data from Consul. This allows
 HAProxy to automatically scale its backend server pools by leveraging its
-"server-template" function and Consul's service discovery.
+`server-template` function and Consul's service discovery.
 
-You will set up a basic HAProxy configuration based on a
-"server-template" that generates the load balancer backend server pool
-configuration based on the available service instances registered in Consul
-service discovery.
+You will set up a basic HAProxy configuration based on a `server-template` that 
+generates the load balancer backend server pool configuration based on the 
+available service instances registered in Consul service discovery.
 
-## Prerequisites
+## Requirements
 
-To complete this tutorial, you will need previous experience with Consul and
-HAProxy. Additionally, you should have the following infrastructure configured.
+To complete this guide, you will need previous experience with Consul and HAProxy. 
+Additionally, you should have the following infrastructure configured.
 
-- A Consul cluster with the web UI enabled.
-
-At least three Consul nodes, each with a client agent to
-  register the web services and health checks referenced in this tutorial.
-  `enable_local_script_checks` must be set to `true` on the client nodes.
-
-- A running instance of HAProxy of version 1.8+ (LTS) or the newest release 2.0+
-  (LTS), which contains the new "cloud native" HAProxy features. Both versions
-  have Long Term Support. HAProxy should also be co-located with a Consul client.
+- A Consul datacenter with the web UI enabled.
+- At least three Consul client nodes, to register the web services and health checks referenced in this guide. 
+- Standard web servers running on each node, listening on `HTTP` port `80`.
+- `enable_local_script_checks` must be set to `true` on the client nodes.
+- A running instance of HAProxy of version 1.8+ (LTS) HAProxy should also be co-located with a Consul client.
   To get HAProxy visit the [downloads page](http://www.haproxy.org/#down).
 
-- Standard web servers running on each node, listening on HTTP port 80.
+When you've completed the steps listed in this guide your infrastructure will look like the diagram below.
 
-<Tip>
+![HAProxy and Consul architecture](/img/discover/load-balancer/haproxy/arch-haproxy-consul.png)
 
- The content of this tutorial also applies to Consul clusters hosted on HashiCorp Cloud (HCP).
+## Create the HAProxy configuration
 
-</Tip>
+Start with a new install of HAProxy with the default configuration located in `/etc/haproxy/haproxy.cfg`. 
+Add the following configuration at the end of the defaults.
 
-When you've completed the tutorial, your infrastructure will look like the diagram
-below.
+<CodeBlockConfig filename="/etc/haproxy/haproxy.cfg">
 
-![HAProxy and Consul architecture](/img/haproxy-consul-arch.png 'Consul integrates natively with HAProxy')
+```plaintext
+defaults
+   timeout connect 5s
+   timeout client 1m
+   timeout server 1m
+
+frontend stats
+   bind *:1936
+   mode http
+   stats uri /
+   stats show-legends
+   no log
+
+frontend http_front
+   bind *:80
+   default_backend http_back
+
+backend http_back
+    balance roundrobin
+    server-template mywebapp 1-10 _web._tcp.service.consul resolvers consul    resolve-opts allow-dup-ip resolve-prefer ipv4 check
+
+resolvers consul
+    nameserver consul 127.0.0.1:8600
+    accepted_payload_size 8192
+    hold valid 5s
+```
+
+</CodeBlockConfig>
+
+### Frontend
+
+The `frontend http_front` stanza instructs HAProxy to listen for `HTTP` requests
+on `TCP` port `80` and to use the `http_back` server pool as the respective load
+balancer backend.
+
+### Backend
+
+In this example, the `backend http_back` stanza includes two main settings,
+`balance` type, and `server-template`. The `balance` type is round robin and
+will load balance across the available service in order.
+
+The server-template is what allows Consul service registrations to configure
+HAProxy's backend server pool. This means you do not need to explicitly add your
+backend servers' IP addresses. The configuration specifies a `server-template` 
+named `mywebapp`. The template name is not tied to the service name which is
+registered in Consul.
+
+The `server-template` will provision `10` slots for backend servers in HAProxy's
+runtime configuration. It will reserve the memory for up to `10` instances even 
+if you do not use them all. If you have more than `10` healthy and available 
+services, HAProxy will use only `10` of them and backfill available slots in 
+case of a service error. You can configure the number of available slots.
+
+`_web._tcp.service.consul` will instruct HAProxy to use the DNS SRV record for
+the backend service `_web.service.consul_` to discover the available services.
+
+This configuration will also allow running two service instances on the same IP
+address using different ports `resolve-opts allow-dup-ip` and will resolve IPv4
+addresses for the service endpoints `resolve-prefer ipv4`.
+
+Finally, specify that the server template should look at the `resolvers consul` 
+stanza to discover where to find Consul's DNS interface.
+
+You can learn more about the HAProxy server-template feature in [HAProxy's
+documentation](https://docs.haproxy.org/2.6/configuration.html#4-server-template).
+
+<Note>
+
+Consul has sophisticated distributed health checks, so the additional HAProxy 
+health `check` is not necessarily needed, depending on the configuration of 
+Consul's health checks and the update interval HAProxy uses to discover healthy 
+endpoints from Consul's service discovery.
+
+</Note>
+
+### Resolvers
+
+The `resolvers consul` stanza defines the actual service discovery endpoint to
+be used by HAProxy.
+
+`nameserver consul 127.0.0.1:8600` points HAProxy to the DNS interface of the
+local Consul client.
+
+You will need to allow for a larger payload by configuring
+`accepted_payload_size 8192`, since DNS SRV records can result in larger DNS
+replies from Consul service discovery. This is based on the number of available
+and healthy services.
+
+Finally `hold valid 5s` will instruct HAProxy to check Consul's service catalog
+every 5 seconds for updates on available and healthy service endpoints. This
+value is also tuned in this example for faster service discovery.
+
+For all available configuration options for HAProxy resolvers, please refer to
+the configuration
+[documentation](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#5.3.2-resolvers).
+
+### Reload HAProxy
+
+Reload your HAProxy instance to apply the adjusted `haproxy.cfg` configuration
+file.
+
+```shell-session
+$ service haproxy reload
+``` 
+
+### Check HAProxy Statistics Page
+
+A statistics and monitoring page of HAProxy will be accessible at 
+`http://<Your-HAProxy-IP-address>:1936` which can be used for basic monitoring purposes.
+
+Navigate to the monitoring page now and you will notice `10` pre-provisioned load
+balancer backend slots for your service, but none of them is used yet.
+
+![HAProxy monitoring UI with no service instances.](/img/discover/load-balancer/haproxy/haproxy-ui-no_instances.png#light-theme-only)
+![HAProxy monitoring UI with no service instances.](/img/discover/load-balancer/haproxy/haproxy-ui-no_instances-dark.png#dark-theme-only)
 
 ## Register a web service
 
@@ -87,155 +196,194 @@ service {
 
 </CodeTabs>
 
-
 Reload the client to read the new service definition.
 
 ```shell-session
 $ consul reload
 ```
 
-Register a second web service by repeating this process on a second node. You
-should see both instances of the web service in the in the Consul UI.
+Register a second web service by repeating this process on a second node. 
 
-![Consul UI](/img/consul-haproxy-template-web.png 'Consul UI with two healthy web services')
+### Verify services are registered in Consul
 
-## Create the HAProxy configuration
+If the registration was successful you should see the change reflects in Consul 
+catalog. Choose your preferred method to verify the services are registered 
+correctly in Consul.
 
-For this tutorial, start with a new install of HAProxy with the default
-configuration located in `/etc/haproxy/haproxy.cfg`. Add the following
-configuration at the end of the defaults.
+<Tabs>
+<Tab heading="CLI" group="cli">
 
-<CodeBlockConfig filename="/etc/haproxy/haproxy.cfg">
+Use the `consul catalog` command to check available services.
 
-```plaintext
-defaults
-   timeout connect 5s
-   timeout client 1m
-   timeout server 1m
+```shell-session
+$ consul catalog services
+consul
+web
+```
 
-frontend stats
-   bind *:1936
-   mode http
-   stats uri /
-   stats show-legends
-   no log
+</Tab>
+<Tab heading="API" group="api">
 
-frontend http_front
-   bind *:80
-   default_backend http_back
+Use the `/v1/catalog/services` API endpoint to to check available services.
 
-backend http_back
-    balance roundrobin
-    server-template mywebapp 1-10 _web._tcp.service.consul resolvers consul    resolve-opts allow-dup-ip resolve-prefer ipv4 check
+```shell-session
+$ curl --silent http://127.0.0.1:8500/v1/catalog/services | jq
+```
 
-resolvers consul
-    nameserver consul 127.0.0.1:8600
-    accepted_payload_size 8192
-    hold valid 5s
+You should get the following output, showing both the `consul` service, 
+representing the Consul server agents, and the `web` service you just registered.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+{
+  "consul": [],
+  "web": []
+}
 ```
 
 </CodeBlockConfig>
 
-### Frontend
-
-The `frontend http_front` stanza instructs HAProxy to listen for HTTP requests
-on TCP port 80 and to use the `http_back` server pool as the respective load
-balancer backend.
-
-### Backend
-
-In this example, the `backend http_back` stanza includes two main settings,
-`balance` type and `server-template`. The `balance` type is round robin and
-will load balance across the available service in order.
-
-The server-template is what allows Consul service registrations to configure
-HAProxy's backend server pool. This means you do not need to explicitly add your
-backend servers' IP addresses. We have specified a server-template named
-`mywebapp`. The template name is not tied to the service name which is
-registered in Consul.
-
-The server-template will provision `10` slots for backend servers in HAProxy's
-runtime configuration. It will reserve the memory for up to 10 instances even if
-you do not use all. If you have more than 10 healthy and available services,
-HAProxy will use only 10 of them and backfill available slots in case of a
-service error. You can configure the number of available slots.
-
-`_web._tcp.service.consul` will instruct HAProxy to use the DNS SRV record for
-the backend service _web.service.consul_ to discover the available services.
-
-This configuration will also allow running two service instances on the same IP
-address using different ports `resolve-opts allow-dup-ip` and will resolve IPv4
-addresses for the service endpoints `resolve-prefer ipv4`.
-
-Finally, we specify that the server template should look at the `resolvers consul` stanza to discover where to find Consul's DNS interface.
-
-You can learn more about the HAProxy server-template feature in [HAProxy's
-documentation](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#4.2-server-template).
-
-<Note>
-
- Consul has sophisticated distributed health checks, so the
-additional HAProxy health `check` is not necessarily needed, depending on the
-configuration of Consul's health checks and the update interval HAProxy uses to
-discover healthy endpoints from Consul's service discovery.
-
-</Note>
-
-### Resolvers
-
-The `resolvers consul` stanza defines the actual service discovery endpoint to
-be used by HAProxy.
-
-`nameserver consul 127.0.0.1:8600` points HAProxy to the DNS interface of the
-local Consul client.
-
-You will need to allow for a larger payload by configuring
-`accepted_payload_size 8192`, since DNS SRV records can result in larger DNS
-replies from Consul service discovery. This is based on the number of available
-and healthy services.
-
-Finally `hold valid 5s` will instruct HAProxy to check Consul's service catalog
-every 5 seconds for updates on available and healthy service endpoints. This
-value is also tuned in this example for faster service discovery.
-
-For all available configuration options for HAProxy resolvers, please refer to
-the configuration
-[documentation](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#5.3.2-resolvers).
-
-### Reload HAProxy
-
-Reload your HAProxy instance to apply the adjusted `haproxy.cfg` configuration
-file.
+Use the `/v1/catalog/service/web` API endpoint to get more details on the `web`
+service's instances.
 
 ```shell-session
-$ service haproxy reload
+$ curl --silent http://127.0.0.1:8500/v1/catalog/service/web | jq
 ```
 
+You should get an output similar to the following.
+
+<CodeBlockConfig hideClipboard>
+
+```json
+[
+  {
+    "ID": "1b183015-ef7f-52af-bad9-1e260c689a03",
+    "Node": "web-app-0",
+    "Address": "172.18.0.7",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "172.18.0.7",
+      "lan_ipv4": "172.18.0.7",
+      "wan": "172.18.0.7",
+      "wan_ipv4": "172.18.0.7"
+    },
+    "NodeMeta": {
+      "consul-network-segment": "",
+      "consul-version": "1.20.1"
+    },
+    "ServiceKind": "",
+    "ServiceID": "web-0",
+    "ServiceName": "web",
+    "ServiceTags": [],
+    "ServiceAddress": "",
+    "ServiceWeights": {
+      "Passing": 1,
+      "Warning": 1
+    },
+    "ServiceMeta": {},
+    "ServicePort": 80,
+    "ServiceSocketPath": "",
+    "ServiceEnableTagOverride": false,
+    "ServiceProxy": {
+      "Mode": "",
+      "MeshGateway": {},
+      "Expose": {}
+    },
+    "ServiceConnect": {},
+    "ServiceLocality": null,
+    "CreateIndex": 14342,
+    "ModifyIndex": 14342
+  },
+  {
+    "ID": "86be7e7c-cfaf-931f-297b-6992f049c1ff",
+    "Node": "web-app-1",
+    "Address": "172.18.0.9",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "172.18.0.9",
+      "lan_ipv4": "172.18.0.9",
+      "wan": "172.18.0.9",
+      "wan_ipv4": "172.18.0.9"
+    },
+    "NodeMeta": {
+      "consul-network-segment": "",
+      "consul-version": "1.20.1"
+    },
+    "ServiceKind": "",
+    "ServiceID": "web-1",
+    "ServiceName": "web",
+    "ServiceTags": [],
+    "ServiceAddress": "",
+    "ServiceWeights": {
+      "Passing": 1,
+      "Warning": 1
+    },
+    "ServiceMeta": {},
+    "ServicePort": 80,
+    "ServiceSocketPath": "",
+    "ServiceEnableTagOverride": false,
+    "ServiceProxy": {
+      "Mode": "",
+      "MeshGateway": {},
+      "Expose": {}
+    },
+    "ServiceConnect": {},
+    "ServiceLocality": null,
+    "CreateIndex": 14347,
+    "ModifyIndex": 14347
+  }
+]
+```
+
+</CodeBlockConfig>
+
+</Tab>
+<Tab heading="UI" group="ui">
+
+You should see both instances of the web service in the in the Consul UI.
+
+![Consul UI services page showing two instances of the web service.](/img/discover/load-balancer/haproxy/consul-ui-services-two_web_instances.png#light-theme-only)
+![Consul UI services page showing two instances of the web service.](/img/discover/load-balancer/haproxy/consul-ui-services-two_web_instances-dark.png#dark-theme-only)
+
+Click on the `web` service to get details on the available instances.
+
+![Consul UI service web page showing two instances.](/img/discover/load-balancer/haproxy/consul-ui-service-web-two_instances.png#light-theme-only)
+![Consul UI service web page showing two instances.](/img/discover/load-balancer/haproxy/consul-ui-service-web-two_instances-dark.png#dark-theme-only)
+
+</Tab>
+<Tab heading="DNS" group="dns">
+
+Query the Consul DNS service for instances of the `web` service.
+
+```shell-session
+$ dig @127.0.0.1 -p 8600 -t srv web.service.consul +short
+1 1 80 web-app-1.node.dc1.consul.
+1 1 80 web-app-0.node.dc1.consul.
+```
+
+</Tab>
+</Tabs>
+
 ## Check load balancing
+
+The services are also reflects on the HAProxy monitoring UI where you can verify 
+that two instances of the `10` available are now up and running.
+
+![HAProxy monitoring UI with two service instances.](/img/discover/load-balancer/haproxy/haproxy-ui-two_instances.png#light-theme-only)
+![HAProxy monitoring UI with two service instances.](/img/discover/load-balancer/haproxy/haproxy-ui-two_instances-dark.png#dark-theme-only)
 
 Browse to the IP address of your HAProxy load balancer and reload the page
 several times. Because you registered two services in Consul and configured
 HAProxy to use round robin load balancing, you should see the connection
 toggling between both your available web servers.
 
-### Check HAProxy Statistics Page
-
-A statistics and monitoring page of HAProxy will be accessible at
-`http://<Your-HAProxy-IP-address>:1936`
-which can be used for basic monitoring purposes.
-
-Navigate to the monitoring page now and you will notice 10 pre-provisioned load
-balancer backend slots for your service, but only two of them are used.
-
-![HAProxy UI](/img/haproxy-2-servers.png 'HAProxy UI with two healthy web services')
-
 ## Scale your backend servers
 
-HAProxy will query against Consul's DNS interface every 5 seconds to check if
-something changed within the requested service "web".
+HAProxy will query against Consul's DNS interface every `5` seconds to check if
+something changed within the requested service `web`.
 
-Scale your web service registering the instance running on your third node. You
-in this tutorial you will manually register the already running service.
+Scale your web service registering the instance running on your third node.
 
 Create a service definition in the third Consul client's configuration directory
 (`/etc/consul.d/`).
@@ -276,7 +424,6 @@ service {
 
 </CodeTabs>
 
-
 Reload the client to read the new service definition.
 
 ```shell-session
@@ -285,30 +432,29 @@ $ consul reload
 
 <Note>
 
- In production deployments you will have automated the registration
-of new instances of a service, so that Consul will know when new services in the
-datacenter start.
+In production deployments you should automate the registration of new instances 
+of a service, so that Consul will know when new services in the datacenter start.
 
 </Note>
 
-Once you register the new web service, HAProxy will then see the change and
+Once you register the new web service, HAProxy will detect the change and 
 trigger an update in its runtime configuration. After scaling your backend
 server from two to three instances, the resulting runtime load balancer
-configuration for your HAProxy instance will be reflected in the statistics
-page.
+configuration for your HAProxy instance will be reflected in the statistics page.
 
-![HAProxy Scale](/img/haproxy-3-servers.png 'HAProxy UI with three healthy web services')
+![HAProxy monitoring UI with three service instances.](/img/discover/load-balancer/haproxy/haproxy-ui-three_instances.png#light-theme-only)
+![HAProxy monitoring UI with three service instances.](/img/discover/load-balancer/haproxy/haproxy-ui-three_instances-dark.png#dark-theme-only)
 
 Traffic should now be load balanced across all three available services.
 
 ### Stop one backend service
 
-Not only will HAProxy's service discovery integration scale your backend
-configuration automatically (up and down) depending on available services, it
-will also only use healthy services for rendering the final configuration.
+HAProxy's service discovery integration will scale your backend configuration 
+automatically (up and down) depending on available services and it will only use 
+healthy services for rendering the final configuration.
 
-Since you configured Consul to perform a basic "curl" based health check in your
-service definition, Consul will notice if the "web" server instance is in an
+You configured Consul to perform a basic `curl` based health check in your
+service definition, Consul will notice if the `web` server instance is in an
 unhealthy state.
 
 To simulate an error and see how Consul health checks are working, stop the web
@@ -319,10 +465,11 @@ $ service <WEBSERVER> stop
 ```
 
 You will see the state of this service instance as "Unhealthy" in the Consul UI
-immediately as the simple "curl" health check will result in an error as no
-service responds to requests on HTTP port 80.
+immediately as the simple `curl` health check will result in an error as no
+service responds to requests on `HTTP` port `80`.
 
-![Consul UI Unhealthy](/img/consul-ui-unhealthy.png 'Consul UI with two healthy web services and one unhealthy web service')
+![Consul UI service web page showing three instances, one unhealthy.](/img/discover/load-balancer/haproxy/consul-ui-service-web-three_instances_one_failing.png#light-theme-only)
+![Consul UI service web page showing three instances, one unhealthy.](/img/discover/load-balancer/haproxy/consul-ui-service-web-three_instances_one_failing-dark.png#dark-theme-only)
 
 Due to its regular check against Consul's DNS interface, your HAProxy instance
 will notice that a change in the health of one of the services has occurred and
@@ -334,28 +481,29 @@ healthy services.
 You can again check the resulting runtime load balancer configuration for your
 HAProxy instance in the statistics page.
 
-![HAProxy UI Unhealthy](/img/haproxy-ui-unhealthy.png 'HAProxy UI with two healthy web services and one unhealthy web service')
+![HAProxy monitoring UI with three service instances one unhealthy.](/img/discover/load-balancer/haproxy/haproxy-ui-three_instances_one_failed.png#light-theme-only)
+![HAProxy monitoring UI with three service instances one unhealthy.](/img/discover/load-balancer/haproxy/haproxy-ui-three_instances_one_failed-dark.png#dark-theme-only)
 
 Note, that the unhealthy instance is not in an error state from HAProxy's
-perspective. It is in maintenance state (MAINT) as DNS resolution for this
+perspective. It is in maintenance state (`MAINT`) as DNS resolution for this
 specific host is not working anymore.
 
 <Note>
 
- Consul health checks can look at CPU utilization, RAM usage, and
-other metrics of your web services that central load balancer can't monitor.
-Learn more about Consul's health check feature in the [health check
-tutorial](/consul/tutorials/developer-discovery/service-registration-health-checks).
+Consul health checks can look at CPU utilization, RAM usage, and other metrics 
+of your web services that central load balancer can't monitor. Learn more about 
+Consul's health check feature in the 
+[health check tutorial](/consul/tutorials/connect-services/monitor-applications-health-checks).
 
 </Note>
 
-Restart the stopped "web" server instance. The Consul health check will mark the
+Restart the stopped `web` server instance. The Consul health check will mark the
 service as "Healthy" and it will be added back into the load balancer backend
 configuration to serve traffic.
 
 ## Add DNS weights to the HAProxy configuration
 
-In addition to Consuls DNS interface for querying only healthy instances,
+In addition to Consul's DNS interface for querying only healthy instances,
 HAProxy's service discovery integration can also evaluate the DNS weight. In
 this section, you will adjust one of your services to give it a higher weight.
 This will enable HAProxy to adjust its runtime value for the backend server
@@ -370,22 +518,14 @@ instances of a service are able to handle more requests than others.
 First, check the assigned DNS weights in Consul using the Consul DNS interface.
 
 ```shell-session
-$ dig @127.0.0.1 -p 8600 -t srv web.service.consul
+$ dig @127.0.0.1 -p 8600 -t srv web.service.consul +short
+1 1 80 web-app-0.node.dc1.consul.
+1 1 80 web-app-1.node.dc1.consul.
+1 1 80 web-app-2.node.dc1.consul.
 ```
 
-```plaintext hideClipboard
-<SNIP>
-
-;; ANSWER SECTION:
-web.service.consul. 0 IN  SRV 1 1 80 consul-dc1-srv2.node.dc1.consul.
-web.service.consul. 0 IN  SRV 1 1 80 consul-dc1-srv3.node.dc1.consul.
-web.service.consul. 0 IN  SRV 1 1 80 consul-dc1-srv1.node.dc1.consul.
-
-<SNIP>
-```
-
-The DNS weight is the column before the port number (which is 80). The DNS
-weight is currently set to 1 for all of your healthy services, which is the
+The DNS weight is the column before the port number (which is `80`). The DNS
+weight is currently set to `1` for all of your healthy services, which is the
 default that Consul uses.
 
 ### Add a weight to one service
@@ -396,16 +536,24 @@ don't match the supported HAProxy backend server weights, so you need to convert
 the desired HAProxy weight to a DNS weight configured in Consul's service
 definition with the following formula.
 
-```plaintext hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```plaintext
 ([Desired weight in HAProxy] * 256) - 1 = (Service weight in Consul)
 ```
+
+</CodeBlockConfig>
 
 In our example we want to have a HAProxy weight of 2 which results in the
 following calculation:
 
-```plaintext hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```plaintext
 (2 * 256) - 1 = 511
 ```
+
+</CodeBlockConfig>
 
 Adjust one of your service definitions by adding the `weights` option to the
 `web` service registration.
@@ -454,7 +602,6 @@ service {
 
 </CodeTabs>
 
-
 Reload the local Consul client to read the new service definition.
 
 ```shell-session
@@ -467,24 +614,16 @@ First, check Consul's DNS interface to make sure Consul now shows another weight
 for the service instance you just configured.
 
 ```shell-session
-$ dig @127.0.0.1 -p 8600 -t srv web.service.consul
+$ dig @127.0.0.1 -p 8600 -t srv web.service.consul +short
+1 511 80 web-app-1.node.dc1.consul.
+1 1 80 web-app-0.node.dc1.consul.
+1 1 80 web-app-2.node.dc1.consul.
 ```
 
-```plaintext hideClipboard
-<SNIP>
+Second, you can check the HAProxy statistics page, `http://<Your-HAProxy-IP-address>:1936`.
 
-;; ANSWER SECTION:
-web.service.consul. 0 IN  SRV 1 1 80 consul-dc1-srv2.node.dc1.consul.
-web.service.consul. 0 IN  SRV 1 511 80 consul-dc1-srv3.node.dc1.consul.
-web.service.consul. 0 IN  SRV 1 1 80 consul-dc1-srv1.node.dc1.consul.
-
-<SNIP>
-```
-
-Second, you can check the HAProxy statistics page,
-`http://<Your-HAProxy-IP-address>:1936`.
-
-![HAProxy UI Weight](/img/haproxy-ui-weight.png 'HAProxy UI with 3 healthy web services, one that has a greater weight')
+![HAProxy monitoring UI with three service instances one with different weight.](/img/discover/load-balancer/haproxy/haproxy-ui-three_instances_weight.png#light-theme-only)
+![HAProxy monitoring UI with three service instances one with different weight.](/img/discover/load-balancer/haproxy/haproxy-ui-three_instances_weight-dark.png#dark-theme-only)
 
 Finally, check that traffic is now being load balanced unequally across the
 three available service endpoints. Browse to the IP address of your HAProxy load
