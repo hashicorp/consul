@@ -10,7 +10,7 @@ The `/session` endpoints create, destroy, and query sessions in Consul.
 
 ## Create Session
 
-This endpoint initializes a new session. Sessions must be associated with a
+This endpoint initializes a new session. Sessions may be associated with a
 node and may be associated with any number of checks.
 
 | Method | Path              | Produces           |
@@ -35,7 +35,9 @@ The table below shows this endpoint's support for
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
-  URL as a query parameter. Using this parameter across datacenters is not recommended.
+  URL as a query parameter. Using this parameter across datacenters on client
+  nodes requires that you specify a TTL, specify the `Node` as `null`, and pass
+  in an empty `NodeChecks` array.
 
 ### JSON Request Body Schema
 
@@ -146,7 +148,6 @@ The table below shows this endpoint's support for
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried.
-  Using this parameter across datacenters is not recommended.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
@@ -191,7 +192,6 @@ The table below shows this endpoint's support for
 
 - `dc` `(string: "")` - Specifies the datacenter to query.
   This defaults to the datacenter of the agent being queried.
-  Using this parameter across datacenters is not recommended.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
@@ -254,7 +254,6 @@ The table below shows this endpoint's support for
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried.
-  Using this parameter across datacenters is not recommended.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
@@ -313,7 +312,6 @@ The table below shows this endpoint's support for
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried.
-  Using this parameter across datacenters is not recommended.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
@@ -375,7 +373,6 @@ The table below shows this endpoint's support for
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried.
-  Using this parameter across datacenters is not recommended.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
