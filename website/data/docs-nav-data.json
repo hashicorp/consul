@@ -7,7 +7,7 @@
     "routes": [
       {
         "title": "What is Consul?",
-        "path": "architecture/what-is-consul"
+        "path": "architecture"
       },
       {
         "title": "Control plane",
@@ -19,12 +19,33 @@
           {
             "title": "Kubernetes",
             "path": "architecture/control-plane/k8s"
+          },
+          {
+            "title": "Consul agents",
+            "path": "architecture/control-plane/agent"
           }
         ]
       },
       {
-        "title": "Service mesh",
-        "path": "architecture/mesh"
+        "title": "Data plane",
+        "routes": [
+          {
+            "title": "Consul dataplanes",
+            "path": "architecture/data-plane/dataplane"
+          },
+          {
+            "title": "Gateways",
+            "path": "architecture/data-plane/gateway"
+          },
+          {
+            "title": "Kubernetes service mesh",
+            "path": "architecture/data-plane/mesh"
+          },
+          {
+            "title": "Services",
+            "path": "architecture/data-plane/service"
+          }
+        ]
       },
       {
         "title": "Consul-Terraform-Sync (CTS)",
@@ -53,12 +74,12 @@
     "title": "Concepts",
     "routes": [
       {
-        "title": "Agents",
-        "path": "concept/agent"
-      },
-      {
         "title": "Anti-entropy",
         "path": "concept/anti-entropy"
+      },
+      {
+        "title": "Consul catalog",
+        "path": "concept/catalog"
       },
       {
         "title": "Configuration entries",
@@ -73,16 +94,8 @@
         "path": "concept/crd"
       },
       {
-        "title": "Dataplane",
-        "path": "concept/dataplane"
-      },
-      {
         "title": "Fault tolerance",
         "path": "concept/fault-tolerance"
-      },
-      {
-        "title": "Gateways",
-        "path": "concept/gateways"
       },
       {
         "title": "Gossip",
@@ -99,10 +112,6 @@
       {
         "title": "Service mesh",
         "path": "concept/service-mesh"
-      },
-      {
-        "title": "Service",
-        "path": "concept/service"
       }
     ]
   },
@@ -154,10 +163,6 @@
             "path": "fundamentals/configuration/service"
           }
         ]
-      },
-      {
-        "title": "Consul catalog",
-        "path": "fundamentals/catalog"
       },
       {
         "title": "Consul UI",

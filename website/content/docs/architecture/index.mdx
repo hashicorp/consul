@@ -12,13 +12,13 @@ HashiCorp Consul is a service networking solution that enables teams to manage s
 > **Hands-on**: Complete the Getting Started tutorials to learn how to deploy Consul:
 - [Get Started on Kubernetes](/consul/tutorials/get-started-kubernetes)
 - [Get Started on VMs](/consul/tutorials/get-started-vms)
-- [HashiCorp Cloud Platform (HCP) Consul](/consul/tutorials/get-started-hcp)
+- [HashiCorp Cloud Platform (HCP) Consul Dedicated](/consul/tutorials/get-started-hcp)
 
 ## How does Consul work?
 
-Consul provides a _control plane_ that enables you to register, query, and secure services deployed across your network. The control plane is the part of the network infrastructure that maintains a central registry to track services and their respective IP addresses. It is a distributed system that runs on clusters of nodes, such as physical servers, cloud instances, virtual machines, or containers. 
+Consul provides a _control plane_ that enables you to register, query, and secure services deployed across your network. The control plane is the part of the network infrastructure that maintains a central registry to track services and their respective IP addresses. It is a distributed system that runs on clusters of nodes, such as physical servers, cloud instances, virtual machines, or containers.
 
-Consul interacts with the _data plane_ through proxies. The data plane is the part of the network infrastructure that processes data requests. Refer to [Consul Architecture](/consul/docs/architecture) for details.
+Consul interacts with the _data plane_ through proxies. The data plane is the part of the network infrastructure that processes data requests.
 
 ![Basic Consul workflow](/img/what-is-consul-overview-diagram.png)
 
@@ -29,6 +29,7 @@ The core Consul workflow consists of the following stages:
 - **Secure**: After services locate upstreams, Consul ensures that service-to-service communication is authenticated, authorized, and encrypted. Consul service mesh secures microservice architectures with mTLS and can allow or restrict access based on service identities, regardless of differences in compute environments and runtimes. 
 
 ## Why Consul?
+
 Consul increases application resilience, bolsters uptime, accelerates application deployment, and improves security across service-to-service communications. HashiCorp co-founder and CTO Armon Dadgar explains how Consul solves networking challenges.
 
 <iframe
