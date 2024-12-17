@@ -343,6 +343,12 @@ func TestPolicySourceParse(t *testing.T) {
 			Err:       "Invalid acl policy",
 		},
 		{
+			Name: "Bad Policy - Duplicate ACL Key",
+			Rules: `acl="read"
+					acl="write"`,
+			Err: "Failed to parse ACL rules: The argument \"acl\" at",
+		},
+		{
 			Name:      "Bad Policy - Agent",
 			Rules:     `agent "foo" { policy = "nope" }`,
 			RulesJSON: `{ "agent": { "foo": { "policy": "nope" }}}`,

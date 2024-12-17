@@ -14,10 +14,10 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	pbstorage "github.com/hashicorp/consul/proto/private/pbstorage"
 )
 
@@ -53,7 +53,7 @@ func NewBackend(h Handle, l hclog.Logger) (*Backend, error) {
 	if err != nil {
 		return nil, err
 	}
-	b := &Backend{handle: h, store: s}
+	b := &Backend{handle: h, store: s, logger: l}
 	b.forwardingServer = newForwardingServer(b)
 	b.forwardingClient = newForwardingClient(h, l)
 	return b, nil
@@ -80,6 +80,7 @@ type Handle interface {
 type Backend struct {
 	handle Handle
 	store  *inmem.Store
+	logger hclog.Logger
 
 	forwardingServer *forwardingServer
 	forwardingClient *forwardingClient
@@ -225,6 +226,24 @@ func (b *Backend) ListByOwner(_ context.Context, id *pbresource.ID) ([]*pbresour
 	return b.store.ListByOwner(id)
 }
 
+// isRetiredType ensures that types that have been formally retired (deprecated
+// and deleted) do not sneak back in during a snapshot restore.
+func isRetiredType(typ *pbresource.Type) bool {
+	switch typ.GetGroupVersion() {
+	case "v2":
+		switch typ.GetGroup() {
+		case "hcp":
+			return true
+		}
+	case "v2beta1":
+		switch typ.GetGroup() {
+		case "auth", "catalog", "mesh", "multicluster", "tenancy":
+			return true
+		}
+	}
+	return false
+}
+
 // Apply is called by the FSM with the bytes of a Raft log entry, with Consul's
 // envelope (i.e. type prefix and msgpack wrapper) stripped off.
 func (b *Backend) Apply(buf []byte, idx uint64) any {
@@ -239,8 +258,18 @@ func (b *Backend) Apply(buf []byte, idx uint64) any {
 		oldVsn := res.Version
 		res.Version = strconv.Itoa(int(idx))
 
-		if err := b.store.WriteCAS(res, oldVsn); err != nil {
-			return err
+		if isRetiredType(res.GetId().GetType()) {
+			// When a type is retired, the caller should think that the write
+			// was applied, but we should simply skip loading it. This means
+			// that retired types will not linger in the database indefinitely.
+			b.logger.Warn("ignoring operation for retired type",
+				"operation", "apply",
+				"type", resource.ToGVK(res.GetId().GetType()),
+			)
+		} else {
+			if err := b.store.WriteCAS(res, oldVsn); err != nil {
+				return err
+			}
 		}
 
 		return &pbstorage.LogResponse{
@@ -250,8 +279,19 @@ func (b *Backend) Apply(buf []byte, idx uint64) any {
 		}
 	case pbstorage.LogType_LOG_TYPE_DELETE:
 		req := req.GetDelete()
-		if err := b.store.DeleteCAS(req.Id, req.Version); err != nil {
-			return err
+
+		if isRetiredType(req.GetId().GetType()) {
+			// When a type is retired, the caller should think that the write
+			// was applied, but we should simply skip loading it. This means
+			// that retired types will not linger in the database indefinitely.
+			b.logger.Warn("ignoring operation for retired type",
+				"operation", "delete",
+				"type", resource.ToGVK(req.GetId().GetType()),
+			)
+		} else {
+			if err := b.store.DeleteCAS(req.Id, req.Version); err != nil {
+				return err
+			}
 		}
 		return &pbstorage.LogResponse{
 			Response: &pbstorage.LogResponse_Delete{},

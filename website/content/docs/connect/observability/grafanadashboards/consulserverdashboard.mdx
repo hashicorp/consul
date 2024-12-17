@@ -1,0 +1,164 @@
+---
+layout: docs
+page_title: Dashboard for Consul server metrics
+description: >-
+  This documentation provides an overview of the Consul Server Dashboard. Learn about the metrics it displays and the queries that produce the metrics.
+---
+
+# Consul server monitoring dashboard
+
+This page provides reference information about the [Grafana dashboard configuration included in the `hashicorp/consul` GitHub repository](https://github.com/hashicorp/consul/blob/main/grafana/consul-server-monitoring.json).
+
+## Grafana queries overview
+
+This dashboard provides the following information about service mesh operations.
+
+### Raft commit time
+
+**Description:** This metric measures the time it takes to commit Raft log entries. Stable values are expected for a healthy cluster. High values can indicate issues with resources such as memory, CPU, or disk space.
+
+```promql
+consul_raft_commitTime
+```
+
+### Raft commits per 5 minutes
+
+**Description:** This metric tracks the rate of Raft log commits emitted by the leader, showing how quickly changes are being applied across the cluster.
+
+```promql
+rate(consul_raft_apply[5m])
+```
+
+### Last contacted leader
+
+**Description:** Measures the duration since the last contact with the Raft leader. Spikes in this metric can indicate network issues or an unavailable leader, which may affect cluster stability.
+
+```promql
+consul_raft_leader_lastContact != 0
+```
+
+### Election events
+
+**Description:** Tracks Raft state transitions, which indicate leadership elections. Frequent transitions might suggest cluster instability and require investigation.
+
+```promql
+rate(consul_raft_state_candidate[1m])
+```
+
+```promql
+rate(consul_raft_state_leader[1m])
+```
+
+### Autopilot health
+
+**Description:** A boolean metric that shows a value of 1 when Autopilot is healthy and 0 when issues are detected. Ensures that the cluster has sufficient resources and an operational leader.
+
+```promql
+consul_autopilot_healthy
+```
+
+### DNS queries per 5 minutes
+
+**Description:** This metric tracks the rate of DNS queries per node, bucketed into 5 minute intervals. It helps monitor the query load on Consul’s DNS service.
+
+```promql
+rate(consul_dns_domain_query_count[5m])
+```
+
+### DNS domain query time
+
+**Description:** Measures the time spent handling DNS domain queries. Spikes in this metric may indicate high contention in the catalog or too many concurrent queries.
+
+```promql
+consul_dns_domain_query
+```
+
+### DNS reverse query time
+
+**Description:** Tracks the time spent processing reverse DNS queries. Spikes in query time may indicate performance bottlenecks or increased workload.
+
+```promql
+consul_dns_ptr_query
+```
+
+### KV applies per 5 minutes
+
+**Description:** This metric tracks the rate of key-value store applies over 5 minute intervals, indicating the operational load on Consul’s KV store.
+
+```promql
+rate(consul_kvs_apply_count[5m])
+```
+
+### KV apply time
+
+**Description:** Measures the time taken to apply updates to the key-value store. Spikes in this metric might suggest resource contention or client overload.
+
+```promql
+consul_kvs_apply
+```
+
+### Transaction apply time
+
+**Description:** Tracks the time spent applying transaction operations in Consul, providing insights into potential bottlenecks in transaction operations.
+
+```promql
+consul_txn_apply
+```
+
+### ACL resolves per 5 minutes
+
+**Description:** This metric tracks the rate of ACL token resolutions over 5 minute intervals. It provides insights into the activity related to ACL tokens within the cluster.
+
+```promql
+rate(consul_acl_ResolveToken_count[5m])
+```
+
+### ACL resolve token time
+
+**Description:** Measures the time taken to resolve ACL tokens into their associated policies.
+
+```promql
+consul_acl_ResolveToken
+```
+
+### ACL updates per 5 minutes
+
+**Description:** Tracks the rate of ACL updates over 5 minute intervals. This metric helps monitor changes in ACL configurations over time.
+
+```promql
+rate(consul_acl_apply_count[5m])
+```
+
+### ACL apply time
+
+**Description:** Measures the time spent applying ACL changes. Spikes in apply time might suggest resource constraints or high operational load.
+
+```promql
+consul_acl_apply
+```
+
+### Catalog operations per 5 minutes
+
+**Description:** Tracks the rate of register and deregister operations in the Consul catalog, providing insights into the churn of services within the cluster.
+
+```promql
+rate(consul_catalog_register_count[5m])
+```
+
+```promql
+rate(consul_catalog_deregister_count[5m])
+```
+
+### Catalog operation time
+
+**Description:** Measures the time taken to complete catalog register or deregister operations. Spikes in this metric may indicate performance issues within the catalog.
+
+```promql
+consul_catalog_register
+```
+
+```promql
+consul_catalog_deregister
+```
+
+

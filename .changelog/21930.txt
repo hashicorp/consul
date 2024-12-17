@@ -1,0 +1,3 @@
+```release-note:security
+api: Enforces strict content-type header validation to protect against XSS vulnerability.
+```

@@ -533,18 +533,23 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 				return nil
 			}
 
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			raw, err := filter.Execute(reply.Nodes)
 			if err != nil {
 				return err
 			}
 			reply.Nodes = raw.(structs.Nodes)
-
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
-			if err := c.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
@@ -607,14 +612,25 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				return nil
 			}
 
-			raw, err := filter.Execute(serviceNodes)
+			// need to temporarily create an IndexedServiceNode so that the ACL filter can be applied
+			// to the service nodes and then re-use those same node to run the filter expression.
+			idxServiceNodeReply := &structs.IndexedServiceNodes{
+				ServiceNodes: serviceNodes,
+				QueryMeta:    reply.QueryMeta,
+			}
+
+			// enforce ACLs
+			c.srv.filterACLWithAuthorizer(authz, idxServiceNodeReply)
+
+			// run the filter expression
+			raw, err := filter.Execute(idxServiceNodeReply.ServiceNodes)
 			if err != nil {
 				return err
 			}
 
+			// convert the result back to the original type
 			reply.Services = servicesTagsByName(raw.(structs.ServiceNodes))
-
-			c.srv.filterACLWithAuthorizer(authz, reply)
+			reply.QueryMeta = idxServiceNodeReply.QueryMeta
 
 			return nil
 		})
@@ -813,19 +829,24 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				reply.ServiceNodes = filtered
 			}
 
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			// This is safe to do even when the filter is nil - its just a no-op then
 			raw, err := filter.Execute(reply.ServiceNodes)
 			if err != nil {
 				return err
 			}
 			reply.ServiceNodes = raw.(structs.ServiceNodes)
-
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
-			if err := c.srv.filterACL(args.Token, reply); err != nil {
-				return err
-			}
 
 			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
@@ -904,19 +925,24 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 			}
 			reply.Index, reply.NodeServices = index, services
 
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
 			if reply.NodeServices != nil {
 				raw, err := filter.Execute(reply.NodeServices.Services)
 				if err != nil {
 					return err
 				}
 				reply.NodeServices.Services = raw.(map[string]*structs.NodeService)
-			}
-
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
-			if err := c.srv.filterACL(args.Token, reply); err != nil {
-				return err
 			}
 
 			return nil
@@ -1009,20 +1035,25 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 
 			if mergedServices != nil {
 				reply.NodeServices = *mergedServices
-
-				raw, err := filter.Execute(reply.NodeServices.Services)
-				if err != nil {
-					return err
-				}
-				reply.NodeServices.Services = raw.([]*structs.NodeService)
 			}
 
-			// Note: we filter the results with ACLs *after* applying the user-supplied
-			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
-			// results that would be filtered out even if the user did have permission.
+			// Note: we filter the results with ACLs *before* applying the user-supplied
+			// bexpr filter to ensure that the user can only run expressions on data that
+			// they have access to.  This is a security measure to prevent users from
+			// running arbitrary expressions on data they don't have access to.
+			// QueryMeta.ResultsFilteredByACLs being true already indicates to the user
+			// that results they don't have access to have been removed.  If they were
+			// also allowed to run the bexpr filter on the data, they could potentially
+			// infer the specific attributes of data they don't have access to.
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
+
+			raw, err := filter.Execute(reply.NodeServices.Services)
+			if err != nil {
+				return err
+			}
+			reply.NodeServices.Services = raw.([]*structs.NodeService)
 
 			return nil
 		})

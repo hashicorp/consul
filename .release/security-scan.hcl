@@ -14,7 +14,7 @@
 
 container {
 	dependencies = true
-	alpine_secdb = true
+	osv          = true
 
 	secrets {
 		matchers {
@@ -36,9 +36,14 @@ container {
 	# periodically cleaned up to remove items that are no longer found by the scanner.
 	triage {
 		suppress {
-			# N.b. `vulnerabilites` is the correct spelling for this tool.
-			vulnerabilites = [
+			vulnerabilities = [
 				"CVE-2024-8096", # curl@8.9.1-r2,
+				"CVE-2024-9143", # openssl@3.3.2-r0,
+				"CVE-2024-3596", # openssl@3.3.2-r0,
+				"CVE-2024-2236", # openssl@3.3.2-r0,
+				"CVE-2024-26458", # openssl@3.3.2-r0,
+				"CVE-2024-2511", # openssl@3.3.2-r0,
+				#the above can be resolved when they're resolved in the alpine image
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
@@ -78,8 +83,8 @@ binary {
 	# periodically cleaned up to remove items that are no longer found by the scanner.
 	triage {
 		suppress {
-			# N.b. `vulnerabilites` is the correct spelling for this tool.
-			vulnerabilites = [
+			vulnerabilities = [
+				"GO-2022-0635", // github.com/aws/aws-sdk-go@v1.55.5
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",

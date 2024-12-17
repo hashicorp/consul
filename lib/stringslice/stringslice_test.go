@@ -63,3 +63,28 @@ func TestMergeSorted(t *testing.T) {
 		})
 	}
 }
+
+func TestEqualMapKeys(t *testing.T) {
+	for _, tc := range []struct {
+		a    []string
+		b    map[string]int
+		same bool
+	}{
+		// same
+		{nil, nil, true},
+		{[]string{}, nil, true},
+		{nil, map[string]int{}, true},
+		{[]string{}, map[string]int{}, true},
+		{[]string{"a"}, map[string]int{"a": 1}, true},
+		{[]string{"b", "a"}, map[string]int{"a": 1, "b": 1}, true},
+		// different
+		{[]string{"a"}, map[string]int{}, false},
+		{[]string{}, map[string]int{"a": 1}, false},
+		{[]string{"b", "a"}, map[string]int{"c": 1, "a": 1, "b": 1}, false},
+		{[]string{"b", "a"}, map[string]int{"c": 1, "a": 1, "b": 1}, false},
+		{[]string{"b", "a", "c"}, map[string]int{"a": 1, "b": 1}, false},
+	} {
+		got := EqualMapKeys(tc.a, tc.b)
+		require.Equal(t, tc.same, got)
+	}
+}

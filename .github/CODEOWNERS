@@ -1,3 +1,5 @@
+* @hashicorp/consul-selfmanage-maintainers
+
 # Techical Writer Review
 
 /website/content/docs/ @hashicorp/consul-docs
@@ -6,8 +8,8 @@
 
 
 # release configuration
-/.release/                              @hashicorp/release-engineering @hashicorp/github-consul-core
-/.github/workflows/build.yml            @hashicorp/release-engineering @hashicorp/github-consul-core
+/.release/                              @hashicorp/team-selfmanaged-releng @hashicorp/consul-selfmanage-maintainers
+/.github/workflows/build.yml            @hashicorp/team-selfmanaged-releng @hashicorp/consul-selfmanage-maintainers
 
 
 # Staff Engineer Review (protocol buffer definitions)
