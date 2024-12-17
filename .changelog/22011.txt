@@ -1,0 +1,4 @@
+```release-note:security
+Update `registry.access.redhat.com/ubi9-minimal` image to 9.5 to address [CVE-2019-12900](https://nvd.nist.gov/vuln/detail/cve-2019-12900),[CVE-2024-3596](https://nvd.nist.gov/vuln/detail/CVE-2024-3596),[CVE-2024-2511](https://nvd.nist.gov/vuln/detail/CVE-2024-2511),[CVE-2024-26458](https://nvd.nist.gov/vuln/detail/CVE-2024-26458),[CVE-2024-4067](https://nvd.nist.gov/vuln/detail/CVE-2024-4067).
+```
+
