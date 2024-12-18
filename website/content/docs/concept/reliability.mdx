@@ -7,11 +7,9 @@ description: >-
 
 # Fault tolerance
 
-
 You must give careful consideration to reliability in the architecture frameworks that you build. When you build a resilient platform, it minimizes the remediation actions you need to take when a failure occurs. This document provides useful information on how to design and operate a resilient Consul cluster, including the methods and functionalities for this goal.
 
 Consul has many features that operate both locally and remotely that can help you offer a resilient service across multiple datacenters.
-
 
 ## Introduction
 
@@ -55,7 +53,6 @@ The following sections explore several options for increasing Consul's fault tol
 - Use [cluster peering](#cluster-peering) to provide service redundancy.
 
 ### Availability zones
-
 
 The cloud or on-premise infrastructure underlying your [Consul datacenter](/consul/docs/install/glossary#datacenter) can run across multiple availability zones.
 
@@ -175,3 +172,57 @@ For more information on cluster peering, refer to:
   for a more detailed explanation
 - [Cluster peering tutorial](/consul/tutorials/implement-multi-tenancy/cluster-peering)
   to learn how to implement cluster peering
+
+## Quorum size
+
+Below is a table that shows quorum size and failure tolerance for various
+cluster sizes. The recommended deployment is either 3 or 5 servers. A single
+server deployment is _**highly**_ discouraged as data loss is inevitable in a
+failure scenario.
+
+<table class="table table-bordered table-striped">
+  <thead>
+    <tr>
+      <th>Servers</th>
+      <th>Quorum Size</th>
+      <th>Failure Tolerance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>2</td>
+      <td>0</td>
+    </tr>
+    <tr class="warning">
+      <td>3</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>3</td>
+      <td>1</td>
+    </tr>
+    <tr class="warning">
+      <td>5</td>
+      <td>3</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>4</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>4</td>
+      <td>3</td>
+    </tr>
+  </tbody>
+</table>

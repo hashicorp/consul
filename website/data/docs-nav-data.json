@@ -3,6 +3,23 @@
     "heading": "Get started"
   },
   {
+    "title": "Quickstart",
+    "routes": [
+      {
+        "title": "Consul on VMs",
+        "href": "/consul/tutorials/get-started-vms"
+      },
+      {
+        "title": "Consul on Kubernetes",
+        "href": "/consul/tutorials/get-started-kubernetes"
+      },
+      {
+        "title": "HCP Consul Dedicated",
+        "href": "/consul/tutorials/get-started-hcp"
+      }
+    ]
+  },
+  {
     "title": "Architecture",
     "routes": [
       {
@@ -23,6 +40,10 @@
           {
             "title": "Consul agents",
             "path": "architecture/control-plane/agent"
+          },
+          {
+            "title": "Consul dataplanes",
+            "path": "architecture/control-plane/dataplane"
           }
         ]
       },
@@ -30,12 +51,16 @@
         "title": "Data plane",
         "routes": [
           {
-            "title": "Consul dataplanes",
-            "path": "architecture/data-plane/dataplane"
+            "title": "Overview",
+            "path": "architecture/data-plane"
           },
           {
             "title": "Gateways",
             "path": "architecture/data-plane/gateway"
+          },
+          {
+            "title": "Consul service mesh",
+            "path": "architecture/data-plane/connect"
           },
           {
             "title": "Kubernetes service mesh",
@@ -48,25 +73,16 @@
         ]
       },
       {
+        "title": "Backend",
+        "path": "architecture/backend"
+      },
+      {
+        "title": "Security architecture",
+        "path": "architecture/security"
+      },
+      {
         "title": "Consul-Terraform-Sync (CTS)",
         "path": "architecture/cts"
-      }
-    ]
-  },
-  {
-    "title": "Quickstart",
-    "routes": [
-      {
-        "title": "Consul on VMs",
-        "href": "/consul/tutorials/get-started-vms"
-      },
-      {
-        "title": "Consul on Kubernetes",
-        "href": "/consul/tutorials/get-started-kubernetes"
-      },
-      {
-        "title": "HCP Consul Dedicated",
-        "href": "/consul/tutorials/get-started-hcp"
       }
     ]
   },
@@ -74,69 +90,28 @@
     "title": "Concepts",
     "routes": [
       {
-        "title": "Anti-entropy",
-        "path": "concept/anti-entropy"
-      },
-      {
-        "title": "Consul catalog",
+        "title": "Catalog",
         "path": "concept/catalog"
       },
       {
-        "title": "Configuration entries",
-        "path": "concept/config-entry"
+        "title": "Configuration-as-code",
+        "path": "concept/configuration"
       },
       {
         "title": "Consensus",
         "path": "concept/consensus"
       },
       {
-        "title": "Custom Resource Definitions (CRDs)",
-        "path": "concept/crd"
-      },
-      {
-        "title": "Fault tolerance",
-        "path": "concept/fault-tolerance"
+        "title": "Consistency",
+        "path": "concept/consistency"
       },
       {
         "title": "Gossip",
         "path": "concept/gossip"
       },
       {
-        "title": "Jepsen tests",
-        "path": "concept/jepsen"
-      },
-      {
-        "title": "Service discovery",
-        "path": "concept/service-discovery"
-      },
-      {
-        "title": "Service mesh",
-        "path": "concept/service-mesh"
-      }
-    ]
-  },
-  {
-    "title": "Product comparison",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "compare"
-      },
-      {
-        "title": "API gateways",
-        "path": "compare/api-gateway"
-      },
-      {
-        "title": "Configuration management",
-        "path": "compare/config-management"
-      },
-      {
-        "title": "DNS",
-        "path": "compare/dns"
-      },
-      {
-        "title": "Service Mesh",
-        "path": "compare/service-mesh"
+        "title": "Reliability",
+        "path": "concept/reliability"
       }
     ]
   },
@@ -144,45 +119,95 @@
     "title": "Fundamentals",
     "routes": [
       {
-        "title": "Install Consul",
-        "path": "fundamentals/install"
+        "title": "Consul editions and releases",
+        "path": "fundamentals/editions"
       },
       {
-        "title": "Configuring Consul",
+        "title": "Install and run Consul",
         "routes": [
           {
-            "title": "Agents",
-            "path": "fundamentals/configuration/agent"
+            "title": "Install Consul",
+            "path": "fundamentals/install"
           },
           {
-            "title": "Configuration entries",
-            "path": "fundamentals/configuration/config-entry"
-          },
-          {
-            "title": "Services",
-            "path": "fundamentals/configuration/service"
+            "title": "Run in dev mode",
+            "path": "fundamentals/install/dev"
           }
         ]
       },
       {
-        "title": "Consul UI",
-        "path": "fundamentals/ui"
+        "title": "Interact with Consul",
+        "routes": [
+          {
+            "title": "Environment variables",
+            "path": "fundamentals/interface/env-var"
+          },
+          {
+            "title": "Use Consul HTTP API",
+            "path": "fundamentals/interface/api"
+          },
+          {
+            "title": "Use Consul CLI",
+            "path": "fundamentals/interface/cli"
+          },
+          {
+            "title": "Use Consul UI",
+            "path": "fundamentals/interface/ui"
+          }
+        ]
       },
       {
-        "title": "Distributed tracing",
-        "path": "fundamentals/distributed-tracing"
+        "title": "Consul agent basics",
+        "path": "fundamentals/agent"
       },
       {
-        "title": "Consul service mesh",
-        "path": "fundamentals/connect"
+        "title": "Service and health check basics",
+        "path": "fundamentals/service"
+      },
+      {
+        "title": "Service identity basics",
+        "path": "fundamentals/identity"
+      },
+      {
+        "title": "Configuration entry basics",
+        "path": "fundamentals/config-entry"
+      },
+      {
+        "title": "Consul Terraform provider",
+        "path": "fundamentals/tf"
       },
       {
         "title": "Troubleshoot Consul",
         "path": "fundamentals/troubleshoot"
+      }
+    ]
+  },
+  {
+    "title": "Use cases",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "use-case"
       },
       {
-        "title": "Capacity planning",
-        "path": "fundamentals/capacity"
+        "title": "API gateways",
+        "path": "use-case/api-gateway"
+      },
+      {
+        "title": "Configuration management",
+        "path": "use-case/config-management"
+      },
+      {
+        "title": "DNS",
+        "path": "use-case/dns"
+      },
+      {
+        "title": "Service Discovery",
+        "path": "use-case/service-discovery"
+      },
+      {
+        "title": "Service Mesh",
+        "path": "use-case/service-mesh"
       }
     ]
   },
@@ -2659,15 +2684,28 @@
     ]
   },
   {
-    "title": "Configuration reference",
+    "title": "Reference",
     "routes": [
       {
-        "title": "Required ports",
-        "path": "reference/ports"
-      },
-      {
-        "title": "Server requirements",
-        "path": "reference/server"
+        "title": "Architecture",
+        "routes": [
+          {
+            "title": "Required ports",
+            "path": "reference/architecture/ports"
+          },
+          {
+            "title": "Server requirements",
+            "path": "reference/architecture/server"
+          },
+          {
+            "title": "Capacity planning",
+            "path": "reference/architecture/capacity"
+          },
+          {
+            "title": "ECS architecture",
+            "path": "reference/architecture/ecs"
+          }
+        ]
       },
       {
         "title": "Access control lists (ACLs)",
@@ -2924,10 +2962,6 @@
       {
         "title": "ECS",
         "routes": [
-          {
-            "title": "Reference architecture",
-            "path": "reference/ecs/architecture"
-          },
           {
             "title": "Technical specifications",
             "path": "reference/ecs/tech-specs"
