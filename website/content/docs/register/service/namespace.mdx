@@ -1,114 +1,89 @@
 ---
 layout: docs
-page_title: Register services into a specific namespace
+page_title: Register services into a namespace
 description: >-
   Learn how to register a service a particular namespace so that you can use Consul DNS to address it securely.
 ---
 
-# Register services into a specific namespace
+# Register services into a namespace
 
-This topic describes the process to register a service into a particular namespace.
+This page describes how to to register a service into a particular Consul namespace.
 
-## Overview
+Consul Community Edition supports some functions with its `default` partition and `default` namespace. Full multi-tenancy options requires an Enterprise license. For more information, refer to [Consul Enterprise](/consul/docs/enterprise).
 
-Namespaces allow multiple teams within the same organization to share the same
-Consul datacenter(s) by separating services, Consul KV data, and other Consul
-data per team. This provides operators with the ability to more easily provide
-Consul as a service. Namespaces also enable operators to [delegate ACL
+## Introduction
+
+Namespaces allow multiple teams within an organization to share one or more
+Consul datacenters by separating the services, [Consul KV data](/consul/docs/automate/kv), and other Consul
+data of each team. This allows operators to more easily provide
+Consul as a service and enables them to [delegate ACL
 management](/consul/tutorials/namespaces/namespaces-secure-shared-access).
 
-Any service that is not registered to a namespace is added to the `default`
-namespace. All services are added to namespaces in Consul version 1.7 and
-later.
+As of version 1.7, Consul registers each service to the `default` namespace unless the configuration for the service specifies another namespace. If you do not specify a namespace during service registration, Consul registers the service into the `default` namespace.
 
-## Register services in namespaces
+## Register a service into a namespace
 
-You register services in a namespace by adding namespace information to the registration. This should not disrupt your existing workflow. The namespace information can be added to the registration using one of the
-following methods.
+You register a service into a namespace by using one of the following methods:
 
-- add the `namespace` option to the service registration file.
-- use the `-namespace` flag with the API or CLI at registration time.
+- Add the `namespace` attribute to the service registration file.
+- Add the `-namespace` flag to the API call or CLI command during service registration.
 
-If you would like to migrate an existing service into a new namespace,
-re-register the service with the new namespace information.
+To migrate an existing service into a new namespace, register the service again and provide the namespace with either method shown.
 
-## Default namespace service registration
+### Use the `namespace` attribute
 
-To register a service in the `default` namespace, use your existing registration
-workflow; you do not need to add namespace information as long as a namespace 
-ACL token isn't provided. In the example below, you will register the `mysql` 
-service in the default namespace.
+Include a `namespace` attribute in the service registration file and set the value to a namespace that exists. Refer to the [Service definition reference page](/consul/docs/reference/service) for more information about registering services with the `service` block.
 
-First, create a service registration file for the MySQL service.
-
-<CodeBlockConfig filename="mysql.hcl">
+<CodeBlockConfig filename="web-service.hcl" highlight="4">
 
 ```hcl
 service {
-  name = "mysql"
-  port = 9003
-  connect {
-    sidecar_service {}
-  }
+  name = "web-service"
+  port = 8080
+  namespace = "app-team-alpha"
+
+  # ...
 }
 ```
 
 </CodeBlockConfig>
 
-Next, register the service using the Consul CLI.
+Register the service with Consul by providing the service registration file.
 
 ```shell-session
-$ consul services register mysql.hcl
+$ consul services register web-service.hcl
 ```
 
-## App-team namespace service registration
+### Use the `-namespace` flag
 
-To register a service in a user-defined namespace, include the namespace in the
-registration file or pass it with a flag at registration time. In this tutorial,
-we will include the namespace in the file.
+Include the `-namespace` flag when registering the service via the Consul CLI.
 
-First, create the service registration file named `wordpress.hcl`. Paste in the
-following registration, which includes the service name, port, and namespace.
-
-<CodeBlockConfig filename="wordpress.hcl">
-
-```hcl
-service {
-  name = "wordpress"
-  port = 9003
-  namespace = "app-team"
-  connect {
-    sidecar_service {
-      proxy {
-        upstreams = [
-          {
-            destination_name = "counting"
-            local_bind_port  = 5000
-         }
-        ]
-      }
-    }
-  }
-}
-```
-
-</CodeBlockConfig>
-
-Next register the service.
+Refer to the [CLI reference page for the `services register` command](/consul/commands/services/register) for more information and additional configuration options.
 
 ```shell-session
-$ consul services register wordpress.hcl
+$ consul services register \
+  -name=web-service \
+  -port=8080 \
+  -namespace=app-team-alpha
 ```
 
-## Consul DNS with registered services
 
-The default DNS query behavior allows you to query by datacenter,
-`<service-name>.service.<datacenter>.consul`, or datacenter and namespace,
-`<service-name>.service.<namespace>.<datacenter>.consul`. 
+## Specify namespace in a Consul DNS query
 
-To use only the `namespace` parameter in the DNS query, you must
-set the `prefer_namespace` option to `true` in the [agent's configuration](/consul/docs/agent/config/config-files#dns_prefer_namespace).
-With the option set to true, the new query structure will be, `<service-name>.service.<namespace>.consul`. This will disable
-the ability to query by datacenter only. However, with the option set to true
-you can still use both namespace and
-datacenter to the query.
+Queries to Consul DNS can include datacenter or datacenter _and_ namespace.
+
+<Tabs>
+
+<Tab heading="Format with datacenter only" group="datacenter-only">
+
+`<service-name>.service.<datacenter>.consul`
+
+</Tab>
+
+<Tab heading="Format with datacenter and namespace" group="datacenter-and-namespace">
+
+`<service-name>.service.<namespace>.<datacenter>.consul`
+
+</Tab>
+
+</Tabs>

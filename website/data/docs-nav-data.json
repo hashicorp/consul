@@ -160,7 +160,7 @@
         "path": "fundamentals/catalog"
       },
       {
-        "title": "Consul UI",
+        "title": "Explore the Consul web UI",
         "path": "fundamentals/ui"
       },
       {
@@ -1301,7 +1301,12 @@
             ]
           },
           {
-            "title": "Register services into a specific namespace",
+            "title": "Register services into a namespace",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
             "path": "register/service/namespace"
           },
           {
@@ -1309,7 +1314,7 @@
             "path": "register/service/docker"
           },
           {
-            "title": "AWS CloudMap services",
+            "title": "AWS Cloud Map services",
             "path": "register/service/aws"
           },
           {
@@ -2603,6 +2608,10 @@
       {
         "title": "consul-dataplane",
         "path": "reference-cli/consul-dataplane"
+      },
+      {
+        "title": "consul-aws",
+        "path": "reference-cli/consul-aws"
       }
     ]
   },
