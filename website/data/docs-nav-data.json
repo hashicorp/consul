@@ -2608,6 +2608,10 @@
       {
         "title": "consul-dataplane",
         "path": "reference-cli/consul-dataplane"
+      },
+      {
+        "title": "consul-aws",
+        "path": "reference-cli/consul-aws"
       }
     ]
   },
