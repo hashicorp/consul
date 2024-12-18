@@ -2367,7 +2367,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 		},
 	}
 
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1"  `)
 	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
@@ -2400,7 +2400,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" `)
 
 	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < cfg.DNSUDPAnswerLimit+1; i++ {
@@ -2439,7 +2439,7 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" `)
 
 	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < cfg.DNSUDPAnswerLimit+1; i++ {
@@ -2486,7 +2486,7 @@ func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 }
 
 func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" `)
 
 	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < 5000; i++ {
@@ -2542,7 +2542,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 }
 
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1"  `)
 
 	req, resp := &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < 100; i++ {
@@ -2594,7 +2594,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" `)
 
 	req, resp := &dns.Msg{}, &dns.Msg{}
 
@@ -2672,7 +2672,7 @@ func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 }
 
 func TestDNS_trimUDPResponse_TrimSizeMaxSize(t *testing.T) {
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy" `)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1"             `)
 
 	resp := &dns.Msg{}
 
