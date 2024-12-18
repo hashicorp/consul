@@ -816,15 +816,6 @@
         "path": "manage"
       },
       {
-        "title": "Best practices",
-        "routes": [
-          {
-            "title": "Consul at scale",
-            "path": "manage/best-practice/scale"
-          }
-        ]
-      },
-      {
         "title": "Agent rate limits",
         "routes": [
           {
