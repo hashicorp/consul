@@ -1001,6 +1001,73 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 			},
 		},
 		{
+			name: "api-gateway-with-multiple-inline-certificates-tls-params-unset",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolTCP,
+							Port:     8080,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "certificate",
+								}},
+							},
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Certificates: []structs.ResourceReference{
+								{
+									Kind: structs.InlineCertificate,
+									Name: "certificate",
+								},
+								{
+									Kind: structs.InlineCertificate,
+									Name: "certificate-too",
+								},
+							},
+							Routes: []structs.ResourceReference{{
+								Kind: structs.TCPRoute,
+								Name: "route",
+							}},
+						},
+					}
+				},
+					[]structs.BoundRoute{
+						&structs.TCPRouteConfigEntry{
+							Kind: structs.TCPRoute,
+							Name: "route",
+							Services: []structs.TCPService{{
+								Name: "service",
+							}},
+							Parents: []structs.ResourceReference{
+								{
+									Kind: structs.APIGateway,
+									Name: "api-gateway",
+								},
+							},
+						},
+					}, []structs.InlineCertificateConfigEntry{
+						{
+							Kind:        structs.InlineCertificate,
+							Name:        "certificate",
+							PrivateKey:  gatewayTestPrivateKey,
+							Certificate: gatewayTestCertificate,
+						},
+						{
+							Kind:        structs.InlineCertificate,
+							Name:        "certificate-too",
+							PrivateKey:  gatewayTestPrivateKeyTwo,
+							Certificate: gatewayTestCertificateTwo,
+						},
+					}, nil)
+			},
+		},
+		{
 			name: "api-gateway-with-multiple-inline-certificates",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
@@ -1074,6 +1141,87 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 			},
 		},
 		{
+			name: "api-gateway-with-http-route-tls-params-unset",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Certificates: []structs.ResourceReference{{
+								Kind: structs.InlineCertificate,
+								Name: "certificate",
+							}},
+							Routes: []structs.ResourceReference{{
+								Kind: structs.HTTPRoute,
+								Name: "route",
+							}},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "route",
+						Rules: []structs.HTTPRouteRule{{
+							Filters: structs.HTTPFilters{
+								Headers: []structs.HTTPHeaderFilter{
+									{
+										Add: map[string]string{
+											"X-Header-Add": "added",
+										},
+										Set: map[string]string{
+											"X-Header-Set": "set",
+										},
+										Remove: []string{"X-Header-Remove"},
+									},
+								},
+								RetryFilter: &structs.RetryFilter{
+									NumRetries:            3,
+									RetryOn:               []string{"cancelled"},
+									RetryOnStatusCodes:    []uint32{500},
+									RetryOnConnectFailure: true,
+								},
+								TimeoutFilter: &structs.TimeoutFilter{
+									IdleTimeout:    time.Second * 30,
+									RequestTimeout: time.Second * 30,
+								},
+							},
+							Services: []structs.HTTPService{{
+								Name: "service",
+							}},
+						}},
+						Parents: []structs.ResourceReference{
+							{
+								Kind: structs.APIGateway,
+								Name: "api-gateway",
+							},
+						},
+					},
+				}, []structs.InlineCertificateConfigEntry{{
+					Kind:        structs.InlineCertificate,
+					Name:        "certificate",
+					PrivateKey:  gatewayTestPrivateKey,
+					Certificate: gatewayTestCertificate,
+				}}, []proxycfg.UpdateEvent{{
+					CorrelationID: "discovery-chain:" + serviceUID.String(),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: serviceChain,
+					},
+				}, {
+					CorrelationID: "upstream-target:" + serviceChain.ID() + ":" + serviceUID.String(),
+					Result: &structs.IndexedCheckServiceNodes{
+						Nodes: proxycfg.TestUpstreamNodes(t, "service"),
+					},
+				}})
+			},
+		},
+		{
 			name: "api-gateway-with-http-route",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
@@ -1082,6 +1230,18 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 							Name:     "listener",
 							Protocol: structs.ListenerProtocolHTTP,
 							Port:     8080,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "certificate",
+								}},
+								MinVersion: types.TLSv1_2,
+								MaxVersion: types.TLSv1_3,
+								CipherSuites: []types.TLSCipherSuite{
+									types.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+									types.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+								},
+							},
 						},
 					}
 					bound.Listeners = []structs.BoundAPIGatewayListener{

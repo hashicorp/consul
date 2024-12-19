@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+	"reflect"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -114,6 +115,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
+				setAPIGatewayTLSConfig(listenerCfg, cfgSnap)
 				l.FilterChains, err = s.makeInlineOverrideFilterChains(
 					cfgSnap,
 					cfgSnap.APIGateway.TLSConfig,
@@ -228,7 +230,8 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = s.makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
+				setAPIGatewayTLSConfig(listenerCfg, cfgSnap)
+				sniFilterChains, err = s.makeInlineOverrideFilterChains(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -514,4 +517,32 @@ func (s *ResourceGenerator) makeInlineOverrideFilterChains(cfgSnap *proxycfg.Con
 	}
 
 	return chains, nil
+}
+
+// setAPIGatewayTLSConfig updates the TLS configuration for an API gateway
+// by setting TLS parameters from a listener configuration if the existing
+// configuration is empty.
+// Only empty or unset values are updated, preserving any existing specific configurations.
+func setAPIGatewayTLSConfig(listenerCfg structs.APIGatewayListener, cfgSnap *proxycfg.ConfigSnapshot) {
+	// Create a local TLS config based on listener configuration
+	gatewayTLSConfig := structs.GatewayTLSConfig{
+		TLSMinVersion: listenerCfg.TLS.MinVersion,
+		TLSMaxVersion: listenerCfg.TLS.MaxVersion,
+		CipherSuites:  listenerCfg.TLS.CipherSuites,
+	}
+
+	// Check and set TLSMinVersion if empty
+	if reflect.ValueOf(cfgSnap.APIGateway.TLSConfig.TLSMinVersion).IsZero() {
+		cfgSnap.APIGateway.TLSConfig.TLSMinVersion = gatewayTLSConfig.TLSMinVersion
+	}
+
+	// Check and set TLSMaxVersion if empty
+	if reflect.ValueOf(cfgSnap.APIGateway.TLSConfig.TLSMaxVersion).IsZero() {
+		cfgSnap.APIGateway.TLSConfig.TLSMaxVersion = gatewayTLSConfig.TLSMaxVersion
+	}
+
+	// Check and set CipherSuites if empty
+	if len(cfgSnap.APIGateway.TLSConfig.CipherSuites) == 0 {
+		cfgSnap.APIGateway.TLSConfig.CipherSuites = gatewayTLSConfig.CipherSuites
+	}
 }
