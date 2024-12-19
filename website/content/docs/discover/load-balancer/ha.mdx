@@ -25,7 +25,7 @@ Additionally, you should have the following infrastructure configured.
 - At least three Consul client nodes, to register the web services and health checks referenced in this guide. 
 - Standard web servers running on each node, listening on `HTTP` port `80`.
 - `enable_local_script_checks` must be set to `true` on the client nodes.
-- A running instance of HAProxy of version 1.8+ (LTS) HAProxy should also be co-located with a Consul client.
+- A running instance of HAProxy of version 2.6+ (LTS) HAProxy should also be co-located with a Consul client.
   To get HAProxy visit the [downloads page](http://www.haproxy.org/#down).
 
 When you've completed the steps listed in this guide your infrastructure will look like the diagram below.
@@ -133,7 +133,7 @@ value is also tuned in this example for faster service discovery.
 
 For all available configuration options for HAProxy resolvers, please refer to
 the configuration
-[documentation](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#5.3.2-resolvers).
+[documentation](https://docs.haproxy.org/2.6/configuration.html#5.3.2-resolvers).
 
 ### Reload HAProxy
 
@@ -196,7 +196,7 @@ service {
 
 </CodeTabs>
 
-Reload the client to read the new service definition.
+Reload the client to apply the new service definition.
 
 ```shell-session
 $ consul reload
@@ -424,7 +424,7 @@ service {
 
 </CodeTabs>
 
-Reload the client to read the new service definition.
+Reload the client to apply the new service definition.
 
 ```shell-session
 $ consul reload
@@ -530,7 +530,13 @@ default that Consul uses.
 
 ### Add a weight to one service
 
-[HAProxy](https://cbonte.github.io/haproxy-dconv/1.8/configuration.html#weight)
+HAProxy's service discovery integration queries Consul's DNS interface on a
+regular, configurable basis to get updates about changes for a given service and
+adjusts the runtime configuration of HAProxy automatically. You can adjust your
+HAProxy runtime configuration by configuring additional options in Consul like
+DNS weights.
+
+[HAProxy](https://docs.haproxy.org/2.6/configuration.html#5.2-weight)
 supports weights between 1 and 256. Consul's officially supported DNS weights
 don't match the supported HAProxy backend server weights, so you need to convert
 the desired HAProxy weight to a DNS weight configured in Consul's service
@@ -602,7 +608,7 @@ service {
 
 </CodeTabs>
 
-Reload the local Consul client to read the new service definition.
+Reload the local Consul client to apply the new service definition.
 
 ```shell-session
 $ consul reload
@@ -632,13 +638,9 @@ twice as many requests as the others.
 
 ## Next steps
 
-HAProxy's service discovery integration queries Consul's DNS interface on a
-regular, configurable basis to get updates about changes for a given service and
-adjusts the runtime configuration of HAProxy automatically. You can adjust your
-HAProxy runtime configuration by configuring additional options in Consul like
-DNS weights.
+HAProxy is one of the many proxies that can be integrated with Consul to provide 
+load balancing. For more information about load balancing with Consul refer to the 
+[Application load balancing](/consul/docs/discover/load-balancer) documentation section.
 
-In this tutorial you configured HAProxy to natively integrate with Consul for
-service discovery. You also tested the HAProxy runtime configuration based on
-service healthy service and weight. Finally, you were able to monitor the
-changes with the Consul UI, HAProxy UI, and Consul DNS interface.
+For more information about HAProxy configuration options refer to the 
+[HAProxy documentation](https://docs.haproxy.org/2.6/configuration.html).
