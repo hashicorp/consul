@@ -577,11 +577,20 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	default:
 		err = d.dispatch(resp.RemoteAddr(), req, m, cfg, maxRecursionLevelDefault)
-		rCode := rCodeFromError(err)
-		if rCode == dns.RcodeNameError || errors.Is(err, errNoData) {
-			d.addSOAToMessage(cfg, m, q.Name)
+		if errors.Is(err, errNameNotFound) {
+			// Name matches the configured (root) domain, but doesn't match any nodes. 
+			// Pass upstream to be handled by recursion server, if available. 
+			if m.RecursionAvailable {
+				d.logger.Debug("request passed to recursor", "name", q.Name)
+				d.handleRecurse(resp, req)
+			}
+		} else {
+			rCode := rCodeFromError(err)
+			if rCode == dns.RcodeNameError || errors.Is(err, errNoData) {
+				d.addSOAToMessage(cfg, m, q.Name)
+			}
+			m.SetRcode(req, rCode)
 		}
-		m.SetRcode(req, rCode)
 	}
 
 	setEDNS(req, m, !errors.Is(err, errECSNotGlobal))
