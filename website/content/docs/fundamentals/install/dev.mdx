@@ -25,7 +25,9 @@ $ consul agent -dev
 
 The terminal should output the server agent's logs, which resemble the following example:
 
-```plaintext hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```plaintext
 ==> Starting Consul agent...
                Version: '1.20.1'
             Build Date: '2024-10-29 19:04:05 +0000 UTC'
@@ -46,6 +48,8 @@ The terminal should output the server agent's logs, which resemble the following
 
 ==> Log data will now stream in as it occurs:
 ```
+
+</CodeBlockConfig>
 
 Leave the Consul agent running and open up a new tab in your terminal. When you run commands in this new tab, Consul generates additional output in the original terminal session.
 
@@ -71,7 +75,9 @@ $ curl localhost:8500/v1/catalog/nodes
 
 The HTTP API returns a payload that resembles the following example:
 
-```json hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```json
 [
     {
         "ID": "77a5005f-403d-9396-c8a4-08c7f8755030",
@@ -94,13 +100,19 @@ The HTTP API returns a payload that resembles the following example:
 ]      
 ```
 
+</CodeBlockConfig>
+
 ### Use Consul DNS
 
 You can use [Consul DNS](/consul/docs/services/discovery/dns-overview) to discover nodes in the datacenter. Address nodes using the following syntax: 
 
-```plaintext hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```plaintext 
 <node-name>.node.consul
 ```
+
+</CodeBlockConfig>
 
 By default, Consul uses port `8600` for DNS requests. Address your command to the DNS port with the `-p` flag.
 
@@ -110,7 +122,9 @@ $ dig @127.0.0.1 -p 8600 boruszak-LFH0JH12XD.node.consul
 
 The output for this command resembles the following example:
 
-```plaintext hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```plaintext 
 ; <<>> DiG 9.10.6 <<>> @127.0.0.1 -p 8600 boruszak-LFH0JH12XD.node.consul
 ; (1 server found)
 ;; global options: +cmd
@@ -137,6 +151,8 @@ boruszak-LFH0JH12XD.node.consul. 0 IN	TXT	"consul-version=1.20.1"
 ;; MSG SIZE  rcvd: 146
 ```
 
+</CodeBlockConfig>
+
 ## Stop the agent
 
 To stop the Consul agent, use the `consul leave` command. This command gracefully stops the agent, which causes it to leave the Consul datacenter and then shut down.
@@ -148,7 +164,9 @@ Graceful leave complete
 
 If you switch back to the window with Consul's streaming log output, the logs indicate that the Consul agent left the datacenter.
 
-```log hideClipboard
+<CodeBlockConfig hideClipboard>
+
+```log
 2024-12-19T13:29:40.067-0800 [INFO]  agent.server: server starting leave
 2024-12-19T13:29:40.067-0800 [INFO]  agent.server.serf.wan: serf: EventMemberLeave: boruszak-LFH0JH12XD.dc1 127.0.0.1
 2024-12-19T13:29:40.067-0800 [INFO]  agent.server: Handled event for server in area: event=member-leave server=boruszak-LFH0JH12XD.dc1 area=wan
@@ -177,6 +195,8 @@ If you switch back to the window with Consul's streaming log output, the logs in
 2024-12-19T13:29:51.073-0800 [INFO]  agent: Endpoints down
 2024-12-19T13:29:51.073-0800 [INFO]  agent: Exit code: code=0
 ```
+
+</CodeBlockConfig>
 
 ## Next steps
 
