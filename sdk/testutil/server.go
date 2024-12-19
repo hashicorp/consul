@@ -31,10 +31,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
-	"github.com/pkg/errors"
 
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -128,6 +129,7 @@ type TestServerConfig struct {
 	SkipLeaveOnInt      bool                   `json:"skip_leave_on_interrupt"`
 	Peering             *TestPeeringConfig     `json:"peering,omitempty"`
 	Autopilot           *TestAutopilotConfig   `json:"autopilot,omitempty"`
+	APITimeout          time.Duration          `json:"-"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	StopTimeout         time.Duration          `json:"-"`
 	Stdout              io.Writer              `json:"-"`
@@ -213,6 +215,7 @@ func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServe
 			Server:  ports[5],
 			GRPC:    ports[6],
 		},
+		APITimeout:     2 * time.Second,
 		ReadyTimeout:   10 * time.Second,
 		StopTimeout:    10 * time.Second,
 		SkipLeaveOnInt: true,
@@ -470,7 +473,7 @@ func (s *TestServer) waitForAPI() error {
 	// This retry replicates the logic of retry.Run to allow for nested retries.
 	// By returning an error we can wrap TestServer creation with retry.Run
 	// in makeClientWithConfig.
-	timer := retry.TwoSeconds()
+	timer := retry.Seconds(s.Config.APITimeout)
 	deadline := time.Now().Add(timer.Timeout)
 	for !time.Now().After(deadline) {
 		time.Sleep(timer.Wait)
