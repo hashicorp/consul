@@ -37,6 +37,8 @@ container {
 	triage {
 		suppress {
 			vulnerabilities = [
+				"CVE-2024-4067", # libsolv@0:0.7.24-3.el9
+				"CVE-2019-12900" # bzip2-libs@0:1.0.8-8.el9
 			]
 			paths = [
 				"internal/tools/proto-gen-rpc-glue/e2e/consul/*",
