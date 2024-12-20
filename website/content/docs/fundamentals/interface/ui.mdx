@@ -11,8 +11,7 @@ This page provides an overview of the Consul web UI, which is one of the ways to
 
 ## Introduction
 
-The web UI allows you to interact with Consul via a graphical user
-interface and view information about your Consul datacenter, including:
+The web UI allows you to interact with Consul via a graphical user interface and view information about your Consul datacenter, including:
 
 - [Registered server and client nodes](#nodes)
 - [Registered services and sidecar proxies](#services)
@@ -30,22 +29,20 @@ Additionally, you can view and update the following components through the Consu
 
 ## Navigate to the UI
 
-A local development agent started with `consul agent -dev` automatically enables the web UI. It is available at the `/ui` path on port `8500`, which is the same port as the HTTP API.
-
-Open [`http://localhost:8500/ui`](http://localhost:8500/ui) in your web browser to visit the Consul web UI.
+When you run `consul agent -dev` to start Consul in development mode, the web UI is enabled automatically. While the agent is running, open [`http://localhost:8500/ui`](http://localhost:8500/ui) in your web browser to view the Consul UI.
 
 ### Enable the UI for non-development agents
 
-Agents that are run without the `-dev` flag must explicitly enable the web UI.
+The web UI is not enabled by default. Agents that are run without the `-dev` flag must explicitly enable the web UI.
 
 To enable the web UI, you can: 
 
 - Modify the agent start-up command to include the [`-ui` flag](/consul/docs/reference-cli/agent#ui-options).
-- Modify the agent configuration file to include the [`ui_config.enabled` attribute](/consul/docs/reference/agent#ui_config_enabled) and set it to `true`.
+- Modify the agent configuration file to include the [`ui_config.enabled = true`](/consul/docs/reference/agent#ui_config_enabled) attribute.
 
 <Tabs>
 
-<Tab heading="Modify the agent start-up command" group="agent-command">
+<Tab heading="Modify the agent start-up command" group="command">
 
 ```shell-session
 $ consul agent -ui [...]
@@ -80,43 +77,41 @@ Using the server address of your Consul server node, open the address in your we
 
 ## Services
 
-The initial Consul UI landing page is the Services page, which gives you a list of all
-registered services and gateways including their health, tags, type, and source. The Services page is also accessible by clicking on the **Services** option from the left navigation bar.
+The initial Consul UI landing page is the **Services** page, which gives you a list of all registered services and gateways in your datacenter, as well as their health, tags, type, and source. You can also access the **Services** page from the left navigation bar.
 
-You can filter services by health status and service type or search for services with the search bar.
+You can filter services by health status and service type, or search for services with the search bar.
 
-Click on a service to see more information about its instance count, the health
-of individual instances, and which agent each instance is registered with.
+Click the name of a service to see more information about it, including instance count, the health of individual instances, and the Consul agent registered with the service.
 
 ## Nodes
 
-Click on the **Nodes** option in the left navigation bar to go to the Nodes page.
+Click **Nodes** option in the left navigation bar.
 
-This page shows an overview of the datacenter with information about each node including the health status, the network address, the number of registered services on the node, and a badge beside the node which is currently hosting the cluster leader.
+This page shows an information about each node in the datacenter including the health status, the network address, and the number of registered services on the node. A badge beside the node shows the host of the current cluster leader.
 
-Click on a node to see more information about service health checks, instances, round trip time, lock sessions, and metadata.
+Click the name of a node for more information about service health checks, instances, round trip time, lock sessions, and metadata that is registered with the node.
 
 You can filter nodes by health status or search for nodes with the search bar.
 
 ## Key-value store
 
-Click the **Key/Value** option from the left navigation bar to go to the Key/Value page.
+Click **Key/Value** option in the left navigation bar.
 
-This page has a folder-like structure and nests objects according to
-their key prefix.
+This page has a structure that resembles a file directory. It nests objects according to their key prefix.
 
-Objects can be organized with prefixes including by application, business function, or a combination of the two.
+You can use prefixes to organize objects by application, business function, or a combination of the two.
 
 ## Intentions
 
-Intentions are mechanisms in Consul that control communication between services. Refer to the [Intentions](/consul/docs/secure-mesh/intention) page for more information on Intentions and how to use them.
+Service intentions are identity-based security mechanisms in Consul that control communication between services.
 
-Click the **Intentions** option from the left navigation bar to go to the Intentions page. Here you can create new intentions specifying the source and destination service, a description, and whether to allow or deny traffic between the two services. Additionally you can set the Intention to be **Application Aware** which allows you to more granularly allow or deny communication between services based on Layer 7 criteria such as path, header, or method.
+Click **Intentions** option in the left navigation bar.
+
+You can create new service intentions by specifying the source and destination services, writing a description, and configuring the intention to allow or deny traffic between the two services. You can also set the intention to be **Application Aware**, which allows you to more granularly allow or deny communication between services based on Layer 7 criteria such as path, header, or method.
 
 ## Access Control Lists
 
-Consul uses [Access Control Lists](/consul/docs/secure/acl), or ACLs, to secure access to the web UI, API, CLI, service
-communications, and agent communications. An operator configures [ACLs](/consul/tutorials/security/access-control-setup-production) in a Consul datacenter to secure it for production.
+Consul uses [Access Control Lists](/consul/docs/secure/acl), or ACLs, to secure access to the web UI, API, CLI, service communications, and agent communications.
 
 ACLs are not enabled for local development agents so there will be a red dot beside the **Access Controls** heading in the left navigation bar if Consul is running as a local development agent.
 

@@ -143,16 +143,16 @@
             "path": "fundamentals/interface/env-var"
           },
           {
-            "title": "Use Consul HTTP API",
-            "path": "fundamentals/interface/api"
-          },
-          {
             "title": "Use Consul CLI",
             "path": "fundamentals/interface/cli"
           },
           {
             "title": "Use Consul UI",
             "path": "fundamentals/interface/ui"
+          },
+          {
+            "title": "Use Consul HTTP API",
+            "path": "fundamentals/interface/api"
           }
         ]
       },
