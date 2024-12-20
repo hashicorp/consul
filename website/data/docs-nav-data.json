@@ -34,16 +34,16 @@
             "path": "architecture/control-plane"
           },
           {
-            "title": "Kubernetes",
-            "path": "architecture/control-plane/k8s"
-          },
-          {
             "title": "Consul agents",
             "path": "architecture/control-plane/agent"
           },
           {
             "title": "Consul dataplanes",
             "path": "architecture/control-plane/dataplane"
+          },
+          {
+            "title": "Kubernetes",
+            "path": "architecture/control-plane/k8s"
           }
         ]
       },
@@ -53,6 +53,10 @@
           {
             "title": "Overview",
             "path": "architecture/data-plane"
+          },
+          {
+            "title": "Services",
+            "path": "architecture/data-plane/service"
           },
           {
             "title": "Gateways",
@@ -65,15 +69,11 @@
           {
             "title": "Kubernetes service mesh",
             "path": "architecture/data-plane/mesh"
-          },
-          {
-            "title": "Services",
-            "path": "architecture/data-plane/service"
           }
         ]
       },
       {
-        "title": "Backend",
+        "title": "Data directory",
         "path": "architecture/backend"
       },
       {
@@ -165,7 +165,7 @@
         "path": "fundamentals/service"
       },
       {
-        "title": "Service identity basics",
+        "title": "Identity basics",
         "path": "fundamentals/identity"
       },
       {
@@ -190,7 +190,7 @@
         "path": "use-case"
       },
       {
-        "title": "API gateways",
+        "title": "API gateway",
         "path": "use-case/api-gateway"
       },
       {
@@ -393,7 +393,7 @@
                       },
 
                       {
-                        "title": "Snapshot agent config",
+                        "title": "Snapshot agent",
                         "path": "deploy/server/k8s/vault/data/snapshot-agent"
                       },
                       {
@@ -430,7 +430,7 @@
         ]
       },
       {
-        "title": "Deploy Consul clients or dataplanes",
+        "title": "Deploy workload agents",
         "routes": [
           {
             "title": "Overview",
@@ -461,13 +461,13 @@
                 "path": "deploy/workload/dataplane/k8s"
               },
               {
-                "title": "ECS",
+                "title": "AWS ECS",
                 "path": "deploy/workload/dataplane/ecs"
               }
             ]
           },
           {
-            "title": "ECS",
+            "title": "ECS tasks",
             "routes": [
               {
                 "title": "Configure task bind address",
