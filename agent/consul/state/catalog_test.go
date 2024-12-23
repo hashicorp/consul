@@ -13,15 +13,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -1963,81 +1963,289 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 	s := testStateStore(t)
 	setVirtualIPFlags(t, s)
 
-	// Attempt to assign manual virtual IPs to a service that doesn't exist - should be a no-op.
-	psn := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo", EnterpriseMeta: *acl.DefaultEnterpriseMeta()}}
-	found, svcs, err := s.AssignManualServiceVIPs(0, psn, []string{"7.7.7.7", "8.8.8.8"})
-	require.NoError(t, err)
-	require.False(t, found)
-	require.Empty(t, svcs)
-	serviceVIP, err := s.ServiceManualVIPs(psn)
-	require.NoError(t, err)
-	require.Nil(t, serviceVIP)
-
-	// Create the service registration.
-	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
-	ns1 := &structs.NodeService{
-		ID:             "foo",
-		Service:        "foo",
-		Address:        "1.1.1.1",
-		Port:           1111,
-		Connect:        structs.ServiceConnect{Native: true},
-		EnterpriseMeta: *entMeta,
+	newPSN := func(name, peer string) structs.PeeredServiceName {
+		return structs.PeeredServiceName{
+			ServiceName: structs.ServiceName{
+				Name:           name,
+				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+			},
+			Peer: peer,
+		}
 	}
 
-	// Service successfully registers into the state store.
-	testRegisterNode(t, s, 0, "node1")
-	require.NoError(t, s.EnsureService(1, "node1", ns1))
+	checkMaxIndexes := func(t *testing.T, expect, expectImported uint64) {
+		t.Helper()
+		tx := s.db.Txn(false)
+		defer tx.Abort()
 
-	// Make sure there's a virtual IP for the foo service.
-	vip, err := s.VirtualIPForService(psn)
-	require.NoError(t, err)
-	assert.Equal(t, "240.0.0.1", vip)
+		idx := maxIndexWatchTxn(tx, nil, tableServiceVirtualIPs)
+		require.Equal(t, expect, idx)
 
-	// No manual IP should be set yet.
-	serviceVIP, err = s.ServiceManualVIPs(psn)
-	require.NoError(t, err)
-	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
-	require.Empty(t, serviceVIP.ManualIPs)
+		entMeta := acl.DefaultEnterpriseMeta()
 
-	// Attempt to assign manual virtual IPs again.
-	found, svcs, err = s.AssignManualServiceVIPs(2, psn, []string{"7.7.7.7", "8.8.8.8"})
-	require.NoError(t, err)
-	require.True(t, found)
-	require.Empty(t, svcs)
-	serviceVIP, err = s.ServiceManualVIPs(psn)
-	require.NoError(t, err)
-	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
-	require.Equal(t, serviceVIP.ManualIPs, []string{"7.7.7.7", "8.8.8.8"})
+		importedIdx := maxIndexTxn(tx, partitionedIndexEntryName(tableServiceVirtualIPs+".imported", entMeta.PartitionOrDefault()))
+		require.Equal(t, expectImported, importedIdx)
+	}
 
-	// Register another service via config entry.
-	s.EnsureConfigEntry(3, &structs.ServiceResolverConfigEntry{
-		Kind: structs.ServiceResolver,
-		Name: "bar",
+	assignManual := func(
+		t *testing.T,
+		idx uint64,
+		psn structs.PeeredServiceName,
+		ips []string,
+		modified ...structs.PeeredServiceName,
+	) {
+		t.Helper()
+		found, svcs, err := s.AssignManualServiceVIPs(idx, psn, ips)
+		require.NoError(t, err)
+		require.True(t, found)
+		if len(modified) == 0 {
+			require.Empty(t, svcs)
+		} else {
+			require.ElementsMatch(t, modified, svcs)
+		}
+	}
+
+	checkVIP := func(
+		t *testing.T,
+		psn structs.PeeredServiceName,
+		expectVIP string,
+	) {
+		t.Helper()
+		// Make sure there's a virtual IP for the foo service.
+		vip, err := s.VirtualIPForService(psn)
+		require.NoError(t, err)
+		assert.Equal(t, expectVIP, vip)
+	}
+
+	checkManualVIP := func(
+		t *testing.T,
+		psn structs.PeeredServiceName,
+		expectIP string,
+		expectManual []string,
+		expectIndex uint64,
+	) {
+		t.Helper()
+		serviceVIP, err := s.ServiceManualVIPs(psn)
+		require.NoError(t, err)
+		require.Equal(t, expectIP, serviceVIP.IP.String())
+		if len(expectManual) == 0 {
+			require.Empty(t, serviceVIP.ManualIPs)
+		} else {
+			require.Equal(t, expectManual, serviceVIP.ManualIPs)
+		}
+		require.Equal(t, expectIndex, serviceVIP.ModifyIndex)
+	}
+
+	psn := newPSN("foo", "")
+
+	lastIndex := uint64(0)
+	nextIndex := func() uint64 {
+		lastIndex++
+		return lastIndex
+	}
+
+	testutil.RunStep(t, "assign to nonexistent service is noop", func(t *testing.T) {
+		useIdx := nextIndex()
+
+		// Attempt to assign manual virtual IPs to a service that doesn't exist - should be a no-op.
+		found, svcs, err := s.AssignManualServiceVIPs(useIdx, psn, []string{"7.7.7.7", "8.8.8.8"})
+		require.NoError(t, err)
+		require.False(t, found)
+		require.Empty(t, svcs)
+
+		serviceVIP, err := s.ServiceManualVIPs(psn)
+		require.NoError(t, err)
+		require.Nil(t, serviceVIP)
+
+		checkMaxIndexes(t, 0, 0)
 	})
 
-	psn2 := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "bar"}}
-	vip, err = s.VirtualIPForService(psn2)
-	require.NoError(t, err)
-	assert.Equal(t, "240.0.0.2", vip)
+	// Create the service registration.
+	var regIndex1 uint64
+	testutil.RunStep(t, "create service 1", func(t *testing.T) {
+		useIdx := nextIndex()
+		regIndex1 = useIdx
+
+		entMeta := acl.DefaultEnterpriseMeta()
+		ns1 := &structs.NodeService{
+			ID:             "foo",
+			Service:        "foo",
+			Address:        "1.1.1.1",
+			Port:           1111,
+			Connect:        structs.ServiceConnect{Native: true},
+			EnterpriseMeta: *entMeta,
+		}
+
+		// Service successfully registers into the state store.
+		testRegisterNode(t, s, useIdx, "node1")
+		require.NoError(t, s.EnsureService(useIdx, "node1", ns1))
+
+		// Make sure there's a virtual IP for the foo service.
+		checkVIP(t, psn, "240.0.0.1")
+
+		// No manual IP should be set yet.
+		checkManualVIP(t, psn, "0.0.0.1", []string{}, regIndex1)
+
+		checkMaxIndexes(t, regIndex1, 0)
+	})
+
+	// Attempt to assign manual virtual IPs again.
+	var assignIndex1 uint64
+	testutil.RunStep(t, "assign to existent service does something", func(t *testing.T) {
+		useIdx := nextIndex()
+		assignIndex1 = useIdx
+
+		// inserting in the wrong order to test the string sort
+		assignManual(t, useIdx, psn, []string{"7.7.7.7", "8.8.8.8", "6.6.6.6"})
+
+		checkManualVIP(t, psn, "0.0.0.1", []string{
+			"6.6.6.6", "7.7.7.7", "8.8.8.8",
+		}, assignIndex1)
+
+		checkMaxIndexes(t, assignIndex1, 0)
+	})
+
+	psn2 := newPSN("bar", "")
+
+	var regIndex2 uint64
+	testutil.RunStep(t, "create service 2", func(t *testing.T) {
+		useIdx := nextIndex()
+		regIndex2 = useIdx
+
+		// Register another service via config entry.
+		s.EnsureConfigEntry(useIdx, &structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "bar",
+		})
+
+		checkVIP(t, psn2, "240.0.0.2")
+
+		// No manual IP should be set yet.
+		checkManualVIP(t, psn2, "0.0.0.2", []string{}, regIndex2)
+
+		checkMaxIndexes(t, regIndex2, 0)
+	})
 
 	// Attempt to assign manual virtual IPs for bar, with one IP overlapping with foo.
 	// This should cause the ip to be removed from foo's list of manual IPs.
-	found, svcs, err = s.AssignManualServiceVIPs(4, psn2, []string{"7.7.7.7", "9.9.9.9"})
-	require.NoError(t, err)
-	require.True(t, found)
-	require.ElementsMatch(t, svcs, []structs.PeeredServiceName{psn})
+	var assignIndex2 uint64
+	testutil.RunStep(t, "assign to existent service and ip is removed from another", func(t *testing.T) {
+		useIdx := nextIndex()
+		assignIndex2 = useIdx
 
-	serviceVIP, err = s.ServiceManualVIPs(psn)
-	require.NoError(t, err)
-	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
-	require.Equal(t, []string{"8.8.8.8"}, serviceVIP.ManualIPs)
-	require.Equal(t, uint64(4), serviceVIP.ModifyIndex)
+		assignManual(t, useIdx, psn2, []string{"7.7.7.7", "9.9.9.9"}, psn)
 
-	serviceVIP, err = s.ServiceManualVIPs(psn2)
-	require.NoError(t, err)
-	require.Equal(t, "0.0.0.2", serviceVIP.IP.String())
-	require.Equal(t, []string{"7.7.7.7", "9.9.9.9"}, serviceVIP.ManualIPs)
-	require.Equal(t, uint64(4), serviceVIP.ModifyIndex)
+		checkManualVIP(t, psn, "0.0.0.1", []string{
+			"6.6.6.6", "8.8.8.8", // 7.7.7.7 was stolen by psn2
+		}, assignIndex2)
+		checkManualVIP(t, psn2, "0.0.0.2", []string{
+			"7.7.7.7", "9.9.9.9",
+		}, assignIndex2)
+
+		checkMaxIndexes(t, assignIndex2, 0)
+	})
+
+	psn3 := newPSN("gir", "peer1")
+
+	var regIndex3 uint64
+	testutil.RunStep(t, "create peered service 1", func(t *testing.T) {
+		useIdx := nextIndex()
+		regIndex3 = useIdx
+
+		// Create the service registration.
+		entMetaPeer := acl.DefaultEnterpriseMeta()
+		nsPeer1 := &structs.NodeService{
+			ID:             "gir",
+			Service:        "gir",
+			Address:        "9.9.9.9",
+			Port:           2222,
+			PeerName:       "peer1",
+			Connect:        structs.ServiceConnect{Native: true},
+			EnterpriseMeta: *entMetaPeer,
+		}
+
+		// Service successfully registers into the state store.
+		testRegisterPeering(t, s, useIdx, "peer1")
+		testRegisterNodeOpts(t, s, useIdx, "node9", func(n *structs.Node) error {
+			n.PeerName = "peer1"
+			return nil
+		})
+		require.NoError(t, s.EnsureService(useIdx, "node9", nsPeer1))
+
+		checkVIP(t, psn3, "240.0.0.3")
+
+		// No manual IP should be set yet.
+		checkManualVIP(t, psn3, "0.0.0.3", []string{}, regIndex3)
+
+		checkMaxIndexes(t, regIndex3, regIndex3)
+	})
+
+	// Assign manual virtual IPs to peered service.
+	var assignIndex3 uint64
+	testutil.RunStep(t, "assign to peered service and steal from non-peered", func(t *testing.T) {
+		useIdx := nextIndex()
+		assignIndex3 = useIdx
+
+		// 5.5.5.5 is stolen from psn
+		assignManual(t, useIdx, psn3, []string{"5.5.5.5", "6.6.6.6"}, psn)
+
+		checkManualVIP(t, psn, "0.0.0.1", []string{
+			"8.8.8.8", // 5.5.5.5 was stolen by psn3
+		}, assignIndex3)
+		checkManualVIP(t, psn2, "0.0.0.2", []string{
+			"7.7.7.7", "9.9.9.9",
+		}, assignIndex2)
+		checkManualVIP(t, psn3, "0.0.0.3", []string{
+			"5.5.5.5", "6.6.6.6",
+		}, assignIndex3)
+
+		checkMaxIndexes(t, assignIndex3, assignIndex3)
+	})
+
+	var assignIndex4 uint64
+	testutil.RunStep(t, "assign to non-peered service and steal from peered", func(t *testing.T) {
+		useIdx := nextIndex()
+		assignIndex4 = useIdx
+
+		// 6.6.6.6 is stolen from psn3
+		assignManual(t, useIdx, psn2, []string{
+			"7.7.7.7", "9.9.9.9", "6.6.6.6",
+		}, psn3)
+
+		checkManualVIP(t, psn, "0.0.0.1", []string{
+			"8.8.8.8", // 5.5.5.5 was stolen by psn3
+		}, assignIndex3)
+		checkManualVIP(t, psn2, "0.0.0.2", []string{
+			"6.6.6.6", "7.7.7.7", "9.9.9.9",
+		}, assignIndex4)
+		checkManualVIP(t, psn3, "0.0.0.3", []string{
+			"5.5.5.5",
+		}, assignIndex4)
+
+		checkMaxIndexes(t, assignIndex4, assignIndex4)
+	})
+
+	testutil.RunStep(t, "repeat the last write and no indexes should be bumped", func(t *testing.T) {
+		useIdx := nextIndex()
+
+		assignManual(t, useIdx, psn2, []string{
+			"7.7.7.7", "9.9.9.9", "6.6.6.6",
+		}) // no modified this time
+
+		// no changes
+		checkManualVIP(t, psn, "0.0.0.1", []string{
+			"8.8.8.8",
+		}, assignIndex3)
+		checkManualVIP(t, psn2, "0.0.0.2", []string{
+			"6.6.6.6", "7.7.7.7", "9.9.9.9",
+		}, assignIndex4)
+		checkManualVIP(t, psn3, "0.0.0.3", []string{
+			"5.5.5.5",
+		}, assignIndex4)
+
+		// no change
+		checkMaxIndexes(t, assignIndex4, assignIndex4)
+	})
 }
 
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {

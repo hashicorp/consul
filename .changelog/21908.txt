@@ -1,0 +1,3 @@
+```release-note:security
+Resolved issue where hcl would allow duplicates of the same key in acl policy configuration.
+```
