@@ -13,7 +13,7 @@ retract v0.7.2 // tag was mutated
 require (
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/consul/api v1.29.4
+	github.com/hashicorp/consul/api v1.31.0
 	github.com/hashicorp/consul/sdk v0.16.1
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
