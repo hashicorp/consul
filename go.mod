@@ -284,3 +284,8 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+replace (
+	github.com/boltdb/bolt => go.etcd.io/bbolt v1.3.7
+	go.etcd.io/bbolt => github.com/etcd-io/bbolt v1.3.7
+)
