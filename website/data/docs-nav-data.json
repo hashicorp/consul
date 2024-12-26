@@ -551,6 +551,10 @@
               {
                 "title": "Vault as storage backend",
                 "path": "secure/acl/token/vault-backend"
+              },
+              {
+                "title": "WAN federation",
+                "path": "secure/acl/token/federation"
               }
             ]
           },
@@ -699,7 +703,7 @@
       },
       {
         "title": "Audit logs",
-        "path": "secure/audit-log"
+        "href": "monitor/log/audit"
       },
       {
         "title": "Auto-config",
@@ -820,19 +824,19 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "manage/agent-rate-limit"
+            "path": "manage/rate-limit"
           },
           {
             "title": "Initialize rate limit settings",
-            "path": "manage/agent-rate-limit/initialize"
+            "path": "manage/rate-limit/initialize"
           },
           {
             "title": "Monitor traffic rate limits",
-            "path": "manage/agent-rate-limit/monitor"
+            "path": "manage/rate-limit/monitor"
           },
           {
             "title": "Set global traffic rate limits",
-            "path": "manage/agent-rate-limit/set-global"
+            "path": "manage/rate-limit/global"
           },
           {
             "title": "Limit traffic rates from source IP address",
@@ -841,7 +845,7 @@
               "type": "outlined",
               "color": "neutral"
             },
-            "path": "manage/agent-rate-limit/source-ip"
+            "path": "manage/rate-limit/source"
           }
         ]
       },
@@ -880,7 +884,7 @@
           },
           {
             "title": "Restore federated datacenters",
-            "path": "manage/disaster-recovery/wan-fed"
+            "path": "manage/disaster-recovery/federation"
           }
         ]
       },
@@ -1024,7 +1028,7 @@
           },
           {
             "title": "General Process",
-            "path": "upgrade/instructions/general-process"
+            "path": "upgrade/instructions/general"
           },
           {
             "title": "Upgrade to Consul v1.2.x",
@@ -1872,7 +1876,7 @@
           },
           {
             "title": "ACLs in federated datacenters",
-            "path": "east-west/wan-federation/acl"
+            "href": "secure/acl/token/federation"
           },
           {
             "title": "Vault backend on Kubernetes",
