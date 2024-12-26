@@ -233,7 +233,7 @@
           },
           {
             "title": "Required ports",
-            "href": "deploy/server/ports"
+            "href": "reference/architecture/ports"
           },
           {
             "title": "FIPS 140-2 compliance",
@@ -1045,13 +1045,8 @@
         ]
       },
       {
-        "title": "VMs",
-        "routes": [
-          {
-            "title": "Upgrade WAN-federated datacenter",
-            "path": "upgrade/vm/wan-fed"
-          }
-        ]
+        "title": "Upgrade WAN-federated datacenter",
+        "path": "upgrade/federated"
       },
       {
         "title": "Consul on Kubernetes",
