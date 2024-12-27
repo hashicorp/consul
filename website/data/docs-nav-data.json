@@ -1638,59 +1638,44 @@
             "path": "north-south/api-gateway"
           },
           {
-            "title": "Technical specifications",
+            "title": "Kubernetes",
             "routes": [
               {
-                "title": "Kubernetes",
-                "path": "north-south/api-gateway/tech-specs/k8s"
-              }
-            ]
-          },
-          {
-            "title": "Enable API gateway",
-            "routes": [
-              {
-                "title": "Kubernetes",
-                "path": "north-south/api-gateway/enable/k8s"
-              }
-            ]
-          },
-          {
-            "title": "Deploy listener",
-            "routes": [
-              {
-                "title": "VMs",
-                "path": "north-south/api-gateway/deploy-listener/vm"
+                "title": "Technical specifications",
+                "path": "north-south/api-gateway/k8s/tech-specs"
               },
               {
-                "title": "Kubernetes",
-                "path": "north-south/api-gateway/deploy-listener/k8s"
+                "title": "Enable API gateway",
+                "path": "north-south/api-gateway/k8s/enable"
+              },
+              {
+                "title": "Deploy listener",
+                "path": "north-south/api-gateway/k8s/listener"
+              },
+              {
+                "title": "Define route",
+                "path": "north-south/api-gateway/k8s/route"
+              },
+              {
+                "title": "Reroute traffic",
+                "path": "north-south/api-gateway/k8s/reroute"
+              },
+              {
+                "title": "Route to peered services",
+                "path": "north-south/api-gateway/k8s/peer"
               }
             ]
           },
           {
-            "title": "Define route",
+            "title": "VMs",
             "routes": [
               {
-                "title": "VMs",
-                "path": "north-south/api-gateway/define-route/vm"
+                "title": "Deploy listener",
+                "path": "north-south/api-gateway/vm/listener"
               },
               {
-                "title": "Kubernetes",
-                "routes": [
-                  {
-                    "title": "Define route",
-                    "path": "north-south/api-gateway/define-route/k8s"
-                  },
-                  {
-                    "title": "Reroute traffic",
-                    "path": "north-south/api-gateway/define-route/k8s/reroute"
-                  },
-                  {
-                    "title": "Route to peered services",
-                    "path": "north-south/api-gateway/define-route/k8s/peer"
-                  }
-                ]
+                "title": "Define route",
+                "path": "north-south/api-gateway/vm/route"
               }
             ]
           },
@@ -1744,7 +1729,7 @@
           },
           {
             "title": "Serve TLS certificate from external service",
-            "path": "north-south/ingress-gateway/tls"
+            "path": "north-south/ingress-gateway/external"
           }
         ]
       },
@@ -2741,7 +2726,16 @@
       },
       {
         "title": "Service",
-        "path": "reference/service"
+        "routes": [
+          {
+            "title": "Definitions",
+            "path": "reference/service"
+          },
+          {
+            "title": "Health checks",
+            "path": "reference/service/health-check"
+          }
+        ]
       },
       {
         "title": "Configuration entries",
@@ -2944,10 +2938,6 @@
             "path": "reference/ecs/server-json"
           }
         ]
-      },
-      {
-        "title": "Health checks",
-        "path": "reference/health-check"
       },
       {
         "title": "Consul on Kubernetes",
