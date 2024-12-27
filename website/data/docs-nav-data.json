@@ -465,23 +465,6 @@
                 "path": "deploy/workload/dataplane/ecs"
               }
             ]
-          },
-          {
-            "title": "ECS tasks",
-            "routes": [
-              {
-                "title": "Configure task bind address",
-                "path": "deploy/workload/ecs/bind-address"
-              },
-              {
-                "title": "Configure task route",
-                "path": "deploy/workload/ecs/task-route"
-              },
-              {
-                "title": "Migrate tasks with Terraform",
-                "path": "deploy/workload/ecs/migrate-task"
-              }
-            ]
           }
         ]
       }
@@ -1412,10 +1395,6 @@
                 "path": "register/external/terminating-gateway"
               },
               {
-                "title": "Deploy terminating gateway",
-                "path": "register/external/terminating-gateway/deploy"
-              },
-              {
                 "title": "Kubernetes",
                 "path": "register/external/terminating-gateway/k8s"
               }
@@ -1559,11 +1538,7 @@
           },
           {
             "title": "Invoke Lambda functions from services",
-            "path": "connect/lambda/invoke-function"
-          },
-          {
-            "title": "Invoke services from Lambda functions",
-            "path": "connect/lambda/invoke-service"
+            "path": "connect/lambda/function"
           }
         ]
       },
@@ -1622,7 +1597,7 @@
           },
           {
             "title": "Develop and debug",
-            "path": "connect/troubleshoot/develop-debug"
+            "path": "connect/troubleshoot/debug"
           },
           {
             "title": "Service-to-service troubleshooting",
@@ -1728,12 +1703,7 @@
             "routes": [
               {
                 "title": "Encrypt traffic",
-                "routes": [
-                  {
-                    "title": "Virtual machines (VMs)",
-                    "path": "north-south/api-gateway/secure-traffic/encrypt/vm"
-                  }
-                ]
+                "path": "north-south/api-gateway/secure-traffic/encrypt"
               },
               {
                 "title": "Verify requests with JWTs",
@@ -1774,7 +1744,7 @@
           },
           {
             "title": "Serve TLS certificate from external service",
-            "path": "north-south/ingress-gateway/external"
+            "path": "north-south/ingress-gateway/tls"
           }
         ]
       },
@@ -2170,7 +2140,7 @@
             "path": "automate/kv"
           },
           {
-            "title": "KV store interactions",
+            "title": "Use KV store",
             "path": "automate/kv/store"
           }
         ]
@@ -2206,7 +2176,7 @@
         ]
       },
       {
-        "title": "Infrastructure",
+        "title": "Infrastructure automation",
         "routes": [
           {
             "title": "Consul-Terraform-Sync overview",
@@ -2278,11 +2248,11 @@
         ]
       },
       {
-        "title": "Session",
+        "title": "Sessions",
         "path": "automate/session"
       },
       {
-        "title": "Watch",
+        "title": "Watches",
         "path": "automate/watch"
       }
     ]
@@ -2426,7 +2396,7 @@
         "href": "east-west/k8s"
       },
       {
-        "title": "Secure service mesh",
+        "title": "Secure services",
         "href": "secure-mesh/k8s"
       },
       {
@@ -2556,7 +2526,7 @@
         "title": "HashiCorp Vault",
         "routes": [
           {
-            "title": "Consul on Kubernertes",
+            "title": "Consul on Kubernetes",
             "path": "integrate/vault/k8s"
           }
         ]
@@ -2794,19 +2764,19 @@
           },
           {
             "title": "Gateway CRD",
-            "path": "reference/config-entry/gateway"
+            "href": "reference/config-entry/gateway"
           },
           {
             "title": "GatewayClass CRD",
-            "path": "reference/config-entry/gatewayclass"
+            "href": "reference/config-entry/gatewayclass"
           },
           {
             "title": "GatewayClassConfig CRD",
-            "path": "reference/config-entry/gatewayclassconfig"
+            "href": "reference/config-entry/gatewayclassconfig"
           },
           {
             "title": "GatewayPolicy CRD",
-            "path": "reference/config-entry/gatewaypolicy"
+            "href": "reference/config-entry/gatewaypolicy"
           },
           {
             "title": "HTTP route",
@@ -2830,7 +2800,7 @@
           },
           {
             "title": "MeshService CRD",
-            "path": "reference/config-entry/meshservice"
+            "href": "reference/config-entry/meshservice"
           },
           {
             "title": "Proxy defaults",
@@ -2842,19 +2812,19 @@
           },
           {
             "title": "Routes CRD",
-            "path": "reference/config-entry/routes"
+            "href": "reference/config-entry/routes"
           },
           {
             "title": "RouteAuthFilter CRD",
-            "path": "reference/config-entry/routeauthfilter"
+            "href": "reference/config-entry/routeauthfilter"
           },
           {
             "title": "RouteRetryFilter CRD",
-            "path": "reference/config-entry/routeretryfilter"
+            "href": "reference/config-entry/routeretryfilter"
           },
           {
             "title": "RouteTimeoutFilter CRD",
-            "path": "reference/config-entry/routetimeoutfilter"
+            "href": "reference/config-entry/routetimeoutfilter"
           },
           {
             "title": "Sameness group",
