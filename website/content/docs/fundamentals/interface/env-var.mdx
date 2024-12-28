@@ -1,0 +1,59 @@
+---
+layout: docs
+page_title: Environment variables for Consul
+description: >-
+  Consul reads environment variables to define behavior defaults. Learn how to set the local Consul agent address and an ACL token to environment variables.
+---
+
+# Environment variables for Consul
+
+This page describes important environment variables that are commonly used during routine Consul operations.
+
+## Introduction
+
+Consul's CLI reads environment variables to define behavior defaults. Although CLI flags take precedence when used, environment variables can simplify interaction and configuration workflows.
+
+The Consul documentation and tutorials usually assume the following environment variables are already configured or include commands to configure them for you.
+
+- The HTTP address of the local Consul agent for interactions, set to `CONSUL_HTTP_ADDR`
+- An ACL token with sufficient permissions for the operation, set to `CONSUL_HTTP_TOKEN` or `CONSUL_HTTP_TOKEN_FILE`
+
+When these environment variables are not set, you must include a combination of the `-http-addr` flag and the `-token` or `-token-file` flag with each command you run. We recommend setting these environment variables at the start of every Consul interaction.
+
+Consul supports additional environment variables that you can use to automate infrastructure configuration. For a full list of environmental variables, refer to the [Consul CLI documentation](/consul/commands).
+
+## `CONSUL_HTTP_ADDR`
+
+Set this variable to the HTTP or HTTPS address of the local Consul agent. This address is specified as a URI with an optional scheme.
+
+```plaintext
+CONSUL_HTTP_ADDR=127.0.0.1:8500
+```
+
+or as a Unix socket path:
+
+```plaintext
+CONSUL_HTTP_ADDR=unix:///var/run/consul_http.sock
+```
+
+## `CONSUL_HTTP_TOKEN`
+
+Set this variable to the value of an ACL token. If the ACL system is not enabled, you do not need to set this variable.
+
+```plaintext
+CONSUL_HTTP_TOKEN=aba7cbe5-879b-999a-07cc-2efd9ac0ffe
+```
+
+## `CONSUL_HTTP_TOKEN_FILE`
+
+Set this variable to the path to a file that contains an ACL token. If the ACL system is not enabled, you do not need to set this variable.
+
+```plaintext
+CONSUL_HTTP_TOKEN_FILE=/path/to/consul.token
+```
+
+## Next steps
+
+To learn more about the Consul CLI and how to use it, refer to [Consul CLI fundamentals](/consul/docs/fundamentals/cli).
+
+To get practical experience with configuration workflows that use these environment variables, complete the [Deploy Consul on VMs tutorial](consul/tutorials/get-started-vms/virtual-machine-gs-deploy) in the [Get started on VMs tutorial collection](/consul/tutorials/get-started-vms).

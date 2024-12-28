@@ -1,0 +1,21 @@
+---
+layout: docs
+page_title: Raft architecture
+description: >-
+  Consul ensures a consistent state using the Raft protocol. A quorum, or a majority of server agents with one leader, agree to state changes before committing to the state log. Learn about the Raft architecture in Consul and its requirements.
+---
+
+# Raft architecture
+
+Raft is a consensus algorithm that is based on
+[Paxos](https://en.wikipedia.org/wiki/Paxos_%28computer_science%29). Compared
+to Paxos, Raft is designed to have fewer states and a simpler, more
+understandable algorithm.
+
+## Raft index
+
+How the Raft index works
+
+## Backend
+
+BoltDB / WAL backend

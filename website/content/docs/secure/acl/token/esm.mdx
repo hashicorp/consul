@@ -13,7 +13,6 @@ This topic describes how to create a token for the Consul external service monit
 
 Consul external service monitor (ESM) can monitor third-party or external services in contexts where you are unable to run a Consul agent. To learn more about Consul ESM, refer to the [Register External Services with Consul Service Discovery](/consul/tutorials/developer-discovery/service-registration-external-services) tutorial.
 
-
 ## Requirements
 
 Core ACL functionality is available in all versions of Consul.
@@ -190,7 +189,6 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 </Tabs>
 
-
 ## Consul ESM token in Consul Enterprise
 
 To create a token for Consul ESM, you must define a policy, register the policy with Consul, and link the policy to a token.
@@ -332,7 +330,6 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 </Tab>
 
 </Tabs>
-
 
 ### Link the policy to a token
 
