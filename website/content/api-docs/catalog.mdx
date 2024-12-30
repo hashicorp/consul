@@ -301,7 +301,7 @@ $ curl \
 
 This endpoint and returns the nodes registered in a given datacenter.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path             | Produces           |
 | ------ | ---------------- | ------------------ |
@@ -337,7 +337,7 @@ The corresponding CLI command is [`consul catalog nodes`](/consul/commands/catal
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -399,7 +399,7 @@ the following selectors and filter operations being supported:
 
 This endpoint returns the services registered in a given datacenter.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
@@ -434,7 +434,7 @@ The corresponding CLI command is [`consul catalog services`](/consul/commands/ca
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Filtering
 
@@ -506,7 +506,7 @@ a given service.
 
 This endpoint returns the nodes providing a service in a given datacenter.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                             | Produces           |
 | ------ | -------------------------------- | ------------------ |
@@ -726,7 +726,7 @@ This will include both proxies and native integrations. A service may
 register both mesh-capable and incapable services at the same time,
 so this endpoint may be used to filter only the mesh-capable endpoints.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                        | Produces           |
 | ------ | --------------------------- | ------------------ |
@@ -739,7 +739,7 @@ Parameters and response format are the same as
 
 This endpoint returns the node's registered services.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                       | Produces           |
 | ------ | -------------------------- | ------------------ |
@@ -868,7 +868,7 @@ top level Node object. The following selectors and filter operations are support
 
 This endpoint returns the node's registered services.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                                | Produces           |
 | ------ | ----------------------------------- | ------------------ |
@@ -1009,7 +1009,7 @@ top level object. The following selectors and filter operations are supported:
 
 This endpoint returns the services associated with an ingress gateway or terminating gateway.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path                                 | Produces           |
 | ------ | ------------------------------------ | ------------------ |

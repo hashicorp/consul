@@ -71,7 +71,7 @@ The ACL required depends on the config entry being written:
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you apply.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Payload
 
@@ -152,7 +152,7 @@ The ACL required depends on the config entry kind being read:
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you lookup
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -178,7 +178,7 @@ $ curl \
 
 This endpoint returns all config entries of the given kind.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path            | Produces           |
 | ------ | --------------- | ------------------ |
@@ -232,7 +232,7 @@ The corresponding CLI command is [`consul config list`](/consul/commands/config/
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entries you lookup.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 
@@ -327,7 +327,7 @@ The corresponding CLI command is [`consul config delete`](/consul/commands/confi
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the config entry you delete.
   You can also [specify the namespace through other methods](#methods-to-specify-namespace).
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

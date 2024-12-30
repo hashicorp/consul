@@ -231,7 +231,7 @@ to the nature of gossip, this is eventually consistent: the results may differ
 by agent. The strongly consistent view of nodes is instead provided by
 `/v1/catalog/nodes`.
 
-@include 'http_api_results_filtered_by_acls.mdx'
+@include 'legacy/http_api_results_filtered_by_acls.mdx'
 
 | Method | Path             | Produces           |
 | ------ | ---------------- | ------------------ |
@@ -261,7 +261,7 @@ The corresponding CLI command is [`consul members`](/consul/commands/members).
   network segment). When querying a server, setting this to the special string `_all`
   will show members in all segments.
 
-@include 'http-api-query-parms-partition.mdx'
+@include 'legacy/http-api-query-parms-partition.mdx'
 
 ### Sample Request
 

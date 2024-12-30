@@ -27,7 +27,7 @@ The terminating gateway token must be linked to policies that grant the appropri
 * `service:read` for all services and `node:read` for all nodes in order to discover and route to services
 * `agent:read` to enable the `consul connect envoy` CLI command to automatically discover gRPC settings from the Consul agent. If this command is not used to start the gateway or if the Consul agent uses the default gRPC settings, then you can omit the `agent:read` permission.
 
-@include 'create-token-requirements.mdx'
+@include 'legacy/create-token-requirements.mdx'
 
 ## Consul CE
 

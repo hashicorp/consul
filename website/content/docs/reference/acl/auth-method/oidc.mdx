@@ -29,7 +29,7 @@ Both the [`jwt`](/consul/docs/secure-consul/acl/auth-methods/jwt) and the
 [`oidc`](/consul/docs/secure-consul/acl/auth-methods/oidc) auth method types allow additional
 processing of the claims data in the JWT.
 
-@include 'jwt_or_oidc.mdx'
+@include 'legacy/jwt_or_oidc.mdx'
 
 ## Config parameters
 
@@ -212,4 +212,4 @@ be tricky to debug why things aren't working. Some tips for setting up OIDC:
   claims are what you expect. Since claims data is logged verbatim and may
   contain sensitive information, this option should not be used in production.
 
-@include 'jwt_claim_mapping_details.mdx'
+@include 'legacy/jwt_claim_mapping_details.mdx'

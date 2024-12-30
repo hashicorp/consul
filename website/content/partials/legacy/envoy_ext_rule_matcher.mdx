@@ -1,0 +1,9 @@
+<!-- Potentially adapt to all conf refs that use this matching scheme-->
+| Rule | Description | Data type | Default |
+| ---  | ---         | ---       | ---     |
+| `Contains` | Specifies a string that the input string must contain. | String | N/A |
+| `Exact` | Specifies a string that the input string must match exactly. | String | N/A |
+| `IgnoreCase` | Directs Envoy to ignore capitalization. If set to `true`, the other matching rules in the configuration are not case sensitive. This rule does not affect `SafeRegex`. | Boolean | `false` |
+| `Prefix` | Specifies a string that the input string must begin with. | String | N/A |
+| `SafeRegex` | Specifies a regular expression for matching the input string programmatically. Envoy supports [Google's RE2 regex engine](https://github.com/google/re2/wiki/Syntax). | String | N/A |
+| `Suffix` | Specifies a string that the input string must end with. | String | N/A |
