@@ -1329,7 +1329,7 @@
               },
               {
                 "title": "Consul Enterprise configuration",
-                "path": "register/service/ecs/enterprise"
+                "href": "enterprise/ecs"
               },
               {
                 "title": "Register tasks with Terraform",
@@ -1539,6 +1539,10 @@
           {
             "title": "Invoke Lambda functions from services",
             "path": "connect/lambda/function"
+          },
+          {
+            "title": "Invoke services from Lambda functions",
+            "path": "connect/lambda/service"
           }
         ]
       },
@@ -2264,7 +2268,7 @@
           },
           {
             "title": "Automated entitlement utilization",
-            "path": "enterprise/license/automated-entitlement-utilization"
+            "path": "enterprise/license/reporting"
           },
           {
             "title": "FAQ",
@@ -2441,6 +2445,10 @@
       {
         "title": "Discover services",
         "href": "discover/ecs"
+      },
+      {
+        "title": "Connect services",
+        "href": "connect/ecs"
       }
     ]
   },
