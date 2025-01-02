@@ -9,7 +9,7 @@ description: >-
 
 This page provides reference information for service resolver configuration entries. Configure and apply service resolvers to create named subsets of service instances and define their behavior when satisfying upstream requests.
 
-Refer to [L7 traffic management overview](/consul/docs/connect/manage-traffic) for additional information.
+Refer to [L7 traffic management overview](/consul/docs/manage-traffic) for additional information.
 
 ## Configuration model
 
@@ -554,7 +554,7 @@ Specifies the cluster with an active cluster peering connection at the redirectâ
 
 Sets a mode for the service that allows instances to prioritize upstream targets that are in the same network region and zone. You can specify the following string values for the `mode` field:
 
-- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `Locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `Locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 #### Values
 
@@ -1027,7 +1027,7 @@ Specifies the cluster with an active cluster peering connection at the redirectâ
 
 Sets a mode for the service that allows instances to prioritize upstream targets that are in the same network region and zone. You can specify the following string values for the `mode` field:
 
-- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 #### Values
 

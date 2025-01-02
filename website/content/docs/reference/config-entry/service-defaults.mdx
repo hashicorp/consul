@@ -569,7 +569,7 @@ Specifies a set of custom key-value pairs to add to the [Consul KV](/consul/docs
 
 Specifies the default protocol for the service. In service mesh use cases, the `protocol` configuration is required to enable the following features and components:
 
-- [observability](/consul/docs/connect/observability)
+- [observability](/consul/docs/observe/tech-specs)
 - [service splitter configuration entry](/consul/docs/reference/config-entry/service-splitter)
 - [service router configuration entry](/consul/docs/reference/config-entry/service-router)
 - [L7 intentions](/consul/docs/connect/intentions#l7-traffic-intentions)
@@ -662,7 +662,7 @@ The following table describes the parameters you can specify in the `Routes` map
 | ---       | ---         | ---       | ---     |
 | `PathExact` | Specifies the exact path to match on the request path. When using this field, do not configure `PathPrefix` or `PathRegex` in the same `Routes` map. | String | None |
 | `PathPrefix` | Specifies the path prefix to match on the request path. When using this field, do not configure `PathExact` or `PathRegex` in the same `Routes` map. | String | None |
-| `PathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same `Routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
+| `PathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same `Routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/reference/proxy/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `RequestsPerSecond` | Specifies the average number of requests per second allowed to the service. Overrides the  [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
 | `RequestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `Routes.RequestsPerSecond` parameter. Overrides the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
 
@@ -717,7 +717,7 @@ Specifies the peer name of the upstream service that the configuration applies t
 ### `UpstreamConfig.Overrides[].Protocol`
 Specifies the protocol to use for requests to the upstream listener.
 
-We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -729,7 +729,7 @@ We recommend configuring the protocol in the main [`Protocol`](#protocol) field 
 
 Specifies how long in milliseconds that the service should attempt to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -805,7 +805,7 @@ Specifies configurations that set default upstream settings. For information abo
 
 Specifies default protocol for upstream listeners.
 
-We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 - Default: None
 - Data type: String
@@ -814,7 +814,7 @@ We recommend configuring the protocol in the main [`Protocol`](#protocol) field 
 
 Specifies how long in milliseconds that all services should continue attempting to establish an upstream connection before timing out.
 
-For non-Kubernetes environments, we recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
+For non-Kubernetes environments, we recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
 - Default: `5000`
 - Data type: Integer
@@ -884,7 +884,7 @@ You can specify the following string values for the `MutualTLSMode` field:
 
 ### `EnvoyExtensions`
 
-List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
+List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/envoy-extension) for additional information.
 
 The following table describes how to configure values in the `EnvoyExtensions` map:
 
@@ -898,7 +898,7 @@ The following table describes how to configure values in the `EnvoyExtensions` m
 
 ### `Destination{}`
 
-Configures the destination for service traffic through terminating gateways. Refer to [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for additional information.
+Configures the destination for service traffic through terminating gateways. Refer to [Terminating Gateway](/consul/docs/north-south/terminating-gateway) for additional information.
 
 To use the `Destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
 
@@ -1031,7 +1031,7 @@ Map that contains the details about the `ServiceDefaults` configuration entry. T
 
 Specifies the default protocol for the service. In service service mesh use cases, the `protocol` configuration is required to enable the following features and components:
 
-- [observability](/consul/docs/connect/observability)
+- [observability](/consul/docs/observe/tech-specs)
 - [`service-splitter` configuration entry](/consul/docs/reference/config-entry/service-splitter)
 - [`service-router` configuration entry](/consul/docs/reference/config-entry/service-router)
 - [L7 intentions](/consul/docs/connect/intentions#l7-traffic-intentions)
@@ -1128,7 +1128,7 @@ The following table describes the parameters you can specify in the `routes` map
 | ---       | ---         | ---       | ---     |
 | `pathExact` | Specifies the exact path to match on the request path. When using this field, do not configure `pathPrefix` or `pathRegex` in the same `routes` map. | String | None |
 | `pathPrefix` | Specifies the path prefix to match on the request path. When using this field, do not configure `pathExact` or `pathRegex` in the same `routes` map. | String | None |
-| `pathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same `routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
+| `pathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same `routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/reference/proxy/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `requestsPerSecond` | Specifies the average number of requests per second allowed to the service. Overrides the [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
 | `requestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `routes.requestsPerSecond` parameter. Overrides the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
 
@@ -1181,7 +1181,7 @@ Specifies the peer name of the upstream service that the configuration applies t
 
 ### `spec.upstreamConfig.overrides[].protocol`
 
-Specifies the protocol to use for requests to the upstream listener. We recommend configuring the protocol in the main [`protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+Specifies the protocol to use for requests to the upstream listener. We recommend configuring the protocol in the main [`protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1193,7 +1193,7 @@ Specifies the protocol to use for requests to the upstream listener. We recommen
 
 Specifies how long in milliseconds that the service should attempt to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1262,7 +1262,7 @@ Map of configurations that set default upstream configurations for the service. 
 
 ### `spec.upstreamConfig.defaults.protocol`
 
-Specifies default protocol for upstream listeners. We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+Specifies default protocol for upstream listeners. We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1273,7 +1273,7 @@ Specifies default protocol for upstream listeners. We recommend configuring the 
 
 Specifies how long in milliseconds that all services should continue attempting to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for upstream destination services. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for upstream destination services. Doing so enables you to leverage [L7 features](/consul/docs/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1360,7 +1360,7 @@ You can specify the following string values for the `MutualTLSMode` field:
 
 ### `spec.envoyExtensions`
 
-List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
+List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/envoy-extension) for additional information.
 
 #### Values
 
@@ -1376,7 +1376,7 @@ The following table describes how to configure values in the `envoyExtensions` m
 
 ### `spec.destination`
 
-Map of configurations that specify one or more destinations for service traffic routed through terminating gateways. Refer to [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for additional information.
+Map of configurations that specify one or more destinations for service traffic routed through terminating gateways. Refer to [Terminating Gateway](/consul/docs/north-south/terminating-gateway) for additional information.
 
 To use the `destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
 

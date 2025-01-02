@@ -16,7 +16,7 @@ This topic describes how to configure Consul API Gateway to reroute HTTP request
 
 ## Configuration
 
-Specify the following fields in your `Route` configuration. Refer to the [Route configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes) for details about the parameters.
+Specify the following fields in your `Route` configuration. Refer to the [Route configuration reference](/consul/docs/reference/k8s/api-gateway/routes) for details about the parameters.
 
 - [`rules.filters.type`](/consul/docs/connect/gateways/api-gateway/configuration/routes#rules-filters-type): Set this parameter to `URLRewrite` to instruct Consul API Gateway to rewrite the URL when specific conditions are met. 
 - [`rules.filters.urlRewrite`](/consul/docs/connect/gateways/api-gateway/configuration/routes#rules-filters-urlrewrite): Specify the `path` configuration.

@@ -185,7 +185,7 @@ Check the following Envoy listener statistics for the sidecar proxy to determine
 - The `tcp.permissive_public_listener.*` statistics indicate non-mTLS traffic. If these metrics are static over a sufficient period of time, that indicates the sidecar is not receiving non-mTLS traffic.
 - The `tcp.public_listener.*` statistics indicate mTLS traffic. If incoming traffic is expected to this service and these statistics are changing, then the sidecar is receiving mTLS traffic.
 
-Refer to the [service mesh observability overview](/consul/docs/connect/observability) and [metrics configuration for Consul on Kubernetes documentation](/consul/docs/observe/mesh/k8s) for additional information.
+Refer to the [service mesh observability overview](/consul/docs/observe/tech-specs) and [metrics configuration for Consul on Kubernetes documentation](/consul/docs/observe/mesh/k8s) for additional information.
 
 If your service is still receiving non-mTLS traffic, complete the following steps to determine the source of the non-mTLS traffic:
 

@@ -6,7 +6,7 @@ description: Learn how to use JSON web tokens (JWT) to verify requests from exte
 
 # Use JWTs to verify requests to API gateways on Kubernetes
 
-This topic describes how to use JSON web tokens (JWT) to verify requests to API gateways deployed to Kubernetes-orchestrated containers. If your API gateway is deployed to virtual machines, refer to [Use JWTs to verify requests to API gateways on VMs](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms).
+This topic describes how to use JSON web tokens (JWT) to verify requests to API gateways deployed to Kubernetes-orchestrated containers. If your API gateway is deployed to virtual machines, refer to [Use JWTs to verify requests to API gateways on VMs](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm).
 
 <EnterpriseAlert> This feature is available in Consul Enterprise. </EnterpriseAlert>
 
@@ -133,7 +133,7 @@ spec:
 </Tab>
 </Tabs>
 
-For more information about the fields you can configure, refer to [`GatewayPolicy` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy).
+For more information about the fields you can configure, refer to [`GatewayPolicy` configuration reference](/consul/docs/reference/k8s/api-gateway/gatewaypolicy).
 
 ## Define a RouteAuthFilter
 
@@ -169,7 +169,7 @@ spec:
 
 </CodeBlockConfig>
 
-For more information about the fields you can configure, refer to [`RouteAuthFilter` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter).
+For more information about the fields you can configure, refer to [`RouteAuthFilter` configuration reference](/consul/docs/reference/k8s/api-gateway/routeauthfilter).
 
 ## Attach the auth filter to your HTTP routes
 

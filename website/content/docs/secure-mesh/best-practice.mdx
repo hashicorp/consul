@@ -30,7 +30,7 @@ of Consul.
 
 Consul should be configured with a default deny intention policy. This forces
 all service-to-service communication to be explicitly
-allowed via an allow [intention](/consul/docs/connect/intentions).
+allowed via an allow [intention](/consul/docs/secure-mesh/intention).
 
 One advantage of using a default deny policy in combination with specific "allow" rules
 is that a failure of intentions due to misconfiguration always results in
@@ -117,8 +117,8 @@ unauthorized access.
 ### Prevent Non-Mesh Traffic to Services
 
 For services that are using
-[proxies](/consul/docs/connect/proxies)
-(are not [natively integrated](/consul/docs/connect/native)),
+[proxies](/consul/docs/connect/proxy)
+(are not [natively integrated](/consul/docs/automate/native)),
 network access via their unencrypted listeners must be restricted
 to only the proxy. This requires at a minimum restricting the listener
 to bind to loopback only. More complex solutions may involve using
@@ -133,7 +133,7 @@ mechanisms must be used.
 
 For developer or operator access to a service, we recommend
 using a local service mesh proxy. This is documented in the
-[development and debugging guide](/consul/docs/connect/dev).
+[development and debugging guide](/consul/docs/troubleshoot/mesh).
 
 **If non-proxy traffic can communicate with the service**, this traffic
 will not be encrypted or authorized via service mesh.

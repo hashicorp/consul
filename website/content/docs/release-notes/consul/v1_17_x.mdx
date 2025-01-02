@@ -29,7 +29,7 @@ We are pleased to announce the following Consul updates.
 
   This enables operators to reduce service-to-service latency, which helps improve overall service performance and decrease infrastructure costs.
 
-  Refer to the [locality-aware service mesh routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams) documentation for more information.
+  Refer to the [locality-aware service mesh routing](/consul/docs/manage-traffic/route-local) documentation for more information.
 
 - **Sameness groups (Enterprise):** Introduced in 1.16, sameness groups are a user-defined set of partitions that Consul uses to identify services that have the same name but are in different administrative partitions as being the same services. You can use sameness groups to create a blanket failover policy for deployments with cluster peering connections. Sameness group is generally available in Consul 1.17.
 
@@ -41,13 +41,13 @@ We are pleased to announce the following Consul updates.
 
   Administrators can control access to services from outside the service mesh without having to modify services that do not support JWT-based authentication/authorization.
 
-  Refer to the API gateway JWT documentation for [virtual machines](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) and [Kubernetes-orchestrated](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) networks for more information.
+  Refer to the API gateway JWT documentation for [virtual machines](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) and [Kubernetes-orchestrated](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s) networks for more information.
 
 - **Traffic rate limiting for services (Enterprise):**  You can now configure Consul service mesh to limit the rate of HTTP requests to services. Configure rate limiting per service and apply them per service instance. Operators can set HTTP request rate limits for the service instance or separate rate limits for specific URL paths. The rate limiting configuration includes settings for requests per second (RPS) as well as maximum request burst size.
 
   Rate limiting helps operators protect service instances from becoming overloaded with requests. They also enable operators to define criteria for allowing traffic to service instances and ensure service capacity is shared fairly.
 
-  For more information, refer to the [rate limiting](/consul/docs/connect/manage-traffic/limit-request-rates) documentation.
+  For more information, refer to the [rate limiting](/consul/docs/manage-traffic/rate-limit) documentation.
 
 - **Simplified service mesh deployments on Amazon ECS:** Consul on ECS now leverages a simplified service mesh deployment architecture that eliminates the need to deploy Consul clients per task on Amazon ECS. The new architecture deploys a Consul Dataplane container that is injected as a sidecar in the ECS task. This dataplane container image packages both an Envoy container and Consul dataplane binary.
 
@@ -72,7 +72,7 @@ We are pleased to announce the following Consul updates.
 
 ## What's removed
 
-- **Legacy API Gateway support is removed**: The Consul API Gateway that was previously packaged as `consul-api-gateway`, released separately from Consul K8s, and deprecated in Consul v1.16.x is now removed. This gateway is referred to as the _legacy API Gateway_. As of Consul v1.17.0, you must [install](/consul/docs/connect/gateways/api-gateway/install-k8s) the _native API Gateway_ and configure it using the [`connectInject.apiGateway`](/consul/docs/k8s/helm#apigateway) stanza. 
+- **Legacy API Gateway support is removed**: The Consul API Gateway that was previously packaged as `consul-api-gateway`, released separately from Consul K8s, and deprecated in Consul v1.16.x is now removed. This gateway is referred to as the _legacy API Gateway_. As of Consul v1.17.0, you must [install](/consul/docs/north-south/api-gateway/k8s/enable) the _native API Gateway_ and configure it using the [`connectInject.apiGateway`](/consul/docs/k8s/helm#apigateway) stanza. 
 
 ## Upgrading
 

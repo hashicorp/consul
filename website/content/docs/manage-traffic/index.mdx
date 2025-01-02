@@ -14,7 +14,7 @@ This topic provides overview information about the application layer traffic man
 Consul service mesh allows you to divide application layer traffic between different subsets of service instances. You can leverage L7 traffic management capabilities to perform complex processes, such as configuring backup services for failover scenarios, canary and A-B testing, blue-green deployments, and soft multi-tenancy in which production, QA, and staging environments share compute resources. L7 traffic management with Consul service mesh allows you to designate groups of service instances in the Consul catalog smaller than all instances of single service and configure when that subset should receive traffic.
 
 You cannot manage L7 traffic with the [built-in proxy](/consul/docs/reference/proxy/built-in),
-[native proxies](/consul/docs/connect/native), or some [Envoy proxy escape hatches](/consul/docs/reference/proxy/envoy#escape-hatch-overrides).
+[native proxies](/consul/docs/automate/native), or some [Envoy proxy escape hatches](/consul/docs/reference/proxy/envoy#escape-hatch-overrides).
 
 ## Discovery chain
 
@@ -24,7 +24,7 @@ Consul uses a series of stages to discover service mesh proxy upstreams. Each st
 - splitting 
 - resolution 
 
-For information about integrating service mesh proxy upstream discovery using the discovery chain, refer to [Discovery Chain for Service Mesh Traffic Management](/consul/docs/connect/manage-traffic/discovery-chain).
+For information about integrating service mesh proxy upstream discovery using the discovery chain, refer to [Discovery Chain for Service Mesh Traffic Management](/consul/docs/manage-traffic/discovery-chain).
 
 The Consul UI shows discovery chain stages in the **Routing** tab of the **Services** page:
 
@@ -79,4 +79,4 @@ Service resolver configuration entries can also process network layer, also call
 
 ## Locality-aware routing
 
-By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network regions and zones. You can configure Consul to route requests to upstreams in the same region and zone, which reduces latency and transfer costs. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network regions and zones. You can configure Consul to route requests to upstreams in the same region and zone, which reduces latency and transfer costs. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.

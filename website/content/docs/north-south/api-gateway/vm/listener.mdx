@@ -6,7 +6,7 @@ description: Learn how to configure and Consul API gateways and gateway listener
 
 # Deploy API gateway listeners to virtual machines
 
-This topic describes how to deploy Consul API gateway listeners to networks that operate in virtual machine (VM) environments. If you want to implement API gateway listeners in a Kubernetes environment, refer to [Deploy API gateway listeners to Kubernetes](/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s).
+This topic describes how to deploy Consul API gateway listeners to networks that operate in virtual machine (VM) environments. If you want to implement API gateway listeners in a Kubernetes environment, refer to [Deploy API gateway listeners to Kubernetes](/consul/docs/north-south/api-gateway/k8s/listener).
 
 ## Overview
 
@@ -19,11 +19,11 @@ The following steps describe the general workflow for deploying a Consul API gat
 
 ### Encryption
 
-To encrypt traffic between the external client and the service that the API gateway routes traffic to, define an inline certificate configuration and attach it to your listeners. Refer to [Encrypt API gateway traffic on virtual machines](/consul/docs/connect/gateways/api-gateway/secure-traffic/encrypt-vms) for additional information.
+To encrypt traffic between the external client and the service that the API gateway routes traffic to, define an inline certificate configuration and attach it to your listeners. Refer to [Encrypt API gateway traffic on virtual machines](/consul/docs/north-south/api-gateway/secure-traffic/encrypt) for additional information.
 
 ### Routes
 
-After deploying the gateway, attach [HTTP](/consul/docs/reference/config-entry/http-route) routes and [TCP](/consul/docs/reference/config-entry/tcp-route) routes to listeners defined in the gateway to control how requests route to services in the network. Refer to [Define API gateway routes on VMs](/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms) for additional information.
+After deploying the gateway, attach [HTTP](/consul/docs/reference/config-entry/http-route) routes and [TCP](/consul/docs/reference/config-entry/tcp-route) routes to listeners defined in the gateway to control how requests route to services in the network. Refer to [Define API gateway routes on VMs](/consul/docs/north-south/api-gateway/vm/route) for additional information.
 
 ## Requirements
 

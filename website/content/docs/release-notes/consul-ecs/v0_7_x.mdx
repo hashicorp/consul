@@ -26,7 +26,7 @@ description: >-
   - Register the ECS cluster as a synthetic node in the central catalog on the Consul servers. The synthetic node is used to register services running in the ECS cluster.
   - Ensure leftover tokens and services are removed for ECS tasks that have stopped.
 
-- **Locality aware routing (Enterprise):** Consul on ECS 0.7.x supports [locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams). In your ECS task meta JSON, set the `AWS_REGION` container environment variable and `AvailabilityZone` attributes to set the locality parameters in Consul service and proxy registrations. Consul uses these parameters to perform locality aware routing in Consul Enterprise installations.
+- **Locality aware routing (Enterprise):** Consul on ECS 0.7.x supports [locality-aware routing](/consul/docs/manage-traffic/route-local). In your ECS task meta JSON, set the `AWS_REGION` container environment variable and `AvailabilityZone` attributes to set the locality parameters in Consul service and proxy registrations. Consul uses these parameters to perform locality aware routing in Consul Enterprise installations.
 
 ## Breaking changes
 

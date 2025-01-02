@@ -33,8 +33,8 @@ API gateways solve the following primary use cases:
   hostname, path, header presence or value, and HTTP method.
 
 Refer to the following documentation for information on how to configure and deploy API gateways:
-- [API Gateways on VMs](/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms)
-- [API Gateways for Kubernetes](/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s).
+- [API Gateways on VMs](/consul/docs/north-south/api-gateway/vm/listener)
+- [API Gateways for Kubernetes](/consul/docs/north-south/api-gateway/k8s/listener).
 
 ## Mesh Gateways
 
@@ -46,10 +46,10 @@ They operate by sniffing and extracting the server name indication (SNI) header 
 
 Mesh gateways enable the following scenarios:
 
-* **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) for additional information.
-- **Service-to-service communication across WAN-federated datacenters**. Refer to [Enabling Service-to-service Traffic Across Datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters) for additional information.
-- **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployments called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Across Admin Partitions](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions) for additional information.
-- **Bridge multiple datacenters using Cluster Peering**. Since Consul 1.14.0, mesh gateways can be used to route peering control-plane traffic between peered Consul Servers. See [Mesh Gateways for Peering Control Plane Traffic](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) for more information.
+* **Federate multiple datacenters across a WAN**. Since Consul 1.8.0, mesh gateways can forward gossip and RPC traffic between Consul servers. See [WAN federation via mesh gateways](/consul/docs/east-west/mesh-gateway/enable) for additional information.
+- **Service-to-service communication across WAN-federated datacenters**. Refer to [Enabling Service-to-service Traffic Across Datacenters](/consul/docs/east-west/mesh-gateway/federation) for additional information.
+- **Service-to-service communication across admin partitions**. Since Consul 1.11.0, you can create administrative boundaries for single Consul deployments called "admin partitions". You can use mesh gateways to facilitate cross-partition communication. Refer to [Enabling Service-to-service Traffic Across Admin Partitions](/consul/docs/east-west/mesh-gateway/admin-partition) for additional information.
+- **Bridge multiple datacenters using Cluster Peering**. Since Consul 1.14.0, mesh gateways can be used to route peering control-plane traffic between peered Consul Servers. See [Mesh Gateways for Peering Control Plane Traffic](/consul/docs/east-west/mesh-gateway/cluster-peer) for more information.
 - **Service-to-service communication across peered datacenters**. Refer to [Establish cluster peering connections](/consul/docs/east-west/cluster-peering/establish/vm) for more information.
 
 -> **Mesh gateway tutorial**: Follow the [mesh gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-gateways) to learn concepts associated with mesh gateways.
@@ -75,7 +75,7 @@ an ingress gateway by defining a set of listeners that can map to different sets
 Ingress gateways are tightly integrated with Consul's L7 configuration and enable dynamic routing of HTTP requests by
 attributes like the request path.
 
-For more information about ingress gateways, review the [complete documentation](/consul/docs/connect/gateways/ingress-gateway)
+For more information about ingress gateways, review the [complete documentation](/consul/docs/north-south/ingress-gateway)
 and the [ingress gateway tutorial](/consul/tutorials/developer-mesh/service-mesh-ingress-gateways).
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
@@ -84,7 +84,7 @@ and the [ingress gateway tutorial](/consul/tutorials/developer-mesh/service-mesh
 
 Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh
 to services outside the mesh.
-Services outside the mesh do not have sidecar proxies or are not [integrated natively](/consul/docs/connect/native).
+Services outside the mesh do not have sidecar proxies or are not [integrated natively](/consul/docs/automate/native).
 These may be services running on legacy infrastructure or managed cloud services running on
 infrastructure you do not control.
 
@@ -95,7 +95,7 @@ These gateways also simplify authorization from dynamic service addresses. Consu
 connections through the gateway are authorized. Then traditional tools like firewalls or IAM roles can authorize the
 connections from the known gateway nodes to the destination services.
 
-For more information about terminating gateways, review the [complete documentation](/consul/docs/connect/gateways/terminating-gateway)
+For more information about terminating gateways, review the [complete documentation](/consul/docs/north-south/terminating-gateway)
 and the [terminating gateway tutorial](/consul/tutorials/developer-mesh/terminating-gateways-connect-external-services).
 
 ![Terminating Gateway Architecture](/img/terminating-gateways.png)

@@ -7,7 +7,7 @@ description: >-
 
 # Proxy defaults configuration entry reference
 
-This topic provides reference information for proxy defaults configuration entries. Refer to [Service mesh proxy overview](/consul/docs/connect/proxies) for information about using proxies in Consul.
+This topic provides reference information for proxy defaults configuration entries. Refer to [Service mesh proxy overview](/consul/docs/connect/proxy) for information about using proxies in Consul.
 
 ## Introduction
 
@@ -337,7 +337,7 @@ Specifies an arbitrary map of configuration values used by service mesh proxies.
 
 ### `EnvoyExtensions`
 
-Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
+Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/envoy-extension) for additional information.
 
 #### Values
 
@@ -465,7 +465,7 @@ The following table describes the parameters for each map you can define in the 
 
 Sets a mode for the service that allows instances to prioritize upstream targets that are in the same network region and zone. You can specify the following string values for the `mode` field:
 
-- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `Locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `Locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 #### Values
 
@@ -566,7 +566,7 @@ Specifies an arbitrary map of configuration values used by service mesh proxies.
 
 ### `spec.envoyExtensions`
 
-Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
+Specifies a list of extensions that modify Envoy proxy configurations. Refer to [Envoy extensions](/consul/docs/envoy-extension) for additional information.
 
 #### Values
 
@@ -694,7 +694,7 @@ The following table describes the parameters for each map you can define in the 
 
 Sets a mode for the service that allows instances to prioritize upstream targets that are in the same network region and zone. You can specify the following string values for the `mode` field:
 
-- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 #### Values
 
@@ -874,7 +874,7 @@ spec:
 
 ### Access Logs
 
-The following example enables access logs for all proxies. Refer to [access logs](/consul/docs/connect/observability/access-logs) for more detailed examples.
+The following example enables access logs for all proxies. Refer to [access logs](/consul/docs/observe/access-log) for more detailed examples.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">

@@ -646,10 +646,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `server` ((#server_rpc_port)) - Server RPC address. Default 8300. TCP
     only.
   - `sidecar_min_port` ((#sidecar_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxy/sidecar).
     Default 21000. Set to `0` to disable automatic port assignment.
   - `sidecar_max_port` ((#sidecar_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxy/sidecar).
     Default 21255. Set to `0` to disable automatic port assignment.
   - `expose_min_port` ((#expose_min_port)) - Inclusive minimum port number
     to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
@@ -1296,7 +1296,7 @@ subsystem that provides Consul's service mesh capabilities.
         corresponding to the NIST P-\* curves of the same name.
       - `private_key_type = rsa`: `2048, 4096`
 
-- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. This field is intended for use primarily with VM and Nomad workloads. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. This field is intended for use primarily with VM and Nomad workloads. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
   - `region`:  String value that specifies the region where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS.
   - `zone`: String value that specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS.
 
@@ -2054,7 +2054,7 @@ subsystem that provides Consul's service mesh capabilities.
     - `service` ((#ui_config_dashboard_url_templates_service)) - This is the URL
       to use when linking to the dashboard for a specific service. It is shown
       as part of the [Topology
-      Visualization](/consul/docs/connect/observability/ui-visualization).
+      Visualization](/consul/docs/observe/telemetry/vm).
 
       The placeholders available are:
 

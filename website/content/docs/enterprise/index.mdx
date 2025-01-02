@@ -27,9 +27,9 @@ The following features are [available in several forms of Consul Enterprise](#co
 - [Automated Backups](/consul/docs/enterprise/backups): Configure the automatic backup of Consul state.
 - [Redundancy Zones](/consul/docs/enterprise/redundancy): Deploy backup voting Consul servers to efficiently improve Consul fault tolerance
 - [Server request rate limits per source IP](/consul/docs/manage/rate-limit/source): Limit gRPC and RPC traffic to servers for source IP addresses.
-- [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates): Limit the rate of HTTP requests a service receives per service instance.
-- [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams): Prioritize upstream services in the same region and zone as the downstream service.
-- [Fault injection](/consul/docs/connect/manage-traffic/fault-injection): Explore the resiliency of downstream services in response to problems with an upstream service, such as errors, latency, or response rate limits.
+- [Traffic rate limiting for services](/consul/docs/manage-traffic/rate-limit): Limit the rate of HTTP requests a service receives per service instance.
+- [Locality-aware routing](/consul/docs/manage-traffic/route-local): Prioritize upstream services in the same region and zone as the downstream service.
+- [Fault injection](/consul/docs/troubleshoot/fault-injection): Explore the resiliency of downstream services in response to problems with an upstream service, such as errors, latency, or response rate limits.
 
 ### Scalability
 
@@ -50,7 +50,7 @@ The following features are [available in several forms of Consul Enterprise](#co
 
 - [OIDC Auth Method](/consul/docs/security/acl/auth-methods/oidc): Manage user access to Consul through an OIDC identity provider instead of Consul ACL tokens directly.
 - [Audit Logging](/consul/docs/enterprise/audit-logging): Understand Consul access and usage patterns by reviewing access to the Consul HTTP API.
-- JWT authentication and authorization for API gateway: Prevent unverified traffic at the API gateway using JWTs for authentication and authorization on [VMs](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) and on [Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s).
+- JWT authentication and authorization for API gateway: Prevent unverified traffic at the API gateway using JWTs for authentication and authorization on [VMs](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) and on [Kubernetes](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s).
 
 ### Regulatory compliance
 
@@ -100,10 +100,10 @@ Available Enterprise features per Consul form and license include:
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 | All tiers                               | Yes                 | Yes                                               |
 | [Consul-Terraform-Sync Enterprise](/consul/docs/nia/enterprise)                                               | All tiers                               | Yes                 | Yes                                               |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)                                               | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
-| [Fault injection](/consul/docs/connect/manage-traffic/fault-injection)                                        | Yes                                     | Yes                 | No                                                |
+| [Fault injection](/consul/docs/troubleshoot/fault-injection)                                        | Yes                                     | Yes                 | No                                                |
 | [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         | No                                      | Yes                 | No                                                |
-| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) | Yes                                     | Yes                 | Yes                                               |
-| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        | Yes                                     | Yes                 | Yes                                               |
+| [JWT verification for API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) | Yes                                     | Yes                 | Yes                                               |
+| [Locality-aware routing](/consul/docs/manage-traffic/route-local)                        | Yes                                     | Yes                 | Yes                                               |
 | [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)                                          | Not applicable                          | Yes                 | Not applicable                                    |
 | [Namespaces](/consul/docs/enterprise/namespaces)                                                              | All tiers                               | Yes                 | With Governance and Policy module                 |
 | [Network Areas](/consul/docs/enterprise/federation)                                                           | No                                      | Yes                 | With Global Visibility, Routing, and Scale module |
@@ -112,7 +112,7 @@ Available Enterprise features per Consul form and license include:
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                                                        | Not applicable                          | Yes                 | With Global Visibility, Routing, and Scale module |
 | [Sameness Groups](/consul/docs/reference/config-entry/sameness-group)                                         | No                                      | Yes                 | Not applicable                                    |
 | [Server request rate limits per source IP](/consul/docs/manage/rate-limit/source)      | All tiers                               | Yes                 | With Governance and Policy module                 |
-| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                 | Yes                                     | Yes                 | Yes                                               |
+| [Traffic rate limiting for services](/consul/docs/manage-traffic/rate-limit)                 | Yes                                     | Yes                 | Yes                                               |
 
 [HashiCorp Cloud Platform (HCP) Consul]: https://cloud.hashicorp.com/products/consul
 [Consul Enterprise]: https://www.hashicorp.com/products/consul/
@@ -132,10 +132,10 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)                                                   |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)                                               |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Fault injection](/consul/docs/connect/manage-traffic/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
+| [Fault injection](/consul/docs/troubleshoot/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
 | [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         |  &#9989;  |  &#9989;   |  &#9989;   |
-| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) |  &#9989;  |  &#9989;   |  &#10060;  |
-| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        |  &#9989;  |  &#9989;   |  &#9989;   |
+| [JWT verification for API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Locality-aware routing](/consul/docs/manage-traffic/route-local)                        |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)                                          |  &#9989;  |  &#9989;   |  &#10060;  |
 | [Namespaces](/consul/docs/enterprise/namespaces)                                                              |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Network Areas](/consul/docs/enterprise/federation)                                                           |  &#9989;  |  &#9989;   |  &#9989;   |
@@ -144,7 +144,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                                                        |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Sameness Groups](/consul/docs/reference/config-entry/sameness-group)                                         |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Server request rate limits per source IP](/consul/docs/manage/rate-limit/source)      |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                 |  &#9989;  |  &#9989;   |  &#9989;   |
+| [Traffic rate limiting for services](/consul/docs/manage-traffic/rate-limit)                 |  &#9989;  |  &#9989;   |  &#9989;   |
 
 </Tab>
 
@@ -157,10 +157,10 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)                                                   |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 |  &#10060; |  &#10060;  |  &#10060;  |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)                                               |  &#10060; |  &#10060;  |  &#10060;  |
-| [Fault injection](/consul/docs/connect/manage-traffic/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
+| [Fault injection](/consul/docs/troubleshoot/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
 | [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         |  &#9989;  |  &#9989;   |  &#9989;   |
-| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) |  &#9989;  |  &#9989;   |  &#10060;  |
-| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        |  &#9989;  |  &#9989;   |  &#9989;   |
+| [JWT verification for API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s) |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Locality-aware routing](/consul/docs/manage-traffic/route-local)                        |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)                                          |  &#9989;  |  &#9989;   |  &#10060;  |
 | [Namespaces](/consul/docs/enterprise/namespaces)                                                              |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Network Areas](/consul/docs/enterprise/federation)                                                           |  &#9989;  |  &#9989;   |  &#9989;   |
@@ -169,7 +169,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                                                        |  &#10060; |  &#10060;  |  &#10060;  |
 | [Sameness Groups](/consul/docs/reference/config-entry/sameness-group)                                         |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Server request rate limits per source IP](/consul/docs/manage/rate-limit/source)      |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                 |  &#9989;  |  &#9989;   |  &#9989;   |
+| [Traffic rate limiting for services](/consul/docs/manage-traffic/rate-limit)                 |  &#9989;  |  &#9989;   |  &#9989;   |
 </Tab>
 
 <Tab heading ="Server Runtime: HCP">
@@ -181,10 +181,10 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Automated Server Backups](/consul/docs/enterprise/backups)                                                   |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Automated Server Upgrades](/consul/docs/enterprise/upgrades)                                                 |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Enhanced Read Scalability](/consul/docs/enterprise/read-scale)                                               |  &#10060; |  &#10060;  |  &#10060;  |
-| [Fault injection](/consul/docs/connect/manage-traffic/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
+| [Fault injection](/consul/docs/troubleshoot/fault-injection)                                        |  &#9989;  |  &#9989;   |  &#9989;   |
 | [FIPS 140-2 Compliance](/consul/docs/enterprise/fips)                                                         |  &#10060; |  &#10060;  |  &#10060;  |
-| [JWT verification for API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) |  &#9989;  |  &#9989;   |  &#10060;  |
-| [Locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams)                        |  &#9989;  |  &#9989;   |  &#9989;   |
+| [JWT verification for API gateways](/consul/docs/north-south/api-gateway/secure-traffic/jwt/vm) |  &#9989;  |  &#9989;   |  &#10060;  |
+| [Locality-aware routing](/consul/docs/manage-traffic/route-local)                        |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Long Term Support (LTS)](/consul/docs/enterprise/long-term-support)                                          |  N/A      |  N/A       |  N/A       |
 | [Namespaces](/consul/docs/enterprise/namespaces)                                                              |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Network Areas](/consul/docs/enterprise/federation)                                                           |  &#10060; |  &#10060;  |  &#10060;  |
@@ -193,7 +193,7 @@ Consul Enterprise feature availability can change depending on your server and c
 | [Redundancy Zones](/consul/docs/enterprise/redundancy)                                                        |  N/A      |  N/A       |  N/A       |
 | [Sameness Groups](/consul/docs/reference/config-entry/sameness-group)                                         |  &#9989;  |  &#9989;   |  &#9989;   |
 | [Server request rate limits per source IP](/consul/docs/manage/rate-limit/source)      |  &#9989;  |  &#9989;   |  &#9989;   |
-| [Traffic rate limiting for services](/consul/docs/connect/manage-traffic/limit-request-rates)                 |  &#9989;  |  &#9989;   |  &#9989;   |
+| [Traffic rate limiting for services](/consul/docs/manage-traffic/rate-limit)                 |  &#9989;  |  &#9989;   |  &#9989;   |
 
 </Tab>
 </Tabs>

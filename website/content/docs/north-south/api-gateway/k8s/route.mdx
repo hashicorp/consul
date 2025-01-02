@@ -19,7 +19,7 @@ Routes and the gateways they are attached to are eventually-consistent objects. 
 
 ## Requirements
 
-Verify that your environment meets the requirements specified in [Technical specifications for Kubernetes](/consul/docs/connect/gateways/api-gateway/tech-specs).
+Verify that your environment meets the requirements specified in [Technical specifications for Kubernetes](/consul/docs/north-south/api-gateway/k8s/tech-specs).
 
 ### OpenShift
 
@@ -37,7 +37,7 @@ Define route configurations and bind them to listeners configured on the gateway
    - `spec.parentRefs.name`: Specifies a list of API gateways that the route binds to.
    - `spec. rules`: Specifies a list of routing rules for constructing a routing table that maps listeners to services.
 
-   Refer to the [`Routes` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routes) for details about configuring route rules.
+   Refer to the [`Routes` configuration reference](/consul/docs/reference/k8s/api-gateway/routes) for details about configuring route rules.
 
 1. Configure any additional fields necessary for your use case, such as the namespace or admin partition.
 1. Save the configuration.

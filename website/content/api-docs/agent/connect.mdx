@@ -27,8 +27,8 @@ them in the native configuration of the proxy itself (such as RBAC for Envoy).
 
 This endpoint tests whether a connection attempt is authorized between
 two services. This is the primary API that must be implemented by
-[proxies](/consul/docs/connect/proxies) or
-[native integrations](/consul/docs/connect/native)
+[proxies](/consul/docs/connect/proxy) or
+[native integrations](/consul/docs/automate/native)
 that wish to integrate with the service mesh. Prior to calling this API, it is expected
 that the client TLS certificate has been properly verified against the
 current CA roots.
@@ -104,8 +104,8 @@ $ curl \
 ## Certificate Authority (CA) Roots
 
 This endpoint returns the trusted certificate authority (CA) root certificates.
-This is used by [proxies](/consul/docs/connect/proxies) or
-[native integrations](/consul/docs/connect/native) to verify served client
+This is used by [proxies](/consul/docs/connect/proxy) or
+[native integrations](/consul/docs/automate/native) to verify served client
 or server certificates are valid.
 
 This is equivalent to the [non-Agent service mesh endpoint](/consul/api-docs/connect),

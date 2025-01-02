@@ -86,7 +86,7 @@ You must specify the `"hashicorp.com/consul-api-gateway-controller"` controller 
 
 The `Gateway` resource is the core API gateway component. Gateways have one or more listeners that can route `HTTP`, `HTTPS`, or `TCP` traffic. You can define header-based hostname matching for listeners, but SNI is not supported.
 
-You can apply filters to add, remove, and set header values on incoming requests. Gateways support the `terminate` TLS mode and `core/v1/Secret` TLS certificates. Extended option support includes TLS version and cipher constraints. Refer to [Kubernetes `Gateway` resource configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/gateway) for more information.
+You can apply filters to add, remove, and set header values on incoming requests. Gateways support the `terminate` TLS mode and `core/v1/Secret` TLS certificates. Extended option support includes TLS version and cipher constraints. Refer to [Kubernetes `Gateway` resource configuration reference](/consul/docs/reference/k8s/api-gateway/gateway) for more information.
 
 ### `HTTPRoute`
 
@@ -127,7 +127,7 @@ Refer to the [Kubernetes `ReferenceGrant` documentation](https://gateway-api.sig
 
 ### Consul feature support
 
-API gateways on Kubernetes support all Consul features, but you can only route traffic between multiple datacenters through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services) for additional information. WAN federation is not supported.
+API gateways on Kubernetes support all Consul features, but you can only route traffic between multiple datacenters through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/north-south/api-gateway/k8s/peer) for additional information. WAN federation is not supported.
 
 ## Deployment Environments
 

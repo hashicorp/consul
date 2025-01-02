@@ -24,14 +24,14 @@ Usage: `consul connect proxy [options]`
 - `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
   local agent yet but a [sidecar proxy
-  registration](/consul/docs/connect/proxies/deploy-sidecar-services) with
+  registration](/consul/docs/connect/proxy/sidecar) with
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
   This can also be specified via the `CONNECT_SIDECAR_FOR` environment variable.
 
 - `-proxy-id` - The [proxy
-  service](/consul/docs/connect/proxies/proxy-config-reference) ID on the
+  service](/consul/docs/reference/proxy/connect-proxy) ID on the
   local agent. This must already be present on the local agent. This option
   can also be specified via the `CONNECT_PROXY_ID` environment variable.
 
@@ -44,7 +44,7 @@ Usage: `consul connect proxy [options]`
   doesn't need to actually exist in the Consul catalog, but proper ACL
   permissions (`service:write`) are required. This and the remaining options can
   be used to setup a proxy that is not registered already with local config
-  [useful for development](/consul/docs/connect/dev).
+  [useful for development](/consul/docs/troubleshoot/mesh).
 
 - `-upstream` - Upstream service to support connecting to. The format should be
   'name:addr', such as 'db:8181'. This will make 'db' available on port 8181.

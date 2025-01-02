@@ -56,7 +56,7 @@ Raft uses BoltDB for storing data and maintaining its own state. Refer to the [B
 
 ## Consul data plane monitoring
 
-The data plane of Consul consists of Consul clients or [Connect proxies](/consul/docs/connect/proxies) interacting with each other through service-to-service communication. Service-to-service traffic always stays within the data plane, while the control plane only enforces traffic rules. Monitoring service-to-service communication is important but may become extremely  complex in an enterprise setup with multiple services communicating to each other across federated Consul clusters through mesh, ingress and terminating gateways.
+The data plane of Consul consists of Consul clients or [Connect proxies](/consul/docs/connect/proxy) interacting with each other through service-to-service communication. Service-to-service traffic always stays within the data plane, while the control plane only enforces traffic rules. Monitoring service-to-service communication is important but may become extremely  complex in an enterprise setup with multiple services communicating to each other across federated Consul clusters through mesh, ingress and terminating gateways.
 
 ### Service monitoring
 

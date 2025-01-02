@@ -342,7 +342,7 @@ You can specify the following values:
 - `connect-proxy`: Defines the configuration for a service mesh proxy. Refer to [Deploy service mesh proxies](/consul/docs/deploy/service-mesh/deploy-proxy) for details about registering a service as a service mesh proxy.
 - `ingress-gateway`: Defines the configuration for an [ingress gateway](/consul/docs/reference/config-entry/ingress-gateway)
 - `mesh-gateway`: Defines the configuration for a [mesh gateway](/consul/docs/east-west/mesh-gateway/)
-- `terminating-gateway`: Defines the configuration for a [terminating gateway](/consul/docs/connect/gateways/terminating-gateway)
+- `terminating-gateway`: Defines the configuration for a [terminating gateway](/consul/docs/north-south/terminating-gateway)
 
 For non-service registration roles, the `kind` field has a different context when used to define configuration entries, such as `service-defaults`. Refer to the documentation for the configuration entry you want to implement for additional information. 
 
@@ -358,12 +358,12 @@ The following table describes the parameters that you can place in the `connect`
 
 | Parameter | Description | Default |
 | ---       | ---         | ---     |
-| `native` | Boolean value that advertises the service as a native service mesh proxy. Use this parameter to integrate your application with the `connect` API. Refer to [Service Mesh Native App Integration Overview](/consul/docs/connect/native) for additional information. If set to `true`, do not configure a `sidecar_service`. | `false` |
+| `native` | Boolean value that advertises the service as a native service mesh proxy. Use this parameter to integrate your application with the `connect` API. Refer to [Service Mesh Native App Integration Overview](/consul/docs/automate/native) for additional information. If set to `true`, do not configure a `sidecar_service`. | `false` |
 | `sidecar_service` | Object that defines a sidecar proxy for the service. Do not configure if `native` is set to `true`. Refer to [Deploy sidecar services](/consul/docs/reference/proxy/sidecar) for usage and configuration details. | Refer to [Sidecar service defaults](/consul/docs/reference/proxy/sidecar#sidecar-service-defaults). |
 
 ###  `locality` <EnterpriseAlert inline/>  
 
-Map of configurations that specify the region and zone in the cloud service provider (CSP) where the service is available. Configure this field to enable Consul to route traffic to the nearest physical service instance. Services inherit the `locality` configuration of the Consul agent they are registered with, but you can explicitly define locality for your service instances if an override is needed. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+Map of configurations that specify the region and zone in the cloud service provider (CSP) where the service is available. Configure this field to enable Consul to route traffic to the nearest physical service instance. Services inherit the `locality` configuration of the Consul agent they are registered with, but you can explicitly define locality for your service instances if an override is needed. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.
 
 - Default: None
 - Data type: Map

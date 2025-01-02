@@ -8,7 +8,7 @@ description: |-
 
 This topic describes how to create a sameness group, which designates a set of admin partitions as functionally identical in your network. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and namespace.
 
-For information about configuring a failover strategy using sameness groups, refer to [Failover with sameness groups](/consul/docs/connect/manage-traffic/failover/sameness).
+For information about configuring a failover strategy using sameness groups, refer to [Failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group).
 
 ## Workflow
 
@@ -63,7 +63,7 @@ To define a sameness group for a partition, create a [sameness group configurati
 1. Other partitions in the same datacenter
 1. Partitions with established cluster peering relationships
 
-If you want all services to failover to other instances in the sameness group by default, set `DefaultForFailover=true` and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/connect/manage-traffic/failover/sameness) for more information.
+If you want all services to failover to other instances in the sameness group by default, set `DefaultForFailover=true` and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group) for more information.
 
 Be aware that the sameness group configuration entries are different for each partition. The following example demonstrates how to format three different configuration entries for three partitions that are part of the sameness group `product-group` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2:
 
@@ -305,4 +305,4 @@ After creating a sameness group, you can use them with static Consul DNS lookups
 
 - [Static Consul DNS lookups](/consul/docs/services/discovery/dns-static-lookups)
 - [Dynamic Consul DNS lookups](/consul/docs/services/discovery/dns-dynamic-lookups)
-- [Failover overview](/consul/docs/connect/manage-traffic/failover)
+- [Failover overview](/consul/docs/manage-traffic/failover)

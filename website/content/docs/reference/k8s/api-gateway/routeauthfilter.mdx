@@ -103,7 +103,7 @@ Map that contains JWT verification configurations to apply to listeners when the
 
 ### `spec.jwt.providers`
 
-Specifies a list of JWT provider configurations to apply to listeners when the filter is attached to the route. A provider configuration contains the name of the provider and claims. The route-specific settings have precedence over the `default` configurations, but not `override` configurations, that are defined in the [`GatewayPolicy`](/consul/docs/reference/k8s/api-gateway/gatewaypolicy) resource. Refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for additional information.
+Specifies a list of JWT provider configurations to apply to listeners when the filter is attached to the route. A provider configuration contains the name of the provider and claims. The route-specific settings have precedence over the `default` configurations, but not `override` configurations, that are defined in the [`GatewayPolicy`](/consul/docs/reference/k8s/api-gateway/gatewaypolicy) resource. Refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/north-south/api-gateway/secure-traffic/jwt/k8s) for additional information.
 
 #### Values
 

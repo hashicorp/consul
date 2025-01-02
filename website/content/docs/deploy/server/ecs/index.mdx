@@ -160,8 +160,8 @@ The `gateway-task` module deploys a mesh gateway, which enables service-to-servi
 
 Refer to the following documentation for additional information:
 
-- [WAN Federation via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
-- [Service-to-service Traffic Across Datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
+- [WAN Federation via Mesh Gateways](/consul/docs/east-west/mesh-gateway/enable)
+- [Service-to-service Traffic Across Datacenters](/consul/docs/east-west/mesh-gateway/federation)
 
 To use mesh gateways, TLS must be enabled in your cluster. Refer to the [requirements section](#requirements) for additional information.
 
@@ -453,7 +453,7 @@ module "my_mesh_gateway" {
 
 ### WAN federation
 
-Configure the following options in the `gateway-task` to enable [WAN federation through mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+Configure the following options in the `gateway-task` to enable [WAN federation through mesh gateways](/consul/docs/east-west/mesh-gateway/enable).
 
 | Option | Type | Description |
 | ---    | ---  | ---         |

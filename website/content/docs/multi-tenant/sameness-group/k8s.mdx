@@ -8,7 +8,7 @@ description: |-
 
 This topic describes how to create a sameness group, which designates a set of admin partitions as functionally identical in a Consul deployment running Kubernetes. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and Consul namespace.
 
-For information about configuring a failover strategy using sameness groups, refer to [Failover with sameness groups](/consul/docs/connect/manage-traffic/failover/sameness).
+For information about configuring a failover strategy using sameness groups, refer to [Failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group).
 
 ## Overview
 
@@ -61,7 +61,7 @@ To define a sameness group for a partition, create a [sameness group CRD](/consu
 1. Other partitions in the same datacenter
 1. Partitions with established cluster peering relationships
 
-If you want all services to failover to other instances in the sameness group by default, set `spec.defaultForFailover=true` and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/connect/manage-traffic/failover/sameness) for more information.
+If you want all services to failover to other instances in the sameness group by default, set `spec.defaultForFailover=true` and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group) for more information.
 
 Be aware that the sameness group CRDs are different for each partition. The following example demonstrates how to format three different CRDs for three partitions that are part of the sameness group `product-group` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2:
 
@@ -271,7 +271,7 @@ spec:
 
 </CodeTabs>
 
-Refer to [create and manage intentions](/consul/docs/connect/intentions/create-manage-intentions) for more information about how to create and apply service intentions in Consul.
+Refer to [create and manage intentions](/consul/docs/secure-mesh/intention/create) for more information about how to create and apply service intentions in Consul.
 
 After you create each service intentions configuration entry, apply it to the Consul server with the following CLI command:
 
@@ -289,4 +289,4 @@ If your goal for peering clusters is to create a sameness group, you can write a
 
 When `defaultForFailover=true` in a sameness group CRD, additional upstream configuration is not required.
 
-After creating a sameness group, you can also set up failover between services in a sameness group. Refer to [Failover with sameness groups](/consul/docs/connect/manage-traffic/failover/sameness) for more information.
+After creating a sameness group, you can also set up failover between services in a sameness group. Refer to [Failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group) for more information.

@@ -47,8 +47,8 @@ In networks with multiple datacenters or partitions that share a peer connection
 
 You can configure sameness groups for this type of network. Sameness groups allow you to define a group of admin partitions where identical services are deployed in identical namespaces. After you configure the sameness group, you can reference the `SamenessGroup` parameter in service resolver, exported service, and service intention configuration entries, enabling you to add or remove cluster peers from the group without making changes to every cluster peer every time.
 
-You can configure a sameness group so that it functions as the default for failover behavior. You can also reference sameness groups in a service resolver's `Failover` stanza or in a prepared query. Refer to [Failover with sameness groups](/consul/docs/connect/manage-traffic/failover/sameness) for more information.
+You can configure a sameness group so that it functions as the default for failover behavior. You can also reference sameness groups in a service resolver's `Failover` stanza or in a prepared query. Refer to [Failover with sameness groups](/consul/docs/manage-traffic/failover/sameness-group) for more information.
 
 ## Locality-aware routing
 
-By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network regions and zones. You can configure Consul to route requests to upstreams in the same region and zone, which reduces latency and transfer costs. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network regions and zones. You can configure Consul to route requests to upstreams in the same region and zone, which reduces latency and transfer costs. Refer to [Route traffic to local upstreams](/consul/docs/manage-traffic/route-local) for additional information.

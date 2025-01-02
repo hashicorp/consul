@@ -42,7 +42,7 @@ The destination service verifies the client certificate against the [public CA
 bundle](/consul/api-docs/connect/ca#list-ca-root-certificates). After verifying the
 certificate, the next step depends upon the configured application protocol of
 the destination service. TCP (L4) services must authorize incoming _connections_
-against the configured set of Consul [intentions](/consul/docs/connect/intentions),
+against the configured set of Consul [intentions](/consul/docs/secure-mesh/intention),
 whereas HTTP (L7) services must authorize incoming _requests_ against those same
 intentions. If the intention check responds successfully, the
 connection/request is established. Otherwise the connection/request is
@@ -101,7 +101,7 @@ A sidecar proxy's [upstream configuration](/consul/docs/connect/proxies/proxy-co
 may specify an alternative datacenter or a prepared query that can address services
 in multiple datacenters (such as the [geo failover](/consul/tutorials/developer-discovery/automate-geo-failover) pattern).
 
-[Intentions](/consul/docs/connect/intentions) verify connections between services by
+[Intentions](/consul/docs/secure-mesh/intention) verify connections between services by
 source and destination name seamlessly across datacenters.
 
 Connections can be made via gateways to enable communicating across network

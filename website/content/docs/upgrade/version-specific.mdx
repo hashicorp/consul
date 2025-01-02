@@ -771,7 +771,7 @@ namespace with a query parameter of `?ns=*`.
 #### Migration
 
 Upgrading to Consul 1.9.0 will trigger a one-time background migration of
-[intentions](/consul/docs/connect/intentions) into an equivalent set of
+[intentions](/consul/docs/secure-mesh/intention) into an equivalent set of
 [`service-intentions`](/consul/docs/reference/config-entry/service-intentions) config
 entries. This process will wait until all of the Consul servers in the primary
 datacenter are running Consul 1.9.0+.
@@ -882,9 +882,9 @@ Starting with Consul 1.7.1 this is the new default.
 #### Removal of Deprecated Features
 
 Managed proxies, which are deprecated since Consul v1.3.0, have now been
-[removed](/consul/docs/connect/proxies). Before upgrading, you must
+[removed](/consul/docs/connect/proxy). Before upgrading, you must
 migrate any managed proxy usage to [sidecar service
-registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
+registrations](/consul/docs/connect/proxy/sidecar).
 
 ## Consul 1.4.0
 

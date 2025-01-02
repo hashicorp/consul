@@ -20,14 +20,14 @@ For additional use cases and usage patterns, review the tutorial for
 [understanding terminating gateways](/consul/tutorials/developer-mesh/service-mesh-terminating-gateways?utm_source=docs).
 
 ~> **Known limitations:** Terminating gateways currently do not support targeting service subsets with
-[L7 configuration](/consul/docs/connect/manage-traffic). They route to all instances of a service with no capabilities
+[L7 configuration](/consul/docs/manage-traffic). They route to all instances of a service with no capabilities
 for filtering by instance.
 
 ## Security Considerations
 
 ~> We recommend that terminating gateways are not exposed to the WAN or open internet. This is because terminating gateways
 hold certificates to decrypt Consul service mesh traffic directed at them and may be configured with credentials to connect
-to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/consul/docs/connect/gateways/mesh-gateway)
+to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/consul/docs/east-west/mesh-gateway)
 whenever possible since they are not capable of decrypting traffic or connecting directly to services.
 
 By specifying a path to a [CA file](/consul/docs/connect/config-entries/terminating-gateway#cafile) connections
